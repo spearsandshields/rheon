@@ -12,7 +12,12 @@ license = { workspace = true }
 edition = { workspace = true }
 
 [features]
+default = ["dashu"]
 parsing-tables = []
+# Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
+# Forwarded to every dsntk dependency so that one selection covers the whole build graph.
+dashu = ["dsntk-feel/dashu"]
+intel = ["dsntk-feel/intel"]
 
 [dependencies]
 antex = { workspace = true }

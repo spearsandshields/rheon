@@ -61,19 +61,19 @@ url = "2.5.8"
 urlencoding = "2.1.3"
 walkdir = "2.5.0"
 dsntk-common = { path = "common" }
-dsntk-evaluator = { path = "evaluator" }
+dsntk-evaluator = { path = "evaluator", default-features = false }
 dsntk-examples = { path = "examples" }
-dsntk-feel = { path = "feel" }
-dsntk-feel-evaluator = { path = "feel-evaluator" }
+dsntk-feel = { path = "feel", default-features = false }
+dsntk-feel-evaluator = { path = "feel-evaluator", default-features = false }
 dsntk-feel-grammar = { path = "feel-grammar" }
-dsntk-feel-number = { path = "feel-number" }
-dsntk-feel-parser = { path = "feel-parser" }
+dsntk-feel-number = { path = "feel-number", default-features = false }
+dsntk-feel-parser = { path = "feel-parser", default-features = false }
 dsntk-feel-regex = { path = "feel-regex" }
-dsntk-feel-temporal = { path = "feel-temporal" }
-dsntk-gendoc = { path = "gendoc" }
+dsntk-feel-temporal = { path = "feel-temporal", default-features = false }
+dsntk-gendoc = { path = "gendoc", default-features = false }
 dsntk-macros = { path = "macros" }
-dsntk-model = { path = "model" }
-dsntk-model-evaluator = { path = "model-evaluator" }
+dsntk-model = { path = "model", default-features = false }
+dsntk-model-evaluator = { path = "model-evaluator", default-features = false }
 dsntk-recognizer = { path = "recognizer" }
-dsntk-server = { path = "server" }
-dsntk-workspace = { path = "workspace" }
+dsntk-server = { path = "server", default-features = false }
+dsntk-workspace = { path = "workspace", default-features = false }

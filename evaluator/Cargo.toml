@@ -11,6 +11,13 @@ homepage = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 
+[features]
+default = ["dashu"]
+# Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
+# Forwarded to every dsntk dependency so that one selection covers the whole build graph.
+dashu = ["dsntk-feel/dashu", "dsntk-feel-evaluator/dashu", "dsntk-feel-parser/dashu", "dsntk-model-evaluator/dashu"]
+intel = ["dsntk-feel/intel", "dsntk-feel-evaluator/intel", "dsntk-feel-parser/intel", "dsntk-model-evaluator/intel"]
+
 [dependencies]
 dsntk-common = { workspace = true }
 dsntk-feel = { workspace = true }

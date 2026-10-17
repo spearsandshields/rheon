@@ -11,6 +11,13 @@ homepage = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 
+[features]
+default = ["dashu"]
+# Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
+# Forwarded to every dsntk dependency so that one selection covers the whole build graph.
+dashu = ["dsntk-feel-number/dashu", "dsntk-feel-temporal/dashu"]
+intel = ["dsntk-feel-number/intel", "dsntk-feel-temporal/intel"]
+
 [dependencies]
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
