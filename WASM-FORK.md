@@ -224,7 +224,7 @@ dashu spike built feel-evaluator with `dashu` for `wasm32-wasip1` and
 
 ## The `fastnum-backend` branch
 
-`fastnum-backend` = `wasm` (commit 10) + one commit adding
+`fastnum-backend` = the head of `wasm` + one commit adding
 `feel-number/src/backend_fastnum.rs` behind feature `fastnum` (fastnum's
 D256 division, the spike's exp/ln series, `pow` as `exp(y ln x)` at a fixed
 77 digits, every result rounded once by the core from its digit string),
