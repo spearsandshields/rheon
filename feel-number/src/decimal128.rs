@@ -64,8 +64,10 @@ const POW_PRECISIONS: [usize; 4] = [45, 60, 90, 140];
 /// Unpacked decimal128 value.
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum V {
-  /// Not a number.
-  NaN,
+  /// Not a number, with sign (`true` = negative). The sign only shows in `Debug`
+  /// (`-NaN`, like Intel's `bid128_to_string`): it is flipped by negation, cleared by `abs`,
+  /// kept when a NaN operand is propagated, and positive for an invalid operation.
+  NaN(bool),
   /// Infinity with sign (`true` = negative).
   Inf(bool),
   /// Finite number: sign (`true` = negative), coefficient (< 10^34), exponent.
@@ -461,7 +463,7 @@ fn round_pack_u128(neg: bool, c: u128, exp: i64) -> (V, bool) {
 /// spacing below it.
 fn pack(w: Wide) -> (V, bool) {
   match w {
-    Wide::NaN => (V::NaN, false),
+    Wide::NaN => (V::NaN(false), false),
     Wide::Inf(neg) => (V::Inf(neg), true),
     Wide::Rounded(neg, c, e, Ordering::Equal) => round_pack_u128(neg, c, e),
     Wide::Rounded(neg, c, e, side) => {
@@ -586,12 +588,12 @@ fn is_zero_v(v: V) -> bool {
 
 /// Sign bit of the value (like `bid128_is_signed`).
 fn is_signed_v(v: V) -> bool {
-  matches!(v, V::Fin(true, _, _) | V::Inf(true))
+  matches!(v, V::Fin(true, _, _) | V::Inf(true) | V::NaN(true))
 }
 
 fn negate(v: V) -> V {
   match v {
-    V::NaN => V::NaN,
+    V::NaN(s) => V::NaN(!s),
     V::Inf(s) => V::Inf(!s),
     V::Fin(s, c, e) => V::Fin(!s, c, e),
   }
@@ -630,7 +632,9 @@ fn add_fin(sa: bool, ca: u128, ea: i32, sb: bool, cb: u128, eb: i32) -> (V, bool
     return round_pack_u128(sh, if sh == sl { x + 1 } else { x - 1 }, (eh - k as i32) as i64);
   }
   // d < dl - dh + 36 <= 69 here, so ch * 10^d has fewer than 70 digits
-  let Some(x) = U256::from_u128(ch).checked_mul_pow10(d) else { return (V::NaN, false) };
+  let Some(x) = U256::from_u128(ch).checked_mul_pow10(d) else {
+    return (V::NaN(false), false);
+  };
   let l = U256::from_u128(cl);
   let (s, sum) = if sh == sl {
     (sh, x.checked_add(l))
@@ -641,18 +645,18 @@ fn add_fin(sa: bool, ca: u128, ea: i32, sb: bool, cb: u128, eb: i32) -> (V, bool
   };
   match sum {
     Some(sum) => round_pack(s, &sum.to_decimal(), el as i64),
-    None => (V::NaN, false),
+    None => (V::NaN(false), false),
   }
 }
 
 fn add_v(a: V, b: V) -> V {
   match (a, b) {
-    (V::NaN, _) | (_, V::NaN) => V::NaN,
+    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
     (V::Inf(x), V::Inf(y)) => {
       if x == y {
         V::Inf(x)
       } else {
-        V::NaN
+        V::NaN(false)
       }
     }
     (V::Inf(x), _) | (_, V::Inf(x)) => V::Inf(x),
@@ -669,7 +673,11 @@ fn add_v(a: V, b: V) -> V {
 }
 
 fn sub_v(a: V, b: V) -> V {
-  add_v(a, negate(b))
+  // like bid128_sub: the sign of a NaN subtrahend is not inverted
+  match b {
+    V::NaN(_) => add_v(a, b),
+    _ => add_v(a, negate(b)),
+  }
 }
 
 /// Exact product of two finite values, rounded once to decimal128.
@@ -683,11 +691,11 @@ fn mul_fin(s: bool, ca: u128, ea: i32, cb: u128, eb: i32) -> (V, bool) {
 
 fn mul_v(a: V, b: V) -> V {
   match (a, b) {
-    (V::NaN, _) | (_, V::NaN) => V::NaN,
+    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
     (V::Inf(x), V::Inf(y)) => V::Inf(x != y),
     (V::Inf(x), V::Fin(y, c, _)) | (V::Fin(y, c, _), V::Inf(x)) => {
       if c == 0 {
-        V::NaN
+        V::NaN(false)
       } else {
         V::Inf(x != y)
       }
@@ -704,13 +712,13 @@ fn mul_v(a: V, b: V) -> V {
 
 fn div_v(a: V, b: V) -> V {
   match (a, b) {
-    (V::NaN, _) | (_, V::NaN) => V::NaN,
-    (V::Inf(_), V::Inf(_)) => V::NaN,
+    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
+    (V::Inf(_), V::Inf(_)) => V::NaN(false),
     (V::Inf(x), V::Fin(y, _, _)) => V::Inf(x != y),
     (V::Fin(x, _, _), V::Inf(y)) => V::Fin(x != y, 0, EXP_MIN as i32),
     (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) => {
       if cb == 0 {
-        return if ca == 0 { V::NaN } else { V::Inf(sa != sb) };
+        return if ca == 0 { V::NaN(false) } else { V::Inf(sa != sb) };
       }
       if ca == 0 {
         return V::Fin(sa != sb, 0, ((ea - eb) as i64).clamp(EXP_MIN, EXP_MAX) as i32);
@@ -788,9 +796,9 @@ fn round_integral_v(v: V, mode: Rnd) -> V {
 /// Quantize: rounds the value (half-even) to have the exponent of `q`.
 fn quantize_v(v: V, q: V) -> V {
   match (v, q) {
-    (V::NaN, _) | (_, V::NaN) => V::NaN,
+    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
     (V::Inf(s), V::Inf(_)) => V::Inf(s),
-    (V::Inf(_), _) | (_, V::Inf(_)) => V::NaN,
+    (V::Inf(_), _) | (_, V::Inf(_)) => V::NaN(false),
     (V::Fin(s, c, e), V::Fin(_, _, eq)) => {
       if e >= eq {
         let shift = (e - eq) as u32;
@@ -798,7 +806,7 @@ fn quantize_v(v: V, q: V) -> V {
           return V::Fin(s, 0, eq);
         }
         if digit_count(c) + shift > PRECISION as u32 {
-          return V::NaN;
+          return V::NaN(false);
         }
         V::Fin(s, c * pow10(shift), eq)
       } else {
@@ -806,7 +814,7 @@ fn quantize_v(v: V, q: V) -> V {
         match round_integral_v(V::Fin(s, c, e - eq), Rnd::HalfEven) {
           V::Fin(s, c, _) => {
             if digit_count(c) > PRECISION as u32 {
-              V::NaN
+              V::NaN(false)
             } else {
               V::Fin(s, c, eq)
             }
@@ -821,7 +829,7 @@ fn quantize_v(v: V, q: V) -> V {
 /// Compares two values, returns `None` when unordered (NaN involved).
 fn cmp_v(a: V, b: V) -> Option<Ordering> {
   match (a, b) {
-    (V::NaN, _) | (_, V::NaN) => None,
+    (V::NaN(_), _) | (_, V::NaN(_)) => None,
     (V::Inf(x), V::Inf(y)) => Some(y.cmp(&x)),
     (V::Inf(x), _) => Some(if x { Ordering::Less } else { Ordering::Greater }),
     (_, V::Inf(y)) => Some(if y { Ordering::Greater } else { Ordering::Less }),
@@ -929,7 +937,7 @@ fn parse_v(s: &str) -> (V, bool) {
   let at = |k: usize| if k < b.len() { b[k] } else { 0 };
   if !(at(i) == b'.' || at(i).is_ascii_digit()) {
     let rest = s[i..].to_ascii_lowercase();
-    return (if rest == "inf" || rest == "infinity" { V::Inf(neg) } else { V::NaN }, false);
+    return (if rest == "inf" || rest == "infinity" { V::Inf(neg) } else { V::NaN(false) }, false);
   }
   let mut digits = String::new();
   let mut after = 0_i64;
@@ -952,12 +960,12 @@ fn parse_v(s: &str) -> (V, bool) {
   if i < b.len() {
     let c = b[i];
     if c != b'e' && c != b'E' {
-      return (V::NaN, false);
+      return (V::NaN(false), false);
     }
     i += 1;
     let c = at(i);
     if !c.is_ascii_digit() && !((c == b'+' || c == b'-') && at(i + 1).is_ascii_digit()) {
-      return (V::NaN, false);
+      return (V::NaN(false), false);
     }
     let mut sign = 1;
     if c == b'-' || c == b'+' {
@@ -984,7 +992,7 @@ fn parse_v(s: &str) -> (V, bool) {
 /// Converts the value into the string in the same format as Intel's `bid128_to_string`.
 fn to_intel_string(v: V) -> String {
   match v {
-    V::NaN => "+NaN".to_string(),
+    V::NaN(s) => if s { "-NaN" } else { "+NaN" }.to_string(),
     V::Inf(s) => if s { "-Inf" } else { "+Inf" }.to_string(),
     V::Fin(s, c, e) => format!("{}{}E{}{}", if s { '-' } else { '+' }, c, if e >= 0 { "+" } else { "" }, e),
   }
@@ -993,7 +1001,7 @@ fn to_intel_string(v: V) -> String {
 /// Intel's `bid128_ilogb`.
 fn ilogb_v(v: V) -> i32 {
   match v {
-    V::Fin(_, 0, _) | V::NaN => i32::MIN,
+    V::Fin(_, 0, _) | V::NaN(_) => i32::MIN,
     V::Inf(_) => i32::MAX,
     V::Fin(_, c, e) => digit_count(c) as i32 - 1 + e,
   }
@@ -1039,7 +1047,7 @@ fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
     let (mut digits, mut e) = match B::pow_step(cx, ex, sy, cy, ey, precision) {
       PowStep::Overflow => return V::Inf(false),
       PowStep::Underflow => return V::Fin(false, 0, EXP_MIN as i32),
-      PowStep::Undefined => return V::NaN,
+      PowStep::Undefined => return V::NaN(false),
       PowStep::Value(digits, e) => (digits, e),
     };
     // exactly p digits (a backend may strip trailing zeros)
@@ -1064,7 +1072,7 @@ fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
     // an exact tie: the digits above the rounding position followed by a single 5
     result = Some(round_pack(false, &format!("{}5", &digits[..p - tail_len]), e + tail_len as i64 - 1).0);
   }
-  result.unwrap_or(V::NaN)
+  result.unwrap_or(V::NaN(false))
 }
 
 /// Square root of a finite, positive value, correctly rounded.
@@ -1079,7 +1087,7 @@ fn sqrt_v(c: u128, e: i32) -> V {
   let k = ((69 - digit_count(c2) as i32).max(0) + 1) / 2;
   // c2 has at most 35 digits and 2k at most 68, so the radicand has at most 70 digits
   let Some(radicand) = U256::from_u128(c2).checked_mul_pow10(2 * k as u32) else {
-    return V::NaN;
+    return V::NaN(false);
   };
   let (root, inexact) = isqrt_rem(radicand);
   let exp = (e2 / 2 - k) as i64;
@@ -1150,7 +1158,7 @@ impl FeelNumber {
     let v = match self.v() {
       V::Fin(_, c, e) => V::Fin(false, c, e),
       V::Inf(_) => V::Inf(false),
-      V::NaN => V::NaN,
+      V::NaN(_) => V::NaN(false),
     };
     Self::of(v, false)
   }
@@ -1175,7 +1183,7 @@ impl FeelNumber {
 
   pub fn exp(&self) -> Option<Self> {
     let n = match self.v() {
-      V::NaN => V::NaN,
+      V::NaN(s) => V::NaN(s),
       V::Inf(false) => V::Inf(false),
       V::Inf(true) => ZERO,
       V::Fin(_, 0, _) => ONE,
@@ -1234,10 +1242,11 @@ impl FeelNumber {
 
   pub fn ln(&self) -> Option<Self> {
     let n = match self.v() {
-      V::NaN | V::Inf(true) => V::NaN,
+      V::NaN(s) => V::NaN(s),
+      V::Inf(true) => V::NaN(false),
       V::Inf(false) => V::Inf(false),
       V::Fin(_, 0, _) => V::Inf(true),
-      V::Fin(true, _, _) => V::NaN,
+      V::Fin(true, _, _) => V::NaN(false),
       V::Fin(false, c, e) => ln_v(c, e),
     };
     if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
@@ -1314,10 +1323,11 @@ impl FeelNumber {
 
   pub fn sqrt(&self) -> Option<Self> {
     let n = match self.v() {
-      V::NaN | V::Inf(true) => V::NaN,
+      V::NaN(s) => V::NaN(s),
+      V::Inf(true) => V::NaN(false),
       V::Inf(false) => V::Inf(false),
       V::Fin(s, 0, e) => V::Fin(s, 0, e.div_euclid(2)),
-      V::Fin(true, _, _) => V::NaN,
+      V::Fin(true, _, _) => V::NaN(false),
       V::Fin(false, c, e) => sqrt_v(c, e),
     };
     if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
@@ -1387,8 +1397,12 @@ fn pow_v(x: V, y: V) -> V {
   if is_zero_v(y) || eq_v(x, ONE) {
     return ONE;
   }
-  if matches!(x, V::NaN) || matches!(y, V::NaN) {
-    return V::NaN;
+  // a NaN operand is propagated, the base first
+  if let V::NaN(s) = x {
+    return V::NaN(s);
+  }
+  if let V::NaN(s) = y {
+    return V::NaN(s);
   }
   if let V::Inf(y_negative) = y {
     let ax = match x {
@@ -1412,7 +1426,7 @@ fn pow_v(x: V, y: V) -> V {
     _ => {}
   }
   if x_negative && !y_integer {
-    return V::NaN;
+    return V::NaN(false);
   }
   // integer exponent that fits in i32 (and is not i32::MIN, like in Intel's implementation)
   if y_integer && let Some(n) = to_signed(y, i32::MIN as i128 + 1, i32::MAX as i128) {
@@ -1430,8 +1444,8 @@ fn pow_v(x: V, y: V) -> V {
     }
     return if n < 0 { div_v(ONE, r) } else { r };
   }
-  let V::Fin(_, cx, ex) = x else { return V::NaN };
-  let V::Fin(sy, cy, ey) = y else { return V::NaN };
+  let V::Fin(_, cx, ex) = x else { return V::NaN(false) };
+  let V::Fin(sy, cy, ey) = y else { return V::NaN(false) };
   // (-1)^y for an integer y outside i32: Intel's logarithm takes its Taylor branch with
   // t = |x| - 1 = 0, all intermediate values are zeros whose exponents propagate into
   // the final `fma(exp(l), l_lo, exp(l)) = 1`; with x = -1 written with k fractional
@@ -1596,7 +1610,7 @@ impl Display for FeelNumber {
     // Infinity and NaN: FEEL has no such numbers, but never panic while formatting them
     // (a panic aborts the whole engine on wasm32).
     let (negative, c, exponent) = match self.v() {
-      V::NaN => return f.pad("NaN"),
+      V::NaN(_) => return f.pad("NaN"),
       V::Inf(negative) => return f.pad(if negative { "-Infinity" } else { "Infinity" }),
       V::Fin(negative, c, e) => (negative, c, e as isize),
     };
@@ -2071,7 +2085,7 @@ mod tests {
       pack(Wide::Digits(false, "1".repeat(40), 6100)),
       (V::Fin(false, 1111111111111111111111111111111111, 6106), true)
     );
-    assert_eq!(pack(Wide::NaN), (V::NaN, false));
+    assert_eq!(pack(Wide::NaN), (V::NaN(false), false));
     assert_eq!(
       pack(Wide::Digits(false, "123456789012345678901234567890123450".into(), -40)),
       (V::Fin(false, 1234567890123456789012345678901234, -38), true)
@@ -2357,6 +2371,39 @@ mod tests {
     assert_eq!("+2192641593867934774425562824143910E-1", dbg(n("74.46783").exp().unwrap()));
     // not dyadic: always 34 digits
     assert_eq!("+1599999999999999999999999998813750E-32", dbg(n("2.772588722239781237668928485091300").exp().unwrap()));
+  }
+
+  #[test]
+  fn nan_sign_follows_intel() {
+    let nan = n("0") / n("0");
+    assert_eq!("+NaN", dbg(nan));
+    assert_eq!("-NaN", dbg(-nan));
+    assert_eq!("+NaN", dbg(-(-nan)));
+    assert_eq!("+NaN", dbg((-nan).abs()));
+    // a NaN operand is propagated with its sign, the first one wins
+    assert_eq!("-NaN", dbg(-nan + n("1")));
+    assert_eq!("-NaN", dbg(n("1") + -nan));
+    assert_eq!("-NaN", dbg(n("1") - -nan));
+    assert_eq!("-NaN", dbg(-nan - nan));
+    assert_eq!("+NaN", dbg(nan - -nan));
+    assert_eq!("-NaN", dbg(n("2") * -nan));
+    assert_eq!("-NaN", dbg(-nan / n("2")));
+    assert_eq!("-NaN", dbg(n("2") / -nan));
+    assert_eq!("-NaN", dbg(-nan % n("2")));
+    assert_eq!("-NaN", dbg((-nan).round(&n("2"))));
+    assert_eq!("-NaN", dbg((-nan).trunc()));
+    assert_eq!("-NaN", dbg((-nan).frac()));
+    assert_eq!("-NaN", dbg((-nan).floor(0).unwrap()));
+    assert!((-nan).floor(2).is_err());
+    assert_eq!("-NaN", dbg((-nan).round_half_down(0).unwrap()));
+    assert!((-nan).exp().is_none());
+    assert_eq!(FeelNumber::new(0, 0).partial_cmp(&-nan), Some(Ordering::Less));
+    // invalid operations give +NaN whatever the operands' signs
+    assert_eq!("+NaN", dbg(-FeelNumber::infinite() + FeelNumber::infinite()));
+    assert_eq!("+NaN", dbg(n("-0") / n("-0")));
+    assert_eq!("+NaN", dbg(-FeelNumber::infinite() * n("0")));
+    assert_eq!("NaN", (-nan).to_string());
+    assert!(!(-nan).is_finite());
   }
 
   #[test]
