@@ -32,3 +32,25 @@ fn test_round_006() {
   // quantum 1E+6200 is clamped to 1E+6144 (dfp-number-sys scalbn clamps the exponent)
   eqs!("+0E+6111", format!("{:?}", num!(1.5).round(&num!(-6200))));
 }
+
+#[test]
+fn test_scale_rounding_with_unit_coefficient() {
+  // Regression: a rounded integral of ±1 was returned unscaled (round_up(0.1, 1) == 1).
+  eqs!("0.1", num!(0.1).round_up(1).unwrap());
+  eqs!("0.1", num!(0.05).round_up(1).unwrap());
+  eqs!("0.01", num!(0.01).round_up(2).unwrap());
+  eqs!("10", num!(10).round_up(-1).unwrap());
+  eqs!("10", num!(1).round_up(-1).unwrap());
+  eqs!("-0.000001", num!(-0.0000001).round_up(6).unwrap());
+  eqs!("0.1", num!(0.19).round_down(1).unwrap());
+  eqs!("0.1", num!(0.05).round_half_up(1).unwrap());
+  eqs!("0.1", num!(0.15).round_half_down(1).unwrap());
+  eqs!("0.1", num!(0.19).floor(1).unwrap());
+  eqs!("-0.000001", num!(-0.0000001).floor(6).unwrap());
+  eqs!("0.1", num!(0.01).ceiling(1).unwrap());
+  assert_eq!(num!(1E+6111), num!(5.5).round_up(-6111).unwrap());
+  assert_eq!(num!(-1E+6111), num!(-1.56).floor(-6111).unwrap());
+  assert_eq!(num!(1E-6144), num!(1E-6144).round_up(6144).unwrap());
+  eqs!("0.2", num!(0.11).round_up(1).unwrap());
+  eqs!("1", num!(0.95).round_up(1).unwrap());
+}

@@ -58,7 +58,7 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  te_number(false, &scope!(), r#"floor(-1.56, -6111)"#, -1, 0);
+  te_number(false, &scope!(), r#"floor(-1.56, -6111)"#, -1, -6111);
 }
 
 #[test]
@@ -174,4 +174,14 @@ fn _0027() {
     r#"floor(n: 5.7, scale: -6112)"#,
     "[core::floor] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112",
   );
+}
+
+#[test]
+fn _0032() {
+  // Results whose rounded coefficient is 1 must be scaled back (regression: used to return 1).
+  te_number(false, &scope!(), "floor(0.19, 1)", 1, 1);
+  te_number(false, &scope!(), "floor(0.1, 1)", 1, 1);
+  te_number(false, &scope!(), "floor(19, -1)", 1, -1);
+  te_number(false, &scope!(), "floor(-0.0000001, 6)", -1, 6);
+  te_number(false, &scope!(), "floor(-0.01, 1)", -1, 1);
 }

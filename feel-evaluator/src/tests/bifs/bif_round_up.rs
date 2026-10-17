@@ -257,7 +257,7 @@ fn _0049() {
   //--------------------------------------------------------------------------------------------------------------------
   // Used minimum allowed scale.
   //--------------------------------------------------------------------------------------------------------------------
-  te_number(false, &scope!(), "round up(5.5, -6111)", 1, 0);
+  te_number(false, &scope!(), "round up(5.5, -6111)", 1, -6111);
 }
 
 #[test]
@@ -265,7 +265,7 @@ fn _0050() {
   //--------------------------------------------------------------------------------------------------------------------
   // Used minimum allowed scale.
   //--------------------------------------------------------------------------------------------------------------------
-  te_number(false, &scope!(), "round up(-5.5, -6111)", -1, 0);
+  te_number(false, &scope!(), "round up(-5.5, -6111)", -1, -6111);
 }
 
 #[test]
@@ -292,4 +292,21 @@ fn _0052() {
     "round up(5.5, -6112)",
     "[core::round_up] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112",
   );
+}
+
+#[test]
+fn _0053() {
+  //--------------------------------------------------------------------------------------------------------------------
+  // Results whose rounded coefficient is 1 must be scaled back (regression: used to return 1).
+  //--------------------------------------------------------------------------------------------------------------------
+  te_number(false, &scope!(), "round up(0.1, 1)", 1, 1);
+  te_number(false, &scope!(), "round up(0.05, 1)", 1, 1);
+  te_number(false, &scope!(), "round up(0.01, 2)", 1, 2);
+  te_number(false, &scope!(), "round up(0.00001, 5)", 1, 5);
+  te_number(false, &scope!(), "round up(0.95, 1)", 1, 0);
+  te_number(false, &scope!(), "round up(10, -1)", 1, -1);
+  te_number(false, &scope!(), "round up(1, -1)", 1, -1);
+  te_number(false, &scope!(), "round up(-0.0000001, 6)", -1, 6);
+  te_number(false, &scope!(), "round up(1E-6144, 6144)", 1, 6144);
+  te_be_value(false, &scope!(), "round up(0.1, 1) * 10", "1");
 }

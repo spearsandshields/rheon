@@ -272,16 +272,11 @@ impl FeelNumber {
     }
   }
 
+  /// Undoes the scaling applied before rounding: `n * 10^-scale`. Zero stays a plain zero;
+  /// every other rounded integral is scaled back, also `±1` (an earlier special case returned
+  /// `±1` unscaled, so `round up(0.1, 1)` was `1` instead of `0.1`).
   fn unscale(&self, n: BID128, scale: i32) -> BID128 {
-    if bid128_is_zero(n) {
-      BID128_ZERO
-    } else if bid128_quiet_equal(n, BID128_ONE, flags!()) {
-      BID128_ONE
-    } else if bid128_quiet_equal(n, BID128_MINUS_ONE, flags!()) {
-      BID128_MINUS_ONE
-    } else {
-      bid128_scalbn(n, -scale)
-    }
+    if bid128_is_zero(n) { BID128_ZERO } else { bid128_scalbn(n, -scale) }
   }
 }
 

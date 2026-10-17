@@ -277,3 +277,12 @@ fn _0050() {
     "[core::round_half_down] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112",
   );
 }
+
+#[test]
+fn _0051() {
+  // Results whose rounded coefficient is 1 must be scaled back (regression: used to return 1).
+  te_number(false, &scope!(), "round half down(0.15, 1)", 1, 1);
+  te_number(false, &scope!(), "round half down(0.06, 1)", 1, 1);
+  te_number(false, &scope!(), "round half down(-0.15, 1)", -1, 1);
+  te_number(false, &scope!(), "round half down(15, -1)", 1, -1);
+}

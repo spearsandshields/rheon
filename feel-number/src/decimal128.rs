@@ -1101,7 +1101,6 @@ fn sqrt_v(c: u128, e: i32) -> V {
 
 const ZERO: V = V::Fin(false, 0, 0);
 const ONE: V = V::Fin(false, 1, 0);
-const MINUS_ONE: V = V::Fin(true, 1, 0);
 const TWO: V = V::Fin(false, 2, 0);
 const ONE_TENTH: V = V::Fin(false, 1, -1);
 
@@ -1373,16 +1372,14 @@ impl FeelNumber {
     }
   }
 
+  /// Undoes the scaling applied before rounding: `n * 10^-scale`.
+  ///
+  /// Zero is returned as a plain zero (no exponent). Every other rounded integral is scaled
+  /// back, also when it is `1` or `-1`: an earlier special case returned `±1` unscaled, so
+  /// `round up(0.1, 1)` was `1` instead of `0.1` and `floor(-1.56, -6111)` was `-1` instead
+  /// of `-1E+6111`.
   fn unscale(&self, n: V, scale: i32) -> V {
-    if is_zero_v(n) {
-      ZERO
-    } else if eq_v(n, ONE) {
-      ONE
-    } else if eq_v(n, MINUS_ONE) {
-      MINUS_ONE
-    } else {
-      scalbn_v(n, scale.saturating_neg())
-    }
+    if is_zero_v(n) { ZERO } else { scalbn_v(n, scale.saturating_neg()) }
   }
 }
 

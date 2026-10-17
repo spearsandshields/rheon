@@ -18,7 +18,7 @@ fn _0003() {
 
 #[test]
 fn _0004() {
-  te_number(false, &scope!(), "ceiling(1.51, -6111)", 1, 0);
+  te_number(false, &scope!(), "ceiling(1.51, -6111)", 1, -6111);
 }
 
 #[test]
@@ -190,4 +190,14 @@ fn _0031() {
     r#"ceiling(n: 5.777, scale: -6112)"#,
     "[core::ceiling] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112",
   );
+}
+
+#[test]
+fn _0051() {
+  // Results whose rounded coefficient is 1 must be scaled back (regression: used to return 1).
+  te_number(false, &scope!(), "ceiling(0.01, 1)", 1, 1);
+  te_number(false, &scope!(), "ceiling(0.1, 1)", 1, 1);
+  te_number(false, &scope!(), "ceiling(0.001, 2)", 1, 2);
+  te_number(false, &scope!(), "ceiling(1, -1)", 1, -1);
+  te_number(false, &scope!(), "ceiling(-0.19, 1)", -1, 1);
 }
