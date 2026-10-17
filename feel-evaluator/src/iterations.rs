@@ -417,10 +417,17 @@ impl ForExpressionEvaluator {
     let mut results = vec![];
     self.iterator.iterate(|ctx| {
       let mut iteration_context = ctx.clone();
-      iteration_context.set_entry(&self.partial, Value::List(results.clone()));
-      scope.push(iteration_context.clone());
+      // The implicit `partial` variable holds the results of all previous iterations.
+      // Move them into the iteration context and back out afterwards instead of
+      // cloning the whole list on every iteration, which made `for` quadratic.
+      iteration_context.set_entry(&self.partial, Value::List(std::mem::take(&mut results)));
+      scope.push(iteration_context);
       let iteration_value = evaluator(scope);
-      scope.pop();
+      if let Some(mut iteration_context) = scope.pop()
+        && let Some(Value::List(previous_results)) = iteration_context.remove_entry(&self.partial)
+      {
+        results = previous_results;
+      }
       results.push(iteration_value);
     });
     results

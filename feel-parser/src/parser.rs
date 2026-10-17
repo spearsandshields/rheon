@@ -826,7 +826,9 @@ impl ReduceActions for Parser<'_> {
   fn action_list(&mut self) -> Result<()> {
     trace_action!(self, "list");
     if let Some(AstNode::CommaList(items)) = self.yy_node_stack.pop().as_mut() {
-      let items = std::mem::take(items);
+      let mut items = std::mem::take(items);
+      // `action_list_tail` appends items last-to-first; restore the order with one reversal.
+      items.reverse();
       self.yy_node_stack.push(AstNode::List(items));
     }
     Ok(())
@@ -844,7 +846,9 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::CommaList(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
-      items.insert(0, item);
+      // `list_tail` is right recursive, so items arrive last-to-first. Appending keeps this
+      // action constant time instead of shifting every collected item; `action_list` reverses once.
+      items.push(item);
       self.yy_node_stack.push(AstNode::CommaList(items));
       return Ok(());
     }
