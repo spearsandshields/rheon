@@ -218,3 +218,22 @@ fn _0022() {
     "[1, 2, 3, 4, 5, 6, 7, 8]",
   );
 }
+
+#[test]
+fn _0023() {
+  // Numbers have 34 significant digits: `1e34 + 1 = 1e34`, so the step is lost and the
+  // iteration must stop instead of running forever (regression). A descending range starting
+  // at 1e34 is not affected (`1e34 - 1` is representable) and simply has 1e34 elements.
+  te_be_value(false, &scope!(), "for i in 1e34..1e34 return i", "[1e34]");
+  te_be_value(false, &scope!(), "for i in 1e34..(1e34 + 2) return i", "[1e34]");
+  te_be_value(false, &scope!(), "for i in 1e35..1e34 return i", "[1e35]");
+  te_be_value(false, &scope!(), "for i in -1e40..-1e40 return i", "[-1e40]");
+  te_be_value(false, &scope!(), "for i in 1e40..1e40, j in 1..2 return i + j", "[1e40, 1e40]");
+  te_be_value(false, &scope!(), "count(for i in 1e33..(1e33 + 2) return i)", "3");
+  te_be_value(
+    false,
+    &scope!(),
+    "for i in 9999999999999999999999999999999998..9999999999999999999999999999999999 return i",
+    "[9999999999999999999999999999999998, 9999999999999999999999999999999999]",
+  );
+}

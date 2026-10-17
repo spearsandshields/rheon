@@ -72,39 +72,45 @@ impl NumberIntervalState {
   }
 }
 
+impl NumberIntervalState {
+  /// Returns the value that follows `current` in the iteration direction, or `None` when the
+  /// end of the interval is passed.
+  ///
+  /// Numbers have 34 significant digits, so for |current| >= 1e34 adding the step does not
+  /// change the value (`1e34 + 1 = 1e34`); such a lost step also ends the iteration, otherwise
+  /// `for i in 1e34..1e34 return i` would never terminate.
+  fn following(&self) -> Option<FeelNumber> {
+    let next = match self.direction {
+      IterationDirection::Ascending => {
+        let next = self.current + self.step;
+        if next <= self.end { next } else { return None }
+      }
+      IterationDirection::Descending => {
+        let next = self.current - self.step;
+        if next >= self.end { next } else { return None }
+      }
+    };
+    if next == self.current { None } else { Some(next) }
+  }
+}
+
 impl IterationState for NumberIntervalState {
   fn set_value(&mut self, ctx: &mut FeelContext) {
     ctx.set_entry(&self.variable, Value::Number(self.current));
   }
 
   fn next(&mut self) -> bool {
-    match self.direction {
-      IterationDirection::Ascending => {
-        if self.current + self.step <= self.end {
-          self.current += self.step;
-          true
-        } else {
-          self.current = self.start;
-          false
-        }
-      }
-      IterationDirection::Descending => {
-        if self.current - self.step >= self.end {
-          self.current -= self.step;
-          true
-        } else {
-          self.current = self.start;
-          false
-        }
-      }
+    if let Some(next) = self.following() {
+      self.current = next;
+      true
+    } else {
+      self.current = self.start;
+      false
     }
   }
 
   fn has_next(&self) -> bool {
-    match self.direction {
-      IterationDirection::Ascending => self.current + self.step <= self.end,
-      IterationDirection::Descending => self.current - self.step >= self.end,
-    }
+    self.following().is_some()
   }
 }
 
