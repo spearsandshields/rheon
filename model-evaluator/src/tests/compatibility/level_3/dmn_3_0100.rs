@@ -2895,7 +2895,10 @@ fn _0277() {
 }
 
 #[test]
+#[cfg(feature = "intel")]
 fn _0278() {
+  // 5 ** 2.55 = 60.586171666066336737457249282442615...: the Intel library's result is 1 ulp
+  // below the correctly rounded value (it evaluates pow in binary128).
   assert_decision(
     &MODEL_EVALUATOR,
     &MODEL_NAMESPACE,
@@ -2903,6 +2906,20 @@ fn _0278() {
     "exponent_lhs_number_exp_rhs_number_005",
     &CTX,
     r#"60.58617166606633673745724928244261"#,
+  );
+}
+
+#[test]
+#[cfg(not(feature = "intel"))]
+fn _0278() {
+  // 5 ** 2.55 = 60.586171666066336737457249282442615..., correctly rounded to 34 digits
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "exponent_lhs_number_exp_rhs_number_005",
+    &CTX,
+    r#"60.58617166606633673745724928244262"#,
   );
 }
 

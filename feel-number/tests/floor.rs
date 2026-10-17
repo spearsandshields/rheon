@@ -31,3 +31,9 @@ fn _0005() {
 fn _0006() {
   eqs!("-1", num!(-0.3333).floor(0).unwrap());
 }
+
+#[test]
+fn _0007() {
+  // the scale passed to scalbn is clamped to -6176..=6144 (dfp-number-sys behaviour)
+  eqs!("0.05", num!(0.5).floor(6145).unwrap());
+}
