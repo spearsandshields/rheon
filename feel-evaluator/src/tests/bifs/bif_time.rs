@@ -146,17 +146,32 @@ fn _0026() {
 
 #[test]
 fn _0027() {
-  te_null(false, &scope!(), r#"time("22:63:12")"#, "time_1");
+  te_null(
+    false,
+    &scope!(),
+    r#"time("22:63:12")"#,
+    "time: invalid time literal '22:63:12', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+  );
 }
 
 #[test]
 fn _0028() {
-  te_null(false, &scope!(), r#"time("22:10:12+15:00")"#, "time_1");
+  te_null(
+    false,
+    &scope!(),
+    r#"time("22:10:12+15:00")"#,
+    "time: invalid time literal '22:10:12+15:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+  );
 }
 
 #[test]
 fn _0029() {
-  te_null(false, &scope!(), r#"time("22:10:12-15:00")"#, "time_1");
+  te_null(
+    false,
+    &scope!(),
+    r#"time("22:10:12-15:00")"#,
+    "time: invalid time literal '22:10:12-15:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+  );
 }
 
 #[test]
@@ -323,4 +338,14 @@ fn _0055() {
 #[should_panic]
 fn _0056() {
   te_null(false, &scope!(), r#"time(23,59,45,@"P3000000000000000000D")"#, "");
+}
+
+#[test]
+fn _0057() {
+  te_null(
+    false,
+    &scope!(),
+    r#"time(true)"#,
+    "[core::time] invalid argument type, expected string, date, date and time, time, actual type is boolean",
+  );
 }

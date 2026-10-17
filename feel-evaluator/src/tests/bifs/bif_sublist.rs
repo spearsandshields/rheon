@@ -220,3 +220,19 @@ fn _0032() {
     r#"sublist: expected list, actual value type is string"#,
   );
 }
+
+#[test]
+fn _0033() {
+  // Huge numbers in messages are shown in scientific notation (regression: 6,145 digits).
+  te_null(false, &scope!(), r#"sublist([1,2,3], 9e6144)"#, r#"sublist: invalid position value: 9E+6144"#);
+  te_null(false, &scope!(), r#"sublist([1,2,3], -9e6144)"#, r#"sublist: invalid position value: -9E+6144"#);
+  te_null(false, &scope!(), r#"sublist([1,2,3], 1, 1.5e6000)"#, r#"sublist: invalid length value: 1.5E+6000"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist([1,2,3], 123456789012345678901234567890123)"#,
+    r#"sublist: invalid position value: 123456789012345678901234567890123"#,
+  );
+  te_null(false, &scope!(), r#"substring("abc", 9e6144)"#, r#"substring: invalid start position value: 9E+6144"#);
+  te_null(false, &scope!(), r#"substring("abc", 1, 1.25e60)"#, r#"substring: invalid length value: 1.25E+60"#);
+}

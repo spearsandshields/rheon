@@ -9,19 +9,19 @@ fn _0001() {
 #[test]
 fn _0002() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "log(-1)", "");
+  te_null(false, scope, "log(-1)", "log: argument must be a positive number");
 }
 
 #[test]
 fn _0003() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "log(0)", "");
+  te_null(false, scope, "log(0)", "log: argument must be a positive number");
 }
 
 #[test]
 fn _0004() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "log(0.0)", "");
+  te_null(false, scope, "log(0.0)", "log: argument must be a positive number");
 }
 
 #[test]
@@ -51,55 +51,80 @@ fn _0008() {
 #[test]
 fn _0009() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "log(null)", "");
+  te_null(false, scope, "log(null)", "[core::log] invalid argument type, expected number, actual type is Null");
 }
 
 #[test]
 fn _0010() {
   let scope = &te_scope("{}");
-  te_null(false, scope, r#"log("4")"#, "");
+  te_null(false, scope, r#"log("4")"#, "[core::log] invalid argument type, expected number, actual type is string");
 }
 
 #[test]
 fn _0011() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "log(true)", "");
+  te_null(false, scope, "log(true)", "[core::log] invalid argument type, expected number, actual type is boolean");
 }
 
 #[test]
 fn _0012() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "log(false)", "");
+  te_null(false, scope, "log(false)", "[core::log] invalid argument type, expected number, actual type is boolean");
 }
 
 #[test]
 fn _0013() {
   let scope = &te_scope("{}");
-  te_null(false, scope, r#"log(duration("P4D"))"#, "");
+  te_null(
+    false,
+    scope,
+    r#"log(duration("P4D"))"#,
+    "[core::log] invalid argument type, expected number, actual type is days and time duration",
+  );
 }
 
 #[test]
 fn _0014() {
   let scope = &te_scope("{}");
-  te_null(false, scope, r#"log(duration("P4Y"))"#, "");
+  te_null(
+    false,
+    scope,
+    r#"log(duration("P4Y"))"#,
+    "[core::log] invalid argument type, expected number, actual type is years and months duration",
+  );
 }
 
 #[test]
 fn _0015() {
   let scope = &te_scope("{}");
-  te_null(false, scope, r#"log(date("2018-12-06"))"#, "");
+  te_null(
+    false,
+    scope,
+    r#"log(date("2018-12-06"))"#,
+    "[core::log] invalid argument type, expected number, actual type is date",
+  );
 }
 
 #[test]
 fn _0016() {
   let scope = &te_scope("{}");
-  te_null(false, scope, r#"log(time("00:00:00"))"#, "");
+  te_null(
+    false,
+    scope,
+    r#"log(time("00:00:00"))"#,
+    "[core::log] invalid argument type, expected number, actual type is time",
+  );
 }
 
 #[test]
 fn _0017() {
   let scope = &te_scope("{}");
-  te_null(false, scope, r#"log(date and time("2018-12-06T00:00:00"))"#, "");
+  te_null(
+    false,
+    scope,
+    r#"log(date and time("2018-12-06T00:00:00"))"#,
+    "[core::log] invalid argument type, expected number, actual type is date and time",
+  );
 }
 
 #[test]

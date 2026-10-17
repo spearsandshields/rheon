@@ -43,45 +43,70 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), "exp(null)", "exp");
+  te_null(false, &scope!(), "exp(null)", "[core::exp] invalid argument type, expected number, actual type is Null");
 }
 
 #[test]
 fn _0010() {
-  te_null(false, &scope!(), r#"exp("4")"#, "exp");
+  te_null(false, &scope!(), r#"exp("4")"#, "[core::exp] invalid argument type, expected number, actual type is string");
 }
 
 #[test]
 fn _0011() {
-  te_null(false, &scope!(), "exp(true)", "exp");
+  te_null(false, &scope!(), "exp(true)", "[core::exp] invalid argument type, expected number, actual type is boolean");
 }
 
 #[test]
 fn _0012() {
-  te_null(false, &scope!(), r#"exp(duration("P4D"))"#, "exp");
+  te_null(
+    false,
+    &scope!(),
+    r#"exp(duration("P4D"))"#,
+    "[core::exp] invalid argument type, expected number, actual type is days and time duration",
+  );
 }
 
 #[test]
 fn _0013() {
-  te_null(false, &scope!(), r#"exp(duration("P4Y"))"#, "exp");
+  te_null(
+    false,
+    &scope!(),
+    r#"exp(duration("P4Y"))"#,
+    "[core::exp] invalid argument type, expected number, actual type is years and months duration",
+  );
 }
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), r#"exp(date("2018-12-06"))"#, "exp");
+  te_null(
+    false,
+    &scope!(),
+    r#"exp(date("2018-12-06"))"#,
+    "[core::exp] invalid argument type, expected number, actual type is date",
+  );
 }
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"exp(time("00:00:00"))"#, "exp");
+  te_null(
+    false,
+    &scope!(),
+    r#"exp(time("00:00:00"))"#,
+    "[core::exp] invalid argument type, expected number, actual type is time",
+  );
 }
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), r#"exp(date and time("2018-12-06T00:00:00"))"#, "exp");
+  te_null(
+    false,
+    &scope!(),
+    r#"exp(date and time("2018-12-06T00:00:00"))"#,
+    "[core::exp] invalid argument type, expected number, actual type is date and time",
+  );
 }
 
 #[test]
 fn _0017() {
-  te_null(false, &scope!(), r#"exp(10000000000000000000000)"#, "exp");
+  te_null(false, &scope!(), r#"exp(10000000000000000000000)"#, "exp: result is not a finite number (decimal overflow)");
 }

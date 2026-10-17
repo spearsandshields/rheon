@@ -728,10 +728,10 @@ pub fn duration(value: &Value) -> Value {
     } else if let Ok(dt_duration) = FeelDaysAndTimeDuration::try_from(s.as_str()) {
       Value::DaysAndTimeDuration(dt_duration)
     } else {
-      value_null!("duration")
+      value_null!("duration: invalid duration literal: '{}'", s)
     }
   } else {
-    value_null!("duration")
+    invalid_argument_type!("duration", "string", value.type_of())
   }
 }
 
@@ -854,12 +854,15 @@ pub fn even(number_value: &Value) -> Value {
 
 /// Returns the Euler’s number e raised to the power of **value** given as a parameter.
 pub fn exp(value: &Value) -> Value {
-  if let Value::Number(num) = value
-    && let Some(n) = num.exp()
-  {
-    return Value::Number(n);
+  if let Value::Number(num) = value {
+    if let Some(n) = num.exp() {
+      Value::Number(n)
+    } else {
+      value_null!("exp: result is not a finite number (decimal overflow)")
+    }
+  } else {
+    invalid_argument_type!("exp", "number", value.type_of())
   }
-  value_null!("exp")
 }
 
 /// Returns `true` when point is the end of a range or ranges have the same end value.
@@ -1314,13 +1317,17 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
 
 /// Returns the natural logarithm (base `e`) of the number parameter.
 pub fn log(number: &Value) -> Value {
-  if let Value::Number(num) = number
-    && *num > FeelNumber::zero()
-    && let Some(num_log) = num.ln()
-  {
-    return Value::Number(num_log);
+  if let Value::Number(num) = number {
+    if *num <= FeelNumber::zero() {
+      value_null!("log: argument must be a positive number")
+    } else if let Some(num_log) = num.ln() {
+      Value::Number(num_log)
+    } else {
+      value_null!("log: result is not a finite number (decimal overflow)")
+    }
+  } else {
+    invalid_argument_type!("log", "number", number.type_of())
   }
-  value_null!()
 }
 
 /// Returns lower-cased string.
@@ -2510,7 +2517,7 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
             value_null!("sublist: position is out of range, len = {}, position = {}", items.len(), position)
           }
         } else {
-          value_null!("sublist: invalid position value: {}", position_value)
+          value_null!("sublist: invalid position value: {}", message_number(position_number))
         }
       } else if position_number.is_negative() {
         if let Ok(position) = u64::try_from(position_number.abs()) {
@@ -2520,7 +2527,7 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
             value_null!("sublist: position is out of range, len = {}, position = -{}", items.len(), position)
           }
         } else {
-          value_null!("sublist: invalid position value: {}", position_value)
+          value_null!("sublist: invalid position value: {}", message_number(position_number))
         }
       } else {
         value_null!("sublist: position must not be zero")
@@ -2544,12 +2551,12 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
           let first = if position_number.is_positive() {
             match u64::try_from(position_number) {
               Ok(position) => position as i128 - 1,
-              Err(_) => return value_null!("sublist: invalid position value: {}", position_value),
+              Err(_) => return value_null!("sublist: invalid position value: {}", message_number(position_number)),
             }
           } else if position_number.is_negative() {
             match u64::try_from(position_number.abs()) {
               Ok(position) => len - position as i128,
-              Err(_) => return value_null!("sublist: invalid position value: {}", position_value),
+              Err(_) => return value_null!("sublist: invalid position value: {}", message_number(position_number)),
             }
           } else {
             return value_null!("sublist: position must not be zero");
@@ -2564,7 +2571,7 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
           value_null!("sublist: expected number, actual position value type is {}", position_value.type_of())
         }
       } else {
-        value_null!("sublist: invalid length value: {}", length_value)
+        value_null!("sublist: invalid length value: {}", message_number(length_number))
       }
     } else {
       value_null!("sublist: expected number, actual length value type is {}", length_value.type_of())
@@ -2582,7 +2589,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
       // Positions are converted through 64-bit integers and checked with wide (i128) arithmetic,
       // so 32-bit targets (wasm32) behave like 64-bit ones and nothing can overflow.
       let Ok(position): Result<i64, DsntkError> = start_position_number.try_into() else {
-        return value_null!("substring: invalid start position value: {}", start_position_number);
+        return value_null!("substring: invalid start position value: {}", message_number(start_position_number));
       };
       let position = position as i128;
       let input_string_len = input_string.chars().count();
@@ -2593,7 +2600,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
             return value_null!("substring: length is less than 1");
           }
           let Ok(length): Result<u64, DsntkError> = length_number.trunc().try_into() else {
-            return value_null!("substring: invalid length value: {}", length_number);
+            return value_null!("substring: invalid length value: {}", message_number(length_number));
           };
           let length = length as i128;
           match position.cmp(&0) {
@@ -2697,15 +2704,19 @@ pub fn time_1(value: &Value) -> Value {
   match value {
     Value::String(text) => {
       if let Ok(time) = text.parse::<FeelTime>() {
-        return Value::Time(time);
+        Value::Time(time)
+      } else {
+        value_null!(
+          "time: invalid time literal '{}', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+          text
+        )
       }
     }
-    Value::Date(_) => return Value::Time(FeelTime::utc(0, 0, 0, 0)),
-    Value::DateTime(date_time) => return Value::Time(date_time.time()),
-    Value::Time(time) => return Value::Time(time.clone()),
-    _ => {}
+    Value::Date(_) => Value::Time(FeelTime::utc(0, 0, 0, 0)),
+    Value::DateTime(date_time) => Value::Time(date_time.time()),
+    Value::Time(time) => Value::Time(time.clone()),
+    other => invalid_argument_type!("time", "string, date, date and time, time", other.type_of()),
   }
-  value_null!("time_1")
 }
 
 pub fn time_3(hour_value: &Value, minute_value: &Value, second_value: &Value) -> Value {
@@ -2920,6 +2931,34 @@ fn during_rr<T: PartialOrd>(
 ) -> bool {
   (start_1 > start_2 || (start_1 == start_2 && (start_type_1.closed() == start_type_2.closed() || start_type_2.closed())))
     && (end_1 < end_2 || (end_1 == end_2 && (end_type_1.closed() == end_type_2.closed() || end_type_2.closed())))
+}
+
+/// Formats a number for an error message. Numbers whose plain decimal text is longer than
+/// 40 characters (e.g. `9e6144`, which prints as 6145 digits) are shown in scientific notation,
+/// so that a message stays readable.
+fn message_number(number: &FeelNumber) -> String {
+  const MAX_PLAIN_LEN: usize = 40;
+  let plain = number.to_string();
+  if plain.len() <= MAX_PLAIN_LEN {
+    return plain;
+  }
+  let (sign, unsigned) = match plain.strip_prefix('-') {
+    Some(rest) => ("-", rest),
+    None => ("", plain.as_str()),
+  };
+  let (int_part, frac_part) = unsigned.split_once('.').unwrap_or((unsigned, ""));
+  let digits = format!("{int_part}{frac_part}");
+  let Some(first) = digits.find(|c: char| c != '0') else {
+    return plain;
+  };
+  let exponent = int_part.len() as i64 - first as i64 - 1;
+  let mantissa = digits[first..].trim_end_matches('0');
+  let (head, tail) = mantissa.split_at(1);
+  if tail.is_empty() {
+    format!("{sign}{head}E{exponent:+}")
+  } else {
+    format!("{sign}{head}.{tail}E{exponent:+}")
+  }
 }
 
 #[cfg(test)]

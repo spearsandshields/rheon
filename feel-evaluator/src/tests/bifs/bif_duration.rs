@@ -58,7 +58,12 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  te_null(false, &scope!(), "duration(null)", "duration");
+  te_null(
+    false,
+    &scope!(),
+    "duration(null)",
+    "[core::duration] invalid argument type, expected string, actual type is Null",
+  );
 }
 
 #[test]
@@ -68,52 +73,67 @@ fn _0013() {
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), "duration([])", "duration");
+  te_null(
+    false,
+    &scope!(),
+    "duration([])",
+    "[core::duration] invalid argument type, expected string, actual type is list<Null>",
+  );
 }
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"duration("")"#, "duration");
+  te_null(false, &scope!(), r#"duration("")"#, "duration: invalid duration literal: ''");
 }
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), "duration(2017)", "duration");
+  te_null(
+    false,
+    &scope!(),
+    "duration(2017)",
+    "[core::duration] invalid argument type, expected string, actual type is number",
+  );
 }
 
 #[test]
 fn _0017() {
-  te_null(false, &scope!(), r#"duration("2012T-12-2511:00:00Z")"#, "duration");
+  te_null(
+    false,
+    &scope!(),
+    r#"duration("2012T-12-2511:00:00Z")"#,
+    "duration: invalid duration literal: '2012T-12-2511:00:00Z'",
+  );
 }
 
 #[test]
 fn _0018() {
-  te_null(false, &scope!(), r#"duration("P")"#, "duration");
+  te_null(false, &scope!(), r#"duration("P")"#, "duration: invalid duration literal: 'P'");
 }
 
 #[test]
 fn _0019() {
-  te_null(false, &scope!(), r#"duration("P0")"#, "duration");
+  te_null(false, &scope!(), r#"duration("P0")"#, "duration: invalid duration literal: 'P0'");
 }
 
 #[test]
 fn _0020() {
-  te_null(false, &scope!(), r#"duration("1Y")"#, "duration");
+  te_null(false, &scope!(), r#"duration("1Y")"#, "duration: invalid duration literal: '1Y'");
 }
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), r#"duration("1D")"#, "duration");
+  te_null(false, &scope!(), r#"duration("1D")"#, "duration: invalid duration literal: '1D'");
 }
 
 #[test]
 fn _0022() {
-  te_null(false, &scope!(), r#"duration("P1H")"#, "duration");
+  te_null(false, &scope!(), r#"duration("P1H")"#, "duration: invalid duration literal: 'P1H'");
 }
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#"duration("P1S")"#, "duration");
+  te_null(false, &scope!(), r#"duration("P1S")"#, "duration: invalid duration literal: 'P1S'");
 }
 
 #[test]
