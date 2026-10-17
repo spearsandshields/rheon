@@ -253,6 +253,20 @@ impl FeelTime {
     self.3
   }
 
+  /// Returns `true` when both times are written in the same zone (the same offset, the same
+  /// zone name, both UTC or both local) and have the same hour, minute and second: the FEEL
+  /// `is()` semantics, stricter than `==`, which compares instants.
+  pub fn is(&self, rhs: &FeelTime) -> bool {
+    let same_zone = match (&self.4, &rhs.4) {
+      (FeelZone::Utc, FeelZone::Utc) | (FeelZone::Local, FeelZone::Local) => true,
+      (FeelZone::Utc, FeelZone::Zone(zone_name)) | (FeelZone::Zone(zone_name), FeelZone::Utc) => zone_name == ETC_UTC,
+      (FeelZone::Offset(offset_1), FeelZone::Offset(offset_2)) => offset_1 == offset_2,
+      (FeelZone::Zone(zone_name_1), FeelZone::Zone(zone_name_2)) => zone_name_1 == zone_name_2,
+      _ => false,
+    };
+    same_zone && self.0 == rhs.0 && self.1 == rhs.1 && self.2 == rhs.2
+  }
+
   pub fn zone(&self) -> &FeelZone {
     &self.4
   }
