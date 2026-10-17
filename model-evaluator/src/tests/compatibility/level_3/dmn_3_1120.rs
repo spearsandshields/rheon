@@ -11,7 +11,7 @@ fn _0001() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_001_f2c6cd6866",
     &ctx,
-    r#"null(duration)"#,
+    r#"null([core::duration] invalid argument type, expected string, actual type is Null)"#,
   );
 }
 
@@ -335,7 +335,7 @@ fn _0041() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_041_264bc9d682",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: '')"#,
   );
 }
 
@@ -348,7 +348,7 @@ fn _0042() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_042_59a0000245",
     &ctx,
-    r#"null(duration)"#,
+    r#"null([core::duration] invalid argument type, expected string, actual type is number)"#,
   );
 }
 
@@ -361,7 +361,7 @@ fn _0043() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_043_253815dc6c",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: '2012T-12-2511:00:00Z')"#,
   );
 }
 
@@ -374,7 +374,7 @@ fn _0044() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_044_f3b338d877",
     &ctx,
-    r#"null(duration)"#,
+    r#"null([core::duration] invalid argument type, expected string, actual type is list<Null>)"#,
   );
 }
 
@@ -387,7 +387,7 @@ fn _0045() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_045_2ffcc37801",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: 'P')"#,
   );
 }
 
@@ -400,7 +400,7 @@ fn _0046() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_046_eb637de5f6",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: 'P0')"#,
   );
 }
 
@@ -413,7 +413,7 @@ fn _0047() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_047_3210c46a5a",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: '1Y')"#,
   );
 }
 
@@ -426,7 +426,7 @@ fn _0048() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_048_ab6244f767",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: '1D')"#,
   );
 }
 
@@ -439,7 +439,7 @@ fn _0049() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_049_2225b503a0",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: 'P1H')"#,
   );
 }
 
@@ -452,6 +452,6 @@ fn _0050() {
     &MODEL_NAME,
     "feel-duration-function_ErrorCase_050_dd2ef33bbd",
     &ctx,
-    r#"null(duration)"#,
+    r#"null(duration: invalid duration literal: 'P1S')"#,
   );
 }

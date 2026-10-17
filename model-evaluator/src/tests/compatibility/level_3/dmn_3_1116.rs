@@ -11,7 +11,7 @@ fn _0001() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_001_bdf26fdc72",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null([core::time] invalid argument type, expected string, date, date and time, time, actual type is Null)"#,
   );
 }
 
@@ -574,7 +574,7 @@ fn _0054() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_054_fdc3094237",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null([core::time] invalid argument type, expected string, date, date and time, time, actual type is number)"#,
   );
 }
 
@@ -587,7 +587,7 @@ fn _0055() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_055_9b47db6ea4",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null([core::time] invalid argument type, expected string, date, date and time, time, actual type is list<Null>)"#,
   );
 }
 
@@ -600,7 +600,7 @@ fn _0056() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_056_a8e828d64d",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -613,7 +613,7 @@ fn _0057() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_057_d039115cce",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '23:59:60', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -626,7 +626,7 @@ fn _0058() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_058_81dd4b1639",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '24:00:01', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -639,7 +639,7 @@ fn _0059() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_059_c7e1705fe1",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '24:01:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -652,7 +652,7 @@ fn _0060() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_060_0cf4734fae",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '25:00:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -665,7 +665,7 @@ fn _0061() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_061_da2717f085",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '00:60:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -678,7 +678,7 @@ fn _0062() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_062_6cd1313fa9",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '00:00:61', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -691,7 +691,7 @@ fn _0063() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_063_e85c40b474",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '7:00:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -704,7 +704,7 @@ fn _0064() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_064_df74038c67",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '07:1:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -717,7 +717,7 @@ fn _0065() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_065_79eaef6fee",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '07:01:2', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -730,7 +730,7 @@ fn _0066() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_066_5116e12fd3",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '13:20:00@xyz/abc', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -743,7 +743,7 @@ fn _0067() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_067_8285edad7b",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '13:20:00+19:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -756,7 +756,7 @@ fn _0068() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_068_ad528abb23",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '13:20:00-19:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -769,7 +769,7 @@ fn _0069() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_069_5096701e2e",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '13:20:00+5:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -782,7 +782,7 @@ fn _0070() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_070_8b2e39f570",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '13:20:00+5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -795,7 +795,7 @@ fn _0071() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_071_cf9417648b",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '13:20:00+02:00@Europe/Paris', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -808,7 +808,7 @@ fn _0072() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_072_4c8c3835e4",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '7:20', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -821,7 +821,7 @@ fn _0073() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_073_a5fc245959",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '07:2', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -834,7 +834,7 @@ fn _0074() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_074_387d4411ea",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '11:30:00T', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
@@ -847,7 +847,7 @@ fn _0075() {
     &MODEL_NAME,
     "feel-time-function_ErrorCase_075_1606dda03d",
     &ctx,
-    r#"null(time_1)"#,
+    r#"null(time: invalid time literal '2012T-12-2511:00:00Z', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)"#,
   );
 }
 
