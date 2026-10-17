@@ -5,6 +5,41 @@ use crate::feel_zone::FeelZone;
 use chrono::{DateTime, Datelike, FixedOffset, Local, LocalResult, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc};
 use regex::Regex;
 use std::sync::LazyLock;
+use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
+
+/// Sentinel meaning "no local offset override is set".
+const NO_LOCAL_OFFSET_OVERRIDE: i64 = i64::MIN;
+
+/// Process-wide override of the local time zone offset (in seconds east of UTC).
+///
+/// On targets where `chrono::Local` can not determine the host time zone
+/// (e.g. `wasm32-wasip1`, where it is always UTC), the embedding host
+/// can provide the local offset explicitly.
+static LOCAL_OFFSET_OVERRIDE: AtomicI64 = AtomicI64::new(NO_LOCAL_OFFSET_OVERRIDE);
+
+/// Sets (`Some(seconds east of UTC)`) or clears (`None`) the local time zone offset override.
+/// When set, all FEEL "local time" computations (`now()`, `today()`, local offsets)
+/// use this fixed offset instead of `chrono::Local`.
+pub fn set_local_offset_override(offset_seconds: Option<i32>) {
+  LOCAL_OFFSET_OVERRIDE.store(offset_seconds.map_or(NO_LOCAL_OFFSET_OVERRIDE, |s| s as i64), AtomicOrdering::SeqCst);
+}
+
+/// Returns the current local time zone offset override (seconds east of UTC), if any.
+pub fn local_offset_override() -> Option<i32> {
+  match LOCAL_OFFSET_OVERRIDE.load(AtomicOrdering::SeqCst) {
+    NO_LOCAL_OFFSET_OVERRIDE => None,
+    s => Some(s as i32),
+  }
+}
+
+/// Returns the current local date and time, honouring the local offset override.
+pub fn local_now() -> DateTime<FixedOffset> {
+  if let Some(offset) = local_offset_override().and_then(FixedOffset::east_opt) {
+    Utc::now().with_timezone(&offset)
+  } else {
+    Local::now().fixed_offset()
+  }
+}
 
 /// Regular expression pattern for parsing dates.
 const DATE_PATTERN: &str = r"(?P<sign>-)?(?P<year>[1-9][0-9]{3,8})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})";
@@ -76,7 +111,7 @@ pub fn date_time_offset_dt(date: (i32, u32, u32), time: (u32, u32, u32, u32), of
 }
 
 pub fn date_time_offset_t(time: (u32, u32, u32, u32), offset: i32) -> Option<DateTime<FixedOffset>> {
-  let today = Local::now();
+  let today = local_now();
   date_time_offset_dt((today.year(), today.month(), today.day()), time, offset)
 }
 
@@ -87,6 +122,9 @@ pub fn get_local_offset_dt(date: (i32, u32, u32), time: (u32, u32, u32, u32)) ->
     && let Some(naive_time) = NaiveTime::from_hms_nano_opt(time.0, time.1, time.2, time.3)
   {
     let naive_date_time = NaiveDateTime::new(naive_date, naive_time);
+    if let Some(offset) = local_offset_override() {
+      return Some(offset);
+    }
     return Some(Local.offset_from_utc_datetime(&naive_date_time).local_minus_utc());
   }
   None
@@ -95,7 +133,7 @@ pub fn get_local_offset_dt(date: (i32, u32, u32), time: (u32, u32, u32, u32)) ->
 /// Returns the time offset (in seconds) between local time zone
 /// and UTC time zone at specified **time** today.
 pub fn get_local_offset_t(time: (u32, u32, u32, u32)) -> Option<i32> {
-  let today = Local::now();
+  let today = local_now();
   get_local_offset_dt((today.year(), today.month(), today.day()), time)
 }
 
@@ -125,7 +163,7 @@ pub fn get_zone_offset_dt(zone_name: &str, date: (i32, u32, u32), time: (u32, u3
 /// Returns time offset (in seconds) between named time zone
 /// and UTC time zone at specified **time** today.
 pub fn get_zone_offset_t(zone_name: &str, time: (u32, u32, u32, u32)) -> Option<i32> {
-  let today = Local::now();
+  let today = local_now();
   get_zone_offset_dt(zone_name, (today.year(), today.month(), today.day()), time)
 }
 

@@ -4,7 +4,7 @@ use crate::FeelDaysAndTimeDuration;
 use crate::defs::*;
 use crate::errors::*;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
-use chrono::{DateTime, Datelike, Days, FixedOffset, Local, LocalResult, Months, NaiveDate, TimeZone, Weekday};
+use chrono::{DateTime, Datelike, Days, FixedOffset, LocalResult, Months, NaiveDate, TimeZone, Weekday};
 use dsntk_common::DsntkError;
 use dsntk_feel_number::FeelNumber;
 use std::cmp::Ordering;
@@ -225,7 +225,7 @@ impl FeelDate {
 
   /// Returns today's date in local time.
   pub fn today() -> Self {
-    let today = Local::now();
+    let today = local_now();
     Self(today.year(), today.month(), today.day())
   }
 

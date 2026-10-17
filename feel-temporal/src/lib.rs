@@ -16,6 +16,7 @@ mod feel_zone;
 #[cfg(test)]
 mod tests;
 
+pub use defs::{local_now, local_offset_override, set_local_offset_override};
 pub use defs::{Day, DayOfWeek, DayOfYear, Month, MonthOfYear, WeekOfYear, Year};
 pub use feel_date::FeelDate;
 pub use feel_date_time::FeelDateTime;

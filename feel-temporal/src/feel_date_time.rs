@@ -8,7 +8,7 @@ use crate::FeelDaysAndTimeDuration;
 use crate::defs::*;
 use crate::errors::err_date_time_conversion_failed;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
-use chrono::{DateTime, Datelike, Duration, FixedOffset, Local, Timelike};
+use chrono::{DateTime, Datelike, Duration, FixedOffset, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
 use std::fmt;
@@ -279,7 +279,7 @@ impl FeelDateTime {
 
   /// Returns today's date and time (local time).
   pub fn now() -> Self {
-    let now = Local::now();
+    let now = crate::defs::local_now();
     Self(
       FeelDate::new(now.year(), now.month(), now.day()).unwrap(), // Unwrap is ok here, date can not be invalid.
       FeelTime::local(now.hour() as u8, now.minute() as u8, now.second() as u8, now.nanosecond() as u64),
