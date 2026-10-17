@@ -3,11 +3,11 @@
 # then compare.py (Display/Debug mismatches, panics, time) and oracle_feel.py (who is right).
 #
 # usage: tools/evaluator-corpus/run.sh [corpus ...]   (default: corpus gen extra dmn)
-# env:   DFP_NUMBER_SYS=<path to the patched dfp-number-sys crate> (default: ../../../dsntk-wasm/third_party/dfp-number-sys)
+# env:   DFP_NUMBER_SYS=<path to the patched dfp-number-sys crate> (default: tools/dfp-number-sys, vendored in this branch)
 # Output: runs/<timestamp>/<corpus>-{intel,dashu}.jsonl, <corpus>-diff.txt, <corpus>-oracle.txt
 set -euo pipefail
 cd "$(dirname "$0")"
-DFP=${DFP_NUMBER_SYS:-$(cd ../../.. && pwd)/dsntk-wasm/third_party/dfp-number-sys}
+DFP=${DFP_NUMBER_SYS:-$(cd .. && pwd)/dfp-number-sys}
 CARGO_TARGET_DIR=target/intel cargo build --release --no-default-features --features intel --config "patch.crates-io.dfp-number-sys.path=\"$DFP\""
 CARGO_TARGET_DIR=target/dashu cargo build --release --no-default-features --features dashu
 OUT=runs/$(date +%Y%m%d-%H%M%S)

@@ -9,7 +9,7 @@ after touching `feel-number/src/decimal128.rs` or `feel-number/src/backend_dashu
 Both need the patched `dfp-number-sys` from dsntk-wasm for the Intel side (the crates.io
 version has FFI signature bugs on some targets); the run scripts inject it with
 `--config patch.crates-io.dfp-number-sys.path=...` and take its location from
-`DFP_NUMBER_SYS` (default `../../../dsntk-wasm/third_party/dfp-number-sys`, i.e. a sibling
+`DFP_NUMBER_SYS` (default `tools/dfp-number-sys`, the patched copy vendored in this branch; was a sibling
 checkout of dsntk-wasm). The oracles need `python3` with `mpmath`.
 
 ## `difftest/`: op-by-op fuzz of `FeelNumber`

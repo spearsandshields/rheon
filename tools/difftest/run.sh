@@ -2,11 +2,11 @@
 # Op-by-op differential fuzz, Intel BID128 vs dashu, judged by the mpmath/decimal oracle.
 #
 # usage: tools/difftest/run.sh [iters_per_op] [only_op,...]
-# env:   DFP_NUMBER_SYS=<path to the patched dfp-number-sys crate> (default: ../../../dsntk-wasm/third_party/dfp-number-sys)
+# env:   DFP_NUMBER_SYS=<path to the patched dfp-number-sys crate> (default: tools/dfp-number-sys, vendored in this branch)
 # Output: runs/<timestamp>/{run.txt,mismatches.tsv,cohort.tsv,oracle.txt,time.txt}
 set -euo pipefail
 cd "$(dirname "$0")"
-DFP=${DFP_NUMBER_SYS:-$(cd ../../.. && pwd)/dsntk-wasm/third_party/dfp-number-sys}
+DFP=${DFP_NUMBER_SYS:-$(cd .. && pwd)/dfp-number-sys}
 CFG=(--config "patch.crates-io.dfp-number-sys.path=\"$DFP\"")
 cargo build --release "${CFG[@]}"
 OUT=runs/$(date +%Y%m%d-%H%M%S)
