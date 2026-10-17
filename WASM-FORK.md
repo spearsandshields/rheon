@@ -41,6 +41,14 @@ Rules for this clone:
 | 10 | `786f584` | feel-number: track the sign of NaN like Intel (Debug-visible only) | fork | with 6-7 |
 | 11 | `2271732` | tools: differential fuzz and FEEL corpus harnesses (Intel vs dashu) | dashu spike | no |
 | 12 | `4ea7544` | feel-number: `NUMBER_BACKEND` constant naming the compiled-in backend | fork | with 6-7 |
+| 13 | `ba39cb1` | tools: vendor the patched dfp-number-sys used as the Intel reference | fork only | no |
+| 14 | `c760d4d` | feel-number: scale rounding keeps the scale when the rounded coefficient is ±1 | upstream bug | yes |
+| 15 | `55c7406` | feel-evaluator: stop a numeric `for` range when the step is lost to rounding | upstream bug | yes |
+| 16 | `4d61eb1` | feel-temporal: time ± duration wraps at midnight; order times and date-times across offsets as instants | upstream bug | yes |
+| 17 | `f308a34` | feel-parser: bound the name-prefix search in the lexer (path chains were cubic) | upstream bug | yes |
+| 18 | `5ecdede` | feel-evaluator: readable null reasons for time/exp/log/duration; huge numbers in messages in scientific notation | fork | maybe |
+| 19 | `cf21d52` | feel-temporal: `is()` on times stays zone-strict now that `=` compares instants | with 16 | yes |
+| 20 | `7de788f` | model-evaluator: expectations for the new null reasons of time(), exp(), log() and duration() | with 18 | with 18 |
 
 (Full SHAs: `git log --format='%H %s' main..wasm`.)
 
@@ -124,6 +132,47 @@ What each commit does:
 12. **`NUMBER_BACKEND`.** `dsntk_feel_number::NUMBER_BACKEND` is `"dashu"` or
     `"intel"`, selected by the same feature as the backend itself; dsntk-wasm
     reports it as `numberBackend` in its `info` op.
+13. **Vendored Intel reference** (`tools/dfp-number-sys`): the patched
+    `dfp-number-sys` crate the `tools/` harnesses build the Intel side with.
+14. **Scale rounding.** `unscale()` (both backends) returned `±1` without
+    scaling back whenever the rounded integral was `±1`, so `round up(0.1, 1)`
+    was `1`, `floor(0.19, 1)` was `1`, `round up(10, -1)` was `1`. The
+    upstream tests `round up(±5.5, -6111)` = `±1` and `floor(-1.56, -6111)` =
+    `-1` pinned the bug; they now expect `±1E+6111`.
+15. **Lost-step `for` ranges.** `for i in 1e34..1e34 return i` never ended
+    (`1e34 + 1 = 1e34` at 34 digits, so the counter never advanced and the
+    list grew until the memory cap). The number-interval iterator stops when
+    the next value equals the current one; the result is `[1e34]`.
+16. **Temporal fixes.** `time + days and time duration` wraps around midnight
+    with the nanosecond carry (`23:59:59 + PT1S = 00:00:00`; it was
+    `24:00:00`, and the duration's fraction was dropped). Times and date-times
+    whose zones have an offset are ordered as instants in UTC
+    (`2026-10-17T10:00:00+01:00 < 2026-10-17T10:00:00Z`,
+    `10:00:00+02:00 = 08:00:00Z`); ordering across different offsets used to
+    be always false. A local value stays comparable only with another local
+    value (as for subtraction), so `@"…T23:59:59Z" >= @"…T00:00:00"` is still
+    false (upstream test `comparison_ge::_0030`).
+17. **Lexer.** `.` is an additional name symbol, so after each `Dot` the lexer
+    scanned the rest of an `a.a.a…` chain as one candidate name and tried
+    every prefix (O(n³) for n steps; 400 steps took 2 s). Prefixes longer
+    than the longest key in scope (or built-in property name) are skipped;
+    the fallback name is unchanged.
+18. **Messages.** `time("10:00:00+15:00")` said `time_1`, `exp(14150)` said
+    `exp`, `duration("P")` said `duration`, `log(0)` said nothing; they now
+    say what is wrong, and type errors use the `invalid argument type` form.
+    `sublist([1,2,3], 9e6144)` embedded 6,145 digits in its reason; numbers
+    longer than 40 characters are formatted as `9E+6144` in messages.
+19. **`is()` on times.** `FeelTime::is` compares the fields and the zone as
+    written (TCK 0103 `is(@"20:00:50+00:00", @"21:00:50+01:00")` is false),
+    since `==` now compares instants.
+20. **TCK expectations** for the reason texts changed by commit 18.
+
+Verification after commits 14-20 (native, dashu): feel-number 21 unit +
+228 integration tests pass; feel-temporal 57 (lib) + the `tests/` suite,
+feel-parser 461+; feel-evaluator 3370 passed, 13 failed (the
+`external_functions` tests, which need the Java RPC service), 3 ignored;
+model-evaluator 3651 passed, 18 failed (all TCK 0076, Java external
+functions), 20 ignored. Clippy is clean for the touched crates.
 
 ### Known, intended differences between the dashu core and the Intel backend
 
@@ -251,20 +300,34 @@ git rebase main                                         # replay the commits
 git rebase wasm fastnum-backend                         # optional side branch
 ```
 
-Resolve conflicts per commit (each one is small and self-contained; commit 3
-touches the most files, commit 8 touches every manifest). Then:
+`origin` is <https://github.com/DecisionToolkit/dsntk> (the crates.io name is
+`dsntk`; the old <https://github.com/dsntk/dsntk-rs> URL redirects there).
+Upstream has not moved since `c76aee0`, so today the rebase is a no-op.
+Replaying the branch onto a moved base (tried against the head of upstream
+PR DecisionToolkit/dsntk#112, 27 commits ahead) first conflicts in commit 3
+(`ec2ced3`, Robustness) in `feel-evaluator/src/filters.rs` and
+`feel-parser/src/parser.rs` (one hunk each); commit 4 overlaps PR #112
+itself, and commit 8 touches every manifest. Resolve conflicts per commit
+(each one is small and self-contained) and compile every replayed commit:
+
+```sh
+git rebase -x 'CARGO_BUILD_JOBS=4 cargo check -p dsntk-feel-evaluator' main
+```
+
+Then:
 
 1. Rerun the verification above (suites, `tools/difftest/run.sh`,
    `tools/evaluator-corpus/run.sh`).
 2. Point dsntk-wasm at the new head: it depends on this clone as a git
    dependency (`git = "file://$HOME/dev/dsntk-rs"`, pinned with
    `rev = "<sha>"` in `[workspace.dependencies]` of `dsntk-wasm/Cargo.toml`,
-   plus `[workspace.metadata.dsntk] upstream-commit`). Replace the SHA (and
-   the upstream base), then `cargo update` there and run its `npm test`,
-   `npm run build:wasm` and `npm run smoke`. `git log main..wasm` is the
-   source of truth; dsntk-wasm no longer carries patches.
-3. In dsntk-wasm run `./scripts/bootstrap.sh --force` (or point the path
-   dependencies here) and `npm test`.
+   plus `[workspace.metadata.dsntk] upstream-commit`). In dsntk-wasm:
+   replace the SHA (and the upstream base) in `Cargo.toml`, e.g.
+   `perl -pi -e 's/<old>/<new>/g' Cargo.toml`, then
+   `cargo update -p dsntk-feel-evaluator`, `npm run bootstrap` (verifies the
+   pinned commit exists here), `npm test`, `npm run build:wasm`,
+   `npm run smoke`. `git log main..wasm` is the source of truth; dsntk-wasm
+   no longer carries patches, and `bootstrap.sh` takes no arguments.
 
 If a commit was merged upstream, `git rebase` drops it automatically when
 the patch is identical; otherwise drop it by hand with `git rebase -i`.
