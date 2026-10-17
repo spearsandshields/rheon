@@ -545,27 +545,17 @@ impl From<i64> for FeelNumber {
 }
 
 impl From<isize> for FeelNumber {
-  #[cfg(target_pointer_width = "64")]
   fn from(value: isize) -> Self {
     Self(bid128_from_int64(value.try_into().unwrap()), false)
   }
 
-  #[cfg(not(target_pointer_width = "64"))]
-  fn from(value: isize) -> Self {
-    compile_error!("Implement conversion from isize for other architectures as 64-bit")
-  }
 }
 
 impl From<usize> for FeelNumber {
-  #[cfg(target_pointer_width = "64")]
   fn from(value: usize) -> Self {
     Self(bid128_from_uint64(value.try_into().unwrap()), false)
   }
 
-  #[cfg(not(target_pointer_width = "64"))]
-  fn from(value: usize) -> Self {
-    compile_error!("Implement conversion from isize for other architectures as 64-bit")
-  }
 }
 
 impl TryFrom<FeelNumber> for u8 {
@@ -747,20 +737,16 @@ impl TryFrom<FeelNumber> for usize {
 impl TryFrom<&FeelNumber> for usize {
   type Error = DsntkError;
 
-  #[cfg(target_pointer_width = "64")]
   fn try_from(value: &FeelNumber) -> Result<Self, Self::Error> {
     let mut flags = EXE_CLEAR;
     let n = bid128_to_uint64_int(value.0, &mut flags);
     if flags != EXE_CLEAR {
       return Err(err_number_conversion_failed());
     }
-    Ok(n.try_into().unwrap())
+    // usize is 32-bit on wasm32: report out-of-range values instead of panicking.
+    n.try_into().map_err(|_| err_number_conversion_failed())
   }
 
-  #[cfg(not(target_pointer_width = "64"))]
-  fn try_from(value: &FeelNumber) -> Result<Self, Self::Error> {
-    compile_error!("Implement conversion from usize for other architectures as 64-bit")
-  }
 }
 
 impl TryFrom<FeelNumber> for isize {
@@ -774,18 +760,14 @@ impl TryFrom<FeelNumber> for isize {
 impl TryFrom<&FeelNumber> for isize {
   type Error = DsntkError;
 
-  #[cfg(target_pointer_width = "64")]
   fn try_from(value: &FeelNumber) -> Result<Self, Self::Error> {
     let mut flags = EXE_CLEAR;
     let n = bid128_to_int64_int(value.0, &mut flags);
     if flags != EXE_CLEAR {
       return Err(err_number_conversion_failed());
     }
-    Ok(n.try_into().unwrap())
+    // isize is 32-bit on wasm32: report out-of-range values instead of panicking.
+    n.try_into().map_err(|_| err_number_conversion_failed())
   }
 
-  #[cfg(not(target_pointer_width = "64"))]
-  fn try_from(value: &FeelNumber) -> Result<Self, Self::Error> {
-    compile_error!("Implement conversion from isize for other architectures as 64-bit")
-  }
 }

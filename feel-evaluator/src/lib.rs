@@ -7,6 +7,10 @@ extern crate dsntk_macros;
 mod bifs;
 mod builders;
 mod errors;
+#[cfg(not(target_arch = "wasm32"))]
+mod evaluator_java;
+#[cfg(target_arch = "wasm32")]
+#[path = "evaluator_java_stub.rs"]
 mod evaluator_java;
 mod evaluator_pmml;
 mod evaluators;
