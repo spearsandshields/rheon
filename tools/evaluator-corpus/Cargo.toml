@@ -1,0 +1,23 @@
+# FEEL-level differential harness: evaluates a corpus of FEEL expressions with the number
+# backend selected by the feature (`intel` or `dashu`); run.sh builds both and compares.
+[package]
+name = "evaluator-corpus"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "feel-eval"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+dsntk-feel = { path = "../../feel", default-features = false }
+dsntk-feel-parser = { path = "../../feel-parser", default-features = false }
+dsntk-feel-evaluator = { path = "../../feel-evaluator", default-features = false }
+
+[features]
+intel = ["dsntk-feel/intel", "dsntk-feel-parser/intel", "dsntk-feel-evaluator/intel"]
+dashu = ["dsntk-feel/dashu", "dsntk-feel-parser/dashu", "dsntk-feel-evaluator/dashu"]
+
+[workspace]

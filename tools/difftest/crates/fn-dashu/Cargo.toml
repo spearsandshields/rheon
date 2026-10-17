@@ -1,0 +1,21 @@
+# The real dsntk-feel-number crate source (lib.rs), built with feature `dashu`.
+[package]
+name = "fn-dashu"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "../../../../feel-number/src/lib.rs"
+
+[dependencies]
+dashu-base = { version = "0.6.1", default-features = false }
+dashu-float = { version = "0.6.2", default-features = false }
+dashu-int = { version = "0.6.2", default-features = false }
+dsntk-common = { path = "../../../../common" }
+dsntk-macros = { path = "../../../../macros" }
+
+[features]
+default = ["dashu"]
+intel = []
+dashu = []

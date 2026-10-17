@@ -1,0 +1,19 @@
+# Op-by-op differential fuzzer: the Intel BID128 FeelNumber against the dashu FeelNumber.
+# Both backends are linked into one binary: crates/fn-intel and crates/fn-dashu compile
+# ../../feel-number/src/lib.rs twice, once with feature `intel` and once with `dashu`.
+[package]
+name = "difftest"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+fn-intel = { path = "crates/fn-intel" }
+fn-dashu = { path = "crates/fn-dashu" }
+dsntk-common = { path = "../../common" }
+
+[profile.release]
+overflow-checks = true
+debug-assertions = true
+
+[workspace]

@@ -1,0 +1,21 @@
+# The real dsntk-feel-number crate source (lib.rs), built with feature `intel`.
+# dfp-number-sys from crates.io has FFI signature bugs on some targets; run.sh injects the
+# patched copy from dsntk-wasm through `--config patch.crates-io.dfp-number-sys.path=...`.
+[package]
+name = "fn-intel"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[lib]
+path = "../../../../feel-number/src/lib.rs"
+
+[dependencies]
+dfp-number-sys = "0.2.14"
+dsntk-common = { path = "../../../../common" }
+dsntk-macros = { path = "../../../../macros" }
+
+[features]
+default = ["intel"]
+intel = []
+dashu = []
