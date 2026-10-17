@@ -40,6 +40,7 @@ Rules for this clone:
 | 9 | `c64e330` | Tests: per-backend expectations where Intel's rounding error is encoded, dashu regressions | fork | with 6-7 |
 | 10 | `786f584` | feel-number: track the sign of NaN like Intel (Debug-visible only) | fork | with 6-7 |
 | 11 | `2271732` | tools: differential fuzz and FEEL corpus harnesses (Intel vs dashu) | dashu spike | no |
+| 12 | `4ea7544` | feel-number: `NUMBER_BACKEND` constant naming the compiled-in backend | fork | with 6-7 |
 
 (Full SHAs: `git log --format='%H %s' main..wasm`.)
 
@@ -120,6 +121,9 @@ What each commit does:
     are unchanged (`NaN` / null).
 11. **Tools** (`tools/`, see `tools/README.md`): the op-by-op differential
     fuzzer with the mpmath/decimal oracle and the FEEL corpus harness.
+12. **`NUMBER_BACKEND`.** `dsntk_feel_number::NUMBER_BACKEND` is `"dashu"` or
+    `"intel"`, selected by the same feature as the backend itself; dsntk-wasm
+    reports it as `numberBackend` in its `info` op.
 
 ### Known, intended differences between the dashu core and the Intel backend
 
@@ -252,12 +256,13 @@ touches the most files, commit 8 touches every manifest). Then:
 
 1. Rerun the verification above (suites, `tools/difftest/run.sh`,
    `tools/evaluator-corpus/run.sh`).
-2. Update `dsntk-wasm/patches/dsntk/UPSTREAM_COMMIT` to the new base and
-   regenerate the patches if dsntk-wasm still consumes them:
-   `git format-patch --no-stat --no-numbered -o <dir> main..wasm`, or keep
-   them as `git diff <prev>..<commit>` per step as before. Once dsntk-wasm
-   depends on this fork by path, the patches directory becomes a mirror of
-   this branch and `git log main..wasm` is the source of truth.
+2. Point dsntk-wasm at the new head: it depends on this clone as a git
+   dependency (`git = "file://$HOME/dev/dsntk-rs"`, pinned with
+   `rev = "<sha>"` in `[workspace.dependencies]` of `dsntk-wasm/Cargo.toml`,
+   plus `[workspace.metadata.dsntk] upstream-commit`). Replace the SHA (and
+   the upstream base), then `cargo update` there and run its `npm test`,
+   `npm run build:wasm` and `npm run smoke`. `git log main..wasm` is the
+   source of truth; dsntk-wasm no longer carries patches.
 3. In dsntk-wasm run `./scripts/bootstrap.sh --force` (or point the path
    dependencies here) and `npm test`.
 
