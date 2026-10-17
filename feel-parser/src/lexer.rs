@@ -726,8 +726,22 @@ impl<'lexer> Lexer<'lexer> {
     //-------------------------------------------------------------------------------
     // begin with with the longest name containing all parts
     //-------------------------------------------------------------------------------
-    let mut part_count = parts.len();
     let flattened = self.scope.flattened();
+    // A prefix can only match a key in scope (or a built-in property name) when its flattened
+    // text is not longer than the longest such key, and the flattened text is never shorter
+    // than the trimmed parts it is made of. Skip the prefixes that are too long to match, so
+    // that a long chain like `a.a.a...` (every `.` is an additional name symbol, so the longest
+    // candidate name spans the whole chain) costs linear instead of quadratic time per token.
+    let max_key_len = flattened.iter().map(|key| key.len()).max().unwrap_or(0).max(MAX_BUILT_IN_PROPERTY_NAME_LEN);
+    let mut part_count = 0;
+    let mut prefix_len = 0;
+    for part in &parts {
+      prefix_len += part.trim().len();
+      if prefix_len > max_key_len {
+        break;
+      }
+      part_count += 1;
+    }
     while part_count > 0 {
       // take a sublist of the original part list until the list is empty
       let part_sublist = &parts[..part_count];
@@ -925,6 +939,9 @@ impl<'lexer> Lexer<'lexer> {
     false
   }
 }
+
+/// Upper bound of the length of a built-in property name (`start included`), see [is_built_in_property_name].
+const MAX_BUILT_IN_PROPERTY_NAME_LEN: usize = 16;
 
 /// Returns `true` when the specified character is a separator (white space equivalent).
 fn is_separator(ch: char) -> bool {

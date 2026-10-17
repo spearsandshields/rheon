@@ -373,3 +373,36 @@ fn _0014() {
     "#;
   accept(&scope!(), StartExpression, input, expected, false);
 }
+
+#[test]
+fn _0015() {
+  // A long chain of path expressions over a known name used to cost cubic time in the lexer
+  // (every `.` is an additional name symbol, so each token scanned the whole chain and tried
+  // every prefix); with 1000 steps this parses in milliseconds now.
+  let input = format!("{{a:1}}{}", ".a".repeat(1000));
+  let started = std::time::Instant::now();
+  let node = Parser::new(&scope!(), StartExpression, &input, false).parse().unwrap();
+  assert!(matches!(node, AstNode::Path(_, _)), "expected a path expression");
+  assert!(started.elapsed().as_secs() < 5, "parsing took {:?}", started.elapsed());
+}
+
+#[test]
+fn _0016() {
+  // Names containing additional symbols are still recognised when they exist in scope.
+  let scope = scope!();
+  scope.set_entry_name("a.b".into());
+  scope.set_entry_name("start included".into());
+  accept(
+    &scope,
+    StartExpression,
+    r#"a.b.start included"#,
+    r#"
+       Path
+       ├─ Name
+       │  └─ `a.b`
+       └─ Name
+          └─ `start included`
+    "#,
+    false,
+  );
+}
