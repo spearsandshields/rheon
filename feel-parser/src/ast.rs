@@ -331,6 +331,195 @@ impl Display for AstNode {
 }
 
 impl AstNode {
+  /// Returns the depth of this AST (a leaf has depth 1).
+  ///
+  /// Computed iteratively, so it works for ASTs too deep for the recursive tree builders,
+  /// printers and evaluators; embedders use it to reject such ASTs before they overflow the stack.
+  pub fn depth(&self) -> usize {
+    let mut max_depth = 0;
+    let mut stack = vec![(self, 1_usize)];
+    while let Some((node, depth)) = stack.pop() {
+      max_depth = max_depth.max(depth);
+      node.for_each_child(|child| stack.push((child, depth + 1)));
+    }
+    max_depth
+  }
+
+  /// Calls `f` for every direct child node.
+  pub fn for_each_child<'a>(&'a self, mut f: impl FnMut(&'a AstNode)) {
+    match self {
+      AstNode::Add(lhs, rhs)
+      | AstNode::And(lhs, rhs)
+      | AstNode::ContextEntry(lhs, rhs)
+      | AstNode::ContextTypeEntry(lhs, rhs)
+      | AstNode::Div(lhs, rhs)
+      | AstNode::Eq(lhs, rhs)
+      | AstNode::Every(lhs, rhs)
+      | AstNode::Exp(lhs, rhs)
+      | AstNode::Filter(lhs, rhs)
+      | AstNode::For(lhs, rhs)
+      | AstNode::FormalParameter(lhs, rhs)
+      | AstNode::FunctionDefinition(lhs, rhs)
+      | AstNode::FunctionInvocation(lhs, rhs)
+      | AstNode::FunctionType(lhs, rhs)
+      | AstNode::Ge(lhs, rhs)
+      | AstNode::Gt(lhs, rhs)
+      | AstNode::In(lhs, rhs)
+      | AstNode::InstanceOf(lhs, rhs)
+      | AstNode::IterationContextSingle(lhs, rhs)
+      | AstNode::Le(lhs, rhs)
+      | AstNode::Lt(lhs, rhs)
+      | AstNode::Mul(lhs, rhs)
+      | AstNode::NamedParameter(lhs, rhs)
+      | AstNode::Nq(lhs, rhs)
+      | AstNode::Or(lhs, rhs)
+      | AstNode::Out(lhs, rhs)
+      | AstNode::Path(lhs, rhs)
+      | AstNode::QuantifiedContext(lhs, rhs)
+      | AstNode::Range(lhs, rhs)
+      | AstNode::Some(lhs, rhs)
+      | AstNode::Sub(lhs, rhs) => {
+        f(lhs);
+        f(rhs);
+      }
+      AstNode::Between(lhs, mid, rhs) | AstNode::If(lhs, mid, rhs) | AstNode::IterationContextInterval(lhs, mid, rhs) => {
+        f(lhs);
+        f(mid);
+        f(rhs);
+      }
+      AstNode::EvaluatedExpression(mid)
+      | AstNode::FunctionBody(mid, _)
+      | AstNode::IntervalEnd(mid, _)
+      | AstNode::IntervalStart(mid, _)
+      | AstNode::ListType(mid)
+      | AstNode::Neg(mid)
+      | AstNode::RangeType(mid)
+      | AstNode::Satisfies(mid)
+      | AstNode::UnaryGe(mid)
+      | AstNode::UnaryGt(mid)
+      | AstNode::UnaryLe(mid)
+      | AstNode::UnaryLt(mid)
+      | AstNode::UnaryEq(mid)
+      | AstNode::UnaryNe(mid) => f(mid),
+      AstNode::CommaList(items)
+      | AstNode::Context(items)
+      | AstNode::ContextType(items)
+      | AstNode::ExpressionList(items)
+      | AstNode::FormalParameters(items)
+      | AstNode::IterationContexts(items)
+      | AstNode::List(items)
+      | AstNode::NamedParameters(items)
+      | AstNode::NegatedList(items)
+      | AstNode::ParameterTypes(items)
+      | AstNode::PositionalParameters(items)
+      | AstNode::QualifiedName(items)
+      | AstNode::QuantifiedContexts(items) => items.iter().for_each(f),
+      AstNode::At(_)
+      | AstNode::Boolean(_)
+      | AstNode::ContextEntryKey(_)
+      | AstNode::ContextTypeEntryKey(_)
+      | AstNode::FeelType(_)
+      | AstNode::Irrelevant
+      | AstNode::Name(_)
+      | AstNode::Null
+      | AstNode::Numeric(..)
+      | AstNode::ParameterName(_)
+      | AstNode::QualifiedNameSegment(_)
+      | AstNode::String(_) => {}
+    }
+  }
+
+  /// Calls `f` for every direct child node (mutable).
+  pub fn for_each_child_mut(&mut self, mut f: impl FnMut(&mut AstNode)) {
+    match self {
+      AstNode::Add(lhs, rhs)
+      | AstNode::And(lhs, rhs)
+      | AstNode::ContextEntry(lhs, rhs)
+      | AstNode::ContextTypeEntry(lhs, rhs)
+      | AstNode::Div(lhs, rhs)
+      | AstNode::Eq(lhs, rhs)
+      | AstNode::Every(lhs, rhs)
+      | AstNode::Exp(lhs, rhs)
+      | AstNode::Filter(lhs, rhs)
+      | AstNode::For(lhs, rhs)
+      | AstNode::FormalParameter(lhs, rhs)
+      | AstNode::FunctionDefinition(lhs, rhs)
+      | AstNode::FunctionInvocation(lhs, rhs)
+      | AstNode::FunctionType(lhs, rhs)
+      | AstNode::Ge(lhs, rhs)
+      | AstNode::Gt(lhs, rhs)
+      | AstNode::In(lhs, rhs)
+      | AstNode::InstanceOf(lhs, rhs)
+      | AstNode::IterationContextSingle(lhs, rhs)
+      | AstNode::Le(lhs, rhs)
+      | AstNode::Lt(lhs, rhs)
+      | AstNode::Mul(lhs, rhs)
+      | AstNode::NamedParameter(lhs, rhs)
+      | AstNode::Nq(lhs, rhs)
+      | AstNode::Or(lhs, rhs)
+      | AstNode::Out(lhs, rhs)
+      | AstNode::Path(lhs, rhs)
+      | AstNode::QuantifiedContext(lhs, rhs)
+      | AstNode::Range(lhs, rhs)
+      | AstNode::Some(lhs, rhs)
+      | AstNode::Sub(lhs, rhs) => {
+        f(lhs);
+        f(rhs);
+      }
+      AstNode::Between(lhs, mid, rhs) | AstNode::If(lhs, mid, rhs) | AstNode::IterationContextInterval(lhs, mid, rhs) => {
+        f(lhs);
+        f(mid);
+        f(rhs);
+      }
+      AstNode::EvaluatedExpression(mid)
+      | AstNode::FunctionBody(mid, _)
+      | AstNode::IntervalEnd(mid, _)
+      | AstNode::IntervalStart(mid, _)
+      | AstNode::ListType(mid)
+      | AstNode::Neg(mid)
+      | AstNode::RangeType(mid)
+      | AstNode::Satisfies(mid)
+      | AstNode::UnaryGe(mid)
+      | AstNode::UnaryGt(mid)
+      | AstNode::UnaryLe(mid)
+      | AstNode::UnaryLt(mid)
+      | AstNode::UnaryEq(mid)
+      | AstNode::UnaryNe(mid) => f(mid),
+      AstNode::CommaList(items)
+      | AstNode::Context(items)
+      | AstNode::ContextType(items)
+      | AstNode::ExpressionList(items)
+      | AstNode::FormalParameters(items)
+      | AstNode::IterationContexts(items)
+      | AstNode::List(items)
+      | AstNode::NamedParameters(items)
+      | AstNode::NegatedList(items)
+      | AstNode::ParameterTypes(items)
+      | AstNode::PositionalParameters(items)
+      | AstNode::QualifiedName(items)
+      | AstNode::QuantifiedContexts(items) => items.iter_mut().for_each(f),
+      AstNode::At(_)
+      | AstNode::Boolean(_)
+      | AstNode::ContextEntryKey(_)
+      | AstNode::ContextTypeEntryKey(_)
+      | AstNode::FeelType(_)
+      | AstNode::Irrelevant
+      | AstNode::Name(_)
+      | AstNode::Null
+      | AstNode::Numeric(..)
+      | AstNode::ParameterName(_)
+      | AstNode::QualifiedNameSegment(_)
+      | AstNode::String(_) => {}
+    }
+  }
+
+  /// Returns `true` when this node has no child nodes.
+  pub fn is_leaf(&self) -> bool {
+    let mut leaf = true;
+    self.for_each_child(|_| leaf = false);
+    leaf
+  }
+
   /// Converts [AstNode] to its textual representation with indentation and color mode.
   pub fn tree(&self, indent: usize, cm: ColorMode) -> String {
     let root = ast_node_to_tree(self, cm);
@@ -502,4 +691,28 @@ fn numeric_to_string(before: &str, after: &str, sign: &char, exponent: &str) -> 
   }
   let _ = write!(&mut output, "`");
   output
+}
+
+/// Drops deep ASTs iteratively.
+///
+/// The derived (recursive) drop glue overflows the stack for very deep ASTs, e.g. a chain of
+/// 20 000 `+` that embedders reject as too deep (on wasm32 a stack overflow kills the instance).
+/// Children that have children of their own are detached and dropped from an explicit stack.
+impl Drop for AstNode {
+  fn drop(&mut self) {
+    let mut stack: Vec<AstNode> = vec![];
+    self.for_each_child_mut(|child| {
+      if !child.is_leaf() {
+        stack.push(std::mem::replace(child, AstNode::Null));
+      }
+    });
+    while let Some(mut node) = stack.pop() {
+      node.for_each_child_mut(|child| {
+        if !child.is_leaf() {
+          stack.push(std::mem::replace(child, AstNode::Null));
+        }
+      });
+      // `node` is dropped here; its children are leaves now, so this drop does not recurse deeply
+    }
+  }
 }

@@ -73,7 +73,22 @@ impl FeelDaysAndTimeDuration {
 
   /// Returns absolute value of the duration.
   pub fn abs(&self) -> Self {
-    Self(self.0.abs())
+    Self(self.0.saturating_abs())
+  }
+
+  /// Returns the sum of durations, or `None` when the result does not fit.
+  pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
+    self.0.checked_add(rhs.0).map(Self)
+  }
+
+  /// Returns the difference of durations, or `None` when the result does not fit.
+  pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
+    self.0.checked_sub(rhs.0).map(Self)
+  }
+
+  /// Returns the negated duration, or `None` when the result does not fit.
+  pub fn checked_neg(&self) -> Option<Self> {
+    self.0.checked_neg().map(Self)
   }
 
   /// Returns `true` when the duration is negative.
@@ -110,7 +125,7 @@ impl fmt::Display for FeelDaysAndTimeDuration {
   /// Converts [FeelDaysAndTimeDuration] into string.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let sign = if self.0 < 0 { "-" } else { "" };
-    let mut nanoseconds = self.0.abs();
+    let mut nanoseconds = self.0.saturating_abs();
     let day = nanoseconds / NANOSECONDS_IN_DAY;
     nanoseconds -= day * NANOSECONDS_IN_DAY;
     let hour = nanoseconds / NANOSECONDS_IN_HOUR;
@@ -164,37 +179,52 @@ impl TryFrom<&str> for FeelDaysAndTimeDuration {
     if let Some(captures) = RE_DAYS_AND_TIME.captures(value) {
       let mut is_valid = false;
       let mut nanoseconds = 0_i64;
-      if let Some(days_match) = captures.name("days")
-        && let Ok(days_u64) = days_match.as_str().parse::<u64>()
-        && let Ok(days) = <u64 as TryInto<i64>>::try_into(days_u64)
-        && let Some(a) = days.checked_mul(NANOSECONDS_IN_DAY)
-      {
-        nanoseconds += a;
-        is_valid = true;
+      let mut days_overflow = false;
+      if let Some(days_match) = captures.name("days") {
+        if let Ok(days_u64) = days_match.as_str().parse::<u64>()
+          && let Ok(days) = <u64 as TryInto<i64>>::try_into(days_u64)
+          && let Some(a) = days.checked_mul(NANOSECONDS_IN_DAY)
+        {
+          nanoseconds += a;
+          is_valid = true;
+        } else {
+          days_overflow = true;
+        }
       }
-      if let Some(hours_match) = captures.name("hours")
-        && let Ok(hours) = hours_match.as_str().parse::<u64>()
-      {
-        nanoseconds += (hours as i64) * NANOSECONDS_IN_HOUR;
-        is_valid = true;
-      }
-      if let Some(minutes_match) = captures.name("minutes")
-        && let Ok(minutes) = minutes_match.as_str().parse::<u64>()
-      {
-        nanoseconds += (minutes as i64) * NANOSECONDS_IN_MINUTE;
-        is_valid = true;
-      }
-      if let Some(seconds_match) = captures.name("seconds")
-        && let Ok(seconds) = seconds_match.as_str().parse::<u64>()
-      {
-        nanoseconds += (seconds as i64) * NANOSECONDS_IN_SECOND;
-        is_valid = true;
+      // Every component is added with checked arithmetic: a duration that does not fit into
+      // i64 nanoseconds (about 292 years) is an invalid literal instead of a silently wrapped value.
+      let mut overflow = false;
+      for (name, unit) in [("hours", NANOSECONDS_IN_HOUR), ("minutes", NANOSECONDS_IN_MINUTE), ("seconds", NANOSECONDS_IN_SECOND)] {
+        if let Some(component_match) = captures.name(name) {
+          match component_match
+            .as_str()
+            .parse::<u64>()
+            .ok()
+            .and_then(|n| i64::try_from(n).ok())
+            .and_then(|n| n.checked_mul(unit))
+            .and_then(|n| nanoseconds.checked_add(n))
+          {
+            Some(total) => {
+              nanoseconds = total;
+              is_valid = true;
+            }
+            None => overflow = true,
+          }
+        }
       }
       if let Some(fractional_match) = captures.name("fractional")
         && let Ok(fractional) = fractional_match.as_str().parse::<f64>()
       {
-        nanoseconds += (fractional * NANOSECONDS_IN_SECOND as f64).trunc() as i64;
-        is_valid = true;
+        match nanoseconds.checked_add((fractional * NANOSECONDS_IN_SECOND as f64).trunc() as i64) {
+          Some(total) => {
+            nanoseconds = total;
+            is_valid = true;
+          }
+          None => overflow = true,
+        }
+      }
+      if overflow || days_overflow {
+        is_valid = false;
       }
       if captures.name("sign").is_some() {
         nanoseconds = -nanoseconds;

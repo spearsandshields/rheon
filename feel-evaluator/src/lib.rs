@@ -19,6 +19,7 @@ mod iterations;
 mod macros;
 mod tests;
 
+pub use crate::builders::{MAX_CALL_DEPTH, call_depth_exceeded, reset_call_depth};
 pub use crate::evaluators::*;
 pub use crate::filters::FilterExpressionEvaluator;
 pub use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};

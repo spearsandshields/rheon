@@ -63,8 +63,8 @@ pub fn parse_simple_value(scope: &FeelScope, input: &str, trace: bool) -> Result
 
 /// Parses a `name` as defined grammar rule `25`.
 pub fn parse_name(scope: &FeelScope, input: &str, trace: bool) -> Result<Name> {
-  if let AstNode::Name(name) = Parser::new(&scope.into(), TokenType::StartTextualExpression, input, trace).parse()? {
-    Ok(name)
+  if let AstNode::Name(name) = &Parser::new(&scope.into(), TokenType::StartTextualExpression, input, trace).parse()? {
+    Ok(name.clone())
   } else {
     Err(err_not_a_feel_name(input))
   }

@@ -126,6 +126,15 @@ impl FeelNumber {
     bid128_quiet_equal(self.0, BID128_ZERO, flags!())
   }
 
+  /// Returns `true` when this number is finite (not an infinity and not NaN).
+  ///
+  /// Arithmetic on BID128 values can overflow to infinity (e.g. `9e6144 * 10`) or produce NaN
+  /// (e.g. a failed quantize in `decimal(1e33, 1)`); FEEL has no such numbers, so evaluators
+  /// turn non-finite results into null.
+  pub fn is_finite(&self) -> bool {
+    bid128_is_finite(self.0)
+  }
+
   pub fn is_one(&self) -> bool {
     bid128_quiet_equal(self.0, BID128_ONE, flags!())
   }
@@ -437,8 +446,26 @@ impl Display for FeelNumber {
     let s = bid128_to_string(self.0, flags!());
     let negative = s.starts_with('-');
     let mut split = s[1..].split('E');
-    let (sb, sa) = split.next().zip(split.next()).unwrap(); // unwrap is ok, there is always E present
-    let exponent = sa.parse::<isize>().unwrap(); // unwrap is ok, there is always correct exponent present
+    // Infinity and NaN have no exponent part; FEEL has no such numbers, but never panic
+    // while formatting them (a panic aborts the whole engine on wasm32).
+    let Some((sb, sa)) = split.next().zip(split.next()) else {
+      let text = if bid128_is_nan(self.0) {
+        "NaN"
+      } else if negative {
+        "-Infinity"
+      } else {
+        "Infinity"
+      };
+      return f.pad(text);
+    };
+    let Ok(exponent) = sa.parse::<isize>() else {
+      return f.pad(&s);
+    };
+    // A zero with a huge exponent (e.g. `0 * 1e-6000` or `decimal(0, 6000)`) would otherwise be
+    // printed with thousands of zeros; print it as a plain `0` instead.
+    if bid128_is_zero(self.0) && !(-34..=0).contains(&exponent) && f.precision().is_none() {
+      return f.pad_integral(true, "", "0");
+    }
     let decimal_points = exponent.unsigned_abs();
     let (mut before, mut after) = if exponent < 0 {
       let digit_count = sb.len();
@@ -485,6 +512,21 @@ impl Jsonify for FeelNumber {
   /// Converts [FeelNumber] to JSON string.
   fn jsonify(&self) -> String {
     format!("{self}")
+  }
+}
+
+impl FeelNumber {
+  /// Parses a number like [FromStr::from_str] and also reports whether the decimal library had
+  /// to round the value (more than 34 significant digits, or an exponent so small that the
+  /// value underflows to a subnormal number or to zero).
+  pub fn from_str_reporting_rounding(s: &str) -> Result<(Self, bool), DsntkError> {
+    let mut flags = EXE_CLEAR;
+    let n = bid128_from_string(s, round!(), &mut flags);
+    if bid128_is_finite(n) {
+      Ok((Self(n, false), flags & (EXE_INEXACT | EXE_UNDERFLOW) != 0))
+    } else {
+      Err(err_invalid_number_literal(s))
+    }
   }
 }
 
@@ -548,14 +590,12 @@ impl From<isize> for FeelNumber {
   fn from(value: isize) -> Self {
     Self(bid128_from_int64(value.try_into().unwrap()), false)
   }
-
 }
 
 impl From<usize> for FeelNumber {
   fn from(value: usize) -> Self {
     Self(bid128_from_uint64(value.try_into().unwrap()), false)
   }
-
 }
 
 impl TryFrom<FeelNumber> for u8 {
@@ -746,7 +786,6 @@ impl TryFrom<&FeelNumber> for usize {
     // usize is 32-bit on wasm32: report out-of-range values instead of panicking.
     n.try_into().map_err(|_| err_number_conversion_failed())
   }
-
 }
 
 impl TryFrom<FeelNumber> for isize {
@@ -769,5 +808,4 @@ impl TryFrom<&FeelNumber> for isize {
     // isize is 32-bit on wasm32: report out-of-range values instead of panicking.
     n.try_into().map_err(|_| err_number_conversion_failed())
   }
-
 }

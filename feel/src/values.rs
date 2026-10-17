@@ -507,8 +507,10 @@ impl Value {
         if values.is_empty() {
           FeelType::List(Box::new(FeelType::Null))
         } else {
+          // Compute every item's type exactly once: calling type_of() on the first item twice
+          // made the cost exponential in the nesting depth of lists ([[[...]]]).
           let item_type = values[0].type_of();
-          for item in values {
+          for item in &values[1..] {
             if !item.type_of().is_conformant(&item_type) {
               return FeelType::List(Box::new(FeelType::Any));
             }

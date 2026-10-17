@@ -58,6 +58,23 @@ impl FeelYearsAndMonthsDuration {
   }
 }
 
+impl FeelYearsAndMonthsDuration {
+  /// Returns the sum of durations, or `None` when the result does not fit.
+  pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
+    self.0.checked_add(rhs.0).map(Self)
+  }
+
+  /// Returns the difference of durations, or `None` when the result does not fit.
+  pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
+    self.0.checked_sub(rhs.0).map(Self)
+  }
+
+  /// Returns the negated duration, or `None` when the result does not fit.
+  pub fn checked_neg(&self) -> Option<Self> {
+    self.0.checked_neg().map(Self)
+  }
+}
+
 impl ops::Add<FeelYearsAndMonthsDuration> for FeelYearsAndMonthsDuration {
   type Output = Self;
   /// Returns the sum of durations.

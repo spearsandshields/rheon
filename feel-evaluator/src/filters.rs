@@ -56,13 +56,15 @@ impl FilterExpressionEvaluator {
               if list_size > 0 {
                 if !index.is_negative() {
                   let n = {
-                    if let Ok(u_index) = usize::try_from(index) {
+                    // converted through u64, so 32-bit targets (wasm32) behave like 64-bit ones
+                    if let Ok(u_index) = u64::try_from(index) {
                       u_index
                     } else {
                       return value_null!("index is out of range 1..2⁶⁴: {}", index.to_string());
                     }
                   };
-                  if n > 0 && n <= list_size {
+                  if n > 0 && n <= list_size as u64 {
+                    let n = n as usize;
                     // unwrap below is safe, index `n` is checked above, `values` variable is immutable
                     values.get(n - 1).unwrap().to_owned()
                   } else {
@@ -70,13 +72,14 @@ impl FilterExpressionEvaluator {
                   }
                 } else {
                   let n = {
-                    if let Ok(u_index) = usize::try_from(index.abs()) {
+                    if let Ok(u_index) = u64::try_from(index.abs()) {
                       u_index
                     } else {
                       return value_null!("index is out of range 1..2⁶⁴: {}", index.to_string());
                     }
                   };
-                  if n > 0 && n <= list_size {
+                  if n > 0 && n <= list_size as u64 {
+                    let n = n as usize;
                     // unwrap below is safe, index `n` is checked above, `values` variable is immutable
                     values.get(list_size - n).unwrap().to_owned()
                   } else {

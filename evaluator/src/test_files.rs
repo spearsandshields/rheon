@@ -48,7 +48,7 @@ pub fn prepare_test_cases(input: &str) -> Result<Vec<(FeelContext, Value)>> {
     let scope = FeelScope::default();
     for unary_tests in split_test_cases(input, &separator) {
       match dsntk_feel_parser::parse_unary_tests(&scope, unary_tests, false) {
-        Ok(ast_node) => match ast_node {
+        Ok(ast_node) => match &ast_node {
           AstNode::ExpressionList(nodes) => {
             if nodes.len() == 2 {
               match dsntk_feel_evaluator::evaluate_context_node(&scope, &nodes[0]) {
@@ -62,7 +62,7 @@ pub fn prepare_test_cases(input: &str) -> Result<Vec<(FeelContext, Value)>> {
               return Err(err_expected_two_elements_in_expression_list(nodes.len()));
             }
           }
-          other => return Err(err_expected_expression_list(&other)),
+          other => return Err(err_expected_expression_list(other)),
         },
         Err(reason) => return Err(reason),
       }

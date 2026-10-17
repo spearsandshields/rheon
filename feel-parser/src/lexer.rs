@@ -807,7 +807,14 @@ impl<'lexer> Lexer<'lexer> {
   /// - \u0000 ('\' + 'u' + four hexadecimal characters), or
   /// - \U000000 ('\' + 'U' + six hexadecimal characters).
   fn consume_unicode_literal(&mut self) -> Result<u64> {
-    let u = self.char_at(1).unwrap();
+    // A Unicode literal must start with '\u' or '\U'; report a lexer error instead of panicking
+    // when it does not (e.g. a high surrogate '\uD800' that is not followed by a low surrogate).
+    let u = match (self.char_at(0), self.char_at(1)) {
+      (Some('\\'), Some(u @ ('u' | 'U'))) => u,
+      (Some('\\'), Some(other)) => return Err(err_expected_unicode_escape(Some(other))),
+      (Some(other), _) => return Err(err_expected_unicode_escape(Some(other))),
+      _ => return Err(err_unexpected_eof()),
+    };
     self.position += 2;
     let mut value = 0_u64;
     if u == 'U' {
@@ -824,65 +831,28 @@ impl<'lexer> Lexer<'lexer> {
   /// Consumes the UTF-8 encoded character given in one of the following form:
   /// - \u0000 ('\' + 'u' + four hexadecimal characters), or
   /// - \U000000 ('\' + 'U' + six hexadecimal characters).
+  ///
+  /// A UTF-16 surrogate pair (\uD83D\uDE40) is combined into one character.
   fn consume_unicode(&mut self) -> Result<char> {
-    let mut value = self.consume_unicode_literal()?;
+    let value = self.consume_unicode_literal()?;
     match value {
-      // one byte UTF-8 value
-      0x0000..=0x007F => {
-        let b1 = (value & 0x7F) as u8;
-        let s = String::from_utf8(vec![b1]).unwrap();
-        Ok(s.chars().next().unwrap())
-      }
-      // two bytes UTF-8 value
-      0x0080..=0x07FF => {
-        let b2 = ((value & 0x3F) as u8) | 0x80;
-        value >>= 6;
-        let b1 = ((value & 0x1F) as u8) | 0xC0;
-        let s = String::from_utf8(vec![b1, b2]).unwrap();
-        Ok(s.chars().next().unwrap())
-      }
-      // three bytes UTF-8 value
-      0x0800..=0xD7FF | 0xE000..=0xFFFF => {
-        let b3 = ((value & 0x3F) as u8) | 0x80;
-        value >>= 6;
-        let b2 = ((value & 0x3F) as u8) | 0x80;
-        value >>= 6;
-        let b1 = ((value & 0xF) as u8) | 0xE0;
-        let s = String::from_utf8(vec![b1, b2, b3]).unwrap();
-        Ok(s.chars().next().unwrap())
-      }
-      // four bytes UTF-8 value
-      0x10000..=0x10FFFF => {
-        let b4 = ((value & 0x3F) as u8) | 0x80;
-        value >>= 6;
-        let b3 = ((value & 0x3F) as u8) | 0x80;
-        value >>= 6;
-        let b2 = ((value & 0x3F) as u8) | 0x80;
-        value >>= 6;
-        let b1 = ((value & 0x7) as u8) | 0xF0;
-        let s = String::from_utf8(vec![b1, b2, b3, b4]).unwrap();
-        Ok(s.chars().next().unwrap())
-      }
-      // value is the high surrogate of UTF-16
+      // value is the high surrogate of UTF-16, it must be followed by a low surrogate
       0xD800..=0xDBFF => {
         let low_surrogate = self.consume_unicode_literal()?;
         match low_surrogate {
           0xDC00..=0xDFFF => {
-            let mut code_point = 0x10000 + ((value - 0xD800) * 0x400) + (low_surrogate - 0xDC00);
-            let b4 = ((code_point & 0xFF) as u8) | 0x80;
-            code_point >>= 6;
-            let b3 = ((code_point & 0x3F) as u8) | 0x80;
-            code_point >>= 6;
-            let b2 = ((code_point & 0x3F) as u8) | 0x80;
-            code_point >>= 6;
-            let b1 = ((code_point & 0x7) as u8) | 0xF0;
-            let s = String::from_utf8(vec![b1, b2, b3, b4]).unwrap();
-            Ok(s.chars().next().unwrap())
+            let code_point = 0x10000 + ((value - 0xD800) * 0x400) + (low_surrogate - 0xDC00);
+            u32::try_from(code_point)
+              .ok()
+              .and_then(char::from_u32)
+              .ok_or_else(|| err_unicode_value_out_of_range(code_point))
           }
           other => Err(err_unicode_surrogate_out_of_range(other)),
         }
       }
-      other => Err(err_unicode_value_out_of_range(other)),
+      // a lone low surrogate is not a character
+      0xDC00..=0xDFFF => Err(err_unicode_surrogate_out_of_range(value)),
+      other => u32::try_from(other).ok().and_then(char::from_u32).ok_or_else(|| err_unicode_value_out_of_range(other)),
     }
   }
 

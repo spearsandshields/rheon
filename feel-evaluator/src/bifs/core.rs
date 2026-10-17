@@ -1178,18 +1178,20 @@ pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Valu
   if let Value::List(mut items) = list.clone()
     && let Value::Number(position) = position_value
   {
+    // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
     if position.is_positive()
-      && let Ok(i) = <&FeelNumber as TryInto<usize>>::try_into(position)
-      && i <= items.len()
+      && let Ok(i) = u64::try_from(position)
+      && i >= 1
+      && i <= items.len() as u64
     {
-      items.insert(i - 1, new_item_value.clone());
+      items.insert(i as usize - 1, new_item_value.clone());
       return Value::List(items);
     }
     if position.is_negative()
-      && let Ok(i) = <FeelNumber as TryInto<usize>>::try_into(position.abs())
-      && i <= items.len()
+      && let Ok(i) = u64::try_from(position.abs())
+      && i <= items.len() as u64
     {
-      items.insert(items.len() - i, new_item_value.clone());
+      items.insert(items.len() - i as usize, new_item_value.clone());
       return Value::List(items);
     }
   }
@@ -1257,12 +1259,12 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
   };
   match position_or_match {
     Value::Number(position) => {
-      if let Ok(index) = position.trunc().try_into() as Result<isize, _> {
+      if let Ok(index) = position.trunc().try_into() as Result<i64, _> {
         let len = items.len();
         match index.cmp(&0) {
           Ordering::Greater => {
-            let index = index as usize;
-            if index <= len {
+            if index.unsigned_abs() <= len as u64 {
+              let index = index as usize;
               items[index - 1] = new_item.clone();
               Value::List(items)
             } else {
@@ -1271,8 +1273,8 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
           }
           Ordering::Less => {
             let index = index.unsigned_abs();
-            if index <= len {
-              items[len - index] = new_item.clone();
+            if index <= len as u64 {
+              items[len - index as usize] = new_item.clone();
               Value::List(items)
             } else {
               value_null!("position exceeds list bounds")
@@ -1975,19 +1977,18 @@ pub fn remove(list: &Value, position_value: &Value) -> Value {
     && let Value::Number(position_number) = position_value
   {
     if position_number.is_positive()
-      && let Ok(mut index) = position_number.try_into()
+      && let Ok(position) = u64::try_from(position_number)
+      && let Some(index) = position.checked_sub(1)
+      && index < items.len() as u64
     {
-      index -= 1;
-      if index < items.len() {
-        items.remove(index);
-        return Value::List(items);
-      }
+      items.remove(index as usize);
+      return Value::List(items);
     }
     if position_number.is_negative()
-      && let Ok(index) = <FeelNumber as TryInto<usize>>::try_into(position_number.abs())
-      && index <= items.len()
+      && let Ok(index) = u64::try_from(position_number.abs())
+      && index <= items.len() as u64
     {
-      items.remove(items.len() - index);
+      items.remove(items.len() - index as usize);
       return Value::List(items);
     }
   }
@@ -2494,13 +2495,17 @@ pub fn sum(values: &[Value]) -> Value {
 
 /// Returns list of all elements of list, starting with specified position, 1st position is 1, last position is -1.
 pub fn sublist2(list: &Value, position_value: &Value) -> Value {
+  // Positions are converted through 64-bit integers and checked with wide (i128) arithmetic,
+  // so 32-bit targets (wasm32) give the same results and messages as 64-bit ones and no
+  // computation can overflow.
   if let Value::List(items) = list {
     if let Value::Number(position_number) = position_value {
+      let len = items.len() as i128;
       if position_number.is_positive() {
-        if let Ok(position) = <&FeelNumber as TryInto<usize>>::try_into(position_number) {
-          let index = position - 1;
-          if index < items.len() {
-            Value::List(items[index..].to_vec())
+        if let Ok(position) = u64::try_from(position_number) {
+          let index = position as i128 - 1;
+          if index >= 0 && index < len {
+            Value::List(items[index as usize..].to_vec())
           } else {
             value_null!("sublist: position is out of range, len = {}, position = {}", items.len(), position)
           }
@@ -2508,10 +2513,9 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
           value_null!("sublist: invalid position value: {}", position_value)
         }
       } else if position_number.is_negative() {
-        if let Ok(position) = <FeelNumber as TryInto<usize>>::try_into(position_number.abs()) {
-          let index = position;
-          if index <= items.len() {
-            Value::List(items[items.len() - index..].to_vec())
+        if let Ok(position) = u64::try_from(position_number.abs()) {
+          if (position as i128) <= len {
+            Value::List(items[items.len() - position as usize..].to_vec())
           } else {
             value_null!("sublist: position is out of range, len = {}, position = -{}", items.len(), position)
           }
@@ -2531,36 +2535,30 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
 
 /// Returns list of specified length of elements of list, starting with specified position, 1st position is 1, last position is -1.
 pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> Value {
+  // See sublist2: 64-bit conversions and i128 arithmetic, no overflow on any target.
   if let Value::List(items) = list {
     if let Value::Number(length_number) = length_value {
-      if let Ok(length) = <&FeelNumber as TryInto<usize>>::try_into(length_number) {
+      if let Ok(length) = u64::try_from(length_number) {
         if let Value::Number(position_number) = position_value {
-          if position_number.is_positive() {
-            if let Ok(position) = <&FeelNumber as TryInto<usize>>::try_into(position_number) {
-              let first = position - 1;
-              let last = first + length;
-              if first < items.len() && last <= items.len() {
-                Value::List(items[first..last].to_vec())
-              } else {
-                value_null!("sublist: invalid range, len = {}, start position = {}, end position = {}", items.len(), first + 1, last + 1)
-              }
-            } else {
-              value_null!("sublist: invalid position value: {}", position_value)
+          let len = items.len() as i128;
+          let first = if position_number.is_positive() {
+            match u64::try_from(position_number) {
+              Ok(position) => position as i128 - 1,
+              Err(_) => return value_null!("sublist: invalid position value: {}", position_value),
             }
           } else if position_number.is_negative() {
-            if let Ok(position) = <FeelNumber as TryInto<usize>>::try_into(position_number.abs()) {
-              let first = items.len() - position;
-              let last = first + length;
-              if first < items.len() && last <= items.len() {
-                Value::List(items[first..last].to_vec())
-              } else {
-                value_null!("sublist: invalid range, len = {}, start position = {}, end position = {}", items.len(), first + 1, last + 1)
-              }
-            } else {
-              value_null!("sublist: invalid position value: {}", position_value)
+            match u64::try_from(position_number.abs()) {
+              Ok(position) => len - position as i128,
+              Err(_) => return value_null!("sublist: invalid position value: {}", position_value),
             }
           } else {
-            value_null!("sublist: position must not be zero")
+            return value_null!("sublist: position must not be zero");
+          };
+          let last = first + length as i128;
+          if first >= 0 && first < len && last <= len {
+            Value::List(items[first as usize..last as usize].to_vec())
+          } else {
+            value_null!("sublist: invalid range, len = {}, start position = {}, end position = {}", items.len(), first + 1, last + 1)
           }
         } else {
           value_null!("sublist: expected number, actual position value type is {}", position_value.type_of())
@@ -2581,24 +2579,29 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
 pub fn substring(input_string_value: &Value, start_position_value: &Value, length_value: &Value) -> Value {
   if let Value::String(input_string) = input_string_value {
     if let Value::Number(start_position_number) = start_position_value {
-      let Ok(position): Result<isize, DsntkError> = start_position_number.try_into() else {
+      // Positions are converted through 64-bit integers and checked with wide (i128) arithmetic,
+      // so 32-bit targets (wasm32) behave like 64-bit ones and nothing can overflow.
+      let Ok(position): Result<i64, DsntkError> = start_position_number.try_into() else {
         return value_null!("substring: invalid start position value: {}", start_position_number);
       };
+      let position = position as i128;
       let input_string_len = input_string.chars().count();
+      let len = input_string_len as i128;
       match length_value {
         Value::Number(length_number) => {
           if *length_number < FeelNumber::one() {
             return value_null!("substring: length is less than 1");
           }
-          let Ok(length): Result<usize, DsntkError> = length_number.trunc().try_into() else {
+          let Ok(length): Result<u64, DsntkError> = length_number.trunc().try_into() else {
             return value_null!("substring: invalid length value: {}", length_number);
           };
+          let length = length as i128;
           match position.cmp(&0) {
             Ordering::Greater => {
-              let first = (position - 1) as usize;
+              let first = position - 1;
               let last = first + length;
-              if first < input_string_len && last <= input_string_len {
-                Value::String(input_string.chars().skip(first).take(length).collect())
+              if first < len && last <= len {
+                Value::String(input_string.chars().skip(first as usize).take(length as usize).collect())
               } else {
                 value_null!(
                   "sublist: invalid range, len = {}, start position = {}, end position = {}",
@@ -2609,10 +2612,10 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
               }
             }
             Ordering::Less => {
-              let first = (input_string_len as isize) + position;
-              let last = first + length as isize;
-              if first >= 0 && (first as usize) < input_string_len && (last as usize) <= input_string_len {
-                Value::String(input_string.chars().skip(first as usize).take(length).collect())
+              let first = len + position;
+              let last = first + length;
+              if first >= 0 && first < len && last <= len {
+                Value::String(input_string.chars().skip(first as usize).take(length as usize).collect())
               } else {
                 value_null!(
                   "sublist: invalid range, len = {}, start position = {}, end position = {}",
@@ -2627,15 +2630,15 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
         }
         Value::Null(_) => match position.cmp(&0) {
           Ordering::Greater => {
-            let index = (position - 1) as usize;
-            if index < input_string_len {
-              Value::String(input_string.chars().skip(index).collect())
+            let index = position - 1;
+            if index < len {
+              Value::String(input_string.chars().skip(index as usize).collect())
             } else {
               value_null!("substring: position is out of range, len = {}, position = {}", input_string_len, start_position_number)
             }
           }
           Ordering::Less => {
-            let index = (input_string_len as isize) + position;
+            let index = len + position;
             if index >= 0 {
               Value::String(input_string.chars().skip(index as usize).collect())
             } else {
@@ -2755,8 +2758,19 @@ pub fn time_4(hour_value: &Value, minute_value: &Value, second_value: &Value, of
               let s = seconds.try_into().unwrap();
               let n = (second.frac() * FeelNumber::billion()).trunc().try_into().unwrap();
               match offset_value {
-                Value::DaysAndTimeDuration(offset) => Value::Time(FeelTime::offset_opt(h, m, s, n, offset.as_seconds() as i32).unwrap()),
-                Value::Null(_) => Value::Time(FeelTime::local_opt(h, m, s, n).unwrap()),
+                // the offset is NOT range-checked above: an offset outside the allowed zone range
+                // (e.g. duration("PT19H") or duration("P1D")) gives null instead of a panic
+                Value::DaysAndTimeDuration(offset) => match i32::try_from(offset.as_seconds())
+                  .ok()
+                  .and_then(|offset_seconds| FeelTime::offset_opt(h, m, s, n, offset_seconds))
+                {
+                  Some(time) => Value::Time(time),
+                  None => value_null!("time: offset is out of range: {}", offset),
+                },
+                Value::Null(_) => match FeelTime::local_opt(h, m, s, n) {
+                  Some(time) => Value::Time(time),
+                  None => value_null!("time: invalid local time"),
+                },
                 _ => value_null!("expected days and time duration or null, current offset type is {}", offset_value.type_of()),
               }
             } else {

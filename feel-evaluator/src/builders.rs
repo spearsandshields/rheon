@@ -19,6 +19,67 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
+/// Maximum number of nested function invocations during one evaluation.
+///
+/// Every nested invocation (user-defined recursion such as `f(n - 1)`, or built-in calls nested
+/// in each other) uses host stack. Without a limit, deep recursion overflows the stack, which on
+/// wasm32 is a trap that kills the engine instance, at a depth that depends on the host (browser
+/// worker, Node main thread, ...). With this limit the evaluation stops deterministically at the
+/// same depth everywhere.
+pub const MAX_CALL_DEPTH: usize = 200;
+
+thread_local! {
+  /// Current depth of nested function invocations.
+  static CALL_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+  /// Set when [MAX_CALL_DEPTH] was exceeded; all further invocations return null immediately
+  /// so the evaluation unwinds quickly. Cleared by [reset_call_depth].
+  static CALL_DEPTH_EXCEEDED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Resets the call depth tracking; call before every top-level evaluation.
+pub fn reset_call_depth() {
+  CALL_DEPTH.with(|depth| depth.set(0));
+  CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.set(false));
+}
+
+/// Returns `true` when the last evaluation exceeded [MAX_CALL_DEPTH]; its result is then
+/// meaningless (it was cut short) and should be reported as an error.
+pub fn call_depth_exceeded() -> bool {
+  CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.get())
+}
+
+/// Replaces non-finite numbers (BID128 infinity or NaN, produced e.g. by `9e6144 * 10`,
+/// `1 / 1e-6176` or `decimal(1e33, 1)`) with null: FEEL has no such numbers.
+fn finite(value: Value) -> Value {
+  match value {
+    Value::Number(n) if !n.is_finite() => value_null!("result is not a finite number (decimal overflow)"),
+    other => other,
+  }
+}
+
+/// Wraps an arithmetic evaluator so that it never yields a non-finite number.
+fn guard_finite(evaluator: Evaluator) -> Evaluator {
+  Box::new(move |scope: &FeelScope| finite(evaluator(scope)))
+}
+
+/// Wraps a function invocation evaluator: enforces [MAX_CALL_DEPTH] and finite results.
+fn guard_invocation(evaluator: Evaluator) -> Evaluator {
+  Box::new(move |scope: &FeelScope| {
+    if CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.get()) {
+      return value_null!("function call depth limit ({}) exceeded", MAX_CALL_DEPTH);
+    }
+    let depth = CALL_DEPTH.with(|depth| depth.get());
+    if depth >= MAX_CALL_DEPTH {
+      CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.set(true));
+      return value_null!("function call depth limit ({}) exceeded", MAX_CALL_DEPTH);
+    }
+    CALL_DEPTH.with(|d| d.set(depth + 1));
+    let value = finite(evaluator(scope));
+    CALL_DEPTH.with(|d| d.set(depth));
+    value
+  })
+}
+
 /// Builds an evaluator from provided AST node.
 pub fn build_evaluator(node: &AstNode) -> Evaluator {
   let mut evaluator_builder = EvaluatorBuilder::default();
@@ -139,6 +200,13 @@ impl<'b> EvaluatorBuilder<'b> {
       | AstNode::QuantifiedContexts { .. }
       | AstNode::Satisfies { .. } => build_err_msg(err_msg_unexpected_node(node)),
     };
+    // arithmetic and function calls must never yield non-finite numbers,
+    // and function calls are subject to the call depth limit
+    let evaluator = match node {
+      AstNode::Add(..) | AstNode::Sub(..) | AstNode::Mul(..) | AstNode::Div(..) | AstNode::Neg(..) => guard_finite(evaluator),
+      AstNode::FunctionInvocation(..) => guard_invocation(evaluator),
+      _ => evaluator,
+    };
     // remove the current node from the top of the nodes stack
     self.node_stack.pop();
     // return the evaluator
@@ -205,7 +273,7 @@ impl<'b> EvaluatorBuilder<'b> {
           other => invalid_argument_type!("add", "days and time duration", other.type_of()),
         },
         Value::DaysAndTimeDuration(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => Value::DaysAndTimeDuration(lh + rh),
+          Value::DaysAndTimeDuration(rh) => lh.checked_add(&rh).map_or_else(|| value_null!("days and time duration addition overflow"), Value::DaysAndTimeDuration),
           Value::Date(rh) => {
             if let Some(result) = rh + lh {
               Value::Date(result)
@@ -238,7 +306,7 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("invalid result while adding date and time to years and months duration")
             }
           }
-          Value::YearsAndMonthsDuration(rh) => Value::YearsAndMonthsDuration(lh + rh),
+          Value::YearsAndMonthsDuration(rh) => lh.checked_add(&rh).map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
           other => invalid_argument_type!("add", "years and months duration, date and time", other.type_of()),
         },
         value @ Value::Null(_) => value,
@@ -1444,8 +1512,8 @@ impl<'b> EvaluatorBuilder<'b> {
       let lhv = lhe(scope);
       match lhv {
         Value::Number(lh) => Value::Number(-lh),
-        Value::DaysAndTimeDuration(lh) => Value::DaysAndTimeDuration(-lh),
-        Value::YearsAndMonthsDuration(lh) => Value::YearsAndMonthsDuration(-lh),
+        Value::DaysAndTimeDuration(lh) => lh.checked_neg().map_or_else(|| value_null!("days and time duration negation overflow"), Value::DaysAndTimeDuration),
+        Value::YearsAndMonthsDuration(lh) => lh.checked_neg().map_or_else(|| value_null!("years and months duration negation overflow"), Value::YearsAndMonthsDuration),
         other => value_null!("unexpected type in arithmetic negation: {}", other.type_of()),
       }
     })
@@ -1600,9 +1668,10 @@ impl<'b> EvaluatorBuilder<'b> {
 
   /// Returns and evaluator for `path expression`.
   fn build_path(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
-    let AstNode::Name(name) = rhs.clone() else {
+    let AstNode::Name(name) = rhs else {
       return build_err_msg(err_expected_name(rhs));
     };
+    let name = name.clone();
     let fn_adjust = match self.parent_node() {
       Some(AstNode::UnaryEq(_)) => |value: Value| (Value::UnaryEqual(value.into()), true),
       Some(AstNode::UnaryNe(_)) => |value: Value| (Value::UnaryNotEqual(value.into()), true),
@@ -1783,12 +1852,12 @@ impl<'b> EvaluatorBuilder<'b> {
         },
         Value::DaysAndTimeDuration(lh) => {
           if let Value::DaysAndTimeDuration(rh) = rhv {
-            return Value::DaysAndTimeDuration(lh - rh);
+            return lh.checked_sub(&rh).map_or_else(|| value_null!("days and time duration subtraction overflow"), Value::DaysAndTimeDuration);
           }
         }
         Value::YearsAndMonthsDuration(lh) => {
           if let Value::YearsAndMonthsDuration(rh) = rhv {
-            return Value::YearsAndMonthsDuration(lh - rh);
+            return lh.checked_sub(&rh).map_or_else(|| value_null!("years and months duration subtraction overflow"), Value::YearsAndMonthsDuration);
           }
         }
         _ => {}

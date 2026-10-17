@@ -405,8 +405,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_context_entry_tail(&mut self) -> Result<()> {
     trace_action!(self, "context_entry_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::Context(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::Context(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::Context(items));
@@ -429,8 +430,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_context_type_entry_tail(&mut self) -> Result<()> {
     trace_action!(self, "context_type_entry_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::ContextType(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::ContextType(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::ContextType(items));
@@ -492,8 +494,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_expression_list_tail(&mut self) -> Result<()> {
     trace_action!(self, "expression_list_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::ExpressionList(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::ExpressionList(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::ExpressionList(items));
@@ -596,7 +599,8 @@ impl ReduceActions for Parser<'_> {
     // the next parameter is on the top of the node stack
     let rhs = self.yy_node_stack.pop().unwrap();
     // the collection of formal parameters is now on top of the node stack
-    if let Some(AstNode::FormalParameters(mut items)) = self.yy_node_stack.pop() {
+    if let Some(AstNode::FormalParameters(items)) = self.yy_node_stack.pop().as_mut() {
+      let mut items = std::mem::take(items);
       items.push(rhs);
       self.yy_node_stack.push(AstNode::FormalParameters(items));
     }
@@ -677,8 +681,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_function_type_parameters_tail(&mut self) -> Result<()> {
     trace_action!(self, "function_type_parameters_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::ParameterTypes(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::ParameterTypes(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::ParameterTypes(items));
@@ -790,8 +795,9 @@ impl ReduceActions for Parser<'_> {
   /// Reduces the iteration context.
   fn action_iteration_contexts_tail(&mut self) -> Result<()> {
     trace_action!(self, "iteration_contexts_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::IterationContexts(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::IterationContexts(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::IterationContexts(items));
@@ -819,7 +825,8 @@ impl ReduceActions for Parser<'_> {
 
   fn action_list(&mut self) -> Result<()> {
     trace_action!(self, "list");
-    if let Some(AstNode::CommaList(items)) = self.yy_node_stack.pop() {
+    if let Some(AstNode::CommaList(items)) = self.yy_node_stack.pop().as_mut() {
+      let items = std::mem::take(items);
       self.yy_node_stack.push(AstNode::List(items));
     }
     Ok(())
@@ -833,8 +840,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_list_tail(&mut self) -> Result<()> {
     trace_action!(self, "list_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::CommaList(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::CommaList(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::CommaList(items));
@@ -929,8 +937,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_named_parameters_tail(&mut self) -> Result<()> {
     trace_action!(self, "named_parameters_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::NamedParameters(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::NamedParameters(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::NamedParameters(items));
@@ -960,8 +969,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_positional_parameters_tail(&mut self) -> Result<()> {
     trace_action!(self, "positional_parameters_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::PositionalParameters(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::PositionalParameters(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::PositionalParameters(items));
@@ -984,7 +994,8 @@ impl ReduceActions for Parser<'_> {
     if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - 4] {
       // The parent name is taken from the value stack, after adding actions to grammar rules,
       // the index must be adjusted, now it is `-4` after adding `{/* after_dot */}`.
-      if let Some(AstNode::QualifiedName(mut parts)) = self.yy_node_stack.pop() {
+      if let Some(AstNode::QualifiedName(parts)) = self.yy_node_stack.pop().as_mut() {
+        let mut parts = std::mem::take(parts);
         parts.insert(0, AstNode::QualifiedNameSegment(name.clone()));
         self.yy_node_stack.push(AstNode::QualifiedName(parts));
       }
@@ -1022,8 +1033,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_quantified_expressions_tail(&mut self) -> Result<()> {
     trace_action!(self, "quantified_expressions_tail");
-    let node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::QuantifiedContexts(mut items) = node {
+    let mut node = self.yy_node_stack.pop().unwrap();
+    if let AstNode::QuantifiedContexts(items) = &mut node {
+      let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::QuantifiedContexts(items));
@@ -1142,7 +1154,8 @@ impl ReduceActions for Parser<'_> {
 
   fn action_unary_tests_negated(&mut self) -> Result<()> {
     trace_action!(self, "unary_tests_negated");
-    if let Some(AstNode::ExpressionList(items)) = self.yy_node_stack.pop() {
+    if let Some(AstNode::ExpressionList(items)) = self.yy_node_stack.pop().as_mut() {
+      let items = std::mem::take(items);
       self.yy_node_stack.push(AstNode::NegatedList(items));
     }
     Ok(())
