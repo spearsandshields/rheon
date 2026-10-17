@@ -12,6 +12,16 @@ license = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-dfp-number-sys = { workspace = true }
+dfp-number-sys = { workspace = true, optional = true }
+dashu-base = { workspace = true, optional = true }
+dashu-float = { workspace = true, optional = true }
+dashu-int = { workspace = true, optional = true }
 dsntk-common = { workspace = true }
 dsntk-macros = { workspace = true }
+
+[features]
+default = ["dashu"]
+# Pure-Rust decimal128 backend based on dashu-float (the default of this fork).
+dashu = ["dep:dashu-float", "dep:dashu-int", "dep:dashu-base"]
+# Intel(R) Decimal Floating-Point Math Library (C, via dfp-number-sys); needs a C toolchain.
+intel = ["dep:dfp-number-sys"]
