@@ -185,3 +185,44 @@ fn _0036() {
 fn _0037() {
   te_bool(false, &scope!(), r#" @"P1Y" < @"P2Y" "#, true);
 }
+
+#[test]
+fn _0038() {
+  // Date and times with different offsets or zones are ordered as instants (regression:
+  // ordering across offsets was always false although equality and subtraction honour them).
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00+01:00" < @"2026-10-17T10:00:00Z" "#, true);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00Z" < @"2026-10-17T10:00:00+01:00" "#, false);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00+01:00" < @"2026-10-17T09:00:00Z" "#, false);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00+01:00" <= @"2026-10-17T09:00:00Z" "#, true);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00+01:00" > @"2026-10-17T08:59:59Z" "#, true);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00@Europe/Warsaw" < @"2026-10-17T10:00:00Z" "#, true);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00Z" < @"2026-10-17T10:00:00+00:00" "#, false);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00Z" <= @"2026-10-17T10:00:00+00:00" "#, true);
+  te_bool(
+    false,
+    &scope!(),
+    r#" @"2026-10-17T10:00:00+01:00" in [@"2026-10-17T09:00:00Z"..@"2026-10-17T09:00:00Z"] "#,
+    true,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#" sort([@"2026-10-17T10:00:00Z", @"2026-10-17T10:00:00+01:00"], function(a, b) a < b) "#,
+    r#" [@"2026-10-17T10:00:00+01:00", @"2026-10-17T10:00:00Z"] "#,
+  );
+  // a local and a zoned date and time stay incomparable (like their subtraction)
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00" < @"2026-10-17T11:00:00Z" "#, false);
+}
+
+#[test]
+fn _0039() {
+  // Times with different offsets are ordered (and equal) as instants of the day in UTC.
+  te_bool(false, &scope!(), r#" @"10:00:00+01:00" < @"10:00:00Z" "#, true);
+  te_bool(false, &scope!(), r#" @"10:00:00Z" < @"10:00:00+01:00" "#, false);
+  te_bool(false, &scope!(), r#" @"10:00:00+02:00" = @"08:00:00Z" "#, true);
+  te_bool(false, &scope!(), r#" @"10:00:00+02:00" < @"08:00:00Z" "#, false);
+  te_bool(false, &scope!(), r#" @"10:00:00+02:00" <= @"08:00:00Z" "#, true);
+  te_bool(false, &scope!(), r#" @"10:00:00+02:00" > @"07:59:59Z" "#, true);
+  te_bool(false, &scope!(), r#" @"10:00:00" < @"11:00:00" "#, true);
+  te_bool(false, &scope!(), r#" @"10:00:00" < @"11:00:00Z" "#, false);
+}

@@ -6,6 +6,7 @@ use crate::defs::*;
 use crate::errors::*;
 use crate::feel_date_time::FeelDateTime;
 use crate::feel_dt_duration::FeelDaysAndTimeDuration;
+use chrono::{DateTime, FixedOffset};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
 use std::fmt;
@@ -62,8 +63,17 @@ impl FromStr for FeelTime {
 }
 
 impl PartialEq for FeelTime {
-  /// nanoseconds are omitted during time comparison
+  /// Two times with offsets or zones are equal when they denote the same instant of the day in
+  /// UTC (`10:00:00+02:00 = 08:00:00Z`); nanoseconds are omitted during time comparison.
+  /// Otherwise (a local time, or a zone without a known offset) the fields and zones are
+  /// compared as written.
   fn eq(&self, rhs: &Self) -> bool {
+    if self.4.has_offset()
+      && rhs.4.has_offset()
+      && let Some((lhs_instant, rhs_instant)) = self.utc_instant(false).zip(rhs.utc_instant(false))
+    {
+      return lhs_instant == rhs_instant;
+    }
     let equal_zones = match (&self.4, &rhs.4) {
       (FeelZone::Utc, FeelZone::Utc) => true,
       (FeelZone::Utc, FeelZone::Zone(zone_name)) | (FeelZone::Zone(zone_name), FeelZone::Utc) => zone_name == ETC_UTC,
@@ -86,24 +96,19 @@ impl PartialEq for FeelTime {
 }
 
 impl PartialOrd for FeelTime {
-  /// Returns the ordering of two times.
+  /// Returns the ordering of two times, compared as instants of the day in UTC
+  /// (`10:00:00+01:00 < 10:00:00Z`), nanoseconds included. A local time is ordered only
+  /// against another local time (like subtraction, a local and a zoned time are not
+  /// comparable); when a zone has no known offset, only times written in the same zone are
+  /// comparable, field by field.
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    if self.4.has_offset() == other.4.has_offset()
+      && let Some((lhs_instant, rhs_instant)) = self.utc_instant(true).zip(other.utc_instant(true))
+    {
+      return Some(lhs_instant.cmp(&rhs_instant));
+    }
     if self.4 == other.4 {
-      let h = self.0.cmp(&other.0);
-      let m = self.1.cmp(&other.1);
-      let s = self.2.cmp(&other.2);
-      let n = self.3.cmp(&other.3);
-      match (h, m, s, n) {
-        (Ordering::Equal, Ordering::Equal, Ordering::Equal, Ordering::Equal) => Some(Ordering::Equal),
-        (Ordering::Equal, Ordering::Equal, Ordering::Equal, Ordering::Less) => Some(Ordering::Less),
-        (Ordering::Equal, Ordering::Equal, Ordering::Equal, Ordering::Greater) => Some(Ordering::Greater),
-        (Ordering::Equal, Ordering::Equal, Ordering::Less, _) => Some(Ordering::Less),
-        (Ordering::Equal, Ordering::Equal, Ordering::Greater, _) => Some(Ordering::Greater),
-        (Ordering::Equal, Ordering::Less, _, _) => Some(Ordering::Less),
-        (Ordering::Equal, Ordering::Greater, _, _) => Some(Ordering::Greater),
-        (Ordering::Less, _, _, _) => Some(Ordering::Less),
-        (Ordering::Greater, _, _, _) => Some(Ordering::Greater),
-      }
+      Some((self.0, self.1, self.2, self.3).cmp(&(other.0, other.1, other.2, other.3)))
     } else {
       None
     }
@@ -143,60 +148,48 @@ impl Sub<FeelTime> for FeelTime {
 
 impl Add<FeelDaysAndTimeDuration> for FeelTime {
   type Output = FeelTime;
-  /// Adds [FeelDaysAndTimeDuration] to [FeelTime].
+  /// Adds [FeelDaysAndTimeDuration] to [FeelTime]; the result wraps around midnight
+  /// (`23:59:59 + PT1S = 00:00:00`), nanoseconds included.
   fn add(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.sub(rhs.abs());
-    }
-    let duration_seconds = rhs.get_seconds() + self.2 as usize;
-    let carry_minutes = duration_seconds / 60;
-    let time_seconds = (duration_seconds % 60) as u8;
-    let duration_minutes = rhs.get_minutes() + carry_minutes + self.1 as usize;
-    let carry_hours = duration_minutes / 60;
-    let time_minutes = (duration_minutes % 60) as u8;
-    let duration_hours = rhs.get_hours() + carry_hours + self.0 as usize;
-    let time_hours = (duration_hours % 60) as u8;
-    FeelTime(time_hours, time_minutes, time_seconds, self.3, self.4)
+    self.add_nanos(rhs.as_nanos() as i128)
   }
 }
 
 impl Sub<FeelDaysAndTimeDuration> for FeelTime {
   type Output = FeelTime;
-  /// Subtracts [FeelDaysAndTimeDuration] from [FeelTime].
+  /// Subtracts [FeelDaysAndTimeDuration] from [FeelTime]; the result wraps around midnight
+  /// (`00:00:00 - PT1S = 23:59:59`), nanoseconds included.
   fn sub(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.add(rhs.abs());
-    }
-    let duration_seconds = rhs.get_seconds();
-    let mut carry_minutes = duration_seconds / 60;
-    let remainder_seconds = (duration_seconds % 60) as u8;
-    let time_seconds = if remainder_seconds <= self.2 {
-      self.2 - remainder_seconds
-    } else {
-      carry_minutes += 1;
-      60 - (remainder_seconds - self.2)
-    };
-    let duration_minutes = rhs.get_minutes() + carry_minutes;
-    let mut carry_hours = duration_minutes / 60;
-    let remainder_minutes = (duration_minutes % 60) as u8;
-    let time_minutes = if remainder_minutes <= self.1 {
-      self.1 - remainder_minutes
-    } else {
-      carry_hours += 1;
-      60 - (remainder_minutes - self.1)
-    };
-    let duration_hours = rhs.get_hours() + carry_hours;
-    let remainder_hours = (duration_hours % 60) as u8;
-    let time_hours = if remainder_hours <= self.0 {
-      self.0 - remainder_hours
-    } else {
-      24 - (remainder_hours - self.0)
-    };
-    FeelTime(time_hours, time_minutes, time_seconds, self.3, self.4)
+    self.add_nanos(-(rhs.as_nanos() as i128))
   }
 }
 
+/// Number of nanoseconds in a day.
+const NANOS_PER_DAY: i128 = 24 * 60 * 60 * 1_000_000_000;
+
 impl FeelTime {
+  /// Returns this time moved by `nanos` nanoseconds, modulo 24 hours, in the same zone.
+  fn add_nanos(self, nanos: i128) -> Self {
+    let seconds_of_day = (self.0 as i128) * 3600 + (self.1 as i128) * 60 + self.2 as i128;
+    let total = (seconds_of_day * 1_000_000_000 + self.3 as i128 + nanos).rem_euclid(NANOS_PER_DAY);
+    let seconds = total / 1_000_000_000;
+    let nanos = (total % 1_000_000_000) as u64;
+    FeelTime((seconds / 3600) as u8, ((seconds % 3600) / 60) as u8, (seconds % 60) as u8, nanos, self.4)
+  }
+
+  /// Returns this time as an instant (on today's date) in UTC, when the zone has a known
+  /// offset. The nanoseconds are included only when `with_nanos` is `true`.
+  fn utc_instant(&self, with_nanos: bool) -> Option<DateTime<FixedOffset>> {
+    let time_tuple = (self.0 as u32, self.1 as u32, self.2 as u32, if with_nanos { self.3 as u32 } else { 0 });
+    let offset = match &self.4 {
+      FeelZone::Utc => Some(0),
+      FeelZone::Local => get_local_offset_t(time_tuple),
+      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, time_tuple),
+    }?;
+    date_time_offset_t(time_tuple, offset)
+  }
+
   /// Creates UTC time from specified time values.
   pub fn utc(hour: u8, minute: u8, second: u8, nanos: u64) -> Self {
     Self(hour, minute, second, nanos, FeelZone::Utc)

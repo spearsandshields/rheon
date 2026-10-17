@@ -314,3 +314,17 @@ fn _0045() {
     "[builders::add] invalid argument type, expected days and time duration, actual type is number",
   );
 }
+
+#[test]
+fn _0046() {
+  // Time plus duration wraps around midnight, nanoseconds included (regression: 24:00:00).
+  te_time(false, &scope!(), r#" @"23:59:59" + @"PT1S" "#, FeelTime::local(0, 0, 0, 0));
+  te_time(false, &scope!(), r#" @"23:00:00" + @"PT2H" "#, FeelTime::local(1, 0, 0, 0));
+  te_time(false, &scope!(), r#" @"23:59:59" + @"PT2S" "#, FeelTime::local(0, 0, 1, 0));
+  te_time(false, &scope!(), r#" @"23:59:59Z" + @"PT1S" "#, FeelTime::utc(0, 0, 0, 0));
+  te_time(false, &scope!(), r#" @"23:59:59.999999999" + @"PT0.000000001S" "#, FeelTime::local(0, 0, 0, 0));
+  te_be_value(false, &scope!(), r#" string(@"23:59:59.999999999" + @"PT0.000000001S") "#, r#""00:00:00""#);
+  te_be_value(false, &scope!(), r#" string(@"10:00:00.5" + @"PT0.75S") "#, r#""10:00:01.25""#);
+  te_be_value(false, &scope!(), r#" string(@"23:59:59" + @"P1DT1S") "#, r#""00:00:00""#);
+  te_bool(false, &scope!(), r#" (@"23:59:59" + @"PT1S") = @"00:00:00" "#, true);
+}

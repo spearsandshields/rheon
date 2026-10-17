@@ -241,3 +241,12 @@ fn _0040() {
 fn _0041() {
   te_date_time_local(false, &scope!(), r#" @"262142-12-31T00:00:00" - @"P2DT3H" "#, (262142, 12, 28), (21, 0, 0, 0));
 }
+
+#[test]
+fn _0042() {
+  // Time minus duration wraps around midnight, nanoseconds included.
+  te_time(false, &scope!(), r#" @"00:00:00" - @"PT1S" "#, FeelTime::local(23, 59, 59, 0));
+  te_be_value(false, &scope!(), r#" string(@"00:00:00" - @"PT0.000000001S") "#, r#""23:59:59.999999999""#);
+  te_be_value(false, &scope!(), r#" string(@"10:00:01.25" - @"PT0.75S") "#, r#""10:00:00.5""#);
+  te_time(false, &scope!(), r#" @"01:00:00Z" - @"PT2H" "#, FeelTime::utc(23, 0, 0, 0));
+}

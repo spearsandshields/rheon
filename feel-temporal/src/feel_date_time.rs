@@ -110,8 +110,19 @@ impl PartialEq for FeelDateTime {
 }
 
 impl PartialOrd for FeelDateTime {
-  /// Returns the ordering of two date and times.
+  /// Returns the ordering of two date and times, compared as instants in UTC
+  /// (`2026-10-17T10:00:00+01:00 < 2026-10-17T10:00:00Z`). Like subtraction, a local date and
+  /// time is ordered only against another local one (`2023-02-09T23:59:59Z >= 2023-02-09T00:00:00`
+  /// is not comparable); when a zone has no known offset, the date and time parts are compared
+  /// as written.
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    if self.1.zone().has_offset() == other.1.zone().has_offset() {
+      let lhs: Result<DateTime<FixedOffset>, DsntkError> = self.clone().try_into();
+      let rhs: Result<DateTime<FixedOffset>, DsntkError> = other.clone().try_into();
+      if let (Ok(lhs), Ok(rhs)) = (lhs, rhs) {
+        return Some(lhs.cmp(&rhs));
+      }
+    }
     let d = self.0.cmp(&other.0);
     if let Some(t) = self.1.partial_cmp(&other.1) {
       return match (d, t) {
