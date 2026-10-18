@@ -29,3 +29,9 @@ fn _0005() {
 fn _0006() {
   assert!(!is_match_with_flags("i", r#"[A-Z]-[OI]"#, "i").unwrap());
 }
+
+#[test]
+fn back_reference_with_caseless_flag() {
+  // TCK 1111 K2-MatchesFunc-17
+  assert!(is_match_with_flags("aA", r"(a)\1", "i").unwrap());
+}

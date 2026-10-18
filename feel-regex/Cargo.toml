@@ -12,6 +12,6 @@ license = { workspace = true }
 edition = { workspace = true }
 
 [dependencies]
-regex = { workspace = true }
+fancy-regex = { workspace = true }
 dsntk-common = { workspace = true }
 dsntk-macros = { workspace = true }

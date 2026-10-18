@@ -50,6 +50,7 @@ petgraph = "0.8.3"
 proc-macro2 = "1.0.106"
 quote = "1.0.45"
 regex = "1.12.3"
+fancy-regex = { version = "0.19.2", default-features = false, features = ["std", "unicode", "perf"] }
 reqwest = { version = "0.13.3", features = ["blocking", "json", "rustls"] }
 roxmltree = "0.21.1"
 serde = { version = "1.0.228", features = ["derive"] }

@@ -280,3 +280,10 @@ fn _0047() {
 fn _0048() {
   te_bool(false, &scope!(), r#"matches("aA", "(a)\1", "i")"#, true);
 }
+
+#[test]
+fn back_references() {
+  te_bool(false, &scope!(), r#"matches("aa", "(a)\\1")"#, true);
+  te_bool(false, &scope!(), r#"matches("aA", "(a)\\1", "i")"#, true);
+  te_bool(false, &scope!(), r#"matches("ab", "(a)\\1")"#, false);
+}

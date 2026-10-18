@@ -368,7 +368,7 @@
         <description>Caseless match with back-reference.</description>
         <variable typeRef="boolean" name="K2-MatchesFunc-17"/>
         <literalExpression>
-            <text>matches("aA", "(a)(a)", "i")</text>
+            <text>matches("aA", "(a)\1", "i")</text>
         </literalExpression>
     </decision>
 
