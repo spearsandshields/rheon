@@ -49,6 +49,8 @@ Rules for this clone:
 | 18 | `5ecdede` | feel-evaluator: readable null reasons for time/exp/log/duration; huge numbers in messages in scientific notation | fork | maybe |
 | 19 | `cf21d52` | feel-temporal: `is()` on times stays zone-strict now that `=` compares instants | with 16 | yes |
 | 20 | `7de788f` | model-evaluator: expectations for the new null reasons of time(), exp(), log() and duration() | with 18 | with 18 |
+| 21 | `c324518` | feel-number: scale-based rounding accepts the full FEEL scale range -6111..=6176 | TCK 1141-1144 | yes |
+| 22 | `44049be` | feel-regex: back-references in `matches` patterns (fancy-regex) | TCK 1111 | yes |
 
 (Full SHAs: `git log --format='%H %s' main..wasm`.)
 
@@ -166,6 +168,26 @@ What each commit does:
     written (TCK 0103 `is(@"20:00:50+00:00", @"21:00:50+01:00")` is false),
     since `==` now compares instants.
 20. **TCK expectations** for the reason texts changed by commit 18.
+21. **Scale range of the rounding functions.** `round up(5.5, 6176)` was null
+    because the scaled intermediate `n * 10^scale` must fit decimal128
+    (adjusted exponent <= 6144), which was enforced as if it were the scale
+    limit. `check_scale` (both backends) now rejects only scales outside the
+    FEEL range -6111..=6176 and returns a value unchanged when it has no digit
+    below 10^-scale; `decimal()` accepts 6176. TCK 1141-1144 `017_a` pass
+    unpatched (dsntk-tck-patches had rewritten them to 6144).
+22. **Back-references in `matches`.** `feel-regex` compiles `matches` patterns
+    with `fancy-regex` (back-references, look-around, a backtracking limit
+    that turns pathological patterns into an error instead of a hang);
+    `replace`/`split` keep `regex`. With the `x` flag, whitespace inside
+    `\p{...}` is stripped before compiling. TCK 1111 `K2-MatchesFunc-17`
+    passes unpatched.
+
+Verification after commits 21-22 (native, dashu): feel-number tests on both
+backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
+tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,
+Java). Unpatched TCK subset: 289/298 (remaining: 0036 typeRefs, 1115/1117
+dates beyond chrono's year range). Patched TCK: unchanged, 3377/3407 result
+rows (same 30 non-successes as before: 0076, 0085 015, 1157, 1160).
 
 Verification after commits 14-20 (native, dashu): feel-number 21 unit +
 228 integration tests pass; feel-temporal 57 (lib) + the `tests/` suite,
@@ -350,6 +372,10 @@ no behaviour change on native targets unless a panic is turned into a null):
 - **Commit 4 (linear for/list)** - same root-cause fixes as the open upstream
   PR DecisionToolkit/dsntk#112 but without its parallel evaluator; offer it
   as the minimal alternative or as a comment on #112.
+
+- **Commits 21-22 (scale range, back-references)** - send as is; each
+  makes an unpatched DMN TCK case pass and is covered by the TCK and crate
+  tests. Commit 22 adds the `fancy-regex` dependency to `feel-regex`.
 
 Commits 6-10 (the pure-Rust number backend) are a larger proposal: they
 would have to be offered with `intel` kept as upstream's default (one-line
