@@ -148,7 +148,7 @@
     <decision name="decision017_a" id="_decision017_a">
         <variable name="decision017_a"/>
         <literalExpression>
-            <text>round down(5.5, 6144)</text>
+            <text>round down(5.5, 6176)</text>
         </literalExpression>
     </decision>
 

@@ -54,3 +54,23 @@ fn test_scale_rounding_with_unit_coefficient() {
   eqs!("0.2", num!(0.11).round_up(1).unwrap());
   eqs!("1", num!(0.95).round_up(1).unwrap());
 }
+
+#[test]
+fn test_scale_up_to_6176_leaves_settled_values_unchanged() {
+  // FEEL: the scale of the rounding functions may be any integer in -6111..=6176. A value that
+  // has no digit below 10^-scale is returned unchanged, even when the scaled intermediate
+  // `n * 10^scale` would not fit in decimal128 (TCK 1141-1144, 017_a).
+  eqs!("5.5", num!(5.5).round_up(6176).unwrap());
+  eqs!("5.5", num!(5.5).round_down(6176).unwrap());
+  eqs!("5.5", num!(5.5).round_half_up(6176).unwrap());
+  eqs!("5.5", num!(5.5).round_half_down(6176).unwrap());
+  eqs!("-5.5", num!(-5.5).round_up(6176).unwrap());
+  eqs!("5.5", num!(5.5).round(&num!(6176)));
+  eqs!("0.3333333333333333333333333333333333", (num!(1) / num!(3)).round_up(6176).unwrap());
+  eqs!("0.3333333333333333333333333333333333", (num!(1) / num!(3)).round(&num!(6176)));
+  // ...but a scale outside the FEEL range is still an error (017_b).
+  assert!(num!(5.5).round_up(6177).is_err());
+  assert!(num!(5.5).round_up(-6112).is_err());
+  // and values that do have digits below the scale still round
+  eqs!("5.6", num!(5.55).round_up(1).unwrap());
+}

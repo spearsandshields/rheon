@@ -260,8 +260,8 @@ fn _0049() {
   te_null(
     false,
     &scope!(),
-    "round half up(5.5, 6145)",
-    "[core::round_half_up] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is 6145",
+    "round half up(5.5, 6177)",
+    "[core::round_half_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177",
   );
 }
 
@@ -274,7 +274,7 @@ fn _0050() {
     false,
     &scope!(),
     "round half up(5.5, -6112)",
-    "[core::round_half_up] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112",
+    "[core::round_half_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is -6112",
   );
 }
 
@@ -285,4 +285,12 @@ fn _0051() {
   te_number(false, &scope!(), "round half up(0.14, 1)", 1, 1);
   te_number(false, &scope!(), "round half up(-0.05, 1)", -1, 1);
   te_number(false, &scope!(), "round half up(14, -1)", 1, -1);
+}
+
+#[test]
+fn scale_6176_leaves_settled_value_unchanged() {
+  // TCK 1141-1144 017_a / 017_b: the maximum scale is 6176, one more is null.
+  te_number(false, &scope!(), "round half up(5.5, 6176)", 55, 1);
+  te_number(false, &scope!(), "round half up(5.5, -6111)", 0, 0);
+  te_null(false, &scope!(), "round half up(5.5, 6177)", "[core::round_half_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177");
 }

@@ -161,8 +161,8 @@ fn _0026() {
   te_null(
     false,
     &scope!(),
-    r#"floor(n: 5.7, scale: 6145)"#,
-    "[core::floor] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is 6145",
+    r#"floor(n: 5.7, scale: 6177)"#,
+    "[core::floor] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177",
   );
 }
 
@@ -172,7 +172,7 @@ fn _0027() {
     false,
     &scope!(),
     r#"floor(n: 5.7, scale: -6112)"#,
-    "[core::floor] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112",
+    "[core::floor] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is -6112",
   );
 }
 

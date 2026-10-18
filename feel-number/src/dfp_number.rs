@@ -16,8 +16,11 @@ use std::str::FromStr;
 /// Minimum scale.
 const MIN_SCALE: i32 = -6111;
 
-/// Maximum scale.
-const MAX_SCALE: i32 = 6144;
+/// Maximum scale accepted by the scale-based rounding functions (FEEL: `-6111..=6176`).
+const MAX_SCALE: i32 = 6176;
+
+/// Largest adjusted exponent of the scaled intermediate `n * 10^scale` (decimal128 maximum exponent).
+const SCALED_EXP_MAX: i64 = 6144;
 
 /// Flags for the status of the operation.
 macro_rules! flags {
@@ -85,8 +88,11 @@ impl FeelNumber {
         let rounded = bid128_round_integral_positive(self.0, flags!());
         if bid128_is_zero(rounded) { BID128_ZERO } else { rounded }
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(bid128_round_integral_positive(bid128_scalbn(self.0, scale), flags!()), scale)
+        if self.check_scale(scale)? {
+          self.unscale(bid128_round_integral_positive(bid128_scalbn(self.0, scale), flags!()), scale)
+        } else {
+          self.0
+        }
       },
       true,
     ))
@@ -107,8 +113,11 @@ impl FeelNumber {
       if scale == 0 {
         bid128_round_integral_negative(self.0, flags!())
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(bid128_round_integral_negative(bid128_scalbn(self.0, scale), flags!()), scale)
+        if self.check_scale(scale)? {
+          self.unscale(bid128_round_integral_negative(bid128_scalbn(self.0, scale), flags!()), scale)
+        } else {
+          self.0
+        }
       },
       true,
     ))
@@ -168,7 +177,12 @@ impl FeelNumber {
   pub fn round(&self, rhs: &FeelNumber) -> Self {
     let scale = bid128_to_int32_int(rhs.0, flags!());
     let quantifier = bid128_scalbn(BID128_ONE, -scale);
-    Self(bid128_quantize(self.0, quantifier, round!(), flags!()), false)
+    let quantized = bid128_quantize(self.0, quantifier, round!(), flags!());
+    // see the dashu core's `round`: a value already exact at the requested scale stays as is
+    if bid128_is_nan(quantized) && self.settled_at(scale) {
+      return Self(self.0, false);
+    }
+    Self(quantized, false)
   }
 
   pub fn round_down(&self, scale: i32) -> Result<Self> {
@@ -176,8 +190,11 @@ impl FeelNumber {
       if scale == 0 {
         bid128_round_integral_zero(self.0, flags!())
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(bid128_round_integral_zero(bid128_scalbn(self.0, scale), flags!()), scale)
+        if self.check_scale(scale)? {
+          self.unscale(bid128_round_integral_zero(bid128_scalbn(self.0, scale), flags!()), scale)
+        } else {
+          self.0
+        }
       },
       true,
     ))
@@ -196,9 +213,12 @@ impl FeelNumber {
       if scale == 0 {
         if bid128_is_signed(self.0) { negative(self.0) } else { positive(self.0) }
       } else {
-        self.validate_scale(scale)?;
-        let scaled = bid128_scalbn(self.0, scale);
-        self.unscale(if bid128_is_signed(self.0) { negative(scaled) } else { positive(scaled) }, scale)
+        if self.check_scale(scale)? {
+          let scaled = bid128_scalbn(self.0, scale);
+          self.unscale(if bid128_is_signed(self.0) { negative(scaled) } else { positive(scaled) }, scale)
+        } else {
+          self.0
+        }
       },
       true,
     ))
@@ -209,8 +229,11 @@ impl FeelNumber {
       if scale == 0 {
         bid128_round_integral_nearest_away(self.0, flags!())
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(bid128_round_integral_nearest_away(bid128_scalbn(self.0, scale), flags!()), scale)
+        if self.check_scale(scale)? {
+          self.unscale(bid128_round_integral_nearest_away(bid128_scalbn(self.0, scale), flags!()), scale)
+        } else {
+          self.0
+        }
       },
       true,
     ))
@@ -225,15 +248,18 @@ impl FeelNumber {
           bid128_round_integral_positive(self.0, flags!())
         }
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(
-          if bid128_is_signed(self.0) {
-            bid128_round_integral_negative(bid128_scalbn(self.0, scale), flags!())
-          } else {
-            bid128_round_integral_positive(bid128_scalbn(self.0, scale), flags!())
-          },
-          scale,
-        )
+        if self.check_scale(scale)? {
+          self.unscale(
+            if bid128_is_signed(self.0) {
+              bid128_round_integral_negative(bid128_scalbn(self.0, scale), flags!())
+            } else {
+              bid128_round_integral_positive(bid128_scalbn(self.0, scale), flags!())
+            },
+            scale,
+          )
+        } else {
+          self.0
+        }
       },
       true,
     ))
@@ -261,15 +287,26 @@ impl FeelNumber {
     bid128_sub(self.0, n, round!(), flags!())
   }
 
-  /// Validates effective scale after changing the scale to the required one.
-  /// When the final scale is out of allowed range (-6176..6144) then returns an error.
-  fn validate_scale(&self, scale: i32) -> Result<()> {
-    let scale = bid128_ilogb(self.0, flags!()) + scale;
-    if (MIN_SCALE..=MAX_SCALE).contains(&scale) {
-      Ok(())
+  /// Checks the scale of a scale-based rounding function; see the dashu core's `check_scale`.
+  /// `Ok(true)`: round on the scaled intermediate; `Ok(false)`: the intermediate would not fit
+  /// but the value has no digit below `10^-scale`, so it is returned unchanged.
+  fn check_scale(&self, scale: i32) -> Result<bool> {
+    if !(MIN_SCALE..=MAX_SCALE).contains(&scale) {
+      return Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale));
+    }
+    let scaled_exp = bid128_ilogb(self.0, flags!()) as i64 + scale as i64;
+    if (MIN_SCALE as i64..=SCALED_EXP_MAX).contains(&scaled_exp) {
+      Ok(true)
+    } else if self.settled_at(scale) {
+      Ok(false)
     } else {
       Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale))
     }
+  }
+
+  /// `true` when this finite, non-zero number has no digit below `10^-scale`.
+  fn settled_at(&self, scale: i32) -> bool {
+    bid128_is_finite(self.0) && !bid128_is_zero(self.0) && bid128_quantexp(self.0) as i64 >= -(scale as i64)
   }
 
   /// Undoes the scaling applied before rounding: `n * 10^-scale`. Zero stays a plain zero;

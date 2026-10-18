@@ -692,7 +692,7 @@ pub fn decimal(number_value: &Value, scale_value: &Value) -> Value {
   if let Value::Number(number) = number_value {
     if let Value::Number(scale) = scale_value {
       let scale = &scale.trunc();
-      if (-6111..6176).contains(scale) {
+      if (-6111..=6176).contains(scale) {
         Value::Number((*number).round(scale))
       } else {
         value_null!("[core::decimal] scale is out of range: {}", scale)

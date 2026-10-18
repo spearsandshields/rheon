@@ -177,8 +177,8 @@ fn _0030() {
   te_null(
     false,
     &scope!(),
-    r#"ceiling(n: 5.777, scale: 6145)"#,
-    "[core::ceiling] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is 6145",
+    r#"ceiling(n: 5.777, scale: 6177)"#,
+    "[core::ceiling] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177",
   );
 }
 
@@ -188,7 +188,7 @@ fn _0031() {
     false,
     &scope!(),
     r#"ceiling(n: 5.777, scale: -6112)"#,
-    "[core::ceiling] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112",
+    "[core::ceiling] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is -6112",
   );
 }
 

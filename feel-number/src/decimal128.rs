@@ -29,11 +29,15 @@ use std::str::FromStr;
 #[cfg(feature = "dashu")]
 type B = crate::backend_dashu::Dashu;
 
-/// Minimum scale.
+/// Minimum scale accepted by the scale-based rounding functions (FEEL: `-6111..=6176`).
 const MIN_SCALE: i32 = -6111;
 
-/// Maximum scale.
-const MAX_SCALE: i32 = 6144;
+/// Maximum scale accepted by the scale-based rounding functions (FEEL: `-6111..=6176`).
+const MAX_SCALE: i32 = 6176;
+
+/// Largest adjusted exponent of the scaled intermediate `n * 10^scale` the rounding
+/// functions work on (the maximum exponent of a decimal128 number).
+const SCALED_EXP_MAX: i64 = 6144;
 
 /// Precision of decimal128 (number of significant digits).
 pub(crate) const PRECISION: usize = 34;
@@ -1169,8 +1173,11 @@ impl FeelNumber {
         let rounded = round_integral_v(self.v(), Rnd::Ceiling);
         if is_zero_v(rounded) { ZERO } else { rounded }
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Ceiling), scale)
+        if self.check_scale(scale)? {
+          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Ceiling), scale)
+        } else {
+          self.v()
+        }
       },
       true,
     ))
@@ -1197,8 +1204,11 @@ impl FeelNumber {
       if scale == 0 {
         round_integral_v(self.v(), Rnd::Floor)
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Floor), scale)
+        if self.check_scale(scale)? {
+          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Floor), scale)
+        } else {
+          self.v()
+        }
       },
       true,
     ))
@@ -1263,7 +1273,14 @@ impl FeelNumber {
   pub fn round(&self, rhs: &FeelNumber) -> Self {
     let scale = to_signed(rhs.v(), i32::MIN as i128, i32::MAX as i128).unwrap_or(i32::MIN as i128) as i32;
     let quantifier = scalbn_v(ONE, scale.saturating_neg());
-    Self::of(quantize_v(self.v(), quantifier), false)
+    let quantized = quantize_v(self.v(), quantifier);
+    // A coefficient can not be widened to the requested quantum when that needs more than 34
+    // digits (`decimal(5.5, 6176)`); the value itself is already exact at that scale, so it is
+    // returned unchanged instead of NaN.
+    if matches!(quantized, V::NaN(_)) && self.settled_at(scale) {
+      return Self::of(self.v(), false);
+    }
+    Self::of(quantized, false)
   }
 
   pub fn round_down(&self, scale: i32) -> Result<Self> {
@@ -1271,8 +1288,11 @@ impl FeelNumber {
       if scale == 0 {
         round_integral_v(self.v(), Rnd::Zero)
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Zero), scale)
+        if self.check_scale(scale)? {
+          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Zero), scale)
+        } else {
+          self.v()
+        }
       },
       true,
     ))
@@ -1287,9 +1307,12 @@ impl FeelNumber {
         let v = self.v();
         if signed { negative(v) } else { positive(v) }
       } else {
-        self.validate_scale(scale)?;
-        let scaled = scalbn_v(self.v(), scale);
-        self.unscale(if signed { negative(scaled) } else { positive(scaled) }, scale)
+        if self.check_scale(scale)? {
+          let scaled = scalbn_v(self.v(), scale);
+          self.unscale(if signed { negative(scaled) } else { positive(scaled) }, scale)
+        } else {
+          self.v()
+        }
       },
       true,
     ))
@@ -1300,8 +1323,11 @@ impl FeelNumber {
       if scale == 0 {
         round_integral_v(self.v(), Rnd::HalfAway)
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::HalfAway), scale)
+        if self.check_scale(scale)? {
+          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::HalfAway), scale)
+        } else {
+          self.v()
+        }
       },
       true,
     ))
@@ -1313,8 +1339,11 @@ impl FeelNumber {
       if scale == 0 {
         round_integral_v(self.v(), mode)
       } else {
-        self.validate_scale(scale)?;
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), mode), scale)
+        if self.check_scale(scale)? {
+          self.unscale(round_integral_v(scalbn_v(self.v(), scale), mode), scale)
+        } else {
+          self.v()
+        }
       },
       true,
     ))
@@ -1361,15 +1390,32 @@ impl FeelNumber {
     sub_v(self.v(), n)
   }
 
-  /// Validates effective scale after changing the scale to the required one.
-  /// When the final scale is out of allowed range (-6176..6144) then returns an error.
-  fn validate_scale(&self, scale: i32) -> Result<()> {
-    let scale = ilogb_v(self.v()) as i64 + scale as i64;
-    if (MIN_SCALE as i64..=MAX_SCALE as i64).contains(&scale) {
-      Ok(())
-    } else {
-      Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale.clamp(i32::MIN as i64, i32::MAX as i64) as i32))
+  /// Checks the scale of a scale-based rounding function (`round up(n, scale)` etc.).
+  ///
+  /// `Err` when `scale` is outside the FEEL range `-6111..=6176`. `Ok(true)` when the rounding
+  /// can be done on the scaled intermediate `n * 10^scale` (its adjusted exponent fits
+  /// decimal128). `Ok(false)` when that intermediate would not fit but `n` has no digit below
+  /// `10^-scale`, so rounding to `scale` leaves it unchanged: `round up(5.5, 6176)` is `5.5`
+  /// (TCK 1141-1144). The remaining case, a value far below `10^-scale` with a negative
+  /// scale (`1E-6176` at scale `-6111`), stays an error.
+  fn check_scale(&self, scale: i32) -> Result<bool> {
+    if !(MIN_SCALE..=MAX_SCALE).contains(&scale) {
+      return Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale));
     }
+    let scaled_exp = ilogb_v(self.v()) as i64 + scale as i64;
+    if (MIN_SCALE as i64..=SCALED_EXP_MAX).contains(&scaled_exp) {
+      Ok(true)
+    } else if self.settled_at(scale) {
+      Ok(false)
+    } else {
+      Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale))
+    }
+  }
+
+  /// `true` when this finite, non-zero number has no digit below `10^-scale`, i.e. rounding
+  /// it to `scale` fraction digits can not change its value.
+  fn settled_at(&self, scale: i32) -> bool {
+    matches!(self.v(), V::Fin(_, c, e) if c != 0 && i64::from(e) >= -i64::from(scale))
   }
 
   /// Undoes the scaling applied before rounding: `n * 10^-scale`.

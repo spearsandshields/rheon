@@ -80,3 +80,9 @@ fn _0015() {
 fn _0016() {
   te_null(false, &scope!(), "decimal(number: 1, scale: 2)", r#"parameter 'n' not found"#);
 }
+
+#[test]
+fn scale_6176_is_allowed() {
+  te_number(false, &scope!(), "decimal(5.5, 6176)", 55, 1);
+  te_number_x(false, &scope!(), "decimal(1/3, 6176)", "0.3333333333333333333333333333333333");
+}

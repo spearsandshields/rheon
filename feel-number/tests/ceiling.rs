@@ -37,3 +37,9 @@ fn _0007() {
   // the scale passed to scalbn is clamped to -6176..=6144 (dfp-number-sys behaviour)
   eqs!("0.025", num!(0.25).ceiling(6145).unwrap());
 }
+
+#[test]
+fn test_ceiling_scale_6176_leaves_settled_values_unchanged() {
+  eqs!("5.5", num!(5.5).ceiling(6176).unwrap());
+  assert!(num!(5.5).ceiling(6177).is_err());
+}

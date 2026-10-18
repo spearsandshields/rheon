@@ -37,3 +37,9 @@ fn _0007() {
   // the scale passed to scalbn is clamped to -6176..=6144 (dfp-number-sys behaviour)
   eqs!("0.05", num!(0.5).floor(6145).unwrap());
 }
+
+#[test]
+fn test_floor_scale_6176_leaves_settled_values_unchanged() {
+  eqs!("5.5", num!(5.5).floor(6176).unwrap());
+  assert!(num!(5.5).floor(6177).is_err());
+}

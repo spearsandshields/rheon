@@ -129,7 +129,7 @@ fn _0017() {
 #[test]
 fn _0018() {
   let invocable = "decision016_b";
-  let expected = "null([core::round_down] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is -6112)";
+  let expected = "null([core::round_down] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is -6112)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
@@ -143,13 +143,13 @@ fn _0019() {
 #[test]
 fn _0020() {
   let invocable = "decision017_b";
-  let expected = "null([core::round_down] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is 6177)";
+  let expected = "null([core::round_down] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
 #[test]
 fn _0021() {
   let invocable = "decision017_b";
-  let expected = "null([core::round_down] <FeelNumberError> invalid scale, allowed range is -6111..6144, actual is 6177)";
+  let expected = "null([core::round_down] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
