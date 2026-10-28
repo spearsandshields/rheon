@@ -1,25 +1,30 @@
-# The `wasm` branch: a thin fork of dsntk-rs for dsntk-wasm
+# The dsntk engine crates in flowstone: changes against upstream
 
-This repository is a **local-only** fork of <https://github.com/dsntk/dsntk-rs>
-(the DecisionToolkit FEEL/DMN engine). It is the engine behind
-`dsntk-wasm` (`~/dev/dsntk-wasm`), which compiles the FEEL crates
-to WebAssembly for a browser playground and other hosts.
+flowstone is a fork of <https://github.com/dsntk/dsntk-rs> (the DecisionToolkit
+FEEL/DMN engine, Copyright (c) 2015-2026 Dariusz Depta, MIT OR Apache-2.0).
+The dsntk crates sit at the repository root in upstream's layout so that upstream
+can still be merged (`git remote add upstream https://github.com/dsntk/dsntk-rs.git`,
+`git merge upstream/main`). This file lists every engine change in the order it
+was made. Until 2026-10-28 these commits lived on a `wasm` branch of a local
+clone, consumed as a git dependency by a separate `dsntk-wasm` repository; that
+repository's content now lives here (`wasm/`, `packages/`, `apps/`, `docs/`,
+`scripts/`) and the branch became `main`.
 
-Rules for this clone:
+Rules:
 
-- `main` tracks `origin/main` and is never modified here.
-- `wasm` is the working branch. All fork changes live on it, as small,
-  upstream-shaped commits.
-- `fastnum-backend` is a side branch off `wasm` with the experimental fastnum
-  number backend (see below); it is not needed for wasm.
-- Never push, never create anything on GitHub, never `cargo publish`.
+- Engine changes are small, upstream-shaped commits, so that they can be
+  offered upstream as pull requests ("PR candidate" below).
+- `fastnum-backend` is a side branch with the experimental fastnum number
+  backend (see below); it is not needed for wasm.
+- Nothing from this repository is published to crates.io. The dsntk crate
+  names are upstream's.
 
 ## Base
 
 - Upstream commit: `c76aee02187183b3659a9051f3ebb283630066f7`
   ("Prepared next development version.", workspace version `0.3.1-dev`,
   `git describe`: `v0.1.0-47-gc76aee0`).
-- This is the commit recorded in `dsntk-wasm/patches/dsntk/UPSTREAM_COMMIT`.
+- This is the commit recorded as `upstream-commit` in the root `Cargo.toml` (`[workspace.metadata.flowstone]`).
   Commits 1-4 below are the four patches `dsntk-wasm/patches/dsntk/0001..0004`
   applied in order, one commit each. After commit 4 the tree is
   byte-identical to `dsntk-wasm/third_party/dsntk` (verified with
@@ -33,7 +38,7 @@ Rules for this clone:
 | 2 | `b1a04ca6aaec7a93d57ca4141587e7f2c0b5eb4f` | feel-temporal: process-wide local UTC offset override for hosts without a time zone | `0002-local-offset-override.patch` | yes |
 | 3 | `ec2ced32fff2b0fdc72a8173385774cbb654a567` | Robustness: no user-reachable panics, non-finite numbers are null, call depth limit, iterative AST drop | `0003-robustness.patch` | yes (split, see below) |
 | 4 | `55948221d3e11df370366696d3d52431820d7c9f` | Linear `for` loops and list literal parsing (were quadratic) | `0004-linear-for-and-list-parsing.patch` | yes (overlaps upstream PR #112) |
-| 5 | `8c56f2c83c5fb28d3cdd5d8faa10444ffa4d4996` | Add WASM-FORK.md | fork only | no |
+| 5 | `8c56f2c83c5fb28d3cdd5d8faa10444ffa4d4996` | Add docs/FORK.md | fork only | no |
 | 6 | `ab6339c` | feel-number: shared decimal128 core for pure-Rust backends | dashu spike | maybe (see below) |
 | 7 | `e0df83b` | feel-number: dashu-float backend, feature `dashu` (default) \| `intel` | dashu spike | maybe |
 | 8 | `64fca91` | Forward the number backend features through the whole workspace | fork | with 6-7 |
@@ -223,7 +228,7 @@ functions), 20 ignored. Clippy is clean for the touched crates.
 Default features (`dashu`), at commit 10:
 
 ```sh
-cd ~/dev/dsntk-rs
+cd ~/dev/flowstone
 cargo build --workspace                       # no dfp-number-sys in `cargo tree`
 cargo test -p dsntk-feel-number               # 21 unit + 207 integration tests
 cargo test -p dsntk-feel-temporal -p dsntk-feel-parser -p dsntk-model
@@ -255,7 +260,7 @@ machine-specific path:
 
 ```sh
 cargo test --no-default-features --features intel \
-  --config 'patch.crates-io.dfp-number-sys.path="~/dev/dsntk-wasm/third_party/dfp-number-sys"' \
+  --config 'patch.crates-io.dfp-number-sys.path="~/dev/flowstone/third_party/dfp-number-sys"' \
   -p dsntk-feel-number
 git checkout Cargo.lock          # --config patch.crates-io rewrites the lock file
 ```
@@ -314,7 +319,7 @@ rounded in the strict sense (a 77-digit result within its own error of a
 ## Rebasing onto upstream
 
 ```sh
-cd ~/dev/dsntk-rs
+cd ~/dev/flowstone
 git fetch origin
 git checkout main && git merge --ff-only origin/main     # keep main a mirror
 git checkout wasm
@@ -322,7 +327,7 @@ git rebase main                                         # replay the commits
 git rebase wasm fastnum-backend                         # optional side branch
 ```
 
-`origin` is <https://github.com/DecisionToolkit/dsntk> (the crates.io name is
+`upstream` is <https://github.com/DecisionToolkit/dsntk> (the crates.io name is
 `dsntk`; the old <https://github.com/dsntk/dsntk-rs> URL redirects there).
 Upstream has not moved since `c76aee0`, so today the rebase is a no-op.
 Replaying the branch onto a moved base (tried against the head of upstream
@@ -333,23 +338,25 @@ itself, and commit 8 touches every manifest. Resolve conflicts per commit
 (each one is small and self-contained) and compile every replayed commit:
 
 ```sh
-git rebase -x 'CARGO_BUILD_JOBS=4 cargo check -p dsntk-feel-evaluator' main
+git rebase -x 'CARGO_BUILD_JOBS=4 cargo check -p dsntk-feel-evaluator' upstream/main
 ```
 
 Then:
 
 1. Rerun the verification above (suites, `tools/difftest/run.sh`,
    `tools/evaluator-corpus/run.sh`).
-2. Point dsntk-wasm at the new head: it depends on this clone as a git
-   dependency (`git = "file://$HOME/dev/dsntk-rs"`, pinned with
-   `rev = "<sha>"` in `[workspace.dependencies]` of `dsntk-wasm/Cargo.toml`,
-   plus `[workspace.metadata.dsntk] upstream-commit`). In dsntk-wasm:
-   replace the SHA (and the upstream base) in `Cargo.toml`, e.g.
-   `perl -pi -e 's/<old>/<new>/g' Cargo.toml`, then
-   `cargo update -p dsntk-feel-evaluator`, `npm run bootstrap` (verifies the
-   pinned commit exists here), `npm test`, `npm run build:wasm`,
-   `npm run smoke`. `git log main..wasm` is the source of truth; dsntk-wasm
-   no longer carries patches, and `bootstrap.sh` takes no arguments.
+2. Rebuild and re-verify the wasm side in this repository: `npm test`,
+   `npm run build:wasm`, `npm run smoke`, `npm run build` (the module's
+   `engineCommit` follows HEAD automatically), and update `upstream-commit`
+   in the root `Cargo.toml` (`[workspace.metadata.flowstone]`).
+
+Since 2026-10-28 the engine commits live on `main` of this repository together
+with the wasm, runtime and playground code, so the day-to-day way to take an
+upstream release is a merge, not a rebase: `git fetch upstream`,
+`git merge upstream/main`, resolve conflicts in the engine crates, then run the
+verification above. The rebase procedure stays documented for the case where a
+clean, upstream-shaped history of the engine changes is wanted (for example to
+prepare pull requests).
 
 If a commit was merged upstream, `git rebase` drops it automatically when
 the patch is identical; otherwise drop it by hand with `git rebase -i`.

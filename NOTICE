@@ -11,3 +11,23 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+------------------------------------------------------------------------
+
+flowstone
+
+This repository is a fork of dsntk (https://github.com/dsntk/dsntk-rs),
+Copyright (c) 2015-2026 Dariusz Depta, licensed under MIT OR Apache-2.0.
+The dsntk crates keep their original names, headers and license.
+
+Modifications to the dsntk crates and the additional components of this
+repository (the wasm modules, the JavaScript runtime, the playground, the
+documentation and the build scripts) are
+Copyright (c) 2026 the flowstone contributors
+and are licensed under the same terms, MIT OR Apache-2.0, at your option.
+
+flowstone is an independent project. It is not affiliated with, endorsed
+by or supported by DecisionToolkit, Engos Software or the Object
+Management Group. "DMN", "FEEL" and "BPMN" are trademarks of the Object
+Management Group.
+
