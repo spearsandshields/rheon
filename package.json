@@ -1,0 +1,31 @@
+{
+  "name": "flowstone",
+  "private": true,
+  "version": "0.1.0",
+  "description": "FEEL playground powered by the dsntk Rust engine compiled to WebAssembly (exact 34-digit decimals)",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "bootstrap": "./scripts/bootstrap.sh",
+    "build:wasm": "./scripts/build-wasm.sh",
+    "build:runtime": "npm run build -w @flowstone/feel-runtime",
+    "notices": "node scripts/third-party-notices.mjs",
+    "build:playground": "npm run notices && npm run build -w @flowstone/playground",
+    "build": "npm run build:wasm && npm run build:runtime && npm run build:playground",
+    "dev": "npm run build:runtime && npm run dev -w @flowstone/playground --",
+    "preview": "npm run preview -w @flowstone/playground --",
+    "test": "npm run test:rust && npm run test:rust:wasm && npm run test:runtime",
+    "test:rust": "cargo test -p flowstone-feel-wasm",
+    "test:rust:wasm": "bash -c 'source ./scripts/env.sh && cargo test -p flowstone-feel-wasm --target wasm32-wasip1'",
+    "test:runtime": "npm test -w @flowstone/feel-runtime",
+    "smoke": "node scripts/smoke.mjs",
+    "deploy": "./scripts/deploy-public.sh",
+    "deploy:push": "./scripts/deploy-public.sh --push"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
