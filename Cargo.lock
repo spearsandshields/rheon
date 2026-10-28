@@ -1008,6 +1008,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "flowstone-feel-wasm"
+version = "0.1.0"
+dependencies = [
+ "dsntk-common",
+ "dsntk-feel",
+ "dsntk-feel-evaluator",
+ "dsntk-feel-number",
+ "dsntk-feel-parser",
+ "dsntk-feel-temporal",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

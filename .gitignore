@@ -1,4 +1,9 @@
 target
 .idea
 benchmarks.txt
-scripts
+.tools/
+node_modules/
+dist/
+.DS_Store
+.bootstrap-tmp.*/
+apps/playground/public/third-party-notices.txt

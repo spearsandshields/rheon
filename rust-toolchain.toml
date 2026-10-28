@@ -1,0 +1,5 @@
+# Pinned so that rebuilds of dist/feel.wasm are reproducible (the module was verified with 1.95.0).
+[toolchain]
+channel = "1.95.0"
+targets = ["wasm32-wasip1"]
+profile = "minimal"
