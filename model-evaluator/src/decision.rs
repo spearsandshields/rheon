@@ -6,9 +6,9 @@ use crate::model_definitions::*;
 use crate::model_evaluator::ModelEvaluator;
 use crate::variable::Variable;
 use dsntk_common::Result;
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::Value;
-use dsntk_feel::{FeelScope, Name, value_null};
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::Value;
+use flowstone_feel::{FeelScope, Name, value_null};
 use std::collections::HashMap;
 use std::sync::Arc;
 

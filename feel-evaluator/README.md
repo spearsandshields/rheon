@@ -1,6 +1,6 @@
 [dsntk] | [ÐecisionToolkit]
 
-### dsntk-feel-evaluator
+### flowstone-feel-evaluator
 
 [![crates.io][crates-badge]][crates-url]
 [![docs][docs-badge]][docs-url]
@@ -14,10 +14,10 @@
 [![apache-license][apache-badge]][apache-license-url]
 [![cc][cc-badge]][cc-url]
 
-[crates-badge]: https://img.shields.io/crates/v/dsntk-feel-evaluator.svg
-[crates-url]: https://crates.io/crates/dsntk-feel-evaluator
-[docs-badge]: https://docs.rs/dsntk-feel-evaluator/badge.svg
-[docs-url]: https://crates.io/crates/dsntk-feel-evaluator
+[crates-badge]: https://img.shields.io/crates/v/flowstone-feel-evaluator.svg
+[crates-url]: https://crates.io/crates/flowstone-feel-evaluator
+[docs-badge]: https://docs.rs/flowstone-feel-evaluator/badge.svg
+[docs-url]: https://crates.io/crates/flowstone-feel-evaluator
 [cov-badge]: https://img.shields.io/badge/coverage-0%25-21b577.svg
 [cov-url]: https://crates.io/crates/coverio
 [build-badge-linux-gnu]: https://github.com/DecisionToolkit/dsntk/actions/workflows/build-linux-gnu.yml/badge.svg

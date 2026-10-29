@@ -1,4 +1,4 @@
-use dsntk_feel::FeelType;
+use flowstone_feel::FeelType;
 use std::ops::Deref;
 
 /// Type reference enumeration for simple FEEL types.

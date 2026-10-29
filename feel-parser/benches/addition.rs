@@ -2,8 +2,8 @@
 
 extern crate test;
 
-use dsntk_feel::{FeelScope, scope};
-use dsntk_feel_parser::parse_expression;
+use flowstone_feel::{FeelScope, scope};
+use flowstone_feel_parser::parse_expression;
 use test::Bencher;
 
 #[bench]

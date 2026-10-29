@@ -12,12 +12,12 @@ path = "src/main.rs"
 
 [dependencies]
 serde_json = "1"
-dsntk-feel = { path = "../../feel", default-features = false }
-dsntk-feel-parser = { path = "../../feel-parser", default-features = false }
-dsntk-feel-evaluator = { path = "../../feel-evaluator", default-features = false }
+flowstone-feel = { path = "../../feel", default-features = false }
+flowstone-feel-parser = { path = "../../feel-parser", default-features = false }
+flowstone-feel-evaluator = { path = "../../feel-evaluator", default-features = false }
 
 [features]
-intel = ["dsntk-feel/intel", "dsntk-feel-parser/intel", "dsntk-feel-evaluator/intel"]
-dashu = ["dsntk-feel/dashu", "dsntk-feel-parser/dashu", "dsntk-feel-evaluator/dashu"]
+intel = ["flowstone-feel/intel", "flowstone-feel-parser/intel", "flowstone-feel-evaluator/intel"]
+dashu = ["flowstone-feel/dashu", "flowstone-feel-parser/dashu", "flowstone-feel-evaluator/dashu"]
 
 [workspace]

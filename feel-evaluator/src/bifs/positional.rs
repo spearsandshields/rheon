@@ -1,8 +1,8 @@
 use crate::bifs::core;
 use crate::macros::invalid_number_of_parameters;
-use dsntk_feel::bif::Bif;
-use dsntk_feel::values::Value;
-use dsntk_feel::{FeelNumber, value_null};
+use flowstone_feel::bif::Bif;
+use flowstone_feel::values::Value;
+use flowstone_feel::{FeelNumber, value_null};
 
 pub fn evaluate_bif(bif: Bif, parameters: &[Value]) -> Value {
   match bif {

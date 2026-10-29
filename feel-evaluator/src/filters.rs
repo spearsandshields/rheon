@@ -1,8 +1,8 @@
 //! # FEEL filter implementation
 
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::{Value, Values};
-use dsntk_feel::{Evaluator, FeelScope, Name, value_null};
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::{Value, Values};
+use flowstone_feel::{Evaluator, FeelScope, Name, value_null};
 
 pub struct FilterExpressionEvaluator {}
 

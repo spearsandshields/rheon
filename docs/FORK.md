@@ -2,22 +2,31 @@
 
 flowstone is a fork of <https://github.com/dsntk/dsntk-rs> (the DecisionToolkit
 FEEL/DMN engine, Copyright (c) 2015-2026 Dariusz Depta, MIT OR Apache-2.0).
-The dsntk crates sit at the repository root in upstream's layout so that upstream
-can still be merged (`git remote add upstream https://github.com/dsntk/dsntk-rs.git`,
-`git merge upstream/main`). This file lists every engine change in the order it
-was made. Until 2026-10-28 these commits lived on a `wasm` branch of a local
+flowstone is a permanent fork: the engine is developed here and contributing
+changes back to dsntk is not a goal. The dsntk crates sit at the repository
+root in upstream's directory layout, so individual upstream fixes can still be
+taken by cherry-pick (see "Taking upstream changes" below). This file lists
+every engine change in the order it was made. Until 2026-10-28 these commits lived on a `wasm` branch of a local
 clone, consumed as a git dependency by a separate `dsntk-wasm` repository; that
 repository's content now lives here (`wasm/`, `packages/`, `apps/`, `docs/`,
 `scripts/`) and the branch became `main`.
 
 Rules:
 
-- Engine changes are small, upstream-shaped commits, so that they can be
-  offered upstream as pull requests ("PR candidate" below).
+- Engine changes are small, self-contained commits. The "PR candidate" column
+  below records which ones would be upstreamable; offering them is not a
+  priority (decision of 2026-10-28).
 - `fastnum-backend` is a side branch with the experimental fastnum number
   backend (see below); it is not needed for wasm.
-- Nothing from this repository is published to crates.io. The dsntk crate
-  names are upstream's.
+- Nothing from this repository is published to crates.io.
+- Crate naming (2026-10-28): a crate whose source flowstone has changed is
+  renamed `flowstone-*` (package name and Rust path; the directory keeps
+  upstream's name). A crate carried as upstream ships it, or with manifest-only
+  changes such as the number-backend feature forwarding, keeps its `dsntk-*`
+  name until it is changed. Renamed so far: `flowstone-feel`, `-feel-number`,
+  `-feel-parser`, `-feel-evaluator`, `-feel-temporal`, `-feel-regex`,
+  `-model-evaluator`. `scripts/upstream-rename.pl` holds the mapping; extend
+  its crate list when another crate is renamed.
 
 ## Base
 
@@ -136,7 +145,7 @@ What each commit does:
     are unchanged (`NaN` / null).
 11. **Tools** (`tools/`, see `tools/README.md`): the op-by-op differential
     fuzzer with the mpmath/decimal oracle and the FEEL corpus harness.
-12. **`NUMBER_BACKEND`.** `dsntk_feel_number::NUMBER_BACKEND` is `"dashu"` or
+12. **`NUMBER_BACKEND`.** `flowstone_feel_number::NUMBER_BACKEND` is `"dashu"` or
     `"intel"`, selected by the same feature as the backend itself; dsntk-wasm
     reports it as `numberBackend` in its `info` op.
 13. **Vendored Intel reference** (`tools/dfp-number-sys`): the patched
@@ -230,21 +239,21 @@ Default features (`dashu`), at commit 10:
 ```sh
 cd ~/dev/flowstone
 cargo build --workspace                       # no dfp-number-sys in `cargo tree`
-cargo test -p dsntk-feel-number               # 21 unit + 207 integration tests
-cargo test -p dsntk-feel-temporal -p dsntk-feel-parser -p dsntk-model
-cargo test -p dsntk-feel-evaluator --lib -- --skip external_functions
-cargo test -p dsntk-model-evaluator
-cargo clippy -p dsntk-feel-number --lib --tests
+cargo test -p flowstone-feel-number               # 21 unit + 207 integration tests
+cargo test -p flowstone-feel-temporal -p flowstone-feel-parser -p dsntk-model
+cargo test -p flowstone-feel-evaluator --lib -- --skip external_functions
+cargo test -p flowstone-model-evaluator
+cargo clippy -p flowstone-feel-number --lib --tests
 ```
 
 | Crate | dashu (default) | intel (`--no-default-features --features intel`) |
 |-------|-----------------|-----------------------------------------------|
-| dsntk-feel-number | 228 passed, 0 failed (21 unit, 207 integration) | 207 passed, 0 failed |
-| dsntk-feel-temporal | 79 passed | 79 passed |
-| dsntk-feel-parser | 461 passed | 461 passed |
+| flowstone-feel-number | 228 passed, 0 failed (21 unit, 207 integration) | 207 passed, 0 failed |
+| flowstone-feel-temporal | 79 passed | 79 passed |
+| flowstone-feel-parser | 461 passed | 461 passed |
 | dsntk-model | 45 passed | 45 passed |
-| dsntk-feel-evaluator | 3371 passed, 13 failed, 3 ignored | 3370 passed, 14 failed, 3 ignored |
-| dsntk-model-evaluator | 3650 passed, 19 failed, 20 ignored | 3650 passed, 19 failed, 20 ignored |
+| flowstone-feel-evaluator | 3371 passed, 13 failed, 3 ignored | 3370 passed, 14 failed, 3 ignored |
+| flowstone-model-evaluator | 3650 passed, 19 failed, 20 ignored | 3650 passed, 19 failed, 20 ignored |
 
 The 13 feel-evaluator failures are `tests::external_functions::*` (Java RPC
 server at `127.0.0.1:22023`, same on both); the 14th on intel was
@@ -261,7 +270,7 @@ machine-specific path:
 ```sh
 cargo test --no-default-features --features intel \
   --config 'patch.crates-io.dfp-number-sys.path="~/dev/flowstone/third_party/dfp-number-sys"' \
-  -p dsntk-feel-number
+  -p flowstone-feel-number
 git checkout Cargo.lock          # --config patch.crates-io rewrites the lock file
 ```
 
@@ -312,11 +321,33 @@ forwarded through the same manifests. It is experimental: not correctly
 rounded in the strict sense (a 77-digit result within its own error of a
 34-digit tie can round to the wrong neighbour), and the exact tie
 `16 ^ -12.5` lands on whichever side the error falls on. Verified:
-`cargo test -p dsntk-feel-number --no-default-features --features fastnum`
+`cargo test -p flowstone-feel-number --no-default-features --features fastnum`
 228 passed, clippy clean, `cargo check --workspace --no-default-features
 --features fastnum` succeeds. `dashu` stays the default.
 
-## Rebasing onto upstream
+## Taking upstream changes
+
+Since the rename, upstream commits that touch the renamed crates no longer
+apply as they are: their manifests and `use dsntk_feel…` paths name the old
+crates. Take upstream fixes one at a time, rewriting the patch through the
+rename script before applying it:
+
+```sh
+git fetch upstream
+git format-patch -1 --stdout <upstream sha> | perl scripts/upstream-rename.pl | git am -3
+```
+
+`upstream-rename.pl` rewrites `dsntk-<crate>` and `dsntk_<crate>` for every
+renamed crate and leaves the others alone, so a patch against `dsntk-common`
+passes through unchanged. Resolve the remaining conflicts by hand, run the
+verification below, and record the cherry-pick in the table above. Whole
+upstream releases are not merged any more.
+
+### The pre-rename procedure (historical)
+
+Until 2026-10-28 the crates kept upstream's names and the plan was to merge or
+rebase onto upstream releases; the procedure is kept for reference.
+
 
 ```sh
 cd ~/dev/flowstone
@@ -338,7 +369,7 @@ itself, and commit 8 touches every manifest. Resolve conflicts per commit
 (each one is small and self-contained) and compile every replayed commit:
 
 ```sh
-git rebase -x 'CARGO_BUILD_JOBS=4 cargo check -p dsntk-feel-evaluator' upstream/main
+git rebase -x 'CARGO_BUILD_JOBS=4 cargo check -p flowstone-feel-evaluator' upstream/main
 ```
 
 Then:
@@ -351,12 +382,9 @@ Then:
    in the root `Cargo.toml` (`[workspace.metadata.flowstone]`).
 
 Since 2026-10-28 the engine commits live on `main` of this repository together
-with the wasm, runtime and playground code, so the day-to-day way to take an
-upstream release is a merge, not a rebase: `git fetch upstream`,
-`git merge upstream/main`, resolve conflicts in the engine crates, then run the
-verification above. The rebase procedure stays documented for the case where a
-clean, upstream-shaped history of the engine changes is wanted (for example to
-prepare pull requests).
+with the wasm, runtime and playground code, and the seven changed crates carry
+`flowstone-*` names, so this rebase procedure no longer applies as written; the
+cherry-pick procedure above replaces it.
 
 If a commit was merged upstream, `git rebase` drops it automatically when
 the patch is identical; otherwise drop it by hand with `git rebase -i`.

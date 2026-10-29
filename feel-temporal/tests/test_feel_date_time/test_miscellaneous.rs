@@ -1,5 +1,5 @@
 use chrono::{DateTime, FixedOffset};
-use dsntk_feel_temporal::FeelDateTime;
+use flowstone_feel_temporal::FeelDateTime;
 
 #[test]
 fn _0001() {

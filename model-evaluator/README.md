@@ -1,6 +1,6 @@
 [dsntk] | [ÐecisionToolkit]
 
-### dsntk-model-evaluator
+### flowstone-model-evaluator
 
 [![crates.io][crates-badge]][crates-url]
 [![docs][docs-badge]][docs-url]
@@ -14,10 +14,10 @@
 [![apache-license][apache-badge]][apache-license-url]
 [![cc][cc-badge]][cc-url]
 
-[crates-badge]: https://img.shields.io/crates/v/dsntk-model-evaluator.svg
-[crates-url]: https://crates.io/crates/dsntk-model-evaluator
-[docs-badge]: https://docs.rs/dsntk-model-evaluator/badge.svg
-[docs-url]: https://crates.io/crates/dsntk-model-evaluator
+[crates-badge]: https://img.shields.io/crates/v/flowstone-model-evaluator.svg
+[crates-url]: https://crates.io/crates/flowstone-model-evaluator
+[docs-badge]: https://docs.rs/flowstone-model-evaluator/badge.svg
+[docs-url]: https://crates.io/crates/flowstone-model-evaluator
 [cov-badge]: https://img.shields.io/badge/coverage-0%25-21b577.svg
 [cov-url]: https://crates.io/crates/coverio
 [build-badge-linux-gnu]: https://github.com/DecisionToolkit/dsntk/actions/workflows/build-linux-gnu.yml/badge.svg

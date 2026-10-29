@@ -1,9 +1,9 @@
 use crate::errors::*;
 use dsntk_common::Result;
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::Value;
-use dsntk_feel::{Evaluator, FeelScope};
-use dsntk_feel_parser::AstNode;
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::Value;
+use flowstone_feel::{Evaluator, FeelScope};
+use flowstone_feel_parser::AstNode;
 
 /// Evaluates a [Value] from given [AstNode].
 pub fn evaluate(scope: &FeelScope, node: &AstNode) -> Value {
@@ -37,7 +37,7 @@ pub fn evaluate_equals(left: &Value, right: &Value) -> bool {
 
 /// Evaluates a context from text containing `FEEL` expression.
 pub fn evaluate_context(scope: &FeelScope, input: &str) -> Result<FeelContext> {
-  let node = &dsntk_feel_parser::parse_context(scope, input, false)?;
+  let node = &flowstone_feel_parser::parse_context(scope, input, false)?;
   evaluate_context_node(scope, node)
 }
 
@@ -53,7 +53,7 @@ pub fn evaluate_context_node(scope: &FeelScope, node: &AstNode) -> Result<FeelCo
 
 /// Evaluates a range value from range literal expression.
 pub fn evaluate_range_literal(scope: &FeelScope, input: &str) -> Result<Value> {
-  let node = &dsntk_feel_parser::parse_range_literal(scope, input, false)?;
+  let node = &flowstone_feel_parser::parse_range_literal(scope, input, false)?;
   evaluate_range_literal_node(scope, node)
 }
 

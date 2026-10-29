@@ -1,6 +1,6 @@
 use super::super::*;
 use crate::bifs::core::sqrt;
-use dsntk_feel::scope;
+use flowstone_feel::scope;
 
 #[test]
 fn _0001() {

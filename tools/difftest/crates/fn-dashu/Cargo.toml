@@ -1,4 +1,4 @@
-# The real dsntk-feel-number crate source (lib.rs), built with feature `dashu`.
+# The real flowstone-feel-number crate source (lib.rs), built with feature `dashu`.
 [package]
 name = "fn-dashu"
 version = "0.0.0"

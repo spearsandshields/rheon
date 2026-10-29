@@ -1,8 +1,8 @@
 //! Implementation of the context for closures (lambdas).
 
 use crate::AstNode;
-use dsntk_feel::closure::Closure;
-use dsntk_feel::{Name, QualifiedName};
+use flowstone_feel::closure::Closure;
+use flowstone_feel::{Name, QualifiedName};
 use std::collections::BTreeSet;
 
 /// Context for closures (lambdas).

@@ -1,6 +1,6 @@
 mod common;
 
-use dsntk_feel_number::FeelNumber;
+use flowstone_feel_number::FeelNumber;
 use std::cmp::Ordering;
 
 #[test]

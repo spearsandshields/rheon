@@ -1,5 +1,5 @@
 use super::*;
-use dsntk_feel::scope;
+use flowstone_feel::scope;
 
 #[test]
 fn _0001() {
@@ -9,7 +9,7 @@ fn _0001() {
     Full Name: "John Travis"
   }
   "#;
-  let node = dsntk_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = flowstone_feel_parser::parse_context(&scope!(), input, false).unwrap();
   assert_eq!(r#"null(duplicated context entry key: Full Name)"#, crate::evaluate(&scope!(), &node).to_string());
 }
 
@@ -21,7 +21,7 @@ fn _0002() {
     "Address": "Atlanta"
   }
   "#;
-  let node = dsntk_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = flowstone_feel_parser::parse_context(&scope!(), input, false).unwrap();
   assert_eq!(r#"{Address: "Atlanta", Full Name: "John Doe"}"#, crate::evaluate(&scope!(), &node).to_string());
 }
 
@@ -49,7 +49,7 @@ fn _0004() {
 #[test]
 fn _0005() {
   let input = r#" { convert: function(x: context <age: number, name: stringa>) x } "#;
-  let node = dsntk_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = flowstone_feel_parser::parse_context(&scope!(), input, false).unwrap();
   assert_eq!(r#"{convert: null(expected type of the formal parameter)}"#, crate::evaluate(&scope!(), &node).to_string());
 }
 

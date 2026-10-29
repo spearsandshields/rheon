@@ -1,7 +1,7 @@
-use dsntk_feel::values::Value;
-use dsntk_feel::{FeelNumber, FeelScope, scope};
-use dsntk_feel_evaluator::*;
-use dsntk_feel_parser::AstNode;
+use flowstone_feel::values::Value;
+use flowstone_feel::{FeelNumber, FeelScope, scope};
+use flowstone_feel_evaluator::*;
+use flowstone_feel_parser::AstNode;
 
 #[test]
 fn _0001() {

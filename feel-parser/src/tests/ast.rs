@@ -1,6 +1,6 @@
 use super::*;
 use crate::AstNode;
-use dsntk_feel::{FeelType, IntervalType};
+use flowstone_feel::{FeelType, IntervalType};
 use std::collections::BTreeMap;
 
 #[test]

@@ -3,9 +3,9 @@
 use crate::errors::*;
 use crate::model_definitions::{DefDefinitions, DefItemDefinition, DefKey};
 use dsntk_common::Result;
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::Value;
-use dsntk_feel::{FeelType, Name};
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::Value;
+use flowstone_feel::{FeelType, Name};
 use dsntk_model::ItemDefinitionType;
 use std::collections::{BTreeMap, HashMap};
 
@@ -165,9 +165,9 @@ mod tests {
   use crate::item_definition_context::ItemDefinitionContextEvaluator;
   use crate::model_definitions::{DefDefinitions, DefKey};
   use dsntk_examples::item_definition::*;
-  use dsntk_feel::context::FeelContext;
-  use dsntk_feel::values::Value;
-  use dsntk_feel::{FeelType, Name};
+  use flowstone_feel::context::FeelContext;
+  use flowstone_feel::values::Value;
+  use flowstone_feel::{FeelType, Name};
 
   const NAMESPACE: &str = "https://dsntk.io";
 

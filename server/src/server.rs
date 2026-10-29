@@ -7,7 +7,7 @@ use antex::{ColorMode, StyledText, Text};
 #[cfg(not(feature = "tck"))]
 use dsntk_common::Jsonify;
 #[cfg(not(feature = "tck"))]
-use dsntk_feel::FeelScope;
+use flowstone_feel::FeelScope;
 use dsntk_workspace::Workspaces;
 #[cfg(not(feature = "tck"))]
 use std::borrow::Borrow;

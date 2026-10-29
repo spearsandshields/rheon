@@ -10,8 +10,8 @@ use crate::ranges::IntervalType;
 use crate::strings::ToFeelString;
 use crate::types::FeelType;
 use dsntk_common::{Jsonify, Result};
-use dsntk_feel_number::FeelNumber;
-use dsntk_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+use flowstone_feel_number::FeelNumber;
+use flowstone_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -24,7 +24,7 @@ use std::str::FromStr;
 /// # Examples
 ///
 /// ```
-/// use crate::dsntk_feel::{value_null, values::Value};
+/// use crate::flowstone_feel::{value_null, values::Value};
 ///
 /// let v = value_null!();
 /// assert_eq!("null", v.to_string());

@@ -1,8 +1,8 @@
 //! Implementation of the parsing context.
 
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::Value;
-use dsntk_feel::{FeelType, Name};
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::Value;
+use flowstone_feel::{FeelType, Name};
 use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;

@@ -6,7 +6,7 @@ use crate::errors::*;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
 use chrono::{DateTime, Datelike, Days, FixedOffset, LocalResult, Months, NaiveDate, TimeZone, Weekday};
 use dsntk_common::DsntkError;
-use dsntk_feel_number::FeelNumber;
+use flowstone_feel_number::FeelNumber;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Display;

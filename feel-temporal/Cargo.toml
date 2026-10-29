@@ -1,11 +1,11 @@
 [package]
-name = "dsntk-feel-temporal"
+name = "flowstone-feel-temporal"
 version = { workspace = true }
 authors = { workspace = true }
 description = "ÐecisionToolkit | FEEL temporal"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
 keywords = ["dmn", "decision", "toolkit", "temporal"]
-documentation = "https://docs.rs/dsntk-feel-temporal"
+documentation = "https://docs.rs/flowstone-feel-temporal"
 repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }
@@ -15,13 +15,13 @@ edition = { workspace = true }
 default = ["dashu"]
 # Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
 # Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["dsntk-feel-number/dashu"]
-intel = ["dsntk-feel-number/intel"]
+dashu = ["flowstone-feel-number/dashu"]
+intel = ["flowstone-feel-number/intel"]
 
 [dependencies]
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
 regex = { workspace = true }
 dsntk-common = { workspace = true }
-dsntk-feel-number = { workspace = true }
+flowstone-feel-number = { workspace = true }
 dsntk-macros = { workspace = true }

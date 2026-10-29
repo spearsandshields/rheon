@@ -1,8 +1,8 @@
 //! # Evaluator for Java external functions
 
-use dsntk_feel::dto::ValueDto;
-use dsntk_feel::value_null;
-use dsntk_feel::values::Value;
+use flowstone_feel::dto::ValueDto;
+use flowstone_feel::value_null;
+use flowstone_feel::values::Value;
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;
 

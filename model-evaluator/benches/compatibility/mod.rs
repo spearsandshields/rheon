@@ -1,11 +1,11 @@
 //! # Compatibility benchmarks
 
 use dsntk_examples::*;
-use dsntk_feel::FeelScope;
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::Value;
+use flowstone_feel::FeelScope;
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::Value;
 use dsntk_model::DmnElement;
-use dsntk_model_evaluator::ModelEvaluator;
+use flowstone_model_evaluator::ModelEvaluator;
 use std::sync::atomic::AtomicUsize;
 use std::sync::{Arc, LazyLock};
 use test::Bencher;
@@ -102,9 +102,9 @@ fn build_model_name(model_content: &str) -> String {
 /// Utility function that creates a FEEL context from specified input expression.
 pub fn context(input: &str) -> FeelContext {
   let scope = FeelScope::default();
-  match dsntk_feel_parser::parse_context(&scope, input, false) {
+  match flowstone_feel_parser::parse_context(&scope, input, false) {
     Ok(node) => {
-      let evaluator = dsntk_feel_evaluator::prepare(&node);
+      let evaluator = flowstone_feel_evaluator::prepare(&node);
       match evaluator(&scope) {
         Value::Context(ctx) => ctx,
         other => panic!("ERROR: expected context value, actual value is: {}", other as Value),

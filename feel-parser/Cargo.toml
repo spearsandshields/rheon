@@ -1,11 +1,11 @@
 [package]
-name = "dsntk-feel-parser"
+name = "flowstone-feel-parser"
 version = { workspace = true }
 authors = { workspace = true }
 description = "ÐecisionToolkit | FEEL parser"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
 keywords = ["dmn", "decision", "toolkit", "parser"]
-documentation = "https://docs.rs/dsntk-feel-parser"
+documentation = "https://docs.rs/flowstone-feel-parser"
 repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }
@@ -16,13 +16,13 @@ default = ["dashu"]
 parsing-tables = []
 # Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
 # Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["dsntk-feel/dashu"]
-intel = ["dsntk-feel/intel"]
+dashu = ["flowstone-feel/dashu"]
+intel = ["flowstone-feel/intel"]
 
 [dependencies]
 antex = { workspace = true }
 dsntk-common = { workspace = true }
-dsntk-feel = { workspace = true }
+flowstone-feel = { workspace = true }
 dsntk-macros = { workspace = true }
 
 [dev-dependencies]

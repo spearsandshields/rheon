@@ -1,4 +1,4 @@
-use dsntk_feel_regex::is_match;
+use flowstone_feel_regex::is_match;
 
 #[test]
 fn _0001() {

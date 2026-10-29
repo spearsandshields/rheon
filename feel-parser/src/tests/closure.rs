@@ -1,6 +1,6 @@
 use super::*;
 use crate::{AstNode, ClosureBuilder, parse_context, parse_textual_expression, parse_unary_tests};
-use dsntk_feel::{FeelScope, scope};
+use flowstone_feel::{FeelScope, scope};
 
 #[test]
 fn _0001() {

@@ -1,4 +1,4 @@
-use dsntk_feel_number::FeelNumber;
+use flowstone_feel_number::FeelNumber;
 
 #[test]
 fn test_is_one_001() {

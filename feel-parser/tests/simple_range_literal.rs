@@ -1,8 +1,8 @@
-use dsntk_feel::{FeelScope, scope};
+use flowstone_feel::{FeelScope, scope};
 
 #[test]
 fn _0001() {
-  let node = dsntk_feel_parser::parse_range_literal(&scope!(), "[1..100)", false).unwrap();
+  let node = flowstone_feel_parser::parse_range_literal(&scope!(), "[1..100)", false).unwrap();
   let expected = r#"
        Range
        ├─ IntervalStart (closed)

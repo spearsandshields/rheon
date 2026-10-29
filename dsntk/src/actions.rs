@@ -5,8 +5,8 @@ use crate::errors::{err_create_directory, err_save_file};
 use antex::{ColorMode, StyledText, Text};
 use clap::{Arg, ArgAction, ArgMatches, Command, arg, command, crate_version};
 use dsntk_common::{Jsonify, Result};
-use dsntk_feel::FeelScope;
-use dsntk_feel::values::Value;
+use flowstone_feel::FeelScope;
+use flowstone_feel::values::Value;
 use dsntk_model::{DecisionTable, DmnElement, NamedElement};
 use std::fs;
 use std::path::Path;
@@ -793,7 +793,7 @@ fn parse_feel_expression(ctx_file_name: &str, feel_file_name: &str, cm: ColorMod
   match fs::read_to_string(feel_file_name) {
     Ok(feel_expression) => match fs::read_to_string(ctx_file_name) {
       Ok(context_definition) => match dsntk_evaluator::evaluate_context(&FeelScope::default(), &context_definition) {
-        Ok(ctx) => match dsntk_feel_parser::parse_expression(&ctx.into(), &feel_expression, false) {
+        Ok(ctx) => match flowstone_feel_parser::parse_expression(&ctx.into(), &feel_expression, false) {
           Ok(node) => {
             println!("    AST:\n{}", node.tree(6, cm));
           }
@@ -812,7 +812,7 @@ fn evaluate_feel_expression(ctx_file_name: &str, feel_file_name: &str) {
   match fs::read_to_string(feel_file_name) {
     Ok(textual_expression) => match fs::read_to_string(ctx_file_name) {
       Ok(context_definition) => match dsntk_evaluator::evaluate_context(&FeelScope::default(), &context_definition) {
-        Ok(ctx) => match dsntk_feel_parser::parse_expression(&ctx.clone().into(), &textual_expression, false) {
+        Ok(ctx) => match flowstone_feel_parser::parse_expression(&ctx.clone().into(), &textual_expression, false) {
           Ok(ast_root_node) => {
             println!("{}", dsntk_evaluator::evaluate(&ctx.into(), &ast_root_node));
           }
@@ -836,7 +836,7 @@ fn test_feel_expression(test_file_name: &str, feel_file_name: &str, summary_only
           let mut failed = 0_usize;
           for (test_no, (input_data, expected)) in test_cases.iter().enumerate() {
             let scope = input_data.clone().into();
-            match dsntk_feel_parser::parse_expression(&scope, &feel_file_content, false) {
+            match flowstone_feel_parser::parse_expression(&scope, &feel_file_content, false) {
               Ok(node) => {
                 let actual = dsntk_evaluator::evaluate(&scope, &node);
                 display_test_case_result(&actual, expected, &test_no, &mut passed, &mut failed, summary_only, cm);

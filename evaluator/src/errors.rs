@@ -1,7 +1,7 @@
 //! # Evaluator error definitions
 
 use dsntk_common::{DsntkError, ToErrorMessage};
-use dsntk_feel_parser::AstNode;
+use flowstone_feel_parser::AstNode;
 
 /// Evaluator error.
 #[derive(ToErrorMessage)]

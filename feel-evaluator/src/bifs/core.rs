@@ -3,10 +3,10 @@
 use crate::macros::invalid_argument_type;
 use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::{VALUE_FALSE, VALUE_TRUE, Value, Values};
-use dsntk_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
-use dsntk_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, MonthOfYear, WeekOfYear};
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::{VALUE_FALSE, VALUE_TRUE, Value, Values};
+use flowstone_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
+use flowstone_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, MonthOfYear, WeekOfYear};
 use regex::Regex;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
@@ -1357,7 +1357,7 @@ pub fn matches_2(input: &Value, pattern: &Value) -> Value {
     return invalid_argument_type!("matches", "string", pattern.type_of());
   };
   // Match input against the pattern.
-  match dsntk_feel_regex::is_match(input, pattern) {
+  match flowstone_feel_regex::is_match(input, pattern) {
     Ok(value) => Value::Boolean(value),
     Err(reason) => value_null!("{}", reason),
   }
@@ -1378,7 +1378,7 @@ pub fn matches_3(input: &Value, pattern: &Value, flags: &Value) -> Value {
     return invalid_argument_type!("matches", "string", flags.type_of());
   };
   // Match input against the pattern with flags.
-  match dsntk_feel_regex::is_match_with_flags(input, pattern, flags) {
+  match flowstone_feel_regex::is_match_with_flags(input, pattern, flags) {
     Ok(value) => Value::Boolean(value),
     Err(reason) => value_null!("{}", reason),
   }

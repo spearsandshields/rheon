@@ -2,11 +2,11 @@
 
 use crate::display::display;
 use crate::input::{feel_context, json_object_to_context, json_to_value};
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::dto::ValueDto;
-use dsntk_feel::values::Value;
-use dsntk_feel::{FeelScope, Name};
-use dsntk_feel_parser::AstNode;
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::dto::ValueDto;
+use flowstone_feel::values::Value;
+use flowstone_feel::{FeelScope, Name};
+use flowstone_feel_parser::AstNode;
 use serde_json::{Map, Value as Json, json};
 use std::sync::Mutex;
 use std::time::Instant;
@@ -28,7 +28,7 @@ const MAX_TZ_OFFSET_MINUTES: i64 = 18 * 60;
 /// rejected as `syntax` (or `context`) errors instead. See CONTRACT §2.
 pub(crate) const MAX_AST_DEPTH: usize = 300;
 
-/// The local-offset override in dsntk-feel-temporal is process-global; serialize requests so
+/// The local-offset override in flowstone-feel-temporal is process-global; serialize requests so
 /// concurrent callers (native multi-threaded tests) can not observe each other's offset.
 static ENGINE_LOCK: Mutex<()> = Mutex::new(());
 
@@ -71,7 +71,7 @@ pub fn call(request: &str) -> String {
   let _guard = ENGINE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
   let result = std::panic::catch_unwind(|| handle(request));
   // Never leave a request's offset behind for the next one.
-  dsntk_feel_temporal::set_local_offset_override(None);
+  flowstone_feel_temporal::set_local_offset_override(None);
   let response = match result {
     Ok(Ok(response)) => response,
     Ok(Err(Failure(kind, message))) => error_response(kind, &message),
@@ -133,7 +133,7 @@ fn info() -> Json {
     "engine": "flowstone",
     "engineCommit": ENGINE_COMMIT,
     "upstreamCommit": UPSTREAM_COMMIT,
-    "numberBackend": dsntk_feel_number::NUMBER_BACKEND,
+    "numberBackend": flowstone_feel_number::NUMBER_BACKEND,
     "version": env!("CARGO_PKG_VERSION"),
   })
 }
@@ -188,7 +188,7 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
     },
     Some(other) => return fail(Kind::Request, format!("'tzOffsetMinutes' must be a number, got {other}")),
   };
-  dsntk_feel_temporal::set_local_offset_override(offset);
+  flowstone_feel_temporal::set_local_offset_override(offset);
   Ok(())
 }
 
@@ -219,8 +219,8 @@ fn prepare_scope(req: &Map<String, Json>, dialect: Dialect, warnings: &mut Vec<S
 
 fn parse_node(scope: &FeelScope, dialect: Dialect, expression: &str) -> Result<AstNode, Failure> {
   let parsed = match dialect {
-    Dialect::Expression => dsntk_feel_parser::parse_expression(scope, expression, false),
-    Dialect::UnaryTests => dsntk_feel_parser::parse_unary_tests(scope, expression, false),
+    Dialect::Expression => flowstone_feel_parser::parse_expression(scope, expression, false),
+    Dialect::UnaryTests => flowstone_feel_parser::parse_unary_tests(scope, expression, false),
   };
   let node = parsed.map_err(|e| Failure(Kind::Syntax, syntax_message(&e.to_string())))?;
   check_ast_depth(&node).map_err(|e| Failure(Kind::Syntax, e))?;
@@ -252,7 +252,7 @@ pub(crate) fn check_ast_depth(node: &AstNode) -> Result<(), String> {
 pub(crate) fn call_depth_message() -> String {
   format!(
     "function calls are nested too deeply (more than {} levels, e.g. runaway recursion); evaluation stopped",
-    dsntk_feel_evaluator::MAX_CALL_DEPTH
+    flowstone_feel_evaluator::MAX_CALL_DEPTH
   )
 }
 
@@ -314,9 +314,9 @@ fn evaluate(req: &Map<String, Json>, started: Instant) -> Result<Json, Failure> 
       AstNode::In(Box::new(AstNode::Name(question_mark())), Box::new(node))
     }
   };
-  dsntk_feel_evaluator::reset_call_depth();
-  let value = dsntk_feel_evaluator::evaluate(&scope, &node);
-  if dsntk_feel_evaluator::call_depth_exceeded() {
+  flowstone_feel_evaluator::reset_call_depth();
+  let value = flowstone_feel_evaluator::evaluate(&scope, &node);
+  if flowstone_feel_evaluator::call_depth_exceeded() {
     return fail(Kind::Evaluation, call_depth_message());
   }
   Ok(json!({

@@ -2,9 +2,9 @@
 
 extern crate test;
 
-use dsntk_feel::values::Value;
-use dsntk_feel::{FeelScope, scope, value_null};
-use dsntk_feel_parser::parse_expression;
+use flowstone_feel::values::Value;
+use flowstone_feel::{FeelScope, scope, value_null};
+use flowstone_feel_parser::parse_expression;
 use test::Bencher;
 
 #[bench]

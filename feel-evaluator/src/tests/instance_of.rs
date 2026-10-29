@@ -1,5 +1,5 @@
 use super::*;
-use dsntk_feel::{FeelType, scope};
+use flowstone_feel::{FeelType, scope};
 
 #[test]
 fn _0001() {

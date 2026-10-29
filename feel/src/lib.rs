@@ -23,7 +23,7 @@ mod ranges;
 #[cfg(test)]
 mod tests;
 
-pub use dsntk_feel_number::FeelNumber;
+pub use flowstone_feel_number::FeelNumber;
 pub use evaluator::Evaluator;
 pub use function::FunctionBody;
 pub use names::Name;

@@ -36,10 +36,10 @@
 
 use crate::errors::{err_expected_expression_list, err_expected_two_elements_in_expression_list};
 use dsntk_common::Result;
-use dsntk_feel::FeelScope;
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::Value;
-use dsntk_feel_parser::AstNode;
+use flowstone_feel::FeelScope;
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::Value;
+use flowstone_feel_parser::AstNode;
 
 /// Prepares test cases loaded from the specified input.
 pub fn prepare_test_cases(input: &str) -> Result<Vec<(FeelContext, Value)>> {
@@ -47,13 +47,13 @@ pub fn prepare_test_cases(input: &str) -> Result<Vec<(FeelContext, Value)>> {
   if let Some(separator) = detect_separator(input) {
     let scope = FeelScope::default();
     for unary_tests in split_test_cases(input, &separator) {
-      match dsntk_feel_parser::parse_unary_tests(&scope, unary_tests, false) {
+      match flowstone_feel_parser::parse_unary_tests(&scope, unary_tests, false) {
         Ok(ast_node) => match &ast_node {
           AstNode::ExpressionList(nodes) => {
             if nodes.len() == 2 {
-              match dsntk_feel_evaluator::evaluate_context_node(&scope, &nodes[0]) {
+              match flowstone_feel_evaluator::evaluate_context_node(&scope, &nodes[0]) {
                 Ok(input_data) => {
-                  let expected_result = dsntk_feel_evaluator::evaluate(&scope, &nodes[1]);
+                  let expected_result = flowstone_feel_evaluator::evaluate(&scope, &nodes[1]);
                   test_cases.push((input_data, expected_result));
                 }
                 Err(reason) => return Err(reason),

@@ -42,7 +42,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 - Unary tests are evaluated as dsntk's decision tables do: the tested value is bound to the name `?` in the scope and the result is `? in (<unary tests>)`, i.e. a boolean (or null). Note (dsntk at the pinned commit): a boolean *expression* used as a test, e.g. `? > 5`, is **compared** with the input (`7 = true` → `false`) instead of being "satisfied when true" as in DMN 1.2+. Use `> 5` instead. The response carries a warning for every test that is a comparison/logical expression (or `not(...)`) using `?`.
 - If neither `input` nor `context["?"]` is given for unary tests, `?` is null and a warning is returned.
 - A unary-test endpoint that is an arithmetic expression must be parenthesised: dsntk parses `> 0.1 + 0.2` as `(? > 0.1) + 0.2`, which is a typed null (`invalid argument type … actual type is boolean`); `> (0.1 + 0.2)` and `>= (x + 1)` work. Literal and name endpoints (`> 5`, `> x`, `[x..y]`) need no parentheses.
-- `tzOffsetMinutes`: integer in `-1080..=1080` (±18:00), otherwise a `request` error (every other integer, including `i64::MIN`). It is a fixed offset (no DST rules), applied to every "local" (zone-less) date-time computation of that request — `now()`, `today()`, and comparisons/subtractions of local date-times — via a process-global override in dsntk-feel-temporal (the fork's "local offset override" commit), reset after every request. Without it, local time is **UTC on every target**: chrono's `Local` is hard-wired to UTC on `wasm32-wasip1`, and native builds apply offset 0 too instead of the host zone, so results never depend on where the core runs.
+- `tzOffsetMinutes`: integer in `-1080..=1080` (±18:00), otherwise a `request` error (every other integer, including `i64::MIN`). It is a fixed offset (no DST rules), applied to every "local" (zone-less) date-time computation of that request — `now()`, `today()`, and comparisons/subtractions of local date-times — via a process-global override in flowstone-feel-temporal (the fork's "local offset override" commit), reset after every request. Without it, local time is **UTC on every target**: chrono's `Local` is hard-wired to UTC on `wasm32-wasip1`, and native builds apply offset 0 too instead of the host zone, so results never depend on where the core runs.
 - Limits: an expression (or FEEL context literal) whose AST is deeper than **300** levels is rejected (`syntax`, resp. `context`) before any recursive code runs; an evaluation with more than **200** nested function calls (recursion) is stopped and reported as an `evaluation` error, never as a partial result.
 
 How JSON input becomes FEEL values (`contextFormat: "json"`):
@@ -64,7 +64,7 @@ Success:
     "display": "string",   // pretty, JSON-like text with EXACT FEEL digits, e.g. {"a": 0.3333333333333333333333333333333333}; temporal values as their FEEL string, null as null
     "feel": "string",      // dsntk's own FEEL text form (Value::to_string)
     "type": "string",      // FEEL type name, e.g. "number", "string", "date", "list<number>", "context<...>", "Null"
-    "typed": { /* dsntk_feel::dto::ValueDto: type+text per value, TCK style */ },
+    "typed": { /* flowstone_feel::dto::ValueDto: type+text per value, TCK style */ },
     "isNull": false,
     "nullReason": "string?" // when dsntk produced null carrying an error message (value_null!(...)), that message
   },
@@ -85,7 +85,7 @@ Scale rounding (`round up/down/half up/half down`, `floor`, `ceiling` with a sca
 
 `op: "parse"` success: `{ "ok": true, "tree": "<dsntk AstNode::tree() ascii, no color>", "elapsedMicros": n }`
 
-`op: "info"` success: `{ "ok": true, "engine": "flowstone", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<flowstone-feel-wasm crate version>" }`. `engineCommit` is the flowstone repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `"unknown"` when built outside a git checkout without `FLOWSTONE_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[workspace.metadata.flowstone]` in the root `Cargo.toml`), and `numberBackend` the feel-number backend compiled in (`dsntk_feel_number::NUMBER_BACKEND`: `"dashu"`; `"intel"` only in an Intel build, which this repository does not make).
+`op: "info"` success: `{ "ok": true, "engine": "flowstone", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<flowstone-feel-wasm crate version>" }`. `engineCommit` is the flowstone repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `"unknown"` when built outside a git checkout without `FLOWSTONE_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[workspace.metadata.flowstone]` in the root `Cargo.toml`), and `numberBackend` the feel-number backend compiled in (`flowstone_feel_number::NUMBER_BACKEND`: `"dashu"`; `"intel"` only in an Intel build, which this repository does not make).
 
 Failure (the instance stays healthy):
 

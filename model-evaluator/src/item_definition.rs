@@ -3,10 +3,10 @@
 use crate::errors::*;
 use crate::model_definitions::{DefDefinitions, DefItemDefinition, DefKey};
 use dsntk_common::Result;
-use dsntk_feel::context::FeelContext;
-use dsntk_feel::values::{Value, Values};
-use dsntk_feel::{Evaluator, FeelScope, FeelType, Name, value_null};
-use dsntk_feel_parser::AstNode;
+use flowstone_feel::context::FeelContext;
+use flowstone_feel::values::{Value, Values};
+use flowstone_feel::{Evaluator, FeelScope, FeelType, Name, value_null};
+use flowstone_feel_parser::AstNode;
 use dsntk_model::ItemDefinitionType;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -61,9 +61,9 @@ fn build_allowed_values_evaluator(item_definition: &DefItemDefinition) -> Result
     && let Some(text) = unary_tests.text()
   {
     let scope = FeelScope::default();
-    let unary_tests_node = dsntk_feel_parser::parse_unary_tests(&scope, text, false)?;
+    let unary_tests_node = flowstone_feel_parser::parse_unary_tests(&scope, text, false)?;
     let node = AstNode::In(Box::new(AstNode::Name("?".into())), Box::new(unary_tests_node));
-    av_evaluator = Some(dsntk_feel_evaluator::prepare(&node));
+    av_evaluator = Some(flowstone_feel_evaluator::prepare(&node));
   }
 
   Ok(av_evaluator)
@@ -450,10 +450,10 @@ mod tests {
   use crate::item_definition::ItemDefinitionEvaluator;
   use crate::model_definitions::{DefDefinitions, DefKey};
   use dsntk_examples::item_definition::*;
-  use dsntk_feel::context::FeelContext;
-  use dsntk_feel::values::Value;
-  use dsntk_feel::{Name, value_null, value_number};
-  use dsntk_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+  use flowstone_feel::context::FeelContext;
+  use flowstone_feel::values::Value;
+  use flowstone_feel::{Name, value_null, value_number};
+  use flowstone_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
 
   const NAMESPACE: &str = "https://dsntk.io";
 
@@ -469,7 +469,7 @@ mod tests {
   fn test_evaluate_input_data_0101_1() {
     let evaluator = build_evaluator(DMN_0101);
     let context_str = r#"{ Customer Name : "Whistler" }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Customer", "Name"])).unwrap();
     assert_eq!(
       Value::String("Whistler".to_string()),
@@ -481,7 +481,7 @@ mod tests {
   fn test_evaluate_input_data_0101_2() {
     let evaluator = build_evaluator(DMN_0101);
     let context_str = r#"{ Customer Name : 12000 }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Customer", "Name"])).unwrap();
     assert_eq!(
       value_null!("expected type 'string', actual type is 'number' in value '12000'"),
@@ -493,7 +493,7 @@ mod tests {
   fn test_evaluate_input_data_0102_1() {
     let evaluator = build_evaluator(DMN_0102);
     let context_str = r#"{ Monthly Salary : 12000.00 }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Monthly", "Salary"])).unwrap();
     assert_eq!(value_number!(12_000), evaluator.eval(&DefKey::new(NAMESPACE, "tMonthlySalary"), value).unwrap());
   }
@@ -502,7 +502,7 @@ mod tests {
   fn test_evaluate_input_data_0102_2() {
     let evaluator = build_evaluator(DMN_0102);
     let context_str = r#"{ Monthly Salary : true }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Monthly", "Salary"])).unwrap();
     assert_eq!(
       value_null!("expected type 'number', actual type is 'boolean' in value 'true'"),
@@ -514,11 +514,11 @@ mod tests {
   fn test_evaluate_input_data_0103_1() {
     let evaluator = build_evaluator(DMN_0103);
     let context_str = r#"{ Is Affordable : true }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Is", "Affordable"])).unwrap();
     assert_eq!(Value::Boolean(true), evaluator.eval(&DefKey::new(NAMESPACE, "tIsAffordable"), value).unwrap());
     let context_str = r#"{ Is Affordable : false }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Is", "Affordable"])).unwrap();
     assert_eq!(Value::Boolean(false), evaluator.eval(&DefKey::new(NAMESPACE, "tIsAffordable"), value).unwrap());
   }
@@ -527,7 +527,7 @@ mod tests {
   fn test_evaluate_input_data_0103_2() {
     let evaluator = build_evaluator(DMN_0103);
     let context_str = r#"{ Is Affordable : "Yes" }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Is", "Affordable"])).unwrap();
     assert_eq!(
       value_null!(r#"expected type 'boolean', actual type is 'string' in value '"Yes"'"#),
@@ -539,7 +539,7 @@ mod tests {
   fn test_evaluate_input_data_0104_1() {
     let evaluator = build_evaluator(DMN_0104);
     let context_str = r#"{ Birthday : date("1982-04-12") }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Birthday"])).unwrap();
     assert_eq!(
       Value::Date(FeelDate::new(1982, 4, 12).unwrap()),
@@ -551,7 +551,7 @@ mod tests {
   fn test_evaluate_input_data_0105_1() {
     let evaluator = build_evaluator(DMN_0105);
     let context_str = r#"{ Delivery Time : time("18:35:23") }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Delivery", "Time"])).unwrap();
     assert_eq!(
       Value::Time(FeelTime::local_opt(18, 35, 23, 0).unwrap()),
@@ -563,7 +563,7 @@ mod tests {
   fn test_evaluate_input_data_0106_1() {
     let evaluator = build_evaluator(DMN_0106);
     let context_str = r#"{ Appointment : date and time("2021-10-12T18:35:23") }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Appointment"])).unwrap();
     assert_eq!(
       Value::DateTime(FeelDateTime::new(FeelDate::new(2021, 10, 12).unwrap(), FeelTime::local_opt(18, 35, 23, 0).unwrap())),
@@ -575,7 +575,7 @@ mod tests {
   fn test_evaluate_input_data_0107_1() {
     let evaluator = build_evaluator(DMN_0107);
     let context_str = r#"{ Course Duration : duration("P2DT3H") }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Course", "Duration"])).unwrap();
     assert_eq!(
       Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(183600)),
@@ -587,7 +587,7 @@ mod tests {
   fn test_evaluate_input_data_0108_1() {
     let evaluator = build_evaluator(DMN_0108);
     let context_str = r#"{ Growth Duration : duration("P2Y5M") }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Growth", "Duration"])).unwrap();
     assert_eq!(
       Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 5)),
@@ -599,7 +599,7 @@ mod tests {
   fn test_evaluate_input_data_0201_1() {
     let evaluator = build_evaluator(DMN_0201);
     let context_str = r#"{ Customer Name : "Bloomberg" }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Customer", "Name"])).unwrap();
     assert_eq!(
       Value::String("Bloomberg".to_string()),
@@ -611,7 +611,7 @@ mod tests {
   fn test_evaluate_input_data_0202_1() {
     let evaluator = build_evaluator(DMN_0202);
     let context_str = r#"{ Monthly Salary : 12000.00 }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Monthly", "Salary"])).unwrap();
     assert_eq!(value_number!(12_000), evaluator.eval(&DefKey::new(NAMESPACE, "tMonthlySalary"), value).unwrap());
   }
@@ -620,7 +620,7 @@ mod tests {
   fn test_evaluate_input_data_0301_1() {
     let evaluator = build_evaluator(DMN_0301);
     let context_str = r#"{ Loan : { principal: 10, rate: 60, termMonths: 28 } }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Loan"])).unwrap();
     let mut ctx = FeelContext::default();
     ctx.set_entry(&"principal".into(), value_number!(10));
@@ -634,7 +634,7 @@ mod tests {
   fn test_evaluate_input_data_0401_1() {
     let evaluator = build_evaluator(DMN_0401);
     let context_str = r#"{ Items : ["Mercury", "Venus", "Earth", "Mars"] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       Value::String("Mercury".to_string()),
@@ -649,7 +649,7 @@ mod tests {
   fn test_evaluate_input_data_0402_1() {
     let evaluator = build_evaluator(DMN_0402);
     let context_str = r#"{ Items : [9000.00, 10000.00, 11000.00, 12000.00, 13000.00] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       value_number!(9_000),
@@ -665,7 +665,7 @@ mod tests {
   fn test_evaluate_input_data_0403_1() {
     let evaluator = build_evaluator(DMN_0403);
     let context_str = r#"{ Items : [true, false, false, true, true] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       Value::Boolean(true),
@@ -681,7 +681,7 @@ mod tests {
   fn test_evaluate_input_data_0404_1() {
     let evaluator = build_evaluator(DMN_0404);
     let context_str = r#"{ Items : [date("2021-10-10"), date("2021-10-11"), date("2021-10-12")] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       Value::Date(FeelDate::new(2021, 10, 10).unwrap()),
@@ -695,7 +695,7 @@ mod tests {
   fn test_evaluate_input_data_0405_1() {
     let evaluator = build_evaluator(DMN_0405);
     let context_str = r#"{ Items : [time("12:21:35"), time("12:21:36"), time("12:21:37")] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       Value::Time(FeelTime::local_opt(12, 21, 35, 0).unwrap()),
@@ -709,7 +709,7 @@ mod tests {
   fn test_evaluate_input_data_0406_1() {
     let evaluator = build_evaluator(DMN_0406);
     let context_str = r#"{ Items : [date and time("2021-10-10T21:23:18"), date and time("2021-10-11T12:18:59")] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       Value::DateTime(FeelDateTime::new(FeelDate::new(2021, 10, 10).unwrap(), FeelTime::local_opt(21, 23, 18, 0).unwrap())),
@@ -722,7 +722,7 @@ mod tests {
   fn test_evaluate_input_data_0407_1() {
     let evaluator = build_evaluator(DMN_0407);
     let context_str = r#"{ Items : [duration("P2DT3H")] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(183600))]);
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
@@ -732,7 +732,7 @@ mod tests {
   fn test_evaluate_input_data_0408_1() {
     let evaluator = build_evaluator(DMN_0408);
     let context_str = r#"{ Items : [duration("P2Y3M"), duration("P2Y4M")] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3)),
@@ -745,7 +745,7 @@ mod tests {
   fn test_evaluate_input_data_0501_1() {
     let evaluator = build_evaluator(DMN_0501);
     let context_str = r#"{ Items : ["Mercury", "Venus", "Earth"] }"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
       Value::String("Mercury".to_string()),
@@ -759,7 +759,7 @@ mod tests {
   fn test_evaluate_input_data_0601_1() {
     let evaluator = build_evaluator(DMN_0601);
     let context_str = r#"{Items:[{number:1,name:"One",manager:"John"},{number:2,name:"Two",manager:"Mike"},{number:3,name:"Three",manager:"Bob"}]}"#;
-    let context = dsntk_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let mut ctx_1 = FeelContext::default();
     ctx_1.set_entry(&"number".into(), value_number!(1));

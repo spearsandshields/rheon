@@ -1,5 +1,5 @@
 use super::*;
-use dsntk_feel::{IntervalType, scope};
+use flowstone_feel::{IntervalType, scope};
 
 #[test]
 fn _0001() {

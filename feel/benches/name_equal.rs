@@ -2,7 +2,7 @@
 
 extern crate test;
 
-use dsntk_feel::Name;
+use flowstone_feel::Name;
 use test::Bencher;
 
 #[bench]

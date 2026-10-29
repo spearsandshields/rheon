@@ -63,7 +63,8 @@ The edge-case comparison with feelin and feel-scala is in
 
 | Path | What it is |
 |---|---|
-| `common`, `feel*`, `model*`, `evaluator`, `dsntk`, `server`, … | The dsntk crates, upstream's layout (crate names `dsntk-*`, never published from here) |
+| `feel`, `feel-number`, `feel-parser`, `feel-evaluator`, `feel-temporal`, `feel-regex`, `model-evaluator` | The engine crates flowstone has changed, named `flowstone-*` (directories keep upstream's names) |
+| `common`, `feel-grammar`, `macros`, `recognizer`, `model`, `evaluator`, `workspace`, `gendoc`, `server`, `dsntk`, `examples` | The dsntk crates carried unchanged (or with manifest-only changes), still named `dsntk-*`; never published from here |
 | `wasm/feel-wasm` | `flowstone-feel-wasm`: JSON request → engine → JSON response, built as a wasm32-wasip1 reactor (CONTRACT §1–3) |
 | `packages/feel-runtime` | `@flowstone/feel-runtime`, the TypeScript runtime (CONTRACT §4) |
 | `apps/playground` | `@flowstone/playground`, the web app |
@@ -114,12 +115,13 @@ the engine crates are based on; the playground shows the short SHA in its header
 
 ## Relationship to dsntk
 
-The dsntk crates sit at the repository root exactly as in upstream, and `upstream` is a git
-remote (`git remote add upstream https://github.com/dsntk/dsntk-rs.git`), so an upstream release
-is a `git merge upstream/main`. Engine changes are kept as small, upstream-shaped commits so that
-they can be offered back; [`docs/FORK.md`](docs/FORK.md) lists each one with its verification
-numbers and marks the pull-request candidates. In short, flowstone's engine differs from upstream
-dsntk in:
+flowstone is a permanent fork: the engine is developed here, in its own direction, and
+contributing the changes back to dsntk is not a goal. The dsntk crates sit at the repository root
+in upstream's directory layout, and `upstream` is a git remote
+(`git remote add upstream https://github.com/dsntk/dsntk-rs.git`), so individual upstream fixes
+can still be taken by cherry-pick (`docs/FORK.md` has the procedure).
+[`docs/FORK.md`](docs/FORK.md) lists every engine change with its verification numbers. In
+short, flowstone's engine differs from upstream dsntk in:
 
 - a **pure-Rust decimal128 core** (`feel-number`), with the `dashu` backend as default and
   Intel's BID128 library behind the `intel` feature (needs a C toolchain; not used here);
@@ -136,9 +138,12 @@ DMN TCK (patched suite, 3,511 tests): flowstone passes 3,480, upstream at the ba
 the remaining failures are Java external functions (14), decision services (2), implicit
 conversions (12) and multiple imports (3), all in the DMN layer.
 
-Nothing from this repository is published to crates.io; the `dsntk-*` crate names belong to
-upstream. flowstone's own artifacts are the wasm modules, the npm packages and, later, the NuGet
-package.
+Crate naming: a crate whose source flowstone has changed is renamed `flowstone-*` (today
+`flowstone-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
+`-feel-regex` and `-model-evaluator`); a crate carried as upstream ships it keeps its `dsntk-*`
+name until it is changed. Directories keep upstream's names either way. Nothing from this
+repository is published to crates.io; flowstone's own artifacts are the wasm modules, the npm
+packages and, later, the NuGet package.
 
 ## Known limitations
 

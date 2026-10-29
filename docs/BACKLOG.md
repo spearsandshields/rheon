@@ -238,5 +238,12 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
   phase-1 lexer fixes from `docs/EDITOR-PLAN.md`.
 - **GitHub home**. The `flowstone` handle belongs to another user; the repo goes under the
   owner's account or a suffixed organisation. Nothing is pushed yet.
-- **`publish.sh`** (upstream's crates.io release script) is kept for merge friendliness; it must
-  never be run from this repository.
+- **`publish.sh`** (upstream's crates.io release script) is kept untouched (its crate names are
+  now stale, which is a safety); it must never be run from this repository.
+- **Crate rename** (2026-10-28, done). The user decided on a permanent fork with no priority on
+  upstream feedback, and that crates whose source flowstone changed carry the `flowstone-` prefix:
+  `flowstone-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
+  `-feel-regex`, `-model-evaluator` (seven of eighteen; directories unchanged). The others keep
+  `dsntk-*` until they are changed. Upstream fixes are taken by cherry-pick through
+  `scripts/upstream-rename.pl` (see `docs/FORK.md`). Left open: whether the `dsntk` CLI binary and
+  the untouched crates get renamed before anything is published from them.

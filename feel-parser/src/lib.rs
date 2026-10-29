@@ -24,7 +24,7 @@ use crate::errors::*;
 use crate::lalr::TokenType;
 use crate::parser::Parser;
 use dsntk_common::Result;
-use dsntk_feel::{FeelScope, Name};
+use flowstone_feel::{FeelScope, Name};
 
 /// Parses an `expression` as defined in grammar rule `1`.
 pub fn parse_expression(scope: &FeelScope, input: &str, trace: bool) -> Result<AstNode> {

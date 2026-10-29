@@ -1,8 +1,8 @@
 use super::super::*;
-use dsntk_feel::scope;
+use flowstone_feel::scope;
 
 fn te_range(trace: bool, scope: &FeelScope, input: &str, expected: &str) {
-  match dsntk_feel_parser::parse_textual_expression(scope, input, trace) {
+  match flowstone_feel_parser::parse_textual_expression(scope, input, trace) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
       let actual = format!("{}", evaluator(scope));

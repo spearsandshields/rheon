@@ -2,7 +2,7 @@
 
 use antex::{Color, ColorMode, NodeBuilder, StyledText, Text, TreeNode, leaf, node};
 use dsntk_common::HRef;
-use dsntk_feel::Name;
+use flowstone_feel::Name;
 use dsntk_model::*;
 use std::fmt::Write;
 

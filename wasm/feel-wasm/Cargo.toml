@@ -17,11 +17,11 @@ crate-type = ["cdylib", "rlib"]
 # (pure Rust; no C toolchain is involved). Path dependencies rather than the workspace table so
 # that the default features apply (the table declares the crates with default-features = false).
 dsntk-common = { path = "../../common" }
-dsntk-feel = { path = "../../feel" }
-dsntk-feel-number = { path = "../../feel-number" }
-dsntk-feel-parser = { path = "../../feel-parser" }
-dsntk-feel-evaluator = { path = "../../feel-evaluator" }
-dsntk-feel-temporal = { path = "../../feel-temporal" }
+flowstone-feel = { path = "../../feel" }
+flowstone-feel-number = { path = "../../feel-number" }
+flowstone-feel-parser = { path = "../../feel-parser" }
+flowstone-feel-evaluator = { path = "../../feel-evaluator" }
+flowstone-feel-temporal = { path = "../../feel-temporal" }
 serde = { workspace = true }
 # arbitrary_precision: JSON numbers keep their exact source text and never pass through f64.
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
