@@ -3,8 +3,13 @@ name: pages-probe1
 on:
   workflow_dispatch:
 jobs:
-  gate:
-    if: github.ref_name == 'main'
+  a:
     runs-on: ubuntu-latest
     steps:
-      - run: echo probe1
+      - run: echo a
+  gate:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: a
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo the originally failing shape
