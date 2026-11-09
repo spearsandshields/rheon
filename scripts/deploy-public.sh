@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # SUPERSEDED (2026-11-09): the `pages` job in .github/workflows/ci.yml deploys the playground to
-# https://rheon-io.github.io/rheon/ on every push to main. Delete this script and the `deploy`
+# https://spearsandshields.github.io/rheon/ on every push to main. Delete this script and the `deploy`
 # npm scripts once that site is live, then delete the dsntk-wasm-build repository.
 #
 # deploy-public.sh — build the playground and publish it to the PUBLIC dsntk-wasm-build

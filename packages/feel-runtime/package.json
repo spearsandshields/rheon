@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rheon-io/rheon.git",
+    "url": "https://github.com/spearsandshields/rheon.git",
     "directory": "packages/feel-runtime"
   },
-  "homepage": "https://rheon-io.github.io/rheon/",
-  "bugs": "https://github.com/rheon-io/rheon/issues",
+  "homepage": "https://spearsandshields.github.io/rheon/",
+  "bugs": "https://github.com/spearsandshields/rheon/issues",
   "description": "JS/TS runtime for the rheon FEEL engine compiled to WebAssembly (wasm32-wasip1, exact decimal128 numbers)",
   "license": "MIT OR Apache-2.0",
   "type": "module",

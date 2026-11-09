@@ -57,7 +57,7 @@ jobs:
           name: playground
           path: apps/playground/dist
 
-  # The playground is the public demo: https://rheon-io.github.io/rheon/ (GitHub Pages, source
+  # The playground is the public demo: https://spearsandshields.github.io/rheon/ (GitHub Pages, source
   # "GitHub Actions" in the repository settings). Deployed from main only, after the wasm job.
   pages:
     name: deploy playground to GitHub Pages

@@ -28,8 +28,8 @@ members = [
 [workspace.package]
 version = "0.3.1-dev"
 authors = ["Dariusz Depta <depta@engos.de>"]
-repository = "https://github.com/rheon-io/rheon"
-homepage = "https://rheon-io.github.io/rheon/"
+repository = "https://github.com/spearsandshields/rheon"
+homepage = "https://spearsandshields.github.io/rheon/"
 license = "MIT OR Apache-2.0"
 edition = "2024"
 

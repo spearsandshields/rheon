@@ -28,7 +28,7 @@ trademarks of the OMG.
 - **Playground** `apps/playground` (Vite + Svelte 5 + CodeMirror 6): expression and unary-test
   dialects, a JSON context editor that keeps every digit, the engine's syntax tree, examples,
   shareable links, light and dark themes, a phone layout. Everything runs in the browser; the
-  build is a static site. Live demo: <https://rheon-io.github.io/rheon/> (GitHub Pages, deployed
+  build is a static site. Live demo: <https://spearsandshields.github.io/rheon/> (GitHub Pages, deployed
   by CI from `main`).
 - **Native dsntk** as upstream ships it: the `dsntk` CLI and server, the DMN model evaluator, the
   DMN TCK runner support (`--features tck`). The DMN engine is not in wasm yet (next milestone).

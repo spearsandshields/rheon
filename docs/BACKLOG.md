@@ -226,7 +226,7 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
 (`wasm/feel-wasm`, `packages/`, `apps/`, `docs/`, `scripts/`). Items that came out of it:
 
 - **Public demo** `[infra]` (2026-11-09): the `pages` job in `ci.yml` deploys the playground to
-  `https://rheon-io.github.io/rheon/` from `main` (Pages source must be set to "GitHub Actions").
+  `https://spearsandshields.github.io/rheon/` from `main` (Pages source must be set to "GitHub Actions").
   Once live: delete `scripts/deploy-public.sh`, the `deploy*` npm scripts and the
   `spearsandshields/dsntk-wasm-build` repository (optionally leave a redirect page there first).
 - **DMN TCK in CI** `[infra]`. `.github/workflows/ci.yml` runs the engine suites, the wasm build
@@ -237,8 +237,9 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
 - **DMN module** `[wasm]`. Same pipeline as `wasm/feel-wasm` pointed at `model-evaluator`
   (`wasm/dmn-wasm`, a decision-evaluate op in CONTRACT.md). Next milestone, together with the
   phase-1 lexer fixes from `docs/EDITOR-PLAN.md`.
-- **GitHub home** (decided 2026-11-09): organisation `rheon-io`, repository `rheon-io/rheon`;
-  the manifests and the README point there. Nothing is pushed yet.
+- **GitHub home** (decided 2026-11-09): `spearsandshields/rheon` under the owner's account; the
+  manifests and the README point there. A transfer to an organisation later keeps working through
+  GitHub's redirects. Nothing is pushed yet.
 - **`publish.sh`** (upstream's crates.io release script) is kept untouched (its crate names are
   now stale, which is a safety); it must never be run from this repository.
 - **Crate rename** (2026-10-28, done). The user decided on a permanent fork with no priority on
