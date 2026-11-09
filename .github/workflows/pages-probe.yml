@@ -6,28 +6,12 @@ jobs:
   a:
     runs-on: ubuntu-latest
     steps:
-      - run: mkdir site && echo '<!doctype html><title>probe</title>probe' > site/index.html
-      - uses: actions/upload-artifact@v7
-        with:
-          name: probe-site
-          path: site
-  b:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      - run: echo a
+  c1:
+    if: github.ref == 'refs/heads/main'
     needs: a
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/download-artifact@v7
-        with:
-          name: probe-site
-          path: site
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: site
-      - id: deploy
-        uses: actions/deploy-pages@v4
+      - run: echo c1
