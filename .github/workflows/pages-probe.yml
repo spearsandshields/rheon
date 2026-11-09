@@ -7,9 +7,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo a
-  c1:
-    if: github.ref == 'refs/heads/main'
+  gate:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: a
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo gate open
+  c1:
+    needs: gate
     runs-on: ubuntu-latest
     environment:
       name: github-pages
