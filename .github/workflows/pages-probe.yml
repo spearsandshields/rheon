@@ -12,6 +12,7 @@ jobs:
           name: probe-site
           path: site
   b:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: a
     runs-on: ubuntu-latest
     permissions:
