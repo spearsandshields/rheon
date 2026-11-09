@@ -21,9 +21,7 @@
     "test:rust": "cargo test -p rheon-feel-wasm",
     "test:rust:wasm": "bash -c 'source ./scripts/env.sh && cargo test -p rheon-feel-wasm --target wasm32-wasip1'",
     "test:runtime": "npm test -w @rheon/feel-runtime",
-    "smoke": "node scripts/smoke.mjs",
-    "deploy": "./scripts/deploy-public.sh",
-    "deploy:push": "./scripts/deploy-public.sh --push"
+    "smoke": "node scripts/smoke.mjs"
   },
   "engines": {
     "node": ">=20"

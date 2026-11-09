@@ -47,7 +47,7 @@ export const EXAMPLES: Example[] = [
     blurb: 'substring, upper case, string join, matches',
     dialect: 'expression',
     expression: `{
-  shout: upper case(substring("dsntk feel playground", 7, 4)),
+  shout: upper case(substring("rheon feel playground", 7, 4)),
   joined: string join(["a", "b", "c"], "-"),
   ok: matches("FEEL-1.5", "^[A-Z]+-\\\\d\\\\.\\\\d$"),
   words: split("decision model and notation", " ")

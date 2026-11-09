@@ -70,7 +70,7 @@ The edge-case comparison with feelin and feel-scala is in
 | `packages/feel-runtime` | `@rheon/feel-runtime`, the TypeScript runtime (CONTRACT §4) |
 | `apps/playground` | `@rheon/playground`, the web app |
 | `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to merge upstream), `BACKLOG.md`, `EDITOR-PLAN.md`, `ENGINE-COMPARISON.md` |
-| `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `smoke.mjs`, `third-party-notices.mjs`, `deploy-public.sh` |
+| `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `smoke.mjs`, `third-party-notices.mjs` |
 | `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
 | `Cargo.toml` | One workspace for all of the above; `[workspace.metadata.rheon] upstream-commit`; the `wasm` build profile |
 | `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, later .NET) |

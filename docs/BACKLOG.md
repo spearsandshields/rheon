@@ -225,10 +225,15 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
 (branch `main`, remote `upstream` = dsntk-rs) and absorbed the former `dsntk-wasm` workspace
 (`wasm/feel-wasm`, `packages/`, `apps/`, `docs/`, `scripts/`). Items that came out of it:
 
-- **Public demo** `[infra]` (2026-11-09): the `pages` job in `ci.yml` deploys the playground to
-  `https://spearsandshields.github.io/rheon/` from `main` (Pages source must be set to "GitHub Actions").
-  Once live: delete `scripts/deploy-public.sh`, the `deploy*` npm scripts and the
-  `spearsandshields/dsntk-wasm-build` repository (optionally leave a redirect page there first).
+- **Public demo** `[infra]` (2026-11-09, live): the `pages` job in `ci.yml` deploys the playground to
+  `https://spearsandshields.github.io/rheon/` on every push to `main`. `scripts/deploy-public.sh` is
+  gone; the old `spearsandshields/dsntk-wasm-build` repository still exists and can be deleted.
+- **CI note** (2026-11-09): during the first half hour after the repository was created, every run
+  whose `pages` job was eligible ended as "failure" with some or all jobs never created and no error
+  shown anywhere (API, logs, check runs). Probes narrowed it to a job-level `if` reading `github.ref`,
+  then the same probe passed unchanged twenty minutes later: a transient GitHub-side fault, not the
+  workflow. The gate is now `github.event_name != 'pull_request'`, which is equivalent and simpler.
+  If runs ever vanish like that again, re-dispatch before changing anything.
 - **DMN TCK in CI** `[infra]`. `.github/workflows/ci.yml` runs the engine suites, the wasm build
   and the JS side; the TCK (dsntk-test-runner + dsntk-tck-patches + the ~430 MB tck clone, see the
   procedure in the session notes) is still a manual run. A `workflow_dispatch` job is the plan.

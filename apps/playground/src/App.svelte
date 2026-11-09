@@ -34,7 +34,7 @@
   let info = $state<EngineInfo | null>(null);
   /** Tooltip of the engine name: the exact build (fork commit, upstream base, number backend). */
   function engineTitle(i: EngineInfo): string {
-    const parts = [`dsntk fork commit ${i.engineCommit ?? '?'}`];
+    const parts = [`rheon commit ${i.engineCommit ?? '?'}`];
     if (i.upstreamCommit) parts.push(`upstream dsntk-rs ${i.upstreamCommit}`);
     parts.push(`number backend ${i.numberBackend}${i.version ? `, feel-wasm ${i.version}` : ''}`);
     return parts.join('\n');
@@ -346,7 +346,7 @@
     <div class="brand">
       <div class="logo" aria-hidden="true">ƒ</div>
       <div>
-        <h1>dsntk FEEL Playground</h1>
+        <h1>rheon FEEL Playground</h1>
         <p class="engine-line" data-testid="engine-info">
           {#if info}
             engine <b title={engineTitle(info)}>{info.engine}{info.engineCommit ? `@${info.engineCommit.slice(0, 7)}` : ''}</b><span class="dot" aria-hidden="true">·</span>number backend
@@ -379,7 +379,7 @@
           <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5" fill="none" /><path d="M8 2a6 6 0 010 12z" fill="currentColor" /></svg>
         {/if}
       </button>
-      <a class="btn" href="https://github.com/DecisionToolkit/dsntk" target="_blank" rel="noopener">dsntk ↗</a>
+      <a class="btn" href="https://github.com/spearsandshields/rheon" target="_blank" rel="noopener">GitHub ↗</a>
     </nav>
   </header>
 
@@ -551,7 +551,8 @@
 
   <footer class="page-foot">
     FEEL by the <a href="https://www.omg.org/dmn/" target="_blank" rel="noopener">OMG DMN</a> spec · evaluated by
-    <a href="https://github.com/DecisionToolkit/dsntk" target="_blank" rel="noopener">dsntk</a> compiled to WebAssembly ·
+    <a href="https://github.com/spearsandshields/rheon" target="_blank" rel="noopener">rheon</a> (a fork of
+    <a href="https://github.com/DecisionToolkit/dsntk" target="_blank" rel="noopener">dsntk</a>) compiled to WebAssembly ·
     <a href="third-party-notices.txt" target="_blank" rel="noopener">third-party notices</a>
   </footer>
 </div>

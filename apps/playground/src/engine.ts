@@ -57,7 +57,7 @@ export async function createEngine(): Promise<PlaygroundEngine> {
     async info() {
       const r = await engine.info();
       return {
-        engine: r.engine ?? 'dsntk',
+        engine: r.engine ?? 'rheon',
         numberBackend: r.numberBackend ?? 'unknown',
         engineCommit: r.engineCommit,
         upstreamCommit: r.upstreamCommit,
