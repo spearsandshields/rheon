@@ -1,0 +1,15 @@
+# Temporary (to be deleted).
+name: pages-probe2
+on:
+  workflow_dispatch:
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo a
+  gate:
+    if: github.event_name == 'workflow_dispatch'
+    needs: a
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo gate event_name

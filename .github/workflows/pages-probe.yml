@@ -1,4 +1,4 @@
-# Temporary: isolates the GitHub Pages deployment (to be deleted).
+# Temporary (to be deleted).
 name: pages-probe
 on:
   workflow_dispatch:
@@ -8,13 +8,8 @@ jobs:
     steps:
       - run: echo a
   gate:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: true
     needs: a
     runs-on: ubuntu-latest
     steps:
-      - run: echo gate open
-  c1:
-    needs: gate
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo c1 no environment
+      - run: echo gate literal true
