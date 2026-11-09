@@ -364,9 +364,12 @@ cargo publish --workspace --dry-run  # packages and verify-builds everything, up
 cargo publish --workspace
 ```
 
-crates.io rate-limits the creation of new crate names, so a release that introduces new
-crates may need a retry after a pause; the command skips crates whose version is already
-published. For a release: bump the workspace version and the `=` pins in the root manifest
+crates.io rate-limits the creation of new crate names (a burst of five, then one every ten
+minutes; the 429 response names the time to retry). A release that introduces new crates
+therefore stops part-way, and `--workspace` then refuses to continue because the first
+crates "already exist". `scripts/publish-crates.sh` handles both: it asks crates.io which
+crates still miss the workspace version, publishes only those, and sleeps until the named
+retry time. The first release (0.1.0, 2026-11-09) took about 35 minutes this way. For a release: bump the workspace version and the `=` pins in the root manifest
 together, run the verification above, commit, tag `vX.Y.Z`, publish.
 
 `rheon-feel-wasm` is not published: its build script reads the repository (HEAD and the
