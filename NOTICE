@@ -14,7 +14,7 @@ limitations under the License.
 
 ------------------------------------------------------------------------
 
-flowstone
+rheon
 
 This repository is a fork of dsntk (https://github.com/dsntk/dsntk-rs),
 Copyright (c) 2015-2026 Dariusz Depta, licensed under MIT OR Apache-2.0.
@@ -23,10 +23,10 @@ The dsntk crates keep their original names, headers and license.
 Modifications to the dsntk crates and the additional components of this
 repository (the wasm modules, the JavaScript runtime, the playground, the
 documentation and the build scripts) are
-Copyright (c) 2026 the flowstone contributors
+Copyright (c) 2026 the rheon contributors
 and are licensed under the same terms, MIT OR Apache-2.0, at your option.
 
-flowstone is an independent project. It is not affiliated with, endorsed
+rheon is an independent project. It is not affiliated with, endorsed
 by or supported by DecisionToolkit, Engos Software or the Object
 Management Group. "DMN", "FEEL" and "BPMN" are trademarks of the Object
 Management Group.

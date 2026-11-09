@@ -1,8 +1,8 @@
-use flowstone_feel::{FeelScope, scope};
+use rheon_feel::{FeelScope, scope};
 
 #[test]
 fn _0001() {
-  let node = flowstone_feel_parser::parse_expression(&scope!(), "[1,2,3]", false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope!(), "[1,2,3]", false).unwrap();
   let expected = r#"
        List
        ├─ Numeric

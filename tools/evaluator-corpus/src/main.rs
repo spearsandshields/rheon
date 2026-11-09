@@ -1,7 +1,7 @@
 //! Reads JSON lines {"src","ctx","expr"} on stdin; evaluates each with the backend
 //! selected at compile time; writes JSON lines {"src","display","debug"} to stdout.
-use flowstone_feel::FeelScope;
-use flowstone_feel::values::Value;
+use rheon_feel::FeelScope;
+use rheon_feel::values::Value;
 use std::io::{BufRead, Write};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -10,8 +10,8 @@ fn scope_from(ctx: &str) -> Result<FeelScope, String> {
   if ctx.trim().is_empty() {
     return Ok(scope);
   }
-  let node = flowstone_feel_parser::parse_context(&scope, ctx, false).map_err(|e| format!("ctx parse error: {e}"))?;
-  match flowstone_feel_evaluator::evaluate(&scope, &node) {
+  let node = rheon_feel_parser::parse_context(&scope, ctx, false).map_err(|e| format!("ctx parse error: {e}"))?;
+  match rheon_feel_evaluator::evaluate(&scope, &node) {
     Value::Context(c) => Ok(c.into()),
     other => Err(format!("ctx not a context: {other}")),
   }
@@ -22,9 +22,9 @@ fn eval(ctx: &str, expr: &str) -> (String, String) {
     Ok(s) => s,
     Err(e) => return (e.clone(), e),
   };
-  match flowstone_feel_parser::parse_textual_expression(&scope, expr, false) {
+  match rheon_feel_parser::parse_textual_expression(&scope, expr, false) {
     Ok(node) => {
-      let v = flowstone_feel_evaluator::evaluate(&scope, &node);
+      let v = rheon_feel_evaluator::evaluate(&scope, &node);
       let disp = catch_unwind(AssertUnwindSafe(|| v.to_string())).unwrap_or_else(|_| "<PANIC in Display>".to_string());
       let dbg = catch_unwind(AssertUnwindSafe(|| format!("{v:?}"))).unwrap_or_else(|_| "<PANIC in Debug>".to_string());
       (disp, dbg)

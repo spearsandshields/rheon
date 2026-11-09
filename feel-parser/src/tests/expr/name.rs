@@ -117,13 +117,13 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   assert!(crate::parse_name(&scope, "5Cards", false).is_err());
 }
 
 #[test]
 fn _0009() {
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   assert!(crate::parse_name(&scope, "123.45", false).is_err());
 }
 

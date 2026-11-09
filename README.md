@@ -1,16 +1,17 @@
-# flowstone
+# rheon
 
-**flowstone** is a Rust decision and process stack in the making: the FEEL expression language
-and DMN decisions today, BPMN later, with every engine also compiled to WebAssembly so that the
-same module runs in the browser, in Node and in .NET.
+**rheon** (Greek ῥέον, "that which flows", the root of *panta rhei*) is a Rust decision and
+process stack in the making: the FEEL expression language and DMN decisions today, BPMN later,
+with every engine also compiled to WebAssembly so that the same module runs in the browser, in
+Node and in .NET.
 
 It is a fork of [dsntk](https://github.com/dsntk/dsntk-rs) (DecisionToolkit, by Dariusz Depta),
 the Rust FEEL/DMN engine, kept in upstream's layout so that upstream can be merged. On top of it
-flowstone adds a pure-Rust decimal128 number core, a set of engine fixes (listed in
+rheon adds a pure-Rust decimal128 number core, a set of engine fixes (listed in
 [`docs/FORK.md`](docs/FORK.md)), the `wasm32-wasip1` build of the FEEL engine, a TypeScript
 runtime and a browser playground.
 
-flowstone is an independent project. It is not affiliated with, endorsed by or supported by
+rheon is an independent project. It is not affiliated with, endorsed by or supported by
 DecisionToolkit, Engos Software or the Object Management Group. "DMN", "FEEL" and "BPMN" are
 trademarks of the OMG.
 
@@ -21,7 +22,7 @@ trademarks of the OMG.
   [dashu-float](https://crates.io/crates/dashu-float), so `0.1 + 0.2` is `0.3` and `1/3` is
   `0.3333333333333333333333333333333333`), typed results, "null because …" reasons, a JSON ABI
   (`feel_alloc` / `feel_call` / `feel_free`) documented in [`docs/CONTRACT.md`](docs/CONTRACT.md).
-- **JS/TS runtime** `@flowstone/feel-runtime`: a Web Worker host with a 10-function WASI shim,
+- **JS/TS runtime** `@rheon/feel-runtime`: a Web Worker host with a 10-function WASI shim,
   evaluation timeout, crash recovery and exact numbers across the boundary, plus a synchronous
   `instantiateFeel` for trusted input. See its [README](packages/feel-runtime/README.md).
 - **Playground** `apps/playground` (Vite + Svelte 5 + CodeMirror 6): expression and unary-test
@@ -63,15 +64,15 @@ The edge-case comparison with feelin and feel-scala is in
 
 | Path | What it is |
 |---|---|
-| `feel`, `feel-number`, `feel-parser`, `feel-evaluator`, `feel-temporal`, `feel-regex`, `model-evaluator` | The engine crates flowstone has changed, named `flowstone-*` (directories keep upstream's names) |
+| `feel`, `feel-number`, `feel-parser`, `feel-evaluator`, `feel-temporal`, `feel-regex`, `model-evaluator` | The engine crates rheon has changed, named `rheon-*` (directories keep upstream's names) |
 | `common`, `feel-grammar`, `macros`, `recognizer`, `model`, `evaluator`, `workspace`, `gendoc`, `server`, `dsntk`, `examples` | The dsntk crates carried unchanged (or with manifest-only changes), still named `dsntk-*`; never published from here |
-| `wasm/feel-wasm` | `flowstone-feel-wasm`: JSON request → engine → JSON response, built as a wasm32-wasip1 reactor (CONTRACT §1–3) |
-| `packages/feel-runtime` | `@flowstone/feel-runtime`, the TypeScript runtime (CONTRACT §4) |
-| `apps/playground` | `@flowstone/playground`, the web app |
+| `wasm/feel-wasm` | `rheon-feel-wasm`: JSON request → engine → JSON response, built as a wasm32-wasip1 reactor (CONTRACT §1–3) |
+| `packages/feel-runtime` | `@rheon/feel-runtime`, the TypeScript runtime (CONTRACT §4) |
+| `apps/playground` | `@rheon/playground`, the web app |
 | `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to merge upstream), `BACKLOG.md`, `EDITOR-PLAN.md`, `ENGINE-COMPARISON.md` |
 | `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `smoke.mjs`, `third-party-notices.mjs`, `deploy-public.sh` |
 | `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
-| `Cargo.toml` | One workspace for all of the above; `[workspace.metadata.flowstone] upstream-commit`; the `wasm` build profile |
+| `Cargo.toml` | One workspace for all of the above; `[workspace.metadata.rheon] upstream-commit`; the `wasm` build profile |
 | `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, later .NET) |
 
 ## Quickstart
@@ -97,10 +98,10 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | Script | Does |
 |---|---|
 | `npm run bootstrap` | `./scripts/bootstrap.sh`: `rustup target add wasm32-wasip1`, downloads wasmtime (sha256-checked) into `.tools/` |
-| `npm run build:wasm` | `./scripts/build-wasm.sh`: `cargo build --profile wasm --target wasm32-wasip1 -p flowstone-feel-wasm`, then `dist/feel.wasm`, a size report, and a check of the imports, exports, stack and memory cap against CONTRACT §1 |
+| `npm run build:wasm` | `./scripts/build-wasm.sh`: `cargo build --profile wasm --target wasm32-wasip1 -p rheon-feel-wasm`, then `dist/feel.wasm`, a size report, and a check of the imports, exports, stack and memory cap against CONTRACT §1 |
 | `npm run build` | wasm + runtime (`tsc`) + playground (`svelte-check` + `vite build`, with `third-party-notices.txt` regenerated) |
 | `npm run dev` | Playground dev server (arguments after `--` go to Vite) |
-| `npm test` | `cargo test -p flowstone-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
+| `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
 | `npm run deploy` | Dry run of the playground deploy; `npm run deploy:push` publishes |
 | `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`) and feel-grammar's table generator (bison; skips itself under `CI`); see `.github/workflows/ci.yml` |
@@ -115,13 +116,13 @@ the engine crates are based on; the playground shows the short SHA in its header
 
 ## Relationship to dsntk
 
-flowstone is a permanent fork: the engine is developed here, in its own direction, and
+rheon is a permanent fork: the engine is developed here, in its own direction, and
 contributing the changes back to dsntk is not a goal. The dsntk crates sit at the repository root
 in upstream's directory layout, and `upstream` is a git remote
 (`git remote add upstream https://github.com/dsntk/dsntk-rs.git`), so individual upstream fixes
 can still be taken by cherry-pick (`docs/FORK.md` has the procedure).
 [`docs/FORK.md`](docs/FORK.md) lists every engine change with its verification numbers. In
-short, flowstone's engine differs from upstream dsntk in:
+short, rheon's engine differs from upstream dsntk in:
 
 - a **pure-Rust decimal128 core** (`feel-number`), with the `dashu` backend as default and
   Intel's BID128 library behind the `intel` feature (needs a C toolchain; not used here);
@@ -134,15 +135,15 @@ short, flowstone's engine differs from upstream dsntk in:
   midnight wrap of `time + duration`, cross-offset temporal ordering, a cubic lexer path, the full
   FEEL scale range, back-references in `matches`, readable null reasons.
 
-DMN TCK (patched suite, 3,511 tests): flowstone passes 3,480, upstream at the base commit 3,479;
+DMN TCK (patched suite, 3,511 tests): rheon passes 3,480, upstream at the base commit 3,479;
 the remaining failures are Java external functions (14), decision services (2), implicit
 conversions (12) and multiple imports (3), all in the DMN layer.
 
-Crate naming: a crate whose source flowstone has changed is renamed `flowstone-*` (today
-`flowstone-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
+Crate naming: a crate whose source rheon has changed is renamed `rheon-*` (today
+`rheon-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
 `-feel-regex` and `-model-evaluator`); a crate carried as upstream ships it keeps its `dsntk-*`
 name until it is changed. Directories keep upstream's names either way. Nothing from this
-repository is published to crates.io; flowstone's own artifacts are the wasm modules, the npm
+repository is published to crates.io; rheon's own artifacts are the wasm modules, the npm
 packages and, later, the NuGet package.
 
 ## Known limitations
@@ -248,7 +249,7 @@ yet.
 
 ## License
 
-flowstone is licensed under either of the Apache License 2.0 ([`LICENSE`](LICENSE)) or the MIT
+rheon is licensed under either of the Apache License 2.0 ([`LICENSE`](LICENSE)) or the MIT
 license ([`LICENSE-MIT`](LICENSE-MIT)), at your option, the same terms as dsntk, whose copyright
 notices are retained ([`NOTICE`](NOTICE)). The dashu crates are MIT OR Apache-2.0; CodeMirror,
 lang-feel and lezer-feel are MIT. The playground ships the full notices of everything in its

@@ -8,9 +8,9 @@ use crate::item_definition::ItemDefinitionEvaluator;
 use crate::model_builder::{EvaluatorBuilders, ModelBuilder};
 use crate::model_definitions::{DefKey, InvocableType, Invocables};
 use dsntk_common::Result;
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::Value;
-use flowstone_feel::{Name, value_null};
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
+use rheon_feel::{Name, value_null};
 use dsntk_model::Definitions;
 use std::sync::Arc;
 

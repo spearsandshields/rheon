@@ -1,5 +1,5 @@
-//! Contract tests (docs/CONTRACT.md §2–3). Run natively (`cargo test -p flowstone-feel-wasm`) and under
-//! wasm32-wasip1 via wasmtime (`source scripts/env.sh && cargo test -p flowstone-feel-wasm --target wasm32-wasip1`).
+//! Contract tests (docs/CONTRACT.md §2–3). Run natively (`cargo test -p rheon-feel-wasm`) and under
+//! wasm32-wasip1 via wasmtime (`source scripts/env.sh && cargo test -p rheon-feel-wasm --target wasm32-wasip1`).
 
 use serde_json::{Value as Json, json};
 
@@ -626,7 +626,7 @@ fn parse_tree() {
 fn info() {
   let response = req(json!({"op": "info"}));
   assert_eq!(response["ok"], true);
-  assert_eq!(response["engine"], "flowstone");
+  assert_eq!(response["engine"], "rheon");
   assert_eq!(response["numberBackend"], "dashu");
   // a 40-digit SHA; `engineCommit` may carry `-dirty` when built from a modified work tree
   let sha = |key: &str| {

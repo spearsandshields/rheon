@@ -1,7 +1,7 @@
 use crate::bifs::core;
-use flowstone_feel::bif::Bif;
-use flowstone_feel::values::Value;
-use flowstone_feel::{FeelNumber, Name, value_null};
+use rheon_feel::bif::Bif;
+use rheon_feel::values::Value;
+use rheon_feel::{FeelNumber, Name, value_null};
 use std::sync::LazyLock;
 
 static NAME_CONTEXT: LazyLock<Name> = LazyLock::new(|| Name::from("context"));

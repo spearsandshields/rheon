@@ -1,6 +1,6 @@
 mod common;
 
-use flowstone_feel_number::FeelNumber;
+use rheon_feel_number::FeelNumber;
 use std::cmp::Ordering;
 
 #[test]

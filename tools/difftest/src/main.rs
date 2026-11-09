@@ -10,7 +10,7 @@
 //! Writes mismatches.tsv (all Display mismatches) and cohort.tsv (Debug-only) to the
 //! current directory. DIFFTEST_SEED changes the seed base, DIFFTEST_TRACE=1 prints every input.
 #![allow(dead_code)]
-// flowstone-feel-number's lib.rs compiled twice: with feature `intel` (crates/fn-intel) and
+// rheon-feel-number's lib.rs compiled twice: with feature `intel` (crates/fn-intel) and
 // with feature `dashu` (crates/fn-dashu).
 mod intel {
   pub use fn_intel::FeelNumber;

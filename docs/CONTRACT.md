@@ -1,4 +1,4 @@
-# flowstone FEEL wasm contract
+# rheon FEEL wasm contract
 
 This is the single source of truth shared by the Rust core (`wasm/feel-wasm`), the JS runtime (`packages/feel-runtime`) and the playground (`apps/playground`). Change it here first.
 
@@ -42,7 +42,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 - Unary tests are evaluated as dsntk's decision tables do: the tested value is bound to the name `?` in the scope and the result is `? in (<unary tests>)`, i.e. a boolean (or null). Note (dsntk at the pinned commit): a boolean *expression* used as a test, e.g. `? > 5`, is **compared** with the input (`7 = true` → `false`) instead of being "satisfied when true" as in DMN 1.2+. Use `> 5` instead. The response carries a warning for every test that is a comparison/logical expression (or `not(...)`) using `?`.
 - If neither `input` nor `context["?"]` is given for unary tests, `?` is null and a warning is returned.
 - A unary-test endpoint that is an arithmetic expression must be parenthesised: dsntk parses `> 0.1 + 0.2` as `(? > 0.1) + 0.2`, which is a typed null (`invalid argument type … actual type is boolean`); `> (0.1 + 0.2)` and `>= (x + 1)` work. Literal and name endpoints (`> 5`, `> x`, `[x..y]`) need no parentheses.
-- `tzOffsetMinutes`: integer in `-1080..=1080` (±18:00), otherwise a `request` error (every other integer, including `i64::MIN`). It is a fixed offset (no DST rules), applied to every "local" (zone-less) date-time computation of that request — `now()`, `today()`, and comparisons/subtractions of local date-times — via a process-global override in flowstone-feel-temporal (the fork's "local offset override" commit), reset after every request. Without it, local time is **UTC on every target**: chrono's `Local` is hard-wired to UTC on `wasm32-wasip1`, and native builds apply offset 0 too instead of the host zone, so results never depend on where the core runs.
+- `tzOffsetMinutes`: integer in `-1080..=1080` (±18:00), otherwise a `request` error (every other integer, including `i64::MIN`). It is a fixed offset (no DST rules), applied to every "local" (zone-less) date-time computation of that request — `now()`, `today()`, and comparisons/subtractions of local date-times — via a process-global override in rheon-feel-temporal (the fork's "local offset override" commit), reset after every request. Without it, local time is **UTC on every target**: chrono's `Local` is hard-wired to UTC on `wasm32-wasip1`, and native builds apply offset 0 too instead of the host zone, so results never depend on where the core runs.
 - Limits: an expression (or FEEL context literal) whose AST is deeper than **300** levels is rejected (`syntax`, resp. `context`) before any recursive code runs; an evaluation with more than **200** nested function calls (recursion) is stopped and reported as an `evaluation` error, never as a partial result.
 
 How JSON input becomes FEEL values (`contextFormat: "json"`):
@@ -64,7 +64,7 @@ Success:
     "display": "string",   // pretty, JSON-like text with EXACT FEEL digits, e.g. {"a": 0.3333333333333333333333333333333333}; temporal values as their FEEL string, null as null
     "feel": "string",      // dsntk's own FEEL text form (Value::to_string)
     "type": "string",      // FEEL type name, e.g. "number", "string", "date", "list<number>", "context<...>", "Null"
-    "typed": { /* flowstone_feel::dto::ValueDto: type+text per value, TCK style */ },
+    "typed": { /* rheon_feel::dto::ValueDto: type+text per value, TCK style */ },
     "isNull": false,
     "nullReason": "string?" // when dsntk produced null carrying an error message (value_null!(...)), that message
   },
@@ -85,7 +85,7 @@ Scale rounding (`round up/down/half up/half down`, `floor`, `ceiling` with a sca
 
 `op: "parse"` success: `{ "ok": true, "tree": "<dsntk AstNode::tree() ascii, no color>", "elapsedMicros": n }`
 
-`op: "info"` success: `{ "ok": true, "engine": "flowstone", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<flowstone-feel-wasm crate version>" }`. `engineCommit` is the flowstone repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `"unknown"` when built outside a git checkout without `FLOWSTONE_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[workspace.metadata.flowstone]` in the root `Cargo.toml`), and `numberBackend` the feel-number backend compiled in (`flowstone_feel_number::NUMBER_BACKEND`: `"dashu"`; `"intel"` only in an Intel build, which this repository does not make).
+`op: "info"` success: `{ "ok": true, "engine": "rheon", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<rheon-feel-wasm crate version>" }`. `engineCommit` is the rheon repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `"unknown"` when built outside a git checkout without `RHEON_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[workspace.metadata.rheon]` in the root `Cargo.toml`), and `numberBackend` the feel-number backend compiled in (`rheon_feel_number::NUMBER_BACKEND`: `"dashu"`; `"intel"` only in an Intel build, which this repository does not make).
 
 Failure (the instance stays healthy):
 
@@ -153,7 +153,7 @@ Runtime guarantees:
 - **Restart failures:** a worker that fails before it is ready (script load error, `initError`, startup timeout) is retried after 100, 500 and 2000 ms. After 4 consecutive failures the engine gives up: all pending and later requests resolve `{kind:'internal', message:'FeelEngine unavailable: …'}`, `isDisposed` is `true` and `unavailableReason` says why (reload the page). A worker that becomes ready resets the count. During `create()` a failure rejects instead.
 - **Timeout:** if a request runs past `timeoutMs`, the worker is `terminate()`d, the request resolves `{ok:false, error:{kind:'timeout'}}`, and a fresh worker is started for the next request. The compiled `WebAssembly.Module` is reused, so this is cheap.
 - **Trap** (a panic or `unreachable`): resolves `{ok:false, error:{kind:'crash', message}}`, and the instance is re-created. When the trap is a failed allocation at the 512 MiB cap (Rust writes `memory allocation of N bytes failed` to stderr first), the message starts with `out of memory:` (`trapMessage()` in `instance.ts`), so hosts can present "the result does not fit" differently from a bug.
-- **Exact numbers from JS:** a JS object/array passed as `context` or `input` is serialized with `JSON.stringify`, so its numbers are already f64. To keep the user's digits (e.g. text typed into the playground's JSON editor), pass `rawJson("<json text>")`: the runtime validates it parses as JSON (and, for `context` with `contextFormat: "json"`, that it is an object) and splices the text verbatim into the request JSON, never parsing its numbers. Only values created by `rawJson()` are raw (they carry a private `Symbol.for('@flowstone/feel-runtime.rawJson')` brand); a plain object `{ rawJson: "..." }` is an ordinary context. The wasm request shape (§2) is unchanged.
+- **Exact numbers from JS:** a JS object/array passed as `context` or `input` is serialized with `JSON.stringify`, so its numbers are already f64. To keep the user's digits (e.g. text typed into the playground's JSON editor), pass `rawJson("<json text>")`: the runtime validates it parses as JSON (and, for `context` with `contextFormat: "json"`, that it is an object) and splices the text verbatim into the request JSON, never parsing its numbers. Only values created by `rawJson()` are raw (they carry a private `Symbol.for('@rheon/feel-runtime.rawJson')` brand); a plain object `{ rawJson: "..." }` is an ordinary context. The wasm request shape (§2) is unchanged.
 - **Unpaired surrogates:** JS strings (and `JSON.parse`) allow unpaired UTF-16 surrogates, the core's JSON parser does not. The runtime rejects them before the wasm: `{kind:'syntax'}` in the expression, `{kind:'context'}` in `context`/`input` (raw characters or `\uD800`-style escapes).
 - `tzOffsetMinutes` is filled in automatically from `new Date().getTimezoneOffset()` (sign inverted) unless the caller supplies it (`EvaluateRequest.tzOffsetMinutes`; for `instantiateFeel`, `env.tzOffsetMinutes`, `null` = don't send).
 - `context` given as a string defaults to `contextFormat: 'feel'`; a JS object or `RawJson` defaults to `'json'`. Invalid `rawJson` (or a non-object `rawJson` context) resolves `{kind:'context'}` without reaching the wasm.
@@ -166,7 +166,7 @@ Runtime guarantees:
 ## 5. Repository layout
 
 ```
-Cargo.toml               one workspace: the dsntk engine crates (repository root) + wasm/feel-wasm; `[workspace.metadata.flowstone] upstream-commit`; the `wasm` build profile
+Cargo.toml               one workspace: the dsntk engine crates (repository root) + wasm/feel-wasm; `[workspace.metadata.rheon] upstream-commit`; the `wasm` build profile
 <dsntk crates>/          common, feel, feel-parser, feel-evaluator, feel-number, feel-temporal, feel-regex, model, model-evaluator, dsntk (CLI), … unchanged layout of upstream dsntk-rs
 scripts/bootstrap.sh     install the wasm32-wasip1 target, download wasmtime into .tools/ (gitignored)
 scripts/env.sh           source to set wasmtime as the cargo runner for `cargo test --target wasm32-wasip1`

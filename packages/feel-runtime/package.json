@@ -1,5 +1,5 @@
 {
-  "name": "@flowstone/feel-runtime",
+  "name": "@rheon/feel-runtime",
   "version": "0.1.0",
   "description": "JS/TS runtime for the dsntk FEEL engine compiled to WebAssembly (wasm32-wasip1, exact decimal128 numbers)",
   "license": "MIT OR Apache-2.0",

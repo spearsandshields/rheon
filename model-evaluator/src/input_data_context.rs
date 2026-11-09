@@ -3,9 +3,9 @@
 use crate::item_definition_context::ItemDefinitionContextEvaluator;
 use crate::model_definitions::{DefDefinitions, DefInputData, DefKey};
 use crate::type_ref::type_ref_to_feel_type;
-use flowstone_feel::FeelType;
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::Value;
+use rheon_feel::FeelType;
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
 use std::collections::HashMap;
 
 /// Type of closure that evaluates input data context.
@@ -61,8 +61,8 @@ mod tests {
   use crate::item_definition_context::ItemDefinitionContextEvaluator;
   use crate::model_definitions::{DefDefinitions, DefKey};
   use dsntk_examples::input_data::*;
-  use flowstone_feel::FeelType;
-  use flowstone_feel::context::FeelContext;
+  use rheon_feel::FeelType;
+  use rheon_feel::context::FeelContext;
 
   const NAMESPACE: &str = "https://dsntk.io";
 

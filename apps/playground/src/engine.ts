@@ -1,11 +1,11 @@
 /**
  * Engine adapter for the playground: the real dsntk FEEL engine (`dist/feel.wasm`,
  * Rust → wasm32-wasip1, pure-Rust decimal128 numbers) running in a Web Worker via
- * `@flowstone/feel-runtime` (docs/CONTRACT.md §4).
+ * `@rheon/feel-runtime` (docs/CONTRACT.md §4).
  *
  * The UI only talks to the `PlaygroundEngine` interface below.
  */
-import { FeelEngine, rawJson, type Dialect, type ParseOptions, type ParseResponse, type RequestOptions } from '@flowstone/feel-runtime';
+import { FeelEngine, rawJson, type Dialect, type ParseOptions, type ParseResponse, type RequestOptions } from '@rheon/feel-runtime';
 // Built by `npm run build:wasm` (scripts/build-wasm.sh). Vite copies it into the
 // build output as a hashed asset; `vite.config.ts` fails early if it is missing.
 import feelWasmUrl from '../../../dist/feel.wasm?url';
@@ -18,7 +18,7 @@ export type {
   ParseResponse,
   FeelResult,
   ErrorKind,
-} from '@flowstone/feel-runtime';
+} from '@rheon/feel-runtime';
 export { rawJson };
 
 /** Per-request time budget; the worker is terminated and restarted after it. */

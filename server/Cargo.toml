@@ -16,8 +16,8 @@ default = ["dashu"]
 tck = []
 # Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
 # Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["dsntk-evaluator/dashu", "flowstone-feel/dashu", "dsntk-model/dashu", "dsntk-workspace/dashu"]
-intel = ["dsntk-evaluator/intel", "flowstone-feel/intel", "dsntk-model/intel", "dsntk-workspace/intel"]
+dashu = ["dsntk-evaluator/dashu", "rheon-feel/dashu", "dsntk-model/dashu", "dsntk-workspace/dashu"]
+intel = ["dsntk-evaluator/intel", "rheon-feel/intel", "dsntk-model/intel", "dsntk-workspace/intel"]
 
 [dependencies]
 actix-web = { workspace = true }
@@ -27,7 +27,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 dsntk-common = { workspace = true }
 dsntk-evaluator = { workspace = true }
-flowstone-feel = { workspace = true }
+rheon-feel = { workspace = true }
 dsntk-macros = { workspace = true }
 dsntk-model = { workspace = true }
 dsntk-workspace = { workspace = true }

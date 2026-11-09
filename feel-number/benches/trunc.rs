@@ -2,7 +2,7 @@
 
 extern crate test;
 
-use flowstone_feel_number::FeelNumber;
+use rheon_feel_number::FeelNumber;
 use test::Bencher;
 
 #[bench]

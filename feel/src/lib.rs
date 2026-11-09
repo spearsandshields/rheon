@@ -23,7 +23,7 @@ mod ranges;
 #[cfg(test)]
 mod tests;
 
-pub use flowstone_feel_number::FeelNumber;
+pub use rheon_feel_number::FeelNumber;
 pub use evaluator::Evaluator;
 pub use function::FunctionBody;
 pub use names::Name;

@@ -21,7 +21,7 @@ members = [
     "recognizer",
     "server",
     "workspace",
-    # flowstone additions (see README): the FEEL engine as a wasm32-wasip1 module
+    # rheon additions (see README): the FEEL engine as a wasm32-wasip1 module
     "wasm/feel-wasm"
 ]
 
@@ -66,28 +66,28 @@ walkdir = "2.5.0"
 dsntk-common = { path = "common" }
 dsntk-evaluator = { path = "evaluator", default-features = false }
 dsntk-examples = { path = "examples" }
-flowstone-feel = { path = "feel", default-features = false }
-flowstone-feel-evaluator = { path = "feel-evaluator", default-features = false }
+rheon-feel = { path = "feel", default-features = false }
+rheon-feel-evaluator = { path = "feel-evaluator", default-features = false }
 dsntk-feel-grammar = { path = "feel-grammar" }
-flowstone-feel-number = { path = "feel-number", default-features = false }
-flowstone-feel-parser = { path = "feel-parser", default-features = false }
-flowstone-feel-regex = { path = "feel-regex" }
-flowstone-feel-temporal = { path = "feel-temporal", default-features = false }
+rheon-feel-number = { path = "feel-number", default-features = false }
+rheon-feel-parser = { path = "feel-parser", default-features = false }
+rheon-feel-regex = { path = "feel-regex" }
+rheon-feel-temporal = { path = "feel-temporal", default-features = false }
 dsntk-gendoc = { path = "gendoc", default-features = false }
 dsntk-macros = { path = "macros" }
 dsntk-model = { path = "model", default-features = false }
-flowstone-model-evaluator = { path = "model-evaluator", default-features = false }
+rheon-model-evaluator = { path = "model-evaluator", default-features = false }
 dsntk-recognizer = { path = "recognizer" }
 dsntk-server = { path = "server", default-features = false }
 dsntk-workspace = { path = "workspace", default-features = false }
 
-# flowstone: the upstream dsntk-rs commit this repository's dsntk crates are based on. Reported by
+# rheon: the upstream dsntk-rs commit this repository's dsntk crates are based on. Reported by
 # the wasm module's `info` op as `upstreamCommit`, next to the repository HEAD (`engineCommit`).
-[workspace.metadata.flowstone]
+[workspace.metadata.rheon]
 upstream-commit = "c76aee02187183b3659a9051f3ebb283630066f7"
 upstream = "https://github.com/dsntk/dsntk-rs.git"
 
-# flowstone: profile for the wasm modules (`scripts/build-wasm.sh` builds with `--profile wasm`).
+# rheon: profile for the wasm modules (`scripts/build-wasm.sh` builds with `--profile wasm`).
 # Kept separate from `release` so the native dsntk binaries keep their default settings.
 [profile.wasm]
 inherits = "release"

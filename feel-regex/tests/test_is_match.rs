@@ -1,4 +1,4 @@
-use flowstone_feel_regex::is_match;
+use rheon_feel_regex::is_match;
 
 #[test]
 fn _0001() {

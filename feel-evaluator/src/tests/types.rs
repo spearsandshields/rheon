@@ -1,5 +1,5 @@
-use flowstone_feel::{FeelScope, FeelType, scope};
-use flowstone_feel_parser::AstNode;
+use rheon_feel::{FeelScope, FeelType, scope};
+use rheon_feel_parser::AstNode;
 
 #[test]
 fn _0001() {

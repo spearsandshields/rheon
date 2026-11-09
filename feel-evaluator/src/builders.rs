@@ -5,13 +5,13 @@ use crate::evaluator_pmml::evaluate_external_pmml_function;
 use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
 use crate::macros::invalid_argument_type;
 use crate::{FilterExpressionEvaluator, bifs};
-use flowstone_feel::bif::Bif;
-use flowstone_feel::bip::*;
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::{VALUE_FALSE, VALUE_TRUE, Value};
-use flowstone_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, IntervalType, Name, value_null};
-use flowstone_feel_parser::{AstNode, ClosureBuilder};
-use flowstone_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+use rheon_feel::bif::Bif;
+use rheon_feel::bip::*;
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value};
+use rheon_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, IntervalType, Name, value_null};
+use rheon_feel_parser::{AstNode, ClosureBuilder};
+use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
 use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::Write;
@@ -2827,7 +2827,7 @@ fn err_expected_name(actual: &AstNode) -> String {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use flowstone_feel::scope;
+  use rheon_feel::scope;
 
   #[test]
   fn test_unimplemented_external_function_kind() {

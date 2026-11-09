@@ -1,6 +1,6 @@
 name: build GNU/Linux
 
-# flowstone: upstream's binary release workflow, kept for manual use only (no push/PR triggers).
+# rheon: upstream's binary release workflow, kept for manual use only (no push/PR triggers).
 on:
   workflow_dispatch:
 

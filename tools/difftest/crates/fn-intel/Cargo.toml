@@ -1,4 +1,4 @@
-# The real flowstone-feel-number crate source (lib.rs), built with feature `intel`.
+# The real rheon-feel-number crate source (lib.rs), built with feature `intel`.
 # dfp-number-sys from crates.io has FFI signature bugs on some targets; run.sh injects the
 # patched copy from dsntk-wasm through `--config patch.crates-io.dfp-number-sys.path=...`.
 [package]

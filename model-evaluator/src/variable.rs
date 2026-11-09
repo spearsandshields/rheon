@@ -1,8 +1,8 @@
 use crate::item_definition::ItemDefinitionEvaluator;
 use crate::item_definition_type::ItemDefinitionTypeEvaluator;
 use crate::model_definitions::{DefInformationItem, DefKey};
-use flowstone_feel::values::Value;
-use flowstone_feel::{FeelType, Name, value_null};
+use rheon_feel::values::Value;
+use rheon_feel::{FeelType, Name, value_null};
 
 /// Type of closure that evaluates values from variable definition.
 pub type VariableEvaluatorFn = Box<dyn Fn(&Value, &ItemDefinitionEvaluator) -> (Name, Value) + Send + Sync>;

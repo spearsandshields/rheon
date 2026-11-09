@@ -3,8 +3,8 @@
 use crate::item_definition::ItemDefinitionEvaluator;
 use crate::model_definitions::{DefDefinitions, DefKey};
 use crate::variable::{Variable, VariableEvaluatorFn};
-use flowstone_feel::Name;
-use flowstone_feel::values::Value;
+use rheon_feel::Name;
+use rheon_feel::values::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -48,8 +48,8 @@ mod tests {
   use crate::item_definition::ItemDefinitionEvaluator;
   use crate::model_definitions::{DefDefinitions, DefKey};
   use dsntk_examples::input_data::*;
-  use flowstone_feel::values::Value;
-  use flowstone_feel::{FeelNumber, Name, value_null, value_number};
+  use rheon_feel::values::Value;
+  use rheon_feel::{FeelNumber, Name, value_null, value_number};
 
   const NAMESPACE: &str = "https://dsntk.io";
 
@@ -70,7 +70,7 @@ mod tests {
     assert_eq!("Full Name", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Full Name: "John"}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Full", "Name"]), Value::String("John".to_string()))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -85,7 +85,7 @@ mod tests {
     assert_eq!("Full Name", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Full Name: "Phillip"}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Full", "Name"]), Value::String("Phillip".to_string()))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -100,7 +100,7 @@ mod tests {
     assert_eq!("Full Name", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Full Name: 50.0}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Full", "Name"]), value_null!("after coercion"))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -115,7 +115,7 @@ mod tests {
     assert_eq!("Monthly Salary", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Monthly Salary: 12000.00}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Monthly", "Salary"]), value_number!(12000))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -130,7 +130,7 @@ mod tests {
     assert_eq!("Monthly Salary", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Monthly Salary: 8135.35}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Monthly", "Salary"]), value_number!(813535, 2))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -145,7 +145,7 @@ mod tests {
     assert_eq!("Monthly Salary", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Monthly Salary: "12000.00"}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Monthly", "Salary"]), value_null!("after coercion"))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -160,7 +160,7 @@ mod tests {
     assert_eq!("Is Affordable", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Is Affordable: true}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Is", "Affordable"]), Value::Boolean(true))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -175,7 +175,7 @@ mod tests {
     assert_eq!("Is Affordable", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Is Affordable: false}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Is", "Affordable"]), Value::Boolean(false))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -190,7 +190,7 @@ mod tests {
     assert_eq!("Is Affordable", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Is Affordable: "no"}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Is", "Affordable"]), value_null!("after coercion"))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -205,7 +205,7 @@ mod tests {
     assert_eq!("Employment Status", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Employment Status: "EMPLOYED"}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let name = Name::new(&["Employment", "Status"]);
     assert_eq!(
       Some((name, Value::String("EMPLOYED".to_string()))),
@@ -221,7 +221,7 @@ mod tests {
     assert_eq!("Always Null", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Always Null: null}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Always", "Null"]), value_null!())),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -236,7 +236,7 @@ mod tests {
     assert_eq!("Always Null", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Always Null: 10}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Always", "Null"]), value_null!("after coercion"))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
@@ -251,7 +251,7 @@ mod tests {
     assert_eq!("Employment Status", variable.name().to_string());
     assert_eq!(NAMESPACE, variable.namespace());
     let context_str = r#"{Employment Status: "EMPLOYED"}"#;
-    let context = flowstone_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let name = Name::new(&["Employment", "Status"]);
     assert_eq!(
       Some((name, value_null!("input data evaluator: item definition evaluator 'tEmploymentStatus' not found"))),

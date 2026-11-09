@@ -5,7 +5,7 @@ import type { EvaluateRequest, FeelError, ParseOptions, RawJson } from './types.
  * Private brand of `RawJson` values. `Symbol.for` so that values made by another copy of this
  * package are recognised too; JSON.stringify ignores symbol keys.
  */
-const RAW_JSON_BRAND = Symbol.for('@flowstone/feel-runtime.rawJson');
+const RAW_JSON_BRAND = Symbol.for('@rheon/feel-runtime.rawJson');
 
 /** Marks `text` as raw JSON to splice verbatim into the request (keeps exact number digits). */
 export function rawJson(text: string): RawJson {

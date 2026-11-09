@@ -9,7 +9,7 @@
 //! * lists / contexts: `[...]` / `{"key": value}`; kept on one line when short, otherwise
 //!   expanded with two-space indentation.
 
-use flowstone_feel::values::Value;
+use rheon_feel::values::Value;
 
 /// Lines longer than this are expanded.
 const MAX_INLINE_WIDTH: usize = 80;

@@ -2,7 +2,7 @@
 #
 # deploy-public.sh — build the playground and publish it to the PUBLIC dsntk-wasm-build
 # repo, served by GitHub Pages at https://spearsandshields.github.io/dsntk-wasm-build/.
-# (The build repository predates the flowstone name; renaming it changes the public URL, so
+# (The build repository predates the rheon name; renaming it changes the public URL, so
 # it is a separate decision. Set DSNTK_BUILD_REPO / edit PAGES_URL when that happens.)
 #
 # Same shape as parasma's deploy: the public repo holds ONLY the built static site, as a

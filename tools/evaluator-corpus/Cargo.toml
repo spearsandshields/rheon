@@ -12,12 +12,12 @@ path = "src/main.rs"
 
 [dependencies]
 serde_json = "1"
-flowstone-feel = { path = "../../feel", default-features = false }
-flowstone-feel-parser = { path = "../../feel-parser", default-features = false }
-flowstone-feel-evaluator = { path = "../../feel-evaluator", default-features = false }
+rheon-feel = { path = "../../feel", default-features = false }
+rheon-feel-parser = { path = "../../feel-parser", default-features = false }
+rheon-feel-evaluator = { path = "../../feel-evaluator", default-features = false }
 
 [features]
-intel = ["flowstone-feel/intel", "flowstone-feel-parser/intel", "flowstone-feel-evaluator/intel"]
-dashu = ["flowstone-feel/dashu", "flowstone-feel-parser/dashu", "flowstone-feel-evaluator/dashu"]
+intel = ["rheon-feel/intel", "rheon-feel-parser/intel", "rheon-feel-evaluator/intel"]
+dashu = ["rheon-feel/dashu", "rheon-feel-parser/dashu", "rheon-feel-evaluator/dashu"]
 
 [workspace]

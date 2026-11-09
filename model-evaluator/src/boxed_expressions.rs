@@ -5,12 +5,12 @@ use crate::errors::*;
 use crate::model_builder::ModelBuilder;
 use crate::model_definitions::*;
 use dsntk_common::Result;
-use flowstone_feel::closure::Closure;
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::Value;
-use flowstone_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
-use flowstone_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
-use flowstone_feel_parser::{ClosureBuilder, parse_name};
+use rheon_feel::closure::Closure;
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
+use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
+use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
+use rheon_feel_parser::{ClosureBuilder, parse_name};
 use dsntk_model::*;
 use std::sync::Arc;
 
@@ -272,9 +272,9 @@ pub fn build_invocation_evaluator(scope: &FeelScope, invocation: &Invocation, mo
 
 pub fn build_literal_expression_evaluator(scope: &FeelScope, literal_expression: &LiteralExpression, model_builder: &ModelBuilder) -> Result<(Evaluator, Closure)> {
   let text = literal_expression.text().as_ref().ok_or_else(err_empty_literal_expression)?;
-  let node = flowstone_feel_parser::parse_expression(scope, text, false)?;
+  let node = rheon_feel_parser::parse_expression(scope, text, false)?;
   let closure = ClosureBuilder::from_node(&node);
-  let literal_expression_evaluator = flowstone_feel_evaluator::prepare(&node);
+  let literal_expression_evaluator = rheon_feel_evaluator::prepare(&node);
   Ok((
     build_coerced_result_evaluator(literal_expression_evaluator, literal_expression, literal_expression.namespace(), model_builder),
     closure,

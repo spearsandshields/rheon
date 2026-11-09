@@ -5,7 +5,7 @@
 
 use crate::errors::*;
 use dsntk_common::{DsntkError, HRef, Result, Uri, gen_id};
-use flowstone_feel::{FeelType, Name};
+use rheon_feel::{FeelType, Name};
 use std::fmt;
 use std::fmt::Display;
 use std::slice::Iter;

@@ -2,7 +2,7 @@
 // Writes apps/playground/public/third-party-notices.txt: the license text of every package that
 // ends up in the playground's browser bundle (the playground's production dependency tree) and of
 // every Rust crate compiled into feel.wasm (the wasm32-wasip1 dependency graph of
-// flowstone-feel-wasm, workspace crates excluded; their notices are the repository's own).
+// rheon-feel-wasm, workspace crates excluded; their notices are the repository's own).
 // Vite strips license comments from the bundle, so the notices are served as a plain file,
 // linked from the playground footer. Run by `npm run build:playground`.
 import { execFileSync } from 'node:child_process';
@@ -20,7 +20,7 @@ const dirs = [...new Set(listing.split('\n').filter((d) => d.includes('/node_mod
 const sections = [];
 for (const dir of dirs) {
   const pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
-  if (pkg.name?.startsWith('@flowstone/')) continue; // our own workspace packages
+  if (pkg.name?.startsWith('@rheon/')) continue; // our own workspace packages
   const licenseFile = readdirSync(dir).find((f) => /^(LICENSE|LICENCE|COPYING)(\.|$)/i.test(f));
   if (!licenseFile) throw new Error(`${pkg.name}@${pkg.version}: no license file in ${dir}`);
   const text = readFileSync(join(dir, licenseFile), 'utf8').trim();
@@ -32,8 +32,8 @@ const meta = JSON.parse(execFileSync('cargo', ['metadata', '--format-version', '
 const byId = new Map(meta.packages.map((p) => [p.id, p]));
 const members = new Set(meta.workspace_members);
 const resolveNode = new Map(meta.resolve.nodes.map((n) => [n.id, n]));
-const rootId = meta.workspace_members.find((id) => byId.get(id).name === 'flowstone-feel-wasm');
-if (!rootId) throw new Error('flowstone-feel-wasm not found in cargo metadata');
+const rootId = meta.workspace_members.find((id) => byId.get(id).name === 'rheon-feel-wasm');
+if (!rootId) throw new Error('rheon-feel-wasm not found in cargo metadata');
 const seen = new Set();
 const stack = [rootId];
 while (stack.length) {
@@ -56,18 +56,18 @@ for (const p of crates) {
   const text = licenseFiles.length
     ? licenseFiles.map((f) => readFileSync(join(dir, f), 'utf8').trim()).join('\n\n' + '-'.repeat(40) + '\n\n')
     : `The crate package contains no license file. It is distributed under ${p.license}; the standard texts are ` +
-      `reproduced in the flowstone repository (LICENSE for Apache-2.0, LICENSE-MIT for MIT, with the crate ` +
+      `reproduced in the rheon repository (LICENSE for Apache-2.0, LICENSE-MIT for MIT, with the crate ` +
       `authors' copyright: ${(p.authors ?? []).join(', ') || 'see the repository'}).`;
   rustSections.push(`${p.name} ${p.version} (${p.license})\n${p.repository ? p.repository + '\n' : ''}\n${text}`);
 }
 
-const header = `Third-party notices for the flowstone FEEL playground
+const header = `Third-party notices for the rheon FEEL playground
 
 The browser bundle includes the JavaScript packages listed first, and the FEEL engine
 (feel.wasm) is compiled from the Rust crates listed after them. Each is distributed under the
-license reproduced below. The engine itself is flowstone's fork of dsntk
+license reproduced below. The engine itself is rheon's fork of dsntk
 (https://github.com/dsntk/dsntk-rs, Copyright (c) 2015-2026 Dariusz Depta), MIT OR Apache-2.0;
-see the LICENSE, LICENSE-MIT and NOTICE files of the flowstone repository.
+see the LICENSE, LICENSE-MIT and NOTICE files of the rheon repository.
 `;
 const rule = '\n\n' + '='.repeat(78) + '\n\n';
 mkdirSync(dirname(out), { recursive: true });

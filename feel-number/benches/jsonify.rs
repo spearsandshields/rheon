@@ -3,7 +3,7 @@
 extern crate test;
 
 use dsntk_common::Jsonify;
-use flowstone_feel_number::FeelNumber;
+use rheon_feel_number::FeelNumber;
 use test::Bencher;
 
 #[bench]

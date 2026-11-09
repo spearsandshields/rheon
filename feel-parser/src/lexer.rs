@@ -4,9 +4,9 @@ use crate::errors::*;
 use crate::lalr::TokenType;
 use crate::scope::ParsingScope;
 use dsntk_common::Result;
-use flowstone_feel::Name;
-use flowstone_feel::bif::is_built_in_date_time_function_name;
-use flowstone_feel::bip::is_built_in_property_name;
+use rheon_feel::Name;
+use rheon_feel::bif::is_built_in_date_time_function_name;
+use rheon_feel::bip::is_built_in_property_name;
 
 /// Definition of a single space character.
 const WS: char = ' ';

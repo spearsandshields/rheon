@@ -1,11 +1,11 @@
 [package]
-name = "flowstone-model-evaluator"
+name = "rheon-model-evaluator"
 version = { workspace = true }
 authors = { workspace = true }
 description = "ÐecisionToolkit | DMN model evaluator"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
 keywords = ["dmn", "decision", "toolkit", "evaluator"]
-documentation = "https://docs.rs/flowstone-model-evaluator"
+documentation = "https://docs.rs/rheon-model-evaluator"
 repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }
@@ -15,15 +15,15 @@ edition = { workspace = true }
 default = ["dashu"]
 # Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
 # Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["flowstone-feel/dashu", "flowstone-feel-evaluator/dashu", "flowstone-feel-parser/dashu", "flowstone-feel-temporal/dashu", "dsntk-model/dashu"]
-intel = ["flowstone-feel/intel", "flowstone-feel-evaluator/intel", "flowstone-feel-parser/intel", "flowstone-feel-temporal/intel", "dsntk-model/intel"]
+dashu = ["rheon-feel/dashu", "rheon-feel-evaluator/dashu", "rheon-feel-parser/dashu", "rheon-feel-temporal/dashu", "dsntk-model/dashu"]
+intel = ["rheon-feel/intel", "rheon-feel-evaluator/intel", "rheon-feel-parser/intel", "rheon-feel-temporal/intel", "dsntk-model/intel"]
 
 [dependencies]
 dsntk-common = { workspace = true }
-flowstone-feel = { workspace = true }
-flowstone-feel-evaluator = { workspace = true }
-flowstone-feel-parser = { workspace = true }
-flowstone-feel-temporal = { workspace = true }
+rheon-feel = { workspace = true }
+rheon-feel-evaluator = { workspace = true }
+rheon-feel-parser = { workspace = true }
+rheon-feel-temporal = { workspace = true }
 dsntk-macros = { workspace = true }
 dsntk-model = { workspace = true }
 

@@ -2,9 +2,9 @@
 
 extern crate test;
 
-use flowstone_feel::values::Value;
-use flowstone_feel::{FeelScope, scope, value_null};
-use flowstone_feel_parser::parse_expression;
+use rheon_feel::values::Value;
+use rheon_feel::{FeelScope, scope, value_null};
+use rheon_feel_parser::parse_expression;
 use test::Bencher;
 
 #[bench]

@@ -1,6 +1,6 @@
 [dsntk] | [ÐecisionToolkit]
 
-### flowstone-feel
+### rheon-feel
 
 [![crates.io][crates-badge]][crates-url]
 [![docs][docs-badge]][docs-url]
@@ -14,10 +14,10 @@
 [![apache-license][apache-badge]][apache-license-url]
 [![cc][cc-badge]][cc-url]
 
-[crates-badge]: https://img.shields.io/crates/v/flowstone-feel.svg
-[crates-url]: https://crates.io/crates/flowstone-feel
-[docs-badge]: https://docs.rs/flowstone-feel/badge.svg
-[docs-url]: https://crates.io/crates/flowstone-feel
+[crates-badge]: https://img.shields.io/crates/v/rheon-feel.svg
+[crates-url]: https://crates.io/crates/rheon-feel
+[docs-badge]: https://docs.rs/rheon-feel/badge.svg
+[docs-url]: https://crates.io/crates/rheon-feel
 [cov-badge]: https://img.shields.io/badge/coverage-0%25-21b577.svg
 [cov-url]: https://crates.io/crates/coverio
 [build-badge-linux-gnu]: https://github.com/DecisionToolkit/dsntk/actions/workflows/build-linux-gnu.yml/badge.svg

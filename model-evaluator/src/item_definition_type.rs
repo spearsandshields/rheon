@@ -4,7 +4,7 @@ use crate::errors::*;
 use crate::model_definitions::{DefDefinitions, DefItemDefinition, DefKey};
 use crate::type_ref::type_ref_to_feel_type;
 use dsntk_common::Result;
-use flowstone_feel::{FEEL_TYPE_NAME_ANY, FeelType, Name};
+use rheon_feel::{FEEL_TYPE_NAME_ANY, FeelType, Name};
 use dsntk_model::ItemDefinitionType;
 use std::collections::{BTreeMap, HashMap};
 
@@ -180,7 +180,7 @@ mod tests {
   use crate::item_definition_type::ItemDefinitionTypeEvaluator;
   use crate::model_definitions::{DefDefinitions, DefKey};
   use dsntk_examples::item_definition::*;
-  use flowstone_feel::{FeelType, Name};
+  use rheon_feel::{FeelType, Name};
 
   const NAMESPACE: &str = "https://dsntk.io";
 

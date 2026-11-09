@@ -1,7 +1,7 @@
 //! Implementation of the scope used while parsing FEEL expressions.
 
 use crate::context::ParsingContext;
-use flowstone_feel::Name;
+use rheon_feel::Name;
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fmt;
@@ -15,9 +15,9 @@ pub struct ParsingScope {
   names: RefCell<HashSet<Name>>,
 }
 
-impl From<&flowstone_feel::FeelScope> for ParsingScope {
+impl From<&rheon_feel::FeelScope> for ParsingScope {
   /// Temporary - remove
-  fn from(scope: &flowstone_feel::FeelScope) -> Self {
+  fn from(scope: &rheon_feel::FeelScope) -> Self {
     let stack = RefCell::new(vec![]);
     for feel_context in scope.contexts() {
       stack.borrow_mut().push(feel_context.into());

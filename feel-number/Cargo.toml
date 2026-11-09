@@ -1,11 +1,11 @@
 [package]
-name = "flowstone-feel-number"
+name = "rheon-feel-number"
 version = { workspace = true }
 authors = { workspace = true }
 description = "ÐecisionToolkit | FEEL number"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
 keywords = ["dmn", "decision", "toolkit", "feel"]
-documentation = "https://docs.rs/flowstone-feel-number"
+documentation = "https://docs.rs/rheon-feel-number"
 repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }

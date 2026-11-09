@@ -1,7 +1,7 @@
 [package]
-name = "flowstone-feel-wasm"
-description = "flowstone FEEL engine (dsntk) exposed as a wasm32-wasip1 reactor with a JSON ABI (see docs/CONTRACT.md)"
-# flowstone's own version line (the workspace version is dsntk's)
+name = "rheon-feel-wasm"
+description = "rheon FEEL engine (dsntk) exposed as a wasm32-wasip1 reactor with a JSON ABI (see docs/CONTRACT.md)"
+# rheon's own version line (the workspace version is dsntk's)
 version = "0.1.0"
 edition = { workspace = true }
 license = { workspace = true }
@@ -17,11 +17,11 @@ crate-type = ["cdylib", "rlib"]
 # (pure Rust; no C toolchain is involved). Path dependencies rather than the workspace table so
 # that the default features apply (the table declares the crates with default-features = false).
 dsntk-common = { path = "../../common" }
-flowstone-feel = { path = "../../feel" }
-flowstone-feel-number = { path = "../../feel-number" }
-flowstone-feel-parser = { path = "../../feel-parser" }
-flowstone-feel-evaluator = { path = "../../feel-evaluator" }
-flowstone-feel-temporal = { path = "../../feel-temporal" }
+rheon-feel = { path = "../../feel" }
+rheon-feel-number = { path = "../../feel-number" }
+rheon-feel-parser = { path = "../../feel-parser" }
+rheon-feel-evaluator = { path = "../../feel-evaluator" }
+rheon-feel-temporal = { path = "../../feel-temporal" }
 serde = { workspace = true }
 # arbitrary_precision: JSON numbers keep their exact source text and never pass through f64.
 serde_json = { workspace = true, features = ["arbitrary_precision"] }

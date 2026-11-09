@@ -1,4 +1,4 @@
-use flowstone_feel_regex::is_match_with_flags;
+use rheon_feel_regex::is_match_with_flags;
 
 #[test]
 fn _0001() {

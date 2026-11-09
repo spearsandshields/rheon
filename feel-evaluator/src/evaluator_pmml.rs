@@ -1,7 +1,7 @@
 //! # Evaluator for PMML external functions
 
-use flowstone_feel::value_null;
-use flowstone_feel::values::Value;
+use rheon_feel::value_null;
+use rheon_feel::values::Value;
 
 /// Evaluates external PMML function.
 pub fn evaluate_external_pmml_function(document: &str, model_name: &str, _arguments: &[Value]) -> Value {

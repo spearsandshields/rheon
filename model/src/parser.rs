@@ -5,7 +5,7 @@ use crate::model::*;
 use crate::validators::{validate_model, validate_schema};
 use crate::xml_utils::*;
 use dsntk_common::{HRef, Result, Uri, gen_id, to_uri};
-use flowstone_feel::{FEEL_TYPE_NAME_ANY, Name};
+use rheon_feel::{FEEL_TYPE_NAME_ANY, Name};
 use roxmltree::{Node, NodeType};
 
 /// Parses the XML input document containing DMN model into [Definitions].
@@ -1369,7 +1369,7 @@ fn optional_id(node: &Node) -> DmnId {
 /// Returns FEEL name for specified node.
 fn required_feel_name(node: &Node) -> Result<Name> {
   let input = required_name(node)?;
-  Ok(flowstone_feel_parser::parse_longest_name(&input).unwrap_or(input.into()))
+  Ok(rheon_feel_parser::parse_longest_name(&input).unwrap_or(input.into()))
 }
 
 /// Returns the required `href` attribute.

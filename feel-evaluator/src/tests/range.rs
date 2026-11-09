@@ -1,5 +1,5 @@
 use super::*;
-use flowstone_feel::{IntervalType, scope};
+use rheon_feel::{IntervalType, scope};
 
 #[test]
 fn _0001() {

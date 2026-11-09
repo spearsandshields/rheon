@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds wasm/feel-wasm (crate flowstone-feel-wasm) for wasm32-wasip1 with the `wasm` profile
+# Builds wasm/feel-wasm (crate rheon-feel-wasm) for wasm32-wasip1 with the `wasm` profile
 # (root Cargo.toml: opt-level z, lto, panic=abort, overflow checks) into dist/feel.wasm, prints its size
 # (raw / gzip / brotli) and checks the module interface against docs/CONTRACT.md §1:
 # imports must all be wasi_snapshot_preview1.*, and the contract exports must be present.
@@ -20,9 +20,9 @@ cd "$ROOT"
 # flags are target-specific, so host build scripts are unaffected and the native `cargo test`
 # cache is not invalidated.
 CARGO_HOME_DIR="${CARGO_HOME:-$HOME/.cargo}"
-export CARGO_TARGET_WASM32_WASIP1_RUSTFLAGS="${CARGO_TARGET_WASM32_WASIP1_RUSTFLAGS:-} --remap-path-prefix=$CARGO_HOME_DIR=/cargo-home --remap-path-prefix=$ROOT=/flowstone"
-echo "==> cargo build --profile wasm --target wasm32-wasip1 -p flowstone-feel-wasm (paths remapped: $CARGO_HOME_DIR, $ROOT)"
-cargo build --profile wasm --target wasm32-wasip1 -p flowstone-feel-wasm
+export CARGO_TARGET_WASM32_WASIP1_RUSTFLAGS="${CARGO_TARGET_WASM32_WASIP1_RUSTFLAGS:-} --remap-path-prefix=$CARGO_HOME_DIR=/cargo-home --remap-path-prefix=$ROOT=/rheon"
+echo "==> cargo build --profile wasm --target wasm32-wasip1 -p rheon-feel-wasm (paths remapped: $CARGO_HOME_DIR, $ROOT)"
+cargo build --profile wasm --target wasm32-wasip1 -p rheon-feel-wasm
 
 mkdir -p dist
 cp target/wasm32-wasip1/wasm/feel_wasm.wasm dist/feel.wasm

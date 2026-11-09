@@ -1,8 +1,8 @@
-use flowstone_feel::{FeelScope, scope};
+use rheon_feel::{FeelScope, scope};
 
 #[test]
 fn _0001() {
-  let node = flowstone_feel_parser::parse_unary_tests(&scope!(), "<1, <=2, >3, >=4, =5, !=6", false).unwrap();
+  let node = rheon_feel_parser::parse_unary_tests(&scope!(), "<1, <=2, >3, >=4, =5, !=6", false).unwrap();
   let expected = r#"
        ExpressionList
        ├─ UnaryLt

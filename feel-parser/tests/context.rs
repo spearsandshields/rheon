@@ -1,4 +1,4 @@
-use flowstone_feel::{FeelScope, scope};
+use rheon_feel::{FeelScope, scope};
 
 #[test]
 fn _0001() {
@@ -11,7 +11,7 @@ fn _0001() {
       }
     }
   }"#;
-  let node = flowstone_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = rheon_feel_parser::parse_context(&scope!(), input, false).unwrap();
   let expected = r#"
        Context
        └─ ContextEntry

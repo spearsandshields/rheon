@@ -1,5 +1,5 @@
 use dsntk_common::{DsntkError, ToErrorMessage};
-use flowstone_feel::FeelType;
+use rheon_feel::FeelType;
 
 /// Errors related to model evaluation.
 #[derive(ToErrorMessage)]

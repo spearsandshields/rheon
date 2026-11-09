@@ -1,7 +1,7 @@
 use crate::context::ParsingContext;
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::Value;
-use flowstone_feel::{FeelType, Name};
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
+use rheon_feel::{FeelType, Name};
 
 #[test]
 fn test_display() {

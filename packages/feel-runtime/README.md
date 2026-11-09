@@ -1,6 +1,6 @@
-# @flowstone/feel-runtime
+# @rheon/feel-runtime
 
-JS/TS runtime for the flowstone FEEL engine (a fork of [dsntk](https://github.com/dsntk/dsntk-rs)) compiled to WebAssembly
+JS/TS runtime for the rheon FEEL engine (a fork of [dsntk](https://github.com/dsntk/dsntk-rs)) compiled to WebAssembly
 (`wasm32-wasip1`, pure-Rust decimal128 numbers: exact 34-digit results). It implements
 [`docs/CONTRACT.md`](../../docs/CONTRACT.md) §4.
 
@@ -21,7 +21,7 @@ npm test                         # build + node:test against ../../dist/feel.was
 ## Usage in a browser or Vite app
 
 ```ts
-import { FeelEngine, rawJson } from '@flowstone/feel-runtime';
+import { FeelEngine, rawJson } from '@rheon/feel-runtime';
 import wasmUrl from '../../dist/feel.wasm?url'; // or copy feel.wasm into public/
 
 const engine = await FeelEngine.create({ wasmUrl, timeoutMs: 2000 });
@@ -41,7 +41,7 @@ await engine.evaluate({ dialect: 'unaryTests', expression: '[1..10], > 20', inpu
 // Parse tree (dsntk AstNode::tree). Pass the context so multi-word names split correctly.
 await engine.parse('expression', 'first name + 1', { context: { 'first name': 1 } });
 
-await engine.info(); // { ok, engine: "flowstone", engineCommit, upstreamCommit, numberBackend: "dashu", version }
+await engine.info(); // { ok, engine: "rheon", engineCommit, upstreamCommit, numberBackend: "dashu", version }
 engine.dispose();
 ```
 
@@ -63,15 +63,15 @@ How the engine works:
 - **Loading.** The wasm is fetched and compiled once, on the main thread. `compileStreaming` is used when the server sends `application/wasm`. The compiled `WebAssembly.Module` is posted to each worker, so a restart only re-instantiates it. You can also pass `wasmModule` or `wasmBytes` instead of `wasmUrl`.
 - **Time zone.** `tzOffsetMinutes` defaults to `-new Date().getTimezoneOffset()` on every request, so `now()` and `today()` follow the host's local time. Set it on the request to override. It is a fixed offset with no DST rules.
 - **Worker bundling.** The worker is created with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`. Vite, webpack 5 and Parcel bundle this form automatically. Two cases need attention:
-  - If Vite pre-bundles the package from `node_modules`, the `new URL` form breaks. Add `optimizeDeps: { exclude: ['@flowstone/feel-runtime'] }`. A linked workspace package (`file:` or `workspace:` dependency) is not pre-bundled.
+  - If Vite pre-bundles the package from `node_modules`, the `new URL` form breaks. Add `optimizeDeps: { exclude: ['@rheon/feel-runtime'] }`. A linked workspace package (`file:` or `workspace:` dependency) is not pre-bundled.
   - Use `worker: { format: 'es' }` if your Vite config sets a non-ES worker format.
-- **Custom workers.** `createWorker: () => WorkerLike` replaces worker creation, for example with your own `new Worker(...)` call or a `worker_threads` adapter (see `test/helpers.mjs` and `test/worker-bootstrap.mjs`). The worker script is also exported as `@flowstone/feel-runtime/worker`.
+- **Custom workers.** `createWorker: () => WorkerLike` replaces worker creation, for example with your own `new Worker(...)` call or a `worker_threads` adapter (see `test/helpers.mjs` and `test/worker-bootstrap.mjs`). The worker script is also exported as `@rheon/feel-runtime/worker`.
 
 ## Usage in Node (in-thread)
 
 ```js
 import { readFile } from 'node:fs/promises';
-import { instantiateFeel, rawJson } from '@flowstone/feel-runtime';
+import { instantiateFeel, rawJson } from '@rheon/feel-runtime';
 
 const feel = await instantiateFeel(await readFile('dist/feel.wasm'), { tzOffsetMinutes: -240 });
 feel.call({ op: 'evaluate', expression: '0.1 + 0.2' }).result.display; // "0.3"

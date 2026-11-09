@@ -1,10 +1,10 @@
 //! Builder for decision table evaluators.
 
 use dsntk_common::Result;
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::Value;
-use flowstone_feel::{Evaluator, FeelScope, Name, value_null};
-use flowstone_feel_parser::AstNode;
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
+use rheon_feel::{Evaluator, FeelScope, Name, value_null};
+use rheon_feel_parser::AstNode;
 use dsntk_model::{BuiltinAggregator, DecisionTable, HitPolicy};
 use std::cmp::Ordering;
 
@@ -197,7 +197,7 @@ impl EvaluatedDecisionTable {
       .iter()
       .map(|evaluated_rule| evaluated_rule.output_entry_values[0].clone())
       .collect::<Vec<Value>>();
-    flowstone_feel_evaluator::evaluate_sum(output_values)
+    rheon_feel_evaluator::evaluate_sum(output_values)
   }
 
   fn evaluate_hit_policy_collect_min(&self) -> Value {
@@ -212,7 +212,7 @@ impl EvaluatedDecisionTable {
       .iter()
       .map(|evaluated_rule| evaluated_rule.output_entry_values[0].clone())
       .collect::<Vec<Value>>();
-    flowstone_feel_evaluator::evaluate_min(output_values)
+    rheon_feel_evaluator::evaluate_min(output_values)
   }
 
   fn evaluate_hit_policy_collect_max(&self) -> Value {
@@ -227,7 +227,7 @@ impl EvaluatedDecisionTable {
       .iter()
       .map(|evaluated_rule| evaluated_rule.output_entry_values[0].clone())
       .collect::<Vec<Value>>();
-    flowstone_feel_evaluator::evaluate_max(output_values)
+    rheon_feel_evaluator::evaluate_max(output_values)
   }
 }
 
@@ -235,9 +235,9 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
   // parse input expressions and input values
   let mut input_expressions_and_values = vec![];
   for input_clause in decision_table.input_clauses() {
-    let input_expression = flowstone_feel_parser::parse_expression(scope, &input_clause.input_expression, false)?;
+    let input_expression = rheon_feel_parser::parse_expression(scope, &input_clause.input_expression, false)?;
     let input_values = if let Some(input) = &input_clause.allowed_input_values {
-      let node = flowstone_feel_parser::parse_unary_tests(scope, input, false)?;
+      let node = rheon_feel_parser::parse_unary_tests(scope, input, false)?;
       Some(node)
     } else {
       None
@@ -250,19 +250,19 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
   let mut default_output_values_nodes = vec![];
   for output_clause in decision_table.output_clauses() {
     if let Some(text) = &output_clause.allowed_output_values {
-      let node = flowstone_feel_parser::parse_unary_tests(scope, text, false)?;
+      let node = rheon_feel_parser::parse_unary_tests(scope, text, false)?;
       output_values_nodes.push(Some(node));
     } else {
       output_values_nodes.push(None);
     }
     if let Some(text) = &output_clause.default_output_entry {
-      let node = flowstone_feel_parser::parse_unary_tests(scope, text, false)?;
+      let node = rheon_feel_parser::parse_unary_tests(scope, text, false)?;
       default_output_values_nodes.push(Some(node));
     } else {
       default_output_values_nodes.push(None);
     }
     if let Some(name) = &output_clause.name {
-      component_names.push(flowstone_feel_parser::parse_name(scope, name, false)?);
+      component_names.push(rheon_feel_parser::parse_name(scope, name, false)?);
     }
   }
   // parse all rules
@@ -271,26 +271,26 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
     // parse input clause
     let mut input_entries_evaluators = vec![];
     for (i, (input_expression, input_values)) in input_expressions_and_values.iter().enumerate() {
-      let input_entry_node = flowstone_feel_parser::parse_unary_tests(scope, &rule.input_entries[i].text, false)?;
+      let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, &rule.input_entries[i].text, false)?;
       if let Some(input_values_node) = input_values {
         let left = AstNode::In(Box::new(input_expression.clone()), Box::new(input_values_node.clone()));
         let right = AstNode::In(Box::new(input_expression.clone()), Box::new(input_entry_node));
         let node = AstNode::And(Box::new(left), Box::new(right));
-        input_entries_evaluators.push(flowstone_feel_evaluator::prepare(&node));
+        input_entries_evaluators.push(rheon_feel_evaluator::prepare(&node));
       } else {
         let node = AstNode::In(Box::new(input_expression.clone()), Box::new(input_entry_node));
-        input_entries_evaluators.push(flowstone_feel_evaluator::prepare(&node));
+        input_entries_evaluators.push(rheon_feel_evaluator::prepare(&node));
       }
     }
     // parse output clause
     let mut output_entries_evaluators = vec![];
     for (i, output_values) in output_values_nodes.iter().enumerate() {
-      let output_entry_node = flowstone_feel_parser::parse_expression(scope, &rule.output_entries[i].text, false)?;
+      let output_entry_node = rheon_feel_parser::parse_expression(scope, &rule.output_entries[i].text, false)?;
       if let Some(output_value_node) = output_values {
         let node = AstNode::Out(Box::new(output_entry_node), Box::new(output_value_node.clone()));
-        output_entries_evaluators.push(flowstone_feel_evaluator::prepare(&node));
+        output_entries_evaluators.push(rheon_feel_evaluator::prepare(&node));
       } else {
-        output_entries_evaluators.push(flowstone_feel_evaluator::prepare(&output_entry_node));
+        output_entries_evaluators.push(rheon_feel_evaluator::prepare(&output_entry_node));
       }
     }
     parsed_rules.push(ParsedRule {
@@ -301,7 +301,7 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
   let mut output_values_evaluators = vec![];
   for opt_node in output_values_nodes {
     if let Some(node) = opt_node {
-      output_values_evaluators.push(Some(flowstone_feel_evaluator::prepare(&node)));
+      output_values_evaluators.push(Some(rheon_feel_evaluator::prepare(&node)));
     } else {
       output_values_evaluators.push(None);
     }
@@ -309,7 +309,7 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
   let mut default_output_values_evaluators = vec![];
   for opt_node in default_output_values_nodes {
     if let Some(node) = opt_node {
-      default_output_values_evaluators.push(Some(flowstone_feel_evaluator::prepare(&node)));
+      default_output_values_evaluators.push(Some(rheon_feel_evaluator::prepare(&node)));
     } else {
       default_output_values_evaluators.push(None);
     }
@@ -392,8 +392,8 @@ mod tests {
   use super::build_decision_table_evaluator;
   use crate::tests::context;
   use dsntk_examples::decision_tables::H_000210;
-  use flowstone_feel::values::Value;
-  use flowstone_feel::{FeelNumber, value_number};
+  use rheon_feel::values::Value;
+  use rheon_feel::{FeelNumber, value_number};
   use dsntk_model::DecisionTable;
 
   #[test]

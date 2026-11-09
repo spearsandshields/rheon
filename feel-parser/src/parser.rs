@@ -6,7 +6,7 @@ use crate::lalr::*;
 use crate::lexer::*;
 use crate::scope::ParsingScope;
 use dsntk_common::Result;
-use flowstone_feel::{FeelType, IntervalType, Name};
+use rheon_feel::{FeelType, IntervalType, Name};
 
 enum Action {
   Accept,

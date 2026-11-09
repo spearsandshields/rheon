@@ -22,7 +22,7 @@ test('imports are WASI functions the 10-function shim provides (CONTRACT §1)', 
 test('info', () => {
   const r = feel.call({ op: 'info' });
   assert.equal(r.ok, true);
-  assert.equal(r.engine, 'flowstone');
+  assert.equal(r.engine, 'rheon');
   assert.equal(r.numberBackend, 'dashu');
   assert.match(r.engineCommit, /^[0-9a-f]{40}(-dirty)?$/);
   assert.match(r.upstreamCommit, /^[0-9a-f]{40}$/);

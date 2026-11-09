@@ -1,6 +1,6 @@
 use super::*;
 use crate::AstNode;
-use flowstone_feel::{FeelType, IntervalType};
+use rheon_feel::{FeelType, IntervalType};
 use std::collections::BTreeMap;
 
 #[test]

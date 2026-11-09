@@ -1,8 +1,8 @@
 //! Conversion of request input (JSON or FEEL context literal) into FEEL values.
 
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::Value;
-use flowstone_feel::{FeelNumber, FeelScope, Name};
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
+use rheon_feel::{FeelNumber, FeelScope, Name};
 use serde_json::Value as Json;
 
 /// Maximum number of significant digits of a decimal128 (BID128) number.
@@ -67,11 +67,11 @@ pub fn feel_context(text: &str) -> Result<FeelContext, String> {
     return Ok(FeelContext::default());
   }
   let scope = FeelScope::default();
-  let node = flowstone_feel_parser::parse_context(&scope, text, false).map_err(|e| format!("invalid FEEL context: {e}"))?;
+  let node = rheon_feel_parser::parse_context(&scope, text, false).map_err(|e| format!("invalid FEEL context: {e}"))?;
   crate::engine::check_ast_depth(&node).map_err(|e| format!("invalid FEEL context: {e}"))?;
-  flowstone_feel_evaluator::reset_call_depth();
-  let value = flowstone_feel_evaluator::evaluate(&scope, &node);
-  if flowstone_feel_evaluator::call_depth_exceeded() {
+  rheon_feel_evaluator::reset_call_depth();
+  let value = rheon_feel_evaluator::evaluate(&scope, &node);
+  if rheon_feel_evaluator::call_depth_exceeded() {
     return Err(crate::engine::call_depth_message());
   }
   match value {

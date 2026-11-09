@@ -2,16 +2,16 @@
 
 extern crate test;
 
-use flowstone_feel::values::Value;
-use flowstone_feel::{FeelNumber, FeelScope, scope, value_null, value_number};
-use flowstone_feel_evaluator::prepare;
+use rheon_feel::values::Value;
+use rheon_feel::{FeelNumber, FeelScope, scope, value_null, value_number};
+use rheon_feel_evaluator::prepare;
 use test::Bencher;
 
 #[bench]
 fn feel_evaluator_addition_0001(b: &mut Bencher) {
   let scope = scope!();
   let input = r#"1+2"#;
-  let node = flowstone_feel_parser::parse_expression(&scope, input, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope, input, false).unwrap();
   let evaluator = prepare(&node);
   assert_eq!(value_number!(3), evaluator(&scope));
   b.iter(|| evaluator(&scope));
@@ -21,7 +21,7 @@ fn feel_evaluator_addition_0001(b: &mut Bencher) {
 fn feel_evaluator_addition_0002(b: &mut Bencher) {
   let scope = scope!();
   let input = r#"1+2+3"#;
-  let node = flowstone_feel_parser::parse_expression(&scope, input, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope, input, false).unwrap();
   let evaluator = prepare(&node);
   assert_eq!(value_number!(6), evaluator(&scope));
   b.iter(|| evaluator(&scope));
@@ -33,7 +33,7 @@ fn feel_evaluator_addition_0003(b: &mut Bencher) {
   scope.set_value(&"a".into(), value_null!());
   scope.set_value(&"b".into(), value_null!());
   let input = r#"a+b"#;
-  let node = flowstone_feel_parser::parse_expression(&scope, input, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope, input, false).unwrap();
   let evaluator = prepare(&node);
   scope.set_value(&"a".into(), value_number!(1838, 2));
   scope.set_value(&"b".into(), value_number!(162, 2));

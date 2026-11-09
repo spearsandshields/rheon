@@ -1,11 +1,11 @@
 [package]
-name = "flowstone-feel-regex"
+name = "rheon-feel-regex"
 version = { workspace = true }
 authors = { workspace = true }
 description = "ÐecisionToolkit | FEEL regular expressions"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
 keywords = ["dmn", "decision", "toolkit", "regex"]
-documentation = "https://docs.rs/flowstone-feel-regex"
+documentation = "https://docs.rs/rheon-feel-regex"
 repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }

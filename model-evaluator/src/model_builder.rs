@@ -8,7 +8,7 @@ use crate::item_definition_context::ItemDefinitionContextEvaluator;
 use crate::item_definition_type::{InformationItemTypes, ItemDefinitionTypeEvaluator};
 use crate::model_definitions::{DefDefinitions, DefKey, Invocables};
 use dsntk_common::Result;
-use flowstone_feel::Name;
+use rheon_feel::Name;
 use dsntk_model::Definitions;
 use std::cell::RefCell;
 

@@ -15,15 +15,15 @@ edition = { workspace = true }
 default = ["dashu"]
 # Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
 # Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["flowstone-feel/dashu", "flowstone-feel-parser/dashu"]
-intel = ["flowstone-feel/intel", "flowstone-feel-parser/intel"]
+dashu = ["rheon-feel/dashu", "rheon-feel-parser/dashu"]
+intel = ["rheon-feel/intel", "rheon-feel-parser/intel"]
 
 [dependencies]
 petgraph = { workspace = true }
 roxmltree = { workspace = true }
 dsntk-common = { workspace = true }
 dsntk-examples = { workspace = true }
-flowstone-feel = { workspace = true }
-flowstone-feel-parser = { workspace = true }
+rheon-feel = { workspace = true }
+rheon-feel-parser = { workspace = true }
 dsntk-macros = { workspace = true }
 dsntk-recognizer = { workspace = true }

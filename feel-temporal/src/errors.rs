@@ -2,7 +2,7 @@
 
 use crate::FeelDate;
 use dsntk_common::{DsntkError, ToErrorMessage};
-use flowstone_feel_number::FeelNumber;
+use rheon_feel_number::FeelNumber;
 
 /// FEEL temporal error.
 #[derive(ToErrorMessage)]

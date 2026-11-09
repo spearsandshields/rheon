@@ -1,7 +1,7 @@
-use flowstone_feel::values::Value;
-use flowstone_feel::{FeelNumber, FeelScope, scope};
-use flowstone_feel_evaluator::*;
-use flowstone_feel_parser::AstNode;
+use rheon_feel::values::Value;
+use rheon_feel::{FeelNumber, FeelScope, scope};
+use rheon_feel_evaluator::*;
+use rheon_feel_parser::AstNode;
 
 #[test]
 fn _0001() {

@@ -74,7 +74,7 @@ pub(crate) use b_bool;
 pub(crate) use b_name;
 pub(crate) use b_num;
 use difference::Changeset;
-use flowstone_feel::Name;
+use rheon_feel::Name;
 pub(crate) use s;
 pub(crate) use scope;
 
@@ -105,7 +105,7 @@ fn eqs(expected: &str, node: &AstNode) {
 
 #[test]
 fn test_parse_textual_expression() {
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   let node = crate::parse_textual_expression(&scope, "1+2", false).unwrap();
   eqs(
     r#"
@@ -121,7 +121,7 @@ fn test_parse_textual_expression() {
 
 #[test]
 fn test_parse_textual_expressions() {
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   let node = crate::parse_textual_expressions(&scope, "1+2,2+3,3*4", false).unwrap();
   eqs(
     r#"
@@ -148,7 +148,7 @@ fn test_parse_textual_expressions() {
 
 #[test]
 fn test_parse_unary_tests() {
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   let node = crate::parse_unary_tests(&scope, "1,2,3,4", false).unwrap();
   eqs(
     r#"
@@ -168,7 +168,7 @@ fn test_parse_unary_tests() {
 
 #[test]
 fn test_parse_boxed_expression() {
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   let node = crate::parse_boxed_expression(&scope, "[1,2,3,4]", false).unwrap();
   eqs(
     r#"
@@ -188,7 +188,7 @@ fn test_parse_boxed_expression() {
 
 #[test]
 fn test_parse_context() {
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   let node = crate::parse_context(&scope, "{age: 50}", false).unwrap();
   eqs(
     r#"
@@ -206,7 +206,7 @@ fn test_parse_context() {
 #[test]
 fn test_parse_name() {
   let name_a: Name = Name::new(&["Full", "House"]);
-  let scope = flowstone_feel::FeelScope::default();
+  let scope = rheon_feel::FeelScope::default();
   assert_eq!(name_a, crate::parse_name(&scope, "Full House", false).unwrap());
 }
 

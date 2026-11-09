@@ -24,7 +24,7 @@ export default defineConfig({
   plugins: [requireFeelWasm(), svelte()],
   // The runtime creates its worker with `new URL('./worker.js', import.meta.url)`; pre-bundling
   // would break that, so keep it out of the dep optimizer (it is a linked workspace package anyway).
-  optimizeDeps: { exclude: ['@flowstone/feel-runtime'] },
+  optimizeDeps: { exclude: ['@rheon/feel-runtime'] },
   // The runtime's worker is an ES module (it imports the WASI shim).
   worker: { format: 'es' },
   // CodeMirror + lang-feel (with its built-in docs for completion) is ~500 kB minified.

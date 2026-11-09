@@ -726,9 +726,9 @@ dependencies = [
  "dsntk-recognizer",
  "dsntk-server",
  "dsntk-workspace",
- "flowstone-feel",
- "flowstone-feel-parser",
- "flowstone-feel-regex",
+ "rheon-feel",
+ "rheon-feel-parser",
+ "rheon-feel-regex",
  "serde",
 ]
 
@@ -750,10 +750,10 @@ version = "0.3.1-dev"
 dependencies = [
  "dsntk-common",
  "dsntk-macros",
- "flowstone-feel",
- "flowstone-feel-evaluator",
- "flowstone-feel-parser",
- "flowstone-model-evaluator",
+ "rheon-feel",
+ "rheon-feel-evaluator",
+ "rheon-feel-parser",
+ "rheon-model-evaluator",
 ]
 
 [[package]]
@@ -781,8 +781,8 @@ dependencies = [
  "dsntk-examples",
  "dsntk-model",
  "dsntk-recognizer",
- "flowstone-feel",
  "markdown",
+ "rheon-feel",
 ]
 
 [[package]]
@@ -802,9 +802,9 @@ dependencies = [
  "dsntk-examples",
  "dsntk-macros",
  "dsntk-recognizer",
- "flowstone-feel",
- "flowstone-feel-parser",
  "petgraph",
+ "rheon-feel",
+ "rheon-feel-parser",
  "roxmltree",
 ]
 
@@ -830,7 +830,7 @@ dependencies = [
  "dsntk-macros",
  "dsntk-model",
  "dsntk-workspace",
- "flowstone-feel",
+ "rheon-feel",
  "serde",
  "serde_json",
 ]
@@ -844,9 +844,9 @@ dependencies = [
  "dsntk-examples",
  "dsntk-macros",
  "dsntk-model",
- "flowstone-feel",
- "flowstone-feel-evaluator",
- "flowstone-model-evaluator",
+ "rheon-feel",
+ "rheon-feel-evaluator",
+ "rheon-model-evaluator",
  "walkdir",
 ]
 
@@ -912,113 +912,6 @@ checksum = "843fba2746e448b37e26a819579957415c8cef339bf08564fe8b7ddbd959573c"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
-]
-
-[[package]]
-name = "flowstone-feel"
-version = "0.3.1-dev"
-dependencies = [
- "chrono",
- "chrono-tz",
- "dsntk-common",
- "dsntk-macros",
- "flowstone-feel-number",
- "flowstone-feel-temporal",
- "regex",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "flowstone-feel-evaluator"
-version = "0.3.1-dev"
-dependencies = [
- "dsntk-common",
- "dsntk-macros",
- "flowstone-feel",
- "flowstone-feel-parser",
- "flowstone-feel-regex",
- "flowstone-feel-temporal",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "flowstone-feel-number"
-version = "0.3.1-dev"
-dependencies = [
- "dashu-base",
- "dashu-float",
- "dashu-int",
- "dfp-number-sys",
- "dsntk-common",
- "dsntk-macros",
-]
-
-[[package]]
-name = "flowstone-feel-parser"
-version = "0.3.1-dev"
-dependencies = [
- "antex",
- "difference",
- "dsntk-common",
- "dsntk-feel-grammar",
- "dsntk-macros",
- "flowstone-feel",
-]
-
-[[package]]
-name = "flowstone-feel-regex"
-version = "0.3.1-dev"
-dependencies = [
- "dsntk-common",
- "dsntk-macros",
- "fancy-regex",
-]
-
-[[package]]
-name = "flowstone-feel-temporal"
-version = "0.3.1-dev"
-dependencies = [
- "chrono",
- "chrono-tz",
- "dsntk-common",
- "dsntk-macros",
- "flowstone-feel-number",
- "regex",
-]
-
-[[package]]
-name = "flowstone-feel-wasm"
-version = "0.1.0"
-dependencies = [
- "dsntk-common",
- "flowstone-feel",
- "flowstone-feel-evaluator",
- "flowstone-feel-number",
- "flowstone-feel-parser",
- "flowstone-feel-temporal",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "flowstone-model-evaluator"
-version = "0.3.1-dev"
-dependencies = [
- "antex",
- "dsntk-common",
- "dsntk-examples",
- "dsntk-macros",
- "dsntk-model",
- "dsntk-recognizer",
- "flowstone-feel",
- "flowstone-feel-evaluator",
- "flowstone-feel-parser",
- "flowstone-feel-temporal",
- "walkdir",
 ]
 
 [[package]]
@@ -2039,6 +1932,113 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+]
+
+[[package]]
+name = "rheon-feel"
+version = "0.3.1-dev"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "dsntk-common",
+ "dsntk-macros",
+ "regex",
+ "rheon-feel-number",
+ "rheon-feel-temporal",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rheon-feel-evaluator"
+version = "0.3.1-dev"
+dependencies = [
+ "dsntk-common",
+ "dsntk-macros",
+ "regex",
+ "reqwest",
+ "rheon-feel",
+ "rheon-feel-parser",
+ "rheon-feel-regex",
+ "rheon-feel-temporal",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rheon-feel-number"
+version = "0.3.1-dev"
+dependencies = [
+ "dashu-base",
+ "dashu-float",
+ "dashu-int",
+ "dfp-number-sys",
+ "dsntk-common",
+ "dsntk-macros",
+]
+
+[[package]]
+name = "rheon-feel-parser"
+version = "0.3.1-dev"
+dependencies = [
+ "antex",
+ "difference",
+ "dsntk-common",
+ "dsntk-feel-grammar",
+ "dsntk-macros",
+ "rheon-feel",
+]
+
+[[package]]
+name = "rheon-feel-regex"
+version = "0.3.1-dev"
+dependencies = [
+ "dsntk-common",
+ "dsntk-macros",
+ "fancy-regex",
+]
+
+[[package]]
+name = "rheon-feel-temporal"
+version = "0.3.1-dev"
+dependencies = [
+ "chrono",
+ "chrono-tz",
+ "dsntk-common",
+ "dsntk-macros",
+ "regex",
+ "rheon-feel-number",
+]
+
+[[package]]
+name = "rheon-feel-wasm"
+version = "0.1.0"
+dependencies = [
+ "dsntk-common",
+ "rheon-feel",
+ "rheon-feel-evaluator",
+ "rheon-feel-number",
+ "rheon-feel-parser",
+ "rheon-feel-temporal",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "rheon-model-evaluator"
+version = "0.3.1-dev"
+dependencies = [
+ "antex",
+ "dsntk-common",
+ "dsntk-examples",
+ "dsntk-macros",
+ "dsntk-model",
+ "dsntk-recognizer",
+ "rheon-feel",
+ "rheon-feel-evaluator",
+ "rheon-feel-parser",
+ "rheon-feel-temporal",
+ "walkdir",
 ]
 
 [[package]]

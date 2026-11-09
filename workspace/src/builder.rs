@@ -3,7 +3,7 @@
 use antex::{Color, ColorMode, StyledText, Text};
 use dsntk_common::{encode_segments, to_rdnn};
 use dsntk_model::{Definitions, DmnElement};
-use flowstone_model_evaluator::ModelEvaluator;
+use rheon_model_evaluator::ModelEvaluator;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::fs;

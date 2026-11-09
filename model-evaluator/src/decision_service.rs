@@ -5,10 +5,10 @@ use crate::model_definitions::{DefDecisionService, DefDefinitions, DefKey};
 use crate::model_evaluator::ModelEvaluator;
 use crate::variable::Variable;
 use dsntk_common::Result;
-use flowstone_feel::closure::Closure;
-use flowstone_feel::context::FeelContext;
-use flowstone_feel::values::Value;
-use flowstone_feel::{Evaluator, FeelScope, FeelType, Name, value_null};
+use rheon_feel::closure::Closure;
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
+use rheon_feel::{Evaluator, FeelScope, FeelType, Name, value_null};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -66,7 +66,7 @@ impl DecisionServiceEvaluator {
             }
             value_null!()
           });
-          let function_body = flowstone_feel::FunctionBody::DecisionService(Arc::new(body_evaluator));
+          let function_body = rheon_feel::FunctionBody::DecisionService(Arc::new(body_evaluator));
           let function_definition = Value::FunctionDefinition(entry.1.clone(), function_body, false, Closure::default(), FeelContext::default(), output_variable_type);
           let decision_service_as_function_definition_evaluator = Box::new(move |_: &FeelScope| function_definition.clone());
           entry.3 = Some(decision_service_as_function_definition_evaluator);

@@ -2,7 +2,7 @@
 
 Two standalone Cargo projects (each has its own `[workspace]`, so they are not members of the
 dsntk workspace) that compare the `intel` (dfp-number-sys, Intel BID128) and `dashu`
-(pure Rust, the default) implementations of `flowstone_feel_number::FeelNumber` against each other
+(pure Rust, the default) implementations of `rheon_feel_number::FeelNumber` against each other
 and against an independent oracle. They were used to validate the dashu backend; run them again
 after touching `feel-number/src/decimal128.rs` or `feel-number/src/backend_dashu.rs`.
 
@@ -55,7 +55,7 @@ functions; chains are judged at their first divergent step. A healthy run has no
 ## `evaluator-corpus/`: FEEL expressions through the evaluator
 
 `feel-eval` reads JSON lines `{"src","ctx","expr"}`, evaluates each expression with
-`flowstone-feel-evaluator` built with the selected backend, and writes `{"display","debug","ns"}`.
+`rheon-feel-evaluator` built with the selected backend, and writes `{"display","debug","ns"}`.
 `run.sh` builds it for `intel` and `dashu`, runs the four corpora in `corpora/` through both,
 and compares (`compare.py`: Display and Debug mismatches, panics, time) and judges
 (`oracle_feel.py`: mpmath with every intermediate rounded to decimal128):

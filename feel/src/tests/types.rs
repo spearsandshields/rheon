@@ -4,7 +4,7 @@ use crate::context::FeelContext;
 use crate::types::is_built_in_type_name;
 use crate::values::Value;
 use crate::{FeelScope, FunctionBody, IntervalType, value_null, value_number};
-use flowstone_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
 use std::str::FromStr;
 use std::sync::Arc;
 

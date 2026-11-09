@@ -2,9 +2,9 @@
 //!
 //! 1. **Engine version.** The engine crates live in this repository, so the version is the
 //!    repository HEAD (`git rev-parse HEAD`, `-dirty` when the tree has uncommitted changes, or
-//!    `FLOWSTONE_COMMIT` from the environment) plus the upstream dsntk-rs base commit from the
-//!    root `Cargo.toml` (`[workspace.metadata.flowstone] upstream-commit`). Both reach the crate
-//!    as `FLOWSTONE_COMMIT` / `FLOWSTONE_UPSTREAM_COMMIT` (`env!`), so the `info` op reports
+//!    `RHEON_COMMIT` from the environment) plus the upstream dsntk-rs base commit from the
+//!    root `Cargo.toml` (`[workspace.metadata.rheon] upstream-commit`). Both reach the crate
+//!    as `RHEON_COMMIT` / `RHEON_UPSTREAM_COMMIT` (`env!`), so the `info` op reports
 //!    exactly what was built.
 //!
 //! 2. **WASI reactor link** (docs/CONTRACT.md §1, `wasm32-wasip1` only). Stable rustc has no
@@ -40,12 +40,12 @@ fn main() {
   reactor_link();
 }
 
-/// Engine version: the repository HEAD (`FLOWSTONE_COMMIT`) and the upstream dsntk-rs commit the
-/// dsntk crates are based on (`[workspace.metadata.flowstone] upstream-commit` in the root
-/// `Cargo.toml`, `FLOWSTONE_UPSTREAM_COMMIT`).
+/// Engine version: the repository HEAD (`RHEON_COMMIT`) and the upstream dsntk-rs commit the
+/// dsntk crates are based on (`[workspace.metadata.rheon] upstream-commit` in the root
+/// `Cargo.toml`, `RHEON_UPSTREAM_COMMIT`).
 ///
 /// HEAD comes from `git rev-parse HEAD`, with `-dirty` appended when the work tree has
-/// uncommitted changes; `FLOWSTONE_COMMIT` in the environment overrides it (source archives, CI
+/// uncommitted changes; `RHEON_COMMIT` in the environment overrides it (source archives, CI
 /// without a checkout). Without either, the value is `unknown` and a warning is printed.
 fn engine_version() {
   let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.toml");
@@ -57,22 +57,22 @@ fn engine_version() {
     .map(str::trim)
     .filter(|l| !l.starts_with('#'))
     .find_map(|l| quoted_value(l, "upstream-commit"))
-    .unwrap_or_else(|| panic!("feel-wasm: `[workspace.metadata.flowstone] upstream-commit` missing in {}", manifest.display()));
+    .unwrap_or_else(|| panic!("feel-wasm: `[workspace.metadata.rheon] upstream-commit` missing in {}", manifest.display()));
   if upstream.len() != 40 || !upstream.bytes().all(|b| b.is_ascii_hexdigit()) {
     panic!("feel-wasm: `upstream-commit` in {} is not a full 40-digit commit SHA: {upstream:?}", manifest.display());
   }
 
-  println!("cargo:rerun-if-env-changed=FLOWSTONE_COMMIT");
+  println!("cargo:rerun-if-env-changed=RHEON_COMMIT");
   let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-  let commit = match std::env::var("FLOWSTONE_COMMIT") {
+  let commit = match std::env::var("RHEON_COMMIT") {
     Ok(c) if !c.trim().is_empty() => c.trim().to_string(),
     _ => git_head(&repo).unwrap_or_else(|| {
-      println!("cargo:warning=feel-wasm: not a git checkout and FLOWSTONE_COMMIT is unset; `info` will report engineCommit \"unknown\"");
+      println!("cargo:warning=feel-wasm: not a git checkout and RHEON_COMMIT is unset; `info` will report engineCommit \"unknown\"");
       "unknown".to_string()
     }),
   };
-  println!("cargo:rustc-env=FLOWSTONE_COMMIT={commit}");
-  println!("cargo:rustc-env=FLOWSTONE_UPSTREAM_COMMIT={upstream}");
+  println!("cargo:rustc-env=RHEON_COMMIT={commit}");
+  println!("cargo:rustc-env=RHEON_UPSTREAM_COMMIT={upstream}");
 }
 
 /// `<HEAD sha>[-dirty]` of the git repository at `repo`, or `None` when git or the checkout is missing.

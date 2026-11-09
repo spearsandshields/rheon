@@ -54,8 +54,8 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
   lower per-instance cap on servers and in browser tabs. Small once the pool exists.
 - **Ship the wasm inside the runtime package** `[runtime]` (2026-10-17). The playground imports
   `../../../dist/feel.wasm`; the npm package's `files` list does not include the module, so a
-  consumer gets a runtime without an engine. Either add the wasm to `@flowstone/feel-runtime` with
-  a `./feel.wasm` export or create `@flowstone/feel-wasm` that runtime, playground, tests and the
+  consumer gets a runtime without an engine. Either add the wasm to `@rheon/feel-runtime` with
+  a `./feel.wasm` export or create `@rheon/feel-wasm` that runtime, playground, tests and the
   NuGet build all consume. Half a day.
 - **Tighter types** `[runtime]` (2026-10-17). `ParseResponse` error kind is `string` while
   `EvaluateResponse` uses `ErrorKind`; `callJson` returns `any`. Small.
@@ -219,15 +219,15 @@ back-references via fancy-regex). The unpatched subset now stands at 289/298. Re
   f308a34, 5ecdede, cf21d52, plus the four "fixes we owe" above once done.
 
 
-## Restructure of 2026-10-28 (flowstone)
+## Restructure of 2026-10-28 (rheon)
 
-The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/dev/flowstone`
+The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/dev/rheon`
 (branch `main`, remote `upstream` = dsntk-rs) and absorbed the former `dsntk-wasm` workspace
 (`wasm/feel-wasm`, `packages/`, `apps/`, `docs/`, `scripts/`). Items that came out of it:
 
 - **Public build repository name** `[infra]`. The playground is still published to
   `spearsandshields/dsntk-wasm-build`; renaming it changes the demo URL, so it waits for the
-  decision on the flowstone GitHub home. `scripts/deploy-public.sh` has the two values to edit.
+  decision on the rheon GitHub home. `scripts/deploy-public.sh` has the two values to edit.
 - **DMN TCK in CI** `[infra]`. `.github/workflows/ci.yml` runs the engine suites, the wasm build
   and the JS side; the TCK (dsntk-test-runner + dsntk-tck-patches + the ~430 MB tck clone, see the
   procedure in the session notes) is still a manual run. A `workflow_dispatch` job is the plan.
@@ -236,13 +236,13 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
 - **DMN module** `[wasm]`. Same pipeline as `wasm/feel-wasm` pointed at `model-evaluator`
   (`wasm/dmn-wasm`, a decision-evaluate op in CONTRACT.md). Next milestone, together with the
   phase-1 lexer fixes from `docs/EDITOR-PLAN.md`.
-- **GitHub home**. The `flowstone` handle belongs to another user; the repo goes under the
+- **GitHub home**. The `rheon` handle belongs to another user; the repo goes under the
   owner's account or a suffixed organisation. Nothing is pushed yet.
 - **`publish.sh`** (upstream's crates.io release script) is kept untouched (its crate names are
   now stale, which is a safety); it must never be run from this repository.
 - **Crate rename** (2026-10-28, done). The user decided on a permanent fork with no priority on
-  upstream feedback, and that crates whose source flowstone changed carry the `flowstone-` prefix:
-  `flowstone-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
+  upstream feedback, and that crates whose source rheon changed carry the `rheon-` prefix:
+  `rheon-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
   `-feel-regex`, `-model-evaluator` (seven of eighteen; directories unchanged). The others keep
   `dsntk-*` until they are changed. Upstream fixes are taken by cherry-pick through
   `scripts/upstream-rename.pl` (see `docs/FORK.md`). Left open: whether the `dsntk` CLI binary and
