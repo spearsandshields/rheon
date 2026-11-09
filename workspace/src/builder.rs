@@ -2,7 +2,7 @@
 
 use antex::{Color, ColorMode, StyledText, Text};
 use dsntk_common::{encode_segments, to_rdnn};
-use dsntk_model::{Definitions, DmnElement};
+use rheon_model::{Definitions, DmnElement};
 use rheon_model_evaluator::ModelEvaluator;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
@@ -125,7 +125,7 @@ impl WorkspaceBuilder {
   /// Loads decision model from specified file.
   fn load_model(&mut self, workspace_name: &str, file: &Path) {
     match fs::read_to_string(file) {
-      Ok(xml) => match dsntk_model::parse(&xml) {
+      Ok(xml) => match rheon_model::parse(&xml) {
         Ok(definitions) => {
           let namespace = definitions.namespace().to_string();
           if to_rdnn(&namespace).is_some() {

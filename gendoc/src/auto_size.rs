@@ -1,6 +1,6 @@
 //! # Diagram size auto-discovery utilities
 
-use dsntk_model::{DcDimension, DmnDiagram, DmnEdge, DmnShape};
+use rheon_model::{DcDimension, DmnDiagram, DmnEdge, DmnShape};
 
 /// Default diagram width.
 const DEFAULT_WIDTH: f64 = 300.0;

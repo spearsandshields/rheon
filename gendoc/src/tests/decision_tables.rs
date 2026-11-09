@@ -2,7 +2,7 @@
 
 use super::*;
 use dsntk_examples::decision_tables::*;
-use dsntk_model::DecisionTable;
+use rheon_model::DecisionTable;
 
 /// Utility function for generating HTML file for decision table defined as text.
 fn generate_html(dec_tab: &str, output_file_name: &str) {

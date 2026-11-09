@@ -5,7 +5,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
 use rheon_feel_parser::AstNode;
-use dsntk_model::{BuiltinAggregator, DecisionTable, HitPolicy};
+use rheon_model::{BuiltinAggregator, DecisionTable, HitPolicy};
 use std::cmp::Ordering;
 
 /// Parsed rule of the decision table.
@@ -394,7 +394,7 @@ mod tests {
   use dsntk_examples::decision_tables::H_000210;
   use rheon_feel::values::Value;
   use rheon_feel::{FeelNumber, value_number};
-  use dsntk_model::DecisionTable;
+  use rheon_model::DecisionTable;
 
   #[test]
   fn test() {

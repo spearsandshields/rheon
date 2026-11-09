@@ -2,9 +2,9 @@
 name = "rheon-feel-number"
 version = { workspace = true }
 authors = { workspace = true }
-description = "ÐecisionToolkit | FEEL number"
+description = "rheon | FEEL number: exact decimal128 arithmetic in pure Rust (fork of dsntk-feel-number)"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
-keywords = ["dmn", "decision", "toolkit", "feel"]
+keywords = ["dmn", "decision", "rheon", "feel"]
 documentation = "https://docs.rs/rheon-feel-number"
 repository = { workspace = true }
 homepage = { workspace = true }

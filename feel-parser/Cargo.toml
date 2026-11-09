@@ -2,9 +2,9 @@
 name = "rheon-feel-parser"
 version = { workspace = true }
 authors = { workspace = true }
-description = "ÐecisionToolkit | FEEL parser"
+description = "rheon | FEEL parser (fork of dsntk-feel-parser)"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
-keywords = ["dmn", "decision", "toolkit", "parser"]
+keywords = ["dmn", "decision", "rheon", "parser"]
 documentation = "https://docs.rs/rheon-feel-parser"
 repository = { workspace = true }
 homepage = { workspace = true }

@@ -10,7 +10,7 @@ use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, FeelType, FunctionBody, Name};
-use dsntk_model::*;
+use rheon_model::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 

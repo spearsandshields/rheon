@@ -2,9 +2,9 @@
 name = "rheon-model-evaluator"
 version = { workspace = true }
 authors = { workspace = true }
-description = "ÐecisionToolkit | DMN model evaluator"
+description = "rheon | DMN model evaluator (fork of dsntk-model-evaluator)"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
-keywords = ["dmn", "decision", "toolkit", "evaluator"]
+keywords = ["dmn", "decision", "rheon", "evaluator"]
 documentation = "https://docs.rs/rheon-model-evaluator"
 repository = { workspace = true }
 homepage = { workspace = true }
@@ -15,8 +15,8 @@ edition = { workspace = true }
 default = ["dashu"]
 # Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
 # Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["rheon-feel/dashu", "rheon-feel-evaluator/dashu", "rheon-feel-parser/dashu", "rheon-feel-temporal/dashu", "dsntk-model/dashu"]
-intel = ["rheon-feel/intel", "rheon-feel-evaluator/intel", "rheon-feel-parser/intel", "rheon-feel-temporal/intel", "dsntk-model/intel"]
+dashu = ["rheon-feel/dashu", "rheon-feel-evaluator/dashu", "rheon-feel-parser/dashu", "rheon-feel-temporal/dashu", "rheon-model/dashu"]
+intel = ["rheon-feel/intel", "rheon-feel-evaluator/intel", "rheon-feel-parser/intel", "rheon-feel-temporal/intel", "rheon-model/intel"]
 
 [dependencies]
 dsntk-common = { workspace = true }
@@ -25,7 +25,7 @@ rheon-feel-evaluator = { workspace = true }
 rheon-feel-parser = { workspace = true }
 rheon-feel-temporal = { workspace = true }
 dsntk-macros = { workspace = true }
-dsntk-model = { workspace = true }
+rheon-model = { workspace = true }
 
 [dev-dependencies]
 antex = { workspace = true }

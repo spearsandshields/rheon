@@ -24,7 +24,6 @@ jobs:
       # Java external-function service, which rheon does not support; `compare_the_number_of_models`
       # (dsntk-examples) walks a DMN TCK checkout at ../tck that CI does not have; the dsntk-server
       # `utils::tests::getting_*` tests assert that the checkout directory is named `dsntk`.
-      # (feel-grammar's `test_all_sequentially` needs bison and already skips itself when CI is set.)
       - run: cargo test --workspace --no-fail-fast -- --skip external_functions --skip dmn_3_0076 --skip compare_the_number_of_models --skip utils::tests::getting_
 
   wasm:

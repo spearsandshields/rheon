@@ -18,14 +18,19 @@ Rules:
   priority (decision of 2026-10-28).
 - `fastnum-backend` is a side branch with the experimental fastnum number
   backend (see below); it is not needed for wasm.
-- Nothing from this repository is published to crates.io.
+- The `rheon-*` crates are published on crates.io (`cargo publish --workspace`, see
+  "Publishing" below). The four upstream crates rheon never changed (`dsntk-common`,
+  `-macros`, `-feel-grammar`, `-recognizer`) left the tree on 2026-11-09 and are used from
+  crates.io at dsntk 0.3.0, pinned `=0.3.0` in the root manifest; the dsntk crates with
+  manifest-only changes stay in the tree with `publish = false`.
 - Crate naming (2026-10-28): a crate whose source rheon has changed is
   renamed `rheon-*` (package name and Rust path; the directory keeps
   upstream's name). A crate carried as upstream ships it, or with manifest-only
   changes such as the number-backend feature forwarding, keeps its `dsntk-*`
   name until it is changed. Renamed so far: `rheon-feel`, `-feel-number`,
   `-feel-parser`, `-feel-evaluator`, `-feel-temporal`, `-feel-regex`,
-  `-model-evaluator`. `scripts/upstream-rename.pl` holds the mapping; extend
+  `-model-evaluator` and, since 2026-11-09, `-model` (it imports `rheon-feel`
+  types, so upstream's `dsntk-model` cannot replace it). `scripts/upstream-rename.pl` holds the mapping; extend
   its crate list when another crate is renamed.
 
 ## Base
@@ -240,7 +245,7 @@ Default features (`dashu`), at commit 10:
 cd ~/dev/rheon
 cargo build --workspace                       # no dfp-number-sys in `cargo tree`
 cargo test -p rheon-feel-number               # 21 unit + 207 integration tests
-cargo test -p rheon-feel-temporal -p rheon-feel-parser -p dsntk-model
+cargo test -p rheon-feel-temporal -p rheon-feel-parser -p rheon-model
 cargo test -p rheon-feel-evaluator --lib -- --skip external_functions
 cargo test -p rheon-model-evaluator
 cargo clippy -p rheon-feel-number --lib --tests
@@ -251,7 +256,7 @@ cargo clippy -p rheon-feel-number --lib --tests
 | rheon-feel-number | 228 passed, 0 failed (21 unit, 207 integration) | 207 passed, 0 failed |
 | rheon-feel-temporal | 79 passed | 79 passed |
 | rheon-feel-parser | 461 passed | 461 passed |
-| dsntk-model | 45 passed | 45 passed |
+| rheon-model | 45 passed | 45 passed |
 | rheon-feel-evaluator | 3371 passed, 13 failed, 3 ignored | 3370 passed, 14 failed, 3 ignored |
 | rheon-model-evaluator | 3650 passed, 19 failed, 20 ignored | 3650 passed, 19 failed, 20 ignored |
 
@@ -328,7 +333,7 @@ rounded in the strict sense (a 77-digit result within its own error of a
 ## Taking upstream changes
 
 Since the rename, upstream commits that touch the renamed crates no longer
-apply as they are: their manifests and `use dsntk_feel…` paths name the old
+apply as they are: their manifests and `use rheon_feel…` paths name the old
 crates. Take upstream fixes one at a time, rewriting the patch through the
 rename script before applying it:
 
@@ -338,10 +343,34 @@ git format-patch -1 --stdout <upstream sha> | perl scripts/upstream-rename.pl | 
 ```
 
 `upstream-rename.pl` rewrites `dsntk-<crate>` and `dsntk_<crate>` for every
-renamed crate and leaves the others alone, so a patch against `dsntk-common`
-passes through unchanged. Resolve the remaining conflicts by hand, run the
+renamed crate and leaves the others alone. A patch that touches `common`, `macros`,
+`feel-grammar` or `recognizer` has no target here, because those crates are used from
+crates.io: either wait for the next dsntk release and bump the `=0.3.0` pins in the root
+manifest, or bring the crate back into the tree as `rheon-<crate>` and add it to the
+rename script. Resolve the remaining conflicts by hand, run the
 verification below, and record the cherry-pick in the table above. Whole
 upstream releases are not merged any more.
+
+## Publishing to crates.io
+
+The eight `rheon-*` crates share the workspace version (`[workspace.package] version`,
+rheon's own line; `0.1.0` was the first release) and pin each other with `=<version>` in
+the root manifest. Every other workspace member is `publish = false`, so one command
+publishes the set in dependency order:
+
+```sh
+cargo login                          # once: a crates.io token with the publish-new and publish-update scopes
+cargo publish --workspace --dry-run  # packages and verify-builds everything, uploads nothing
+cargo publish --workspace
+```
+
+crates.io rate-limits the creation of new crate names, so a release that introduces new
+crates may need a retry after a pause; the command skips crates whose version is already
+published. For a release: bump the workspace version and the `=` pins in the root manifest
+together, run the verification above, commit, tag `vX.Y.Z`, publish.
+
+`rheon-feel-wasm` is not published: its build script reads the repository (HEAD and the
+upstream commit), and the module reaches users through the npm package and the CI artifacts.
 
 ### The pre-rename procedure (historical)
 

@@ -11,7 +11,7 @@ use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
 use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
 use rheon_feel_parser::{ClosureBuilder, parse_name};
-use dsntk_model::*;
+use rheon_model::*;
 use std::sync::Arc;
 
 pub fn bring_knowledge_requirements_into_context(def_definitions: &DefDefinitions, knowledge_requirements: &[DefKnowledgeRequirement], ctx: &mut FeelContext) -> Result<()> {

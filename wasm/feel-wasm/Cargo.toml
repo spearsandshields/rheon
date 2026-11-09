@@ -1,8 +1,7 @@
 [package]
 name = "rheon-feel-wasm"
 description = "rheon FEEL engine (dsntk) exposed as a wasm32-wasip1 reactor with a JSON ABI (see docs/CONTRACT.md)"
-# rheon's own version line (the workspace version is dsntk's)
-version = "0.1.0"
+version = { workspace = true }
 edition = { workspace = true }
 license = { workspace = true }
 publish = false
@@ -16,7 +15,7 @@ crate-type = ["cdylib", "rlib"]
 # The dsntk engine crates of this repository, with their default number backend `dashu`
 # (pure Rust; no C toolchain is involved). Path dependencies rather than the workspace table so
 # that the default features apply (the table declares the crates with default-features = false).
-dsntk-common = { path = "../../common" }
+dsntk-common = { workspace = true }
 rheon-feel = { path = "../../feel" }
 rheon-feel-number = { path = "../../feel-number" }
 rheon-feel-parser = { path = "../../feel-parser" }

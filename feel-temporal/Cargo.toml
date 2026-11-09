@@ -2,9 +2,9 @@
 name = "rheon-feel-temporal"
 version = { workspace = true }
 authors = { workspace = true }
-description = "ÐecisionToolkit | FEEL temporal"
+description = "rheon | FEEL temporal types (fork of dsntk-feel-temporal)"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
-keywords = ["dmn", "decision", "toolkit", "temporal"]
+keywords = ["dmn", "decision", "rheon", "temporal"]
 documentation = "https://docs.rs/rheon-feel-temporal"
 repository = { workspace = true }
 homepage = { workspace = true }

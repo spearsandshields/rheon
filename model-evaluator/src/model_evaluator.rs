@@ -11,7 +11,7 @@ use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Name, value_null};
-use dsntk_model::Definitions;
+use rheon_model::Definitions;
 use std::sync::Arc;
 
 /// Model evaluator.

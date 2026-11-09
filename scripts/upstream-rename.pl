@@ -5,7 +5,7 @@
 #   git format-patch -1 --stdout <sha> | perl scripts/upstream-rename.pl | git am -3
 # Extend @crates when another crate is renamed (see docs/FORK.md, "Rules").
 use strict; use warnings;
-my @crates = qw(feel-number feel-evaluator feel-parser feel-temporal feel-regex model-evaluator feel);
+my @crates = qw(feel-number feel-evaluator feel-parser feel-temporal feel-regex model-evaluator feel model);
 local $/; my $t = <STDIN>;
 for my $c (@crates) {
   (my $u = $c) =~ s/-/_/g;

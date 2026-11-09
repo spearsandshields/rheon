@@ -64,8 +64,8 @@ The edge-case comparison with feelin and feel-scala is in
 
 | Path | What it is |
 |---|---|
-| `feel`, `feel-number`, `feel-parser`, `feel-evaluator`, `feel-temporal`, `feel-regex`, `model-evaluator` | The engine crates rheon has changed, named `rheon-*` (directories keep upstream's names) |
-| `common`, `feel-grammar`, `macros`, `recognizer`, `model`, `evaluator`, `workspace`, `gendoc`, `server`, `dsntk`, `examples` | The dsntk crates carried unchanged (or with manifest-only changes), still named `dsntk-*`; never published from here |
+| `feel`, `feel-number`, `feel-parser`, `feel-evaluator`, `feel-temporal`, `feel-regex`, `model`, `model-evaluator` | The engine crates rheon has changed, named `rheon-*` and published on crates.io (directories keep upstream's names) |
+| `evaluator`, `workspace`, `gendoc`, `server`, `dsntk`, `examples` | The dsntk crates carried with manifest-only changes, still named `dsntk-*` and marked `publish = false`. The untouched `dsntk-common`, `dsntk-macros`, `dsntk-feel-grammar` and `dsntk-recognizer` are not in the tree: they come from crates.io at upstream's 0.3.0 |
 | `wasm/feel-wasm` | `rheon-feel-wasm`: JSON request → engine → JSON response, built as a wasm32-wasip1 reactor (CONTRACT §1–3) |
 | `packages/feel-runtime` | `@rheon/feel-runtime`, the TypeScript runtime (CONTRACT §4) |
 | `apps/playground` | `@rheon/playground`, the web app |
@@ -103,8 +103,7 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `npm run dev` | Playground dev server (arguments after `--` go to Vite) |
 | `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
-| `npm run deploy` | Dry run of the playground deploy; `npm run deploy:push` publishes |
-| `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`) and feel-grammar's table generator (bison; skips itself under `CI`); see `.github/workflows/ci.yml` |
+| `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); see `.github/workflows/ci.yml` |
 
 The production build in `apps/playground/dist/` uses a relative base (`./`), so you can host it on
 any static file server and under any sub-path. `feel.wasm` is a hashed asset in `assets/`. Serve
@@ -141,10 +140,12 @@ conversions (12) and multiple imports (3), all in the DMN layer.
 
 Crate naming: a crate whose source rheon has changed is renamed `rheon-*` (today
 `rheon-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
-`-feel-regex` and `-model-evaluator`); a crate carried as upstream ships it keeps its `dsntk-*`
-name until it is changed. Directories keep upstream's names either way. Nothing from this
-repository is published to crates.io; rheon's own artifacts are the wasm modules, the npm
-packages and, later, the NuGet package.
+`-feel-regex`, `-model` and `-model-evaluator`) and published on crates.io, so a Rust project
+can depend on `rheon-feel-evaluator = "0.1"` directly. Upstream crates rheon has not changed are
+used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-grammar`,
+`-recognizer`). The dsntk crates carried with manifest-only changes (`dsntk-evaluator`,
+`-workspace`, `-gendoc`, `-server`, `-examples` and the `dsntk` CLI) stay in the tree under their
+`dsntk-*` names and are never published from here. Directories keep upstream's names either way.
 
 ## Known limitations
 

@@ -1,11 +1,11 @@
 [package]
-name = "dsntk-model"
+name = "rheon-model"
 version = { workspace = true }
 authors = { workspace = true }
-description = "ÐecisionToolkit | DMN model and parser"
+description = "rheon | DMN model and parser (fork of dsntk-model)"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
-keywords = ["dmn", "decision", "toolkit", "model"]
-documentation = "https://docs.rs/dsntk-model"
+keywords = ["dmn", "decision", "rheon", "model"]
+documentation = "https://docs.rs/rheon-model"
 repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }
@@ -22,8 +22,10 @@ intel = ["rheon-feel/intel", "rheon-feel-parser/intel"]
 petgraph = { workspace = true }
 roxmltree = { workspace = true }
 dsntk-common = { workspace = true }
-dsntk-examples = { workspace = true }
 rheon-feel = { workspace = true }
 rheon-feel-parser = { workspace = true }
 dsntk-macros = { workspace = true }
 dsntk-recognizer = { workspace = true }
+
+[dev-dependencies]
+dsntk-examples = { workspace = true }

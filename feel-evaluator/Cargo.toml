@@ -2,9 +2,9 @@
 name = "rheon-feel-evaluator"
 version = { workspace = true }
 authors = { workspace = true }
-description = "ÐecisionToolkit | FEEL expressions evaluator"
+description = "rheon | FEEL expression evaluator (fork of dsntk-feel-evaluator)"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
-keywords = ["dmn", "decision", "toolkit", "feel"]
+keywords = ["dmn", "decision", "rheon", "feel"]
 documentation = "https://docs.rs/rheon-feel-evaluator"
 repository = { workspace = true }
 homepage = { workspace = true }

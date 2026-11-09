@@ -120,7 +120,7 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
 - **Nanosecond rule** `[fork]` (2026-10-18). Time/date-time equality drops nanoseconds, ordering
   (added in 4d61eb1) keeps them, so `=` and `<` can both hold. Decide once, document, test. Hours.
 - **Grammar precedence for unary endpoints** `[fork]` `[upstream]` (2026-10-17). `> 0.1 + 0.2`
-  parses as `(? > 0.1) + 0.2`; fix is in `feel-grammar/src/feel.y` plus Bison regeneration
+  parses as `(? > 0.1) + 0.2`; fix is in upstream's `feel-grammar/src/feel.y` (used from crates.io since 2026-11-09; bring it into the tree as `rheon-feel-grammar` first) plus Bison regeneration
   (bison 2.3 compatibility with the extractor unverified). Also cherry-pick upstream PR #112 for
   `? > 5` semantics.
 - **Zoned `now()`** `[fork]` `[upstream]` (2026-10-17). `now()` is zone-less, so
@@ -191,8 +191,6 @@ back-references via fancy-regex). The unpatched subset now stands at 289/298. Re
 - **Decision-table short-circuit and memoisation** `[fork]` (2026-10-18). Every cell of every rule
   is evaluated regardless of hit policy, and a diamond of required decisions re-evaluates shared
   nodes. A day each; only when DMN throughput matters.
-- **Move `dsntk-examples` to a dev-dependency of `model`** `[fork]` (2026-10-18). 4 MB of TCK
-  models embedded for tests only. An hour.
 
 ## Engine design conversations (upstream, not ours to carry)
 
@@ -245,15 +243,21 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
 - **GitHub home** (decided 2026-11-09): `spearsandshields/rheon` under the owner's account; the
   manifests and the README point there. A transfer to an organisation later keeps working through
   GitHub's redirects. Nothing is pushed yet.
-- **`publish.sh`** (upstream's crates.io release script) is kept untouched (its crate names are
-  now stale, which is a safety); it must never be run from this repository.
+- **crates.io** (2026-11-09, done; user: "yes, do it for me... the ones we did not overwrite yet,
+  can use those as the dependencies"). The eight `rheon-*` crates are published from the workspace
+  (`cargo publish --workspace`, see `docs/FORK.md` "Publishing"); upstream's `publish.sh` is
+  deleted. `dsntk-common`, `-macros`, `-feel-grammar` and `-recognizer` were identical to dsntk
+  0.3.0 and now come from crates.io (pinned `=0.3.0`; their directories are gone). `model` is
+  renamed `rheon-model` because it imports `rheon-feel` types. `dsntk-examples` (fork-adjusted
+  TCK fixtures, tests only) is a dev-dependency of `model` now and, like the other `dsntk-*`
+  members, `publish = false`. `rheon-feel-wasm` stays unpublished (build script reads the repo).
 - **Crate rename** (2026-10-28, done). The user decided on a permanent fork with no priority on
   upstream feedback, and that crates whose source rheon changed carry the `rheon-` prefix:
   `rheon-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
-  `-feel-regex`, `-model-evaluator` (seven of eighteen; directories unchanged). The others keep
-  `dsntk-*` until they are changed. Upstream fixes are taken by cherry-pick through
-  `scripts/upstream-rename.pl` (see `docs/FORK.md`). Left open: whether the `dsntk` CLI binary and
-  the untouched crates get renamed before anything is published from them.
+  `-feel-regex`, `-model-evaluator` and, since 2026-11-09, `-model` (directories unchanged). The others
+  keep `dsntk-*` until they are changed. Upstream fixes are taken by cherry-pick through
+  `scripts/upstream-rename.pl` (see `docs/FORK.md`). The `dsntk` CLI and the other manifest-only crates keep
+  their names and are `publish = false` (2026-11-09).
 - **SECURITY.md / CONTRIBUTING.md** (2026-11-09): deliberately not added yet (user). Add SECURITY.md when
   the npm package or the server is something people deploy; until then GitHub's "private
   vulnerability reporting" toggle is the reporting channel. The `repository`/`homepage` fields of

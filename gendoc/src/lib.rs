@@ -11,7 +11,7 @@ mod tests;
 
 use crate::generator::HTMLGenerator;
 pub use ascii_model::print_model;
-use dsntk_model::{DecisionTable, Definitions};
+use rheon_model::{DecisionTable, Definitions};
 
 /// Generates HTML documentation from decision model.
 pub fn dmn_model_to_html(definitions: &Definitions) -> String {

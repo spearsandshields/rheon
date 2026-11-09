@@ -9,7 +9,7 @@ use crate::item_definition_type::{InformationItemTypes, ItemDefinitionTypeEvalua
 use crate::model_definitions::{DefDefinitions, DefKey, Invocables};
 use dsntk_common::Result;
 use rheon_feel::Name;
-use dsntk_model::Definitions;
+use rheon_model::Definitions;
 use std::cell::RefCell;
 
 pub struct EvaluatorBuilders {

@@ -4,7 +4,7 @@ use crate::errors::err_invalid_item_definition_type;
 use crate::type_ref::type_ref_to_feel_type;
 use dsntk_common::{HRef, Result};
 use rheon_feel::{Name, QualifiedName};
-use dsntk_model::*;
+use rheon_model::*;
 use std::collections::HashMap;
 use std::fmt;
 

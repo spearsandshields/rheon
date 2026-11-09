@@ -6,7 +6,7 @@ use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
-use dsntk_model::ItemDefinitionType;
+use rheon_model::ItemDefinitionType;
 use std::collections::{BTreeMap, HashMap};
 
 /// Type of closure that evaluates the item definition context.
@@ -173,7 +173,7 @@ mod tests {
 
   /// Utility function for building item definition evaluator from definitions.
   fn build_evaluator(xml: &str) -> ItemDefinitionContextEvaluator {
-    let definitions = dsntk_model::parse(xml).unwrap();
+    let definitions = rheon_model::parse(xml).unwrap();
     let mut def_definitions = DefDefinitions::default();
     def_definitions.add_model(&definitions);
     ItemDefinitionContextEvaluator::new(&def_definitions).unwrap()
@@ -208,42 +208,42 @@ mod tests {
   /*
       #[test]
       fn simple_type_boolean() {
-        let definitions = &dsntk_model::parse(DMN_0103).unwrap();
+        let definitions = &rheon_model::parse(DMN_0103).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::Boolean), evaluators.eval("tIsAffordable"));
       }
 
       #[test]
       fn simple_type_date() {
-        let definitions = &dsntk_model::parse(DMN_0104).unwrap();
+        let definitions = &rheon_model::parse(DMN_0104).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::Date), evaluators.eval("tBirthday"));
       }
 
       #[test]
       fn simple_type_time() {
-        let definitions = &dsntk_model::parse(DMN_0105).unwrap();
+        let definitions = &rheon_model::parse(DMN_0105).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::Time), evaluators.eval("tDeliveryTime"));
       }
 
       #[test]
       fn simple_type_date_time() {
-        let definitions = &dsntk_model::parse(DMN_0106).unwrap();
+        let definitions = &rheon_model::parse(DMN_0106).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::DateTime), evaluators.eval("tAppointment"));
       }
 
       #[test]
       fn simple_type_days_and_time_duration() {
-        let definitions = &dsntk_model::parse(DMN_0107).unwrap();
+        let definitions = &rheon_model::parse(DMN_0107).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::DaysAndTimeDuration), evaluators.eval("tCourseDuration"));
       }
 
       #[test]
       fn simple_type_years_and_month_duration() {
-        let definitions = &dsntk_model::parse(DMN_0108).unwrap();
+        let definitions = &rheon_model::parse(DMN_0108).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::YearsAndMonthsDuration), evaluators.eval("tGrowthDuration"));
       }
@@ -265,7 +265,7 @@ mod tests {
   /*
   #[test]
   fn referenced_type_number() {
-    let definitions = &dsntk_model::parse(DMN_0202).unwrap();
+    let definitions = &rheon_model::parse(DMN_0202).unwrap();
     let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
     assert_eq!(Some(FeelType::Number), evaluators.eval("tMonthlySalary"));
   }
@@ -309,49 +309,49 @@ mod tests {
   /*
       #[test]
       fn collection_of_simple_type_number() {
-        let definitions = &dsntk_model::parse(DMN_0402).unwrap();
+        let definitions = &rheon_model::parse(DMN_0402).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::list(&FeelType::Number)), evaluators.eval("tItems"));
       }
 
       #[test]
       fn collection_of_simple_type_boolean() {
-        let definitions = &dsntk_model::parse(DMN_0403).unwrap();
+        let definitions = &rheon_model::parse(DMN_0403).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::list(&FeelType::Boolean)), evaluators.eval("tItems"));
       }
 
       #[test]
       fn collection_of_simple_type_date() {
-        let definitions = &dsntk_model::parse(DMN_0404).unwrap();
+        let definitions = &rheon_model::parse(DMN_0404).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::list(&FeelType::Date)), evaluators.eval("tItems"));
       }
 
       #[test]
       fn collection_of_simple_type_time() {
-        let definitions = &dsntk_model::parse(DMN_0405).unwrap();
+        let definitions = &rheon_model::parse(DMN_0405).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::list(&FeelType::Time)), evaluators.eval("tItems"));
       }
 
       #[test]
       fn collection_of_simple_type_date_time() {
-        let definitions = &dsntk_model::parse(DMN_0406).unwrap();
+        let definitions = &rheon_model::parse(DMN_0406).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::list(&FeelType::DateTime)), evaluators.eval("tItems"));
       }
 
       #[test]
       fn collection_of_simple_type_days_and_time_duration() {
-        let definitions = &dsntk_model::parse(DMN_0407).unwrap();
+        let definitions = &rheon_model::parse(DMN_0407).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::list(&FeelType::DaysAndTimeDuration)), evaluators.eval("tItems"));
       }
 
       #[test]
       fn collection_of_simple_type_years_and_months_duration() {
-        let definitions = &dsntk_model::parse(DMN_0408).unwrap();
+        let definitions = &rheon_model::parse(DMN_0408).unwrap();
         let evaluators = ItemDefinitionTypeEvaluator::new(definitions).unwrap();
         assert_eq!(Some(FeelType::list(&FeelType::YearsAndMonthsDuration)), evaluators.eval("tItems"));
       }

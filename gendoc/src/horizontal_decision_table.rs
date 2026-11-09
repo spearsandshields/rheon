@@ -2,7 +2,7 @@
 
 use crate::defs::*;
 use domrs::{HtmlElement, div};
-use dsntk_model::*;
+use rheon_model::*;
 
 pub fn create_horizontal_decision_table_elements(decision_table: &DecisionTable) -> HtmlElement {
   // prepare an element containing the decision table

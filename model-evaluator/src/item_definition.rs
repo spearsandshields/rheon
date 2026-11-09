@@ -7,7 +7,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::values::{Value, Values};
 use rheon_feel::{Evaluator, FeelScope, FeelType, Name, value_null};
 use rheon_feel_parser::AstNode;
-use dsntk_model::ItemDefinitionType;
+use rheon_model::ItemDefinitionType;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -459,7 +459,7 @@ mod tests {
 
   /// Utility function for building item definition evaluator from definitions.
   fn build_evaluator(xml: &str) -> ItemDefinitionEvaluator {
-    let definitions = dsntk_model::parse(xml).unwrap();
+    let definitions = rheon_model::parse(xml).unwrap();
     let mut def_definitions = DefDefinitions::default();
     def_definitions.add_model(&definitions);
     ItemDefinitionEvaluator::new(&def_definitions).unwrap()

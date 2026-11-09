@@ -5,7 +5,7 @@ use crate::defs::*;
 use crate::horizontal_decision_table::create_horizontal_decision_table_elements;
 use crate::styles::{create_decision_table_style, create_document_style, create_model_style};
 use domrs::{HtmlBodyElement, HtmlDocument, HtmlElement, HtmlHeadElement, HtmlStyleElement, h1};
-use dsntk_model::*;
+use rheon_model::*;
 use std::collections::HashMap;
 use std::fmt::Write;
 

@@ -5,7 +5,7 @@ use crate::model_definitions::{DefDefinitions, DefItemDefinition, DefKey};
 use crate::type_ref::type_ref_to_feel_type;
 use dsntk_common::Result;
 use rheon_feel::{FEEL_TYPE_NAME_ANY, FeelType, Name};
-use dsntk_model::ItemDefinitionType;
+use rheon_model::ItemDefinitionType;
 use std::collections::{BTreeMap, HashMap};
 
 /// Type of function that evaluates the item definition type.
@@ -186,7 +186,7 @@ mod tests {
 
   /// Utility function for building item definition type evaluator from definitions.
   fn build_evaluator(xml: &str) -> ItemDefinitionTypeEvaluator {
-    let definitions = dsntk_model::parse(xml).unwrap();
+    let definitions = rheon_model::parse(xml).unwrap();
     let mut def_definitions = DefDefinitions::default();
     def_definitions.add_model(&definitions);
     ItemDefinitionTypeEvaluator::new(&def_definitions).unwrap()

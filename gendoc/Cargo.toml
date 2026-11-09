@@ -10,13 +10,15 @@ repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
+# carried from dsntk with manifest-only changes; never published from rheon
+publish = false
 
 [features]
 default = ["dashu"]
 # Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
 # Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["rheon-feel/dashu", "dsntk-model/dashu"]
-intel = ["rheon-feel/intel", "dsntk-model/intel"]
+dashu = ["rheon-feel/dashu", "rheon-model/dashu"]
+intel = ["rheon-feel/intel", "rheon-model/intel"]
 
 [dependencies]
 antex = { workspace = true }
@@ -24,7 +26,7 @@ domrs = { workspace = true }
 markdown = { workspace = true }
 dsntk-common = { workspace = true }
 rheon-feel = { workspace = true }
-dsntk-model = { workspace = true }
+rheon-model = { workspace = true }
 
 [dev-dependencies]
 dsntk-examples = { workspace = true }

@@ -1,5 +1,5 @@
 use crate::auto_size::AutoSize;
-use dsntk_model::{DcBounds, DcPoint, DmnDiagram, DmnEdge, DmnShape};
+use rheon_model::{DcBounds, DcPoint, DmnDiagram, DmnEdge, DmnShape};
 
 fn diagram() -> DmnDiagram {
   DmnDiagram {
