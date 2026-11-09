@@ -61,7 +61,10 @@ jobs:
   # "GitHub Actions" in the repository settings). Deployed from main only, after the wasm job.
   pages:
     name: deploy playground to GitHub Pages
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    # Not `github.ref == 'refs/heads/main'`: on this repository any job-level `if` that reads
+    # `github.ref` makes the run fail with no jobs created (probed 2026-11-09, see BACKLOG).
+    # Push runs are main-only by the trigger above, so excluding pull requests is equivalent.
+    if: github.event_name != 'pull_request'
     needs: wasm
     runs-on: ubuntu-latest
     permissions:
