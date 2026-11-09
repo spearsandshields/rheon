@@ -16,7 +16,5 @@ jobs:
   c1:
     needs: gate
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
     steps:
-      - run: echo c1
+      - run: echo c1 no environment
