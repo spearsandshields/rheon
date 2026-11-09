@@ -56,3 +56,27 @@ jobs:
         with:
           name: playground
           path: apps/playground/dist
+
+  # The playground is the public demo: https://rheon-io.github.io/rheon/ (GitHub Pages, source
+  # "GitHub Actions" in the repository settings). Deployed from main only, after the wasm job.
+  pages:
+    name: deploy playground to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: wasm
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: playground
+          path: site
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4

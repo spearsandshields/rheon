@@ -2,6 +2,13 @@
   "name": "@rheon/playground",
   "private": true,
   "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rheon-io/rheon.git",
+    "directory": "apps/playground"
+  },
+  "homepage": "https://rheon-io.github.io/rheon/",
+  "bugs": "https://github.com/rheon-io/rheon/issues",
   "type": "module",
   "scripts": {
     "dev": "vite",

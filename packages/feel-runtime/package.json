@@ -1,7 +1,14 @@
 {
   "name": "@rheon/feel-runtime",
   "version": "0.1.0",
-  "description": "JS/TS runtime for the dsntk FEEL engine compiled to WebAssembly (wasm32-wasip1, exact decimal128 numbers)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rheon-io/rheon.git",
+    "directory": "packages/feel-runtime"
+  },
+  "homepage": "https://rheon-io.github.io/rheon/",
+  "bugs": "https://github.com/rheon-io/rheon/issues",
+  "description": "JS/TS runtime for the rheon FEEL engine compiled to WebAssembly (wasm32-wasip1, exact decimal128 numbers)",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -22,7 +29,11 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "src", "README.md"],
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
