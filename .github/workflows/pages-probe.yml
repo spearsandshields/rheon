@@ -1,0 +1,32 @@
+# Temporary: isolates the GitHub Pages deployment (to be deleted).
+name: pages-probe
+on:
+  workflow_dispatch:
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    steps:
+      - run: mkdir site && echo '<!doctype html><title>probe</title>probe' > site/index.html
+      - uses: actions/upload-artifact@v7
+        with:
+          name: probe-site
+          path: site
+  b:
+    needs: a
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: probe-site
+          path: site
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
