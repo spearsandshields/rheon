@@ -2,7 +2,7 @@
   "name": "flowstone",
   "private": true,
   "version": "0.1.0",
-  "description": "FEEL playground powered by the dsntk Rust engine compiled to WebAssembly (exact 34-digit decimals)",
+  "description": "flowstone: the FEEL engine as WebAssembly (exact 34-digit decimals), its TypeScript runtime and the browser playground",
   "type": "module",
   "workspaces": [
     "packages/*",

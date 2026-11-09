@@ -247,3 +247,9 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
   `dsntk-*` until they are changed. Upstream fixes are taken by cherry-pick through
   `scripts/upstream-rename.pl` (see `docs/FORK.md`). Left open: whether the `dsntk` CLI binary and
   the untouched crates get renamed before anything is published from them.
+- **SECURITY.md / CONTRIBUTING.md** (2026-11-09): deliberately not added yet (user). Add SECURITY.md when
+  the npm package or the server is something people deploy; until then GitHub's "private
+  vulnerability reporting" toggle is the reporting channel. The `repository`/`homepage` fields of
+  the workspace and the npm packages still name upstream; they follow the GitHub-home decision.
+- **Upstream release workflows** (2026-11-09, done): `build-*.yml` now run on `workflow_dispatch`
+  only, so a push to `main` no longer starts five dsntk binary builds.
