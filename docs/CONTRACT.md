@@ -85,7 +85,7 @@ Scale rounding (`round up/down/half up/half down`, `floor`, `ceiling` with a sca
 
 `op: "parse"` success: `{ "ok": true, "tree": "<dsntk AstNode::tree() ascii, no color>", "elapsedMicros": n }`
 
-`op: "info"` success: `{ "ok": true, "engine": "rheon", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<rheon-feel-wasm crate version>" }`. `engineCommit` is the rheon repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `"unknown"` when built outside a git checkout without `RHEON_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[workspace.metadata.rheon]` in the root `Cargo.toml`), and `numberBackend` the feel-number backend compiled in (`rheon_feel_number::NUMBER_BACKEND`: `"dashu"`; `"intel"` only in an Intel build, which this repository does not make).
+`op: "info"` success: `{ "ok": true, "engine": "rheon", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<rheon-feel-wasm crate version>" }`. `engineCommit` is the rheon repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `.cargo_vcs_info.json` in a crate packaged by cargo, `"unknown"` when built outside both without `RHEON_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[package.metadata.rheon]` in `wasm/feel-wasm/Cargo.toml`), and `numberBackend` the feel-number backend compiled in (`rheon_feel_number::NUMBER_BACKEND`: `"dashu"`; `"intel"` only in an Intel build, which this repository does not make).
 
 Failure (the instance stays healthy):
 
@@ -166,7 +166,7 @@ Runtime guarantees:
 ## 5. Repository layout
 
 ```
-Cargo.toml               one workspace: the dsntk engine crates (repository root) + wasm/feel-wasm; `[workspace.metadata.rheon] upstream-commit`; the `wasm` build profile
+Cargo.toml               one workspace: the engine crates (repository root) + wasm/feel-wasm; the `wasm` build profile
 <dsntk crates>/          common, feel, feel-parser, feel-evaluator, feel-number, feel-temporal, feel-regex, model, model-evaluator, dsntk (CLI), … unchanged layout of upstream dsntk-rs
 scripts/bootstrap.sh     install the wasm32-wasip1 target, download wasmtime into .tools/ (gitignored)
 scripts/env.sh           source to set wasmtime as the cargo runner for `cargo test --target wasm32-wasip1`

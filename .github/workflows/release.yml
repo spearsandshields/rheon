@@ -1,0 +1,61 @@
+name: release
+
+# A `vX.Y.Z` tag builds feel.wasm and the npm tarball and attaches them, with the playground
+# build, to a GitHub Release. Publishing to crates.io and npm stays a manual step
+# (docs/FORK.md "Publishing", packages/feel-runtime/README.md). A manual dispatch runs the
+# same build and keeps the files as a workflow artifact without creating a release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: feel.wasm + npm tarball + playground
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run bootstrap
+      - name: tag must match the crate and npm versions
+        if: github.ref_type == 'tag'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          crate=$(grep -m1 '^version = ' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
+          pkg=$(node -p "require('./packages/feel-runtime/package.json').version")
+          echo "tag $tag, workspace $crate, npm $pkg"
+          test "$tag" = "$crate" && test "$tag" = "$pkg"
+      - run: npm run build:wasm
+      - run: npm run test:rust:wasm
+      - run: npm run build:runtime
+      - run: npm run test:runtime
+      - run: npm run smoke
+      - run: npm run build:playground
+      - name: assemble the release files
+        run: |
+          mkdir -p release
+          cp dist/feel.wasm release/feel.wasm
+          (cd release && sha256sum feel.wasm > feel.wasm.sha256)
+          npm pack -w @rheon/feel-runtime --pack-destination release
+          (cd apps/playground/dist && zip -qr ../../../release/playground.zip .)
+          ls -la release
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: release
+      - name: create the GitHub Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" release/* --verify-tag --title "rheon $GITHUB_REF_NAME" --generate-notes

@@ -1,11 +1,11 @@
 //! Two jobs:
 //!
 //! 1. **Engine version.** The engine crates live in this repository, so the version is the
-//!    repository HEAD (`git rev-parse HEAD`, `-dirty` when the tree has uncommitted changes, or
-//!    `RHEON_COMMIT` from the environment) plus the upstream dsntk-rs base commit from the
-//!    root `Cargo.toml` (`[workspace.metadata.rheon] upstream-commit`). Both reach the crate
-//!    as `RHEON_COMMIT` / `RHEON_UPSTREAM_COMMIT` (`env!`), so the `info` op reports
-//!    exactly what was built.
+//!    repository commit (`RHEON_COMMIT` from the environment, else `.cargo_vcs_info.json` of a
+//!    packaged crate, else `git rev-parse HEAD` with `-dirty` when the tree has uncommitted
+//!    changes) plus the upstream dsntk-rs base commit from this crate's `Cargo.toml`
+//!    (`[package.metadata.rheon] upstream-commit`). Both reach the crate as `RHEON_COMMIT` /
+//!    `RHEON_UPSTREAM_COMMIT` (`env!`), so the `info` op reports exactly what was built.
 //!
 //! 2. **WASI reactor link** (docs/CONTRACT.md §1, `wasm32-wasip1` only). Stable rustc has no
 //!    `-Z wasi-exec-model=reactor`, and without it wasm-ld wraps every export in a "command
@@ -40,15 +40,18 @@ fn main() {
   reactor_link();
 }
 
-/// Engine version: the repository HEAD (`RHEON_COMMIT`) and the upstream dsntk-rs commit the
-/// dsntk crates are based on (`[workspace.metadata.rheon] upstream-commit` in the root
-/// `Cargo.toml`, `RHEON_UPSTREAM_COMMIT`).
+/// Engine version: the rheon repository commit (`RHEON_COMMIT`) and the upstream dsntk-rs
+/// commit the engine crates are based on (`[package.metadata.rheon] upstream-commit` in this
+/// crate's `Cargo.toml`, `RHEON_UPSTREAM_COMMIT`).
 ///
-/// HEAD comes from `git rev-parse HEAD`, with `-dirty` appended when the work tree has
-/// uncommitted changes; `RHEON_COMMIT` in the environment overrides it (source archives, CI
-/// without a checkout). Without either, the value is `unknown` and a warning is printed.
+/// The repository commit comes from, in this order: `RHEON_COMMIT` in the environment (source
+/// archives, CI without a checkout); `.cargo_vcs_info.json`, which cargo writes into every
+/// packaged crate (so the crates.io build reports the commit it was packaged from); and
+/// `git rev-parse HEAD`, with `-dirty` appended when the work tree has uncommitted changes.
+/// Without any of them the value is `unknown` and a warning is printed.
 fn engine_version() {
-  let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../Cargo.toml");
+  let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+  let manifest = crate_dir.join("Cargo.toml");
   println!("cargo:rerun-if-changed={}", manifest.display());
   let text = std::fs::read_to_string(&manifest)
     .unwrap_or_else(|e| panic!("feel-wasm: cannot read {}: {e}", manifest.display()));
@@ -57,17 +60,18 @@ fn engine_version() {
     .map(str::trim)
     .filter(|l| !l.starts_with('#'))
     .find_map(|l| quoted_value(l, "upstream-commit"))
-    .unwrap_or_else(|| panic!("feel-wasm: `[workspace.metadata.rheon] upstream-commit` missing in {}", manifest.display()));
-  if upstream.len() != 40 || !upstream.bytes().all(|b| b.is_ascii_hexdigit()) {
+    .unwrap_or_else(|| panic!("feel-wasm: `[package.metadata.rheon] upstream-commit` missing in {}", manifest.display()));
+  if !is_sha(&upstream) {
     panic!("feel-wasm: `upstream-commit` in {} is not a full 40-digit commit SHA: {upstream:?}", manifest.display());
   }
 
   println!("cargo:rerun-if-env-changed=RHEON_COMMIT");
-  let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+  let vcs_info = crate_dir.join(".cargo_vcs_info.json");
+  println!("cargo:rerun-if-changed={}", vcs_info.display());
   let commit = match std::env::var("RHEON_COMMIT") {
     Ok(c) if !c.trim().is_empty() => c.trim().to_string(),
-    _ => git_head(&repo).unwrap_or_else(|| {
-      println!("cargo:warning=feel-wasm: not a git checkout and RHEON_COMMIT is unset; `info` will report engineCommit \"unknown\"");
+    _ => packaged_sha(&vcs_info).or_else(|| git_head(&crate_dir)).unwrap_or_else(|| {
+      println!("cargo:warning=feel-wasm: not a git checkout or packaged crate and RHEON_COMMIT is unset; `info` will report engineCommit \"unknown\"");
       "unknown".to_string()
     }),
   };
@@ -75,12 +79,30 @@ fn engine_version() {
   println!("cargo:rustc-env=RHEON_UPSTREAM_COMMIT={upstream}");
 }
 
-/// `<HEAD sha>[-dirty]` of the git repository at `repo`, or `None` when git or the checkout is missing.
-fn git_head(repo: &Path) -> Option<String> {
+fn is_sha(s: &str) -> bool {
+  s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit())
+}
+
+/// The commit recorded in `.cargo_vcs_info.json` (`{"git": {"sha1": "…", "dirty": true?}, …}`),
+/// which exists only in a crate packaged by cargo; `-dirty` when cargo marked it so.
+fn packaged_sha(path: &Path) -> Option<String> {
+  let text = std::fs::read_to_string(path).ok()?;
+  let after = &text[text.find("\"sha1\"")? + 6..];
+  let after = after.trim_start().strip_prefix(':')?.trim_start().strip_prefix('"')?;
+  let sha = &after[..after.find('"')?];
+  if !is_sha(sha) {
+    return None;
+  }
+  let dirty = text.contains("\"dirty\": true") || text.contains("\"dirty\":true");
+  Some(if dirty { format!("{sha}-dirty") } else { sha.to_string() })
+}
+
+/// `<HEAD sha>[-dirty]` of the git repository containing `dir`, or `None` when git or the checkout is missing.
+fn git_head(dir: &Path) -> Option<String> {
   let git = |args: &[&str]| {
     Command::new("git")
       .arg("-C")
-      .arg(repo)
+      .arg(dir)
       .args(args)
       .output()
       .ok()
@@ -88,13 +110,13 @@ fn git_head(repo: &Path) -> Option<String> {
       .and_then(|o| String::from_utf8(o.stdout).ok())
   };
   // rebuild when HEAD moves (commit, checkout) — the ref file is resolved through `git rev-parse`
-  if let Some(dir) = git(&["rev-parse", "--git-dir"]) {
-    let dir = repo.join(dir.trim());
-    println!("cargo:rerun-if-changed={}", dir.join("HEAD").display());
+  if let Some(git_dir) = git(&["rev-parse", "--absolute-git-dir"]) {
+    let git_dir = PathBuf::from(git_dir.trim());
+    println!("cargo:rerun-if-changed={}", git_dir.join("HEAD").display());
     if let Some(r) = git(&["symbolic-ref", "-q", "HEAD"]) {
-      println!("cargo:rerun-if-changed={}", dir.join(r.trim()).display());
+      println!("cargo:rerun-if-changed={}", git_dir.join(r.trim()).display());
     }
-    println!("cargo:rerun-if-changed={}", dir.join("packed-refs").display());
+    println!("cargo:rerun-if-changed={}", git_dir.join("packed-refs").display());
   }
   let head = git(&["rev-parse", "HEAD"])?.trim().to_string();
   if head.len() != 40 {

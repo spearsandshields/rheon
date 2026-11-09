@@ -15,7 +15,7 @@ use std::time::Instant;
 /// when the tree had uncommitted changes, or `RHEON_COMMIT` from the environment).
 const ENGINE_COMMIT: &str = env!("RHEON_COMMIT");
 
-/// The upstream dsntk-rs commit the engine crates are based on (`[workspace.metadata.rheon]`).
+/// The upstream dsntk-rs commit the engine crates are based on (`[package.metadata.rheon]` in this crate's `Cargo.toml`).
 const UPSTREAM_COMMIT: &str = env!("RHEON_UPSTREAM_COMMIT");
 
 /// Largest accepted `tzOffsetMinutes` magnitude (±18:00, the FEEL/XSD limit).

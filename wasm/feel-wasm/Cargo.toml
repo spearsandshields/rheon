@@ -1,10 +1,21 @@
 [package]
 name = "rheon-feel-wasm"
-description = "rheon FEEL engine (dsntk) exposed as a wasm32-wasip1 reactor with a JSON ABI (see docs/CONTRACT.md)"
+description = "rheon | the FEEL engine as a wasm32-wasip1 reactor with a JSON ABI (build with --target wasm32-wasip1)"
 version = { workspace = true }
-edition = { workspace = true }
+authors = { workspace = true }
+categories = ["wasm", "parsing"]
+keywords = ["feel", "dmn", "wasm", "wasi", "rheon"]
+documentation = "https://docs.rs/rheon-feel-wasm"
+repository = { workspace = true }
+homepage = { workspace = true }
 license = { workspace = true }
-publish = false
+edition = { workspace = true }
+readme = "README.md"
+
+[package.metadata.rheon]
+# The upstream dsntk-rs commit the engine crates are based on; reported by the `info` op as
+# `upstreamCommit` (build.rs). Update it when upstream fixes are cherry-picked (docs/FORK.md).
+upstream-commit = "c76aee02187183b3659a9051f3ebb283630066f7"
 
 [lib]
 # The module keeps its historical file name (`feel_wasm.wasm`) and crate name (`feel_wasm::call`).
@@ -12,15 +23,16 @@ name = "feel_wasm"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-# The dsntk engine crates of this repository, with their default number backend `dashu`
-# (pure Rust; no C toolchain is involved). Path dependencies rather than the workspace table so
-# that the default features apply (the table declares the crates with default-features = false).
+# The engine crates of this repository, with their default number backend `dashu` (pure Rust;
+# no C toolchain is involved). Path dependencies rather than the workspace table so that the
+# default features apply (the table declares the crates with default-features = false); the
+# versions are what the published crate depends on.
 dsntk-common = { workspace = true }
-rheon-feel = { path = "../../feel" }
-rheon-feel-number = { path = "../../feel-number" }
-rheon-feel-parser = { path = "../../feel-parser" }
-rheon-feel-evaluator = { path = "../../feel-evaluator" }
-rheon-feel-temporal = { path = "../../feel-temporal" }
+rheon-feel = { path = "../../feel", version = "=0.1.0" }
+rheon-feel-number = { path = "../../feel-number", version = "=0.1.0" }
+rheon-feel-parser = { path = "../../feel-parser", version = "=0.1.0" }
+rheon-feel-evaluator = { path = "../../feel-evaluator", version = "=0.1.0" }
+rheon-feel-temporal = { path = "../../feel-temporal", version = "=0.1.0" }
 serde = { workspace = true }
 # arbitrary_precision: JSON numbers keep their exact source text and never pass through f64.
 serde_json = { workspace = true, features = ["arbitrary_precision"] }

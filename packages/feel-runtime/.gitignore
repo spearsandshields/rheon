@@ -1,0 +1,5 @@
+# copied in by scripts/prepack.mjs for the npm tarball
+feel.wasm
+LICENSE
+LICENSE-MIT
+NOTICE

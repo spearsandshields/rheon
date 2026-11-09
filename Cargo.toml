@@ -79,8 +79,6 @@ dsntk-workspace = { path = "workspace", default-features = false }
 
 # rheon: the upstream dsntk-rs commit this repository's dsntk crates are based on. Reported by
 # the wasm module's `info` op as `upstreamCommit`, next to the repository HEAD (`engineCommit`).
-[workspace.metadata.rheon]
-upstream-commit = "c76aee02187183b3659a9051f3ebb283630066f7"
 upstream = "https://github.com/dsntk/dsntk-rs.git"
 
 # rheon: profile for the wasm modules (`scripts/build-wasm.sh` builds with `--profile wasm`).

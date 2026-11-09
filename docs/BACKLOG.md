@@ -250,7 +250,7 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
   0.3.0 and now come from crates.io (pinned `=0.3.0`; their directories are gone). `model` is
   renamed `rheon-model` because it imports `rheon-feel` types. `dsntk-examples` (fork-adjusted
   TCK fixtures, tests only) is a dev-dependency of `model` now and, like the other `dsntk-*`
-  members, `publish = false`. `rheon-feel-wasm` stays unpublished (build script reads the repo).
+  members, `publish = false`. `rheon-feel-wasm` followed as the ninth crate once its build script learned to read `.cargo_vcs_info.json`.
 - **Crate rename** (2026-10-28, done). The user decided on a permanent fork with no priority on
   upstream feedback, and that crates whose source rheon changed carry the `rheon-` prefix:
   `rheon-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,

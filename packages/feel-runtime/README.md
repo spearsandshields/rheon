@@ -1,28 +1,27 @@
 # @rheon/feel-runtime
 
-JS/TS runtime for the rheon FEEL engine (a fork of [dsntk](https://github.com/dsntk/dsntk-rs)) compiled to WebAssembly
-(`wasm32-wasip1`, pure-Rust decimal128 numbers: exact 34-digit results). It implements
-[`docs/CONTRACT.md`](../../docs/CONTRACT.md) §4.
+[![npm](https://img.shields.io/npm/v/@rheon/feel-runtime.svg)](https://www.npmjs.com/package/@rheon/feel-runtime)
+
+JS/TS runtime for the [rheon](https://github.com/spearsandshields/rheon) FEEL engine (a fork of
+[dsntk](https://github.com/dsntk/dsntk-rs)) compiled to WebAssembly (`wasm32-wasip1`, pure-Rust
+decimal128 numbers: exact 34-digit results). It implements
+[`docs/CONTRACT.md`](https://github.com/spearsandshields/rheon/blob/main/docs/CONTRACT.md) §4.
+The package ships the module itself, `feel.wasm` (about 2.9 MB, 0.8 MB gzipped), so nothing has to
+be compiled. Try it in the [playground](https://spearsandshields.github.io/rheon/).
+
+```sh
+npm install @rheon/feel-runtime
+```
 
 - `FeelEngine`: runs `feel.wasm` in a module Web Worker. It provides a FIFO queue, a per-request timeout (the worker is terminated and restarted) and crash recovery.
 - `instantiateFeel`: a synchronous in-thread runner for Node, tests and workers you manage yourself.
 - `createWasiShim`: the 10-function WASI preview1 shim the module needs. It does not use `node:wasi`, so it works in browsers and Node.
 
-## Build and test
-
-```sh
-./scripts/build-wasm.sh          # from the repo root → dist/feel.wasm
-cd packages/feel-runtime
-npm install
-npm run build                    # tsc → dist/
-npm test                         # build + node:test against ../../dist/feel.wasm
-```
-
 ## Usage in a browser or Vite app
 
 ```ts
 import { FeelEngine, rawJson } from '@rheon/feel-runtime';
-import wasmUrl from '../../dist/feel.wasm?url'; // or copy feel.wasm into public/
+import wasmUrl from '@rheon/feel-runtime/feel.wasm?url'; // Vite: emitted as a hashed asset. Or copy feel.wasm into public/.
 
 const engine = await FeelEngine.create({ wasmUrl, timeoutMs: 2000 });
 
@@ -71,9 +70,9 @@ How the engine works:
 
 ```js
 import { readFile } from 'node:fs/promises';
-import { instantiateFeel, rawJson } from '@rheon/feel-runtime';
+import { feelWasmUrl, instantiateFeel, rawJson } from '@rheon/feel-runtime';
 
-const feel = await instantiateFeel(await readFile('dist/feel.wasm'), { tzOffsetMinutes: -240 });
+const feel = await instantiateFeel(await readFile(feelWasmUrl()), { tzOffsetMinutes: -240 });
 feel.call({ op: 'evaluate', expression: '0.1 + 0.2' }).result.display; // "0.3"
 feel.call({ op: 'evaluate', expression: 'x', context: rawJson('{"x": 1.000000000000000000001}') });
 feel.call('{"op":"info"}'); // a string is sent verbatim
@@ -92,3 +91,19 @@ feel.call('{"op":"info"}'); // a string is sent verbatim
 - Long iterations are slow in dsntk (`sum(for i in 1..100000 return i)` takes about a minute). That is what the timeout is for.
 - Expressions nested deeper than 300 levels are a `syntax` error; more than 200 nested function calls stop with an `evaluation` error (CONTRACT §2).
 - A boolean expression used as a unary test (`? > 5`) is compared with the input, not treated as satisfied when true. Write `> 5` instead. See CONTRACT §2.
+
+## Building from source
+
+```sh
+npm ci && npm run bootstrap      # at the repository root: wasm target + wasmtime
+npm run build:wasm               # → dist/feel.wasm (Rust, wasm32-wasip1, `wasm` profile)
+npm run build:runtime            # tsc → packages/feel-runtime/dist/
+npm run test:runtime             # node:test against ../../dist/feel.wasm
+npm pack -w @rheon/feel-runtime  # the tarball; `prepack` copies feel.wasm and the license files in
+```
+
+## License
+
+MIT OR Apache-2.0, at your option; see `LICENSE-MIT`, `LICENSE` and `NOTICE` in the package.
+The engine is a fork of dsntk by Dariusz Depta (same licenses); its changes are listed in
+[docs/FORK.md](https://github.com/spearsandshields/rheon/blob/main/docs/FORK.md).

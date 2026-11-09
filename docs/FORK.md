@@ -38,7 +38,7 @@ Rules:
 - Upstream commit: `c76aee02187183b3659a9051f3ebb283630066f7`
   ("Prepared next development version.", workspace version `0.3.1-dev`,
   `git describe`: `v0.1.0-47-gc76aee0`).
-- This is the commit recorded as `upstream-commit` in the root `Cargo.toml` (`[workspace.metadata.rheon]`).
+- This is the commit recorded as `upstream-commit` in `wasm/feel-wasm/Cargo.toml` (`[package.metadata.rheon]`).
   Commits 1-4 below are the four patches `dsntk-wasm/patches/dsntk/0001..0004`
   applied in order, one commit each. After commit 4 the tree is
   byte-identical to `dsntk-wasm/third_party/dsntk` (verified with
@@ -353,7 +353,7 @@ upstream releases are not merged any more.
 
 ## Publishing to crates.io
 
-The eight `rheon-*` crates share the workspace version (`[workspace.package] version`,
+The nine `rheon-*` crates share the workspace version (`[workspace.package] version`,
 rheon's own line; `0.1.0` was the first release) and pin each other with `=<version>` in
 the root manifest. Every other workspace member is `publish = false`, so one command
 publishes the set in dependency order:
@@ -372,8 +372,11 @@ crates still miss the workspace version, publishes only those, and sleeps until 
 retry time. The first release (0.1.0, 2026-11-09) took about 35 minutes this way. For a release: bump the workspace version and the `=` pins in the root manifest
 together, run the verification above, commit, tag `vX.Y.Z`, publish.
 
-`rheon-feel-wasm` is not published: its build script reads the repository (HEAD and the
-upstream commit), and the module reaches users through the npm package and the CI artifacts.
+`rheon-feel-wasm` is the ninth published crate: its build script takes the commit from
+`.cargo_vcs_info.json` inside a packaged crate and the upstream commit from its own manifest.
+The built module reaches users through the npm package `@rheon/feel-runtime` (which ships
+`feel.wasm`) and the GitHub Release that `.github/workflows/release.yml` creates for every
+`vX.Y.Z` tag (`feel.wasm`, its sha256, the npm tarball and the playground build).
 
 ### The pre-rename procedure (historical)
 
@@ -411,7 +414,7 @@ Then:
 2. Rebuild and re-verify the wasm side in this repository: `npm test`,
    `npm run build:wasm`, `npm run smoke`, `npm run build` (the module's
    `engineCommit` follows HEAD automatically), and update `upstream-commit`
-   in the root `Cargo.toml` (`[workspace.metadata.rheon]`).
+   in `wasm/feel-wasm/Cargo.toml` (`[package.metadata.rheon]`).
 
 Since 2026-10-28 the engine commits live on `main` of this repository together
 with the wasm, runtime and playground code, and the seven changed crates carry

@@ -72,8 +72,18 @@ The edge-case comparison with feelin and feel-scala is in
 | `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to merge upstream), `BACKLOG.md`, `EDITOR-PLAN.md`, `ENGINE-COMPARISON.md` |
 | `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `smoke.mjs`, `third-party-notices.mjs` |
 | `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
-| `Cargo.toml` | One workspace for all of the above; `[workspace.metadata.rheon] upstream-commit`; the `wasm` build profile |
+| `Cargo.toml` | One workspace for all of the above; the `wasm` build profile |
 | `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, later .NET) |
+
+## Get it
+
+- **npm**: `npm install @rheon/feel-runtime` ships `feel.wasm` together with the TypeScript
+  runtime (Web Worker with timeouts, WASI shim, Node runner). See
+  [`packages/feel-runtime/README.md`](packages/feel-runtime/README.md).
+- **crates.io**: the engine crates (`rheon-feel`, `rheon-feel-parser`, `rheon-feel-evaluator`,
+  `rheon-model-evaluator`, …) for Rust programs, and `rheon-feel-wasm`, the source of the module.
+- **GitHub Releases**: every `vX.Y.Z` tag gets `feel.wasm`, its sha256, the npm tarball and the
+  playground build attached by `.github/workflows/release.yml`.
 
 ## Quickstart
 

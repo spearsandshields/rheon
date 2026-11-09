@@ -1,6 +1,18 @@
 {
   "name": "@rheon/feel-runtime",
   "version": "0.1.0",
+  "description": "JS/TS runtime for the rheon FEEL engine compiled to WebAssembly (wasm32-wasip1, exact decimal128 numbers)",
+  "keywords": [
+    "feel",
+    "dmn",
+    "decision",
+    "expression",
+    "wasm",
+    "webassembly",
+    "wasi",
+    "decimal128",
+    "rheon"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/spearsandshields/rheon.git",
@@ -8,7 +20,6 @@
   },
   "homepage": "https://spearsandshields.github.io/rheon/",
   "bugs": "https://github.com/spearsandshields/rheon/issues",
-  "description": "JS/TS runtime for the rheon FEEL engine compiled to WebAssembly (wasm32-wasip1, exact decimal128 numbers)",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -27,17 +38,29 @@
       "types": "./dist/wasi.d.ts",
       "default": "./dist/wasi.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./feel.wasm": "./feel.wasm"
   },
   "files": [
     "dist",
     "src",
-    "README.md"
+    "feel.wasm",
+    "README.md",
+    "LICENSE",
+    "LICENSE-MIT",
+    "NOTICE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test --test-timeout=120000 test/*.test.mjs"
+    "test": "npm run build && node --test --test-timeout=120000 test/*.test.mjs",
+    "prepack": "npm run build && node scripts/prepack.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0"
