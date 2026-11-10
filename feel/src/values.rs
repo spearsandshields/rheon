@@ -37,15 +37,21 @@ use std::str::FromStr;
 /// ```
 #[macro_export]
 macro_rules! value_null {
-  ($module:expr, $function:literal, $format:literal, $($arguments:tt)*) => {
-    Value::Null(Some(format!("[{}::{}] {}", $module, $function, format!($format, $($arguments)*))))
-  };
-  ($format:literal, $($arguments:tt)*) => {
-    Value::Null(Some(format!($format, $($arguments)*)))
-  };
-  ($argument:expr) => {
-    Value::Null(Some(format!("{}", $argument)))
-  };
+  ($module:expr, $function:literal, $format:literal, $($arguments:tt)*) => {{
+    let message = format!("[{}::{}] {}", $module, $function, format!($format, $($arguments)*));
+    $crate::diagnostics::record(&message);
+    Value::Null(Some(message))
+  }};
+  ($format:literal, $($arguments:tt)*) => {{
+    let message = format!($format, $($arguments)*);
+    $crate::diagnostics::record(&message);
+    Value::Null(Some(message))
+  }};
+  ($argument:expr) => {{
+    let message = format!("{}", $argument);
+    $crate::diagnostics::record(&message);
+    Value::Null(Some(message))
+  }};
   () => {
     Value::Null(None)
   };

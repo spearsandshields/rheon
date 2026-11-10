@@ -1,5 +1,6 @@
 //! # Decision model evaluator
 
+use rheon_feel::diagnostics::{self, Diagnostics, ErrorMode};
 use crate::business_knowledge_model::BusinessKnowledgeModelEvaluator;
 use crate::decision::DecisionEvaluator;
 use crate::decision_service::DecisionServiceEvaluator;
@@ -111,6 +112,25 @@ impl ModelEvaluator {
         // evaluate a decision service
         self.evaluate_decision_service(def_key, input_data)
       }
+    }
+  }
+
+  /// Evaluates an invocable in the given error handling mode (DMN 1.6 §7.3.8) and returns its
+  /// value together with the errors recorded during the evaluation. Lenient (the default of
+  /// [evaluate_invocable](Self::evaluate_invocable)) returns the value with the errors collected;
+  /// strict returns null with the first error when any error occurred.
+  pub fn evaluate_invocable_with_mode(
+    &self,
+    model_namespace: &str,
+    model_name: &str,
+    invocable_name: &str,
+    input_data: &FeelContext,
+    error_mode: ErrorMode,
+  ) -> (Value, Diagnostics) {
+    let (value, diagnostics) = diagnostics::collect(|| self.evaluate_invocable(model_namespace, model_name, invocable_name, input_data));
+    match (error_mode, diagnostics.first()) {
+      (ErrorMode::Strict, Some(first)) => (Value::Null(Some(format!("strict error mode: {first}"))), diagnostics),
+      _ => (value, diagnostics),
     }
   }
 

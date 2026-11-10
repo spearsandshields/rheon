@@ -136,6 +136,8 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
     ...contextFields(req.context, req.contextFormat),
     input: dialect === 'unaryTests' ? req.input : undefined,
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    language: req.language,
+    errorMode: req.errorMode,
   });
 }
 

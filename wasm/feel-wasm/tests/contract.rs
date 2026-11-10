@@ -840,3 +840,42 @@ fn full_feel_scale_range_and_regex_back_references() {
   let r = expr(r#"matches("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!", "^(a+)+\\1$")"#);
   assert!(r["isNull"] == true || r["display"] == "false", "{r}");
 }
+
+/// Sends a request and returns the whole response (asserting success).
+fn ok(request: Json) -> Json {
+  let response = req(request);
+  assert_eq!(response["ok"], true, "expected success, got {response}");
+  response
+}
+
+#[test]
+fn b_feel_language() {
+  // DMN 1.6 chapter 11: language "b-feel"; the FEEL error behind the default is a diagnostic
+  let response = ok(json!({"op": "evaluate", "expression": "\"The result is: \" + 1", "language": "b-feel"}));
+  assert_eq!(response["result"]["display"], "\"The result is: 1\"", "{response}");
+  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  let response = ok(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel"}));
+  assert_eq!(response["result"]["display"], "false", "{response}");
+  let response = ok(json!({"op": "evaluate", "expression": "\"a\" = 1"}));
+  assert_eq!(response["result"]["display"], "null", "{response}");
+  let response = req(json!({"op": "evaluate", "expression": "1", "language": "x"}));
+  assert_eq!(error_kind(&response), "request", "{response}");
+}
+
+#[test]
+fn error_modes() {
+  // DMN 1.6 §7.3.8: lenient (default) continues and lists the errors; strict stops at the first
+  let expression = "if 1 + \"a\" = null then \"ok\" else \"no\"";
+  let response = ok(json!({"op": "evaluate", "expression": expression}));
+  assert_eq!(response["result"]["display"], "\"ok\"", "{response}");
+  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  let response = req(json!({"op": "evaluate", "expression": expression, "errorMode": "strict"}));
+  assert_eq!(error_kind(&response), "evaluation", "{response}");
+  assert!(response["error"]["message"].as_str().unwrap().starts_with("strict error mode: "), "{response}");
+  // a clean evaluation is unaffected by strict mode
+  let response = ok(json!({"op": "evaluate", "expression": "1 + 1", "errorMode": "strict"}));
+  assert_eq!(response["result"]["display"], "2", "{response}");
+  assert_eq!(response["diagnostics"]["count"], 0, "{response}");
+  let response = req(json!({"op": "evaluate", "expression": "1", "errorMode": "x"}));
+  assert_eq!(error_kind(&response), "request", "{response}");
+}

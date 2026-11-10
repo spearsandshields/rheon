@@ -25,6 +25,22 @@ export interface EvaluateRequest {
   input?: unknown | RawJson;
   /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
   tzOffsetMinutes?: number;
+  /** Expression language: `'feel'` (default) or `'b-feel'` (DMN 1.6 chapter 11). */
+  language?: Language;
+  /** `'strict'` turns any error during evaluation into an `evaluation` error (DMN 1.6 §7.3.8). */
+  errorMode?: ErrorMode;
+}
+
+/** FEEL or B-FEEL (DMN 1.6 chapter 11). */
+export type Language = 'feel' | 'b-feel';
+
+/** Error handling mode of an evaluation (DMN 1.6 §7.3.8). */
+export type ErrorMode = 'lenient' | 'strict';
+
+/** Errors recorded during an evaluation: null values the core created with a reason. */
+export interface Diagnostics {
+  count: number;
+  messages: string[];
 }
 
 export interface FeelResult {
@@ -53,7 +69,7 @@ export interface FeelError {
 }
 
 export type EvaluateResponse =
-  | { ok: true; result: FeelResult; warnings: { message: string }[]; elapsedMicros: number }
+  | { ok: true; result: FeelResult; warnings: { message: string }[]; diagnostics?: Diagnostics; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 export type ParseResponse =

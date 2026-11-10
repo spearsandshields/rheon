@@ -96,20 +96,14 @@ pub fn build_evaluator_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluat
 /// Prepares null value with error message for second argument in `between` operator.
 macro_rules! between_null2 {
   ($expected:literal, $actual:expr) => {
-    Value::Null(Some(format!(
-      "expected {} as a second argument in 'between' operator, actual value type is {}",
-      $expected, $actual
-    )))
+    value_null!("expected {} as a second argument in 'between' operator, actual value type is {}", $expected, $actual)
   };
 }
 
 /// Prepares null value with error message for third argument in `between` operator.
 macro_rules! between_null3 {
   ($expected:literal, $actual:expr) => {
-    Value::Null(Some(format!(
-      "expected {} as a third argument in 'between' operator, actual value type is {}",
-      $expected, $actual
-    )))
+    value_null!("expected {} as a third argument in 'between' operator, actual value type is {}", $expected, $actual)
   };
 }
 

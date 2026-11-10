@@ -5,6 +5,7 @@ use crate::input::{feel_context, json_object_to_context, json_to_value};
 use rheon_feel::context::FeelContext;
 use rheon_feel::dto::ValueDto;
 use rheon_feel::values::Value;
+use rheon_feel::diagnostics::{self, ErrorMode};
 use rheon_feel::{FeelScope, Name};
 use rheon_feel_parser::AstNode;
 use serde_json::{Map, Value as Json, json};
@@ -148,6 +149,26 @@ fn dialect(req: &Map<String, Json>) -> Result<Dialect, Failure> {
     Some(Json::String(d)) if d == "expression" => Ok(Dialect::Expression),
     Some(Json::String(d)) if d == "unaryTests" => Ok(Dialect::UnaryTests),
     Some(other) => fail(Kind::Request, format!("invalid 'dialect' {other} (expected \"expression\" or \"unaryTests\")")),
+  }
+}
+
+/// The expression language: `"feel"` (default) or `"b-feel"` (DMN 1.6 chapter 11).
+fn language(req: &Map<String, Json>) -> Result<rheon_feel_evaluator::Dialect, Failure> {
+  match req.get("language") {
+    None | Some(Json::Null) => Ok(rheon_feel_evaluator::Dialect::Feel),
+    Some(Json::String(l)) if l == "feel" => Ok(rheon_feel_evaluator::Dialect::Feel),
+    Some(Json::String(l)) if l == "b-feel" => Ok(rheon_feel_evaluator::Dialect::BFeel),
+    Some(other) => fail(Kind::Request, format!("invalid 'language' {other} (expected \"feel\" or \"b-feel\")")),
+  }
+}
+
+/// The error handling mode: `"lenient"` (default) or `"strict"` (DMN 1.6 §7.3.8).
+fn error_mode(req: &Map<String, Json>) -> Result<ErrorMode, Failure> {
+  match req.get("errorMode") {
+    None | Some(Json::Null) => Ok(ErrorMode::Lenient),
+    Some(Json::String(m)) if m == "lenient" => Ok(ErrorMode::Lenient),
+    Some(Json::String(m)) if m == "strict" => Ok(ErrorMode::Strict),
+    Some(other) => fail(Kind::Request, format!("invalid 'errorMode' {other} (expected \"lenient\" or \"strict\")")),
   }
 }
 
@@ -302,6 +323,8 @@ fn uses_question_mark(node: &AstNode) -> bool {
 
 fn evaluate(req: &Map<String, Json>, started: Instant) -> Result<Json, Failure> {
   let dialect = dialect(req)?;
+  let language = language(req)?;
+  let error_mode = error_mode(req)?;
   let expression = expression(req)?;
   apply_tz_offset(req)?;
   let mut warnings = vec![];
@@ -315,14 +338,22 @@ fn evaluate(req: &Map<String, Json>, started: Instant) -> Result<Json, Failure> 
     }
   };
   rheon_feel_evaluator::reset_call_depth();
-  let value = rheon_feel_evaluator::evaluate(&scope, &node);
+  let evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, language);
+  let (value, diagnostics) = diagnostics::collect(|| evaluator(&scope));
   if rheon_feel_evaluator::call_depth_exceeded() {
     return fail(Kind::Evaluation, call_depth_message());
+  }
+  // strict mode (DMN 1.6 §7.3.8): the first error stops the evaluation
+  if error_mode == ErrorMode::Strict
+    && let Some(first) = diagnostics.first()
+  {
+    return fail(Kind::Evaluation, format!("strict error mode: {first}"));
   }
   Ok(json!({
     "ok": true,
     "result": result_json(&value),
     "warnings": warnings.into_iter().map(|message| json!({ "message": message })).collect::<Vec<_>>(),
+    "diagnostics": { "count": diagnostics.count, "messages": diagnostics.messages },
     "elapsedMicros": elapsed_micros(started),
   }))
 }

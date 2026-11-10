@@ -8,6 +8,7 @@ pub mod bif;
 pub mod bip;
 pub mod closure;
 pub mod context;
+pub mod diagnostics;
 pub mod dto;
 mod errors;
 mod evaluator;

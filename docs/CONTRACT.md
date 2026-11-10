@@ -34,9 +34,14 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
   "context": { /* JSON object */ },          // evaluate; optional, default {}
   "contextFormat": "json" | "feel",          // optional, default "json"; with "feel", `context` is a STRING holding a FEEL context literal
   "input": <JSON value>,                      // unaryTests only: the value tested (`?`). If absent, context["?"] is used
-  "tzOffsetMinutes": -240                     // optional: host local UTC offset in minutes, used by now()/today()
+  "tzOffsetMinutes": -240,                    // optional: host local UTC offset in minutes, used by now()/today()
+  "language": "feel" | "b-feel",             // evaluate; default "feel"; "b-feel" is DMN 1.6 chapter 11
+  "errorMode": "lenient" | "strict"          // evaluate; default "lenient" (DMN 1.6 §7.3.8)
 }
 ```
+
+- `language: "b-feel"` evaluates in B-FEEL (DMN 1.6 chapter 11): null only means missing data; where FEEL returns null for an error, B-FEEL returns `false` (boolean operators and functions; `true` for `!=`), the default of the function's result type (`0`, `""`, the epoch, `P0M`, `[]`, `(0..0)`), or converts mismatched arithmetic operands (`"The result is: " + 1` = `"The result is: 1"`, `1 + null` = `1`). The FEEL errors behind these defaults still appear in `diagnostics`.
+- `errorMode: "strict"`: when any error occurred during the evaluation (a null created with a reason, see `diagnostics`), the response is an `evaluation` error whose message is `strict error mode: <first error>`, instead of a result. `"lenient"` returns the result and lists the errors.
 
 - `parse` also accepts `context`/`contextFormat` (optional): the parser needs to know which multi-word names exist (`Grace's age + 1` only parses as a name if `Grace's age` is in the context). For `dialect: "unaryTests"`, `?` is always a known name.
 - Unary tests are evaluated as dsntk's decision tables do: the tested value is bound to the name `?` in the scope and the result is `? in (<unary tests>)`, i.e. a boolean (or null). Note (dsntk at the pinned commit): a boolean *expression* used as a test, e.g. `? > 5`, is **compared** with the input (`7 = true` → `false`) instead of being "satisfied when true" as in DMN 1.2+. Use `> 5` instead. The response carries a warning for every test that is a comparison/logical expression (or `not(...)`) using `?`.
@@ -69,6 +74,7 @@ Success:
     "nullReason": "string?" // when dsntk produced null carrying an error message (value_null!(...)), that message
   },
   "warnings": [ { "message": "string" } ],
+  "diagnostics": { "count": 1, "messages": ["string"] },  // errors recorded during evaluate (null values created with a reason), first 64, consecutive repeats once
   "elapsedMicros": 123
 }
 ```
@@ -106,10 +112,10 @@ export type Dialect = 'expression' | 'unaryTests';
 /** Raw JSON text, spliced verbatim into the request JSON (keeps exact number digits). Only values made by rawJson() count (private Symbol.for brand). */
 export interface RawJson { readonly rawJson: string; }
 export interface RequestOptions { signal?: AbortSignal; }
-export interface EvaluateRequest { dialect?: Dialect; expression: string; context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; input?: unknown | RawJson; tzOffsetMinutes?: number; }
+export interface EvaluateRequest { dialect?: Dialect; expression: string; context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; input?: unknown | RawJson; tzOffsetMinutes?: number; language?: 'feel' | 'b-feel'; errorMode?: 'lenient' | 'strict'; }
 export interface FeelResult { display: string; feel: string; type: string; typed: unknown; isNull: boolean; nullReason?: string | null; }
 export type EvaluateResponse =
-  | { ok: true; result: FeelResult; warnings: { message: string }[]; elapsedMicros: number }
+  | { ok: true; result: FeelResult; warnings: { message: string }[]; diagnostics?: { count: number; messages: string[] }; elapsedMicros: number }
   | { ok: false; error: { kind: 'request'|'syntax'|'context'|'evaluation'|'internal'|'timeout'|'crash'|'cancelled'; message: string } };
 export type ParseResponse = { ok: true; tree: string; elapsedMicros: number } | { ok: false; error: { kind: string; message: string } };
 export interface ParseOptions { context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; }

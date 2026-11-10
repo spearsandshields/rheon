@@ -65,3 +65,19 @@ fn _0011() {
 fn _0012() {
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "Implicit Conversions FUNCT", &CTX, r#"[[1], 2, 2000-02-01T00:00:00Z]"#);
 }
+
+#[test]
+fn error_modes() {
+  // DMN 1.6 §7.3.8: a failed conversion is an error; lenient returns the null and lists it,
+  // strict returns null with the first error; an error-free evaluation has no diagnostics.
+  use rheon_feel::diagnostics::ErrorMode;
+  let (value, diagnostics) =
+    MODEL_EVALUATOR.evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List Error", &CTX, ErrorMode::Lenient);
+  assert_eq!(value.to_string(), "null(after coercion)");
+  assert!(diagnostics.count > 0);
+  let (value, _) = MODEL_EVALUATOR.evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List Error", &CTX, ErrorMode::Strict);
+  assert!(value.to_string().starts_with("null(strict error mode: "), "{value}");
+  let (value, diagnostics) = MODEL_EVALUATOR.evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List", &CTX, ErrorMode::Strict);
+  assert_eq!(value.to_string(), r#""abc""#);
+  assert_eq!(diagnostics.count, 0, "{diagnostics:?}");
+}
