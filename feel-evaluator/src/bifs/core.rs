@@ -1182,6 +1182,8 @@ pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value
   if let Value::List(mut items) = list.clone()
     && let Value::Number(position) = position_value
   {
+    // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
+    let position = &position.trunc();
     // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
     if position.is_positive()
       && let Ok(i) = u64::try_from(position)
@@ -1209,6 +1211,8 @@ pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Valu
   if let Value::List(mut items) = list.clone()
     && let Value::Number(position) = position_value
   {
+    // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
+    let position = &position.trunc();
     // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
     if position.is_positive()
       && let Ok(i) = u64::try_from(position)
@@ -2064,6 +2068,8 @@ pub fn remove(list: &Value, position_value: &Value) -> Value {
   if let Value::List(mut items) = list.clone()
     && let Value::Number(position_number) = position_value
   {
+    // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
+    let position_number = &position_number.trunc();
     if position_number.is_positive()
       && let Ok(position) = u64::try_from(position_number)
       && let Some(index) = position.checked_sub(1)
@@ -2589,6 +2595,8 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
   if let Value::List(items) = list {
     if let Value::Number(position_number) = position_value {
       let len = items.len() as i128;
+      // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
+      let position_number = &position_number.trunc();
       if position_number.is_positive() {
         if let Ok(position) = u64::try_from(position_number) {
           let index = position as i128 - 1;
@@ -2629,6 +2637,8 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
       if let Ok(length) = u64::try_from(length_number) {
         if let Value::Number(position_number) = position_value {
           let len = items.len() as i128;
+          // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
+          let position_number = &position_number.trunc();
           let first = if position_number.is_positive() {
             match u64::try_from(position_number) {
               Ok(position) => position as i128 - 1,

@@ -90,3 +90,11 @@ fn _0016() {
     r#"parameter 'newItem' not found"#,
   );
 }
+
+#[test]
+fn dmn_1_6_fractional_position() {
+  // DMN 1.6 §10.3.2.9.4 (DMN16-82): -0.5 truncates to 0, which is out of range
+  te_null(false, &scope!(), "insert before([1,2,3], -0.5, 9)", "index is out of range");
+  te_be_value(false, &scope!(), "insert before([1,2,3], -1.9, 9)", "[1,2,9,3]");
+  te_be_value(false, &scope!(), "insert before([1,2,3], 1.9, 9)", "[9,1,2,3]");
+}

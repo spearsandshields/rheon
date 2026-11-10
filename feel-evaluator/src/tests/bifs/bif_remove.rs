@@ -95,3 +95,13 @@ fn _0018() {
 fn _0019() {
   te_be_value(false, &scope!(), "remove(list:[1,2,3,4,5],position:1)", "[2,3,4,5]");
 }
+
+#[test]
+fn dmn_1_6_fractional_position() {
+  // DMN 1.6 §10.3.2.9.4 (DMN16-82): a fractional position is truncated toward zero.
+  // -0.5 used to pass the sign check and then panic (Vec::remove out of bounds).
+  te_null(false, &scope!(), "remove([1,2,3], -0.5)", "probably index is out of range");
+  te_null(false, &scope!(), "remove([1,2,3], 0.5)", "probably index is out of range");
+  te_be_value(false, &scope!(), "remove([1,2,3], 1.5)", "[2,3]");
+  te_be_value(false, &scope!(), "remove([1,2,3], -1.5)", "[1,2]");
+}

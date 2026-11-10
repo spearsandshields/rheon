@@ -236,3 +236,11 @@ fn _0033() {
   te_null(false, &scope!(), r#"substring("abc", 9e6144)"#, r#"substring: invalid start position value: 9E+6144"#);
   te_null(false, &scope!(), r#"substring("abc", 1, 1.25e60)"#, r#"substring: invalid length value: 1.25E+60"#);
 }
+
+#[test]
+fn dmn_1_6_fractional_position() {
+  // DMN 1.6 §10.3.2.9.4 (DMN16-82): positions and lengths are truncated toward zero
+  te_null(false, &scope!(), "sublist([1,2,3], -0.5)", "sublist: position must not be zero");
+  te_be_value(false, &scope!(), "sublist([1,2,3], -1.5)", "[3]");
+  te_be_value(false, &scope!(), "sublist([1,2,3], 1.5, 2.9)", "[1,2]");
+}

@@ -33,3 +33,9 @@ fn _0005() {
   te_null(false, &scope!(), "insert after([1,3],3,2)", "index is out of range");
   te_null(false, &scope!(), "insert after([1,3],-3,2)", "index is out of range");
 }
+
+#[test]
+fn fractional_position() {
+  te_null(false, &scope!(), "insert after([1,2,3], 0.9, 9)", "index is out of range");
+  te_be_value(false, &scope!(), "insert after([1,2,3], 1.9, 9)", "[1,9,2,3]");
+}
