@@ -52,7 +52,7 @@ impl DecisionServiceEvaluator {
       for decision_service_id in identifiers {
         let evaluator = Arc::clone(model_evaluator);
         evaluators.entry(decision_service_id.clone()).and_modify(|entry| {
-          let output_variable_type = entry.0.feel_type().clone();
+          let output_variable_type = return_type(entry.0.feel_type());
           let body_evaluator = Box::new(move |scope: &FeelScope| {
             let global_context = FeelContext::default();
             let input_data = scope.peek().unwrap_or_default();
@@ -118,8 +118,9 @@ fn build_decision_service_evaluator(decision_service: &DefDecisionService, model
   // prepare output variable name for this decision
   let output_variable_name = output_variable.name().clone();
 
-  // prepare output variable type for this decision
-  let output_variable_type = output_variable.feel_type().clone();
+  // prepare output variable type for this decision; a decision service's variable is typed with
+  // the type of the function it defines, its result is coerced to that function's return type
+  let output_variable_type = return_type(output_variable.feel_type());
 
   // prepare references to required input data
   let input_data_references: Vec<DefKey> = decision_service.input_data().iter().map(|href| href.into()).collect();
@@ -227,4 +228,12 @@ fn build_decision_service_evaluator(decision_service: &DefDecisionService, model
     },
   );
   Ok((output_variable, formal_parameters, decision_service_evaluator, None))
+}
+
+/// The return type of a function type, any other type unchanged (TCK 1157 007-009).
+fn return_type(feel_type: &FeelType) -> FeelType {
+  match feel_type {
+    FeelType::Function(_, result_type) => (**result_type).clone(),
+    other => other.clone(),
+  }
 }

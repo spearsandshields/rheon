@@ -656,12 +656,21 @@ impl Value {
       return self.clone();
     }
     match self {
+      // from date to date and time: UTC midnight (DMN 1.6 §10.3.2.9.4 and §10.3.2.3.5)
+      Value::Date(date) if *target_type == FeelType::DateTime => {
+        return Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0)));
+      }
       // from singleton list
       Value::List(items) => {
         if items.len() == 1 {
           let value = items[0].clone();
           if value.is_conformant(target_type) {
             return value;
+          }
+          if let Value::Date(date) = &value
+            && *target_type == FeelType::DateTime
+          {
+            return Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0)));
           }
         }
       }

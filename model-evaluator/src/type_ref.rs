@@ -42,9 +42,10 @@ pub fn type_ref_to_feel_type(type_ref: &str) -> Option<TypeRef> {
     "boolean" => Some(TypeRef::Boolean(FeelType::Boolean)),
     "date" => Some(TypeRef::Date(FeelType::Date)),
     "time" => Some(TypeRef::Time(FeelType::Time)),
-    "dateTime" => Some(TypeRef::DateTime(FeelType::DateTime)),
-    "dayTimeDuration" => Some(TypeRef::DayTimeDuration(FeelType::DaysAndTimeDuration)),
-    "yearMonthDuration" => Some(TypeRef::YearMonthDuration(FeelType::YearsAndMonthsDuration)),
+    // the XML Schema spellings and the FEEL type names (DMN 1.3+ models use the latter in typeRef)
+    "dateTime" | "date and time" => Some(TypeRef::DateTime(FeelType::DateTime)),
+    "dayTimeDuration" | "days and time duration" => Some(TypeRef::DayTimeDuration(FeelType::DaysAndTimeDuration)),
+    "yearMonthDuration" | "years and months duration" => Some(TypeRef::YearMonthDuration(FeelType::YearsAndMonthsDuration)),
     _ => None,
   }
 }
@@ -67,9 +68,13 @@ mod tests {
       Some(TypeRef::YearMonthDuration(FeelType::YearsAndMonthsDuration)),
       type_ref_to_feel_type("yearMonthDuration")
     );
-    assert_eq!(None, type_ref_to_feel_type("date and time"));
-    assert_eq!(None, type_ref_to_feel_type("days and time duration"));
-    assert_eq!(None, type_ref_to_feel_type("years and months duration"));
+    // the FEEL type names are accepted too (TCK 1157)
+    assert_eq!(Some(TypeRef::DateTime(FeelType::DateTime)), type_ref_to_feel_type("date and time"));
+    assert_eq!(Some(TypeRef::DayTimeDuration(FeelType::DaysAndTimeDuration)), type_ref_to_feel_type("days and time duration"));
+    assert_eq!(
+      Some(TypeRef::YearMonthDuration(FeelType::YearsAndMonthsDuration)),
+      type_ref_to_feel_type("years and months duration")
+    );
     assert_eq!(None, type_ref_to_feel_type("text"));
   }
 

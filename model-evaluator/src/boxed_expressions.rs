@@ -259,6 +259,8 @@ pub fn build_invocation_evaluator(scope: &FeelScope, invocation: &Invocation, mo
           if coerced_param_value.is_invalid_coercion() {
             return coerced_param_value;
           }
+          // the body sees the value converted to the formal parameter's type (TCK 1157 011)
+          params_ctx.set_entry(&formal_parameter_name, coerced_param_value);
         } else {
           return value_null!("argument not provided: {}", formal_parameter_name);
         }
