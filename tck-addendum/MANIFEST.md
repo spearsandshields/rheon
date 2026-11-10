@@ -10,9 +10,17 @@
 | rheon-1606-b-feel-operators | 28 | 1.6 | DMN16-91, DMN16-71 | §11.2 | not implemented | |
 | rheon-1607-b-feel-functions | 67 | 1.6 | DMN16-91 | §11.3–§11.8 | not implemented | |
 | rheon-1608-b-feel-arithmetic | 31 | 1.6 | DMN16-91 | §11.9–§11.10 | not implemented | |
+| rheon-1609-onnx-function-kind | 2 | 1.6 | DMN16-90, DMN16-134 | §10.3.2.13.3, §2.1 | passing | |
 | rheon-1701-trim-function | 16 | 1.7 b1 | DMN17-96 | §10.3.4.3, rule 61 | passing | |
 | rheon-1702-intersection-function | 17 | 1.7 b1 | DMN17-98 | §10.3.4.4 | passing | |
 | rheon-1703-insert-after-function | 20 | 1.7 b1 | DMN17-100 | §10.3.4.4 | passing | |
+
+## Known conflicts with the official TCK
+
+- **TCK 1151-boxed-filter 006** expects null for a boxed filter whose `in` is a single value ("Will
+  not coerce single value 'in' expression to list"), the DMN 1.5 rule. DMN 1.6 §10.2 boxed filter
+  (DMN16-94) requires the conversion to a singleton list, so rheon returns `[]`. This test is in
+  docs/tck-baseline.txt as an expected failure until the TCK is updated for 1.6.
 
 ## Open questions (left untested on purpose)
 

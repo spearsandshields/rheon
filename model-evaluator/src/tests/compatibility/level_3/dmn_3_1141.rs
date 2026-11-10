@@ -31,7 +31,7 @@ fn _0004() {
 #[test]
 fn _0005() {
   let invocable = "decision005";
-  let expected = "null(expected 2 parameters, actual number of parameters is 0)";
+  let expected = "null(expected 1,2 parameters, actual number of parameters is 0)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 #[test]
@@ -56,7 +56,7 @@ fn _0008() {
 #[test]
 fn _0009() {
   let invocable = "decision009";
-  let expected = "null(expected 2 parameters, actual number of parameters is 3)";
+  let expected = "null(expected 1,2 parameters, actual number of parameters is 3)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 #[test]
@@ -68,7 +68,7 @@ fn _0010() {
 #[test]
 fn _0011() {
   let invocable = "decision011_a";
-  let expected = "null(expected 2 parameters, actual number of parameters is 1)";
+  let expected = "null(parameter 'n' not found)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 #[test]
@@ -81,7 +81,7 @@ fn _0012() {
 #[test]
 fn _0013() {
   let invocable = "decision012";
-  let expected = "null(expected 2 parameters, actual number of parameters is 3)";
+  let expected = "null(expected 1,2 parameters, actual number of parameters is 3)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 #[test]

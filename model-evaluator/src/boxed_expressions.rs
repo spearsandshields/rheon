@@ -185,6 +185,15 @@ pub fn build_function_definition_evaluator(scope: &FeelScope, function_definitio
         Closure::default(),
       ))
     }
+    FunctionKind::Onnx => {
+      // DMN 1.6 allows ONNX functions (DMN16-90) and makes executing them optional (DMN16-134):
+      // the model loads, and invoking the function gives null with a diagnostic.
+      let function_definition_evaluator = Box::new(move |_: &FeelScope| value_null!("ONNX functions are not supported")) as Evaluator;
+      Ok((
+        build_coerced_result_evaluator(function_definition_evaluator, function_definition, function_definition.namespace(), model_builder),
+        Closure::default(),
+      ))
+    }
     FunctionKind::Pmml => {
       let body_expression_instance = function_definition.body().as_ref().ok_or_else(err_empty_function_body)?;
       scope.push(parameters_ctx);

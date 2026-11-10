@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-90, DMN16-134; drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1609-onnx-function-kind.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>Business Knowledge Model</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §10.3.2.13.3 and §2.1: a model containing a kind="ONNX" function loads, and its other decisions evaluate.</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">2</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §2.1 (DMN16-134): support for ONNX is optional; an implementation without it returns null for the invocation.</description>
+        <resultNode name="decision002" type="decision" errorResult="true">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+</testCases>

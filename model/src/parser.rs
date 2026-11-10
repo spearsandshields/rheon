@@ -340,6 +340,7 @@ impl ModelParser {
         "FEEL" => Ok(FunctionKind::Feel),
         "Java" => Ok(FunctionKind::Java),
         "PMML" => Ok(FunctionKind::Pmml),
+        "ONNX" => Ok(FunctionKind::Onnx),
         other => Err(err_invalid_function_kind(other)),
       }
     } else {

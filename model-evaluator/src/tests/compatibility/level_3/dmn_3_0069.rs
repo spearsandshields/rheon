@@ -153,21 +153,21 @@ fn _0021() {
 #[test]
 fn _0022() {
   let invocable = "decision021";
-  let expected = "null(for singletons, only filter index with value 1 or -1 is accepted)";
+  let expected = "null(index in filter is out of range [1..1], actual index is 0)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
 #[test]
 fn _0023() {
   let invocable = "decision022";
-  let expected = "null(for singletons, only filter index with value 1 or -1 is accepted)";
+  let expected = "null(index in filter is out of range [1..1], actual index is 0)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
 #[test]
 fn _0024() {
   let invocable = "decision023";
-  let expected = "null(for singletons, only filter index with value 1 or -1 is accepted)";
+  let expected = "null(index in filter is out of range [1..1], actual index is 0)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 

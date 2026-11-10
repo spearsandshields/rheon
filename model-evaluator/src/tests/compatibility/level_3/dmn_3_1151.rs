@@ -35,5 +35,7 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  eq("decision006", &CTX, "null(only number or boolean indexes are allowed in filters)");
+  // DMN 1.6 (DMN16-94): the boxed filter's "in" value is converted to a singleton list, so [1][item >= 3]
+  // is []. The official TCK 1151 006 still expects the DMN 1.5 result (null); see tck-addendum/MANIFEST.md.
+  eq("decision006", &CTX, "[]");
 }

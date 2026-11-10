@@ -1033,12 +1033,14 @@ impl FunctionItem {
 }
 
 /// Defines the type of the [FunctionDefinition].
-/// The default value is `FEEL`. Supported values also include `Java` and `PMML`.
+/// The default value is `FEEL`. Supported values also include `Java`, `PMML` and (DMN 1.6) `ONNX`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FunctionKind {
   Feel,
   Java,
   Pmml,
+  /// DMN 1.6 (DMN16-90); executing it is optional for conformance (DMN16-134).
+  Onnx,
 }
 
 /// [FunctionItem] defines the signature of a function:

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-90 (ONNX functions), DMN16-134 (Java, PMML and ONNX are optional for Conformance Level 3); drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1609-onnx-function-kind"
+             name="rheon-1609-onnx-function-kind"
+             id="_rheon-1609"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/">
+    <description>A model with an ONNX function (kind="ONNX", DMN 1.6 §10.3.2.13.3) must load; executing ONNX is optional (§2.1), so its other decisions still evaluate.</description>
+
+    <businessKnowledgeModel name="classify" id="_classify">
+        <variable name="classify"/>
+        <encapsulatedLogic kind="ONNX">
+            <formalParameter name="features" typeRef="Any"/>
+            <context>
+                <contextEntry>
+                    <variable name="onnx"/>
+                    <context>
+                        <contextEntry>
+                            <variable name="file"/>
+                            <literalExpression><text>"iris.onnx"</text></literalExpression>
+                        </contextEntry>
+                        <contextEntry>
+                            <variable name="function signature"/>
+                            <literalExpression><text>"FLOAT[1,4]"</text></literalExpression>
+                        </contextEntry>
+                    </context>
+                </contextEntry>
+            </context>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>1 + 1</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_classify"/>
+        </knowledgeRequirement>
+        <literalExpression>
+            <text>classify([5.1, 3.5, 1.4, 0.2])</text>
+        </literalExpression>
+    </decision>
+</definitions>

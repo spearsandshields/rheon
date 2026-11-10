@@ -91,6 +91,20 @@ fn build_bkm_evaluator(
   // bring into context the variables from knowledge requirements
   bring_knowledge_requirements_into_context(definitions, business_knowledge_model.knowledge_requirements(), &mut local_context)?;
   //TODO verify the above line - there was no such example in models
+  if *function_definition.kind() == FunctionKind::Onnx {
+    // DMN 1.6 (DMN16-90, DMN16-134): ONNX execution is optional; the BKM is a function whose
+    // invocation gives null with a diagnostic, and the rest of the model evaluates normally.
+    let evaluator: rheon_feel::Evaluator = Box::new(|_: &FeelScope| rheon_feel::value_null!("ONNX functions are not supported"));
+    let function = Value::FunctionDefinition(
+      formal_parameters,
+      FunctionBody::LiteralExpression(Arc::new(evaluator)),
+      false,
+      Closure::default(),
+      FeelContext::default(),
+      output_variable_type,
+    );
+    return build_bkm_evaluator_from_function_definition(output_variable_name, function, knowledge_requirements);
+  }
   if let Some(expression_instance) = function_definition.body() {
     let scope: FeelScope = local_context.into();
     build_bkm_expression_instance_evaluator(

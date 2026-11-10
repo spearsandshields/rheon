@@ -76,7 +76,7 @@ fn _0006() {
     &MODEL_NAME,
     "feel-date-and-time-function_ErrorCase_006_8c794da0bb",
     &ctx,
-    r#"null(expected 1,2 parameters, actual number of parameters is 0)"#,
+    r#"null(expected 1,2,3 parameters, actual number of parameters is 0)"#,
   );
 }
 

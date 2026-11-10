@@ -29,7 +29,7 @@ fn _0004() {
     &MODEL_NAME,
     "decision003_a",
     &ctx,
-    r#"null([core::number] <FeelNumberError> invalid number literal '1,000,000.01')"#,
+    r#"null([core::number] not a FEEL numeric literal: 1,000,000.01)"#,
   );
 }
 
@@ -189,7 +189,7 @@ fn _0019() {
     &MODEL_NAME,
     "decision015",
     &ctx,
-    r#"null([core::number] <FeelNumberError> invalid number literal 'foo.bar001')"#,
+    r#"null([core::number] not a FEEL numeric literal: foo.bar001)"#,
   );
 }
 
@@ -202,7 +202,7 @@ fn _0020() {
     &MODEL_NAME,
     "decision016",
     &ctx,
-    r#"null(expected 3 parameters, actual number of parameters is 2)"#,
+    r#"null(expected 1,3 parameters, actual number of parameters is 2)"#,
   );
 }
 
@@ -215,6 +215,6 @@ fn _0021() {
     &MODEL_NAME,
     "decision017",
     &ctx,
-    r#"null(expected 3 parameters, actual number of parameters is 4)"#,
+    r#"null(expected 1,3 parameters, actual number of parameters is 4)"#,
   );
 }
