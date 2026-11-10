@@ -14,6 +14,7 @@ pub enum DmnVersion {
   V13,
   V14,
   V15,
+  V16,
 }
 
 /// [DmnId] defines possible types of unique identifiers in model.

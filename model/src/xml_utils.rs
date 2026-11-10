@@ -8,6 +8,8 @@ use std::str::FromStr;
 pub const NAMESPACE_DMN_13: &str = "https://www.omg.org/spec/DMN/20191111/MODEL/";
 pub const NAMESPACE_DMN_14: &str = "https://www.omg.org/spec/DMN/20211108/MODEL/";
 pub const NAMESPACE_DMN_15: &str = "https://www.omg.org/spec/DMN/20230324/MODEL/";
+/// DMN 1.6 model namespace; DMN 1.6 keeps the 1.5 DMNDI namespace and the 1.3 DC/DI namespaces.
+pub const NAMESPACE_DMN_16: &str = "https://www.omg.org/spec/DMN/20240513/MODEL/";
 pub const NAMESPACE_DMNDI_13: &str = "https://www.omg.org/spec/DMN/20191111/DMNDI/";
 pub const NAMESPACE_DMNDI_15: &str = "https://www.omg.org/spec/DMN/20230324/DMNDI/";
 pub const NAMESPACE_DC_13: &str = "http://www.omg.org/spec/DMN/20180521/DC/";

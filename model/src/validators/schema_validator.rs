@@ -33,7 +33,7 @@ impl Namespaces {
   /// Adds a namespace.
   fn add(&mut self, uri: &str) -> Result<()> {
     match uri {
-      NAMESPACE_DMN_13 | NAMESPACE_DMN_14 | NAMESPACE_DMN_15 => {
+      NAMESPACE_DMN_13 | NAMESPACE_DMN_14 | NAMESPACE_DMN_15 | NAMESPACE_DMN_16 => {
         self.dmn = Some(uri.to_string());
       }
       NAMESPACE_DMNDI_13 | NAMESPACE_DMNDI_15 => {
@@ -56,6 +56,7 @@ impl Namespaces {
       return Err(err_no_supported_namespace());
     };
     match dmn_uri.as_str() {
+      NAMESPACE_DMN_16 => Ok(DmnVersion::V16),
       NAMESPACE_DMN_15 => Ok(DmnVersion::V15),
       NAMESPACE_DMN_14 => Ok(DmnVersion::V14),
       NAMESPACE_DMN_13 => Ok(DmnVersion::V13),
@@ -123,7 +124,7 @@ impl SchemaValidator {
   /// Validates the `definitions` node.
   fn validate_definitions_node(&mut self, node: &Node) -> Result<()> {
     match self.dmn_version {
-      DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 => self.standard_checks(node, chk!(v13, V_DEFINITIONS))?,
+      DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 | DmnVersion::V16 => self.standard_checks(node, chk!(v13, V_DEFINITIONS))?,
     }
     Ok(())
   }
@@ -132,7 +133,7 @@ impl SchemaValidator {
   fn validate_item_definition_nodes(&mut self, node: &Node) -> Result<()> {
     for ref child_node in node.children().filter(name_eq(NODE_ITEM_DEFINITION)) {
       match self.dmn_version {
-        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 => self.standard_checks(child_node, chk!(v13, V_ITEM_DEFINITION))?,
+        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 | DmnVersion::V16 => self.standard_checks(child_node, chk!(v13, V_ITEM_DEFINITION))?,
       }
     }
     Ok(())
@@ -142,7 +143,7 @@ impl SchemaValidator {
   fn validate_input_data_nodes(&mut self, node: &Node) -> Result<()> {
     for ref child_node in node.children().filter(name_eq(NODE_INPUT_DATA)) {
       match self.dmn_version {
-        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 => self.standard_checks(child_node, chk!(v13, V_INPUT_DATA))?,
+        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 | DmnVersion::V16 => self.standard_checks(child_node, chk!(v13, V_INPUT_DATA))?,
       }
     }
     Ok(())
@@ -153,7 +154,7 @@ impl SchemaValidator {
     for ref child_node in node.children().filter(name_eq(NODE_DECISION)) {
       match self.dmn_version {
         DmnVersion::V13 => self.standard_checks(child_node, chk!(v13, V_DECISION))?,
-        DmnVersion::V14 | DmnVersion::V15 => self.standard_checks(child_node, chk!(v14, V_DECISION))?,
+        DmnVersion::V14 | DmnVersion::V15 | DmnVersion::V16 => self.standard_checks(child_node, chk!(v14, V_DECISION))?,
       }
     }
     Ok(())
@@ -163,7 +164,7 @@ impl SchemaValidator {
   fn validate_business_knowledge_model_nodes(&mut self, node: &Node) -> Result<()> {
     for ref child_node in node.children().filter(name_eq(NODE_BUSINESS_KNOWLEDGE_MODEL)) {
       match self.dmn_version {
-        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 => self.standard_checks(child_node, chk!(v13, V_BUSINESS_KNOWLEDGE_MODEL))?,
+        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 | DmnVersion::V16 => self.standard_checks(child_node, chk!(v13, V_BUSINESS_KNOWLEDGE_MODEL))?,
       }
     }
     Ok(())
@@ -173,7 +174,7 @@ impl SchemaValidator {
   fn validate_decision_service_nodes(&mut self, node: &Node) -> Result<()> {
     for ref child_node in node.children().filter(name_eq(NODE_DECISION_SERVICE)) {
       match self.dmn_version {
-        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 => self.standard_checks(child_node, chk!(v13, V_DECISION_SERVICE))?,
+        DmnVersion::V13 | DmnVersion::V14 | DmnVersion::V15 | DmnVersion::V16 => self.standard_checks(child_node, chk!(v13, V_DECISION_SERVICE))?,
       }
     }
     Ok(())
