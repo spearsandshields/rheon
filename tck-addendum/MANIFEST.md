@@ -5,8 +5,8 @@
 | rheon-1601-round-single-argument | 26 | 1.6 | DMN16-93 | §10.3.4.5 Table 77 | passing | |
 | rheon-1602-number-single-argument | 20 | 1.6 | DMN16-208, DMN16-105 | §10.3.4.1 Table 73, rule 35 | passing | |
 | rheon-1603-temporal-value-property | 47 | 1.6 | DMN16-11 | §10.3.2.3.4–8, Tables 66–67 | passing | |
-| rheon-1604-singleton-list-iteration | 30 | 1.6 | DMN16-94 | §10.3.2.9.4, boxed iterators | see baseline | |
-| rheon-1605-descendant-operator | 19 | 1.6 | DMN16-72 | rule 68 | not implemented | |
+| rheon-1604-singleton-list-iteration | 30 | 1.6 | DMN16-94 | §10.3.2.9.4, boxed iterators | passing | |
+| rheon-1605-descendant-operator | 19 | 1.6 | DMN16-72 | rule 68 | passing | |
 | rheon-1606-b-feel-operators | 28 | 1.6 | DMN16-91, DMN16-71 | §11.2 | not implemented | |
 | rheon-1607-b-feel-functions | 67 | 1.6 | DMN16-91 | §11.3–§11.8 | not implemented | |
 | rheon-1608-b-feel-arithmetic | 31 | 1.6 | DMN16-91 | §11.9–§11.10 | not implemented | |
@@ -20,7 +20,14 @@
 - **TCK 1151-boxed-filter 006** expects null for a boxed filter whose `in` is a single value ("Will
   not coerce single value 'in' expression to list"), the DMN 1.5 rule. DMN 1.6 §10.2 boxed filter
   (DMN16-94) requires the conversion to a singleton list, so rheon returns `[]`. This test is in
-  docs/tck-baseline.txt as an expected failure until the TCK is updated for 1.6.
+  docs/tck-baseline.txt as an expected failure until the TCK is updated for 1.6. (DecisionToolkit's
+  runner skips every case marked `errorResult="true"`, so this case, and the addendum's own
+  error-result cases, do not show in scripts/tck.sh counts at all; the Rust compatibility test
+  dmn_3_1151 pins rheon's result.)
+
+- **TCK 1152-boxed-for 003 and 004** ("Will not coerce single value 'in' expression to list"): the
+  same DMN 1.5 rule for the boxed for; rheon gives the singleton-list result (`["not a list"]`,
+  `[2]`). Also error-result cases, so the runner skips them.
 
 ## Open questions (left untested on purpose)
 

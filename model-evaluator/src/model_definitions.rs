@@ -382,8 +382,16 @@ pub struct DefHRef {
 
 impl DefHRef {
   pub fn new(namespace: &str, href: &HRef, imports: &[DefImport]) -> Self {
+    let model_namespace = namespace;
     let namespace = href.namespace().cloned().unwrap_or(namespace.to_string());
-    let import_name = get_import_name(&namespace, imports);
+    // A reference into the element's own model has no import name, even when another model imports
+    // this one (TCK 0089). An import with an empty name brings the imported elements into the
+    // importing model's own scope (DMN §6.3.3): plain names, no prefix either.
+    let import_name = if namespace == model_namespace {
+      None
+    } else {
+      get_import_name(&namespace, imports).filter(|name| !name.to_string().is_empty())
+    };
     Self {
       namespace,
       id: href.id().to_string(),
@@ -614,7 +622,7 @@ impl DefDecisionService {
   }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct DefImport {
   namespace: String,
   name: Name,
@@ -651,26 +659,32 @@ impl DefDefinitions {
   /// Adds definitions from specified model.
   pub fn add_model(&mut self, definitions: &Definitions) {
     self.imports.append(&mut definitions.imports().iter().map(DefImport::new).collect());
+    // Import names belong to the importing model: two models may import the same namespace under
+    // different names (TCK 1160: "a" in one, "" in another). Resolve against this model's own
+    // imports first, then against all imports seen so far (transitive references, TCK 0089).
+    let mut scoped_imports: Vec<DefImport> = definitions.imports().iter().map(DefImport::new).collect();
+    scoped_imports.extend(self.imports.iter().cloned());
+    let imports = &scoped_imports;
     self
       .item_definitions
       .append(&mut definitions.item_definitions().iter().map(DefItemDefinition::new).collect());
     for drg_element in definitions.drg_elements() {
       match drg_element {
         DrgElement::InputData(inner) => {
-          self.input_data.insert(DefKey::new(inner.namespace(), inner.id()), DefInputData::new(inner, &self.imports));
+          self.input_data.insert(DefKey::new(inner.namespace(), inner.id()), DefInputData::new(inner, imports));
         }
         DrgElement::BusinessKnowledgeModel(inner) => {
           self
             .business_knowledge_models
-            .insert(DefKey::new(inner.namespace(), inner.id()), DefBusinessKnowledgeModel::new(inner, &self.imports));
+            .insert(DefKey::new(inner.namespace(), inner.id()), DefBusinessKnowledgeModel::new(inner, imports));
         }
         DrgElement::Decision(inner) => {
-          self.decisions.insert(DefKey::new(inner.namespace(), inner.id()), DefDecision::new(inner, &self.imports));
+          self.decisions.insert(DefKey::new(inner.namespace(), inner.id()), DefDecision::new(inner, imports));
         }
         DrgElement::DecisionService(inner) => {
           self
             .decision_services
-            .insert(DefKey::new(inner.namespace(), inner.id()), DefDecisionService::new(inner, &self.imports));
+            .insert(DefKey::new(inner.namespace(), inner.id()), DefDecisionService::new(inner, imports));
         }
         _ => {}
       }

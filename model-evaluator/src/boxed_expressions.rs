@@ -388,7 +388,10 @@ pub fn build_for_evaluator(scope: &FeelScope, r#for: &For, model_builder: &Model
           return value_null!(reason);
         }
       }
-      _ => {}
+      // null in the `in` row: unspecified, iterates over nothing (as before)
+      Value::Null(_) => {}
+      // any other value is a singleton list (DMN 1.6 boxed for, implicit conversion, DMN16-94)
+      value => for_expression_evaluator.add_list(iterator_variable, Value::List(vec![value])),
     }
     Value::List(for_expression_evaluator.evaluate(scope, &return_evaluator))
   });

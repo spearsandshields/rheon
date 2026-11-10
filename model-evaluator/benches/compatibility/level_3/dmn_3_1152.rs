@@ -21,10 +21,10 @@ fn _0002(b: &mut Bencher) {
 
 #[bench]
 fn _0003(b: &mut Bencher) {
-  eq(b, "decision003", &CTX, "[]");
+  eq(b, "decision003", &CTX, r#"["not a list"]"#);
 }
 
 #[bench]
 fn _0004(b: &mut Bencher) {
-  eq(b, "decision004", &CTX, "[]");
+  eq(b, "decision004", &CTX, "[2]");
 }

@@ -116,7 +116,12 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
     {
       let variable_name = required_input.variable().name();
       let variable_type = input_data_context_evaluator.eval(&href.into(), &mut input_requirements_ctx, item_definition_context_evaluator);
-      input_requirements_ctx.set_entry(variable_name, Value::FeelType(variable_type));
+      // an imported input data is reached through its import name (`a.person`), like a decision
+      if let Some(import_name) = href.import_name() {
+        input_requirements_ctx.create_entries(&[import_name.clone(), variable_name.clone()], Value::FeelType(variable_type));
+      } else {
+        input_requirements_ctx.set_entry(variable_name, Value::FeelType(variable_type));
+      }
     }
   }
 
@@ -135,7 +140,7 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
   // prepare required knowledge, required decisions and required input data references
   let mut required_knowledge_references: Vec<(Option<Name>, DefKey)> = vec![];
   let mut required_decision_references: Vec<(Option<Name>, DefKey)> = vec![];
-  let mut required_input_data_references: Vec<DefKey> = vec![];
+  let mut required_input_data_references: Vec<(Option<Name>, DefKey)> = vec![];
 
   // required business knowledge models and decision services
   for knowledge_requirement in def_decision.knowledge_requirements() {
@@ -149,7 +154,7 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
       required_decision_references.push((href.import_name().cloned(), href.into()))
     }
     if let Some(href) = information_requirement.required_input() {
-      required_input_data_references.push(href.into())
+      required_input_data_references.push((href.import_name().cloned(), href.into()))
     }
   }
 
@@ -213,13 +218,26 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
 
       // prepare context containing values from required input data
       let mut required_input_ctx: FeelContext = Default::default();
-      let input_data = Value::Context(input_data);
-      required_input_data_references.iter().for_each(|input_data_id| {
-        if let Some((name, value)) = input_data_evaluator.evaluate(input_data_id, &input_data, item_definition_evaluator) {
+      required_input_data_references.iter().for_each(|(import_name, input_data_id)| {
+        if let Some(import_name) = import_name {
+          // DMN 1.6 §6.3.10 (DMN16-50): an imported input data holds one value however it is reached;
+          // it may be given under the import name ({a: {person: ...}}) or once by its own name.
+          let nested = match input_data.get_entry(import_name) {
+            Some(Value::Context(ctx)) => Some(Value::Context(ctx.clone())),
+            _ => None,
+          };
+          let found = nested
+            .and_then(|ctx| input_data_evaluator.evaluate(input_data_id, &ctx, item_definition_evaluator))
+            .filter(|(_, value)| !value.is_null())
+            .or_else(|| input_data_evaluator.evaluate(input_data_id, &Value::Context(input_data.clone()), item_definition_evaluator));
+          if let Some((name, value)) = found {
+            required_input_ctx.create_entries(&[import_name.clone(), name], value);
+          }
+        } else if let Some((name, value)) = input_data_evaluator.evaluate(input_data_id, &Value::Context(input_data.clone()), item_definition_evaluator) {
           required_input_ctx.set_entry(&name, value);
         }
       });
-      required_input_ctx.zip(&requirements_ctx);
+      merge_contexts(&mut required_input_ctx, &requirements_ctx);
 
       // prepare the evaluation scope
       let scope: FeelScope = global_context.clone().into();
@@ -241,4 +259,18 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
 
   // return the output variable and decision evaluator function
   Ok((output_variable, decision_evaluator))
+}
+
+/// Merges `other` into `target`; entries that are contexts on both sides are merged recursively, so
+/// an import name can hold both imported input data and imported decisions (TCK 1160).
+fn merge_contexts(target: &mut FeelContext, other: &FeelContext) {
+  for (name, value) in other.iter() {
+    match (target.get_entry(name).cloned(), value) {
+      (Some(Value::Context(mut existing)), Value::Context(incoming)) => {
+        merge_contexts(&mut existing, incoming);
+        target.set_entry(name, Value::Context(existing));
+      }
+      _ => target.set_entry(name, value.clone()),
+    }
+  }
 }

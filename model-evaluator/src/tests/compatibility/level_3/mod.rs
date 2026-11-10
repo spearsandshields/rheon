@@ -120,3 +120,4 @@ mod dmn_3_1154;
 mod dmn_3_1155;
 mod dmn_3_1156;
 mod dmn_3_1157;
+mod dmn_3_1160;
