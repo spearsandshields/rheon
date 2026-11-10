@@ -30,8 +30,12 @@ trademarks of the OMG.
   shareable links, light and dark themes, a phone layout. Everything runs in the browser; the
   build is a static site. Live demo: <https://spearsandshields.github.io/rheon/> (GitHub Pages, deployed
   by CI from `main`).
-- **Native dsntk** as upstream ships it: the `dsntk` CLI and server, the DMN model evaluator, the
-  DMN TCK runner support (`--features tck`). The DMN engine is not in wasm yet (next milestone).
+- **DMN 1.6** (the formal OMG version, September 2026) in the native engine: the `dsntk` CLI and
+  server, the DMN model evaluator, B-FEEL, lenient and strict error modes, and the DMN TCK at
+  3,392 of 3,407 (the rest need Java). Features the official TCK does not test yet have
+  TCK-format tests in [`tck-addendum/`](tck-addendum/MANIFEST.md); `scripts/tck.sh` runs both.
+  The DMN engine is not in wasm yet (next milestone); the FEEL module already offers B-FEEL and
+  the error modes (`language`, `errorMode`, CONTRACT §2).
 
 The edge-case comparison with feelin and feel-scala is in
 [`docs/ENGINE-COMPARISON.md`](docs/ENGINE-COMPARISON.md); deferred work and open questions in
