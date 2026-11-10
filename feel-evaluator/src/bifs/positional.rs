@@ -219,7 +219,8 @@ fn bif_date_and_time(parameters: &[Value]) -> Value {
   match parameters.len() {
     1 => core::date_and_time_1(&parameters[0]),
     2 => core::date_and_time_2(&parameters[0], &parameters[1]),
-    n => invalid_number_of_parameters!("1,2", n),
+    3 => core::date_and_time_3(&parameters[0], &parameters[1], &parameters[2]),
+    n => invalid_number_of_parameters!("1,2,3", n),
   }
 }
 

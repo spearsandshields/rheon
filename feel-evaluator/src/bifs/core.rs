@@ -654,6 +654,37 @@ pub fn date_and_time_2(date_value: &Value, time_value: &Value) -> Value {
   }
 }
 
+/// `date and time(date, time, timezone)` (DMN 1.6, DMN16-16): the date (or the date part of a date
+/// and time), a time without a time zone, and a time zone given as "Z", an offset such as "+02:00",
+/// or an IANA zone identifier. The result is what the literal `date and time("<date>T<time><zone>")`
+/// gives, so the parser of date and time strings validates the combination.
+pub fn date_and_time_3(date_value: &Value, time_value: &Value, timezone_value: &Value) -> Value {
+  let date = match date_value {
+    Value::Date(date) => date.clone(),
+    Value::DateTime(date_time) => date_time.date(),
+    other => return invalid_argument_type!("date and time", "date and time or date", other.type_of()),
+  };
+  let time = match time_value {
+    Value::Time(time) if !time.zone().has_offset() => time.clone(),
+    Value::Time(_) => return value_null!("[core::date and time] the time must not have a time zone when a timezone is given"),
+    other => return invalid_argument_type!("date and time", "time", other.type_of()),
+  };
+  let Value::String(zone) = timezone_value else {
+    return invalid_argument_type!("date and time", "string", timezone_value.type_of());
+  };
+  let zone = zone.trim();
+  let suffix = if zone.eq_ignore_ascii_case("z") || zone.starts_with('+') || zone.starts_with('-') {
+    zone.to_string()
+  } else {
+    format!("@{zone}")
+  };
+  let text = format!("{date}T{time}{suffix}");
+  match FeelDateTime::try_from(text.as_str()) {
+    Ok(date_time) => Value::DateTime(date_time),
+    Err(_) => value_null!("[core::date and time] invalid timezone '{}'", zone),
+  }
+}
+
 /// Returns the day of the week according to the Gregorian calendar enumeration:
 /// `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`, `Sunday`.
 pub fn day_of_week(value: &Value) -> Value {

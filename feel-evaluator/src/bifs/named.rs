@@ -46,6 +46,7 @@ static NAME_SECOND: LazyLock<Name> = LazyLock::new(|| Name::from("second"));
 static NAME_START_POSITION: LazyLock<Name> = LazyLock::new(|| Name::new(&["start", "position"]));
 static NAME_STRING: LazyLock<Name> = LazyLock::new(|| Name::from("string"));
 static NAME_TIME: LazyLock<Name> = LazyLock::new(|| Name::from("time"));
+static NAME_TIMEZONE: LazyLock<Name> = LazyLock::new(|| Name::from("timezone"));
 static NAME_TO: LazyLock<Name> = LazyLock::new(|| Name::from("to"));
 static NAME_VALUE: LazyLock<Name> = LazyLock::new(|| Name::from("value"));
 static NAME_VALUE_1: LazyLock<Name> = LazyLock::new(|| Name::from("value1"));
@@ -332,6 +333,9 @@ fn bif_date_and_time(parameters: &NamedParameters) -> Value {
   if let Some((date_value, _)) = get_param(parameters, &NAME_DATE)
     && let Some((time_value, _)) = get_param(parameters, &NAME_TIME)
   {
+    if let Some((timezone_value, _)) = get_param(parameters, &NAME_TIMEZONE) {
+      return core::date_and_time_3(date_value, time_value, timezone_value);
+    }
     return core::date_and_time_2(date_value, time_value);
   }
   value_null!("invalid parameters in named::bif_date_and_time")

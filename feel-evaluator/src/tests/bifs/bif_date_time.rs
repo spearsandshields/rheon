@@ -323,7 +323,7 @@ fn _0042() {
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), r#"date and time()"#, "expected 1,2 parameters, actual number of parameters is 0");
+  te_null(false, &scope!(), r#"date and time()"#, "expected 1,2,3 parameters, actual number of parameters is 0");
 }
 
 #[test]
@@ -332,11 +332,33 @@ fn _0044() {
     false,
     &scope!(),
     r#"date and time("","","","")"#,
-    "expected 1,2 parameters, actual number of parameters is 4",
+    "expected 1,2,3 parameters, actual number of parameters is 4",
   );
 }
 
 #[test]
 fn _0045() {
   te_null(false, &scope!(), r#"date and time(f: "2012-12-24")"#, r#"invalid parameters in named::bif_date_and_time"#);
+}
+
+#[test]
+fn dmn_1_6_date_time_timezone() {
+  // DMN 1.6 §10.3.4.1 Table 73 (DMN16-16): date and time(date, time, timezone)
+  let scope = &scope!();
+  te_bool(false, scope, r#"date and time(date("2024-12-24"), time("23:59:00"), "Z") = date and time("2024-12-24T23:59:00Z")"#, true);
+  te_bool(
+    false,
+    scope,
+    r#"date and time(date("2024-12-24"), time("23:59:00"), "America/Costa_Rica") = date and time("2024-12-24T23:59:00@America/Costa_Rica")"#,
+    true,
+  );
+  te_bool(false, scope, r#"date and time(date("2024-12-24"), time("23:59:00"), "+02:00") = @"2024-12-24T23:59:00+02:00""#, true);
+  te_bool(false, scope, r#"date and time(date: date("2024-12-24"), time: time("23:59:00"), timezone: "Z") = @"2024-12-24T23:59:00Z""#, true);
+  te_null(
+    false,
+    scope,
+    r#"date and time(date("2024-12-24"), time("23:59:00Z"), "Z")"#,
+    "[core::date and time] the time must not have a time zone when a timezone is given",
+  );
+  te_null(false, scope, r#"date and time(date("2024-12-24"), time("23:59:00"), "Mars/Base")"#, "[core::date and time] invalid timezone 'Mars/Base'");
 }
