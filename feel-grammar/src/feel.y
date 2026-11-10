@@ -36,6 +36,7 @@
 %token NUMERIC
 %token STRING
 %token BOOLEAN
+%token DESCENDANT
 
 %precedence RETURN EXTERNAL SATISFIES
 %precedence ELSE
@@ -53,7 +54,7 @@
 %precedence NAME NAME_DATE_TIME BUILT_IN_TYPE_NAME
 %precedence LEFT_PAREN RIGHT_PAREN LEFT_BRACKET RIGHT_BRACKET
 %precedence ELLIPSIS
-%precedence DOT
+%precedence DOT DESCENDANT
 
 %%
 
@@ -110,6 +111,7 @@ textual_expression:
   | NE expression %prec PREC_NEG {/* comparison_unary_ne */}
   | expression INSTANCE OF {/* type_name */} type {/* instance_of */}
   | expression DOT {/* after_dot */} NAME {/* path */}
+  | expression DESCENDANT {/* after_dot */} NAME {/* descendant */}
   | expression LEFT_BRACKET expression RIGHT_BRACKET {/* filter */}
   | expression LEFT_PAREN parameters
   | literal

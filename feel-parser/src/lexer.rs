@@ -35,6 +35,7 @@ pub enum TokenValue {
   Comma,
   Context,
   Div,
+  Descendant,
   Dot,
   Ellipsis,
   Else,
@@ -292,6 +293,11 @@ impl<'lexer> Lexer<'lexer> {
       ['o', 'r', WS, _, _, _, _, _, _, _, _, _] => {
         self.position += 2;
         Ok((TokenType::Or, TokenValue::Or))
+      }
+      // `...` is the descendant operator (DMN 1.6, grammar rule 68), checked before `..`
+      ['.', '.', '.', _, _, _, _, _, _, _, _, _] => {
+        self.position += 3;
+        Ok((TokenType::Descendant, TokenValue::Descendant))
       }
       ['.', '.', _, _, _, _, _, _, _, _, _, _] => {
         self.position += 2;

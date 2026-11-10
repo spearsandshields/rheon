@@ -110,6 +110,7 @@ impl ClosureBuilder {
         vec![name.clone()]
       }
       AstNode::ParameterTypes(lhs) => self.visit_list(lhs, path_level),
+      AstNode::Descendant(lhs, _) => self.visit_1(lhs, path_level),
       AstNode::Path(lhs, rhs) => {
         let mut parts = self.visit_1(rhs, path_level + 1);
         let mut name = self.visit_1(lhs, path_level + 1);

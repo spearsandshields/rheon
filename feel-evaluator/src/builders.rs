@@ -177,6 +177,7 @@ impl<'b> EvaluatorBuilder<'b> {
       AstNode::Out(lhs, rhs) => self.build_out(lhs, rhs),
       AstNode::ParameterName(lhs) => self.build_parameter_name(lhs),
       AstNode::ParameterTypes(lhs) => self.build_parameter_types(lhs),
+      AstNode::Descendant(lhs, rhs) => self.build_descendant(lhs, rhs),
       AstNode::Path(lhs, rhs) => self.build_path(lhs, rhs),
       AstNode::QualifiedName(lhs) => self.build_qualified_name(lhs),
       AstNode::QualifiedNameSegment(lhs) => self.build_qualified_name_segment(lhs),
@@ -1667,6 +1668,35 @@ impl<'b> EvaluatorBuilder<'b> {
   }
 
   /// Returns and evaluator for `path expression`.
+  /// `e...name` (DMN 1.6, grammar rule 68, DMN16-72): the values of every entry named `name` in the
+  /// context `e` and in all its nested contexts, as a list, each matching entry before the entries
+  /// nested in its value. A non-context `e` is null.
+  fn build_descendant(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+    let AstNode::Name(name) = rhs else {
+      return build_err_msg(err_expected_name(rhs));
+    };
+    let name = name.clone();
+    let lhe = self.build(lhs);
+    fn collect(context: &FeelContext, name: &Name, result: &mut Vec<Value>) {
+      for (key, value) in context.iter() {
+        if key == name {
+          result.push(value.clone());
+        }
+        if let Value::Context(nested) = value {
+          collect(nested, name, result);
+        }
+      }
+    }
+    Box::new(move |scope: &FeelScope| match lhe(scope) {
+      Value::Context(context) => {
+        let mut result = vec![];
+        collect(&context, &name, &mut result);
+        Value::List(result)
+      }
+      other => value_null!("descendant expression: expected context, actual type is {}", other.type_of()),
+    })
+  }
+
   fn build_path(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let AstNode::Name(name) = rhs else {
       return build_err_msg(err_expected_name(rhs));

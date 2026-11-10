@@ -258,6 +258,9 @@ pub enum AstNode {
   /// Node representing a collection of function parameter types.
   ParameterTypes(Vec<AstNode>),
 
+  /// Node representing a descendant expression `e...name` (DMN 1.6, grammar rule 68).
+  Descendant(Box<AstNode>, Box<AstNode>),
+
   /// Node representing a path expression.
   Path(Box<AstNode>, Box<AstNode>),
 
@@ -374,6 +377,7 @@ impl AstNode {
       | AstNode::Nq(lhs, rhs)
       | AstNode::Or(lhs, rhs)
       | AstNode::Out(lhs, rhs)
+      | AstNode::Descendant(lhs, rhs)
       | AstNode::Path(lhs, rhs)
       | AstNode::QuantifiedContext(lhs, rhs)
       | AstNode::Range(lhs, rhs)
@@ -458,6 +462,7 @@ impl AstNode {
       | AstNode::Nq(lhs, rhs)
       | AstNode::Or(lhs, rhs)
       | AstNode::Out(lhs, rhs)
+      | AstNode::Descendant(lhs, rhs)
       | AstNode::Path(lhs, rhs)
       | AstNode::QuantifiedContext(lhs, rhs)
       | AstNode::Range(lhs, rhs)
@@ -595,6 +600,7 @@ fn ast_node_to_tree(node: &AstNode, cm: ColorMode) -> TreeNode {
     AstNode::Out(lhs, rhs) => ast_node_2("Out", lhs, rhs, cm),
     AstNode::ParameterName(lhs) => ast_node_and_leaf("ParameterName", &format!("`{lhs}`"), cm),
     AstNode::ParameterTypes(items) => ast_node_n("ParameterTypes", items, cm),
+    AstNode::Descendant(lhs, rhs) => ast_node_2("Descendant", lhs, rhs, cm),
     AstNode::Path(lhs, rhs) => ast_node_2("Path", lhs, rhs, cm),
     AstNode::PositionalParameters(items) => ast_node_n("PositionalParameters", items, cm),
     AstNode::QualifiedName(items) => ast_node_n("QualifiedName", items, cm),

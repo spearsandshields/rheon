@@ -961,6 +961,16 @@ impl ReduceActions for Parser<'_> {
     Ok(())
   }
 
+  fn action_descendant(&mut self) -> Result<()> {
+    trace_action!(self, "descendant");
+    let lhs = self.yy_node_stack.pop().unwrap();
+    if let Some(TokenValue::Name(name)) = &self.yy_value_stack.last() {
+      let rhs = AstNode::Name(name.clone());
+      self.yy_node_stack.push(AstNode::Descendant(Box::new(lhs), Box::new(rhs)));
+    }
+    Ok(())
+  }
+
   fn action_path(&mut self) -> Result<()> {
     trace_action!(self, "path");
     let lhs = self.yy_node_stack.pop().unwrap();

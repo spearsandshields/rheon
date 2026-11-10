@@ -20,6 +20,7 @@ mod comparison_lt;
 mod comparison_ne;
 mod conjunction;
 mod context;
+mod descendant;
 mod disjunction;
 mod division;
 mod empty_input;
