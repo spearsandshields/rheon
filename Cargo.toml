@@ -20,6 +20,8 @@ members = [
     # rheon additions (see README): the FEEL engine as a wasm32-wasip1 module
     "wasm/feel-wasm"
 ]
+# scripts/tck.sh clones DecisionToolkit's TCK runner into .tck/; it is a separate project
+exclude = [".tck"]
 
 [workspace.package]
 version = "0.1.0"
