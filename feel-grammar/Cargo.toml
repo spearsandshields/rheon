@@ -1,0 +1,16 @@
+[package]
+name = "rheon-feel-grammar"
+version = { workspace = true }
+authors = { workspace = true }
+description = "rheon | FEEL grammar (Bison) and the generator of the parser tables (fork of dsntk-feel-grammar)"
+categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
+keywords = ["dmn", "decision", "rheon", "feel"]
+documentation = "https://docs.rs/rheon-feel-grammar"
+repository = { workspace = true }
+homepage = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+convert_case = { workspace = true }
+regex = { workspace = true }

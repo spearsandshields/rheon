@@ -29,4 +29,4 @@ dsntk-macros = { workspace = true }
 difference = { workspace = true }
 
 [build-dependencies]
-dsntk-feel-grammar = { workspace = true }
+rheon-feel-grammar = { workspace = true }

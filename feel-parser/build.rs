@@ -1,4 +1,4 @@
-use dsntk_feel_grammar::lalr_rust_tables;
+use rheon_feel_grammar::lalr_rust_tables;
 use std::process::Command;
 
 fn main() {

@@ -5,7 +5,7 @@
 cd "$(dirname "$0")/.." || exit 1
 VERSION=$(grep -m1 "^version = " Cargo.toml | sed "s/.*\"\(.*\)\"/\1/")
 export CARGO_BUILD_JOBS=4
-ORDER="rheon-feel-number rheon-feel-regex rheon-feel-temporal rheon-feel rheon-feel-parser rheon-feel-evaluator rheon-model rheon-model-evaluator rheon-feel-wasm"
+ORDER="rheon-feel-grammar rheon-feel-number rheon-feel-regex rheon-feel-temporal rheon-feel rheon-feel-parser rheon-feel-evaluator rheon-model rheon-model-evaluator rheon-feel-wasm"
 for attempt in 1 2 3 4 5 6 7 8; do
   echo "=== attempt $attempt $(date -u)"
   args=""

@@ -8,6 +8,7 @@ members = [
     "examples",
     "feel",
     "feel-evaluator",
+    "feel-grammar",
     "feel-number",
     "feel-parser",
     "feel-regex",
@@ -66,7 +67,7 @@ dsntk-evaluator = { path = "evaluator", default-features = false }
 dsntk-examples = { path = "examples" }
 rheon-feel = { path = "feel", version = "=0.1.0", default-features = false }
 rheon-feel-evaluator = { path = "feel-evaluator", version = "=0.1.0", default-features = false }
-dsntk-feel-grammar = "=0.3.0"
+rheon-feel-grammar = { path = "feel-grammar", version = "=0.1.0" }
 rheon-feel-number = { path = "feel-number", version = "=0.1.0", default-features = false }
 rheon-feel-parser = { path = "feel-parser", version = "=0.1.0", default-features = false }
 rheon-feel-regex = { path = "feel-regex", version = "=0.1.0" }

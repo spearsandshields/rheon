@@ -766,16 +766,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dsntk-feel-grammar"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "437b6db2cee7b34192a0b1b0202de1bd2584419cc48fa5f07cb5fdefd5a9e794"
-dependencies = [
- "convert_case 0.11.0",
- "regex",
-]
-
-[[package]]
 name = "dsntk-gendoc"
 version = "0.1.0"
 dependencies = [
@@ -1958,6 +1948,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "rheon-feel-grammar"
+version = "0.1.0"
+dependencies = [
+ "convert_case 0.11.0",
+ "regex",
+]
+
+[[package]]
 name = "rheon-feel-number"
 version = "0.1.0"
 dependencies = [
@@ -1976,9 +1974,9 @@ dependencies = [
  "antex",
  "difference",
  "dsntk-common",
- "dsntk-feel-grammar",
  "dsntk-macros",
  "rheon-feel",
+ "rheon-feel-grammar",
 ]
 
 [[package]]
