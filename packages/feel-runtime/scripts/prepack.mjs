@@ -17,7 +17,7 @@ if (!existsSync(wasm)) {
 // it was built from (see wasm/feel-wasm/build.rs), and a stale or dirty module would carry a
 // wrong stamp into the published package. RHEON_ALLOW_STALE_WASM=1 skips the check.
 const { instantiateFeel } = await import(`${pkg}dist/index.js`);
-const info = instantiateFeel(readFileSync(wasm)).call({ op: 'info' });
+const info = (await instantiateFeel(readFileSync(wasm))).call({ op: 'info' });
 const head = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 if (!process.env.RHEON_ALLOW_STALE_WASM && info.engineCommit !== head) {
   console.error(`prepack: ${wasm} was built from ${info.engineCommit}, but HEAD is ${head}; rebuild it (\`npm run build:wasm\`) or set RHEON_ALLOW_STALE_WASM=1`);
