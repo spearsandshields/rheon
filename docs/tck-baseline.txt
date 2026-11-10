@@ -1,0 +1,17 @@
+# Failing TCK tests at the last recorded run of scripts/tck.sh (official + tck-addendum).
+# Regenerate: node scripts/tck-summary.mjs .tck/out/tck_results.csv --update-baseline
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 boxed_001
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_001
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_002
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_003
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_004
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_005
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_006
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_007
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_008
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_009
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_010
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_011
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 literal_012
+compliance-level-3/0076-feel-external-java 0076-feel-external-java-test-01 varargs_001
+compliance-level-3/0085-decision-services 0085-decision-services-test-01 015

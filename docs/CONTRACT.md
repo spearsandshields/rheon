@@ -79,7 +79,7 @@ Success:
 }
 ```
 
-`display` rules: numbers in dsntk's exact decimal text (a zero with an exponent outside `-34..=0`, e.g. `0 * 1e-6000`, is shown as `0`); strings JSON-quoted/escaped; `true`/`false`/`null`; temporal values, ranges and other non-JSON values as their FEEL text JSON-quoted (`"2026-10-16"`, `"P1DT2H"`, `"[1..10]"`); functions as their quoted type (`"function<Any>->Any"`); lists/contexts as `[...]`/`{"key": value}` on one line when the line fits 80 columns, otherwise expanded with two-space indentation. `warnings` currently reports rounded/underflowed input numbers, missing unary-test input and boolean unary tests using `?`.
+`display` rules: numbers in dsntk's exact decimal text (a zero with an exponent outside `-34..=0`, e.g. `0 * 1e-6000`, is shown as `0`); strings JSON-quoted/escaped; `true`/`false`/`null`; temporal values, ranges and other non-JSON values as their FEEL text JSON-quoted (`"2026-10-16"`, `"P1DT2H"`, `"[1..10]"`), except a date and time with an IANA zone, which is ISO 8601 with its offset and the zone in brackets (`"2007-12-03T10:15:30+01:00[Europe/Paris]"`, DMN 1.6 Table 48; `feel` keeps the FEEL form `…@Europe/Paris`); functions as their quoted type (`"function<Any>->Any"`); lists/contexts as `[...]`/`{"key": value}` on one line when the line fits 80 columns, otherwise expanded with two-space indentation. `warnings` currently reports rounded/underflowed input numbers, missing unary-test input and boolean unary tests using `?`.
 
 `typed` is dsntk's `ValueDto`; for values it has no DTO form (ranges, functions, built-in functions) all three fields are `null` (`{"simple": null, "components": null, "list": null}`).
 

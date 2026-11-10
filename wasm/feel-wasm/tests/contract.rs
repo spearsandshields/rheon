@@ -879,3 +879,13 @@ fn error_modes() {
   let response = req(json!({"op": "evaluate", "expression": "1", "errorMode": "x"}));
   assert_eq!(error_kind(&response), "request", "{response}");
 }
+
+#[test]
+fn zoned_date_time_display() {
+  // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets
+  assert_eq!(display(r#"@"2007-12-03T10:15:30@Europe/Paris""#), r#""2007-12-03T10:15:30+01:00[Europe/Paris]""#);
+  assert_eq!(display(r#"@"2007-07-03T10:15:30@America/New_York""#), r#""2007-07-03T10:15:30-04:00[America/New_York]""#);
+  // offsets and local values are unchanged
+  assert_eq!(display(r#"@"2007-12-03T10:15:30+01:00""#), r#""2007-12-03T10:15:30+01:00""#);
+  assert_eq!(display(r#"@"2007-12-03T10:15:30""#), r#""2007-12-03T10:15:30""#);
+}

@@ -138,30 +138,34 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
   atomic and the call depth is thread-local; thread both through the evaluator scope and drop
   `ENGINE_LOCK`. A day; likely an upstream request anyway.
 
-## TCK failures: root causes found 2026-10-18, deliberately not fixed (DMN layer)
+## DMN 1.6 (target since 2026-11-10)
 
-The patched TCK stands at 3480/3511. Besides the Java cases (0076, out of scope by design), the
-remaining failures are all in the DMN layer, which the fork has not touched, so they are parked
-until DMN-in-wasm starts. Root causes are established, so each is a short task when picked up.
+The conformance target is DMN 1.6 (formal, September 2026), plus the purely additive FEEL
+functions of the 1.7 beta (trim, intersection, insert after). Done 2026-11-10, each with Rust
+tests and, where the TCK has none, TCK-format tests in `tck-addendum/` (see its MANIFEST):
+1.6 namespace, single-argument rounding and number(from), the `value` property, singleton-list
+conversion for filters and the boxed for, the descendant operator `e...name` (grammar change,
+rheon-feel-grammar back in the tree), ONNX functions load, `date and time(date, time, timezone)`,
+truncation of fractional list positions (a panic in `remove`), implicit conversions (TCK 1157)
+and multiple imports (TCK 1160), B-FEEL, lenient and strict error modes with diagnostics, and the
+FEEL fixes found on the way (`all`/`any` with a deciding item, numeric-literal check in number()).
+Official TCK (patched): 3,392 of 3,407; only 0076 (Java, out of scope) and 0085 (runner) fail.
+`scripts/tck.sh` runs it on demand; `docs/tck-baseline.txt` records the failing tests.
 
-- **1157 implicit conversions (12 tests)** `[fork]`. Deployment fails with "empty FEEL type"
-  because `model-evaluator/src/type_ref.rs` maps only the DMN-XML spellings (`dateTime`,
-  `dayTimeDuration`, `yearMonthDuration`) and not the FEEL names (`date and time`, `days and time
-  duration`, `years and months duration`) that DMN 1.3+ models use in `typeRef`. Decision output
-  variables fall back to `Any` silently, but context-entry variables, BKM formal parameters and
-  invocation bindings hard-error (bisected: the "Implicit Conversions CE" context and the FUNCT
-  invocation are the two triggers). Second part: `Value::coerced` in `feel/src/values.rs` has no
-  date → date-and-time rule (midnight UTC), which tests 003/006/009 need. Singleton-list
-  conversions already work (`[[1], 2]` came out once the type resolved). Half a day plus a
-  `dmn_3_1157.rs` compatibility test; the model must be added to the `examples` crate.
-- **1160 multiple imports (3 tests)** `[fork]`. In `model-evaluator/src/decision.rs` required
-  decisions keep their import name (`b.DecisionB` is created with `create_entries`), but required
-  *inputs* drop it: `required_input_data_references` holds only `DefKey`s and the build-time
-  context sets the plain variable name. With `<import name="a">`, `a.person.name` is null while
-  `person.name` (empty import name, test 03) works. Fix: keep `Option<Name>` for required inputs,
-  nest under the import name at build time and at evaluation time; the TCK binds the plain name
-  (DMN16-50, one binding). Half a day plus `dmn_3_1160.rs` with the three models in `examples`.
-- **0085 decisionService_015 (2 tests)** — not an engine bug. The engine returns the correct
+Open in 1.6:
+- **Strict mode granularity** `[dmn]`. Strict evaluates to the end and then returns null with the
+  first error (no side effects make the difference observable). Errors are recorded where the
+  core creates a null with a reason (`value_null!`); a few places build nulls directly and are
+  not recorded.
+- **TCK conflicts** (tck-addendum/MANIFEST.md): 1151 006 and 1152 003/004 expect the DMN 1.5
+  "no singleton conversion" rule for boxed iterators; rheon follows 1.6. Report to the TCK when
+  it adds 1.6 tests.
+- **DMN 1.7 beta** items deferred until 1.7 is formal: version-less namespace and the required
+  `dmnVersion`, `InformationItem.defaultValue`, range types (`isRange`), iteration contexts in
+  quantified expressions (`some x in 1..3`), B-FEEL null handling in collections (DMN17-112).
+- **Spec typo**: the 1.6 number() footnote cites grammar rule 37 (`digits`); rheon uses rule 35.
+
+- **0085 decisionService_015 (1 test since the TCK update)** — not an engine bug. The engine returns the correct
   context with both output decisions. dsntk-test-runner evaluates the decision service once per
   `resultNode` and compares the whole context against each node's expected value instead of
   selecting the component named by the node. Fix belongs in DecisionToolkit/dsntk-test-runner

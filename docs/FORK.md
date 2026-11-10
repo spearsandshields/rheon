@@ -70,6 +70,18 @@ Rules:
 | 20 | `7de788f` | model-evaluator: expectations for the new null reasons of time(), exp(), log() and duration() | with 18 | with 18 |
 | 21 | `c324518` | feel-number: scale-based rounding accepts the full FEEL scale range -6111..=6176 | TCK 1141-1144 | yes |
 | 22 | `44049be` | feel-regex: back-references in `matches` patterns (fancy-regex) | TCK 1111 | yes |
+| 23 | `14afccf` | model: accept the DMN 1.6 namespace | DMN 1.6 | no |
+| 24 | `1503770` | feel: single-argument rounding and number(from); trim, intersection, insert after (1.7 beta) | DMN 1.6 | no |
+| 25 | `1c11b1e` | feel: `value` property of temporal values; filters on a non-list; number() text must be a numeric literal; tck-addendum | DMN 1.6 | no |
+| 26 | `dac2c47` | feel: truncate fractional list positions before the sign check (remove panicked) | upstream bug | yes |
+| 27 | `a46200f` | feel: date and time(date, time, timezone) | DMN 1.6 | no |
+| 28 | `39d6ed9` | model: load ONNX functions; compatibility tests follow the 1.6 changes | DMN 1.6 | no |
+| 29 | `2606bc5` | feel-grammar back in the tree as rheon-feel-grammar (tables reproduce byte for byte) | fork | no |
+| 30 | `9605874` | feel: descendant operator `e...name` (grammar, lexer, AST, evaluator) | DMN 1.6 | no |
+| 31 | `f0487fd` | model: implicit conversions, TCK 1157 12/12 | TCK 1157 | no |
+| 32 | `b911ac4` | model: multiple imports (per-model import names), TCK 1160 4/4; boxed for over a single value | TCK 1160 | no |
+| 33 | `9ac3594` | feel: B-FEEL; all()/any() follow the deciding item | DMN 1.6 | no |
+| 34 | `624c414` | feel: diagnostics and lenient/strict error modes; wasm `language`, `errorMode`, `diagnostics` | DMN 1.6 | no |
 
 (Full SHAs: `git log --format='%H %s' main..wasm`.)
 
@@ -238,6 +250,14 @@ functions), 20 ignored. Clippy is clean for the touched crates.
   of such results (`exp(74.971090)`, `exp(log(2.5))`, `log(exp(7))`).
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
+
+DMN 1.6 work (commits 23-34, 2026-11-10): workspace 8,383 passed, 0 failed (CI skips);
+feel.wasm contract tests 53 under wasmtime; runtime 33; DMN TCK via `scripts/tck.sh`
+(patched, DecisionToolkit runner): official 3,392 of 3,407 (0076 Java 14, 0085 runner 1), was
+3,377; tck-addendum 312 of 312 runnable cases (error-result cases are skipped by the runner and
+pinned by Rust tests). Failing tests: `docs/tck-baseline.txt`.
+
+Earlier numbers:
 
 Default features (`dashu`), at commit 10:
 
