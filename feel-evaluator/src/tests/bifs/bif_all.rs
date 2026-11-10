@@ -150,3 +150,11 @@ fn _0025() {
   let scope = scope!();
   te_null(false, &scope, "all(l: [true,true,true])", r#"parameter 'list' not found"#);
 }
+
+#[test]
+fn dmn_1_6_deciding_item() {
+  // Table 74: all([false,null,true]) = false; a false item decides over nulls and non-booleans
+  te_bool(false, &scope!(), "all([false,null,true])", false);
+  te_bool(false, &scope!(), r#"all([true,"x",false])"#, false);
+  te_null(false, &scope!(), "all([true,null])", "");
+}

@@ -97,7 +97,8 @@ pub fn build_context_evaluator(scope: &FeelScope, context: &Context, model_build
 }
 
 pub fn build_decision_table_evaluator(scope: &FeelScope, decision_table: &DecisionTable, model_builder: &ModelBuilder) -> Result<(Evaluator, Closure)> {
-  let evaluator = decision_table::build_decision_table_evaluator(scope, decision_table)?;
+  let dialect = model_builder.dialect(decision_table.namespace(), None);
+  let evaluator = decision_table::build_decision_table_evaluator_with_dialect(scope, decision_table, dialect)?;
   let decision_table_evaluator = Box::new(move |scope: &FeelScope| evaluator(scope));
   Ok((
     build_coerced_result_evaluator(decision_table_evaluator, decision_table, decision_table.namespace(), model_builder),
@@ -285,7 +286,8 @@ pub fn build_literal_expression_evaluator(scope: &FeelScope, literal_expression:
   let text = literal_expression.text().as_ref().ok_or_else(err_empty_literal_expression)?;
   let node = rheon_feel_parser::parse_expression(scope, text, false)?;
   let closure = ClosureBuilder::from_node(&node);
-  let literal_expression_evaluator = rheon_feel_evaluator::prepare(&node);
+  let dialect = model_builder.dialect(literal_expression.namespace(), literal_expression.expression_language().as_deref());
+  let literal_expression_evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, dialect);
   Ok((
     build_coerced_result_evaluator(literal_expression_evaluator, literal_expression, literal_expression.namespace(), model_builder),
     closure,

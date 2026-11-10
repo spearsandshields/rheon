@@ -8,6 +8,7 @@ use rheon_feel_temporal::{Day, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, 
 
 mod addition;
 mod arithmetic_negation;
+mod bfeel;
 mod bifs;
 mod comments;
 mod comparison_between;

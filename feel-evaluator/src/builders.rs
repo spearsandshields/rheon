@@ -4,6 +4,7 @@ use crate::evaluator_java::evaluate_external_java_function;
 use crate::evaluator_pmml::evaluate_external_pmml_function;
 use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
 use crate::macros::invalid_argument_type;
+use crate::bfeel::{self, Dialect};
 use crate::{FilterExpressionEvaluator, bifs};
 use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
@@ -86,6 +87,12 @@ pub fn build_evaluator(node: &AstNode) -> Evaluator {
   evaluator_builder.build(node)
 }
 
+/// Builds an evaluator for the expression in the given dialect (FEEL or B-FEEL, DMN 1.6 chapter 11).
+pub fn build_evaluator_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluator {
+  let mut evaluator_builder = EvaluatorBuilder { dialect, ..Default::default() };
+  evaluator_builder.build(node)
+}
+
 /// Prepares null value with error message for second argument in `between` operator.
 macro_rules! between_null2 {
   ($expected:literal, $actual:expr) => {
@@ -111,6 +118,8 @@ macro_rules! between_null3 {
 struct EvaluatorBuilder<'b> {
   /// Stack of visited parent nodes in AST during evaluator building.
   node_stack: Vec<&'b AstNode>,
+  /// FEEL or B-FEEL.
+  dialect: Dialect,
 }
 
 impl<'b> EvaluatorBuilder<'b> {
@@ -124,6 +133,24 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build(&mut self, node: &'b AstNode) -> Evaluator {
     // push the current node on the top of the node stack
     self.node_stack.push(node);
+    // B-FEEL: arithmetic converts mismatched operands, boolean operators never return null
+    if self.dialect == Dialect::BFeel {
+      let operator = match node {
+        AstNode::Add(lhs, rhs) => Some((bfeel::Operator::Add, lhs, rhs)),
+        AstNode::Sub(lhs, rhs) => Some((bfeel::Operator::Sub, lhs, rhs)),
+        AstNode::Mul(lhs, rhs) => Some((bfeel::Operator::Mul, lhs, rhs)),
+        AstNode::Div(lhs, rhs) => Some((bfeel::Operator::Div, lhs, rhs)),
+        AstNode::Exp(lhs, rhs) => Some((bfeel::Operator::Exp, lhs, rhs)),
+        _ => None,
+      };
+      if let Some((operator, lhs, rhs)) = operator {
+        let lhe = self.build(lhs);
+        let rhe = self.build(rhs);
+        let feel_operator = bfeel::feel_operator_evaluator(operator);
+        self.node_stack.pop();
+        return Box::new(move |scope: &FeelScope| bfeel::arithmetic(operator, &feel_operator, scope, lhe(scope), rhe(scope)));
+      }
+    }
     // build the evaluator
     let evaluator = match node {
       AstNode::Add(lhs, rhs) => self.build_add(lhs, rhs),
@@ -200,6 +227,17 @@ impl<'b> EvaluatorBuilder<'b> {
       | AstNode::QuantifiedContext { .. }
       | AstNode::QuantifiedContexts { .. }
       | AstNode::Satisfies { .. } => build_err_msg(err_msg_unexpected_node(node)),
+    };
+    let evaluator = if self.dialect == Dialect::BFeel {
+      match node {
+        AstNode::Eq(..) | AstNode::Lt(..) | AstNode::Le(..) | AstNode::Gt(..) | AstNode::Ge(..) | AstNode::And(..) | AstNode::Or(..) | AstNode::In(..) | AstNode::Between(..) => {
+          Box::new(move |scope: &FeelScope| bfeel::boolean_result(evaluator(scope), false)) as Evaluator
+        }
+        AstNode::Nq(..) => Box::new(move |scope: &FeelScope| bfeel::boolean_result(evaluator(scope), true)) as Evaluator,
+        _ => evaluator,
+      }
+    } else {
+      evaluator
     };
     // arithmetic and function calls must never yield non-finite numbers,
     // and function calls are subject to the call depth limit
@@ -950,10 +988,12 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_function_invocation_with_positional_parameters(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Evaluator {
     let function_evaluator = self.build(lhs);
     let argument_evaluators = self.build_positional_argument_evaluators(lhs, rhs);
+    let bfeel = self.dialect == Dialect::BFeel;
     Box::new(move |scope: &FeelScope| {
       let function = function_evaluator(scope);
       let args = argument_evaluators.iter().map(|evaluator| evaluator(scope)).collect::<Vec<Value>>();
       match function {
+        Value::BuiltInFunction(bif) if bfeel => bfeel::evaluate_positional_bif(bif, args),
         Value::BuiltInFunction(bif) => bifs::positional::evaluate_bif(bif, &args),
         Value::FunctionDefinition(params, body, external, _, closure_ctx, result_type) => {
           if external {
@@ -1004,10 +1044,12 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_function_invocation_with_named_parameters(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let function_evaluator = self.build(lhs);
     let arguments_evaluator = self.build_named_arguments_evaluator(lhs, rhs);
+    let bfeel = self.dialect == Dialect::BFeel;
     Box::new(move |scope: &FeelScope| {
       let function = function_evaluator(scope);
       let args = arguments_evaluator(scope);
       match function {
+        Value::BuiltInFunction(bif) if bfeel => bfeel::evaluate_named_bif(bif, &args),
         Value::BuiltInFunction(bif) => bifs::named::evaluate_bif(bif, &args),
         Value::FunctionDefinition(params, body, external, _, closure_ctx, result_type) => {
           if external {

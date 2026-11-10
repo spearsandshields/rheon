@@ -167,45 +167,27 @@ pub fn after(value1: &Value, value2: &Value) -> Value {
 
 /// Returns `false` if any item is `false`, `true` if empty or all items are true, else `null`.
 pub fn all(values: &[Value]) -> Value {
-  if values.is_empty() {
+  // "return false if any item is false, true if empty or all items are true, else null":
+  // a false item decides even after a null or a non-boolean one (all([false,null,true]) = false)
+  if values.iter().any(|value| matches!(value, Value::Boolean(false))) {
+    return VALUE_FALSE;
+  }
+  if values.iter().all(|value| matches!(value, Value::Boolean(true))) {
     return VALUE_TRUE;
   }
-  for value in values {
-    if let Value::Boolean(v) = value {
-      if !v {
-        return VALUE_FALSE;
-      }
-    } else {
-      return value_null!();
-    }
-  }
-  VALUE_TRUE
+  value_null!()
 }
 
 /// Returns `true` if any item is `true`, `false` if empty or all items are `false`, else `null`.
 pub fn any(values: &[Value]) -> Value {
-  if values.is_empty() {
+  // a true item decides even after a null or a non-boolean one (any([false,null,true]) = true)
+  if values.iter().any(|value| matches!(value, Value::Boolean(true))) {
+    return VALUE_TRUE;
+  }
+  if values.iter().all(|value| matches!(value, Value::Boolean(false))) {
     return VALUE_FALSE;
   }
-  let mut has_true = false;
-  let mut all_boolean = true;
-  for value in values {
-    match value {
-      Value::Boolean(v) => {
-        if *v {
-          has_true = true;
-        }
-      }
-      Value::Null(_) => return value_null!(),
-      _ => all_boolean = false,
-    }
-  }
-  match (has_true, all_boolean) {
-    (false, false) => value_null!(),
-    (false, true) => VALUE_FALSE,
-    (true, false) => value_null!(),
-    (true, true) => VALUE_TRUE,
-  }
+  value_null!()
 }
 
 /// Returns new list with items appended.

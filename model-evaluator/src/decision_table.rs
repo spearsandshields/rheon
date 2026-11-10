@@ -1,5 +1,6 @@
 //! Builder for decision table evaluators.
 
+use rheon_feel_evaluator::Dialect;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
@@ -185,7 +186,7 @@ impl EvaluatedDecisionTable {
     Value::Number(matching_rules.len().into())
   }
 
-  fn evaluate_hit_policy_collect_sum(&self) -> Value {
+  fn evaluate_hit_policy_collect_sum(&self, dialect: Dialect) -> Value {
     if self.component_names.len() > 1 {
       return value_null!("err_aggregators_not_allowed_for_compound_outputs");
     }
@@ -197,6 +198,14 @@ impl EvaluatedDecisionTable {
       .iter()
       .map(|evaluated_rule| evaluated_rule.output_entry_values[0].clone())
       .collect::<Vec<Value>>();
+    if dialect == Dialect::BFeel {
+      // B-FEEL sum ignores non-numeric values and the sum of nothing is 0 (DMN 1.6 §11.3, C+)
+      let numbers = output_values.into_iter().filter(|value| matches!(value, Value::Number(_))).collect::<Vec<Value>>();
+      if numbers.is_empty() {
+        return Value::Number(rheon_feel::FeelNumber::zero());
+      }
+      return rheon_feel_evaluator::evaluate_sum(numbers);
+    }
     rheon_feel_evaluator::evaluate_sum(output_values)
   }
 
@@ -231,7 +240,7 @@ impl EvaluatedDecisionTable {
   }
 }
 
-fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Result<ParsedDecisionTable> {
+fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable, dialect: Dialect) -> Result<ParsedDecisionTable> {
   // parse input expressions and input values
   let mut input_expressions_and_values = vec![];
   for input_clause in decision_table.input_clauses() {
@@ -276,10 +285,10 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
         let left = AstNode::In(Box::new(input_expression.clone()), Box::new(input_values_node.clone()));
         let right = AstNode::In(Box::new(input_expression.clone()), Box::new(input_entry_node));
         let node = AstNode::And(Box::new(left), Box::new(right));
-        input_entries_evaluators.push(rheon_feel_evaluator::prepare(&node));
+        input_entries_evaluators.push(rheon_feel_evaluator::prepare_with_dialect(&node, dialect));
       } else {
         let node = AstNode::In(Box::new(input_expression.clone()), Box::new(input_entry_node));
-        input_entries_evaluators.push(rheon_feel_evaluator::prepare(&node));
+        input_entries_evaluators.push(rheon_feel_evaluator::prepare_with_dialect(&node, dialect));
       }
     }
     // parse output clause
@@ -288,9 +297,9 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
       let output_entry_node = rheon_feel_parser::parse_expression(scope, &rule.output_entries[i].text, false)?;
       if let Some(output_value_node) = output_values {
         let node = AstNode::Out(Box::new(output_entry_node), Box::new(output_value_node.clone()));
-        output_entries_evaluators.push(rheon_feel_evaluator::prepare(&node));
+        output_entries_evaluators.push(rheon_feel_evaluator::prepare_with_dialect(&node, dialect));
       } else {
-        output_entries_evaluators.push(rheon_feel_evaluator::prepare(&output_entry_node));
+        output_entries_evaluators.push(rheon_feel_evaluator::prepare_with_dialect(&output_entry_node, dialect));
       }
     }
     parsed_rules.push(ParsedRule {
@@ -301,7 +310,7 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
   let mut output_values_evaluators = vec![];
   for opt_node in output_values_nodes {
     if let Some(node) = opt_node {
-      output_values_evaluators.push(Some(rheon_feel_evaluator::prepare(&node)));
+      output_values_evaluators.push(Some(rheon_feel_evaluator::prepare_with_dialect(&node, dialect)));
     } else {
       output_values_evaluators.push(None);
     }
@@ -309,7 +318,7 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable) -> Re
   let mut default_output_values_evaluators = vec![];
   for opt_node in default_output_values_nodes {
     if let Some(node) = opt_node {
-      default_output_values_evaluators.push(Some(rheon_feel_evaluator::prepare(&node)));
+      default_output_values_evaluators.push(Some(rheon_feel_evaluator::prepare_with_dialect(&node, dialect)));
     } else {
       default_output_values_evaluators.push(None);
     }
@@ -365,8 +374,13 @@ fn evaluate_parsed_decision_table(scope: &FeelScope, parsed_decision_table: &Par
 }
 
 pub fn build_decision_table_evaluator(scope: &FeelScope, decision_table: &DecisionTable) -> Result<Evaluator> {
+  build_decision_table_evaluator_with_dialect(scope, decision_table, Dialect::Feel)
+}
+
+/// Builds a decision table evaluator whose entries are evaluated in the given dialect (FEEL or B-FEEL).
+pub fn build_decision_table_evaluator_with_dialect(scope: &FeelScope, decision_table: &DecisionTable, dialect: Dialect) -> Result<Evaluator> {
   let hit_policy = decision_table.hit_policy();
-  let parsed_decision_table = parse_decision_table(scope, decision_table)?;
+  let parsed_decision_table = parse_decision_table(scope, decision_table, dialect)?;
   Ok(Box::new(move |scope: &FeelScope| {
     let evaluated_decision_table = evaluate_parsed_decision_table(scope, &parsed_decision_table);
     match hit_policy {
@@ -379,7 +393,7 @@ pub fn build_decision_table_evaluator(scope: &FeelScope, decision_table: &Decisi
       HitPolicy::Collect(aggregator) => match aggregator {
         BuiltinAggregator::List => evaluated_decision_table.evaluate_hit_policy_collect_list(),
         BuiltinAggregator::Count => evaluated_decision_table.evaluate_hit_policy_collect_count(),
-        BuiltinAggregator::Sum => evaluated_decision_table.evaluate_hit_policy_collect_sum(),
+        BuiltinAggregator::Sum => evaluated_decision_table.evaluate_hit_policy_collect_sum(dialect),
         BuiltinAggregator::Min => evaluated_decision_table.evaluate_hit_policy_collect_min(),
         BuiltinAggregator::Max => evaluated_decision_table.evaluate_hit_policy_collect_max(),
       },

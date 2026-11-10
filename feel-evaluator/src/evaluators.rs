@@ -15,6 +15,11 @@ pub fn prepare(node: &AstNode) -> Evaluator {
   crate::builders::build_evaluator(node)
 }
 
+/// Builds the evaluator of an expression in the given [Dialect](crate::Dialect) (FEEL or B-FEEL).
+pub fn prepare_with_dialect(node: &AstNode, dialect: crate::Dialect) -> Evaluator {
+  crate::builders::build_evaluator_with_dialect(node, dialect)
+}
+
 /// Evaluates the sum of specified values.
 pub fn evaluate_sum(values: Vec<Value>) -> Value {
   crate::bifs::core::sum(&values)

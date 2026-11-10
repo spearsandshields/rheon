@@ -7,9 +7,9 @@
 | rheon-1603-temporal-value-property | 47 | 1.6 | DMN16-11 | §10.3.2.3.4–8, Tables 66–67 | passing | |
 | rheon-1604-singleton-list-iteration | 30 | 1.6 | DMN16-94 | §10.3.2.9.4, boxed iterators | passing | |
 | rheon-1605-descendant-operator | 19 | 1.6 | DMN16-72 | rule 68 | passing | |
-| rheon-1606-b-feel-operators | 28 | 1.6 | DMN16-91, DMN16-71 | §11.2 | not implemented | |
-| rheon-1607-b-feel-functions | 67 | 1.6 | DMN16-91 | §11.3–§11.8 | not implemented | |
-| rheon-1608-b-feel-arithmetic | 31 | 1.6 | DMN16-91 | §11.9–§11.10 | not implemented | |
+| rheon-1606-b-feel-operators | 28 | 1.6 | DMN16-91, DMN16-71 | §11.2 | passing | |
+| rheon-1607-b-feel-functions | 67 | 1.6 | DMN16-91 | §11.3–§11.8 | passing | |
+| rheon-1608-b-feel-arithmetic | 31 | 1.6 | DMN16-91 | §11.9–§11.11 | passing | |
 | rheon-1609-onnx-function-kind | 2 | 1.6 | DMN16-90, DMN16-134 | §10.3.2.13.3, §2.1 | passing | |
 | rheon-1701-trim-function | 16 | 1.7 b1 | DMN17-96 | §10.3.4.3, rule 61 | passing | |
 | rheon-1702-intersection-function | 17 | 1.7 b1 | DMN17-98 | §10.3.4.4 | passing | |

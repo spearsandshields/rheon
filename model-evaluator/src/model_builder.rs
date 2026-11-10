@@ -9,8 +9,10 @@ use crate::item_definition_type::{InformationItemTypes, ItemDefinitionTypeEvalua
 use crate::model_definitions::{DefDefinitions, DefKey, Invocables};
 use dsntk_common::Result;
 use rheon_feel::Name;
-use rheon_model::Definitions;
+use rheon_model::{Definitions, DmnElement};
+use rheon_feel_evaluator::Dialect;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 pub struct EvaluatorBuilders {
   pub input_data_evaluator: InputDataEvaluator,
@@ -45,12 +47,26 @@ pub struct ModelBuilder {
   decision_service_evaluator: DecisionServiceEvaluator,
   /// Map of invocables indexed by invocable name.
   invocables: RefCell<Invocables>,
+  /// Expression language (FEEL or B-FEEL) of each model, by model namespace.
+  dialects: HashMap<String, Dialect>,
 }
 
 impl ModelBuilder {
   /// Adds definitions from specified model.
   pub fn add_model(&mut self, definitions: &Definitions) {
     self.model_definitions.add_model(definitions);
+    let dialect = definitions.expression_language().as_deref().map(Dialect::from_expression_language).unwrap_or_default();
+    self.dialects.insert(definitions.namespace().to_string(), dialect);
+  }
+
+  /// The dialect of an expression in the model with `namespace`: the expression's own
+  /// `expressionLanguage` when it has one, otherwise the model's (DMN 1.6 §11.1: B-FEEL is
+  /// selected by the expression language URI).
+  pub fn dialect(&self, namespace: &str, own_expression_language: Option<&str>) -> Dialect {
+    match own_expression_language {
+      Some(uri) => Dialect::from_expression_language(uri),
+      None => self.dialects.get(namespace).copied().unwrap_or_default(),
+    }
   }
 
   /// Builds a model based on model definitions.
