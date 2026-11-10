@@ -98,7 +98,9 @@ pub fn evaluate_bif(bif: Bif, parameters: &NamedParameters) -> Value {
     Bif::GetValue => bif_get_value(parameters),
     Bif::Includes => bif_includes(parameters),
     Bif::IndexOf => bif_index_of(parameters),
+    Bif::InsertAfter => bif_insert_after(parameters),
     Bif::InsertBefore => bif_insert_before(parameters),
+    Bif::Intersection => bif_intersection(parameters),
     Bif::Is => bif_is(parameters),
     Bif::ListContains => bif_list_contains(parameters),
     Bif::ListReplace => bif_list_replace(parameters),
@@ -147,6 +149,7 @@ pub fn evaluate_bif(bif: Bif, parameters: &NamedParameters) -> Value {
     Bif::Sum => bif_sum(parameters),
     Bif::Time => bif_time(parameters),
     Bif::Today => bif_today(parameters),
+    Bif::Trim => bif_trim(parameters),
     Bif::Union => bif_union(parameters),
     Bif::UpperCase => bif_upper_case(parameters),
     Bif::WeekOfYear => bif_week_of_year(parameters),
@@ -510,6 +513,34 @@ fn bif_index_of(parameters: &NamedParameters) -> Value {
   }
 }
 
+fn bif_insert_after(parameters: &NamedParameters) -> Value {
+  if let Some((list_value, _)) = get_param(parameters, &NAME_LIST) {
+    if let Some((position_value, _)) = get_param(parameters, &NAME_POSITION) {
+      if let Some((new_item_value, _)) = get_param(parameters, &NAME_NEW_ITEM) {
+        core::insert_after(list_value, position_value, new_item_value)
+      } else {
+        parameter_not_found!(NAME_NEW_ITEM)
+      }
+    } else {
+      parameter_not_found!(NAME_POSITION)
+    }
+  } else {
+    parameter_not_found!(NAME_LIST)
+  }
+}
+
+fn bif_intersection(_: &NamedParameters) -> Value {
+  value_null!("[named::intersection] this function has no implementation with named parameters")
+}
+
+fn bif_trim(parameters: &NamedParameters) -> Value {
+  if let Some((value, _)) = get_param(parameters, &NAME_STRING) {
+    core::trim(value)
+  } else {
+    parameter_not_found!(NAME_STRING)
+  }
+}
+
 fn bif_insert_before(parameters: &NamedParameters) -> Value {
   if let Some((list_value, _)) = get_param(parameters, &NAME_LIST) {
     if let Some((position_value, _)) = get_param(parameters, &NAME_POSITION) {
@@ -727,6 +758,10 @@ fn bif_now(_: &NamedParameters) -> Value {
 
 fn bif_number(parameters: &NamedParameters) -> Value {
   if let Some((from, _)) = get_param(parameters, &NAME_FROM) {
+    // DMN 1.6 (DMN16-208, DMN16-105): number(from)
+    if get_param_count(parameters) == 1 {
+      return core::number_single(from);
+    }
     if let Some((grouping_separator, _)) = get_param(parameters, &NAME_GROUPING_SEPARATOR) {
       if let Some((decimal_separator, _)) = get_param(parameters, &NAME_DECIMAL_SEPARATOR) {
         core::number(from, grouping_separator, decimal_separator)
@@ -849,6 +884,13 @@ fn bif_reverse(parameters: &NamedParameters) -> Value {
 /// Returns `n` with given `scale` and rounding mode **round down**.
 fn bif_round_down(parameters: &NamedParameters) -> Value {
   match get_param_count(parameters) {
+    1 => {
+      if let Some((n, _)) = get_param(parameters, &NAME_N) {
+        core::round_down(n, &Value::Number(FeelNumber::zero()))
+      } else {
+        parameter_not_found!(NAME_N)
+      }
+    }
     2 => {
       if let Some((n, _)) = get_param(parameters, &NAME_N) {
         if let Some((scale, _)) = get_param(parameters, &NAME_SCALE) {
@@ -860,13 +902,20 @@ fn bif_round_down(parameters: &NamedParameters) -> Value {
         parameter_not_found!(NAME_N)
       }
     }
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 
 /// Returns `n` with given `scale` and rounding mode **round half down**.
 fn bif_round_half_down(parameters: &NamedParameters) -> Value {
   match get_param_count(parameters) {
+    1 => {
+      if let Some((n, _)) = get_param(parameters, &NAME_N) {
+        core::round_half_down(n, &Value::Number(FeelNumber::zero()))
+      } else {
+        parameter_not_found!(NAME_N)
+      }
+    }
     2 => {
       if let Some((n, _)) = get_param(parameters, &NAME_N) {
         if let Some((scale, _)) = get_param(parameters, &NAME_SCALE) {
@@ -878,13 +927,20 @@ fn bif_round_half_down(parameters: &NamedParameters) -> Value {
         parameter_not_found!(NAME_N)
       }
     }
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 
 /// Returns `n` with given `scale` and rounding mode **round half up**.
 fn bif_round_half_up(parameters: &NamedParameters) -> Value {
   match get_param_count(parameters) {
+    1 => {
+      if let Some((n, _)) = get_param(parameters, &NAME_N) {
+        core::round_half_up(n, &Value::Number(FeelNumber::zero()))
+      } else {
+        parameter_not_found!(NAME_N)
+      }
+    }
     2 => {
       if let Some((n, _)) = get_param(parameters, &NAME_N) {
         if let Some((scale, _)) = get_param(parameters, &NAME_SCALE) {
@@ -896,13 +952,20 @@ fn bif_round_half_up(parameters: &NamedParameters) -> Value {
         parameter_not_found!(NAME_N)
       }
     }
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 
 /// Returns `n` with given `scale` and rounding mode **round up**.
 fn bif_round_up(parameters: &NamedParameters) -> Value {
   match get_param_count(parameters) {
+    1 => {
+      if let Some((n, _)) = get_param(parameters, &NAME_N) {
+        core::round_up(n, &Value::Number(FeelNumber::zero()))
+      } else {
+        parameter_not_found!(NAME_N)
+      }
+    }
     2 => {
       if let Some((n, _)) = get_param(parameters, &NAME_N) {
         if let Some((scale, _)) = get_param(parameters, &NAME_SCALE) {
@@ -914,7 +977,7 @@ fn bif_round_up(parameters: &NamedParameters) -> Value {
         parameter_not_found!(NAME_N)
       }
     }
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 

@@ -39,7 +39,9 @@ pub fn evaluate_bif(bif: Bif, parameters: &[Value]) -> Value {
     Bif::GetValue => bif_get_value(parameters),
     Bif::Includes => bif_includes(parameters),
     Bif::IndexOf => bif_index_of(parameters),
+    Bif::InsertAfter => bif_insert_after(parameters),
     Bif::InsertBefore => bif_insert_before(parameters),
+    Bif::Intersection => bif_intersection(parameters),
     Bif::Is => bif_is(parameters),
     Bif::ListContains => bif_list_contains(parameters),
     Bif::ListReplace => bif_list_replace(parameters),
@@ -88,6 +90,7 @@ pub fn evaluate_bif(bif: Bif, parameters: &[Value]) -> Value {
     Bif::Sum => bif_sum(parameters),
     Bif::Time => bif_time(parameters),
     Bif::Today => bif_today(parameters),
+    Bif::Trim => bif_trim(parameters),
     Bif::Union => bif_union(parameters),
     Bif::UpperCase => bif_upper_case(parameters),
     Bif::WeekOfYear => bif_week_of_year(parameters),
@@ -340,6 +343,27 @@ fn bif_index_of(parameters: &[Value]) -> Value {
   }
 }
 
+fn bif_insert_after(parameters: &[Value]) -> Value {
+  match parameters.len() {
+    3 => core::insert_after(&parameters[0], &parameters[1], &parameters[2]),
+    n => invalid_number_of_parameters!(3, n),
+  }
+}
+
+fn bif_intersection(parameters: &[Value]) -> Value {
+  match parameters.len() {
+    0 => invalid_number_of_parameters!("1+", 0),
+    _ => core::intersection(parameters),
+  }
+}
+
+fn bif_trim(parameters: &[Value]) -> Value {
+  match parameters.len() {
+    1 => core::trim(&parameters[0]),
+    n => invalid_number_of_parameters!(1, n),
+  }
+}
+
 fn bif_insert_before(parameters: &[Value]) -> Value {
   match parameters.len() {
     3 => core::insert_before(&parameters[0], &parameters[1], &parameters[2]),
@@ -496,8 +520,9 @@ fn bif_now(parameters: &[Value]) -> Value {
 
 fn bif_number(parameters: &[Value]) -> Value {
   match parameters.len() {
+    1 => core::number_single(&parameters[0]),
     3 => core::number(&parameters[0], &parameters[1], &parameters[2]),
-    n => invalid_number_of_parameters!(3, n),
+    n => invalid_number_of_parameters!("1,3", n),
   }
 }
 
@@ -572,32 +597,36 @@ fn bif_reverse(parameters: &[Value]) -> Value {
 /// Returns `n` with given `scale` and rounding mode **round down**.
 fn bif_round_down(parameters: &[Value]) -> Value {
   match parameters.len() {
+    1 => core::round_down(&parameters[0], &Value::Number(FeelNumber::zero())),
     2 => core::round_down(&parameters[0], &parameters[1]),
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 
 /// Returns `n` with given `scale` and rounding mode **round half down**.
 fn bif_round_half_down(parameters: &[Value]) -> Value {
   match parameters.len() {
+    1 => core::round_half_down(&parameters[0], &Value::Number(FeelNumber::zero())),
     2 => core::round_half_down(&parameters[0], &parameters[1]),
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 
 /// Returns `n` with given `scale` and rounding mode **round half up**.
 fn bif_round_half_up(parameters: &[Value]) -> Value {
   match parameters.len() {
+    1 => core::round_half_up(&parameters[0], &Value::Number(FeelNumber::zero())),
     2 => core::round_half_up(&parameters[0], &parameters[1]),
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 
 /// Returns `n` with given `scale` and rounding mode **round up**.
 fn bif_round_up(parameters: &[Value]) -> Value {
   match parameters.len() {
+    1 => core::round_up(&parameters[0], &Value::Number(FeelNumber::zero())),
     2 => core::round_up(&parameters[0], &parameters[1]),
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1,2", n),
   }
 }
 

@@ -113,17 +113,18 @@ fn _0015() {
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), r#"number()"#, r#"expected 3 parameters, actual number of parameters is 0"#);
+  te_null(false, &scope!(), r#"number()"#, r#"expected 1,3 parameters, actual number of parameters is 0"#);
 }
 
 #[test]
 fn _0017() {
-  te_null(false, &scope!(), r#"number(1000)"#, r#"expected 3 parameters, actual number of parameters is 1"#);
+  // DMN 1.6 (DMN16-105): number(from) accepts a number (was an arity error before 1.6)
+  te_number(false, &scope!(), r#"number(1000)"#, 1000, 0);
 }
 
 #[test]
 fn _0018() {
-  te_null(false, &scope!(), r#"number(1000,",")"#, r#"expected 3 parameters, actual number of parameters is 2"#);
+  te_null(false, &scope!(), r#"number(1000,",")"#, r#"expected 1,3 parameters, actual number of parameters is 2"#);
 }
 
 #[test]
@@ -132,7 +133,7 @@ fn _0019() {
     false,
     &scope!(),
     r#"number(1000,",",".",",")"#,
-    r#"expected 3 parameters, actual number of parameters is 4"#,
+    r#"expected 1,3 parameters, actual number of parameters is 4"#,
   );
 }
 
@@ -164,4 +165,13 @@ fn _0022() {
     r#"number(from: "1", grouping separator: ",", decimal sep: ".")"#,
     r#"parameter 'decimal separator' not found"#,
   );
+}
+
+#[test]
+fn dmn_1_6_single_argument() {
+  // DMN 1.6 (DMN16-208, DMN16-105): number(from) for a string, and for a number.
+  te_number(false, &scope!(), r#"number("1.1")"#, 11, 1);
+  te_number(false, &scope!(), r#"number(from: "1.1")"#, 11, 1);
+  te_number(false, &scope!(), "number(5)", 5, 0);
+  te_null(false, &scope!(), "number(null)", "");
 }

@@ -208,12 +208,12 @@ fn _0041() {
 
 #[test]
 fn _0042() {
-  te_null(false, &scope!(), "round up(1.1, 0, 5)", "expected 2 parameters, actual number of parameters is 3");
+  te_null(false, &scope!(), "round up(1.1, 0, 5)", "expected 1,2 parameters, actual number of parameters is 3");
 }
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), "round up()", "expected 2 parameters, actual number of parameters is 0");
+  te_null(false, &scope!(), "round up()", "expected 1,2 parameters, actual number of parameters is 0");
 }
 
 #[test]
@@ -232,7 +232,7 @@ fn _0046() {
     false,
     &scope!(),
     "round up(n: 1.23, scale: 1, foo: 11)",
-    "expected 2 parameters, actual number of parameters is 3",
+    "expected 1,2 parameters, actual number of parameters is 3",
   );
 }
 
@@ -317,4 +317,13 @@ fn scale_6176_leaves_settled_value_unchanged() {
   te_number(false, &scope!(), "round up(5.5, 6176)", 55, 1);
   te_number(false, &scope!(), "round up(5.5, -6111)", 1, -6111);
   te_null(false, &scope!(), "round up(5.5, 6177)", "[core::round_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177");
+}
+
+#[test]
+fn dmn_1_6_single_argument() {
+  // DMN 1.6 (DMN16-93): round up(n) rounds to scale 0.
+  te_be_value(false, &scope!(), "round up(5.5) = round up(5.5, 0)", "true");
+  te_be_value(false, &scope!(), "round up(-5.5) = round up(-5.5, 0)", "true");
+  te_be_value(false, &scope!(), "round up(n: 1.5) = round up(1.5, 0)", "true");
+  te_null(false, &scope!(), "round up(null)", "[core::round up] invalid argument type, expected number, actual type is Null");
 }

@@ -1176,7 +1176,35 @@ pub fn index_of(list: &Value, element: &Value) -> Value {
   }
 }
 
-/// ???
+/// `insert after(list, position, newItem)` (DMN 1.7 beta 1, DMN17-100): a new list with
+/// `newItem` inserted after the item at `position` (1-based; negative positions count from the end).
+pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value) -> Value {
+  if let Value::List(mut items) = list.clone()
+    && let Value::Number(position) = position_value
+  {
+    // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
+    if position.is_positive()
+      && let Ok(i) = u64::try_from(position)
+      && i >= 1
+      && i <= items.len() as u64
+    {
+      items.insert(i as usize, new_item_value.clone());
+      return Value::List(items);
+    }
+    if position.is_negative()
+      && let Ok(i) = u64::try_from(position.abs())
+      && i >= 1
+      && i <= items.len() as u64
+    {
+      items.insert(items.len() - i as usize + 1, new_item_value.clone());
+      return Value::List(items);
+    }
+  }
+  value_null!("index is out of range")
+}
+
+/// `insert before(list, position, newItem)`: a new list with `newItem` inserted before the item
+/// at `position` (1-based; negative positions count from the end).
 pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Value) -> Value {
   if let Value::List(mut items) = list.clone()
     && let Value::Number(position) = position_value
@@ -1690,6 +1718,17 @@ pub fn not(negand: &Value) -> Value {
 /// Returns current date and time.
 pub fn now() -> Value {
   Value::DateTime(FeelDateTime::now())
+}
+
+/// `number(from)` (DMN 1.6, DMN16-208 and DMN16-105): a string converts as
+/// `number(from, null, null)`, a number is returned unchanged.
+pub fn number_single(from: &Value) -> Value {
+  match from {
+    Value::Number(_) => from.clone(),
+    Value::String(_) => number(from, &value_null!(), &value_null!()),
+    Value::Null(_) => value_null!(),
+    other => invalid_argument_type!("number", "string or number", other.type_of()),
+  }
 }
 
 /// Converts string to a number.
@@ -2807,6 +2846,45 @@ pub fn time_4(hour_value: &Value, minute_value: &Value, second_value: &Value, of
 /// Returns current date.
 pub fn today() -> Value {
   Value::Date(FeelDate::today())
+}
+
+/// `intersection(list...)` (DMN 1.7 beta 1, DMN17-98): the elements common to all lists, duplicates
+/// removed. The result keeps the order of the first list (the spec gives no ordering guarantee).
+pub fn intersection(lists: &[Value]) -> Value {
+  let mut inputs = vec![];
+  for list in lists {
+    match list {
+      Value::List(items) => inputs.push(items),
+      Value::Null(_) => return value_null!(),
+      other => return invalid_argument_type!("intersection", "list", other.type_of()),
+    }
+  }
+  let mut result: Vec<Value> = vec![];
+  for item in inputs[0].iter() {
+    if result.iter().any(|a| evaluate_equals(a, item)) {
+      continue;
+    }
+    if inputs[1..].iter().all(|other| other.iter().any(|b| evaluate_equals(b, item))) {
+      result.push(item.clone());
+    }
+  }
+  Value::List(result)
+}
+
+/// `trim(string)` (DMN 1.7 beta 1, DMN17-96): the string without leading and trailing white space,
+/// where white space is grammar rule 61 (`vertical space`, U+0009, U+0020, U+0085, U+00A0, U+1680,
+/// U+180E, U+2000..U+200B, U+2028, U+2029, U+202F, U+205F, U+3000, U+FEFF).
+pub fn trim(value: &Value) -> Value {
+  fn is_feel_white_space(ch: char) -> bool {
+    matches!(ch,
+      '\u{000A}'..='\u{000D}' | '\u{0009}' | '\u{0020}' | '\u{0085}' | '\u{00A0}' | '\u{1680}' | '\u{180E}'
+      | '\u{2000}'..='\u{200B}' | '\u{2028}' | '\u{2029}' | '\u{202F}' | '\u{205F}' | '\u{3000}' | '\u{FEFF}')
+  }
+  match value {
+    Value::String(s) => Value::String(s.trim_matches(is_feel_white_space).to_string()),
+    Value::Null(_) => value_null!(),
+    other => invalid_argument_type!("trim", "string", other.type_of()),
+  }
 }
 
 /// Returns new list containing concatenated list with duplicates removed.

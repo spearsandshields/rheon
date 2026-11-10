@@ -38,7 +38,9 @@ const BIF_GET_ENTRIES: &str = "get entries";
 const BIF_GET_VALUE: &str = "get value";
 const BIF_INCLUDES: &str = "includes";
 const BIF_INDEX_OF: &str = "index of";
+const BIF_INSERT_AFTER: &str = "insert after";
 const BIF_INSERT_BEFORE: &str = "insert before";
+const BIF_INTERSECTION: &str = "intersection";
 const BIF_IS: &str = "is";
 const BIF_LIST_CONTAINS: &str = "list contains";
 const BIF_LIST_REPLACE: &str = "list replace";
@@ -87,6 +89,7 @@ const BIF_SUBSTRING_BEFORE: &str = "substring before";
 const BIF_SUM: &str = "sum";
 const BIF_TIME: &str = "time";
 const BIF_TODAY: &str = "today";
+const BIF_TRIM: &str = "trim";
 const BIF_UNION: &str = "union";
 const BIF_UPPER_CASE: &str = "upper case";
 const BIF_WEEK_OF_YEAR: &str = "week of year";
@@ -127,7 +130,9 @@ pub enum Bif {
   GetValue,
   Includes,
   IndexOf,
+  InsertAfter,
   InsertBefore,
+  Intersection,
   Is,
   ListContains,
   ListReplace,
@@ -176,6 +181,7 @@ pub enum Bif {
   Sum,
   Time,
   Today,
+  Trim,
   Union,
   UpperCase,
   WeekOfYear,
@@ -220,7 +226,9 @@ impl FromStr for Bif {
       BIF_GET_VALUE => Ok(Self::GetValue),
       BIF_INCLUDES => Ok(Self::Includes),
       BIF_INDEX_OF => Ok(Self::IndexOf),
+      BIF_INSERT_AFTER => Ok(Self::InsertAfter),
       BIF_INSERT_BEFORE => Ok(Self::InsertBefore),
+      BIF_INTERSECTION => Ok(Self::Intersection),
       BIF_IS => Ok(Self::Is),
       BIF_LIST_CONTAINS => Ok(Self::ListContains),
       BIF_LIST_REPLACE => Ok(Self::ListReplace),
@@ -269,6 +277,7 @@ impl FromStr for Bif {
       BIF_SUM => Ok(Self::Sum),
       BIF_TIME => Ok(Self::Time),
       BIF_TODAY => Ok(Self::Today),
+      BIF_TRIM => Ok(Self::Trim),
       BIF_UNION => Ok(Self::Union),
       BIF_UPPER_CASE => Ok(Self::UpperCase),
       BIF_WEEK_OF_YEAR => Ok(Self::WeekOfYear),
@@ -329,7 +338,9 @@ pub fn is_built_in_function_name(name: impl AsRef<str>) -> bool {
       | BIF_GET_VALUE
       | BIF_INCLUDES
       | BIF_INDEX_OF
+      | BIF_INSERT_AFTER
       | BIF_INSERT_BEFORE
+      | BIF_INTERSECTION
       | BIF_IS
       | BIF_LIST_CONTAINS
       | BIF_LIST_REPLACE
@@ -378,6 +389,7 @@ pub fn is_built_in_function_name(name: impl AsRef<str>) -> bool {
       | BIF_SUM
       | BIF_TIME
       | BIF_TODAY
+      | BIF_TRIM
       | BIF_UNION
       | BIF_UPPER_CASE
       | BIF_WEEK_OF_YEAR
