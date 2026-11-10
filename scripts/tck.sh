@@ -7,6 +7,7 @@
 #   scripts/tck.sh --unpatched     # without dsntk-tck-patches
 #   scripts/tck.sh --addendum-only # only tck-addendum/
 #   scripts/tck.sh --refresh       # git pull the cached clones first
+#   scripts/tck.sh --only 1157     # only test folders whose name contains 1157 (repeatable)
 #
 # Clones live in .tck/ (gitignored). Results: .tck/out/results.csv and a summary on stdout.
 set -euo pipefail
@@ -14,10 +15,11 @@ cd "$(dirname "$0")/.."
 ROOT=$PWD
 CACHE=$ROOT/.tck
 PORT=${TCK_PORT:-22022}
-PATCHED=1 OFFICIAL=1 REFRESH=0
-for a in "$@"; do case $a in
+PATCHED=1 OFFICIAL=1 REFRESH=0 ONLY=()
+while [ $# -gt 0 ]; do case $1 in
   --unpatched) PATCHED=0 ;; --addendum-only) OFFICIAL=0 ;; --refresh) REFRESH=1 ;;
-  *) echo "unknown option $a" >&2; exit 2 ;; esac; done
+  --only) ONLY+=("$2"); shift ;;
+  *) echo "unknown option $1" >&2; exit 2 ;; esac; shift; done
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4}
 mkdir -p "$CACHE"
 
@@ -47,6 +49,12 @@ if [ $OFFICIAL = 1 ]; then
 fi
 mkdir -p "$RUN/TestCases/compliance-level-3"
 cp -R tck-addendum/TestCases/compliance-level-3/rheon-* "$RUN/TestCases/compliance-level-3/" 2>/dev/null || true
+if [ ${#ONLY[@]} -gt 0 ]; then
+  for d in "$RUN"/TestCases/compliance-level-*/*/; do
+    keep=0; for o in "${ONLY[@]}"; do case $(basename "$d") in *"$o"*) keep=1 ;; esac; done
+    [ $keep = 1 ] || rm -rf "$d"
+  done
+fi
 
 mkdir -p "$CACHE/out"
 cat > "$CACHE/out/config.yml" <<YML
