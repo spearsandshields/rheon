@@ -258,6 +258,13 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
   keep `dsntk-*` until they are changed. Upstream fixes are taken by cherry-pick through
   `scripts/upstream-rename.pl` (see `docs/FORK.md`). The `dsntk` CLI and the other manifest-only crates keep
   their names and are `publish = false` (2026-11-09).
+- **0.1.0 released** (2026-11-10): nine crates on crates.io, `@rheon/feel-runtime@0.1.0` on npm
+  (`rheon` org on npm, 2FA on the account; `npm publish` needs an interactive prompt for the
+  one-time code), GitHub Release `v0.1.0` from `release.yml` (`feel.wasm` + sha256, npm
+  tarball, playground zip). Known wart: the npm 0.1.0 tarball's `feel.wasm` reports
+  `engineCommit d811cac…-dirty` because prepack copied a stale local build; the engine code is
+  identical, the stamp is wrong. prepack now refuses a module not built from HEAD. Fixed in the
+  next npm release; the release asset is stamped correctly (3fcc8af).
 - **SECURITY.md / CONTRIBUTING.md** (2026-11-09): deliberately not added yet (user). Add SECURITY.md when
   the npm package or the server is something people deploy; until then GitHub's "private
   vulnerability reporting" toggle is the reporting channel. The `repository`/`homepage` fields of
