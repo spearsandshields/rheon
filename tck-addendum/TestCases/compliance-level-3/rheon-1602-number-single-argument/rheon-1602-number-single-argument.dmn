@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-208, DMN16-105; drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1602-number-single-argument"
+             name="rheon-1602-number-single-argument"
+             id="_rheon-1602-number-single-argument"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>DMN 1.6 single-parameter number(from) for a string, and number(from) accepting a number</description>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>number("1.1")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <literalExpression>
+            <text>number("1.1") = number("1.1", null, null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision003" id="_decision003">
+        <variable name="decision003"/>
+        <literalExpression>
+            <text>number(5)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision004" id="_decision004">
+        <variable name="decision004"/>
+        <literalExpression>
+            <text>number(-1.5)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision005" id="_decision005">
+        <variable name="decision005"/>
+        <literalExpression>
+            <text>number(from: "1.1")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision006" id="_decision006">
+        <variable name="decision006"/>
+        <literalExpression>
+            <text>number("-12")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision007" id="_decision007">
+        <variable name="decision007"/>
+        <literalExpression>
+            <text>number(".5")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision008" id="_decision008">
+        <variable name="decision008"/>
+        <literalExpression>
+            <text>number("1,000.0")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision009" id="_decision009">
+        <variable name="decision009"/>
+        <literalExpression>
+            <text>number("1 000")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision010" id="_decision010">
+        <variable name="decision010"/>
+        <literalExpression>
+            <text>number("abc")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision011" id="_decision011">
+        <variable name="decision011"/>
+        <literalExpression>
+            <text>number("")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision012" id="_decision012">
+        <variable name="decision012"/>
+        <literalExpression>
+            <text>number(null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision013" id="_decision013">
+        <variable name="decision013"/>
+        <literalExpression>
+            <text>number(true)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision014" id="_decision014">
+        <variable name="decision014"/>
+        <literalExpression>
+            <text>number(date("2024-01-01"))</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision015" id="_decision015">
+        <variable name="decision015"/>
+        <literalExpression>
+            <text>number(number("42"))</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision016" id="_decision016">
+        <variable name="decision016"/>
+        <literalExpression>
+            <text>for x in ["5", 5] return number(x)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision017" id="_decision017">
+        <variable name="decision017"/>
+        <literalExpression>
+            <text>number(10 / 4)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision018" id="_decision018">
+        <variable name="decision018"/>
+        <literalExpression>
+            <text>number("+5")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision019" id="_decision019">
+        <variable name="decision019"/>
+        <literalExpression>
+            <text>number("1.")</text>
+        </literalExpression>
+    </decision>
+
+</definitions>

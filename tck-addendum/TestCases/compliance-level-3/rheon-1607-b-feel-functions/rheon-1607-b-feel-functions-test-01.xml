@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-91 (B-FEEL), DMN16-71 (string coercion, merged into B-FEEL), DMN16-208 (single-parameter number()); drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1607-b-feel-functions.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>B-FEEL</label>
+        <label>FEEL Functions: boolean</label>
+        <label>FEEL Functions: numeric</label>
+        <label>FEEL Functions: string</label>
+        <label>FEEL Functions: list</label>
+        <label>FEEL Functions: range</label>
+        <label>Decision Table: Collect</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §11.2 example table: matches("bad pattern","[0-9") -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §11.2 example table: before(date("2021-01-01"), null) -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.6 §11.2 example table: all(true,"x",true) -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.6 §11.2 example table: any(null) -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.6 §10.3.4.4 all() example "all(0) = null" in FEEL; B-FEEL gives false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.6 §10.3.4.4 any() example "any(0) = null" in FEEL; B-FEEL gives false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.6 §10.3.4.4 all(): "else true if empty or all items are true, else null": FEEL null; B-FEEL false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.6 §10.3.4.4 all() example "all([false,null,true]) = false": non-null in FEEL, so unchanged in B-FEEL (§11.1 "Anything not covered in this chapter has the behavior described for FEEL").</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.6 §10.3.4.4 any() example "any([false,null,true]) = true": non-null in FEEL, so unchanged in B-FEEL (§11.1).</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.6 §11.2 (derived): starts with() requires string arguments, FEEL null; B-FEEL false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.6 §11.2 (derived): range function before() with incomparable point arguments, FEEL null; B-FEEL false. DMN 1.6 §11.2 "Several FEEL built-in functions return a boolean result. In B-FEEL, those functions' semantics are modified to return false everywhere FEEL would return null for them."</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.6 §11.3 example table: decimal("a", 0) -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.6 §11.3 example table: round up("5.5", 0) -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.6 §11.3 example table: string length(22) -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.6 §11.3 example table: day of year("a") -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.6 §11.3 example table: count([1,null,3]) -&gt; FEEL 3, B-FEEL 3 (count() does not ignore non-numeric items). DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision016" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="017">
+        <description>DMN 1.6 §11.3 example table: sum([1, null, 3]) -&gt; FEEL null, B-FEEL 4. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision017" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">4</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="018">
+        <description>DMN 1.6 §11.3 example table: sum([1, "1", 3]) -&gt; FEEL null, B-FEEL 4. (the string "1" is ignored, not converted). DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision018" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">4</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="019">
+        <description>DMN 1.6 §11.3 example table: sum([]) -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision019" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="020">
+        <description>DMN 1.6 §11.3 example table: mean(["a"]) -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision020" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="021">
+        <description>DMN 1.6 §11.3 example table: mean([1, "a", 3]) -&gt; FEEL null, B-FEEL 2. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision021" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">2</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="022">
+        <description>DMN 1.6 §11.3 (derived): count() is explicitly excluded from ignoring non-numeric items, so "a" is counted. Same in FEEL. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision022" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="023">
+        <description>DMN 1.6 §11.3 (derived): varargs form of sum(); "a" is a non-numeric parameter and is ignored. FEEL null. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision023" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="024">
+        <description>DMN 1.6 §11.3 (derived): product() ignores the non-numeric item; FEEL null. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision024" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">8</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="025">
+        <description>DMN 1.6 §10.3.4.4 product() example "product([]) = null" in FEEL; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision025" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="026">
+        <description>DMN 1.6 §10.3.4.4 median() example "median( 8, 2, 5, 3, 4 ) = 4" with an extra non-numeric item that B-FEEL ignores; FEEL null. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision026" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">4</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="027">
+        <description>DMN 1.6 §10.3.4.4 median() example "median( [ ] ) = null" in FEEL; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision027" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="028">
+        <description>DMN 1.6 §10.3.4.4 stddev(): "Returns the sample standard deviation of the list of numbers"; with the non-numeric item ignored this is stddev([1, 2, 3]) = 1 (sample variance 1); FEEL null. DMN 1.6 §11.3 "the list functions that return a number (mean(), median(), product(), stddev(), sum()) except count() ignore non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision028" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="029">
+        <description>DMN 1.6 §10.3.4.4 stddev() example "stddev( [ 47 ] ) = null" in FEEL; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision029" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="030">
+        <description>DMN 1.6 §10.3.4.4 mean() example "mean([]) = null" in FEEL; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision030" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="031">
+        <description>DMN 1.6 §10.3.4.1 number(from) (single-parameter form, DMN16-208) cannot convert "abc", FEEL null; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision031" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="032">
+        <description>DMN 1.6 §11.3 (derived): floor() of a non-number, FEEL null; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision032" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="033">
+        <description>DMN 1.6 §11.3 (derived): string length(null) is null in FEEL; B-FEEL 0 ("everywhere FEEL would return null", consistent with the spec's date(null) and string(null) examples). DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision033" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="034">
+        <description>DMN 1.6 §11.4 example table: lowercase(12) -&gt; FEEL null, B-FEEL "" (the spec table writes "lowercase"; the built-in is "lower case", Table 75). DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision034" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="035">
+        <description>DMN 1.6 §11.4 example table: string(null) -&gt; FEEL null, B-FEEL "". FEEL Table 73 also states string(null) = null. DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision035" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="036">
+        <description>DMN 1.6 §11.4 example table: day of week("a") -&gt; FEEL null, B-FEEL "". DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision036" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="037">
+        <description>DMN 1.6 §11.4 example table: substring("a", "z") -&gt; FEEL null, B-FEEL "". DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision037" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="038">
+        <description>DMN 1.6 §11.4 (derived): upper case(null) is null in FEEL; B-FEEL "". DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision038" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="039">
+        <description>DMN 1.6 §11.4 (derived): month of year() of a non-date, FEEL null; B-FEEL "". DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision039" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="040">
+        <description>DMN 1.6 §11.4 (derived): replace() with an invalid regular expression, FEEL null; B-FEEL "". DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision040" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="041">
+        <description>DMN 1.6 §11.4 (derived): substring before() with a non-string argument, FEEL null; B-FEEL "". DMN 1.6 §11.4 "Those methods' semantics in B-FEEL are modified to return an empty string ("") everywhere FEEL would return null for them."</description>
+        <resultNode name="decision041" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="042">
+        <description>DMN 1.6 §11.5 example table: time("a") -&gt; FEEL null, B-FEEL time("00:00:00+00:00"). DMN 1.6 §11.5 "return January 1st of year 1970 (1970-01-01T00:00:00+00:00) value (epoch) everywhere FEEL would return null"; default by return type: date and time("1970-01-01T00:00:00+00:00"), date("1970-01-01"), time("00:00:00+00:00").</description>
+        <resultNode name="decision042" type="decision">
+            <expected>
+                <value xsi:type="xsd:time">00:00:00+00:00</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="043">
+        <description>DMN 1.6 §11.5 example table: date(null) -&gt; FEEL null, B-FEEL date("1970-01-01"). DMN 1.6 §11.5 "return January 1st of year 1970 (1970-01-01T00:00:00+00:00) value (epoch) everywhere FEEL would return null"; default by return type: date and time("1970-01-01T00:00:00+00:00"), date("1970-01-01"), time("00:00:00+00:00").</description>
+        <resultNode name="decision043" type="decision">
+            <expected>
+                <value xsi:type="xsd:date">1970-01-01</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="044">
+        <description>DMN 1.6 §11.5 default value table: Date and time -&gt; date and time("1970-01-01T00:00:00+00:00"); FEEL null. DMN 1.6 §11.5 "return January 1st of year 1970 (1970-01-01T00:00:00+00:00) value (epoch) everywhere FEEL would return null"; default by return type: date and time("1970-01-01T00:00:00+00:00"), date("1970-01-01"), time("00:00:00+00:00").</description>
+        <resultNode name="decision044" type="decision">
+            <expected>
+                <value xsi:type="xsd:dateTime">1970-01-01T00:00:00+00:00</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="045">
+        <description>DMN 1.6 §11.5 (derived): date(year, month, day) with an invalid day, FEEL null; B-FEEL date("1970-01-01"). DMN 1.6 §11.5 "return January 1st of year 1970 (1970-01-01T00:00:00+00:00) value (epoch) everywhere FEEL would return null"; default by return type: date and time("1970-01-01T00:00:00+00:00"), date("1970-01-01"), time("00:00:00+00:00").</description>
+        <resultNode name="decision045" type="decision">
+            <expected>
+                <value xsi:type="xsd:date">1970-01-01</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="046">
+        <description>DMN 1.6 §11.5 (derived): time(hour, minute, second) with hour 25, FEEL null; B-FEEL time("00:00:00+00:00"). DMN 1.6 §11.5 "return January 1st of year 1970 (1970-01-01T00:00:00+00:00) value (epoch) everywhere FEEL would return null"; default by return type: date and time("1970-01-01T00:00:00+00:00"), date("1970-01-01"), time("00:00:00+00:00").</description>
+        <resultNode name="decision046" type="decision">
+            <expected>
+                <value xsi:type="xsd:time">00:00:00+00:00</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="047">
+        <description>DMN 1.6 §11.5 (derived): the inner calls return the B-FEEL defaults date("1970-01-01") and time("00:00:00+00:00"), which combine to the date and time default; FEEL null. DMN 1.6 §11.5 "return January 1st of year 1970 (1970-01-01T00:00:00+00:00) value (epoch) everywhere FEEL would return null"; default by return type: date and time("1970-01-01T00:00:00+00:00"), date("1970-01-01"), time("00:00:00+00:00").</description>
+        <resultNode name="decision047" type="decision">
+            <expected>
+                <value xsi:type="xsd:dateTime">1970-01-01T00:00:00+00:00</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="048">
+        <description>DMN 1.6 §11.6 example table: duration("a") -&gt; FEEL null, B-FEEL duration("P0M"). DMN 1.6 §11.6 "return a duration of 0 months (years and months durations) or 0 seconds (days and time duration) everywhere FEEL would return null for them."</description>
+        <resultNode name="decision048" type="decision">
+            <expected>
+                <value xsi:type="xsd:duration">P0M</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="049">
+        <description>DMN 1.6 §11.6 example table: years and months duration(null, null) -&gt; FEEL null, B-FEEL duration("P0M"). DMN 1.6 §11.6 "return a duration of 0 months (years and months durations) or 0 seconds (days and time duration) everywhere FEEL would return null for them."</description>
+        <resultNode name="decision049" type="decision">
+            <expected>
+                <value xsi:type="xsd:duration">P0M</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="050">
+        <description>DMN 1.6 §11.6 (derived): one invalid argument, FEEL null; B-FEEL duration("P0M") (the function returns a years and months duration). DMN 1.6 §11.6 "return a duration of 0 months (years and months durations) or 0 seconds (days and time duration) everywhere FEEL would return null for them."</description>
+        <resultNode name="decision050" type="decision">
+            <expected>
+                <value xsi:type="xsd:duration">P0M</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="051">
+        <description>DMN 1.6 §11.6 (derived, see ambiguities): duration(null) is null in FEEL; following the spec's duration("a") example, B-FEEL duration() defaults to duration("P0M"). DMN 1.6 §11.6 "return a duration of 0 months (years and months durations) or 0 seconds (days and time duration) everywhere FEEL would return null for them."</description>
+        <resultNode name="decision051" type="decision">
+            <expected>
+                <value xsi:type="xsd:duration">P0M</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="052">
+        <description>DMN 1.6 §11.7 example table: split("abc", 22) -&gt; FEEL null, B-FEEL []. DMN 1.6 §11.7 "return an empty collection everywhere FEEL would return null for them. The mode function additionally ignores non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision052" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="053">
+        <description>DMN 1.6 §11.7 example table: mode([null,null,null, 1, 1,2]) -&gt; FEEL null, B-FEEL [1]. DMN 1.6 §11.7 "return an empty collection everywhere FEEL would return null for them. The mode function additionally ignores non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision053" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="054">
+        <description>DMN 1.6 §11.7 (derived): the most frequent item "a" is non-numeric and is ignored, leaving mode([1, 2, 2]) = [2]; FEEL null. DMN 1.6 §11.7 "return an empty collection everywhere FEEL would return null for them. The mode function additionally ignores non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision054" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="055">
+        <description>DMN 1.6 §11.7 (derived): sublist() with a non-numeric start position, FEEL null; B-FEEL []. DMN 1.6 §11.7 "return an empty collection everywhere FEEL would return null for them. The mode function additionally ignores non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision055" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="056">
+        <description>DMN 1.6 §11.7 (derived): remove() with a non-numeric position, FEEL null; B-FEEL []. DMN 1.6 §11.7 "return an empty collection everywhere FEEL would return null for them. The mode function additionally ignores non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision056" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="057">
+        <description>DMN 1.6 §11.7 (derived): split(null, ",") is null in FEEL; B-FEEL []. DMN 1.6 §11.7 "return an empty collection everywhere FEEL would return null for them. The mode function additionally ignores non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision057" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="058">
+        <description>DMN 1.6 §11.7 (derived): insert before() with a non-numeric position, FEEL null; B-FEEL []. DMN 1.6 §11.7 "return an empty collection everywhere FEEL would return null for them. The mode function additionally ignores non-numeric parameters passed in their input list in B-FEEL."</description>
+        <resultNode name="decision058" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="059">
+        <description>DMN 1.6 §11.8 example table: range("x") -&gt; FEEL null, B-FEEL range("(0..0)"). Asserted via equality (Table 54: ranges are equal when they have the same endpoints and inclusivity); in FEEL the left side is null and the comparison is false. DMN 1.6 §11.8 "return an empty range that does not match anything ( (0..0) ) where in FEEL it would return null."</description>
+        <resultNode name="decision059" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="060">
+        <description>DMN 1.6 §11.8 (derived): range(null) is null in FEEL; B-FEEL returns the empty range (0..0). DMN 1.6 §11.8 "return an empty range that does not match anything ( (0..0) ) where in FEEL it would return null."</description>
+        <resultNode name="decision060" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="061">
+        <description>DMN 1.6 §11.8 (derived): the default range is (0..0), whose start property (Table 68) is 0; FEEL null. DMN 1.6 §11.8 "return an empty range that does not match anything ( (0..0) ) where in FEEL it would return null."</description>
+        <resultNode name="decision061" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="062">
+        <description>DMN 1.6 §11.8 (derived): (0..0) has an open start, so start included (Table 68) is false; FEEL null. DMN 1.6 §11.8 "return an empty range that does not match anything ( (0..0) ) where in FEEL it would return null."</description>
+        <resultNode name="decision062" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="063">
+        <description>DMN 1.6 §11.8 (derived): "an empty range that does not match anything": even the endpoint 0 is not in (0..0). In FEEL range("x") is null, so this case checks the B-FEEL result only; it does not discriminate from FEEL. DMN 1.6 §11.8 "return an empty range that does not match anything ( (0..0) ) where in FEEL it would return null."</description>
+        <resultNode name="decision063" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="064">
+        <description>DMN 1.6 §11.3 "The C+ decision table policy being defined as the sum of the outputs yields a slightly different result in B-FEEL because the sum function semantics are altered." C+ over outputs 1, null, "x", 3: B-FEEL sum ignores the null and the string and returns 4; FEEL would return null.</description>
+        <resultNode name="decision064" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">4</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="065">
+        <description>DMN 1.6 §10.3.4.5 sqrt(): "If number is negative it returns null" in FEEL; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision065" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="066">
+        <description>DMN 1.6 §10.3.4.5 modulo(): "divisor must not be 0 (zero)", so FEEL null; B-FEEL 0. DMN 1.6 §11.3 "In B-FEEL, those functions' semantics are modified to return 0 everywhere FEEL would return null for them."</description>
+        <resultNode name="decision066" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

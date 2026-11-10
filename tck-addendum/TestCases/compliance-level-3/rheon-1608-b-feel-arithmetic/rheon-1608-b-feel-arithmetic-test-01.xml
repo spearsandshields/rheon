@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-91 (B-FEEL), DMN16-71 (string coercion, merged into B-FEEL), DMN16-208 (single-parameter number()); drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1608-b-feel-arithmetic.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>B-FEEL</label>
+        <label>FEEL Arithmetic</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §11.9 example table: "Today is " + today() -&gt; FEEL null, B-FEEL "Today is 2020-01-01" (the spec assumes today is 2020-01-01; this test fixes the date). DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">Today is 2020-01-01</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §11.9 example table: "Today is " + today() (spec expression with the real today()): the date is converted with the string B-FEEL function. FEEL: left side null, so false. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.6 §11.9 example table: "The result is: " + 1 -&gt; FEEL null, B-FEEL "The result is: 1". DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">The result is: 1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.6 §11.9 example table: 5 + " minutes" -&gt; FEEL null, B-FEEL "5 minutes". DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">5 minutes</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.6 §11.9 example table: "This is " + null -&gt; FEEL null, B-FEEL "This is ". DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">This is </value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.6 §11.9 example table: 1 + null -&gt; FEEL null, B-FEEL 1. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.6 §11.9 example table: null - 6 -&gt; FEEL null, B-FEEL -6. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-6</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.6 §11.9 example table: date("2021-01-01") + 7 -&gt; FEEL null, B-FEEL 7. The number rule precedes the date rule, so the date is converted with number() to 0. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">7</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.6 §11.9 example table: "abc" - 2 -&gt; FEEL null, B-FEEL "". DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.6 §11.9 (derived): the string rule has precedence over the number rule, so 5 is converted to "5" and the strings are concatenated (not 10); FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">55</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.6 §11.9 (derived): + is left associative: 1 + 2 = 3 (Table 58), then 3 + "a" = "3a" by the string rule; FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">3a</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.6 §11.9 (derived): string(true) = "true"; FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">xtrue</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.6 §11.9 (derived): the string rule precedes the date rule; string(date("2021-01-01")) = "2021-01-01"; FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">2021-01-01x</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.6 §11.9 (derived): when either operand is a string, "Subtraction returns an empty string" (string rule precedes number rule); FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.6 §11.9 (derived): string rule, "Subtraction returns an empty string"; FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.6 §11.9 (derived, mirrors the spec's date("2021-01-01") + 7 = 7): number rule converts the date to 0, 0 - 3 = -3; FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision016" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-3</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="017">
+        <description>DMN 1.6 §11.9 (derived): the number rule precedes the years and months duration rule; number(duration("P1Y")) is 0 in B-FEEL; FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision017" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="018">
+        <description>DMN 1.6 §11.9 (derived): date rule; null is converted with the duration B-FEEL function to a zero duration, and date + zero duration is the same date (Table 58); FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision018" type="decision">
+            <expected>
+                <value xsi:type="xsd:date">2021-01-01</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="019">
+        <description>DMN 1.6 §11.9 (derived, mirrors "This is " + null): string(null) is "" in B-FEEL (§11.4), so the result is "abc"; FEEL null. DMN 1.6 §11.9 rules added after Table 58 "in order of precedence": string ("converted to a string using the string B-FEEL function ... Subtraction returns an empty string"), number ("converted to a number using the number B-FEEL function"), date and time, date, time, years and months duration, days and time duration ("converted to a duration using the duration B-FEEL function").</description>
+        <resultNode name="decision019" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">abc</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="020">
+        <description>DMN 1.6 §11.10 example table: 22 * "a" -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.10 rules added after Table 60 in order of precedence: number, years and months duration, days and time duration: "The non-number type is converted to a number using the number B-FEEL function and Table 60 applies."</description>
+        <resultNode name="decision020" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="021">
+        <description>DMN 1.6 §11.10 example table: null / 22 -&gt; FEEL null, B-FEEL 0. DMN 1.6 §11.10 rules added after Table 60 in order of precedence: number, years and months duration, days and time duration: "The non-number type is converted to a number using the number B-FEEL function and Table 60 applies."</description>
+        <resultNode name="decision021" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="022">
+        <description>DMN 1.6 §11.10 example table: duration("P1Y") * null -&gt; FEEL null, B-FEEL duration("P0M"). DMN 1.6 §11.10 rules added after Table 60 in order of precedence: number, years and months duration, days and time duration: "The non-number type is converted to a number using the number B-FEEL function and Table 60 applies."</description>
+        <resultNode name="decision022" type="decision">
+            <expected>
+                <value xsi:type="xsd:duration">P0M</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="023">
+        <description>DMN 1.6 §11.10 (derived): number("6") = 6 (Table 73, single-parameter number(from), DMN16-208), so 6 * 2 = 12; FEEL null. DMN 1.6 §11.10 rules added after Table 60 in order of precedence: number, years and months duration, days and time duration: "The non-number type is converted to a number using the number B-FEEL function and Table 60 applies."</description>
+        <resultNode name="decision023" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">12</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="024">
+        <description>DMN 1.6 §11.10 (derived): days and time duration rule; "x" converts to 0, PT2H * 0 = PT0S; FEEL null. DMN 1.6 §11.10 rules added after Table 60 in order of precedence: number, years and months duration, days and time duration: "The non-number type is converted to a number using the number B-FEEL function and Table 60 applies."</description>
+        <resultNode name="decision024" type="decision">
+            <expected>
+                <value xsi:type="xsd:duration">PT0S</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="025">
+        <description>DMN 1.6 §11.10 (derived, operands of the spec example reversed): Table 60 "number * years and months duration: See above, reversing e1 and e2"; FEEL null. DMN 1.6 §11.10 rules added after Table 60 in order of precedence: number, years and months duration, days and time duration: "The non-number type is converted to a number using the number B-FEEL function and Table 60 applies."</description>
+        <resultNode name="decision025" type="decision">
+            <expected>
+                <value xsi:type="xsd:duration">P0M</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="026">
+        <description>DMN 1.6 §11.10 (derived): number("10") = 10, 10 / 4 = 2.5; FEEL null. DMN 1.6 §11.10 rules added after Table 60 in order of precedence: number, years and months duration, days and time duration: "The non-number type is converted to a number using the number B-FEEL function and Table 60 applies."</description>
+        <resultNode name="decision026" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">2.5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="027">
+        <description>DMN 1.6 §11.11 (derived): "a" converts to 0, 2 ** 0 = 1; FEEL null. DMN 1.6 §11.11 "The FEEL semantics of exponentiation described in Table 61 (grammar rule 23) are used and B-FEEL further specifies that each operand is converted to a number using the number B-FEEL function."</description>
+        <resultNode name="decision027" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="028">
+        <description>DMN 1.6 §11.11 (derived): null converts to 0 (as in the spec's 1 + null = 1), 0 ** 2 = 0; FEEL null. DMN 1.6 §11.11 "The FEEL semantics of exponentiation described in Table 61 (grammar rule 23) are used and B-FEEL further specifies that each operand is converted to a number using the number B-FEEL function."</description>
+        <resultNode name="decision028" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="029">
+        <description>DMN 1.6 §11.11 (derived): number("3") = 3, 3 ** 2 = 9; FEEL null. DMN 1.6 §11.11 "The FEEL semantics of exponentiation described in Table 61 (grammar rule 23) are used and B-FEEL further specifies that each operand is converted to a number using the number B-FEEL function."</description>
+        <resultNode name="decision029" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">9</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="030">
+        <description>DMN 1.6 §11.9 (derived): date and time rule; null is converted with the duration B-FEEL function to a zero duration (P0M or PT0S), and date and time + zero duration is the same value under either Table 58 row; FEEL null. DMN 1.6 §11.9 "The non-date and time value is converted to a duration using the duration B-FEEL function and Table 58 applies."</description>
+        <resultNode name="decision030" type="decision">
+            <expected>
+                <value xsi:type="xsd:dateTime">2021-01-01T10:00:00</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

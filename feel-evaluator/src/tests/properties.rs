@@ -435,3 +435,25 @@ fn _0084() {
 fn _0085() {
   te_bool(false, &scope!(), "(> (1+3)).end included", false);
 }
+
+#[test]
+fn dmn_1_6_value_property() {
+  // DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table 66 (DMN16-11)
+  let scope = &scope!();
+  te_number(false, scope, r#"time("01:01:01").value"#, 3661, 0);
+  te_number(false, scope, r#"@"10:00:00Z".value"#, 36000, 0);
+  te_number(false, scope, r#"@"10:00:00+02:00".value"#, 28800, 0);
+  te_number(false, scope, r#"@"01:00:00+02:00".value"#, 82800, 0);
+  te_number(false, scope, r#"@"12:00:00.5".value"#, 432005, 1);
+  te_number(false, scope, r#"duration("P1DT1H").value"#, 90000, 0);
+  te_number(false, scope, r#"@"-PT1H".value"#, -3600, 0);
+  te_number(false, scope, r#"duration("P1Y1M").value"#, 13, 0);
+  te_number(false, scope, r#"@"-P1Y1M".value"#, -13, 0);
+  te_number(false, scope, r#"@"1970-01-01T02:00:00+02:00".value"#, 0, 0);
+  te_number(false, scope, r#"@"2018-01-01T00:00:00Z".value"#, 1514764800, 0);
+  te_number(false, scope, r#"@"1969-12-31T23:59:59Z".value"#, -1, 0);
+  te_number(false, scope, r#"@"2018-01-01".value"#, 1514764800, 0);
+  te_bool(false, scope, r#"@"2018-07-01T12:00:00@Europe/Paris".value = @"2018-07-01T10:00:00Z".value"#, true);
+  te_null(false, scope, r#"@"2018-01-01T10:00:00".value"#, "value: a local date and time has no UTC form");
+  te_number(false, scope, r#"{value: 5}.value"#, 5, 0);
+}

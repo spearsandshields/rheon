@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-91 (B-FEEL), DMN16-71 (string coercion, merged into B-FEEL), DMN16-208 (single-parameter number()); drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1608-b-feel-arithmetic"
+             name="rheon-1608-b-feel-arithmetic"
+             id="_rheon-1608-b-feel-arithmetic"
+             expressionLanguage="https://www.omg.org/spec/DMN/20240513/B-FEEL/"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/">
+    <description>B-FEEL (DMN 1.6 chapter 11): addition, subtraction, multiplication, division and exponentiation with mismatched operand types</description>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>"Today is " + date("2020-01-01")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <literalExpression>
+            <text>"Today is " + today() = "Today is " + string(today())</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision003" id="_decision003">
+        <variable name="decision003"/>
+        <literalExpression>
+            <text>"The result is: " + 1</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision004" id="_decision004">
+        <variable name="decision004"/>
+        <literalExpression>
+            <text>5 + " minutes"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision005" id="_decision005">
+        <variable name="decision005"/>
+        <literalExpression>
+            <text>"This is " + null</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision006" id="_decision006">
+        <variable name="decision006"/>
+        <literalExpression>
+            <text>1 + null</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision007" id="_decision007">
+        <variable name="decision007"/>
+        <literalExpression>
+            <text>null - 6</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision008" id="_decision008">
+        <variable name="decision008"/>
+        <literalExpression>
+            <text>date("2021-01-01") + 7</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision009" id="_decision009">
+        <variable name="decision009"/>
+        <literalExpression>
+            <text>"abc" - 2</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision010" id="_decision010">
+        <variable name="decision010"/>
+        <literalExpression>
+            <text>"5" + 5</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision011" id="_decision011">
+        <variable name="decision011"/>
+        <literalExpression>
+            <text>1 + 2 + "a"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision012" id="_decision012">
+        <variable name="decision012"/>
+        <literalExpression>
+            <text>"x" + true</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision013" id="_decision013">
+        <variable name="decision013"/>
+        <literalExpression>
+            <text>date("2021-01-01") + "x"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision014" id="_decision014">
+        <variable name="decision014"/>
+        <literalExpression>
+            <text>10 - "abc"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision015" id="_decision015">
+        <variable name="decision015"/>
+        <literalExpression>
+            <text>time("10:00:00") - "x"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision016" id="_decision016">
+        <variable name="decision016"/>
+        <literalExpression>
+            <text>date("2021-01-10") - 3</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision017" id="_decision017">
+        <variable name="decision017"/>
+        <literalExpression>
+            <text>duration("P1Y") + 1</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision018" id="_decision018">
+        <variable name="decision018"/>
+        <literalExpression>
+            <text>date("2021-01-01") + null</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision019" id="_decision019">
+        <variable name="decision019"/>
+        <literalExpression>
+            <text>null + "abc"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision020" id="_decision020">
+        <variable name="decision020"/>
+        <literalExpression>
+            <text>22 * "a"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision021" id="_decision021">
+        <variable name="decision021"/>
+        <literalExpression>
+            <text>null / 22</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision022" id="_decision022">
+        <variable name="decision022"/>
+        <literalExpression>
+            <text>duration("P1Y") * null</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision023" id="_decision023">
+        <variable name="decision023"/>
+        <literalExpression>
+            <text>"6" * 2</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision024" id="_decision024">
+        <variable name="decision024"/>
+        <literalExpression>
+            <text>duration("PT2H") * "x"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision025" id="_decision025">
+        <variable name="decision025"/>
+        <literalExpression>
+            <text>null * duration("P1Y")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision026" id="_decision026">
+        <variable name="decision026"/>
+        <literalExpression>
+            <text>"10" / 4</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision027" id="_decision027">
+        <variable name="decision027"/>
+        <literalExpression>
+            <text>2 ** "a"</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision028" id="_decision028">
+        <variable name="decision028"/>
+        <literalExpression>
+            <text>null ** 2</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision029" id="_decision029">
+        <variable name="decision029"/>
+        <literalExpression>
+            <text>"3" ** 2</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision030" id="_decision030">
+        <variable name="decision030"/>
+        <literalExpression>
+            <text>date and time("2021-01-01T10:00:00") + null</text>
+        </literalExpression>
+    </decision>
+
+</definitions>

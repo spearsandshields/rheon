@@ -1939,6 +1939,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
           value_null!("could not retrieve weekday for date")
         }
       }
+      Bip::Value => temporal_value::of_date(&date),
       other => value_null!("no such property in date: {}", other),
     },
     Value::DateTime(date_time) => match property {
@@ -1969,6 +1970,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
           value_null!("could not retrieve timezone for date and time")
         }
       }
+      Bip::Value => temporal_value::of_date_time(&date_time),
       other => value_null!("no such property in date and time: {}", other),
     },
     Value::Time(time) => match property {
@@ -1989,6 +1991,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
           value_null!("could not retrieve timezone for time")
         }
       }
+      Bip::Value => temporal_value::of_time(&time),
       other => value_null!("no such property in time: {}", other),
     },
     Value::DaysAndTimeDuration(dt_duration) => match property {
@@ -1996,11 +1999,13 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       Bip::Hours => Value::Number(dt_duration.get_hours().into()),
       Bip::Minutes => Value::Number(dt_duration.get_minutes().into()),
       Bip::Seconds => Value::Number(dt_duration.get_seconds().into()),
+      Bip::Value => temporal_value::of_dt_duration(&dt_duration),
       other => value_null!("no such property in days and time duration: {}", other),
     },
     Value::YearsAndMonthsDuration(ym_duration) => match property {
       Bip::Years => Value::Number(ym_duration.years().into()),
       Bip::Months => Value::Number(ym_duration.months().into()),
+      Bip::Value => Value::Number(ym_duration.as_months().into()),
       other => value_null!("no such property in years and months duration: {}", other),
     },
     Value::Range(rs, cs, re, ce) => match property {
@@ -2835,5 +2840,57 @@ mod tests {
     let body = FunctionBody::External(Arc::new(evaluator));
     let result = eval_external_function_definition(&scope!(), &[], &body, FeelType::Boolean);
     assert_eq!("null(expected JAVA or PMML mapping, actual value is false)", result.to_string())
+  }
+}
+
+/// The `value` property of temporal values (DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table 66, DMN16-11):
+/// `valuet`, `valuedt`, `valuedtd` and `valueymd` of the spec, as numbers.
+mod temporal_value {
+  use rheon_feel::values::Value;
+  use rheon_feel::{FeelNumber, value_null};
+  use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime};
+
+  const NANOS_IN_SECOND: i64 = 1_000_000_000;
+  const SECONDS_IN_DAY: i64 = 86_400;
+
+  /// Seconds (with the fractional nanoseconds) as an exact number.
+  fn seconds(nanos: i64) -> Value {
+    let whole = nanos.div_euclid(NANOS_IN_SECOND);
+    let fraction = nanos.rem_euclid(NANOS_IN_SECOND);
+    let n = FeelNumber::from(whole);
+    Value::Number(if fraction == 0 { n } else { n + FeelNumber::new(fraction, 9) })
+  }
+
+  /// `valuedtd`: a days and time duration as a number of seconds.
+  pub fn of_dt_duration(duration: &FeelDaysAndTimeDuration) -> Value {
+    seconds(duration.as_nanos())
+  }
+
+  /// `valuedt`: seconds since 1970-01-01T00:00:00Z of a date and time that has a UTC form (an
+  /// offset or a time zone); a local date and time has none, so its value is null.
+  pub fn of_date_time(date_time: &FeelDateTime) -> Value {
+    if !date_time.time().zone().has_offset() {
+      return value_null!("value: a local date and time has no UTC form");
+    }
+    let Some(epoch) = FeelDateTime::utc(1970, 1, 1, 0, 0, 0, 0) else {
+      return value_null!("value: epoch");
+    };
+    match date_time.clone() - epoch {
+      Some(duration) => seconds(duration.as_nanos()),
+      None => value_null!("value: date and time out of range"),
+    }
+  }
+
+  /// A date is taken as the date and time at UTC midnight (§10.3.2.3.5).
+  pub fn of_date(date: &FeelDate) -> Value {
+    of_date_time(&FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0)))
+  }
+
+  /// `valuet`: seconds since midnight in [0..86400). A time with an offset is taken in its UTC
+  /// form, which keeps `value` consistent with time subtraction; a local time uses its clock time.
+  pub fn of_time(time: &FeelTime) -> Value {
+    let clock = (time.hour() as i64 * 3600 + time.minute() as i64 * 60 + time.second() as i64) * NANOS_IN_SECOND + time.nanos() as i64;
+    let offset = time.feel_time_offset().unwrap_or(0) as i64 * NANOS_IN_SECOND;
+    seconds((clock - offset).rem_euclid(SECONDS_IN_DAY * NANOS_IN_SECOND))
   }
 }

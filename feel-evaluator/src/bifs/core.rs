@@ -1720,6 +1720,42 @@ pub fn now() -> Value {
   Value::DateTime(FeelDateTime::now())
 }
 
+/// `true` when `s` is a FEEL numeric literal (grammar rule 35):
+/// `[ "-" ] , ( digits , [ ".", digits ] | "." , digits ), [ ( "e" | "E" ) , [ "+" | "-" ] , digits ]`.
+fn is_numeric_literal(s: &str) -> bool {
+  let b = s.as_bytes();
+  let mut i = 0;
+  let digits = |i: &mut usize| {
+    let start = *i;
+    while *i < b.len() && b[*i].is_ascii_digit() {
+      *i += 1;
+    }
+    *i > start
+  };
+  if i < b.len() && b[i] == b'-' {
+    i += 1;
+  }
+  let int = digits(&mut i);
+  if i < b.len() && b[i] == b'.' {
+    i += 1;
+    if !digits(&mut i) {
+      return false;
+    }
+  } else if !int {
+    return false;
+  }
+  if i < b.len() && (b[i] == b'e' || b[i] == b'E') {
+    i += 1;
+    if i < b.len() && (b[i] == b'+' || b[i] == b'-') {
+      i += 1;
+    }
+    if !digits(&mut i) {
+      return false;
+    }
+  }
+  i == b.len()
+}
+
 /// `number(from)` (DMN 1.6, DMN16-208 and DMN16-105): a string converts as
 /// `number(from, null, null)`, a number is returned unchanged.
 pub fn number_single(from: &Value) -> Value {
@@ -1734,10 +1770,16 @@ pub fn number_single(from: &Value) -> Value {
 /// Converts string to a number.
 /// Grouping...
 pub fn number(from: &Value, grouping_separator: &Value, decimal_separator: &Value) -> Value {
-  // function for converting string to Value::Number
-  let convert = |value: String| match value.parse::<FeelNumber>() {
-    Ok(number) => Value::Number(number),
-    Err(reason) => value_null!("[core::number] {}", reason),
+  // function for converting string to Value::Number; the text must be a FEEL numeric literal
+  // (grammar rule 35; the 1.6 footnote's "rule 37" is a stale reference), so "+5" or "1." are null
+  let convert = |value: String| {
+    if !is_numeric_literal(&value) {
+      return value_null!("[core::number] not a FEEL numeric literal: {}", value);
+    }
+    match value.parse::<FeelNumber>() {
+      Ok(number) => Value::Number(number),
+      Err(reason) => value_null!("[core::number] {}", reason),
+    }
   };
   match from {
     Value::String(value) => {

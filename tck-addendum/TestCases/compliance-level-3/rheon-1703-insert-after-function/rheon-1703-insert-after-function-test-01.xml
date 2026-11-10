@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN17-100 (DMN 1.7 beta 1); drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1703-insert-after-function.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>Data Type: List</label>
+        <label>FEEL Functions: list</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "insert after([1,3],1,2) = [1,2,3]". Normative example of the new insert after function (DMN17-100).</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "insert after([1,3], null, 2) = null". Normative example: null position gives null.</description>
+        <resultNode errorResult="true" name="decision002" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "insert after([1,3], 1, null) = [1, null, 3]". Normative example: newItem may be null ("any element including null").</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:nil="true"/>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "insert after([1,3], 1, "2") = [1,"2",3]". Normative example: newItem need not match the type of the list items.</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:string">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list". Derived: position L (the last item) is in range; inserting after it appends.</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">4</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list"; DMN 1.7 beta 1 §10.3.4.4 Table 76: sublist: "1st position is 1, last position is -1". §10.3.2.5: "the last element can be accessed using L[-1] ... the nth element from the end can be accessed using L[-n]". Derived: position -1 is the last item, so newItem goes at the end.</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">4</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list"; DMN 1.7 beta 1 §10.3.4.4 Table 76: sublist: "1st position is 1, last position is -1". §10.3.2.5: "the last element can be accessed using L[-1] ... the nth element from the end can be accessed using L[-n]". Derived: position -2 is the first item of a two-item list, so this equals insert after([1,3],1,2).</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list". DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." Derived: position 0 is not allowed (non-zero), so the result is null.</description>
+        <resultNode errorResult="true" name="decision008" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list". DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." Derived: position 3 is outside [-2..2], so the result is null.</description>
+        <resultNode errorResult="true" name="decision009" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list". DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." Derived: position -3 is outside [-2..2], so the result is null.</description>
+        <resultNode errorResult="true" name="decision010" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list". DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." Derived: for the empty list L = 0, so there is no valid non-zero position and the result is null.</description>
+        <resultNode errorResult="true" name="decision011" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." DMN 1.7 beta 1 §10.3.4.4 Table 76: the parameter domain of the first argument is "list". Derived: a null list gives null (as intersection([1,2,3], null) = null does for list arguments).</description>
+        <resultNode errorResult="true" name="decision012" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." DMN 1.7 beta 1 §10.3.4.4 Table 76: the parameter domain of position is "number1". Derived: a string position gives null.</description>
+        <resultNode errorResult="true" name="decision013" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: insert after(list, position, newItem): "return new list with newItem inserted after position"; newItem domain is "any element including null". Derived: a list newItem is inserted as one element, not spliced.</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <list>
+                            <item>
+                                <value xsi:type="xsd:decimal">2</value>
+                            </item>
+                        </list>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: parameters are named in "insert after(list, position, newItem)". Derived: named-parameter invocation (Table 64) of the normative example gives [1,2,3].</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: "insert after(list, position, newItem)" has three parameters; §10.3.2.15 Table 64: positional invocation applies when "e is a function with matching arity", and "If positional, all arguments must be supplied." Derived: a two-argument call gives null.</description>
+        <resultNode errorResult="true" name="decision016" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="017">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: insert after(list, position, newItem): "return new list with newItem inserted after position". Derived: insertion in the middle of a longer list, after the item at position 2.</description>
+        <resultNode name="decision017" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">9</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">4</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="018">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76 footnote 1: "position must be a non-zero integer (0 scale number) in the range [-L..L], where L is the length of the list"; §10.3.2.5: "the nth element from the end can be accessed using L[-n]". Derived: position -2 is the item 3, so newItem goes after it.</description>
+        <resultNode name="decision018" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">9</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">4</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="019">
+        <description>DMN 1.7 beta 1 §10.3.2.15: "If named, unsupplied arguments are bound to null."; §10.3.4.4 Table 76: example "insert after([1,3], null, 2) = null". Derived: omitting the named position binds it to null, so the result is null.</description>
+        <resultNode errorResult="true" name="decision019" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

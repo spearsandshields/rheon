@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN17-96 (DMN 1.7 beta 1); drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1701-trim-function.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>Data Type: String</label>
+        <label>FEEL Functions: string</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: example "trim(" abc ") = "abc"". Normative example of the new trim function (DMN17-96).</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">abc</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: example "trim("x ") = "x"". Normative example: trailing white space removed.</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">x</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: example "trim("") = """. Normative example: empty string stays empty.</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: example "trim(null) = null". Normative example: null argument gives null.</description>
+        <resultNode errorResult="true" name="decision004" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: trim(string): "return a string with white spaces (see rule 61 of the grammar) removed from the beginning and the end". Derived: a string without leading or trailing white space is returned unchanged.</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">abc</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: trim(string): "return a string with white spaces (see rule 61 of the grammar) removed from the beginning and the end". Derived: only the beginning and the end are trimmed; inner white space is preserved.</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">a  b</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: trim(string): "return a string with white spaces (see rule 61 of the grammar) removed from the beginning and the end". Derived: a string made only of white space trims to the empty string.</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <value xsi:type="xsd:string"></value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.7 beta 1 §10.3.1.2 grammar rule 61: "white space = vertical space | \u0009 | \u0020 | \u0085 | \u00A0 | \u1680 | \u180E | [\u2000-\u200B] | \u2028 | \u2029 | \u202F | \u205F | \u3000 | \uFEFF", rule 62: "vertical space = [\u000A-\u000D]". Derived: tab (\u0009) and vertical space (\u000A, \u000D) count as white space for trim; written with FEEL string escapes (rule 64).</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">abc</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.7 beta 1 §10.3.1.2 grammar rule 61: "white space = vertical space | \u0009 | \u0020 | \u0085 | \u00A0 | \u1680 | \u180E | [\u2000-\u200B] | \u2028 | \u2029 | \u202F | \u205F | \u3000 | \uFEFF", rule 62: "vertical space = [\u000A-\u000D]". Derived: non-ASCII white space from rule 61 (no-break space, en quad, zero width space, ideographic space, BOM) is trimmed, not only \u0020.</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">abc</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.7 beta 1 §10.3.1.2 grammar rule 61: "white space = vertical space | \u0009 | \u0020 | \u0085 | \u00A0 | \u1680 | \u180E | [\u2000-\u200B] | \u2028 | \u2029 | \u202F | \u205F | \u3000 | \uFEFF", rule 62: "vertical space = [\u000A-\u000D]". Derived: \u200C (zero width non-joiner) is outside [\u2000-\u200B] and is not white space, so it is kept and the length stays 4.</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">4</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: parameter is named "string" in "trim(string)". Derived: named-parameter invocation (Table 64).</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">abc</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." DMN 1.7 beta 1 §10.3.4.3 Table 75: the parameter domain of trim is "string". Derived: a number argument gives null.</description>
+        <resultNode errorResult="true" name="decision012" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.7 beta 1 §10.3.4.3 Table 75: trim(string) has one required parameter. Derived: invoking it with no arguments gives null.</description>
+        <resultNode errorResult="true" name="decision013" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.7 beta 1 §10.3.1.2 grammar rule 61: "white space = vertical space | \u0009 | \u0020 | \u0085 | \u00A0 | \u1680 | \u180E | [\u2000-\u200B] | \u2028 | \u2029 | \u202F | \u205F | \u3000 | \uFEFF", rule 62: "vertical space = [\u000A-\u000D]". Derived: the remaining code points listed in rule 61 (\u0085, \u1680, \u180E, \u2028, \u2029, \u202F, \u205F, \u000B, \u000C, \u2001, \u200A) are all trimmed; \u180E is listed by rule 61 even though current Unicode no longer classes it as white space.</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <value xsi:type="xsd:string">abc</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.7 beta 1 §10.3.1.2 grammar rule 61: "white space = vertical space | \u0009 | \u0020 | \u0085 | \u00A0 | \u1680 | \u180E | [\u2000-\u200B] | \u2028 | \u2029 | \u202F | \u205F | \u3000 | \uFEFF", rule 62: "vertical space = [\u000A-\u000D]". Derived: control characters outside rule 61 (\u0001, \u001F) are not white space and are kept (unlike e.g. Java String.trim, which strips every character up to \u0020), so the length stays 5.</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

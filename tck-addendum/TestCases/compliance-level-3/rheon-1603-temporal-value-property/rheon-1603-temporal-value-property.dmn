@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-11; drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1603-temporal-value-property"
+             name="rheon-1603-temporal-value-property"
+             id="_rheon-1603-temporal-value-property"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>DMN 1.6 property 'value' of date, date and time, time, years and months duration and days and time duration (Table 66, Table 67, 10.3.2.3.4-10.3.2.3.8)</description>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>time("01:01:01").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <literalExpression>
+            <text>@"01:01:01".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision003" id="_decision003">
+        <variable name="decision003"/>
+        <literalExpression>
+            <text>time("00:00:00").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision004" id="_decision004">
+        <variable name="decision004"/>
+        <literalExpression>
+            <text>time("23:59:59").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision005" id="_decision005">
+        <variable name="decision005"/>
+        <literalExpression>
+            <text>time("12:00:00.5").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision006" id="_decision006">
+        <variable name="decision006"/>
+        <literalExpression>
+            <text>time("10:00:00Z").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision007" id="_decision007">
+        <variable name="decision007"/>
+        <literalExpression>
+            <text>@"10:00:00+02:00".value - @"09:00:00+02:00".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision008" id="_decision008">
+        <variable name="decision008"/>
+        <literalExpression>
+            <text>(@"01:00:00" + @"P1D").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision009" id="_decision009">
+        <variable name="decision009"/>
+        <literalExpression>
+            <text>(@"00:00:00" - @"PT1H").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision010" id="_decision010">
+        <variable name="decision010"/>
+        <literalExpression>
+            <text>duration("P1DT1H").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision011" id="_decision011">
+        <variable name="decision011"/>
+        <literalExpression>
+            <text>@"P0DT25H".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision012" id="_decision012">
+        <variable name="decision012"/>
+        <literalExpression>
+            <text>duration("PT90000S").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision013" id="_decision013">
+        <variable name="decision013"/>
+        <literalExpression>
+            <text>@"PT0S".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision014" id="_decision014">
+        <variable name="decision014"/>
+        <literalExpression>
+            <text>@"-PT1H".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision015" id="_decision015">
+        <variable name="decision015"/>
+        <literalExpression>
+            <text>(@"09:00:00" - @"10:00:00").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision016" id="_decision016">
+        <variable name="decision016"/>
+        <literalExpression>
+            <text>@"PT1.5S".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision017" id="_decision017">
+        <variable name="decision017"/>
+        <literalExpression>
+            <text>(@"P1DT1H" + @"PT1S").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision018" id="_decision018">
+        <variable name="decision018"/>
+        <literalExpression>
+            <text>@"P1D".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision019" id="_decision019">
+        <variable name="decision019"/>
+        <literalExpression>
+            <text>duration("P1Y1M").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision020" id="_decision020">
+        <variable name="decision020"/>
+        <literalExpression>
+            <text>@"P0Y13M".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision021" id="_decision021">
+        <variable name="decision021"/>
+        <literalExpression>
+            <text>@"P1Y".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision022" id="_decision022">
+        <variable name="decision022"/>
+        <literalExpression>
+            <text>@"-P1Y1M".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision023" id="_decision023">
+        <variable name="decision023"/>
+        <literalExpression>
+            <text>(@"P1Y" - @"P13M").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision024" id="_decision024">
+        <variable name="decision024"/>
+        <literalExpression>
+            <text>@"P0M".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision025" id="_decision025">
+        <variable name="decision025"/>
+        <literalExpression>
+            <text>@"2018-01-01T00:00:01Z".value - @"2018-01-01T00:00:00Z".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision026" id="_decision026">
+        <variable name="decision026"/>
+        <literalExpression>
+            <text>@"2018-01-01T12:00:00+02:00".value = @"2018-01-01T10:00:00Z".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision027" id="_decision027">
+        <variable name="decision027"/>
+        <literalExpression>
+            <text>@"2018-07-01T12:00:00@Europe/Paris".value = @"2018-07-01T10:00:00Z".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision028" id="_decision028">
+        <variable name="decision028"/>
+        <literalExpression>
+            <text>(@"2018-01-02T00:00:00Z" - @"2018-01-01T00:00:00Z").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision029" id="_decision029">
+        <variable name="decision029"/>
+        <literalExpression>
+            <text>@"1970-01-01T00:00:00Z".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision030" id="_decision030">
+        <variable name="decision030"/>
+        <literalExpression>
+            <text>@"1970-01-01T02:00:00+02:00".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision031" id="_decision031">
+        <variable name="decision031"/>
+        <literalExpression>
+            <text>@"2018-01-01T00:00:00Z".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision032" id="_decision032">
+        <variable name="decision032"/>
+        <literalExpression>
+            <text>@"1969-12-31T23:59:59Z".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision033" id="_decision033">
+        <variable name="decision033"/>
+        <literalExpression>
+            <text>date("1970-01-01").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision034" id="_decision034">
+        <variable name="decision034"/>
+        <literalExpression>
+            <text>@"2018-01-01".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision035" id="_decision035">
+        <variable name="decision035"/>
+        <literalExpression>
+            <text>@"2018-01-02".value - @"2018-01-01".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision036" id="_decision036">
+        <variable name="decision036"/>
+        <literalExpression>
+            <text>date("2018-01-01").value = date and time("2018-01-01T00:00:00Z").value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision037" id="_decision037">
+        <variable name="decision037"/>
+        <literalExpression>
+            <text>@"2018-01-01T10:00:00Z".value - @"2018-01-01".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision038" id="_decision038">
+        <variable name="decision038"/>
+        <literalExpression>
+            <text>@"P1D".value instance of number</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision039" id="_decision039">
+        <variable name="decision039"/>
+        <literalExpression>
+            <text>{value: 5}.value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision040" id="_decision040">
+        <variable name="decision040"/>
+        <literalExpression>
+            <text>{value: @"P1D"}.value.value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision041" id="_decision041">
+        <variable name="decision041"/>
+        <literalExpression>
+            <text>null.value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision042" id="_decision042">
+        <variable name="decision042"/>
+        <literalExpression>
+            <text>"abc".value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision043" id="_decision043">
+        <variable name="decision043"/>
+        <literalExpression>
+            <text>[1..10].value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision044" id="_decision044">
+        <variable name="decision044"/>
+        <literalExpression>
+            <text>years and months duration(date("2011-12-22"), date("2013-08-24")).value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision045" id="_decision045">
+        <variable name="decision045"/>
+        <literalExpression>
+            <text>(date and time("2012-12-24T23:59:00") - date and time("2012-12-22T03:45:00")).value</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision046" id="_decision046">
+        <variable name="decision046"/>
+        <literalExpression>
+            <text>@"2018-01-01T02:00:00+02:00".value = @"2018-01-01".value</text>
+        </literalExpression>
+    </decision>
+
+</definitions>

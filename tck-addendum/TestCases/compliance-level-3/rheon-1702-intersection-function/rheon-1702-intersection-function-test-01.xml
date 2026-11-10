@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN17-98 (DMN 1.7 beta 1); drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1702-intersection-function.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>Data Type: List</label>
+        <label>FEEL Functions: list</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "intersection([1,2],[2,3], [2,3,4]) = [2]". Normative example of the new intersection function (DMN17-98). Single-element result, so order does not matter.</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "intersection(["a","b","c"],["a","b"]) = ["a", "b"]". The result order is unspecified ("in no particular order"), so the expectation is order-independent: the result is sorted with sort(list, precedes) (§10.3.4.9) before comparison.</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">a</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:string">b</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "intersection(["a","b","c"],["a","b"]) = ["a", "b"]". The result order is unspecified ("in no particular order"), so the expectation is order-independent: this case checks the size only.</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">2</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "intersection([1],[2]) = []". Normative example: disjoint lists give the empty list.</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: example "intersection([1,2,3], null) = null". Normative example: a null argument gives null.</description>
+        <resultNode errorResult="true" name="decision005" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.7 beta 1 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." DMN 1.7 beta 1 §10.3.4.4 Table 76: parameter domain "list"; mirrors the normative example intersection([1,2,3], null) = null. Derived: null as the first argument also gives null.</description>
+        <resultNode errorResult="true" name="decision006" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal". Derived: duplicates present in every list appear once in the result. Single-element result, so order does not matter.</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal". Derived: intersecting with an empty list gives the empty list.</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal". Derived: several common elements. The result order is unspecified ("in no particular order"), so the expectation is order-independent: the result is sorted before comparison.</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">4</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal". §10.3.2.15 Table 54: string equality: "e1 is the same sequence of characters as e2". Derived: string elements are compared with FEEL string equality, which is case sensitive, so "a" and "A" are not common.</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal". §10.3.2.15 Table 53: e1 = e2 requires "e1 and e2 must both be of the same kind/datatype". Derived: elements of different types are never equal (1 and "1" are not the same element), so only the string "1" is common. Single-element result.</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal". §10.3.2.15 Table 54: number equality: "value(e1) = value(e2) ... Precision is not considered." Derived: numbers are compared by FEEL numeric equality (1.0 = 1), so 1.0 and 1 are a common element. Single-element result.</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal". §10.3.2.15 Table 54: list equality: "lists must be same length N and e1[i] = e2[i] for 1 ≤ i ≤ N." Derived: list elements are compared with FEEL list equality, so the nested list [1,2] is common and is kept as one element (not flattened). Single-element result.</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <list>
+                            <item>
+                                <value xsi:type="xsd:decimal">1</value>
+                            </item>
+                            <item>
+                                <value xsi:type="xsd:decimal">2</value>
+                            </item>
+                        </list>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal"; "list..." accepts a variable number of lists. Derived: with a single list every element is common, so the result is that list with duplicate removal. The result order is unspecified ("in no particular order"), so the expectation is order-independent: the result is sorted before comparison.</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists in no particular order with duplicate removal"; §10.3.2.15 Table 54: context equality: "contexts must have same set of keys K and e1.k = e2.k for every k in K". Derived: only {a: 1} is common. Single-element result, so order does not matter.</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="a">
+                            <value xsi:type="xsd:decimal">1</value>
+                        </component>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.7 beta 1 §10.3.4.4 Table 76: intersection(list...): "return the common elements of the lists". Derived: an element must be in every list; 2 and 3 are each shared by only two of the three lists, so the result is empty.</description>
+        <resultNode name="decision016" type="decision">
+            <expected>
+                <list>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

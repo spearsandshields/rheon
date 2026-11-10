@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-94; drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1604-singleton-list-iteration.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>Data Type: List</label>
+        <label>Boxed Filter</label>
+        <label>Boxed Iterator</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §10.3.2.9.4.1 Table 45: "3[item &gt; 2] ... 3 is converted to [3] as this a filter context, and an to singleton list is applied" = [3]. Normative example.</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">3</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §10.3.2.9.4 "Filter context (10.3.2.5) in which a filter expression is present. The expression to be filtered is subject to implicit conversion to singleton list." 5 is converted to [5]; the predicate holds, so the result is the singleton list [5], not 5.</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">5</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54, e1 is not a list and not null and type(FEEL(e2, s')) is boolean): "[e1] if FEEL(e2, s') is true, where s' is the scope s with a special first context containing the context entry ("item", e1) ... Else []." A string is not a list, so "a"[item = "a"] = ["a"].</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">a</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54): "[e1] if FEEL(e2, s') is true ... and if e1 is a context, the special context also contains all the context entries of e1." So {a: 1}[a = 1] = [{a: 1}].</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="a">
+                            <value xsi:type="xsd:decimal">1</value>
+                        </component>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54, e1 is not a list and not null and type(FEEL(e2, s')) is boolean): "[e1] if FEEL(e2, s') is true, where s' is the scope s with a special first context containing the context entry ("item", e1) ... Else []." The context itself is also bound to item, so {a: 1}[item.a = 1] = [{a: 1}]. Derived edge case.</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="a">
+                            <value xsi:type="xsd:decimal">1</value>
+                        </component>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54, e1 is not a list and not null and type(FEEL(e2, s')) is boolean): "[e1] if FEEL(e2, s') is true, where s' is the scope s with a special first context containing the context entry ("item", e1) ... Else []." The predicate is false, so 5[item &gt; 10] = [] (empty list, not null).</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54, e1 is not a list and not null and type(FEEL(e2, s')) is boolean): "[e1] if FEEL(e2, s') is true, where s' is the scope s with a special first context containing the context entry ("item", e1) ... Else []." The predicate is false, so "a"[item = "b"] = [].</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54): e1[e2] maps to "e1" when "e1 is not a list and not null and value(e2) =1". So 5[1] = 5 (the value itself, not a list).</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54) defines a numeric index on a non-list only for "value(e2) =1"; DMN 1.6 §10.3.2.15: "Inputs outside of their domain result in a null value". Consistent with §10.3.2.5 "If L does not contain n items, then L[n] is null" applied to [5]. So 5[2] = null.</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54): the non-list filter rows apply only when "e1 is not a list and not null"; DMN 1.6 §10.3.2.15: "Inputs outside of their domain result in a null value". So null[item &gt; 1] = null (null is not wrapped into [null]).</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54): indexing applies when "e1 is a list" or "e1 is not a list and not null and value(e2) =1"; DMN 1.6 §10.3.2.15: "Inputs outside of their domain result in a null value". So null[1] = null.</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.6 §10.3.2.5: "The expression in square brackets can reference a list element using the name item, unless the list element is a context that contains the key "item"", with DMN 1.6 §10.3.2.15 Table 69 (rule 54): "[e1] if FEEL(e2, s') is true ... and if e1 is a context, the special context also contains all the context entries of e1." Here item resolves to the entry value 5, so the result is [{item: 5}]. Derived edge case.</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="item">
+                            <value xsi:type="xsd:decimal">5</value>
+                        </component>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54, e1 is not a list and not null and type(FEEL(e2, s')) is boolean): "[e1] if FEEL(e2, s') is true, where s' is the scope s with a special first context containing the context entry ("item", e1) ... Else []." A boolean is a non-list value; the predicate is item itself (true), so true[item] = [true]. Derived edge case.</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:boolean">true</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.6 §10.3.2.15 Table 69 (rule 54, e1 is not a list and not null and type(FEEL(e2, s')) is boolean): "[e1] if FEEL(e2, s') is true, where s' is the scope s with a special first context containing the context entry ("item", e1) ... Else []." Applies to any non-list type, here a date: the result is [date("2024-01-01")]. Derived edge case.</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:date">2024-01-01</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.6 §10.3.2.9.4: "to singleton list: When the type of the expression is T and the target type is List&lt;T&gt; the expression is converted to a singleton list." A value that is already a list is not converted again, so [5][item &gt; 3] = [5], not [[5]]. Derived edge case.</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">5</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.6 §10.3.2.9.4 "Filter context (10.3.2.5) in which a filter expression is present. The expression to be filtered is subject to implicit conversion to singleton list." The filtered value comes from input data n = 5 (not a literal), so n[item &gt; 3] = [5]. Derived edge case.</description>
+        <inputNode name="n">
+            <value xsi:type="xsd:decimal">5</value>
+        </inputNode>
+        <resultNode name="decision016" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">5</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="026">
+        <description>DMN 1.6 §10.2.1.9 Boxed filter: "The expression in the top part MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed filter with in = 5 and match = item &gt; 3 gives [5].</description>
+        <resultNode name="decision026" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">5</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="027">
+        <description>DMN 1.6 §10.2.1.9 Boxed filter: "The expression in the top part MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed filter with in = "a" and match = item = "a" gives ["a"].</description>
+        <resultNode name="decision027" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">a</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="028">
+        <description>DMN 1.6 §10.2.1.9 Boxed filter: "The expression in the top part MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) With DMN 1.6 §10.3.2.15 Table 69 (rule 54): "[e1] if FEEL(e2, s') is true ... and if e1 is a context, the special context also contains all the context entries of e1." Boxed filter with in = {a: 1} and match = a = 1 gives [{a: 1}].</description>
+        <resultNode name="decision028" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="a">
+                            <value xsi:type="xsd:decimal">1</value>
+                        </component>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="029">
+        <description>DMN 1.6 §10.2.1.9 Boxed filter: "The expression in the top part MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) With Table 69 "Else []": boxed filter with in = 5 and match = item &gt; 10 gives [].</description>
+        <resultNode name="decision029" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="030">
+        <description>DMN 1.6 §10.2.1.9 Boxed filter: "The expression in the top part MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) The in part is input data n = 5, so the boxed filter gives [5]. Derived edge case.</description>
+        <inputNode name="n">
+            <value xsi:type="xsd:decimal">5</value>
+        </inputNode>
+        <resultNode name="decision030" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">5</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="031">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (for): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed for with in = 5 and return = x * 2 gives [10].</description>
+        <resultNode name="decision031" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">10</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="032">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (for): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed for with in = "a" and return = x + "b" gives ["ab"].</description>
+        <resultNode name="decision032" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">ab</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="033">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (every/some): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed some with in = 5 and satisfies = x &gt; 3 gives true.</description>
+        <resultNode name="decision033" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="034">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (every/some): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed every with in = 5 and satisfies = x &gt; 3 gives true.</description>
+        <resultNode name="decision034" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="035">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (every/some): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed some with in = 2 and satisfies = x &gt; 3 gives false.</description>
+        <resultNode name="decision035" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="036">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (every/some): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." (DMN16-94) Boxed every with in = 2 and satisfies = x &gt; 3 gives false.</description>
+        <resultNode name="decision036" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="037">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (for): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." §10.3.2.9.4: "to singleton list: When the type of the expression is T and the target type is List&lt;T&gt; the expression is converted to a singleton list." An in row that is already a list is not wrapped again: boxed for with in = [1, 2] and return = x * 2 gives [2, 4] (two iterations), not one iteration over [[1, 2]]. Derived edge case.</description>
+        <resultNode name="decision037" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">4</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="038">
+        <description>DMN 1.6 §10.2.1.10 Boxed iterator (every/some): "The expression in the in row MUST resolve to a collection including implicit conversion to singleton list as defined in section 10.3.2.9.4." A context is not a list, so in = {a: 5} is treated as [{a: 5}] and x is bound to the context; with Table 50 (rule 46) "false or FEEL(e, s') or ...", x.a &gt; 3 gives true. Derived edge case.</description>
+        <resultNode name="decision038" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

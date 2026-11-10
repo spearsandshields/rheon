@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN17-98 (DMN 1.7 beta 1); drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1702-intersection-function"
+             name="rheon-1702-intersection-function"
+             id="_rheon-1702-intersection-function"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>DMN 1.7 beta 1 built-in function intersection(list...) (DMN17-98), adopted early by rheon on a DMN 1.6 model; results are in no particular order, so expectations are order-independent</description>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>intersection([1,2],[2,3],[2,3,4])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <literalExpression>
+            <text>sort(intersection(["a","b","c"],["a","b"]), function(x, y) x &lt; y)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision003" id="_decision003">
+        <variable name="decision003"/>
+        <literalExpression>
+            <text>count(intersection(["a","b","c"],["a","b"]))</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision004" id="_decision004">
+        <variable name="decision004"/>
+        <literalExpression>
+            <text>intersection([1],[2])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision005" id="_decision005">
+        <variable name="decision005"/>
+        <literalExpression>
+            <text>intersection([1,2,3], null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision006" id="_decision006">
+        <variable name="decision006"/>
+        <literalExpression>
+            <text>intersection(null, [1,2,3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision007" id="_decision007">
+        <variable name="decision007"/>
+        <literalExpression>
+            <text>intersection([1,1,2],[1,1,3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision008" id="_decision008">
+        <variable name="decision008"/>
+        <literalExpression>
+            <text>intersection([1,2],[])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision009" id="_decision009">
+        <variable name="decision009"/>
+        <literalExpression>
+            <text>sort(intersection([3,1,2,4],[4,2,5,1]), function(x, y) x &lt; y)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision010" id="_decision010">
+        <variable name="decision010"/>
+        <literalExpression>
+            <text>intersection(["a"],["A"])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision011" id="_decision011">
+        <variable name="decision011"/>
+        <literalExpression>
+            <text>intersection([1,"1"],["1",true])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision012" id="_decision012">
+        <variable name="decision012"/>
+        <literalExpression>
+            <text>intersection([1.0, 2],[1, 3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision013" id="_decision013">
+        <variable name="decision013"/>
+        <literalExpression>
+            <text>intersection([[1,2],[3]],[[1,2],[4]])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision014" id="_decision014">
+        <variable name="decision014"/>
+        <literalExpression>
+            <text>sort(intersection([3,1,3]), function(x, y) x &lt; y)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision015" id="_decision015">
+        <variable name="decision015"/>
+        <literalExpression>
+            <text>intersection([{a: 1}, {a: 2}], [{a: 1}, {b: 2}])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision016" id="_decision016">
+        <variable name="decision016"/>
+        <literalExpression>
+            <text>intersection([1,2],[2,3],[3,4])</text>
+        </literalExpression>
+    </decision>
+
+</definitions>

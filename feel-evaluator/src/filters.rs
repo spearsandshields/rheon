@@ -1,7 +1,7 @@
 //! # FEEL filter implementation
 
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::{Value, Values};
+use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
 
 pub struct FilterExpressionEvaluator {}
@@ -97,32 +97,11 @@ impl FilterExpressionEvaluator {
           _ => Value::List(filtered_values),
         }
       }
-      v @ Value::Number(_)
-      | v @ Value::Boolean(_)
-      | v @ Value::String(_)
-      | v @ Value::Date(_)
-      | v @ Value::DateTime(_)
-      | v @ Value::Time(_)
-      | v @ Value::DaysAndTimeDuration(_)
-      | v @ Value::YearsAndMonthsDuration(_)
-      | v @ Value::Context(_) => match evaluator(scope) {
-        Value::Boolean(flag) => {
-          if flag {
-            Value::List(vec![v])
-          } else {
-            Value::List(Values::default())
-          }
-        }
-        Value::Number(num) => {
-          if num.is_one() || (-num).is_one() {
-            v
-          } else {
-            value_null!("for singletons, only filter index with value 1 or -1 is accepted")
-          }
-        }
-        _ => value_null!("only number or boolean indexes are allowed in filters"),
-      },
-      other => value_null!("unexpected value type in filter: {}", other.type_of()),
+      // A filter on a non-list value applies to the singleton list containing it (implicit
+      // conversion to singleton list, DMN 1.6 §10.3.2.9.4, DMN16-94), so `item` and the context
+      // entries of a singleton context are in scope like for a list element.
+      Value::Null(_) => value_null!(),
+      v => self.evaluate(scope, Value::List(vec![v]), evaluator),
     }
   }
 }

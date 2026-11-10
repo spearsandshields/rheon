@@ -77,7 +77,7 @@ fn _0012() {
     false,
     &scope!(),
     r#"number("123a56",null,null)"#,
-    r#"[core::number] <FeelNumberError> invalid number literal '123a56'"#,
+    r#"[core::number] not a FEEL numeric literal: 123a56"#,
   );
 }
 
@@ -174,4 +174,14 @@ fn dmn_1_6_single_argument() {
   te_number(false, &scope!(), r#"number(from: "1.1")"#, 11, 1);
   te_number(false, &scope!(), "number(5)", 5, 0);
   te_null(false, &scope!(), "number(null)", "");
+}
+
+#[test]
+fn numeric_literal_grammar() {
+  // the text must be a FEEL numeric literal (grammar rule 35) after separator handling
+  te_null(false, &scope!(), r#"number("+5")"#, "[core::number] not a FEEL numeric literal: +5");
+  te_null(false, &scope!(), r#"number("1.")"#, "[core::number] not a FEEL numeric literal: 1.");
+  te_number(false, &scope!(), r#"number(".5")"#, 5, 1);
+  te_number(false, &scope!(), r#"number("-1.2e3")"#, -1200, 0);
+  te_number(false, &scope!(), r#"number("1.000.000,01", ".", ",")"#, 100000001, 2);
 }

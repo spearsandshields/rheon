@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-93; drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1601-round-single-argument.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>Data Type: Number</label>
+        <label>FEEL Functions: number</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round up(5.5) = 6". Normative example of the new single-parameter round up(n).</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">6</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round down(5.5) = 5". Normative example of the new single-parameter round down(n).</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round half up(5.5) = 6". Normative example of the new single-parameter round half up(n).</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">6</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round half down (5.5) = 5". Normative example of the new single-parameter round half down(n).</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round up(-5.5, 0) = -6"; the single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Derived: round up(-5.5) = -6 (away from zero).</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-6</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round down (-5.5, 0) = -5"; the single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Derived: round down(-5.5) = -5 (toward zero).</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round half up(-5.5, 0) = -6"; the single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Derived: round half up(-5.5) = -6 (tie away from zero).</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-6</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "round half down (-5.5, 0) = -5"; the single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Derived: round half down(-5.5) = -5 (tie toward zero).</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round up(n) "Return n with given scale and rounding mode round up" (cf. "round up(1.121, 2) = 1.13"); single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Edge: non-tie fraction rounds away from zero to 2.</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">2</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round down(n) "Return n with given scale and rounding mode round down" (cf. "round down (1.121, 2) = 1.12"); single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Edge: fraction just below 2 truncates toward zero to 1.</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round half up(n) "rounding mode round half up" (cf. "round half up(1.121, 2) = 1.12"); single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Edge: non-tie below half rounds to nearest, 2.</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">2</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round half down(n) (cf. "round half down (-1.126, 2) = -1.13", non-ties round to nearest); single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"). Edge: non-tie above half rounds to nearest, 3.</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round up(n) returns n with scale 0 (single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0")). Edge: an integer is already at scale 0 and is returned unchanged.</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.6 §10.3.4.5 Table 77: rows "round up(n) / round up(n, scale)" etc. share one description; DMN16-93: "It assumes a scale of 0". Edge: each single-parameter form equals the two-parameter form with scale 0.</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "If at least one of n or scale is null the result is null." round up(null) = null.</description>
+        <resultNode errorResult="true" name="decision015" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "If at least one of n or scale is null the result is null." round down(null) = null.</description>
+        <resultNode errorResult="true" name="decision016" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="017">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "If at least one of n or scale is null the result is null." round half up(null) = null.</description>
+        <resultNode errorResult="true" name="decision017" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="018">
+        <description>DMN 1.6 §10.3.4.5 Table 77: "If at least one of n or scale is null the result is null." round half down(null) = null.</description>
+        <resultNode errorResult="true" name="decision018" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="019">
+        <description>DMN 1.6 §10.3.4.5 Table 77: parameter domain of n is "number"; DMN 1.6 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." (cf. §11.3: round up("5.5", 0) is null in FEEL). round up("5.5") = null.</description>
+        <resultNode errorResult="true" name="decision019" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="020">
+        <description>DMN 1.6 §10.3.4.5 Table 77: parameter domain of n is "number"; DMN 1.6 §10.3.4: "Whenever a parameter is outside its domain, the result of the built-in is null." round half down(true) = null.</description>
+        <resultNode errorResult="true" name="decision020" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="021">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round down(n) truncates toward zero (single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0")); §10.3.2.3.1: "There is no distinction between -0 and 0." Edge: round down(-0.5) = 0.</description>
+        <resultNode name="decision021" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="022">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round half up(n) (single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"); cf. "round half up(5.5) = 6", ties away from zero). Edge: round half up(0.5) = 1.</description>
+        <resultNode name="decision022" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="023">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round half down(n) (single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"); cf. "round half down (5.5) = 5", ties toward zero). Edge: round half down(0.5) = 0.</description>
+        <resultNode name="decision023" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="024">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round up(n) "Return n with given scale and rounding mode round up"; single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"; cf. "round up(5.5) = 6"). Edge: the official TCK 1141 case round up(1234.12) was commented out "pending RTF"; DMN16-93 resolved it, so round up(1234.12) = 1235.</description>
+        <resultNode name="decision024" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1235</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="025">
+        <description>DMN 1.6 §10.3.4.5 Table 77: round half up(n) (single-parameter form uses scale 0 (DMN16-93: "It assumes a scale of 0"); cf. "round half up(-5.5, 0) = -6", negative ties away from zero). Edge: round half up(-0.5) = -1.</description>
+        <resultNode name="decision025" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

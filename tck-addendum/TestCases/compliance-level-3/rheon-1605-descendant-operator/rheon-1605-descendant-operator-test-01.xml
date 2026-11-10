@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-72; drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1605-descendant-operator.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>Data Type: Context</label>
+        <label>FEEL Descendant Expression</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136) (rule 68, normative example): "{ a: { b: { b: 1 } } }...b is evaluated to: [ { b: 1 }, 1 ] because each key contained in the context and all of its nested contexts are returned as a list of associated values".</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="b">
+                            <value xsi:type="xsd:decimal">1</value>
+                        </component>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): the descendant expression returns "a list of associated values"; derived from the normative example: ({ a: { b: { b: 1 } } }...b)[2] = 1.</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "each key contained in the context ... returned as a list of associated values"; derived: a single top-level match still yields a list, { b: 1 }...b = [1].</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "each key contained in the context and all of its nested contexts"; derived from the normative example: the value of a matching entry is itself searched, outer match first: [ { b: { b: 1 } }, { b: 1 }, 1 ].</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="b">
+                            <component name="b">
+                                <value xsi:type="xsd:decimal">1</value>
+                            </component>
+                        </component>
+                    </item>
+                    <item>
+                        <component name="b">
+                            <value xsi:type="xsd:decimal">1</value>
+                        </component>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "access a property name recursively throughout the nested context"; derived: a match three levels deep is found, result ["x"].</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">x</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "each key contained in the context and all of its nested contexts are returned as a list of associated values"; derived: matches in two sibling nested contexts are both returned. The order of sibling matches is not specified (§10.3.2.6: a context is a "partially ordered collection"), so the result is sorted: sort({ a: { b: 1 }, c: { b: 2 } }...b, function(x, y) x &lt; y) = [1, 2].</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "returned as a list of associated values"; derived: a matching value that is a list is one associated value, so it is returned as one item (not flattened), and the non-matching entry a: 1 contributes nothing: { a: 1, c: { b: [3, 4] } }...b = [[3, 4]].</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <list>
+                            <item>
+                                <value xsi:type="xsd:decimal">3</value>
+                            </item>
+                            <item>
+                                <value xsi:type="xsd:decimal">4</value>
+                            </item>
+                        </list>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "each key contained in the context and all of its nested contexts are returned as a list of associated values"; derived: no entry named b anywhere gives the empty list [].</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): applicability "type e is a context"; derived: the empty context is a context with no matching keys, result [].</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <list/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "returned as a list of associated values"; derived: a matching entry whose value is null contributes null, result [null].</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:nil="true"/>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.6 §10.3.1.2 grammar rule 68 "descendant expression = expression , "..." , name" and DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136); derived: the name may contain spaces, result ["x"].</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">x</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): applicability "type e is a context"; §10.3.2.15: "Inputs outside of their domain result in a null value". A string is not a context, so "abc"...b is null.</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): applicability "type e is a context"; §10.3.2.15: "Inputs outside of their domain result in a null value". A boolean is not a context, so true...b is null.</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): applicability "type e is a context"; §10.3.2.15: "Inputs outside of their domain result in a null value". null is not a context, so null...b is null.</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136): "access a property name recursively throughout the nested context" (DMN16-72 use case: deep input data); derived: message...name over typed input data returns both names; sibling order is not specified (§10.3.2.6 "partially ordered collection"), so the result is sorted: sort(message...name, function(x, y) x &lt; y) = ["Ann", "Bob"].</description>
+        <inputNode name="message">
+            <component name="deal">
+                <component name="appraiser">
+                    <component name="name">
+                        <value xsi:type="xsd:string">Ann</value>
+                    </component>
+                </component>
+                <component name="borrower">
+                    <component name="name">
+                        <value xsi:type="xsd:string">Bob</value>
+                    </component>
+                </component>
+            </component>
+        </inputNode>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">Ann</value>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:string">Bob</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.6 §10.3.1.4: "A FEEL expression consists of a sequence of tokens, possibly separated with white space" and "..." is a literal terminal symbol of grammar rule 68 "descendant expression = expression , "..." , name"; derived: white space around "..." does not change the result, { b: 1 } ... b = [1].</description>
+        <resultNode name="decision016" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:decimal">1</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="017">
+        <description>DMN 1.6 §10.3.2.6: "In the syntax, keys can be either names or strings. Keys are mapped to strings in the semantic domain", with the §10.3.2.15 descendant-expression mapping table (after Table 68, p.136), e...name mapped to e..."name"; derived: string keys match the name, outer match first as in the normative example: { "b": { "b": 2 } }...b = [ { b: 2 }, 2 ].</description>
+        <resultNode name="decision017" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <component name="b">
+                            <value xsi:type="xsd:decimal">2</value>
+                        </component>
+                    </item>
+                    <item>
+                        <value xsi:type="xsd:decimal">2</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="018">
+        <description>DMN 1.6 §10.3.2.15 descendant-expression mapping table (after Table 68, p.136) with Table 69 (filter on a list of contexts) and §10.3.1.5 (path over a list); derived DMN16-72 use case: find a party at any depth, filter it by role, then take its name: ({ deal: { party: { role: "Appraiser", name: "Ann" } } }...party)[role = "Appraiser"].name = ["Ann"].</description>
+        <resultNode name="decision018" type="decision">
+            <expected>
+                <list>
+                    <item>
+                        <value xsi:type="xsd:string">Ann</value>
+                    </item>
+                </list>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

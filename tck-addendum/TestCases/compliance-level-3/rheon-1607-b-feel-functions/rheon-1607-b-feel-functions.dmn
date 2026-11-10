@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-91 (B-FEEL), DMN16-71 (string coercion, merged into B-FEEL), DMN16-208 (single-parameter number()); drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1607-b-feel-functions"
+             name="rheon-1607-b-feel-functions"
+             id="_rheon-1607-b-feel-functions"
+             expressionLanguage="https://www.omg.org/spec/DMN/20240513/B-FEEL/"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/">
+    <description>B-FEEL (DMN 1.6 chapter 11): built-in functions return type-specific defaults instead of null (boolean, number, string, temporal, duration, collection, range)</description>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>matches("bad pattern", "[0-9")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <literalExpression>
+            <text>before(date("2021-01-01"), null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision003" id="_decision003">
+        <variable name="decision003"/>
+        <literalExpression>
+            <text>all(true, "x", true)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision004" id="_decision004">
+        <variable name="decision004"/>
+        <literalExpression>
+            <text>any(null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision005" id="_decision005">
+        <variable name="decision005"/>
+        <literalExpression>
+            <text>all(0)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision006" id="_decision006">
+        <variable name="decision006"/>
+        <literalExpression>
+            <text>any(0)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision007" id="_decision007">
+        <variable name="decision007"/>
+        <literalExpression>
+            <text>all([true, null])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision008" id="_decision008">
+        <variable name="decision008"/>
+        <literalExpression>
+            <text>all([false, null, true])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision009" id="_decision009">
+        <variable name="decision009"/>
+        <literalExpression>
+            <text>any([false, null, true])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision010" id="_decision010">
+        <variable name="decision010"/>
+        <literalExpression>
+            <text>starts with(1, "a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision011" id="_decision011">
+        <variable name="decision011"/>
+        <literalExpression>
+            <text>before(1, "a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision012" id="_decision012">
+        <variable name="decision012"/>
+        <literalExpression>
+            <text>decimal("a", 0)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision013" id="_decision013">
+        <variable name="decision013"/>
+        <literalExpression>
+            <text>round up("5.5", 0)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision014" id="_decision014">
+        <variable name="decision014"/>
+        <literalExpression>
+            <text>string length(22)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision015" id="_decision015">
+        <variable name="decision015"/>
+        <literalExpression>
+            <text>day of year("a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision016" id="_decision016">
+        <variable name="decision016"/>
+        <literalExpression>
+            <text>count([1, null, 3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision017" id="_decision017">
+        <variable name="decision017"/>
+        <literalExpression>
+            <text>sum([1, null, 3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision018" id="_decision018">
+        <variable name="decision018"/>
+        <literalExpression>
+            <text>sum([1, "1", 3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision019" id="_decision019">
+        <variable name="decision019"/>
+        <literalExpression>
+            <text>sum([])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision020" id="_decision020">
+        <variable name="decision020"/>
+        <literalExpression>
+            <text>mean(["a"])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision021" id="_decision021">
+        <variable name="decision021"/>
+        <literalExpression>
+            <text>mean([1, "a", 3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision022" id="_decision022">
+        <variable name="decision022"/>
+        <literalExpression>
+            <text>count([1, "a", 3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision023" id="_decision023">
+        <variable name="decision023"/>
+        <literalExpression>
+            <text>sum(1, "a", 2)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision024" id="_decision024">
+        <variable name="decision024"/>
+        <literalExpression>
+            <text>product([2, "a", 4])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision025" id="_decision025">
+        <variable name="decision025"/>
+        <literalExpression>
+            <text>product([])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision026" id="_decision026">
+        <variable name="decision026"/>
+        <literalExpression>
+            <text>median([8, 2, "x", 5, 3, 4])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision027" id="_decision027">
+        <variable name="decision027"/>
+        <literalExpression>
+            <text>median([])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision028" id="_decision028">
+        <variable name="decision028"/>
+        <literalExpression>
+            <text>stddev([1, "x", 2, 3])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision029" id="_decision029">
+        <variable name="decision029"/>
+        <literalExpression>
+            <text>stddev([47])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision030" id="_decision030">
+        <variable name="decision030"/>
+        <literalExpression>
+            <text>mean([])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision031" id="_decision031">
+        <variable name="decision031"/>
+        <literalExpression>
+            <text>number("abc")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision032" id="_decision032">
+        <variable name="decision032"/>
+        <literalExpression>
+            <text>floor("x")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision033" id="_decision033">
+        <variable name="decision033"/>
+        <literalExpression>
+            <text>string length(null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision034" id="_decision034">
+        <variable name="decision034"/>
+        <literalExpression>
+            <text>lower case(12)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision035" id="_decision035">
+        <variable name="decision035"/>
+        <literalExpression>
+            <text>string(null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision036" id="_decision036">
+        <variable name="decision036"/>
+        <literalExpression>
+            <text>day of week("a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision037" id="_decision037">
+        <variable name="decision037"/>
+        <literalExpression>
+            <text>substring("a", "z")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision038" id="_decision038">
+        <variable name="decision038"/>
+        <literalExpression>
+            <text>upper case(null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision039" id="_decision039">
+        <variable name="decision039"/>
+        <literalExpression>
+            <text>month of year("x")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision040" id="_decision040">
+        <variable name="decision040"/>
+        <literalExpression>
+            <text>replace("abc", "[", "x")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision041" id="_decision041">
+        <variable name="decision041"/>
+        <literalExpression>
+            <text>substring before(1, "a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision042" id="_decision042">
+        <variable name="decision042"/>
+        <literalExpression>
+            <text>time("a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision043" id="_decision043">
+        <variable name="decision043"/>
+        <literalExpression>
+            <text>date(null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision044" id="_decision044">
+        <variable name="decision044"/>
+        <literalExpression>
+            <text>date and time("x")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision045" id="_decision045">
+        <variable name="decision045"/>
+        <literalExpression>
+            <text>date(2021, 2, 30)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision046" id="_decision046">
+        <variable name="decision046"/>
+        <literalExpression>
+            <text>time(25, 0, 0)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision047" id="_decision047">
+        <variable name="decision047"/>
+        <literalExpression>
+            <text>date and time(date("x"), time("y"))</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision048" id="_decision048">
+        <variable name="decision048"/>
+        <literalExpression>
+            <text>duration("a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision049" id="_decision049">
+        <variable name="decision049"/>
+        <literalExpression>
+            <text>years and months duration(null, null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision050" id="_decision050">
+        <variable name="decision050"/>
+        <literalExpression>
+            <text>years and months duration(date("2021-01-01"), "x")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision051" id="_decision051">
+        <variable name="decision051"/>
+        <literalExpression>
+            <text>duration(null)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision052" id="_decision052">
+        <variable name="decision052"/>
+        <literalExpression>
+            <text>split("abc", 22)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision053" id="_decision053">
+        <variable name="decision053"/>
+        <literalExpression>
+            <text>mode([null, null, null, 1, 1, 2])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision054" id="_decision054">
+        <variable name="decision054"/>
+        <literalExpression>
+            <text>mode([1, "a", "a", 2, 2])</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision055" id="_decision055">
+        <variable name="decision055"/>
+        <literalExpression>
+            <text>sublist([1, 2, 3], "a")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision056" id="_decision056">
+        <variable name="decision056"/>
+        <literalExpression>
+            <text>remove([1, 2, 3], "x")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision057" id="_decision057">
+        <variable name="decision057"/>
+        <literalExpression>
+            <text>split(null, ",")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision058" id="_decision058">
+        <variable name="decision058"/>
+        <literalExpression>
+            <text>insert before([1, 2], "x", 3)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision059" id="_decision059">
+        <variable name="decision059"/>
+        <literalExpression>
+            <text>range("x") = range("(0..0)")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision060" id="_decision060">
+        <variable name="decision060"/>
+        <literalExpression>
+            <text>range(null) = range("(0..0)")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision061" id="_decision061">
+        <variable name="decision061"/>
+        <literalExpression>
+            <text>range("x").start</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision062" id="_decision062">
+        <variable name="decision062"/>
+        <literalExpression>
+            <text>range("x").start included</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision063" id="_decision063">
+        <variable name="decision063"/>
+        <literalExpression>
+            <text>0 in range("x")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision064" id="_decision064">
+        <variable name="decision064"/>
+        <decisionTable hitPolicy="COLLECT" aggregation="SUM">
+            <input id="_decision064_i1">
+                <inputExpression>
+                    <text>1</text>
+                </inputExpression>
+            </input>
+            <output id="_decision064_o1"/>
+            <rule id="_decision064_r1">
+                <inputEntry><text>-</text></inputEntry>
+                <outputEntry><text>1</text></outputEntry>
+            </rule>
+            <rule id="_decision064_r2">
+                <inputEntry><text>-</text></inputEntry>
+                <outputEntry><text>null</text></outputEntry>
+            </rule>
+            <rule id="_decision064_r3">
+                <inputEntry><text>-</text></inputEntry>
+                <outputEntry><text>"x"</text></outputEntry>
+            </rule>
+            <rule id="_decision064_r4">
+                <inputEntry><text>-</text></inputEntry>
+                <outputEntry><text>3</text></outputEntry>
+            </rule>
+        </decisionTable>
+    </decision>
+
+    <decision name="decision065" id="_decision065">
+        <variable name="decision065"/>
+        <literalExpression>
+            <text>sqrt(-1)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision066" id="_decision066">
+        <variable name="decision066"/>
+        <literalExpression>
+            <text>modulo(10, 0)</text>
+        </literalExpression>
+    </decision>
+
+</definitions>

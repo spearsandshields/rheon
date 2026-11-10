@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-91 (B-FEEL), DMN16-71 (string coercion, merged into B-FEEL), DMN16-208 (single-parameter number()); drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1606-b-feel-operators.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>B-FEEL</label>
+        <label>Data Type: Boolean</label>
+        <label>FEEL Logical Operators</label>
+        <label>FEEL Comparison Operators</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §11.2 example table: "a" = 1 -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §11.2 example table: "a" &lt; 1 -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.6 §11.2 example table: "a" &lt;= null -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.6 §11.2 example table: "a" &gt; 1 -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.6 §11.2 example table: null &gt;= 1 -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.6 §11.2 example table: not("a") -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.6 §11.2 example table: true and "x" -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.6 §11.2 example table: false or "x" -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.6 §11.2 example table: "a" in [1..100] -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.6 §11.2 example table: null between 1 and 100 -&gt; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.6 §11.2 example table: "a" != 1 -&gt; FEEL null, B-FEEL true. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.6 §11.2 (derived): B-FEEL and never returns null. FEEL Table 51 row true/otherwise gives null here; B-FEEL gives false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.6 §11.2 (derived): B-FEEL or never returns null. FEEL Table 51 row false/otherwise gives null here; B-FEEL gives false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.6 §11.2 (derived): not() never returns null in B-FEEL. FEEL Table 52 'otherwise' gives null here; B-FEEL gives false (same as the spec's not("a")). DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.6 §11.2 (derived): operand order swapped vs the spec's true and "x". FEEL Table 51 row otherwise/true gives null; B-FEEL gives false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.6 §11.1 "Anything not covered in this chapter has the behavior described for FEEL" (derived): FEEL Table 51 row otherwise/true already gives true (no error), so B-FEEL also gives true; B-FEEL must not force false where FEEL is non-null.</description>
+        <resultNode name="decision016" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="017">
+        <description>DMN 1.6 §11.1 (derived): FEEL Table 51 row false/otherwise already gives false, B-FEEL keeps false. Same result in FEEL and B-FEEL.</description>
+        <resultNode name="decision017" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="018">
+        <description>DMN 1.6 §11.2 (derived): in with a list of positive unary tests; in FEEL "a" = 1 and "a" = 2 are null, so the result is null; B-FEEL gives false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision018" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="019">
+        <description>DMN 1.6 §11.2 (derived): between with an incompatible (string) operand; FEEL null, B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision019" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="020">
+        <description>DMN 1.6 §11.2 (derived): comparison of date with number; FEEL null (Table 53 requires same kind/datatype), B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision020" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="021">
+        <description>DMN 1.6 §11.2 (derived): != with incompatible types; FEEL null, B-FEEL true. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision021" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="022">
+        <description>DMN 1.6 §11.2 (derived): != between boolean and string; FEEL null (not(null)), B-FEEL true. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision022" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="023">
+        <description>DMN 1.6 §11.1 "null is used only to represent missing data" + Table 50 rule 49.a "null = e: FEEL(e) is null" (derived): FEEL already gives true, B-FEEL keeps true.</description>
+        <resultNode name="decision023" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="024">
+        <description>DMN 1.6 §11.1 + Table 50 rule 49.a "e = null: FEEL(e) is null" (derived): FEEL already gives false, B-FEEL keeps false.</description>
+        <resultNode name="decision024" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="025">
+        <description>DMN 1.6 §11.2 (derived, two-valued logic): not("a") is false in B-FEEL (spec example), so not(not("a")) is not(false) = true. FEEL gives null. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision025" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="026">
+        <description>DMN 1.6 §11.2 (derived): = between a list and a string; FEEL null (Table 53 requires the same kind/datatype), B-FEEL false. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision026" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">false</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="027">
+        <description>DMN 1.6 §11.2 (derived): != between a context and a number; FEEL null (not(null)), B-FEEL true. DMN 1.6 §11.2 "In B-FEEL boolean operators ( =, &lt;=, &lt;, &gt;, &gt;=, not(), and, or, in, between ) always return a true or false result (never null)" / "an incompatible type in a boolean expression is considered false with the exception of the not equal (!=) where it is considered true."</description>
+        <resultNode name="decision027" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

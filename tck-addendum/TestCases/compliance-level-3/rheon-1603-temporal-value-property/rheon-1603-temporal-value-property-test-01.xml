@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-11; drop when the official TCK covers this -->
+<testCases xmlns="http://www.omg.org/spec/DMN/20160719/testcase"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation=""
+           xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <modelName>rheon-1603-temporal-value-property.dmn</modelName>
+    <labels>
+        <label>Compliance Level 3</label>
+        <label>FEEL properties</label>
+        <label>Data Type: Date</label>
+        <label>Data Type: Date and Time</label>
+        <label>Data Type: Time</label>
+        <label>Data Type: Days and Time Duration</label>
+        <label>Data Type: Years and Months Duration</label>
+        <label>Data Type: Number</label>
+    </labels>
+
+    <testCase id="001">
+        <description>DMN 1.6 §10.3.2.3.4: "A time t can also be represented as the number of seconds since midnight. We write this as valuet(t). E.g., valuet(01:01:01) = 3661." Table 67 value row: "The value returned by the value function corresponding to the type". Normative example via the time() function.</description>
+        <resultNode name="decision001" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3661</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="002">
+        <description>DMN 1.6 §10.3.2.3.4: "valuet(01:01:01) = 3661." Same normative example using the at-literal form (Table 66: time valid names include "value").</description>
+        <resultNode name="decision002" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3661</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="003">
+        <description>DMN 1.6 §10.3.2.3.4: valuet(t) is "the number of seconds since midnight"; midnight itself is 0 seconds since midnight. Derived edge case (lower bound of the range [0..86400]).</description>
+        <resultNode name="decision003" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="004">
+        <description>DMN 1.6 §10.3.2.3.4: valuet(t) is "the number of seconds since midnight", "its range is restricted to [0..86400]". 23*3600+59*60+59 = 86399. Derived edge case (last whole second of the day).</description>
+        <resultNode name="decision004" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">86399</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="005">
+        <description>DMN 1.6 §10.3.2.3.4: valuet(t) is "the number of seconds since midnight"; Table 67: value has type number and second is "a decimal in the interval [0..60)". 12*3600 + 0.5 = 43200.5. Derived edge case (fractional seconds are kept).</description>
+        <resultNode name="decision005" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">43200.5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="006">
+        <description>DMN 1.6 §10.3.2.3.4: "If a time offset is specified, including time offset = 00:00, the time value has a UTC form"; valuet(t) is "the number of seconds since midnight". With offset Z local midnight and UTC midnight coincide, so 10*3600 = 36000 under any reading. Derived edge case.</description>
+        <resultNode name="decision006" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">36000</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="007">
+        <description>DMN 1.6 §10.3.2.3.4: valuet(t) is "the number of seconds since midnight". Two times with the same offset one hour apart differ by 3600 seconds whether the offset is applied before counting or not. Derived edge case (offset-independent check on zoned times).</description>
+        <resultNode name="decision007" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3600</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="008">
+        <description>DMN 1.6 Table 58 (time + days and time duration): "valuet-1(valuet(e1) +/- valuedtd(e2))"; §10.3.2.3.4 Note: "valuet-1(90000) will also return T01:00:00". So the sum is 01:00:00 and its value is 3600 (range "restricted to [0..86400]").</description>
+        <resultNode name="decision008" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">3600</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="009">
+        <description>DMN 1.6 Table 58 (time - days and time duration): "valuet-1(valuet(e1) +/- valuedtd(e2))"; §10.3.2.3.4 Note: "valuet-1(-3600) will return the time of day that is 23:00:00". 23*3600 = 82800.</description>
+        <resultNode name="decision009" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">82800</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="010">
+        <description>DMN 1.6 §10.3.2.3.7: "The value of a days and time duration can be expressed as a number of seconds. E.g., valuedtd(P1DT1H) = 90000." Normative example.</description>
+        <resultNode name="decision010" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">90000</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="011">
+        <description>DMN 1.6 §10.3.2.3.7: "FEEL(duration("P0DT25H")) = P1DT1H" and "valuedtd(P1DT1H) = 90000". Normative examples combined: normalization does not change the value.</description>
+        <resultNode name="decision011" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">90000</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="012">
+        <description>DMN 1.6 §10.3.2.3.7: "The valuedtd function is one-to-one and so it has an inverse function valuedtd-1. E.g., valuedtd-1(90000) = P1DT1H." PT90000S normalizes to P1DT1H, whose value is 90000.</description>
+        <resultNode name="decision012" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">90000</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="013">
+        <description>DMN 1.6 §10.3.2.3.7: "The value of a days and time duration can be expressed as a number of seconds." A zero duration is 0 seconds. Derived edge case.</description>
+        <resultNode name="decision013" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="014">
+        <description>DMN 1.6 §10.3.2.3.7: value is "a number of seconds" and "The valuedtd function is one-to-one"; Table 58 builds negative durations as valuedtd-1 of a negative difference, so -PT1H maps to -3600. Derived edge case (negative duration).</description>
+        <resultNode name="decision014" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-3600</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="015">
+        <description>DMN 1.6 Table 58 (time - time): "Subtraction is defined as valuedtd-1(valuet(e1)-valuet(e2))". valuet(09:00:00)-valuet(10:00:00) = 32400-36000 = -3600, so the value of the resulting duration is -3600.</description>
+        <resultNode name="decision015" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-3600</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="016">
+        <description>DMN 1.6 §10.3.2.3.7: value is "a number of seconds"; Table 67: seconds is "a decimal in the interval [0..60)". PT1.5S is 1.5 seconds. Derived edge case (fractional seconds).</description>
+        <resultNode name="decision016" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1.5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="017">
+        <description>DMN 1.6 Table 58 (days and time duration + days and time duration): "valuedtd-1(valuedtd(e1) +/- valuedtd(e2))"; §10.3.2.3.7 "valuedtd(P1DT1H) = 90000". 90000 + 1 = 90001.</description>
+        <resultNode name="decision017" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">90001</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="018">
+        <description>DMN 1.6 §10.3.2.3.7: "The value of a days and time duration can be expressed as a number of seconds." One day is 86400 seconds (cf. "valuedtd(P1DT1H) = 90000" = 86400 + 3600).</description>
+        <resultNode name="decision018" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">86400</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="019">
+        <description>DMN 1.6 §10.3.2.3.8: "The value of a years and months duration can be expressed as a number of months. E.g., valueymd(P1Y1M) = 13." Normative example.</description>
+        <resultNode name="decision019" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">13</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="020">
+        <description>DMN 1.6 §10.3.2.3.8: "FEEL(duration("P0Y13M")) = P1Y1M" and "valueymd(P1Y1M) = 13"; "E.g., valueymd-1(13) = P1Y1M". Normative examples combined.</description>
+        <resultNode name="decision020" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">13</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="021">
+        <description>DMN 1.6 §10.3.2.3.8: "The value of a years and months duration can be expressed as a number of months." One year is 12 months. Derived edge case.</description>
+        <resultNode name="decision021" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">12</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="022">
+        <description>DMN 1.6 §10.3.2.3.8: value is "a number of months" and "The valueymd function is one-to-one"; Table 58 produces negative years and months durations as valueymd-1 of a negative difference. Derived edge case (negative duration).</description>
+        <resultNode name="decision022" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-13</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="023">
+        <description>DMN 1.6 Table 58 (years and months duration - years and months duration): "valueymd-1(valueymd(e1) +/- valueymd(e2))". 12 - 13 = -1.</description>
+        <resultNode name="decision023" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="024">
+        <description>DMN 1.6 §10.3.2.3.8: "The value of a years and months duration can be expressed as a number of months." A zero years and months duration is 0 months. Derived edge case.</description>
+        <resultNode name="decision024" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="025">
+        <description>DMN 1.6 §10.3.2.3.6: "A date and time d that has a UTC form can be represented as a number of seconds since a reference date and time (called the epoch). We write valuedt(d) to represent the number of seconds between d and the epoch." Values one second apart differ by 1, whatever the epoch.</description>
+        <resultNode name="decision025" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="026">
+        <description>DMN 1.6 §10.3.2.3.6: "If there is an associated time offset, including 00:00, the date-time value has a UTC form"; valuedt(d) is "the number of seconds between d and the epoch". 12:00+02:00 and 10:00Z are the same instant, so their values are equal.</description>
+        <resultNode name="decision026" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="027">
+        <description>DMN 1.6 §10.3.2.3.6: "When the time zone is specified, e.g., using the IANA tz form (see 10.3.4.1), the date-time value may be converted to a UTC form using the time zone rules for that location". Europe/Paris is UTC+02:00 on 2018-07-01 (summer time), so both values are equal.</description>
+        <resultNode name="decision027" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="028">
+        <description>DMN 1.6 Table 58 (date and time - date and time): "Subtraction is defined as valuedtd-1(valuedt(e1)-valuedt(e2))"; §10.3.2.3.7 value is "a number of seconds". The difference is P1D = 86400 seconds.</description>
+        <resultNode name="decision028" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">86400</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="029">
+        <description>DMN 1.6 §10.3.2.3.6: valuedt(d) is "the number of seconds between d and the epoch"; §11.5 names "January 1st of year 1970 (1970-01-01T00:00:00+00:00) value (epoch)". The epoch itself has value 0.</description>
+        <resultNode name="decision029" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="030">
+        <description>DMN 1.6 §10.3.2.3.6: an offset gives the value "a UTC form"; valuedt(d) is "the number of seconds between d and the epoch"; §11.5 epoch "1970-01-01T00:00:00+00:00". 02:00+02:00 is the epoch instant, so the value is 0.</description>
+        <resultNode name="decision030" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="031">
+        <description>DMN 1.6 §10.3.2.3.6: valuedt(d) is "the number of seconds between d and the epoch"; §11.5 epoch "1970-01-01T00:00:00+00:00". 17532 days * 86400 = 1514764800.</description>
+        <resultNode name="decision031" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1514764800</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="032">
+        <description>DMN 1.6 §10.3.2.3.6: valuedt(d) is "the number of seconds between d and the epoch" and "The valuedt function is one-to-one"; §11.5 epoch "1970-01-01T00:00:00+00:00". One second before the epoch is -1. Derived edge case (signed value before the epoch).</description>
+        <resultNode name="decision032" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">-1</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="033">
+        <description>DMN 1.6 §10.3.2.3.5: a date "is considered to be equivalent to a date time value in which the time of day is UTC midnight (00:00:00)"; Tables 55/58: "valuedt is defined in 10.3.2.3.5"; §11.5 epoch "1970-01-01T00:00:00+00:00". So the value of date 1970-01-01 is 0.</description>
+        <resultNode name="decision033" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">0</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="034">
+        <description>DMN 1.6 §10.3.2.3.5: a date "is considered to be equivalent to a date time value in which the time of day is UTC midnight (00:00:00)"; Table 58 (date rows): "implicitly converted into a date and time with time of day of UTC midnight"; §11.5 epoch "1970-01-01T00:00:00+00:00". Same as 2018-01-01T00:00:00Z.</description>
+        <resultNode name="decision034" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">1514764800</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="035">
+        <description>DMN 1.6 §10.3.2.3.5: a date is "equivalent to a date time value in which the time of day is UTC midnight (00:00:00)"; §10.3.2.3.6 valuedt counts seconds. Consecutive dates differ by 86400 seconds, whatever the epoch.</description>
+        <resultNode name="decision035" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">86400</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="036">
+        <description>DMN 1.6 §10.3.2.3.5: "it is considered to be equivalent to a date time value in which the time of day is UTC midnight (00:00:00)". The value of a date equals the value of the date and time at UTC midnight that day, whatever the epoch.</description>
+        <resultNode name="decision036" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="037">
+        <description>DMN 1.6 §10.3.2.3.5: a date is treated as "a date time value in which the time of day is UTC midnight (00:00:00)"; §10.3.2.3.6 valuedt is "the number of seconds". 10:00Z is 36000 seconds after UTC midnight.</description>
+        <resultNode name="decision037" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">36000</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="038">
+        <description>DMN 1.6 Table 67: the value property has "type(name)" number. DMN16-11 resolution: "Return type of the value if always a number" [sic].</description>
+        <resultNode name="decision038" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="039">
+        <description>DMN 1.6 Table 65: "e.name" maps to "e."name"" when "type(e) is a context". The new temporal property does not change context entry access. Derived edge case.</description>
+        <resultNode name="decision039" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">5</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="040">
+        <description>DMN 1.6 Table 65: context access "e."name"" returns the entry, then the temporal property (Table 66/67) applies: "valuedtd" of P1D is 86400 seconds (§10.3.2.3.7). Derived edge case (context entry named value holding a duration).</description>
+        <resultNode name="decision040" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">86400</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="041">
+        <description>DMN 1.6 Table 65: e.name is only defined when "type(e) is a context" or "type(e) is a date/time/duration"; null is neither, so the result is null (as in TCK 0057-feel-context null.b).</description>
+        <resultNode errorResult="true" name="decision041" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="042">
+        <description>DMN 1.6 Table 65: e.name is only defined when "type(e) is a context" or "type(e) is a date/time/duration"; a string is neither, so the result is null.</description>
+        <resultNode errorResult="true" name="decision042" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="043">
+        <description>DMN 1.6 Table 66: for range the valid names are "start, end, start included, end included"; "value" is not among them, so the result is null.</description>
+        <resultNode errorResult="true" name="decision043" type="decision">
+            <expected>
+                <value xsi:nil="true"/>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="044">
+        <description>DMN 1.6 Table 73: "years and months duration (date("2011-12-22"), date("2013-08-24") ) = duration("P1Y8M")"; §10.3.2.3.8: "The value of a years and months duration can be expressed as a number of months." 1*12 + 8 = 20. Normative example combined with the value property.</description>
+        <resultNode name="decision044" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">20</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="045">
+        <description>DMN 1.6 Table 73: "date and time("2012-12-24T23:59:00") - date and time("2012-12-22T03:45:00") = duration("P2DT20H14M")"; §10.3.2.3.7: "The value of a days and time duration can be expressed as a number of seconds." 2*86400 + 20*3600 + 14*60 = 245640. Normative example combined with the value property.</description>
+        <resultNode name="decision045" type="decision">
+            <expected>
+                <value xsi:type="xsd:decimal">245640</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+    <testCase id="046">
+        <description>DMN 1.6 §10.3.2.3.5: a date "is considered to be equivalent to a date time value in which the time of day is UTC midnight (00:00:00)"; §10.3.2.3.6: "If there is an associated time offset, including 00:00, the date-time value has a UTC form". 02:00+02:00 is 00:00 UTC, so the date counts from UTC midnight, not local midnight. The result does not depend on the epoch.</description>
+        <resultNode name="decision046" type="decision">
+            <expected>
+                <value xsi:type="xsd:boolean">true</value>
+            </expected>
+        </resultNode>
+    </testCase>
+
+</testCases>

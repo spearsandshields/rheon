@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-72; drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1605-descendant-operator"
+             name="rheon-1605-descendant-operator"
+             id="_rheon-1605-descendant-operator"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>FEEL descendant expression 'e...name' (grammar rule 68)</description>
+
+    <itemDefinition name="tParty">
+        <itemComponent name="name" id="_tParty_name"><typeRef>string</typeRef></itemComponent>
+    </itemDefinition>
+
+    <itemDefinition name="tDeal">
+        <itemComponent name="appraiser" id="_tDeal_appraiser"><typeRef>tParty</typeRef></itemComponent>
+        <itemComponent name="borrower" id="_tDeal_borrower"><typeRef>tParty</typeRef></itemComponent>
+    </itemDefinition>
+
+    <itemDefinition name="tMessage">
+        <itemComponent name="deal" id="_tMessage_deal"><typeRef>tDeal</typeRef></itemComponent>
+    </itemDefinition>
+
+    <inputData name="message" id="_message">
+        <variable name="message" typeRef="tMessage"/>
+    </inputData>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>{ a: { b: { b: 1 } } }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <literalExpression>
+            <text>({ a: { b: { b: 1 } } }...b)[2]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision003" id="_decision003">
+        <variable name="decision003"/>
+        <literalExpression>
+            <text>{ b: 1 }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision004" id="_decision004">
+        <variable name="decision004"/>
+        <literalExpression>
+            <text>{ b: { b: { b: 1 } } }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision005" id="_decision005">
+        <variable name="decision005"/>
+        <literalExpression>
+            <text>{ a: { c: { d: { b: "x" } } } }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision006" id="_decision006">
+        <variable name="decision006"/>
+        <literalExpression>
+            <text>sort({ a: { b: 1 }, c: { b: 2 } }...b, function(x, y) x &lt; y)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision007" id="_decision007">
+        <variable name="decision007"/>
+        <literalExpression>
+            <text>{ a: 1, c: { b: [3, 4] } }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision008" id="_decision008">
+        <variable name="decision008"/>
+        <literalExpression>
+            <text>{ a: 1, c: { d: 2 } }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision009" id="_decision009">
+        <variable name="decision009"/>
+        <literalExpression>
+            <text>{}...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision010" id="_decision010">
+        <variable name="decision010"/>
+        <literalExpression>
+            <text>{ a: { b: null } }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision011" id="_decision011">
+        <variable name="decision011"/>
+        <literalExpression>
+            <text>{ a: { first name: "x" } }...first name</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision012" id="_decision012">
+        <variable name="decision012"/>
+        <literalExpression>
+            <text>"abc"...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision013" id="_decision013">
+        <variable name="decision013"/>
+        <literalExpression>
+            <text>true...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision014" id="_decision014">
+        <variable name="decision014"/>
+        <literalExpression>
+            <text>null...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision015" id="_decision015">
+        <variable name="decision015"/>
+        <informationRequirement id="_ir_message">
+            <requiredInput href="#_message"/>
+        </informationRequirement>
+        <literalExpression>
+            <text>sort(message...name, function(x, y) x &lt; y)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision016" id="_decision016">
+        <variable name="decision016"/>
+        <literalExpression>
+            <text>{ b: 1 } ... b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision017" id="_decision017">
+        <variable name="decision017"/>
+        <literalExpression>
+            <text>{ "b": { "b": 2 } }...b</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision018" id="_decision018">
+        <variable name="decision018"/>
+        <literalExpression>
+            <text>({ deal: { party: { role: "Appraiser", name: "Ann" } } }...party)[role = "Appraiser"].name</text>
+        </literalExpression>
+    </decision>
+
+</definitions>

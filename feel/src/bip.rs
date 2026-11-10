@@ -19,6 +19,7 @@ const BIP_SECOND: &str = "second";
 const BIP_SECONDS: &str = "seconds";
 const BIP_TIME_OFFSET: &str = "time offset";
 const BIP_TIMEZONE: &str = "timezone";
+const BIP_VALUE: &str = "value";
 
 /// Built-in property enumeration.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,6 +43,8 @@ pub enum Bip {
   Seconds,
   TimeOffset,
   Timezone,
+  /// `value` of temporal values (DMN 1.6, DMN16-11).
+  Value,
   Unknown(String),
 }
 
@@ -68,6 +71,7 @@ impl Bip {
       BIP_SECONDS => Self::Seconds,
       BIP_TIME_OFFSET => Self::TimeOffset,
       BIP_TIMEZONE => Self::Timezone,
+      BIP_VALUE => Self::Value,
       other => Self::Unknown(other.to_string()),
     }
   }
@@ -98,6 +102,7 @@ impl std::fmt::Display for Bip {
         Bip::Seconds => BIP_SECONDS,
         Bip::TimeOffset => BIP_TIME_OFFSET,
         Bip::Timezone => BIP_TIMEZONE,
+        Bip::Value => BIP_VALUE,
         Bip::Unknown(property) => property,
       }
     )
@@ -127,5 +132,6 @@ pub fn is_built_in_property_name(name: impl AsRef<str>) -> bool {
       | BIP_SECONDS
       | BIP_TIME_OFFSET
       | BIP_TIMEZONE
+      | BIP_VALUE
   )
 }

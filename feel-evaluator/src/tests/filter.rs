@@ -520,7 +520,7 @@ fn _0070() {
     false,
     &scope!(),
     r#" @"2023-02-07"[2] "#,
-    "for singletons, only filter index with value 1 or -1 is accepted",
+    "index in filter is out of range [1..1], actual index is 2",
   );
 }
 
@@ -531,7 +531,8 @@ fn _0071() {
 
 #[test]
 fn _0072() {
-  te_null(false, &scope!(), r#" (function() 1)[1] "#, "unexpected value type in filter: function<>->Any");
+  // any non-list value is filtered as a singleton list, a function value included (DMN16-94)
+  te_be_value(false, &scope!(), r#" count((function() 1)[true]) "#, "1");
 }
 
 #[test]
@@ -552,4 +553,17 @@ fn _0075() {
 #[test]
 fn _0076() {
   te_null(false, &scope!(), r#"[1,2,3,4,5]["not a boolean"]"#, "only number or boolean indexes are allowed in filters");
+}
+
+#[test]
+fn dmn_1_6_singleton_list_filter() {
+  // DMN 1.6 §10.3.2.9.4 (DMN16-94): a filter on a non-list value filters the singleton list.
+  te_be_value(false, &scope!(), "5[item > 3]", "[5]");
+  te_be_value(false, &scope!(), "5[item > 6]", "[]");
+  te_be_value(false, &scope!(), r#""a"[item = "a"]"#, r#"["a"]"#);
+  te_be_value(false, &scope!(), "{a: 1}[a = 1]", r#"[{a: 1}]"#);
+  te_be_value(false, &scope!(), "{a: 1}[item.a = 1]", r#"[{a: 1}]"#);
+  te_number(false, &scope!(), "5[1]", 5, 0);
+  te_number(false, &scope!(), "5[-1]", 5, 0);
+  te_null(false, &scope!(), "null[item > 1]", "");
 }

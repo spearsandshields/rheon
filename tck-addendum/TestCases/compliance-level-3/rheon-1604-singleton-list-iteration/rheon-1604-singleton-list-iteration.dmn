@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- rheon tck-addendum: DMN 1.6 DMN16-94; drop when the official TCK covers this -->
+<definitions namespace="https://github.com/spearsandshields/rheon/tck-addendum/rheon-1604-singleton-list-iteration"
+             name="rheon-1604-singleton-list-iteration"
+             id="_rheon-1604-singleton-list-iteration"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <description>DMN 1.6 DMN16-94: implicit conversion to singleton list for the expression to be filtered (FEEL filter and boxed filter) and for the in row of boxed iterators (for/some/every)</description>
+
+    <inputData name="n" id="_n">
+        <variable name="n" typeRef="number"/>
+    </inputData>
+
+    <decision name="decision001" id="_decision001">
+        <variable name="decision001"/>
+        <literalExpression>
+            <text>3[item &gt; 2]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision002" id="_decision002">
+        <variable name="decision002"/>
+        <literalExpression>
+            <text>5[item &gt; 3]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision003" id="_decision003">
+        <variable name="decision003"/>
+        <literalExpression>
+            <text>"a"[item = "a"]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision004" id="_decision004">
+        <variable name="decision004"/>
+        <literalExpression>
+            <text>{a: 1}[a = 1]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision005" id="_decision005">
+        <variable name="decision005"/>
+        <literalExpression>
+            <text>{a: 1}[item.a = 1]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision006" id="_decision006">
+        <variable name="decision006"/>
+        <literalExpression>
+            <text>5[item &gt; 10]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision007" id="_decision007">
+        <variable name="decision007"/>
+        <literalExpression>
+            <text>"a"[item = "b"]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision008" id="_decision008">
+        <variable name="decision008"/>
+        <literalExpression>
+            <text>5[1]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision009" id="_decision009">
+        <variable name="decision009"/>
+        <literalExpression>
+            <text>5[2]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision010" id="_decision010">
+        <variable name="decision010"/>
+        <literalExpression>
+            <text>null[item &gt; 1]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision011" id="_decision011">
+        <variable name="decision011"/>
+        <literalExpression>
+            <text>null[1]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision012" id="_decision012">
+        <variable name="decision012"/>
+        <literalExpression>
+            <text>{item: 5}[item = 5]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision013" id="_decision013">
+        <variable name="decision013"/>
+        <literalExpression>
+            <text>true[item]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision014" id="_decision014">
+        <variable name="decision014"/>
+        <literalExpression>
+            <text>@"2024-01-01"[item &gt; @"2023-12-31"]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision015" id="_decision015">
+        <variable name="decision015"/>
+        <literalExpression>
+            <text>[5][item &gt; 3]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision016" id="_decision016">
+        <variable name="decision016"/>
+        <informationRequirement id="_decision016_ir_n">
+            <requiredInput href="#_n"/>
+        </informationRequirement>
+        <literalExpression>
+            <text>n[item &gt; 3]</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="decision026" id="_decision026">
+        <variable name="decision026"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>5</text>
+                </literalExpression>
+            </in>
+            <match>
+                <literalExpression>
+                    <text>item &gt; 3</text>
+                </literalExpression>
+            </match>
+        </filter>
+    </decision>
+
+    <decision name="decision027" id="_decision027">
+        <variable name="decision027"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>"a"</text>
+                </literalExpression>
+            </in>
+            <match>
+                <literalExpression>
+                    <text>item = "a"</text>
+                </literalExpression>
+            </match>
+        </filter>
+    </decision>
+
+    <decision name="decision028" id="_decision028">
+        <variable name="decision028"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>{a: 1}</text>
+                </literalExpression>
+            </in>
+            <match>
+                <literalExpression>
+                    <text>a = 1</text>
+                </literalExpression>
+            </match>
+        </filter>
+    </decision>
+
+    <decision name="decision029" id="_decision029">
+        <variable name="decision029"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>5</text>
+                </literalExpression>
+            </in>
+            <match>
+                <literalExpression>
+                    <text>item &gt; 10</text>
+                </literalExpression>
+            </match>
+        </filter>
+    </decision>
+
+    <decision name="decision030" id="_decision030">
+        <variable name="decision030"/>
+        <informationRequirement id="_decision030_ir_n">
+            <requiredInput href="#_n"/>
+        </informationRequirement>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>n</text>
+                </literalExpression>
+            </in>
+            <match>
+                <literalExpression>
+                    <text>item &gt; 3</text>
+                </literalExpression>
+            </match>
+        </filter>
+    </decision>
+
+    <decision name="decision031" id="_decision031">
+        <variable name="decision031"/>
+        <for iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>5</text>
+                </literalExpression>
+            </in>
+            <return>
+                <literalExpression>
+                    <text>x * 2</text>
+                </literalExpression>
+            </return>
+        </for>
+    </decision>
+
+    <decision name="decision032" id="_decision032">
+        <variable name="decision032"/>
+        <for iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>"a"</text>
+                </literalExpression>
+            </in>
+            <return>
+                <literalExpression>
+                    <text>x + "b"</text>
+                </literalExpression>
+            </return>
+        </for>
+    </decision>
+
+    <decision name="decision033" id="_decision033">
+        <variable name="decision033"/>
+        <some iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>5</text>
+                </literalExpression>
+            </in>
+            <satisfies>
+                <literalExpression>
+                    <text>x &gt; 3</text>
+                </literalExpression>
+            </satisfies>
+        </some>
+    </decision>
+
+    <decision name="decision034" id="_decision034">
+        <variable name="decision034"/>
+        <every iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>5</text>
+                </literalExpression>
+            </in>
+            <satisfies>
+                <literalExpression>
+                    <text>x &gt; 3</text>
+                </literalExpression>
+            </satisfies>
+        </every>
+    </decision>
+
+    <decision name="decision035" id="_decision035">
+        <variable name="decision035"/>
+        <some iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>2</text>
+                </literalExpression>
+            </in>
+            <satisfies>
+                <literalExpression>
+                    <text>x &gt; 3</text>
+                </literalExpression>
+            </satisfies>
+        </some>
+    </decision>
+
+    <decision name="decision036" id="_decision036">
+        <variable name="decision036"/>
+        <every iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>2</text>
+                </literalExpression>
+            </in>
+            <satisfies>
+                <literalExpression>
+                    <text>x &gt; 3</text>
+                </literalExpression>
+            </satisfies>
+        </every>
+    </decision>
+
+    <decision name="decision037" id="_decision037">
+        <variable name="decision037"/>
+        <for iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>[1, 2]</text>
+                </literalExpression>
+            </in>
+            <return>
+                <literalExpression>
+                    <text>x * 2</text>
+                </literalExpression>
+            </return>
+        </for>
+    </decision>
+
+    <decision name="decision038" id="_decision038">
+        <variable name="decision038"/>
+        <some iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>{a: 5}</text>
+                </literalExpression>
+            </in>
+            <satisfies>
+                <literalExpression>
+                    <text>x.a &gt; 3</text>
+                </literalExpression>
+            </satisfies>
+        </some>
+    </decision>
+
+</definitions>
