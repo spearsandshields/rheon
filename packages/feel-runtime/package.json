@@ -15,7 +15,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/spearsandshields/rheon.git",
+    "url": "git+https://github.com/spearsandshields/rheon.git",
     "directory": "packages/feel-runtime"
   },
   "homepage": "https://spearsandshields.github.io/rheon/",
