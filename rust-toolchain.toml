@@ -3,3 +3,4 @@
 channel = "1.95.0"
 targets = ["wasm32-wasip1"]
 profile = "minimal"
+components = ["rustfmt"]

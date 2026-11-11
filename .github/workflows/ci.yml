@@ -18,9 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable # rust-toolchain.toml pins the actual version
-        with:
-          components: rustfmt
+      - uses: dtolnay/rust-toolchain@stable # rust-toolchain.toml pins the actual version and its components
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
       # Skipped: `external_functions` (feel-evaluator) and `dmn_3_0076` (model-evaluator) call a
