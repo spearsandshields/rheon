@@ -1,7 +1,7 @@
 {
   "name": "rheon",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "rheon: the FEEL engine as WebAssembly (exact 34-digit decimals), its TypeScript runtime and the browser playground",
   "type": "module",
   "workspaces": [

@@ -375,8 +375,8 @@ upstream releases are not merged any more.
 
 ## Publishing to crates.io
 
-The nine `rheon-*` crates share the workspace version (`[workspace.package] version`,
-rheon's own line; `0.1.0` was the first release) and pin each other with `=<version>` in
+The ten `rheon-*` crates share the workspace version (`[workspace.package] version`,
+rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`) and pin each other with `=<version>` in
 the root manifest. Every other workspace member is `publish = false`, so one command
 publishes the set in dependency order:
 
@@ -394,7 +394,7 @@ crates still miss the workspace version, publishes only those, and sleeps until 
 retry time. The first release (0.1.0, 2026-11-09) took about 35 minutes this way. For a release: bump the workspace version and the `=` pins in the root manifest
 together, run the verification above, commit, tag `vX.Y.Z`, publish.
 
-`rheon-feel-wasm` is the ninth published crate: its build script takes the commit from
+`rheon-feel-wasm` is the tenth published crate: its build script takes the commit from
 `.cargo_vcs_info.json` inside a packaged crate and the upstream commit from its own manifest.
 The built module reaches users through the npm package `@rheon/feel-runtime` (which ships
 `feel.wasm`) and the GitHub Release that `.github/workflows/release.yml` creates for every

@@ -1,6 +1,6 @@
 {
   "name": "@rheon/feel-runtime",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "JS/TS runtime for the rheon FEEL engine compiled to WebAssembly (wasm32-wasip1, exact decimal128 numbers)",
   "keywords": [
     "feel",

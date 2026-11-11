@@ -28,11 +28,11 @@ crate-type = ["cdylib", "rlib"]
 # default features apply (the table declares the crates with default-features = false); the
 # versions are what the published crate depends on.
 dsntk-common = { workspace = true }
-rheon-feel = { path = "../../feel", version = "=0.1.0" }
-rheon-feel-number = { path = "../../feel-number", version = "=0.1.0" }
-rheon-feel-parser = { path = "../../feel-parser", version = "=0.1.0" }
-rheon-feel-evaluator = { path = "../../feel-evaluator", version = "=0.1.0" }
-rheon-feel-temporal = { path = "../../feel-temporal", version = "=0.1.0" }
+rheon-feel = { path = "../../feel", version = "=0.2.0" }
+rheon-feel-number = { path = "../../feel-number", version = "=0.2.0" }
+rheon-feel-parser = { path = "../../feel-parser", version = "=0.2.0" }
+rheon-feel-evaluator = { path = "../../feel-evaluator", version = "=0.2.0" }
+rheon-feel-temporal = { path = "../../feel-temporal", version = "=0.2.0" }
 serde = { workspace = true }
 # arbitrary_precision: JSON numbers keep their exact source text and never pass through f64.
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
