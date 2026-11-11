@@ -51,9 +51,7 @@ fn scalar(value: &Value) -> String {
     Value::Boolean(b) => b.to_string(),
     Value::Number(n) => n.to_string(),
     Value::String(s) => quote(s),
-    Value::FunctionDefinition(..) | Value::BuiltInFunction(_) | Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..) => {
-      quote(&value.type_of().to_string())
-    }
+    Value::FunctionDefinition(..) | Value::BuiltInFunction(_) | Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..) => quote(&value.type_of().to_string()),
     Value::DateTime(date_time) => quote(&zoned_date_time(date_time).unwrap_or_else(|| date_time.to_string())),
     other => quote(&other.to_string()),
   }

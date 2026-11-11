@@ -12,27 +12,67 @@ const INPUT: &str = r#"{ person: { name: "Peter", age: 25 } }"#;
 #[bench]
 fn _0001(b: &mut Bencher) {
   let ctx = context(INPUT);
-  assert_decision(&MODEL_EVALUATOR, "https://example.org/1160-multiple-imports-01-B", "1160-multiple-imports-01-B", "DecisionB", &ctx, r#""Peter""#);
-  iter!(b, MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-01-B", "1160-multiple-imports-01-B", "DecisionB", &ctx));
+  assert_decision(
+    &MODEL_EVALUATOR,
+    "https://example.org/1160-multiple-imports-01-B",
+    "1160-multiple-imports-01-B",
+    "DecisionB",
+    &ctx,
+    r#""Peter""#,
+  );
+  iter!(
+    b,
+    MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-01-B", "1160-multiple-imports-01-B", "DecisionB", &ctx)
+  );
 }
 
 #[bench]
 fn _0002(b: &mut Bencher) {
   let ctx = context(INPUT);
-  assert_decision(&MODEL_EVALUATOR, "https://example.org/1160-multiple-imports-01-C", "1160-multiple-imports-01-C", "DecisionC", &ctx, r#""PeterPeter""#);
-  iter!(b, MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-01-C", "1160-multiple-imports-01-C", "DecisionC", &ctx));
+  assert_decision(
+    &MODEL_EVALUATOR,
+    "https://example.org/1160-multiple-imports-01-C",
+    "1160-multiple-imports-01-C",
+    "DecisionC",
+    &ctx,
+    r#""PeterPeter""#,
+  );
+  iter!(
+    b,
+    MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-01-C", "1160-multiple-imports-01-C", "DecisionC", &ctx)
+  );
 }
 
 #[bench]
 fn _0003(b: &mut Bencher) {
   let ctx = context(INPUT);
-  assert_decision(&MODEL_EVALUATOR, "https://example.org/1160-multiple-imports-02-B", "1160-multiple-imports-02-B", "DecisionB", &ctx, r#""Peter""#);
-  iter!(b, MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-02-B", "1160-multiple-imports-02-B", "DecisionB", &ctx));
+  assert_decision(
+    &MODEL_EVALUATOR,
+    "https://example.org/1160-multiple-imports-02-B",
+    "1160-multiple-imports-02-B",
+    "DecisionB",
+    &ctx,
+    r#""Peter""#,
+  );
+  iter!(
+    b,
+    MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-02-B", "1160-multiple-imports-02-B", "DecisionB", &ctx)
+  );
 }
 
 #[bench]
 fn _0004(b: &mut Bencher) {
   let ctx = context(INPUT);
-  assert_decision(&MODEL_EVALUATOR, "https://example.org/1160-multiple-imports-02-C", "1160-multiple-imports-02-C", "DecisionC", &ctx, r#""PeterPeter""#);
-  iter!(b, MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-02-C", "1160-multiple-imports-02-C", "DecisionC", &ctx));
+  assert_decision(
+    &MODEL_EVALUATOR,
+    "https://example.org/1160-multiple-imports-02-C",
+    "1160-multiple-imports-02-C",
+    "DecisionC",
+    &ctx,
+    r#""PeterPeter""#,
+  );
+  iter!(
+    b,
+    MODEL_EVALUATOR.evaluate_invocable("https://example.org/1160-multiple-imports-02-C", "1160-multiple-imports-02-C", "DecisionC", &ctx)
+  );
 }

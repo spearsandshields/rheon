@@ -218,22 +218,23 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
 
       // prepare context containing values from required input data
       let mut required_input_ctx: FeelContext = Default::default();
+      let input_data = Value::Context(input_data);
       required_input_data_references.iter().for_each(|(import_name, input_data_id)| {
         if let Some(import_name) = import_name {
           // DMN 1.6 §6.3.10 (DMN16-50): an imported input data holds one value however it is reached;
           // it may be given under the import name ({a: {person: ...}}) or once by its own name.
-          let nested = match input_data.get_entry(import_name) {
-            Some(Value::Context(ctx)) => Some(Value::Context(ctx.clone())),
+          let nested = match &input_data {
+            Value::Context(ctx) => ctx.get_entry(import_name).filter(|value| matches!(value, Value::Context(_))),
             _ => None,
           };
           let found = nested
-            .and_then(|ctx| input_data_evaluator.evaluate(input_data_id, &ctx, item_definition_evaluator))
+            .and_then(|ctx| input_data_evaluator.evaluate(input_data_id, ctx, item_definition_evaluator))
             .filter(|(_, value)| !value.is_null())
-            .or_else(|| input_data_evaluator.evaluate(input_data_id, &Value::Context(input_data.clone()), item_definition_evaluator));
+            .or_else(|| input_data_evaluator.evaluate(input_data_id, &input_data, item_definition_evaluator));
           if let Some((name, value)) = found {
             required_input_ctx.create_entries(&[import_name.clone(), name], value);
           }
-        } else if let Some((name, value)) = input_data_evaluator.evaluate(input_data_id, &Value::Context(input_data.clone()), item_definition_evaluator) {
+        } else if let Some((name, value)) = input_data_evaluator.evaluate(input_data_id, &input_data, item_definition_evaluator) {
           required_input_ctx.set_entry(&name, value);
         }
       });

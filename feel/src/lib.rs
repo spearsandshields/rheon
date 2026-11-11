@@ -24,12 +24,12 @@ mod ranges;
 #[cfg(test)]
 mod tests;
 
-pub use rheon_feel_number::FeelNumber;
 pub use evaluator::Evaluator;
 pub use function::FunctionBody;
 pub use names::Name;
 pub use qualified_names::QualifiedName;
 pub use ranges::IntervalType;
+pub use rheon_feel_number::FeelNumber;
 pub use scope::FeelScope;
 pub use strings::ToFeelString;
 pub use types::*;

@@ -70,7 +70,10 @@ mod tests {
     );
     // the FEEL type names are accepted too (TCK 1157)
     assert_eq!(Some(TypeRef::DateTime(FeelType::DateTime)), type_ref_to_feel_type("date and time"));
-    assert_eq!(Some(TypeRef::DayTimeDuration(FeelType::DaysAndTimeDuration)), type_ref_to_feel_type("days and time duration"));
+    assert_eq!(
+      Some(TypeRef::DayTimeDuration(FeelType::DaysAndTimeDuration)),
+      type_ref_to_feel_type("days and time duration")
+    );
     assert_eq!(
       Some(TypeRef::YearMonthDuration(FeelType::YearsAndMonthsDuration)),
       type_ref_to_feel_type("years and months duration")

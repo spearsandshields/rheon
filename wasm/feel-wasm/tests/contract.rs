@@ -50,7 +50,10 @@ fn number_fidelity_addition() {
   assert_eq!(r["type"], "number");
   assert_eq!(r["isNull"], false);
   assert!(r.get("nullReason").is_none());
-  assert_eq!(r["typed"], json!({"simple": {"type": "xsd:decimal", "text": "0.3", "isNil": false}, "components": null, "list": null}));
+  assert_eq!(
+    r["typed"],
+    json!({"simple": {"type": "xsd:decimal", "text": "0.3", "isNil": false}, "components": null, "list": null})
+  );
 }
 
 #[test]
@@ -127,13 +130,25 @@ fn feel_context_literal() {
 
 #[test]
 fn bad_contexts() {
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "{a: }"}))), "context");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "[1,2]"}))), "context");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": {"a": 1}}))), "context");
+  assert_eq!(
+    error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "{a: }"}))),
+    "context"
+  );
+  assert_eq!(
+    error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "[1,2]"}))),
+    "context"
+  );
+  assert_eq!(
+    error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": {"a": 1}}))),
+    "context"
+  );
   assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "context": [1, 2]}))), "context");
   assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "context": "{a: 1}"}))), "context");
   // empty / missing contexts are fine
-  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "  "}))["display"], "1");
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "  "}))["display"],
+    "1"
+  );
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "1", "context": null}))["display"], "1");
 }
 
@@ -382,16 +397,43 @@ fn zero_with_huge_exponent_is_displayed_as_0() {
 #[test]
 fn huge_positions_and_lengths_are_null_with_native_reasons() {
   let cases = [
-    ("substring(\"abcdef\", 2, 4294967295)", "sublist: invalid range, len = 6, start position = 2, end position = 4294967297"),
-    ("substring(\"abcdef\", 4, 4294967293)", "sublist: invalid range, len = 6, start position = 4, end position = 4294967297"),
-    ("substring(\"abcdef\", -3, 4294967295)", "sublist: invalid range, len = 6, start position = 4, end position = 4294967299"),
-    ("substring(\"abcdef\", 2, 18446744073709551615)", "sublist: invalid range, len = 6, start position = 2, end position = 18446744073709551617"),
-    ("substring(\"abc\", 2, 4294967296)", "sublist: invalid range, len = 3, start position = 2, end position = 4294967298"),
+    (
+      "substring(\"abcdef\", 2, 4294967295)",
+      "sublist: invalid range, len = 6, start position = 2, end position = 4294967297",
+    ),
+    (
+      "substring(\"abcdef\", 4, 4294967293)",
+      "sublist: invalid range, len = 6, start position = 4, end position = 4294967297",
+    ),
+    (
+      "substring(\"abcdef\", -3, 4294967295)",
+      "sublist: invalid range, len = 6, start position = 4, end position = 4294967299",
+    ),
+    (
+      "substring(\"abcdef\", 2, 18446744073709551615)",
+      "sublist: invalid range, len = 6, start position = 2, end position = 18446744073709551617",
+    ),
+    (
+      "substring(\"abc\", 2, 4294967296)",
+      "sublist: invalid range, len = 3, start position = 2, end position = 4294967298",
+    ),
     ("substring(\"abc\", -4294967296)", "substring: position is out of range, len = 3, position = -4294967296"),
-    ("sublist([1,2,3,4,5,6], 2, 4294967295)", "sublist: invalid range, len = 6, start position = 2, end position = 4294967297"),
-    ("sublist([1,2,3,4,5,6], -3, 4294967294)", "sublist: invalid range, len = 6, start position = 4, end position = 4294967298"),
-    ("sublist([1,2,3,4,5,6], 2, 18446744073709551615)", "sublist: invalid range, len = 6, start position = 2, end position = 18446744073709551617"),
-    ("sublist([1,2,3], 1, 4294967296)", "sublist: invalid range, len = 3, start position = 1, end position = 4294967297"),
+    (
+      "sublist([1,2,3,4,5,6], 2, 4294967295)",
+      "sublist: invalid range, len = 6, start position = 2, end position = 4294967297",
+    ),
+    (
+      "sublist([1,2,3,4,5,6], -3, 4294967294)",
+      "sublist: invalid range, len = 6, start position = 4, end position = 4294967298",
+    ),
+    (
+      "sublist([1,2,3,4,5,6], 2, 18446744073709551615)",
+      "sublist: invalid range, len = 6, start position = 2, end position = 18446744073709551617",
+    ),
+    (
+      "sublist([1,2,3], 1, 4294967296)",
+      "sublist: invalid range, len = 3, start position = 1, end position = 4294967297",
+    ),
     ("sublist([1,2,3], -4294967296)", "sublist: position is out of range, len = 3, position = -4294967296"),
     ("sublist([1,2,3], -5, 1)", "sublist: invalid range, len = 3, start position = -1, end position = 0"),
     ("[1,2,3][4294967296]", "index in filter is out of range [1..3], actual index is 4294967296"),
@@ -508,7 +550,12 @@ fn nesting_and_recursion_limits_body() {
     let response = req(json!({"op": "parse", "expression": e}));
     assert_eq!(error_kind(&response), "syntax");
   }
-  assert!(req(json!({"op": "evaluate", "expression": format!("1{}", "+1".repeat(20000))}))["error"]["message"].as_str().unwrap().contains("nested too deeply"));
+  assert!(
+    req(json!({"op": "evaluate", "expression": format!("1{}", "+1".repeat(20000))}))["error"]["message"]
+      .as_str()
+      .unwrap()
+      .contains("nested too deeply")
+  );
   assert_eq!(display(&format!("1{}", "+1".repeat(250))), "251");
   let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000))}));
   assert_eq!(error_kind(&response), "context");
@@ -530,7 +577,11 @@ fn nesting_and_recursion_limits_body() {
 
 #[test]
 fn json_numbers_that_underflow_warn() {
-  for (number, fragment) in [("1e-7000", "became 0"), ("1.5e-6176", "was rounded"), ("1.23456789012345678901234567890123456789", "more than 34")] {
+  for (number, fragment) in [
+    ("1e-7000", "became 0"),
+    ("1.5e-6176", "was rounded"),
+    ("1.23456789012345678901234567890123456789", "more than 34"),
+  ] {
     let response = raw(&format!(r#"{{"op":"evaluate","expression":"x","context":{{"x":{number}}}}}"#));
     assert_eq!(response["ok"], true, "{response}");
     let warnings = response["warnings"].as_array().unwrap();
@@ -675,7 +726,11 @@ fn tz_offset_moves_today() {
 #[test]
 fn tz_offset_does_not_leak_between_requests() {
   let with_tz = eval_tz("string(now())", 600, json!({}))["feel"].as_str().unwrap().trim_matches('"').to_string();
-  let without = eval_ok(json!({"op": "evaluate", "expression": "string(now())"}))["feel"].as_str().unwrap().trim_matches('"').to_string();
+  let without = eval_ok(json!({"op": "evaluate", "expression": "string(now())"}))["feel"]
+    .as_str()
+    .unwrap()
+    .trim_matches('"')
+    .to_string();
   let check = eval_tz(
     "date and time(a) - date and time(b) between duration(\"PT9H59M50S\") and duration(\"PT10H0M10S\")",
     0,
@@ -768,7 +823,12 @@ fn for_range_whose_step_is_lost_to_rounding_terminates() {
 #[test]
 fn temporal_ordering_across_offsets_and_midnight_wrap() {
   // fork commits 4d61eb1 and cf21d52
-  let tz0 = |e: &str| eval_ok(json!({"op": "evaluate", "expression": e, "tzOffsetMinutes": 0}))["display"].as_str().unwrap().to_string();
+  let tz0 = |e: &str| {
+    eval_ok(json!({"op": "evaluate", "expression": e, "tzOffsetMinutes": 0}))["display"]
+      .as_str()
+      .unwrap()
+      .to_string()
+  };
   assert_eq!(tz0(r#"@"2026-10-17T10:00:00+01:00" < @"2026-10-17T10:00:00Z""#), "true");
   assert_eq!(tz0(r#"@"2026-10-17T10:00:00+01:00" >= @"2026-10-17T09:00:00Z""#), "true");
   assert_eq!(tz0(r#"@"2026-10-17T10:00:00+01:00" > @"2026-10-17T08:59:59Z""#), "true");
@@ -796,7 +856,11 @@ fn temporal_ordering_across_offsets_and_midnight_wrap() {
 fn null_reasons_are_readable_and_short() {
   // fork commit 5ecdede
   let reason = |e: &str| expr(e)["nullReason"].as_str().unwrap_or_else(|| panic!("no nullReason for {e}")).to_string();
-  assert!(reason(r#"time("10:00:00+15:00")"#).starts_with("time: invalid time literal '10:00:00+15:00'"), "{}", reason(r#"time("10:00:00+15:00")"#));
+  assert!(
+    reason(r#"time("10:00:00+15:00")"#).starts_with("time: invalid time literal '10:00:00+15:00'"),
+    "{}",
+    reason(r#"time("10:00:00+15:00")"#)
+  );
   assert_eq!(reason("exp(14150)"), "exp: result is not a finite number (decimal overflow)");
   assert_eq!(reason("log(0)"), "log: argument must be a positive number");
   assert_eq!(reason("log(-1)"), "log: argument must be a positive number");
@@ -833,7 +897,10 @@ fn full_feel_scale_range_and_regex_back_references() {
   assert_eq!(display("round up(5.55, 1)"), "5.6");
   let r = expr("round up(5.5, 6177)");
   assert_eq!(r["isNull"], true, "{r}");
-  assert_eq!(r["nullReason"], "[core::round_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177");
+  assert_eq!(
+    r["nullReason"],
+    "[core::round_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177"
+  );
   assert_eq!(display(r#"matches("aA", "(a)\\1", "i")"#), "true");
   assert_eq!(display(r#"matches("ab", "(a)\\1")"#), "false");
   // a pathological pattern hits fancy-regex's backtracking limit and is reported, not hung

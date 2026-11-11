@@ -316,7 +316,12 @@ fn scale_6176_leaves_settled_value_unchanged() {
   // TCK 1141-1144 017_a / 017_b: the maximum scale is 6176, one more is null.
   te_number(false, &scope!(), "round up(5.5, 6176)", 55, 1);
   te_number(false, &scope!(), "round up(5.5, -6111)", 1, -6111);
-  te_null(false, &scope!(), "round up(5.5, 6177)", "[core::round_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177");
+  te_null(
+    false,
+    &scope!(),
+    "round up(5.5, 6177)",
+    "[core::round_up] <FeelNumberError> invalid scale, allowed range is -6111..6176, actual is 6177",
+  );
 }
 
 #[test]
@@ -325,5 +330,10 @@ fn dmn_1_6_single_argument() {
   te_be_value(false, &scope!(), "round up(5.5) = round up(5.5, 0)", "true");
   te_be_value(false, &scope!(), "round up(-5.5) = round up(-5.5, 0)", "true");
   te_be_value(false, &scope!(), "round up(n: 1.5) = round up(1.5, 0)", "true");
-  te_null(false, &scope!(), "round up(null)", "[core::round up] invalid argument type, expected number, actual type is Null");
+  te_null(
+    false,
+    &scope!(),
+    "round up(null)",
+    "[core::round up] invalid argument type, expected number, actual type is Null",
+  );
 }

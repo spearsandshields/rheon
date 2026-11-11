@@ -1,10 +1,10 @@
 //! Builder for decision table evaluators.
 
-use rheon_feel_evaluator::Dialect;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
+use rheon_feel_evaluator::Dialect;
 use rheon_feel_parser::AstNode;
 use rheon_model::{BuiltinAggregator, DecisionTable, HitPolicy};
 use std::cmp::Ordering;

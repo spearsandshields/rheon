@@ -64,12 +64,12 @@ macro_rules! static_context {
   };
 }
 
-use rheon_model::NamedElement;
 use from_examples;
 use iter;
 use model_evaluator_from_examples;
 use model_name_from_examples;
 use model_namespace_from_examples;
+use rheon_model::NamedElement;
 use static_context;
 
 /// Utility function that builds a model evaluator from a single DMN model.

@@ -1,6 +1,5 @@
 //! # Decision model evaluator
 
-use rheon_feel::diagnostics::{self, Diagnostics, ErrorMode};
 use crate::business_knowledge_model::BusinessKnowledgeModelEvaluator;
 use crate::decision::DecisionEvaluator;
 use crate::decision_service::DecisionServiceEvaluator;
@@ -10,6 +9,7 @@ use crate::model_builder::{EvaluatorBuilders, ModelBuilder};
 use crate::model_definitions::{DefKey, InvocableType, Invocables};
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics::{self, Diagnostics, ErrorMode};
 use rheon_feel::values::Value;
 use rheon_feel::{Name, value_null};
 use rheon_model::Definitions;

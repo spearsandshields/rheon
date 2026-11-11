@@ -3,11 +3,11 @@
 use crate::macros::invalid_argument_type;
 use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
+use regex::Regex;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value, Values};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, MonthOfYear, WeekOfYear};
-use regex::Regex;
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::str::FromStr;

@@ -18,7 +18,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name};
 use rheon_feel_parser::AstNode;
-use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelTime, FeelYearsAndMonthsDuration};
 use std::sync::LazyLock;
 
 /// The expression language of an expression: FEEL (the default) or B-FEEL.
@@ -45,11 +45,13 @@ impl Dialect {
 pub fn bif_default(bif: &Bif) -> Option<Value> {
   use Bif::*;
   Some(match bif {
-    After | All | Any | Before | Coincides | Contains | During | EndsWith | Even | FinishedBy | Finishes | Includes | Is | ListContains | Matches | Meets | MetBy | Not
-    | Odd | Overlaps | OverlapsAfter | OverlapsBefore | StartedBy | Starts | StartsWith => Value::Boolean(false),
+    After | All | Any | Before | Coincides | Contains | During | EndsWith | Even | FinishedBy | Finishes | Includes | Is | ListContains | Matches | Meets | MetBy | Not | Odd
+    | Overlaps | OverlapsAfter | OverlapsBefore | StartedBy | Starts | StartsWith => Value::Boolean(false),
     Abs | Ceiling | Count | DayOfYear | Decimal | Exp | Floor | Log | Mean | Median | Modulo | Number | Product | RoundDown | RoundHalfDown | RoundHalfUp | RoundUp | Sqrt
     | Stddev | StringLength | Sum | WeekOfYear => zero(),
-    DayOfWeek | LoweCase | MonthOfYear | Replace | String | StringJoin | Substring | SubstringAfter | SubstringBefore | Trim | UpperCase => Value::String(std::string::String::new()),
+    DayOfWeek | LoweCase | MonthOfYear | Replace | String | StringJoin | Substring | SubstringAfter | SubstringBefore | Trim | UpperCase => {
+      Value::String(std::string::String::new())
+    }
     Date | Today => epoch_date(),
     DateAndTime | Now => epoch_date_time(),
     Time => epoch_time(),
@@ -143,7 +145,13 @@ static RHS: LazyLock<Name> = LazyLock::new(|| Name::from("⟦b-feel rhs⟧"));
 static OPERAND_NODES: LazyLock<[AstNode; 5]> = LazyLock::new(|| {
   let l = || Box::new(AstNode::Name(LHS.clone()));
   let r = || Box::new(AstNode::Name(RHS.clone()));
-  [AstNode::Add(l(), r()), AstNode::Sub(l(), r()), AstNode::Mul(l(), r()), AstNode::Div(l(), r()), AstNode::Exp(l(), r())]
+  [
+    AstNode::Add(l(), r()),
+    AstNode::Sub(l(), r()),
+    AstNode::Mul(l(), r()),
+    AstNode::Div(l(), r()),
+    AstNode::Exp(l(), r()),
+  ]
 });
 
 /// The FEEL evaluator of `⟦lhs⟧ <op> ⟦rhs⟧`, used on already evaluated operands.
@@ -241,10 +249,6 @@ fn zero() -> Value {
 }
 fn zero_ym_duration() -> Value {
   Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(0))
-}
-#[allow(dead_code)]
-fn zero_dt_duration() -> Value {
-  Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(0))
 }
 fn epoch_date() -> Value {
   FeelDate::new(1970, 1, 1).map(Value::Date).unwrap_or(Value::Null(None))

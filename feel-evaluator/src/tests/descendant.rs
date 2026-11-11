@@ -20,7 +20,12 @@ fn _0002() {
 #[test]
 fn _0003() {
   te_be_value(false, &scope!(), r#"{ a: { first name: "x" } }...first name"#, r#"["x"]"#);
-  te_be_value(false, &scope!(), r#"({ deal: { party: { role: "Appraiser", name: "Ann" } } }...party)[role = "Appraiser"].name"#, r#"["Ann"]"#);
+  te_be_value(
+    false,
+    &scope!(),
+    r#"({ deal: { party: { role: "Appraiser", name: "Ann" } } }...party)[role = "Appraiser"].name"#,
+    r#"["Ann"]"#,
+  );
 }
 
 #[test]

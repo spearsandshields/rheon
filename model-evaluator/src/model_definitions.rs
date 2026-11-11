@@ -658,12 +658,13 @@ pub struct DefDefinitions {
 impl DefDefinitions {
   /// Adds definitions from specified model.
   pub fn add_model(&mut self, definitions: &Definitions) {
-    self.imports.append(&mut definitions.imports().iter().map(DefImport::new).collect());
     // Import names belong to the importing model: two models may import the same namespace under
     // different names (TCK 1160: "a" in one, "" in another). Resolve against this model's own
-    // imports first, then against all imports seen so far (transitive references, TCK 0089).
-    let mut scoped_imports: Vec<DefImport> = definitions.imports().iter().map(DefImport::new).collect();
+    // imports first, then against the imports of the models added before (transitive references, TCK 0089).
+    let own_imports: Vec<DefImport> = definitions.imports().iter().map(DefImport::new).collect();
+    let mut scoped_imports = own_imports.clone();
     scoped_imports.extend(self.imports.iter().cloned());
+    self.imports.extend(own_imports);
     let imports = &scoped_imports;
     self
       .item_definitions

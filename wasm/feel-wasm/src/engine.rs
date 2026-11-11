@@ -3,9 +3,9 @@
 use crate::display::display;
 use crate::input::{feel_context, json_object_to_context, json_to_value};
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics::{self, ErrorMode};
 use rheon_feel::dto::ValueDto;
 use rheon_feel::values::Value;
-use rheon_feel::diagnostics::{self, ErrorMode};
 use rheon_feel::{FeelScope, Name};
 use rheon_feel_parser::AstNode;
 use serde_json::{Map, Value as Json, json};
@@ -86,7 +86,10 @@ pub fn call(request: &str) -> String {
     }
   };
   serde_json::to_string(&response).unwrap_or_else(|e| {
-    format!(r#"{{"ok":false,"error":{{"kind":"internal","message":"failed to serialize response: {}"}}}}"#, e.to_string().replace(['"', '\\'], "'"))
+    format!(
+      r#"{{"ok":false,"error":{{"kind":"internal","message":"failed to serialize response: {}"}}}}"#,
+      e.to_string().replace(['"', '\\'], "'")
+    )
   })
 }
 
@@ -205,7 +208,12 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
     None | Some(Json::Null) => Some(0),
     Some(Json::Number(n)) => match n.as_i64() {
       Some(m) if (-MAX_TZ_OFFSET_MINUTES..=MAX_TZ_OFFSET_MINUTES).contains(&m) => Some((m * 60) as i32),
-      _ => return fail(Kind::Request, format!("'tzOffsetMinutes' must be an integer in -{MAX_TZ_OFFSET_MINUTES}..={MAX_TZ_OFFSET_MINUTES}, got {n}")),
+      _ => {
+        return fail(
+          Kind::Request,
+          format!("'tzOffsetMinutes' must be an integer in -{MAX_TZ_OFFSET_MINUTES}..={MAX_TZ_OFFSET_MINUTES}, got {n}"),
+        );
+      }
     },
     Some(other) => return fail(Kind::Request, format!("'tzOffsetMinutes' must be a number, got {other}")),
   };

@@ -73,12 +73,7 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  te_null(
-    false,
-    &scope!(),
-    r#"number("123a56",null,null)"#,
-    r#"[core::number] not a FEEL numeric literal: 123a56"#,
-  );
+  te_null(false, &scope!(), r#"number("123a56",null,null)"#, r#"[core::number] not a FEEL numeric literal: 123a56"#);
 }
 
 #[test]

@@ -150,6 +150,9 @@ Official TCK (patched): 3,392 of 3,407; only 0076 (Java, out of scope) and 0085 
 `scripts/tck.sh` runs it on demand; `docs/tck-baseline.txt` records the failing tests.
 
 Open in 1.6:
+- **Dialect of decision table entries** `[dmn]`. Input and output entries are unary tests and
+  literal expressions that may carry their own `expressionLanguage`; the evaluator applies the
+  model's dialect to the whole table. Not exercised by the TCK. Small.
 - **Strict mode granularity** `[dmn]`. Strict evaluates to the end and then returns null with the
   first error (no side effects make the difference observable). Errors are recorded where the
   core creates a null with a reason (`value_null!`); a few places build nulls directly and are

@@ -20,6 +20,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable # rust-toolchain.toml pins the actual version
       - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
       # Skipped: `external_functions` (feel-evaluator) and `dmn_3_0076` (model-evaluator) call a
       # Java external-function service, which rheon does not support; `compare_the_number_of_models`
       # (dsntk-examples) walks a DMN TCK checkout at ../tck that CI does not have; the dsntk-server

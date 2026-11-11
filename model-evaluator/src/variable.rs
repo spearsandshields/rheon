@@ -4,6 +4,16 @@ use crate::model_definitions::{DefInformationItem, DefKey};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name, value_null};
 
+/// The type the results of an invocable are coerced to: a BKM's or decision service's variable is
+/// typed with the type of the function it defines, so a function type unwraps to its return type
+/// (DMN 1.6 §10.3.2.9.4, TCK 1157 004-009); any other type is the variable's type itself.
+pub fn result_type(feel_type: &FeelType) -> FeelType {
+  match feel_type {
+    FeelType::Function(_, result_type) => (**result_type).clone(),
+    other => other.clone(),
+  }
+}
+
 /// Type of closure that evaluates values from variable definition.
 pub type VariableEvaluatorFn = Box<dyn Fn(&Value, &ItemDefinitionEvaluator) -> (Name, Value) + Send + Sync>;
 

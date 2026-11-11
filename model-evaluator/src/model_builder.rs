@@ -9,8 +9,8 @@ use crate::item_definition_type::{InformationItemTypes, ItemDefinitionTypeEvalua
 use crate::model_definitions::{DefDefinitions, DefKey, Invocables};
 use dsntk_common::Result;
 use rheon_feel::Name;
-use rheon_model::{Definitions, DmnElement};
 use rheon_feel_evaluator::Dialect;
+use rheon_model::{Definitions, DmnElement};
 use std::cell::RefCell;
 use std::collections::HashMap;
 

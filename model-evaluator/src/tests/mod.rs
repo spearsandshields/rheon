@@ -52,12 +52,12 @@ macro_rules! static_context {
   };
 }
 
-use rheon_model::NamedElement;
 use from_examples;
 use model_evaluator;
 use model_evaluator_from_examples;
 use model_name_from_examples;
 use model_namespace_from_examples;
+use rheon_model::NamedElement;
 use static_context;
 
 /// Utility function that creates a `FEEL` context from specified input expression.

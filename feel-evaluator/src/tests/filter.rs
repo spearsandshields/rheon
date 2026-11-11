@@ -516,12 +516,7 @@ fn _0069() {
 
 #[test]
 fn _0070() {
-  te_null(
-    false,
-    &scope!(),
-    r#" @"2023-02-07"[2] "#,
-    "index in filter is out of range [1..1], actual index is 2",
-  );
+  te_null(false, &scope!(), r#" @"2023-02-07"[2] "#, "index in filter is out of range [1..1], actual index is 2");
 }
 
 #[test]

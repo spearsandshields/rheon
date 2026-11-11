@@ -53,8 +53,7 @@ fn engine_version() {
   let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
   let manifest = crate_dir.join("Cargo.toml");
   println!("cargo:rerun-if-changed={}", manifest.display());
-  let text = std::fs::read_to_string(&manifest)
-    .unwrap_or_else(|e| panic!("feel-wasm: cannot read {}: {e}", manifest.display()));
+  let text = std::fs::read_to_string(&manifest).unwrap_or_else(|e| panic!("feel-wasm: cannot read {}: {e}", manifest.display()));
   let upstream = text
     .lines()
     .map(str::trim)

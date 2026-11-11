@@ -5,6 +5,7 @@ use crate::errors::*;
 use crate::model_builder::ModelBuilder;
 use crate::model_definitions::{DefBusinessKnowledgeModel, DefDefinitions, DefKey};
 use crate::model_evaluator::ModelEvaluator;
+use crate::variable::result_type;
 use dsntk_common::Result;
 use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
@@ -84,12 +85,7 @@ fn build_bkm_evaluator(
   let output_variable_type = item_definition_type_evaluator
     .information_item_type(business_knowledge_model.variable().namespace(), business_knowledge_model.variable().type_ref())
     .unwrap_or(FeelType::Any);
-  // A BKM's variable is typed with the type of the function it defines (e.g. a function item
-  // definition); its results are coerced to that function's return type (TCK 1157 004-006).
-  let output_variable_type = match output_variable_type {
-    FeelType::Function(_, result_type) => *result_type,
-    other => other,
-  };
+  let output_variable_type = result_type(&output_variable_type);
   let mut knowledge_requirements: Vec<DefKey> = vec![];
   for knowledge_requirement in business_knowledge_model.knowledge_requirements() {
     knowledge_requirements.push(knowledge_requirement.required_knowledge().into());

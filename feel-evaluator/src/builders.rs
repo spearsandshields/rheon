@@ -1,10 +1,10 @@
 //! # Evaluator builders for FEEL expressions
 
+use crate::bfeel::{self, Dialect};
 use crate::evaluator_java::evaluate_external_java_function;
 use crate::evaluator_pmml::evaluate_external_pmml_function;
 use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
 use crate::macros::invalid_argument_type;
-use crate::bfeel::{self, Dialect};
 use crate::{FilterExpressionEvaluator, bifs};
 use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
@@ -140,6 +140,9 @@ impl<'b> EvaluatorBuilder<'b> {
       if let Some((operator, lhs, rhs)) = operator {
         let lhe = self.build(lhs);
         let rhe = self.build(rhs);
+        // the FEEL operator applied to the operand values; built by this builder in the FEEL dialect, so
+        // it already carries the non-finite guard added at the end of `build` (the early return below
+        // skips that guard only for the B-FEEL wrapper, whose results all come from the FEEL operator)
         let feel_operator = bfeel::feel_operator_evaluator(operator);
         self.node_stack.pop();
         return Box::new(move |scope: &FeelScope| bfeel::arithmetic(operator, &feel_operator, scope, lhe(scope), rhe(scope)));
@@ -306,7 +309,9 @@ impl<'b> EvaluatorBuilder<'b> {
           other => invalid_argument_type!("add", "days and time duration", other.type_of()),
         },
         Value::DaysAndTimeDuration(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => lh.checked_add(&rh).map_or_else(|| value_null!("days and time duration addition overflow"), Value::DaysAndTimeDuration),
+          Value::DaysAndTimeDuration(rh) => lh
+            .checked_add(&rh)
+            .map_or_else(|| value_null!("days and time duration addition overflow"), Value::DaysAndTimeDuration),
           Value::Date(rh) => {
             if let Some(result) = rh + lh {
               Value::Date(result)
@@ -339,7 +344,9 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("invalid result while adding date and time to years and months duration")
             }
           }
-          Value::YearsAndMonthsDuration(rh) => lh.checked_add(&rh).map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
+          Value::YearsAndMonthsDuration(rh) => lh
+            .checked_add(&rh)
+            .map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
           other => invalid_argument_type!("add", "years and months duration, date and time", other.type_of()),
         },
         value @ Value::Null(_) => value,
@@ -1549,8 +1556,12 @@ impl<'b> EvaluatorBuilder<'b> {
       let lhv = lhe(scope);
       match lhv {
         Value::Number(lh) => Value::Number(-lh),
-        Value::DaysAndTimeDuration(lh) => lh.checked_neg().map_or_else(|| value_null!("days and time duration negation overflow"), Value::DaysAndTimeDuration),
-        Value::YearsAndMonthsDuration(lh) => lh.checked_neg().map_or_else(|| value_null!("years and months duration negation overflow"), Value::YearsAndMonthsDuration),
+        Value::DaysAndTimeDuration(lh) => lh
+          .checked_neg()
+          .map_or_else(|| value_null!("days and time duration negation overflow"), Value::DaysAndTimeDuration),
+        Value::YearsAndMonthsDuration(lh) => lh
+          .checked_neg()
+          .map_or_else(|| value_null!("years and months duration negation overflow"), Value::YearsAndMonthsDuration),
         other => value_null!("unexpected type in arithmetic negation: {}", other.type_of()),
       }
     })
@@ -1918,12 +1929,16 @@ impl<'b> EvaluatorBuilder<'b> {
         },
         Value::DaysAndTimeDuration(lh) => {
           if let Value::DaysAndTimeDuration(rh) = rhv {
-            return lh.checked_sub(&rh).map_or_else(|| value_null!("days and time duration subtraction overflow"), Value::DaysAndTimeDuration);
+            return lh
+              .checked_sub(&rh)
+              .map_or_else(|| value_null!("days and time duration subtraction overflow"), Value::DaysAndTimeDuration);
           }
         }
         Value::YearsAndMonthsDuration(lh) => {
           if let Value::YearsAndMonthsDuration(rh) = rhv {
-            return lh.checked_sub(&rh).map_or_else(|| value_null!("years and months duration subtraction overflow"), Value::YearsAndMonthsDuration);
+            return lh
+              .checked_sub(&rh)
+              .map_or_else(|| value_null!("years and months duration subtraction overflow"), Value::YearsAndMonthsDuration);
           }
         }
         _ => {}

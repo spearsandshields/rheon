@@ -345,20 +345,40 @@ fn _0045() {
 fn dmn_1_6_date_time_timezone() {
   // DMN 1.6 §10.3.4.1 Table 73 (DMN16-16): date and time(date, time, timezone)
   let scope = &scope!();
-  te_bool(false, scope, r#"date and time(date("2024-12-24"), time("23:59:00"), "Z") = date and time("2024-12-24T23:59:00Z")"#, true);
+  te_bool(
+    false,
+    scope,
+    r#"date and time(date("2024-12-24"), time("23:59:00"), "Z") = date and time("2024-12-24T23:59:00Z")"#,
+    true,
+  );
   te_bool(
     false,
     scope,
     r#"date and time(date("2024-12-24"), time("23:59:00"), "America/Costa_Rica") = date and time("2024-12-24T23:59:00@America/Costa_Rica")"#,
     true,
   );
-  te_bool(false, scope, r#"date and time(date("2024-12-24"), time("23:59:00"), "+02:00") = @"2024-12-24T23:59:00+02:00""#, true);
-  te_bool(false, scope, r#"date and time(date: date("2024-12-24"), time: time("23:59:00"), timezone: "Z") = @"2024-12-24T23:59:00Z""#, true);
+  te_bool(
+    false,
+    scope,
+    r#"date and time(date("2024-12-24"), time("23:59:00"), "+02:00") = @"2024-12-24T23:59:00+02:00""#,
+    true,
+  );
+  te_bool(
+    false,
+    scope,
+    r#"date and time(date: date("2024-12-24"), time: time("23:59:00"), timezone: "Z") = @"2024-12-24T23:59:00Z""#,
+    true,
+  );
   te_null(
     false,
     scope,
     r#"date and time(date("2024-12-24"), time("23:59:00Z"), "Z")"#,
     "[core::date and time] the time must not have a time zone when a timezone is given",
   );
-  te_null(false, scope, r#"date and time(date("2024-12-24"), time("23:59:00"), "Mars/Base")"#, "[core::date and time] invalid timezone 'Mars/Base'");
+  te_null(
+    false,
+    scope,
+    r#"date and time(date("2024-12-24"), time("23:59:00"), "Mars/Base")"#,
+    "[core::date and time] invalid timezone 'Mars/Base'",
+  );
 }
