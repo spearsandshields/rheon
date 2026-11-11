@@ -1,0 +1,151 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 783ab22..d3a23bd 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -72,3 +72,7 @@ version = "0.2.172"
+ 
+ [build-dependencies.cc]
+ version = "1.2.21"
++
++# Vendored by the dsntk-rs `wasm` branch: crates.io 0.2.14 plus two fixes (build.rs uses the
++# TARGET os/arch; six bid128 FFI signatures match bid_functions.h). Used only by the `intel`
++# feature and the tools/ differential harnesses.
+diff --git a/build.rs b/build.rs
+index 32841c0..fd3a12e 100644
+--- a/build.rs
++++ b/build.rs
+@@ -15,18 +15,6 @@ const DECIMAL_GLOBAL_EXCEPTION_FLAGS: &str = "0";
+ #[cfg(feature = "global-exception-flags")]
+ const DECIMAL_GLOBAL_EXCEPTION_FLAGS: &str = "1";
+ 
+-#[cfg(target_arch = "x86_64")]
+-const ARCHITECTURE: &str = "ix86";
+-
+-#[cfg(target_arch = "aarch64")]
+-const ARCHITECTURE: &str = "ix86";
+-
+-#[cfg(target_os = "linux")]
+-const OPERATING_SYSTEM: &str = "linux";
+-#[cfg(target_os = "windows")]
+-const OPERATING_SYSTEM: &str = "win64";
+-#[cfg(target_os = "macos")]
+-const OPERATING_SYSTEM: &str = "darwin";
+ 
+ /// Main entrypoint of the building script.
+ ///
+@@ -36,8 +24,16 @@ const OPERATING_SYSTEM: &str = "darwin";
+ /// Only files required by this crate are used and stored in crates.io.
+ ///
+ fn main() {
++  // Pick the C defines from the TARGET, not the host: inside a build script `cfg!(target_os)`
++  // describes the machine running the build, which is wrong when cross-compiling (e.g. to wasm32).
++  let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap();
++  let os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
++  #[allow(non_snake_case)] let ARCHITECTURE = "ix86";
++  #[allow(non_snake_case)] let OPERATING_SYSTEM = match os.as_str() { "windows" => "win64", "macos" => "darwin", _ => "linux" };
+   let output_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
+-  cc::Build::new()
++  let mut b = cc::Build::new();
++  if arch == "wasm32" { b.define("_WASI_EMULATED_SIGNAL", None); }
++  b
+     .define(ARCHITECTURE, None)
+     .define(OPERATING_SYSTEM, None)
+     .define("DECIMAL_CALL_BY_REFERENCE", DECIMAL_CALL_BY_REFERENCE)
+diff --git a/src/bid128_000.rs b/src/bid128_000.rs
+index 684b270..43dc1ab 100644
+--- a/src/bid128_000.rs
++++ b/src/bid128_000.rs
+@@ -183,7 +183,7 @@ pub const BID128_BILLION: BID128 = BID128([0x3B9ACA00, 0x3040000000000000]);
+ pub const BID128_MINUS_BILLION: BID128 = BID128([0x3B9ACA00, 0xB040000000000000]);
+ 
+ extern "C" {
+-  fn __bid128_abs(x: BID128, flags: *mut c_uint) -> BID128;
++  fn __bid128_abs(x: BID128) -> BID128;
+   fn __bid128_acos(x: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+   fn __bid128_acosh(x: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+   fn __bid128_add(x: BID128, y: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+@@ -230,7 +230,7 @@ extern "C" {
+   fn __bid128_lgamma(x: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+   fn __bid128_llrint(x: BID128, round: c_uint, flags: *mut c_uint) -> c_longlong;
+   fn __bid128_llround(x: BID128, flags: *mut c_uint) -> c_longlong;
+-  fn __bid128_llquantexp(x: BID128) -> c_longlong;
++  fn __bid128_llquantexp(x: BID128, flags: *mut c_uint) -> c_longlong;
+   fn __bid128_log(x: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+   fn __bid128_log10(x: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+   fn __bid128_log1p(x: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+@@ -252,8 +252,8 @@ extern "C" {
+   fn __bid128_nextup(x: BID128, flags: *mut c_uint) -> BID128;
+   fn __bid128_negate(x: BID128) -> BID128;
+   fn __bid128_pow(x: BID128, y: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+-  fn __bid128_quantexp(x: BID128) -> c_int;
+-  fn __bid128_quantum(x: BID128) -> BID128;
++  fn __bid128_quantexp(x: BID128, flags: *mut c_uint) -> c_int;
++  fn __bid128_quantum(x: BID128, flags: *mut c_uint) -> BID128;
+   fn __bid128_quantize(x: BID128, y: BID128, round: c_uint, flags: *mut c_uint) -> BID128;
+   fn __bid128_quiet_equal(x: BID128, y: BID128, flags: *mut c_uint) -> c_int;
+   fn __bid128_quiet_greater(x: BID128, y: BID128, flags: *mut c_uint) -> c_int;
+@@ -276,8 +276,8 @@ extern "C" {
+   fn __bid128_round_integral_positive(x: BID128, flags: *mut c_uint) -> BID128;
+   fn __bid128_round_integral_zero(x: BID128, flags: *mut c_uint) -> BID128;
+   fn __bid128_sameQuantum(x: BID128, y: BID128) -> c_int;
+-  fn __bid128_scalbn(x: BID128, n: c_int) -> BID128;
+-  fn __bid128_scalbln(x: BID128, n: c_long) -> BID128;
++  fn __bid128_scalbn(x: BID128, n: c_int, round: c_uint, flags: *mut c_uint) -> BID128;
++  fn __bid128_scalbln(x: BID128, n: c_long, round: c_uint, flags: *mut c_uint) -> BID128;
+   fn __bid128_signaling_greater(x: BID128, y: BID128, flags: *mut c_uint) -> c_int;
+   fn __bid128_signaling_greater_equal(x: BID128, y: BID128, flags: *mut c_uint) -> c_int;
+   fn __bid128_signaling_greater_unordered(x: BID128, y: BID128, flags: *mut c_uint) -> c_int;
+@@ -417,7 +417,8 @@ extern "C" {
+ /// assert_eq!(flags, EXE_CLEAR);
+ /// ```
+ pub fn bid128_abs(x: BID128, flags: &mut ExcFlags) -> BID128 {
+-  unsafe { __bid128_abs(x, flags) }
++  let _ = flags;
++  unsafe { __bid128_abs(x) }
+ }
+ 
+ /// Returns `arcsin(x)`.
+@@ -770,18 +771,21 @@ pub fn bid128_pow(x: BID128, y: BID128, round: RndMode, flags: &mut ExcFlags) ->
+ 
+ /// Returns the quantum of a finite argument as a signed integer value.
+ pub fn bid128_quantexp(x: BID128) -> Signed {
+-  unsafe { __bid128_quantexp(x) }
++  let mut f = 0;
++  unsafe { __bid128_quantexp(x, &mut f) }
+ }
+ 
+ /// Returns the quantum of a finite argument as a signed long long integer value.
+ pub fn bid128_llquantexp(x: BID128) -> LongLong {
+-  unsafe { __bid128_llquantexp(x) }
++  let mut f = 0;
++  unsafe { __bid128_llquantexp(x, &mut f) }
+ }
+ 
+ /// Returns the quantum of a finite argument.
+ /// If x is infinite, the result is +Inf. If x is NaN, the result is NaN.
+ pub fn bid128_quantum(x: BID128) -> BID128 {
+-  unsafe { __bid128_quantum(x) }
++  let mut f = 0;
++  unsafe { __bid128_quantum(x, &mut f) }
+ }
+ 
+ /// Returns the number which is equal in value (except for any rounding) and sign
+@@ -902,14 +906,16 @@ pub fn bid128_same_quantum(x: BID128, y: BID128) -> bool {
+ pub fn bid128_scalbn(x: BID128, n: i32) -> BID128 {
+   const MIN: i32 = -6176;
+   const MAX: i32 = 6144;
+-  unsafe { __bid128_scalbn(x, n.clamp(MIN, MAX)) }
++  let mut f = 0;
++  unsafe { __bid128_scalbn(x, n.clamp(MIN, MAX), 0, &mut f) }
+ }
+ 
+ /// Returns `x * 10^n` where `n` is of type [Long].
+ pub fn bid128_scalbln(x: BID128, n: Long) -> BID128 {
+   const MIN: Long = -6176;
+   const MAX: Long = 6144;
+-  unsafe { __bid128_scalbln(x, n.clamp(MIN, MAX)) }
++  let mut f = 0;
++  unsafe { __bid128_scalbln(x, n.clamp(MIN, MAX), 0, &mut f) }
+ }
+ 
+ pub fn bid128_signaling_greater(x: BID128, y: BID128, flags: &mut ExcFlags) -> bool {

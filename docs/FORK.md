@@ -165,8 +165,11 @@ What each commit does:
 12. **`NUMBER_BACKEND`.** `rheon_feel_number::NUMBER_BACKEND` is `"dashu"` or
     `"intel"`, selected by the same feature as the backend itself; dsntk-wasm
     reports it as `numberBackend` in its `info` op.
-13. **Vendored Intel reference** (`tools/dfp-number-sys`): the patched
-    `dfp-number-sys` crate the `tools/` harnesses build the Intel side with.
+13. **Intel reference for `tools/`**: the patched `dfp-number-sys` crate the
+    `tools/` harnesses build the Intel side with. It was vendored in full
+    (17 MB, mostly Intel's C library); it is now `tools/dfp-number-sys.patch`
+    on top of the crates.io 0.2.14 release, fetched by
+    `tools/fetch-dfp-number-sys.sh`.
 14. **Scale rounding.** `unscale()` (both backends) returned `±1` without
     scaling back whenever the rounded integral was `±1`, so `round up(0.1, 1)`
     was `1`, `floor(0.19, 1)` was `1`, `round up(10, -1)` was `1`. The
@@ -288,13 +291,12 @@ functions) and `dmn_3_0103::_0017` (`time_006`, depends on the current
 Australia/Melbourne DST offset), identical on both backends; before commit 9
 dashu also failed `dmn_3_0100::_0278` (`5 ** 2.55`, Intel's 1-ulp value).
 
-The Intel runs need the patched `dfp-number-sys` from dsntk-wasm (the
-crates.io version has FFI signature bugs), injected without committing a
-machine-specific path:
+The Intel runs need the patched `dfp-number-sys` (the crates.io version has
+FFI signature bugs), injected without committing a machine-specific path:
 
 ```sh
 cargo test --no-default-features --features intel \
-  --config 'patch.crates-io.dfp-number-sys.path="~/dev/rheon/third_party/dfp-number-sys"' \
+  --config "patch.crates-io.dfp-number-sys.path=\"$(tools/fetch-dfp-number-sys.sh)\"" \
   -p rheon-feel-number
 git checkout Cargo.lock          # --config patch.crates-io rewrites the lock file
 ```

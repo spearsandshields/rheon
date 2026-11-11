@@ -12,8 +12,8 @@ path = "../../../../feel-number/src/lib.rs"
 dashu-base = { version = "0.6.1", default-features = false }
 dashu-float = { version = "0.6.2", default-features = false }
 dashu-int = { version = "0.6.2", default-features = false }
-dsntk-common = { path = "../../../../common" }
-dsntk-macros = { path = "../../../../macros" }
+dsntk-common = "=0.3.0"
+dsntk-macros = "=0.3.0"
 
 [features]
 default = ["dashu"]

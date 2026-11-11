@@ -131,9 +131,6 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
   reason, so side effects happen twice. Trivial.
 - **`sort` comparator bypasses guards** `[fork]` (2026-10-18). Depth and finiteness guards are
   skipped for the user comparator; non-boolean result silently means equal. Small.
-- **Split `tools/` off the `wasm` branch** `[fork]` (2026-10-17). The vendored Intel reference is
-  97 % of the branch diff by files; move it and docs/FORK.md to a `wasm-tools` branch so the
-  branch is a clean PR series. An hour, on the next rebase.
 - **Globals in the engine** `[fork]` `[upstream]` (2026-10-17). The tz-offset override is a process
   atomic and the call depth is thread-local; thread both through the evaluator scope and drop
   `ENGINE_LOCK`. A day; likely an upstream request anyway.

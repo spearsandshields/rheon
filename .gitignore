@@ -10,3 +10,6 @@ apps/playground/public/third-party-notices.txt
 
 # on-demand TCK run (scripts/tck.sh)
 .tck/
+
+# patched Intel reference for tools/ (tools/fetch-dfp-number-sys.sh)
+tools/.dfp-number-sys/

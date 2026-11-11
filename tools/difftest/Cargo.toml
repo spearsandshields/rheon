@@ -10,7 +10,7 @@ publish = false
 [dependencies]
 fn-intel = { path = "crates/fn-intel" }
 fn-dashu = { path = "crates/fn-dashu" }
-dsntk-common = { path = "../../common" }
+dsntk-common = "=0.3.0"
 
 [profile.release]
 overflow-checks = true

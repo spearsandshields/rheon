@@ -6,11 +6,11 @@ dsntk workspace) that compare the `intel` (dfp-number-sys, Intel BID128) and `da
 and against an independent oracle. They were used to validate the dashu backend; run them again
 after touching `feel-number/src/decimal128.rs` or `feel-number/src/backend_dashu.rs`.
 
-Both need the patched `dfp-number-sys` from dsntk-wasm for the Intel side (the crates.io
-version has FFI signature bugs on some targets); the run scripts inject it with
-`--config patch.crates-io.dfp-number-sys.path=...` and take its location from
-`DFP_NUMBER_SYS` (default `tools/dfp-number-sys`, the patched copy vendored in this branch; was a sibling
-checkout of dsntk-wasm). The oracles need `python3` with `mpmath`.
+Both need a patched `dfp-number-sys` for the Intel side (the crates.io version has FFI
+signature bugs on some targets). `fetch-dfp-number-sys.sh` downloads 0.2.14 from crates.io
+(checksum-verified) into `tools/.dfp-number-sys`, applies `dfp-number-sys.patch` and prints the
+path; the run scripts call it unless `DFP_NUMBER_SYS` names another copy, and inject the crate
+with `--config patch.crates-io.dfp-number-sys.path=...`. The oracles need `python3` with `mpmath`.
 
 ## `difftest/`: op-by-op fuzz of `FeelNumber`
 
