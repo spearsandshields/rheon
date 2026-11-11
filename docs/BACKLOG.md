@@ -269,6 +269,20 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
   `engineCommit d811cac…-dirty` because prepack copied a stale local build; the engine code is
   identical, the stamp is wrong. prepack now refuses a module not built from HEAD. Fixed in the
   next npm release; the release asset is stamped correctly (3fcc8af).
+- **0.2.0 released** (2026-11-11, DMN 1.6): ten crates on crates.io (`rheon-feel-grammar` published
+  for the first time; the whole set went up in 40 s, no rate limit), `@rheon/feel-runtime@0.2.0`
+  on npm (user's prompt, 2FA), GitHub Release `v0.2.0` from `release.yml`. Preceded by a
+  main-thread review of the 1.6 engine diff (fa2c5cd: Drop guard in the diagnostics collector,
+  no per-reference clone of the input data in decisions, one `variable::result_type`, dead code,
+  `cargo fmt` over the tree) and `cargo fmt --check` in CI (rustfmt pinned in
+  rust-toolchain.toml). The npm module is stamped `3209ccd` clean (prepack guard). The npm
+  `feel.wasm` and the release asset are both built from 3209ccd with the same rustc but differ
+  by 310 bytes (string-constant order in the data section, a few bytes of code): cross-host
+  builds (macOS vs CI Linux) are not bit-identical. Same behaviour; the release asset is the
+  canonical build. Option for a later release: let CI publish npm too (automation token with
+  provenance) so one build feeds both. Local upstream tags (`v0.0.x`, `v0.3.0`, `v0.3.0-rc.0`)
+  deleted with the user's OK; `dsntk/…` twins remain on GitHub, and a bare `v0.3.0-rc.0` from
+  upstream is still on the remote.
 - **SECURITY.md / CONTRIBUTING.md** (2026-11-09): deliberately not added yet (user). Add SECURITY.md when
   the npm package or the server is something people deploy; until then GitHub's "private
   vulnerability reporting" toggle is the reporting channel. The `repository`/`homepage` fields of
