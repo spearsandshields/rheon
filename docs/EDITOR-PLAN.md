@@ -1,4 +1,4 @@
-<!-- Produced 2026-10-20 by a 12-agent review (3 readers, 4 designs, 3 judges, synthesis, adversarial critic). Measurements and file references were verified against the fork at f70ac79 and the installed packages. -->
+<!-- Produced 2026-10-20 by a 12-agent review (3 readers, 4 designs, 3 judges, synthesis, adversarial critic). Measurements and file references were verified against the fork at 5f949e9 and the installed packages. -->
 
 # Editor language support — decision and plan (amended)
 

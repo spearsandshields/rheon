@@ -118,7 +118,7 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
   robustness commit is reset only by our wasm layer; native CLI/server/model-evaluator stay poisoned
   after one runaway. Reset on entry to every public evaluate function. Half a day.
 - **Nanosecond rule** `[fork]` (2026-10-18). Time/date-time equality drops nanoseconds, ordering
-  (added in 4d61eb1) keeps them, so `=` and `<` can both hold. Decide once, document, test. Hours.
+  (added in 6f08eab) keeps them, so `=` and `<` can both hold. Decide once, document, test. Hours.
 - **Grammar precedence for unary endpoints** `[fork]` `[upstream]` (2026-10-17). `> 0.1 + 0.2`
   parses as `(? > 0.1) + 0.2`; fix is in upstream's `feel-grammar/src/feel.y` (used from crates.io since 2026-11-09; bring it into the tree as `rheon-feel-grammar` first) plus Bison regeneration
   (bison 2.3 compatibility with the extractor unverified). Also cherry-pick upstream PR #112 for
@@ -179,7 +179,7 @@ Open in 1.6:
 ### FEEL-side cases the TCK patches remove
 
 Of the 20 extra failures on the unpatched TCK, two FEEL ones were fixed on 2026-10-18 (fork
-commits c324518 and 44049be: scale range -6111..=6176 for the rounding functions, and regex
+commits 4b5ca51 and 69e81cc: scale range -6111..=6176 for the rounding functions, and regex
 back-references via fancy-regex). The unpatched subset now stands at 289/298. Remaining:
 - **Dates beyond chrono's range** (1115/1117: years outside ±262143): a different date core or
   clamping with a null reason. Large; low value.
@@ -221,8 +221,8 @@ back-references via fancy-regex). The unpatched subset now stands at 289/298. Re
 - **First commit, fork push, https pin** (2026-10-17). dsntk-wasm has no commits and the fork is
   pinned by `file:///…`, so nobody else can build. Both wait for an explicit go-ahead. Once on
   GitHub, the six Cargo.toml `rev` lines switch to the https URL.
-- **Report the fork fixes upstream** (2026-10-17). Candidates: c760d4d, 55c7406, 4d61eb1,
-  f308a34, 5ecdede, cf21d52, plus the four "fixes we owe" above once done.
+- **Report the fork fixes upstream** (2026-10-17). Candidates: 8542135, 7c16676, 6f08eab,
+  cb5997f, 58bbc18, f619d8a, plus the four "fixes we owe" above once done.
 
 
 ## Restructure of 2026-10-28 (rheon)
@@ -270,17 +270,17 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
   (`rheon` org on npm, 2FA on the account; `npm publish` needs an interactive prompt for the
   one-time code), GitHub Release `v0.1.0` from `release.yml` (`feel.wasm` + sha256, npm
   tarball, playground zip). Known wart: the npm 0.1.0 tarball's `feel.wasm` reports
-  `engineCommit d811cac…-dirty` because prepack copied a stale local build; the engine code is
+  `engineCommit d811cac…-dirty` (pre-rewrite hash) because prepack copied a stale local build; the engine code is
   identical, the stamp is wrong. prepack now refuses a module not built from HEAD. Fixed in the
-  next npm release; the release asset is stamped correctly (3fcc8af).
+  next npm release; the release asset is stamped correctly (3fcc8af, the pre-rewrite hash of caf5ea4).
 - **0.2.0 released** (2026-11-11, DMN 1.6): ten crates on crates.io (`rheon-feel-grammar` published
   for the first time; the whole set went up in 40 s, no rate limit), `@rheon/feel-runtime@0.2.0`
   on npm (user's prompt, 2FA), GitHub Release `v0.2.0` from `release.yml`. Preceded by a
-  main-thread review of the 1.6 engine diff (fa2c5cd: Drop guard in the diagnostics collector,
+  main-thread review of the 1.6 engine diff (b20412c: Drop guard in the diagnostics collector,
   no per-reference clone of the input data in decisions, one `variable::result_type`, dead code,
   `cargo fmt` over the tree) and `cargo fmt --check` in CI (rustfmt pinned in
-  rust-toolchain.toml). The npm module is stamped `3209ccd` clean (prepack guard). The npm
-  `feel.wasm` and the release asset are both built from 3209ccd with the same rustc but differ
+  rust-toolchain.toml). The npm module is stamped `3209ccd` clean (prepack guard; the pre-rewrite hash of
+  today's a91330d). The npm `feel.wasm` and the release asset are both built from that commit with the same rustc but differ
   by 310 bytes (string-constant order in the data section, a few bytes of code): cross-host
   builds (macOS vs CI Linux) are not bit-identical. Same behaviour; the release asset is the
   canonical build. Option for a later release: let CI publish npm too (automation token with
