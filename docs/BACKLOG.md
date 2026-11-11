@@ -150,6 +150,10 @@ Official TCK (patched): 3,392 of 3,407; only 0076 (Java, out of scope) and 0085 
 `scripts/tck.sh` runs it on demand; `docs/tck-baseline.txt` records the failing tests.
 
 Open in 1.6:
+- **B-FEEL arithmetic leaves a diagnostic** `[dmn]`. B-FEEL first applies the FEEL operator and
+  converts the operands only when that fails, so `1 + "2"` in B-FEEL gives `"12"` with one
+  recorded error ("incompatible types in addition"). In B-FEEL a null never means an error, so
+  the FEEL attempt should not be recorded. Small: suppress collection around the first attempt.
 - **Dialect of decision table entries** `[dmn]`. Input and output entries are unary tests and
   literal expressions that may carry their own `expressionLanguage`; the evaluator applies the
   model's dialect to the whole table. Not exercised by the TCK. Small.
