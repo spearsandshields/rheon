@@ -285,8 +285,9 @@ The dsntk fork (`~/dev/dsntk-rs`, branch `wasm`) became the main repository `~/d
   builds (macOS vs CI Linux) are not bit-identical. Same behaviour; the release asset is the
   canonical build. Option for a later release: let CI publish npm too (automation token with
   provenance) so one build feeds both. Local upstream tags (`v0.0.x`, `v0.3.0`, `v0.3.0-rc.0`)
-  deleted with the user's OK; `dsntk/…` twins remain on GitHub, and a bare `v0.3.0-rc.0` from
-  upstream is still on the remote.
+  deleted with the user's OK; GitHub keeps only the `dsntk/…` twins. The old
+  `dsntk-wasm-build` repo: deletion approved by the user, waiting for a `gh` token with the
+  `delete_repo` scope (no rush).
 - **SECURITY.md / CONTRIBUTING.md** (2026-11-09): deliberately not added yet (user). Add SECURITY.md when
   the npm package or the server is something people deploy; until then GitHub's "private
   vulnerability reporting" toggle is the reporting channel. The `repository`/`homepage` fields of
