@@ -818,3 +818,27 @@ fn _0156() {
   te_bool(false, &scope!(), "null in (= null)", true);
   te_bool(false, &scope!(), "null in (!= null)", false);
 }
+
+#[test]
+fn _0157() {
+  // null is null, whatever produced it: here a function whose argument does not conform
+  let scope = &te_scope(r#"{f: function(a: number) a}"#);
+  te_bool(false, scope, r#"null in f("x")"#, true);
+  te_bool(false, scope, r#"5 in f("x")"#, false);
+  te_bool(false, scope, r#"null in [f("x")]"#, true);
+  te_bool(false, scope, r#"5 in [f("x")]"#, false);
+  te_bool(false, scope, r#"5 in [f("x"), 5]"#, true);
+  te_bool(false, scope, r#"5 in [5, f("x")]"#, true);
+}
+
+#[test]
+fn _0158() {
+  // the same in unary tests, as in decision table input entries
+  let scope = &te_scope(r#"{f: function(a: number) a}"#);
+  satisfies(false, scope, "null", "", r#"f("x")"#, true);
+  satisfies(false, scope, "5", "", r#"f("x"), 5"#, true);
+  satisfies(false, scope, "5", "", r#"5, f("x")"#, true);
+  satisfies(false, scope, "5", "", r#"not(f("x"))"#, true);
+  satisfies(false, scope, "5", "", r#"not(f("x"), 5)"#, false);
+  satisfies(false, scope, "null", "", r#"not(f("x"))"#, false);
+}

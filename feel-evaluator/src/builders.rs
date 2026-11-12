@@ -1162,7 +1162,7 @@ impl<'b> EvaluatorBuilder<'b> {
       let lhv = lhe(scope);
       let rhv = rhe(scope);
       match rhv {
-        inner @ Value::Null(None)
+        inner @ Value::Null(_)
         | inner @ Value::Number(_)
         | inner @ Value::String(_)
         | inner @ Value::Boolean(_)
@@ -1189,7 +1189,6 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::UnaryGreater(inner) => eval_in_unary_greater(&lhv, inner.borrow()),
         Value::UnaryGreaterOrEqual(inner) => eval_in_unary_greater_or_equal(&lhv, inner.borrow()),
         Value::Irrelevant => VALUE_TRUE,
-        Value::Null(Some(message)) => value_null!(message),
         _ => value_null!("unexpected argument type in 'in' operator: {}", rhv.type_of()),
       }
     })
@@ -2207,7 +2206,7 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
   let mut unary_not_equal = vec![];
   for item in items {
     match item {
-      inner @ Value::Null(None)
+      inner @ Value::Null(_)
       | inner @ Value::String(_)
       | inner @ Value::Number(_)
       | inner @ Value::Boolean(_)
@@ -2263,7 +2262,6 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_TRUE;
         }
       }
-      Value::Null(Some(message)) => return value_null!(message),
       other => return value_null!("unexpected type in list: {}", other.type_of()),
     }
   }
@@ -2277,7 +2275,7 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
   let mut unary_not_equal = vec![];
   for item in items {
     match item {
-      inner @ Value::Null(None)
+      inner @ Value::Null(_)
       | inner @ Value::String(_)
       | inner @ Value::Number(_)
       | inner @ Value::Boolean(_)
@@ -2332,7 +2330,6 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_FALSE;
         }
       }
-      Value::Null(Some(message)) => return value_null!(message),
       other => return value_null!("unexpected type in negated list: {}", other.type_of()),
     }
   }
