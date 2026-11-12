@@ -83,14 +83,28 @@ fn _0010(b: &mut Bencher) {
 #[bench]
 fn _0011(b: &mut Bencher) {
   let invocable = "decision_bkm_002";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable,
+    &CTX,
+    r#"null(argument for parameter 'nameAndAge' does not conform to type context<age: number, name: string>)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX));
 }
 
 #[bench]
 fn _0012(b: &mut Bencher) {
   let invocable = "decision_bkm_003";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable,
+    &CTX,
+    r#"null(argument for parameter 'nameAndAge' does not conform to type context<age: number, name: string>)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX));
 }
 
@@ -125,7 +139,14 @@ fn _0016(b: &mut Bencher) {
 #[bench]
 fn _0017(b: &mut Bencher) {
   let invocable = "invoke_001";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, r#"null(after coercion)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable,
+    &CTX,
+    r#"null(argument for parameter 'nameAndAge' does not conform to type context<age: number, name: string>)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX));
 }
 
@@ -160,7 +181,7 @@ fn _0021(b: &mut Bencher) {
 #[bench]
 fn _0022(b: &mut Bencher) {
   let invocable = "invoke_007";
-  let expected = "null(argument not provided: arg)";
+  let expected = "null(function has no parameter named 'arg1')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX));
 }
@@ -175,7 +196,14 @@ fn _0023(b: &mut Bencher) {
 #[bench]
 fn _0024(b: &mut Bencher) {
   let invocable = "fd_002";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, r#"null(after coercion)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable,
+    &CTX,
+    r#"null(argument for parameter 'arg' does not conform to type number)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX));
 }
 
@@ -217,7 +245,14 @@ fn _0029(b: &mut Bencher) {
 #[bench]
 fn _0030(b: &mut Bencher) {
   let invocable = "ds_invoke_002_with_number";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, r#"null(after coercion)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable,
+    &CTX,
+    r#"null(argument for parameter 'decisionService_002_input_1' does not conform to type string)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX));
 }
 

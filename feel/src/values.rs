@@ -77,9 +77,6 @@ pub const VALUE_TRUE: Value = Value::Boolean(true);
 /// Utility constant for value `false` of type `Boolean`.
 pub const VALUE_FALSE: Value = Value::Boolean(false);
 
-/// Constant indicating invalid coercion result.
-const INVALID_COERCION: &str = "after coercion";
-
 /// `FEEL` value.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -470,11 +467,6 @@ impl Value {
     }
   }
 
-  /// Returns `true` when the value is of type [Value::Null] indicating invalid coercion.
-  pub fn is_invalid_coercion(&self) -> bool {
-    if let Value::Null(Some(message)) = self { message == INVALID_COERCION } else { false }
-  }
-
   /// Returns the type of this [Value].
   pub fn type_of(&self) -> FeelType {
     match self {
@@ -628,7 +620,7 @@ impl Value {
   /// After the type of the value is known, an implicit conversion
   /// from the type of the value to the target type can be performed.
   /// If an implicit conversion is mandatory but it cannot be performed,
-  /// the result is null.
+  /// the result is `None`.
   ///
   /// There are several possible type conversions:
   ///
@@ -645,38 +637,40 @@ impl Value {
   /// - conforms to:
   ///
   ///  When the type of the value is T1, the target type is T2, and T1 conforms to T2,
-  ///  the value remains unchanged, otherwise the result is null.
+  ///  the value remains unchanged, otherwise the result is `None`.
   ///
   /// All these conversion rules are implemented in this function.
   ///
-  pub fn coerced(&self, target_type: &FeelType) -> Value {
+  /// `None` when the value does not conform before or after the implicit conversions (§10.3.2.9.4);
+  /// in an invocation context the result of the invocation is then null.
+  pub fn try_coerced(&self, target_type: &FeelType) -> Option<Value> {
     if let Value::FunctionDefinition(_, _, _, _, _, _) = self {
-      return self.clone();
+      return Some(self.clone());
     }
     if let Value::BuiltInFunction(bif) = self
       && bif.feel_type().is_conformant(target_type)
     {
-      return self.clone();
+      return Some(self.clone());
     }
     if self.is_conformant(target_type) {
-      return self.clone();
+      return Some(self.clone());
     }
     match self {
       // from date to date and time: UTC midnight (DMN 1.6 §10.3.2.9.4 and §10.3.2.3.5)
       Value::Date(date) if *target_type == FeelType::DateTime => {
-        return Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0)));
+        return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0))));
       }
       // from singleton list
       Value::List(items) => {
         if items.len() == 1 {
           let value = items[0].clone();
           if value.is_conformant(target_type) {
-            return value;
+            return Some(value);
           }
           if let Value::Date(date) = &value
             && *target_type == FeelType::DateTime
           {
-            return Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0)));
+            return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0))));
           }
         }
       }
@@ -685,11 +679,17 @@ impl Value {
         if let FeelType::List(list_type) = target_type
           && value.is_conformant(list_type)
         {
-          return Value::List(vec![value.clone()]);
+          return Some(Value::List(vec![value.clone()]));
         }
       }
     }
-    value_null!(INVALID_COERCION)
+    None
+  }
+
+  /// Returns value coerced to specified type, or null when it can not be converted
+  /// (the binding contexts of §10.3.2.9.4; see [Value::try_coerced]).
+  pub fn coerced(&self, target_type: &FeelType) -> Value {
+    self.try_coerced(target_type).unwrap_or_else(|| value_null!("after coercion"))
   }
 
   /// Tries to convert `xsd:integer` string into valid [Value] representing a number.

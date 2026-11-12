@@ -1,11 +1,10 @@
 //! # Evaluator builders for FEEL expressions
 
+use crate::FilterExpressionEvaluator;
 use crate::bfeel::{self, Dialect};
-use crate::evaluator_java::evaluate_external_java_function;
-use crate::evaluator_pmml::evaluate_external_pmml_function;
+use crate::invocation::{Arguments, guarded, invoke};
 use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
 use crate::macros::invalid_argument_type;
-use crate::{FilterExpressionEvaluator, bifs};
 use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
 use rheon_feel::context::FeelContext;
@@ -20,38 +19,9 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
-/// Maximum number of nested function invocations during one evaluation.
-///
-/// Every nested invocation (user-defined recursion such as `f(n - 1)`, or built-in calls nested
-/// in each other) uses host stack. Without a limit, deep recursion overflows the stack, which on
-/// wasm32 is a trap that kills the engine instance, at a depth that depends on the host (browser
-/// worker, Node main thread, ...). With this limit the evaluation stops deterministically at the
-/// same depth everywhere.
-pub const MAX_CALL_DEPTH: usize = 200;
-
-thread_local! {
-  /// Current depth of nested function invocations.
-  static CALL_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
-  /// Set when [MAX_CALL_DEPTH] was exceeded; all further invocations return null immediately
-  /// so the evaluation unwinds quickly. Cleared by [reset_call_depth].
-  static CALL_DEPTH_EXCEEDED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-}
-
-/// Resets the call depth tracking; call before every top-level evaluation.
-pub fn reset_call_depth() {
-  CALL_DEPTH.with(|depth| depth.set(0));
-  CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.set(false));
-}
-
-/// Returns `true` when the last evaluation exceeded [MAX_CALL_DEPTH]; its result is then
-/// meaningless (it was cut short) and should be reported as an error.
-pub fn call_depth_exceeded() -> bool {
-  CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.get())
-}
-
 /// Replaces non-finite numbers (BID128 infinity or NaN, produced e.g. by `9e6144 * 10`,
 /// `1 / 1e-6176` or `decimal(1e33, 1)`) with null: FEEL has no such numbers.
-fn finite(value: Value) -> Value {
+pub(crate) fn finite(value: Value) -> Value {
   match value {
     Value::Number(n) if !n.is_finite() => value_null!("result is not a finite number (decimal overflow)"),
     other => other,
@@ -63,22 +33,9 @@ fn guard_finite(evaluator: Evaluator) -> Evaluator {
   Box::new(move |scope: &FeelScope| finite(evaluator(scope)))
 }
 
-/// Wraps a function invocation evaluator: enforces [MAX_CALL_DEPTH] and finite results.
+/// Wraps a function invocation evaluator: the call depth limit and finite results ([guarded]).
 fn guard_invocation(evaluator: Evaluator) -> Evaluator {
-  Box::new(move |scope: &FeelScope| {
-    if CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.get()) {
-      return value_null!("function call depth limit ({}) exceeded", MAX_CALL_DEPTH);
-    }
-    let depth = CALL_DEPTH.with(|depth| depth.get());
-    if depth >= MAX_CALL_DEPTH {
-      CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.set(true));
-      return value_null!("function call depth limit ({}) exceeded", MAX_CALL_DEPTH);
-    }
-    CALL_DEPTH.with(|d| d.set(depth + 1));
-    let value = finite(evaluator(scope));
-    CALL_DEPTH.with(|d| d.set(depth));
-    value
-  })
+  Box::new(move |scope: &FeelScope| guarded(|| evaluator(scope)))
 }
 
 /// Builds an evaluator from provided AST node.
@@ -190,8 +147,6 @@ impl<'b> EvaluatorBuilder<'b> {
       AstNode::Lt(lhs, rhs) => self.build_lt(lhs, rhs),
       AstNode::Mul(lhs, rhs) => self.build_mul(lhs, rhs),
       AstNode::Name(name) => self.build_name(name.clone()),
-      AstNode::NamedParameter(lhs, rhs) => self.build_named_parameter(lhs, rhs),
-      AstNode::NamedParameters(lhs) => self.build_named_parameters(lhs),
       AstNode::Neg(rhs) => self.build_neg(rhs),
       AstNode::NegatedList(lhs) => self.build_negated_list(lhs),
       AstNode::Null => self.build_null(),
@@ -220,6 +175,8 @@ impl<'b> EvaluatorBuilder<'b> {
       | AstNode::IterationContexts { .. }
       | AstNode::IterationContextSingle { .. }
       | AstNode::IterationContextInterval { .. }
+      | AstNode::NamedParameter { .. }
+      | AstNode::NamedParameters { .. }
       | AstNode::PositionalParameters { .. }
       | AstNode::QuantifiedContext { .. }
       | AstNode::QuantifiedContexts { .. }
@@ -981,7 +938,7 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_function_invocation(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     match rhs {
       AstNode::PositionalParameters(parameters) => self.build_function_invocation_with_positional_parameters(lhs, parameters),
-      node @ AstNode::NamedParameters(_) => self.build_function_invocation_with_named_parameters(lhs, node),
+      AstNode::NamedParameters(parameters) => self.build_function_invocation_with_named_parameters(lhs, parameters),
       _ => build_err_msg(err_msg_expected_positional_or_named_parameter(rhs)),
     }
   }
@@ -989,22 +946,11 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_function_invocation_with_positional_parameters(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Evaluator {
     let function_evaluator = self.build(lhs);
     let argument_evaluators = self.build_positional_argument_evaluators(lhs, rhs);
-    let bfeel = self.dialect == Dialect::BFeel;
+    let dialect = self.dialect;
     Box::new(move |scope: &FeelScope| {
       let function = function_evaluator(scope);
-      let args = argument_evaluators.iter().map(|evaluator| evaluator(scope)).collect::<Vec<Value>>();
-      match function {
-        Value::BuiltInFunction(bif) if bfeel => bfeel::evaluate_positional_bif(bif, args),
-        Value::BuiltInFunction(bif) => bifs::positional::evaluate_bif(bif, &args),
-        Value::FunctionDefinition(params, body, external, _, closure_ctx, result_type) => {
-          if external {
-            eval_external_function_with_positional_parameters(scope, &args, &params, &body, result_type)
-          } else {
-            eval_function_with_positional_parameters(scope, &args, &params, &body, closure_ctx, result_type)
-          }
-        }
-        _ => value_null!("expected built-in function name or function definition, actual is {}", function),
-      }
+      let arguments = argument_evaluators.iter().map(|evaluator| evaluator(scope)).collect();
+      invoke(scope, function, Arguments::Positional(arguments), dialect)
     })
   }
 
@@ -1042,29 +988,21 @@ impl<'b> EvaluatorBuilder<'b> {
     argument_evaluators
   }
 
-  fn build_function_invocation_with_named_parameters(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_function_invocation_with_named_parameters(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Evaluator {
     let function_evaluator = self.build(lhs);
-    let arguments_evaluator = self.build_named_arguments_evaluator(lhs, rhs);
-    let bfeel = self.dialect == Dialect::BFeel;
+    let argument_evaluators = match self.build_named_argument_evaluators(lhs, rhs) {
+      Ok(argument_evaluators) => argument_evaluators,
+      Err(err_msg) => return build_err_msg(err_msg),
+    };
+    let dialect = self.dialect;
     Box::new(move |scope: &FeelScope| {
       let function = function_evaluator(scope);
-      let args = arguments_evaluator(scope);
-      match function {
-        Value::BuiltInFunction(bif) if bfeel => bfeel::evaluate_named_bif(bif, &args),
-        Value::BuiltInFunction(bif) => bifs::named::evaluate_bif(bif, &args),
-        Value::FunctionDefinition(params, body, external, _, closure_ctx, result_type) => {
-          if external {
-            eval_external_function_with_named_parameters(scope, &args, &params, &body, result_type)
-          } else {
-            eval_function_with_named_parameters(scope, &args, &params, &body, closure_ctx, result_type)
-          }
-        }
-        _ => value_null!("expected built-in function name or function definition, actual is {}", function),
-      }
+      let arguments = argument_evaluators.iter().map(|(name, evaluator)| (name.clone(), evaluator(scope))).collect();
+      invoke(scope, function, Arguments::Named(arguments), dialect)
     })
   }
 
-  fn build_named_arguments_evaluator(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_named_argument_evaluators(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Result<Vec<(Name, Evaluator)>, String> {
     if let AstNode::Name(name) = lhs {
       match name.to_string().as_str() {
         "range" => {
@@ -1091,7 +1029,17 @@ impl<'b> EvaluatorBuilder<'b> {
     //------------------------------------------------------------------------------------------------------------------
     // Default argument processing.
     //------------------------------------------------------------------------------------------------------------------
-    self.build(rhs)
+    let mut argument_evaluators = vec![];
+    for node in rhs {
+      let AstNode::NamedParameter(name_node, expression) = node else {
+        return Err(err_msg_expected_node("NamedParameter", node));
+      };
+      let AstNode::ParameterName(name) = name_node.borrow() else {
+        return Err(err_expected_parameter_name(name_node));
+      };
+      argument_evaluators.push((name.clone(), self.build(expression)));
+    }
+    Ok(argument_evaluators)
   }
 
   fn build_function_type(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
@@ -1214,7 +1162,7 @@ impl<'b> EvaluatorBuilder<'b> {
       let lhv = lhe(scope);
       let rhv = rhe(scope);
       match rhv {
-        inner @ Value::Null(None)
+        inner @ Value::Null(_)
         | inner @ Value::Number(_)
         | inner @ Value::String(_)
         | inner @ Value::Boolean(_)
@@ -1241,7 +1189,6 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::UnaryGreater(inner) => eval_in_unary_greater(&lhv, inner.borrow()),
         Value::UnaryGreaterOrEqual(inner) => eval_in_unary_greater_or_equal(&lhv, inner.borrow()),
         Value::Irrelevant => VALUE_TRUE,
-        Value::Null(Some(message)) => value_null!(message),
         _ => value_null!("unexpected argument type in 'in' operator: {}", rhv.type_of()),
       }
     })
@@ -1515,38 +1462,6 @@ impl<'b> EvaluatorBuilder<'b> {
       } else {
         value_null!("context has no value for key '{}'", name)
       }
-    })
-  }
-
-  fn build_named_parameter(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
-    if let AstNode::ParameterName(name) = lhs {
-      let lhv = Value::ParameterName(name.clone());
-      let rhe = self.build(rhs);
-      return Box::new(move |scope: &FeelScope| {
-        let rhv = rhe(scope);
-        Value::NamedParameter(Box::new(lhv.clone()), Box::new(rhv))
-      });
-    }
-    build_err_msg(err_expected_parameter_name(lhs))
-  }
-
-  fn build_named_parameters(&mut self, lhs: &'b [AstNode]) -> Evaluator {
-    let mut evaluators = vec![];
-    for item in lhs {
-      evaluators.push(self.build(item));
-    }
-    Box::new(move |scope: &FeelScope| {
-      let mut parameters = BTreeMap::new();
-      let mut position = 1_usize;
-      for evaluator in &evaluators {
-        if let Value::NamedParameter(name, value) = evaluator(scope)
-          && let Value::ParameterName(name) = *name
-        {
-          parameters.insert(name, (*value, position));
-          position += 1;
-        }
-      }
-      Value::NamedParameters(parameters)
     })
   }
 
@@ -2135,22 +2050,26 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
   }
 }
 
-/// Evaluates ternary equality of two values.
+/// Evaluates the equality of two values: `None` when the values can not be compared.
+///
+/// Comparing with null tests if the other value is null, so it always has a result
+/// (DMN 1.6, grammar rule 49.a). Other values are compared by kind (Table 54); the known
+/// deviations are listed in docs/BACKLOG.md ("Equality and comparison follow-ups").
 pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
+  if lhs.is_null() || rhs.is_null() {
+    return Some(lhs.is_null() && rhs.is_null());
+  }
   match lhs {
     Value::Boolean(ls) => match rhs {
       Value::Boolean(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Number(ls) => match rhs {
       Value::Number(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::String(ls) => match rhs {
       Value::String(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Context(ls) => match rhs {
@@ -2177,42 +2096,26 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
         // contexts have different number of keys, so they are NOT EQUAL
         Some(false)
       }
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Date(ls) => match rhs {
       Value::Date(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Time(ls) => match rhs {
       Value::Time(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::DateTime(ls) => match rhs {
       Value::DateTime(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::DaysAndTimeDuration(ls) => match rhs {
       Value::DaysAndTimeDuration(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::YearsAndMonthsDuration(ls) => match rhs {
       Value::YearsAndMonthsDuration(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
-      _ => None,
-    },
-    ls @ Value::Null(_) => match rhs {
-      rs @ Value::Null(_) => {
-        if (ls.is_invalid_coercion() && !rs.is_invalid_coercion()) || (!ls.is_invalid_coercion() && rs.is_invalid_coercion()) {
-          None
-        } else {
-          Some(true)
-        }
-      }
       _ => None,
     },
     Value::List(ls) => match rhs {
@@ -2229,7 +2132,6 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
           Some(false)
         }
       }
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::UnaryEqual(l_end) => match rhs {
@@ -2294,7 +2196,6 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
         }
         Some(false)
       }
-      Value::Null(_) => Some(false),
       _ => None,
     },
     _ => None,
@@ -2305,7 +2206,7 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
   let mut unary_not_equal = vec![];
   for item in items {
     match item {
-      inner @ Value::Null(None)
+      inner @ Value::Null(_)
       | inner @ Value::String(_)
       | inner @ Value::Number(_)
       | inner @ Value::Boolean(_)
@@ -2361,7 +2262,6 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_TRUE;
         }
       }
-      Value::Null(Some(message)) => return value_null!(message),
       other => return value_null!("unexpected type in list: {}", other.type_of()),
     }
   }
@@ -2375,7 +2275,7 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
   let mut unary_not_equal = vec![];
   for item in items {
     match item {
-      inner @ Value::Null(None)
+      inner @ Value::Null(_)
       | inner @ Value::String(_)
       | inner @ Value::Number(_)
       | inner @ Value::Boolean(_)
@@ -2430,7 +2330,6 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_FALSE;
         }
       }
-      Value::Null(Some(message)) => return value_null!(message),
       other => return value_null!("unexpected type in negated list: {}", other.type_of()),
     }
   }
@@ -2775,112 +2674,6 @@ fn eval_in_unary_greater_or_equal(left: &Value, right: &Value) -> Value {
   value_null!("eval_in_unary_greater_or_equal")
 }
 
-/// Evaluates function definition with positional parameters.
-fn eval_function_with_positional_parameters(
-  scope: &FeelScope,
-  args: &[Value],
-  params: &[(Name, FeelType)],
-  body: &FunctionBody,
-  closure_ctx: FeelContext,
-  result_type: FeelType,
-) -> Value {
-  let mut params_ctx = FeelContext::default();
-  if args.len() != params.len() {
-    return value_null!("invalid number of arguments");
-  }
-  for (argument_value, (parameter_name, parameter_type)) in args.iter().zip(params) {
-    params_ctx.set_entry(parameter_name, argument_value.coerced(parameter_type))
-  }
-  eval_function_definition(scope, params_ctx, body, closure_ctx, result_type)
-}
-
-/// Evaluates function definition with named parameters.
-fn eval_function_with_named_parameters(
-  scope: &FeelScope,
-  args: &Value,
-  params: &[(Name, FeelType)],
-  body: &FunctionBody,
-  closure_ctx: FeelContext,
-  result_type: FeelType,
-) -> Value {
-  let mut params_ctx = FeelContext::default();
-  if let Value::NamedParameters(argument_map) = args {
-    if argument_map.len() != params.len() {
-      return value_null!("invalid number of arguments");
-    }
-    for (parameter_name, parameter_type) in params {
-      if let Some((argument, _)) = argument_map.get(parameter_name) {
-        params_ctx.set_entry(parameter_name, argument.coerced(parameter_type))
-      } else {
-        return value_null!("parameter with name {} not found in arguments", parameter_name);
-      }
-    }
-  }
-  eval_function_definition(scope, params_ctx, body, closure_ctx, result_type)
-}
-
-/// Evaluates function definition.
-fn eval_function_definition(scope: &FeelScope, params_ctx: FeelContext, body: &FunctionBody, closure_ctx: FeelContext, result_type: FeelType) -> Value {
-  scope.push(closure_ctx); // closure_ctx
-  scope.push(params_ctx); // params_ctx
-  let mut result = body.evaluate(scope);
-  if let Value::FunctionDefinition(fd_params, fd_body, fd_external, fd_closure, fd_closure_ctx, fd_result_type) = &result {
-    let mut new_closure_ctx = fd_closure_ctx.clone();
-    for closure_name in fd_closure.iter() {
-      if let Some(closure_value) = scope.search_entry(closure_name) {
-        new_closure_ctx.create_entry(closure_name, closure_value);
-      }
-    }
-    result = Value::FunctionDefinition(
-      fd_params.to_owned(),
-      fd_body.to_owned(),
-      fd_external.to_owned(),
-      fd_closure.to_owned(),
-      new_closure_ctx,
-      fd_result_type.to_owned(),
-    );
-  }
-  scope.pop(); // params_ctx
-  scope.pop(); // closure_ctx
-  result.coerced(&result_type)
-}
-
-/// Evaluates external function definition with positional parameters.
-fn eval_external_function_with_positional_parameters(scope: &FeelScope, args: &[Value], params: &[(Name, FeelType)], body: &FunctionBody, result_type: FeelType) -> Value {
-  if args.len() != params.len() {
-    return value_null!("invalid number of arguments");
-  }
-  eval_external_function_definition(scope, args, body, result_type)
-}
-
-/// Evaluates external function definition with named parameters.
-fn eval_external_function_with_named_parameters(scope: &FeelScope, args: &Value, params: &[(Name, FeelType)], body: &FunctionBody, result_type: FeelType) -> Value {
-  let mut args1 = vec![];
-  if let Value::NamedParameters(argument_map) = args {
-    if argument_map.len() != params.len() {
-      return value_null!("invalid number of arguments");
-    }
-    for (parameter_name, parameter_type) in params {
-      if let Some((argument, _)) = argument_map.get(parameter_name) {
-        args1.push(argument.coerced(parameter_type));
-      } else {
-        return value_null!("parameter with name {} not found in arguments", parameter_name);
-      }
-    }
-  }
-  eval_external_function_definition(scope, &args1, body, result_type)
-}
-
-/// Evaluates external function definition.
-fn eval_external_function_definition(scope: &FeelScope, arguments: &[Value], body: &FunctionBody, result_type: FeelType) -> Value {
-  let result = match &body.evaluate(scope) {
-    Value::ExternalJavaFunction(class_name, method_signature) => evaluate_external_java_function(class_name, method_signature, arguments),
-    Value::ExternalPmmlFunction(document, model_name) => evaluate_external_pmml_function(document, model_name, arguments),
-    other => value_null!("expected JAVA or PMML mapping, actual value is {}", other),
-  };
-  result.coerced(&result_type)
-}
-
 fn build_err_msg(err_msg: String) -> Evaluator {
   Box::new(move |_: &FeelScope| value_null!(err_msg))
 }
@@ -2908,20 +2701,6 @@ fn err_expected_parameter_name(actual: &AstNode) -> String {
 /// Returns an error message when expected only a parameter name.
 fn err_expected_name(actual: &AstNode) -> String {
   format!("expected name node, actual node is: {actual:?}")
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use rheon_feel::scope;
-
-  #[test]
-  fn test_unimplemented_external_function_kind() {
-    let evaluator = Box::new(move |_: &FeelScope| Value::Boolean(false)) as Evaluator;
-    let body = FunctionBody::External(Arc::new(evaluator));
-    let result = eval_external_function_definition(&scope!(), &[], &body, FeelType::Boolean);
-    assert_eq!("null(expected JAVA or PMML mapping, actual value is false)", result.to_string())
-  }
 }
 
 /// The `value` property of temporal values (DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table 66, DMN16-11):

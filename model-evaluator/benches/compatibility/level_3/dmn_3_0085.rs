@@ -133,7 +133,7 @@ fn _0017(b: &mut Bencher) {
 
 #[bench]
 fn _0018(b: &mut Bencher) {
-  eqs(b, "decision_007_1", CTX, r#"null(equal err 'null(after coercion)' =?= 'null')"#);
+  eqs(b, "decision_007_1", CTX, r#"null(argument for parameter 'decision_007_3' does not conform to type string)"#);
 }
 
 #[bench]
@@ -153,7 +153,7 @@ fn _0021(b: &mut Bencher) {
 
 #[bench]
 fn _0022(b: &mut Bencher) {
-  eqs(b, "decision_010_1", CTX, r#"null(parameter with name decision_010_3 not found in arguments)"#);
+  eqs(b, "decision_010_1", CTX, r#"null(function has no parameter named 'foo')"#);
 }
 
 #[bench]

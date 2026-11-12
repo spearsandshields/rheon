@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             namespace="https://dsntk.io/null-inputs"
+             name="null inputs"
+             id="_null_inputs">
+    <description>
+        Null is null, whatever produced it: a missing input, an input whose value does not conform to
+        its type, or a decision that results in null (DMN 1.6, rule 49.a and Table 64).
+    </description>
+
+    <inputData name="n" id="_n">
+        <variable name="n" typeRef="number"/>
+    </inputData>
+
+    <inputData name="m" id="_m">
+        <variable name="m" typeRef="number"/>
+    </inputData>
+
+    <inputData name="p" id="_p">
+        <variable name="p" typeRef="number"/>
+    </inputData>
+
+    <inputData name="q" id="_q">
+        <variable name="q" typeRef="number"/>
+    </inputData>
+
+    <decision name="table on missing input" id="_table_on_missing_input">
+        <variable name="table on missing input"/>
+        <informationRequirement>
+            <requiredInput href="#_n"/>
+        </informationRequirement>
+        <decisionTable hitPolicy="COLLECT" id="_n_table">
+            <input id="_n_input">
+                <inputExpression typeRef="number">
+                    <text>n</text>
+                </inputExpression>
+            </input>
+            <output id="_n_output" typeRef="string"/>
+            <rule id="_n_rule_1">
+                <inputEntry id="_n_rule_1_in">
+                    <text>1</text>
+                </inputEntry>
+                <outputEntry id="_n_rule_1_out">
+                    <text>"= 1"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_n_rule_2">
+                <inputEntry id="_n_rule_2_in">
+                    <text>!= 1</text>
+                </inputEntry>
+                <outputEntry id="_n_rule_2_out">
+                    <text>"!= 1"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_n_rule_3">
+                <inputEntry id="_n_rule_3_in">
+                    <text>null</text>
+                </inputEntry>
+                <outputEntry id="_n_rule_3_out">
+                    <text>"null"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_n_rule_4">
+                <inputEntry id="_n_rule_4_in">
+                    <text>&lt; 10</text>
+                </inputEntry>
+                <outputEntry id="_n_rule_4_out">
+                    <text>"&lt; 10"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_n_rule_5">
+                <inputEntry id="_n_rule_5_in">
+                    <text>not(1)</text>
+                </inputEntry>
+                <outputEntry id="_n_rule_5_out">
+                    <text>"not(1)"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_n_rule_6">
+                <inputEntry id="_n_rule_6_in">
+                    <text>not(null)</text>
+                </inputEntry>
+                <outputEntry id="_n_rule_6_out">
+                    <text>"not(null)"</text>
+                </outputEntry>
+            </rule>
+        </decisionTable>
+    </decision>
+
+    <decision name="table on non-conformant input" id="_table_on_non-conformant_input">
+        <variable name="table on non-conformant input"/>
+        <informationRequirement>
+            <requiredInput href="#_m"/>
+        </informationRequirement>
+        <decisionTable hitPolicy="COLLECT" id="_m_table">
+            <input id="_m_input">
+                <inputExpression typeRef="number">
+                    <text>m</text>
+                </inputExpression>
+            </input>
+            <output id="_m_output" typeRef="string"/>
+            <rule id="_m_rule_1">
+                <inputEntry id="_m_rule_1_in">
+                    <text>1</text>
+                </inputEntry>
+                <outputEntry id="_m_rule_1_out">
+                    <text>"= 1"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_m_rule_2">
+                <inputEntry id="_m_rule_2_in">
+                    <text>!= 1</text>
+                </inputEntry>
+                <outputEntry id="_m_rule_2_out">
+                    <text>"!= 1"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_m_rule_3">
+                <inputEntry id="_m_rule_3_in">
+                    <text>null</text>
+                </inputEntry>
+                <outputEntry id="_m_rule_3_out">
+                    <text>"null"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_m_rule_4">
+                <inputEntry id="_m_rule_4_in">
+                    <text>&lt; 10</text>
+                </inputEntry>
+                <outputEntry id="_m_rule_4_out">
+                    <text>"&lt; 10"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_m_rule_5">
+                <inputEntry id="_m_rule_5_in">
+                    <text>not(1)</text>
+                </inputEntry>
+                <outputEntry id="_m_rule_5_out">
+                    <text>"not(1)"</text>
+                </outputEntry>
+            </rule>
+            <rule id="_m_rule_6">
+                <inputEntry id="_m_rule_6_in">
+                    <text>not(null)</text>
+                </inputEntry>
+                <outputEntry id="_m_rule_6_out">
+                    <text>"not(null)"</text>
+                </outputEntry>
+            </rule>
+        </decisionTable>
+    </decision>
+
+    <decision name="non-conformant input is null" id="_non_conformant_input_is_null">
+        <variable name="non-conformant input is null"/>
+        <informationRequirement>
+            <requiredInput href="#_m"/>
+        </informationRequirement>
+        <literalExpression>
+            <text>m = null</text>
+        </literalExpression>
+    </decision>
+
+    <businessKnowledgeModel name="kind" id="_kind">
+        <variable name="kind"/>
+        <encapsulatedLogic>
+            <formalParameter name="a" typeRef="number"/>
+            <literalExpression>
+                <text>if a = null then "null" else "value"</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <decision name="invocation fed a null" id="_invocation_fed_a_null">
+        <variable name="invocation fed a null"/>
+        <informationRequirement>
+            <requiredInput href="#_m"/>
+        </informationRequirement>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_kind"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>kind</text>
+            </literalExpression>
+            <binding>
+                <parameter name="a"/>
+                <literalExpression>
+                    <text>m</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <decisionService name="service" id="_service">
+        <variable name="service"/>
+        <outputDecision href="#_service_sum"/>
+        <inputData href="#_p"/>
+        <inputData href="#_q"/>
+    </decisionService>
+
+    <decision name="service sum" id="_service_sum">
+        <variable name="service sum"/>
+        <informationRequirement>
+            <requiredInput href="#_p"/>
+        </informationRequirement>
+        <informationRequirement>
+            <requiredInput href="#_q"/>
+        </informationRequirement>
+        <literalExpression>
+            <text>if q = null then p else p + q</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="service with a missing argument" id="_service_with_a_missing_argument">
+        <variable name="service with a missing argument"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_service"/>
+        </knowledgeRequirement>
+        <literalExpression>
+            <text>service(p: 1)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="service with all arguments" id="_service_with_all_arguments">
+        <variable name="service with all arguments"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_service"/>
+        </knowledgeRequirement>
+        <literalExpression>
+            <text>service(p: 1, q: 2)</text>
+        </literalExpression>
+    </decision>
+
+</definitions>

@@ -1,5 +1,7 @@
 //! # Core implementation of build-in functions
 
+use crate::bfeel::Dialect;
+use crate::invocation::{Arguments, invoke};
 use crate::macros::invalid_argument_type;
 use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
@@ -1334,24 +1336,17 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
         value_null!("position exceeds integer range")
       }
     }
-    Value::FunctionDefinition(parameters, body, false, _, closure_ctx, _) => {
+    Value::FunctionDefinition(parameters, ..) => {
       if parameters.len() != 2 {
         return value_null!("list replace: matching function must have exactly two arguments");
       }
       let mut elements = vec![];
       for item in items {
-        let mut ctx = closure_ctx.clone();
-        ctx.set_entry(&parameters[0].0, item.clone());
-        ctx.set_entry(&parameters[1].0, new_item.clone());
-        let scope: FeelScope = ctx.into();
-        if let Value::Boolean(result) = body.evaluate(&scope) {
-          if result {
-            elements.push(new_item.clone());
-          } else {
-            elements.push(item)
-          }
-        } else {
-          return value_null!("list replace: matching function must return boolean value");
+        let arguments = Arguments::Positional(vec![item.clone(), new_item.clone()]);
+        match invoke(&FeelScope::default(), position_or_match.clone(), arguments, Dialect::Feel) {
+          Value::Boolean(true) => elements.push(new_item.clone()),
+          Value::Boolean(false) => elements.push(item),
+          _ => return value_null!("list replace: matching function must return boolean value"),
         }
       }
       Value::List(elements)
@@ -2240,18 +2235,14 @@ pub fn round_up(n: &Value, scale: &Value) -> Value {
 
 pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   if let Value::List(items) = list {
-    if let Value::FunctionDefinition(parameters, body, false, _, closure_ctx, _) = ordering_function {
+    if let Value::FunctionDefinition(parameters, ..) = ordering_function {
       if parameters.len() == 2 {
         let mut elements = items.clone();
         elements.sort_by(|x, y| {
-          let mut ctx = closure_ctx.clone();
-          ctx.set_entry(&parameters[0].0, x.clone());
-          ctx.set_entry(&parameters[1].0, y.clone());
-          let scope: FeelScope = ctx.into();
-          if let Value::Boolean(result) = body.evaluate(&scope) {
-            if result { Ordering::Less } else { Ordering::Equal }
-          } else {
-            Ordering::Equal
+          let arguments = Arguments::Positional(vec![x.clone(), y.clone()]);
+          match invoke(&FeelScope::default(), ordering_function.clone(), arguments, Dialect::Feel) {
+            Value::Boolean(true) => Ordering::Less,
+            _ => Ordering::Equal,
           }
         });
         Value::List(elements)

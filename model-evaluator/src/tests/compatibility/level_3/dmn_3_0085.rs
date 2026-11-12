@@ -117,7 +117,7 @@ fn _0017() {
 
 #[test]
 fn _0018() {
-  eqs("decision_007_1", CTX, r#"null(equal err 'null(after coercion)' =?= 'null')"#);
+  eqs("decision_007_1", CTX, r#"null(argument for parameter 'decision_007_3' does not conform to type string)"#);
 }
 
 #[test]
@@ -137,7 +137,7 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  eqs("decision_010_1", CTX, r#"null(parameter with name decision_010_3 not found in arguments)"#);
+  eqs("decision_010_1", CTX, r#"null(function has no parameter named 'foo')"#);
 }
 
 #[test]

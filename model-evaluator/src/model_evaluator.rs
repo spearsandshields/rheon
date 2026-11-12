@@ -11,7 +11,8 @@ use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Diagnostics, ErrorMode};
 use rheon_feel::values::Value;
-use rheon_feel::{Name, value_null};
+use rheon_feel::{FeelScope, Name, value_null};
+use rheon_feel_evaluator::{Dialect, evaluate_invocation, reset_call_depth};
 use rheon_model::Definitions;
 use std::sync::Arc;
 
@@ -96,6 +97,7 @@ impl ModelEvaluator {
 
   /// Evaluates an invocable.
   pub fn evaluate_invocable(&self, model_namespace: &str, model_name: &str, invocable_name: &str, input_data: &FeelContext) -> Value {
+    reset_call_depth(); // the call depth limit is per evaluation
     let Some(invocable) = self.invocables.by_name(model_namespace, model_name, invocable_name) else {
       return value_null!("invocable '{}' not found in namespace '{}'", invocable_name, model_namespace);
     };
@@ -154,21 +156,19 @@ impl ModelEvaluator {
     self
       .business_knowledge_model_evaluator
       .evaluate(def_key, &self.global_context, input_data, self, &mut evaluated_ctx);
-    if let Some(Value::FunctionDefinition(parameters, body, _external, _, closure_ctx, result_type)) = evaluated_ctx.get_entry(output_variable_name) {
-      //TODO Handle external functions.
-      let mut parameters_ctx = FeelContext::default();
-      parameters_ctx.zip(closure_ctx);
-      for (name, _) in parameters {
-        if let Some(value) = input_data.get_entry(name) {
-          parameters_ctx.set_entry(name, value.to_owned());
-        }
-      }
-      parameters_ctx.zip(&evaluated_ctx);
-      let result = body.evaluate(&parameters_ctx.into());
-      result.coerced(result_type)
-    } else {
-      value_null!()
-    }
+    let Some(function) = evaluated_ctx.get_entry(output_variable_name).cloned() else {
+      return value_null!();
+    };
+    // the inputs of a business knowledge model are its parameters (DMN 1.6, §10.4), taken from the input data by name
+    let Value::FunctionDefinition(parameters, ..) = &function else {
+      return value_null!();
+    };
+    let arguments = parameters
+      .iter()
+      .filter_map(|(name, _)| input_data.get_entry(name).map(|value| (name.clone(), value.clone())))
+      .collect();
+    // the requirements of the business knowledge model are in scope of its body, its parameters innermost
+    evaluate_invocation(&FeelScope::from(evaluated_ctx), function, arguments, Dialect::default())
   }
 
   /// Evaluates a decision service.

@@ -108,3 +108,13 @@ fn _0014() {
   let scope = &te_scope("{}");
   te_be_value(false, scope, "sort([3,1,4,5,2], function(x,y) 10)", r#"[3,1,4,5,2]"#);
 }
+
+#[test]
+fn _0015() {
+  // the ordering function is invoked like any function: its arguments are converted and checked (Table 64)
+  let scope = &te_scope("{}");
+  te_be_value(false, scope, "sort([3, 1, 2], function(x: number, y: number) x < y)", r#"[1,2,3]"#);
+  te_be_value(false, scope, r#"sort([[3], [1], [2]], function(x: number, y: number) x < y)"#, r#"[[1],[2],[3]]"#);
+  // not conforming: the invocation is null, so no element precedes another
+  te_be_value(false, scope, r#"sort(["b", "a"], function(x: number, y: number) x < y)"#, r#"["b","a"]"#);
+}

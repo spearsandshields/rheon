@@ -168,6 +168,54 @@ Open in 1.6:
   `dmnVersion`, `InformationItem.defaultValue`, range types (`isRange`), iteration contexts in
   quantified expressions (`some x in 1..3`), B-FEEL null handling in collections (DMN17-112).
 - **Spec typo**: the 1.6 number() footnote cites grammar rule 37 (`digits`); rheon uses rule 35.
+- **Equality and comparison follow-ups** `[dmn]` (2026-11-12). Found while making null equality
+  one rule (`eval_ternary_equality`) and `in` treat every null alike; each has its own cause:
+  - *Ranges against unary comparisons.* `(< 10)` and the like compared with a range can give a
+    wrong `true`, and the result depends on the operand order (the Unary* arms of
+    `eval_ternary_equality`: inverted null check on the endpoint, wrong closure for `<=`).
+  - *`is()` decides by its first argument.* `is(null, 1)` is null and `is(1, null)` is false;
+    `is` never results in null (§10.3.2.2).
+  - *`max` and `min` depend on the argument order* with nulls (max skips them after the first
+    position, min never does), which carries into the C< and C> hit policies. Both reject dates,
+    times and durations.
+  - *Context equality depends on key order*: it returns null at the first pair it can not
+    compare, even when a later pair differs. List equality treats such a pair as unequal.
+  - *`!=` on values of different kinds* returns a null without a reason, so it records no
+    diagnostic: strict mode stops on `"a" = 1` but not on `"a" != 1`.
+  - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
+    OR (comparison_in.rs asserts AND). Needs a decision, as do `null <= null` (spec: `<` or `=`,
+    so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and
+    a match.
+  - *Smaller ones*: null range endpoints are handled differently by kind; `between` checks the
+    kinds of all three operands first; `list in list` is containment of a multiset; `count(null)`
+    is 1; the Any and Priority hit policies compare outputs with Rust equality, not FEEL
+    equality; a collection item definition turns a list with a null item into null; a missing
+    input has a null with a reason only when its typeRef is an item definition; the nulls of
+    `eval_in_*` name internal functions.
+- **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation now goes through
+  `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
+  with input data, `sort` and `list replace`). Left as they were:
+  - *Closures are not lexical.* A function returned by a body closes over the names as they are
+    where the body ends (`closed_over`, kept from dsntk), so `{f: function(x) {x: 10, g:
+    function(y) x + y}.g, h: f(1), r: h(5)}.r` is 6, not 15 (§10.3.2.13.2: "FEEL functions are
+    lexical closures"). Removing the rebuild needs a TCK run.
+  - *Decision service as a function.* Its body reads the arguments with `scope.peek()`
+    (decision_service.rs), so the invocation must push the parameters last, and it converts them
+    a second time through the input data and input decision evaluators.
+  - *Java and PMML BKMs are not external.* `build_bkm_evaluator` special-cases only ONNX; a BKM
+    with `kind="Java"` or `"PMML"` returns its mapping context instead of calling the function.
+  - *Binding types are not checked.* A binding's parameter `typeRef` is ignored (§7.3.6 binds by
+    name); §7.3.4 asks it to be compatible with the value, so a model-load warning would fit.
+  - *`try_coerced` lets any function value pass* whatever the target type (feel/src/values.rs).
+  - *`build_context` keeps its frame* when an entry is null: it returns without `scope.pop()`
+    (builders.rs, "value_null @ Value::Null(_) => return value_null"), so the caller's pops are
+    off by one.
+  - *Call depth counting.* FEEL invocations are counted at the expression (argument evaluation
+    included), boxed invocations and invocables in `evaluate_invocation`; `sort` and `list
+    replace` callbacks are not counted.
+  - *Unused values.* `Value::NamedParameter`, `Value::ParameterName` and
+    `Value::PositionalParameters` are no longer built for invocations (`ParameterName` still is,
+    for formal parameters).
 
 - **0085 decisionService_015 (1 test since the TCK update)** — not an engine bug. The engine returns the correct
   context with both output decisions. dsntk-test-runner evaluates the decision service once per
