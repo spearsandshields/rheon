@@ -9,7 +9,7 @@ use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
-use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
+use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator, null_argument_not_conformant};
 use rheon_feel_parser::{ClosureBuilder, parse_name};
 use rheon_model::*;
 use std::sync::Arc;
@@ -246,20 +246,18 @@ pub fn build_invocation_evaluator(scope: &FeelScope, invocation: &Invocation, mo
     let mut params_ctx = FeelContext::default();
     for (param_name, param_type, evaluator) in &bindings {
       let param_value = evaluator(scope) as Value;
-      let coerced_param_value = param_value.coerced(param_type);
-      // if the parameter value is null after coercion, then do not call the invocable, just return this null value
-      if coerced_param_value.is_invalid_coercion() {
-        return coerced_param_value;
-      }
-      params_ctx.set_entry(param_name, param_value.coerced(param_type))
+      // when the argument does not conform to the type of the parameter, the invocable is not called
+      let Some(coerced_param_value) = param_value.try_coerced(param_type) else {
+        return null_argument_not_conformant(param_name, param_type);
+      };
+      params_ctx.set_entry(param_name, coerced_param_value)
     }
     if let Value::FunctionDefinition(formal_parameters, body, false, _, closure_ctx, result_type) = function_evaluator(scope) {
       for (formal_parameter_name, formal_parameter_type) in formal_parameters {
         if let Some(param_value) = params_ctx.get(&formal_parameter_name) {
-          let coerced_param_value = param_value.coerced(&formal_parameter_type);
-          if coerced_param_value.is_invalid_coercion() {
-            return coerced_param_value;
-          }
+          let Some(coerced_param_value) = param_value.try_coerced(&formal_parameter_type) else {
+            return null_argument_not_conformant(&formal_parameter_name, &formal_parameter_type);
+          };
           // the body sees the value converted to the formal parameter's type (TCK 1157 011)
           params_ctx.set_entry(&formal_parameter_name, coerced_param_value);
         } else {

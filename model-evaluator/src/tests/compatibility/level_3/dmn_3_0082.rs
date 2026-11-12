@@ -62,12 +62,26 @@ fn _0010() {
 
 #[test]
 fn _0011() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision_bkm_002", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision_bkm_002",
+    &CTX,
+    r#"null(argument for parameter 'nameAndAge' does not conform to type context<age: number, name: string>)"#,
+  );
 }
 
 #[test]
 fn _0012() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision_bkm_003", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision_bkm_003",
+    &CTX,
+    r#"null(argument for parameter 'nameAndAge' does not conform to type context<age: number, name: string>)"#,
+  );
 }
 
 #[test]
@@ -92,7 +106,14 @@ fn _0016() {
 
 #[test]
 fn _0017() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "invoke_001", &CTX, r#"null(after coercion)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "invoke_001",
+    &CTX,
+    r#"null(argument for parameter 'nameAndAge' does not conform to type context<age: number, name: string>)"#,
+  );
 }
 
 #[test]
@@ -127,7 +148,14 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "fd_002", &CTX, r#"null(after coercion)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "fd_002",
+    &CTX,
+    r#"null(argument for parameter 'arg' does not conform to type number)"#,
+  );
 }
 
 #[test]
@@ -163,7 +191,7 @@ fn _0030() {
     &MODEL_NAME,
     "ds_invoke_002_with_number",
     &CTX,
-    r#"null(after coercion)"#,
+    r#"null(argument for parameter 'decisionService_002_input_1' does not conform to type string)"#,
   );
 }
 

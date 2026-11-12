@@ -117,7 +117,7 @@ fn _0017() {
 
 #[test]
 fn _0018() {
-  eqs("decision_007_1", CTX, r#"null(equal err 'null(after coercion)' =?= 'null')"#);
+  eqs("decision_007_1", CTX, r#"null(argument for parameter 'decision_007_3' does not conform to type string)"#);
 }
 
 #[test]

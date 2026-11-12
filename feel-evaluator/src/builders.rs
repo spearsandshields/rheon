@@ -2135,22 +2135,26 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
   }
 }
 
-/// Evaluates ternary equality of two values.
+/// Evaluates the equality of two values: `None` when the values can not be compared.
+///
+/// Comparing with null tests if the other value is null, so it always has a result
+/// (DMN 1.6, grammar rule 49.a). Other values are compared when they are of the same kind
+/// (Table 54).
 pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
+  if lhs.is_null() || rhs.is_null() {
+    return Some(lhs.is_null() && rhs.is_null());
+  }
   match lhs {
     Value::Boolean(ls) => match rhs {
       Value::Boolean(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Number(ls) => match rhs {
       Value::Number(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::String(ls) => match rhs {
       Value::String(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Context(ls) => match rhs {
@@ -2177,56 +2181,26 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
         // contexts have different number of keys, so they are NOT EQUAL
         Some(false)
       }
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Date(ls) => match rhs {
       Value::Date(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::Time(ls) => match rhs {
       Value::Time(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::DateTime(ls) => match rhs {
       Value::DateTime(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::DaysAndTimeDuration(ls) => match rhs {
       Value::DaysAndTimeDuration(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::YearsAndMonthsDuration(ls) => match rhs {
       Value::YearsAndMonthsDuration(rs) => Some(*ls == *rs),
-      Value::Null(_) => Some(false),
-      _ => None,
-    },
-    ls @ Value::Null(_) => match rhs {
-      rs @ Value::Null(_) => {
-        if (ls.is_invalid_coercion() && !rs.is_invalid_coercion()) || (!ls.is_invalid_coercion() && rs.is_invalid_coercion()) {
-          None
-        } else {
-          Some(true)
-        }
-      }
-      // a value is not equal to null, whichever side the null is on
-      Value::Boolean(_)
-      | Value::Number(_)
-      | Value::String(_)
-      | Value::Context(_)
-      | Value::Date(_)
-      | Value::Time(_)
-      | Value::DateTime(_)
-      | Value::DaysAndTimeDuration(_)
-      | Value::YearsAndMonthsDuration(_)
-      | Value::List(_)
-      | Value::Range(..)
-      | Value::UnaryEqual(_)
-      | Value::UnaryNotEqual(_) => Some(false),
       _ => None,
     },
     Value::List(ls) => match rhs {
@@ -2243,7 +2217,6 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
           Some(false)
         }
       }
-      Value::Null(_) => Some(false),
       _ => None,
     },
     Value::UnaryEqual(l_end) => match rhs {
@@ -2308,7 +2281,6 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
         }
         Some(false)
       }
-      Value::Null(_) => Some(false),
       _ => None,
     },
     _ => None,
@@ -2789,6 +2761,12 @@ fn eval_in_unary_greater_or_equal(left: &Value, right: &Value) -> Value {
   value_null!("eval_in_unary_greater_or_equal")
 }
 
+/// The result of an invocation whose argument does not conform to the type of its parameter,
+/// before and after implicit conversions: the function is not invoked and the result is null (DMN 1.6, §10.3.2.15).
+pub fn null_argument_not_conformant(parameter_name: &Name, parameter_type: &FeelType) -> Value {
+  value_null!("argument for parameter '{}' does not conform to type {}", parameter_name, parameter_type)
+}
+
 /// Evaluates function definition with positional parameters.
 fn eval_function_with_positional_parameters(
   scope: &FeelScope,
@@ -2803,7 +2781,10 @@ fn eval_function_with_positional_parameters(
     return value_null!("invalid number of arguments");
   }
   for (argument_value, (parameter_name, parameter_type)) in args.iter().zip(params) {
-    params_ctx.set_entry(parameter_name, argument_value.coerced(parameter_type))
+    let Some(parameter_value) = argument_value.try_coerced(parameter_type) else {
+      return null_argument_not_conformant(parameter_name, parameter_type);
+    };
+    params_ctx.set_entry(parameter_name, parameter_value)
   }
   eval_function_definition(scope, params_ctx, body, closure_ctx, result_type)
 }
@@ -2824,7 +2805,10 @@ fn eval_function_with_named_parameters(
     }
     for (parameter_name, parameter_type) in params {
       if let Some((argument, _)) = argument_map.get(parameter_name) {
-        params_ctx.set_entry(parameter_name, argument.coerced(parameter_type))
+        let Some(parameter_value) = argument.try_coerced(parameter_type) else {
+          return null_argument_not_conformant(parameter_name, parameter_type);
+        };
+        params_ctx.set_entry(parameter_name, parameter_value)
       } else {
         return value_null!("parameter with name {} not found in arguments", parameter_name);
       }
@@ -2876,7 +2860,10 @@ fn eval_external_function_with_named_parameters(scope: &FeelScope, args: &Value,
     }
     for (parameter_name, parameter_type) in params {
       if let Some((argument, _)) = argument_map.get(parameter_name) {
-        args1.push(argument.coerced(parameter_type));
+        let Some(parameter_value) = argument.try_coerced(parameter_type) else {
+          return null_argument_not_conformant(parameter_name, parameter_type);
+        };
+        args1.push(parameter_value);
       } else {
         return value_null!("parameter with name {} not found in arguments", parameter_name);
       }

@@ -112,3 +112,31 @@ fn _0012() {
     "expected built-in function name or function definition, actual is null(context has no value for key 'pull')",
   );
 }
+
+#[test]
+fn _0013() {
+  // an argument that does not conform to the type of its parameter: the function is not invoked
+  let not_conformant = "argument for parameter 'a' does not conform to type number";
+  te_null(false, &scope!(), r#"(function(a: number) "invoked")("x")"#, not_conformant);
+  te_null(false, &scope!(), r#"(function(a: number) "invoked")(a: "x")"#, not_conformant);
+  te_null(false, &scope!(), r#"(function(a: number) a = null)("x")"#, not_conformant);
+}
+
+#[test]
+fn _0014() {
+  // implicit conversions apply before the argument is checked, and null conforms to every type
+  te_be_value(false, &scope!(), r#"(function(a: number) a + 1)([1])"#, "2");
+  te_be_value(false, &scope!(), r#"(function(a: list<number>) a)(1)"#, "[1]");
+  te_bool(false, &scope!(), r#"(function(a: number) a = null)(null)"#, true);
+}
+
+#[test]
+fn _0015() {
+  // null is null, whatever produced it
+  let scope = &te_scope(r#"{f: function(a: number) a}"#);
+  te_bool(false, scope, r#"f("x") = null"#, true);
+  te_bool(false, scope, r#"null = f("x")"#, true);
+  te_bool(false, scope, r#"f("x") != null"#, false);
+  te_bool(false, scope, r#"f("x") = f("y")"#, true);
+  te_bool(false, scope, r#"f("x") = 1"#, false);
+}

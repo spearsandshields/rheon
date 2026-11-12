@@ -253,7 +253,7 @@ fn _0047() {
 
 #[test]
 fn _0048() {
-  te_null(false, &scope!(), r#" <= 10 = (null) "#, "equal err 'UnaryLessOrEqual(10)' =?= 'null'");
+  te_bool(false, &scope!(), r#" <= 10 = (null) "#, false);
 }
 
 #[test]
@@ -268,7 +268,7 @@ fn _0050() {
 
 #[test]
 fn _0051() {
-  te_null(false, &scope!(), r#" < 10 = (null) "#, "equal err 'UnaryLess(10)' =?= 'null'");
+  te_bool(false, &scope!(), r#" < 10 = (null) "#, false);
 }
 
 #[test]
@@ -283,7 +283,7 @@ fn _0053() {
 
 #[test]
 fn _0054() {
-  te_null(false, &scope!(), r#" >= 10 = (null) "#, "equal err 'UnaryGreaterOrEqual(10)' =?= 'null'");
+  te_bool(false, &scope!(), r#" >= 10 = (null) "#, false);
 }
 
 #[test]
@@ -308,7 +308,7 @@ fn _0058() {
 
 #[test]
 fn _0059() {
-  te_null(false, &scope!(), r#" > 10 = (null) "#, "equal err 'UnaryGreater(10)' =?= 'null'");
+  te_bool(false, &scope!(), r#" > 10 = (null) "#, false);
 }
 
 #[test]
@@ -347,7 +347,9 @@ fn _0066() {
 }
 
 /// Values that are never equal to null, whichever side the null is on.
-const NOT_NULL: [&str; 11] = [
+const NOT_NULL: [&str; 13] = [
+  "(< 10)",
+  "(>= 10)",
   "100",
   r#""a""#,
   "true",
