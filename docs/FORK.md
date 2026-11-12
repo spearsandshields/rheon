@@ -82,6 +82,10 @@ Rules:
 | 32 | `b986c79` | model: multiple imports (per-model import names), TCK 1160 4/4; boxed for over a single value | TCK 1160 | no |
 | 33 | `e56f08c` | feel: B-FEEL; all()/any() follow the deciding item | DMN 1.6 | no |
 | 34 | `6baa444` | feel: diagnostics and lenient/strict error modes; wasm `language`, `errorMode`, `diagnostics` | DMN 1.6 | no |
+| 35 | `5e04541` | feel: equality with null no longer depends on the operand order | upstream bug | no |
+| 36 | `94ec326` | feel: null equality is one rule; a non-conformant argument ends the invocation | upstream bug | no |
+| 37 | `f65f252` | feel: one invocation for every function call (Table 64) | DMN 1.6 | no |
+| 38 | `a1d5a62` | feel: `in` treats every null alike | upstream bug | no |
 
 (Full SHAs: `git log --format='%H %s' main..wasm`.)
 
@@ -384,7 +388,8 @@ push; crates.io still records the pre-rewrite hash of 0.2.0 (`3209ccd`, now `a91
 ## Publishing to crates.io
 
 The ten `rheon-*` crates share the workspace version (`[workspace.package] version`,
-rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`) and pin each other with `=<version>` in
+rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`, `0.3.0` changed the API of
+`rheon-feel` and `rheon-feel-evaluator`) and pin each other with `=<version>` in
 the root manifest. Every other workspace member is `publish = false`, so one command
 publishes the set in dependency order:
 
