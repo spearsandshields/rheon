@@ -2053,8 +2053,8 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
 /// Evaluates the equality of two values: `None` when the values can not be compared.
 ///
 /// Comparing with null tests if the other value is null, so it always has a result
-/// (DMN 1.6, grammar rule 49.a). Other values are compared when they are of the same kind
-/// (Table 54).
+/// (DMN 1.6, grammar rule 49.a). Other values are compared by kind (Table 54); the known
+/// deviations are listed in docs/BACKLOG.md ("Equality and comparison follow-ups").
 pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
   if lhs.is_null() || rhs.is_null() {
     return Some(lhs.is_null() && rhs.is_null());

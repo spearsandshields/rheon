@@ -168,6 +168,30 @@ Open in 1.6:
   `dmnVersion`, `InformationItem.defaultValue`, range types (`isRange`), iteration contexts in
   quantified expressions (`some x in 1..3`), B-FEEL null handling in collections (DMN17-112).
 - **Spec typo**: the 1.6 number() footnote cites grammar rule 37 (`digits`); rheon uses rule 35.
+- **Equality and comparison follow-ups** `[dmn]` (2026-11-12). Found while making null equality
+  one rule (`eval_ternary_equality`) and `in` treat every null alike; each has its own cause:
+  - *Ranges against unary comparisons.* `(< 10)` and the like compared with a range can give a
+    wrong `true`, and the result depends on the operand order (the Unary* arms of
+    `eval_ternary_equality`: inverted null check on the endpoint, wrong closure for `<=`).
+  - *`is()` decides by its first argument.* `is(null, 1)` is null and `is(1, null)` is false;
+    `is` never results in null (§10.3.2.2).
+  - *`max` and `min` depend on the argument order* with nulls (max skips them after the first
+    position, min never does), which carries into the C< and C> hit policies. Both reject dates,
+    times and durations.
+  - *Context equality depends on key order*: it returns null at the first pair it can not
+    compare, even when a later pair differs. List equality treats such a pair as unequal.
+  - *`!=` on values of different kinds* returns a null without a reason, so it records no
+    diagnostic: strict mode stops on `"a" = 1` but not on `"a" != 1`.
+  - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
+    OR (comparison_in.rs asserts AND). Needs a decision, as do `null <= null` (spec: `<` or `=`,
+    so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and
+    a match.
+  - *Smaller ones*: null range endpoints are handled differently by kind; `between` checks the
+    kinds of all three operands first; `list in list` is containment of a multiset; `count(null)`
+    is 1; the Any and Priority hit policies compare outputs with Rust equality, not FEEL
+    equality; a collection item definition turns a list with a null item into null; a missing
+    input has a null with a reason only when its typeRef is an item definition; the nulls of
+    `eval_in_*` name internal functions.
 - **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation now goes through
   `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
   with input data, `sort` and `list replace`). Left as they were:
