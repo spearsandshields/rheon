@@ -345,3 +345,47 @@ fn _0065() {
 fn _0066() {
   te_null(false, &scope!(), r#" (1..2] = 10 "#, r#"equal err '(1..2]' =?= '10'"#);
 }
+
+/// Values that are never equal to null, whichever side the null is on.
+const NOT_NULL: [&str; 11] = [
+  "100",
+  r#""a""#,
+  "true",
+  "[1,2,3]",
+  r#"{a: {b: "bar"}}"#,
+  r#"@"2018-12-08""#,
+  r#"@"10:11:12""#,
+  r#"@"2018-12-08T10:11:12""#,
+  r#"@"P1D""#,
+  r#"@"P1Y""#,
+  "(1..2]",
+];
+
+#[test]
+fn _0067() {
+  for value in NOT_NULL {
+    te_bool(false, &scope!(), &format!("null = {value}"), false);
+    te_bool(false, &scope!(), &format!("{value} = null"), false);
+  }
+}
+
+#[test]
+fn _0068() {
+  let scope = &te_scope("{x: null, y: null, n: 100}");
+  te_bool(false, scope, "x = 100", false);
+  te_bool(false, scope, "100 = x", false);
+  te_bool(false, scope, "x = n", false);
+  te_bool(false, scope, "n = x", false);
+  te_bool(false, scope, "null = n", false);
+  te_bool(false, scope, "x = null", true);
+  te_bool(false, scope, "null = x", true);
+  te_bool(false, scope, "x = y", true);
+}
+
+#[test]
+fn _0069() {
+  te_bool(false, &scope!(), "{a: null} = {a: 1}", false);
+  te_bool(false, &scope!(), "{a: 1} = {a: null}", false);
+  te_bool(false, &scope!(), "[null] = [1]", false);
+  te_bool(false, &scope!(), "[1] = [null]", false);
+}

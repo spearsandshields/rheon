@@ -2213,6 +2213,20 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
           Some(true)
         }
       }
+      // a value is not equal to null, whichever side the null is on
+      Value::Boolean(_)
+      | Value::Number(_)
+      | Value::String(_)
+      | Value::Context(_)
+      | Value::Date(_)
+      | Value::Time(_)
+      | Value::DateTime(_)
+      | Value::DaysAndTimeDuration(_)
+      | Value::YearsAndMonthsDuration(_)
+      | Value::List(_)
+      | Value::Range(..)
+      | Value::UnaryEqual(_)
+      | Value::UnaryNotEqual(_) => Some(false),
       _ => None,
     },
     Value::List(ls) => match rhs {

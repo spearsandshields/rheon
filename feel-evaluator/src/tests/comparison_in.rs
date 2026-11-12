@@ -808,3 +808,13 @@ fn _0154() {
 fn _0155() {
   te_bool(false, &scope!(), r#"4 in (=5)"#, false);
 }
+
+#[test]
+fn _0156() {
+  te_bool(false, &scope!(), "null in (!= 1)", true);
+  te_bool(false, &scope!(), "1 in (!= null)", true);
+  te_bool(false, &scope!(), "null in (= 1)", false);
+  te_bool(false, &scope!(), "1 in (= null)", false);
+  te_bool(false, &scope!(), "null in (= null)", true);
+  te_bool(false, &scope!(), "null in (!= null)", false);
+}

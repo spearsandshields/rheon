@@ -110,3 +110,24 @@ fn _0021() {
 fn _0022() {
   te_bool(false, &scope!(), r#" @"P1Y" != @"P1Y" "#, false);
 }
+
+#[test]
+fn _0023() {
+  for value in ["100", r#""a""#, "true", "[1,2,3]", "{a: 1}", r#"@"2018-12-08""#, r#"@"P1D""#, "(1..2]"] {
+    te_bool(false, &scope!(), &format!("null != {value}"), true);
+    te_bool(false, &scope!(), &format!("{value} != null"), true);
+  }
+  te_bool(false, &scope!(), "null != null", false);
+}
+
+#[test]
+fn _0024() {
+  let scope = &te_scope("{x: null, y: null, n: 100}");
+  te_bool(false, scope, "x != 100", true);
+  te_bool(false, scope, "100 != x", true);
+  te_bool(false, scope, "x != n", true);
+  te_bool(false, scope, "n != x", true);
+  te_bool(false, scope, "x != null", false);
+  te_bool(false, scope, "null != x", false);
+  te_bool(false, scope, "x != y", false);
+}
