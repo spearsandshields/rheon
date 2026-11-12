@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             namespace="https://dsntk.io/invocation"
+             name="invocation"
+             id="_invocation">
+    <description>
+        A boxed invocation means the equivalent textual invocation with named arguments (DMN 1.6, 10.2.1.3),
+        and an invocable invoked with input data is invoked like any function (10.4).
+    </description>
+
+    <businessKnowledgeModel name="double" id="_double">
+        <variable name="double"/>
+        <encapsulatedLogic>
+            <formalParameter name="x" typeRef="number"/>
+            <literalExpression>
+                <text>x * 2</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <businessKnowledgeModel name="id" id="_id">
+        <variable name="id"/>
+        <encapsulatedLogic>
+            <formalParameter name="d" typeRef="date"/>
+            <literalExpression>
+                <text>d</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <businessKnowledgeModel name="flag" id="_flag">
+        <variable name="flag"/>
+        <encapsulatedLogic>
+            <formalParameter name="a"/>
+            <formalParameter name="b"/>
+            <literalExpression>
+                <text>if b = null then "none" else "some"</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <businessKnowledgeModel name="second" id="_second">
+        <variable name="second"/>
+        <encapsulatedLogic>
+            <formalParameter name="a"/>
+            <formalParameter name="b"/>
+            <literalExpression>
+                <text>b</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <businessKnowledgeModel name="peek" id="_peek">
+        <variable name="peek"/>
+        <encapsulatedLogic>
+            <formalParameter name="x"/>
+            <literalExpression>
+                <text>if y = null then "no y" else y</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <businessKnowledgeModel name="recurse" id="_recurse">
+        <variable name="recurse"/>
+        <encapsulatedLogic>
+            <formalParameter name="n" typeRef="number"/>
+            <invocation>
+                <literalExpression>
+                    <text>recurse</text>
+                </literalExpression>
+                <binding>
+                    <parameter name="n"/>
+                    <literalExpression>
+                        <text>n + 1</text>
+                    </literalExpression>
+                </binding>
+            </invocation>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <businessKnowledgeModel name="helper" id="_helper">
+        <variable name="helper"/>
+        <encapsulatedLogic>
+            <literalExpression>
+                <text>"the requirement"</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <!-- requires a business knowledge model named like its parameter -->
+    <businessKnowledgeModel name="shadowed" id="_shadowed">
+        <variable name="shadowed"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_helper"/>
+        </knowledgeRequirement>
+        <encapsulatedLogic>
+            <formalParameter name="helper"/>
+            <literalExpression>
+                <text>helper</text>
+            </literalExpression>
+        </encapsulatedLogic>
+    </businessKnowledgeModel>
+
+    <!-- the type of a binding's parameter is not a conversion target -->
+    <decision name="binding typed date and time" id="_binding_typed_date_and_time">
+        <variable name="binding typed date and time"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_id"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>id</text>
+            </literalExpression>
+            <binding>
+                <parameter name="d" typeRef="date and time"/>
+                <literalExpression>
+                    <text>date("2020-01-01")</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <decision name="binding typed string" id="_binding_typed_string">
+        <variable name="binding typed string"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_double"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>double</text>
+            </literalExpression>
+            <binding>
+                <parameter name="x" typeRef="string"/>
+                <literalExpression>
+                    <text>2</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <decision name="binding typed unknown" id="_binding_typed_unknown">
+        <variable name="binding typed unknown"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_double"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>double</text>
+            </literalExpression>
+            <binding>
+                <parameter name="x" typeRef="tNoSuchType"/>
+                <literalExpression>
+                    <text>2</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <!-- a binding whose name is not a parameter of the function -->
+    <decision name="extra binding" id="_extra_binding">
+        <variable name="extra binding"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_double"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>double</text>
+            </literalExpression>
+            <binding>
+                <parameter name="x"/>
+                <literalExpression>
+                    <text>2</text>
+                </literalExpression>
+            </binding>
+            <binding>
+                <parameter name="y"/>
+                <literalExpression>
+                    <text>3</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <decision name="extra typed binding" id="_extra_typed_binding">
+        <variable name="extra typed binding"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_double"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>double</text>
+            </literalExpression>
+            <binding>
+                <parameter name="x"/>
+                <literalExpression>
+                    <text>2</text>
+                </literalExpression>
+            </binding>
+            <binding>
+                <parameter name="z" typeRef="string"/>
+                <literalExpression>
+                    <text>5</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <decision name="extra binding seen" id="_extra_binding_seen">
+        <variable name="extra binding seen"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_peek"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>peek</text>
+            </literalExpression>
+            <binding>
+                <parameter name="x"/>
+                <literalExpression>
+                    <text>1</text>
+                </literalExpression>
+            </binding>
+            <binding>
+                <parameter name="y"/>
+                <literalExpression>
+                    <text>"seen"</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <!-- a parameter without a binding, or with a binding without a formula, is bound to null -->
+    <decision name="missing binding" id="_missing_binding">
+        <variable name="missing binding"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_flag"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>flag</text>
+            </literalExpression>
+            <binding>
+                <parameter name="a"/>
+                <literalExpression>
+                    <text>1</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <decision name="missing named argument" id="_missing_named_argument">
+        <variable name="missing named argument"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_flag"/>
+        </knowledgeRequirement>
+        <literalExpression>
+            <text>flag(a: 1)</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="binding without formula" id="_binding_without_formula">
+        <variable name="binding without formula"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_flag"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>flag</text>
+            </literalExpression>
+            <binding>
+                <parameter name="a"/>
+                <literalExpression>
+                    <text>1</text>
+                </literalExpression>
+            </binding>
+            <binding>
+                <parameter name="b"/>
+            </binding>
+        </invocation>
+    </decision>
+
+    <decision name="missing binding value" id="_missing_binding_value">
+        <variable name="missing binding value"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_second"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>second</text>
+            </literalExpression>
+            <binding>
+                <parameter name="a"/>
+                <literalExpression>
+                    <text>1</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <!-- any function can be invoked, built-in functions too -->
+    <decision name="built in function" id="_built_in_function">
+        <variable name="built in function"/>
+        <invocation>
+            <literalExpression>
+                <text>abs</text>
+            </literalExpression>
+            <binding>
+                <parameter name="n"/>
+                <literalExpression>
+                    <text>-1</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+
+    <!-- recursion through boxed invocations only -->
+    <decision name="runaway recursion" id="_runaway_recursion">
+        <variable name="runaway recursion"/>
+        <knowledgeRequirement>
+            <requiredKnowledge href="#_recurse"/>
+        </knowledgeRequirement>
+        <invocation>
+            <literalExpression>
+                <text>recurse</text>
+            </literalExpression>
+            <binding>
+                <parameter name="n"/>
+                <literalExpression>
+                    <text>0</text>
+                </literalExpression>
+            </binding>
+        </invocation>
+    </decision>
+</definitions>

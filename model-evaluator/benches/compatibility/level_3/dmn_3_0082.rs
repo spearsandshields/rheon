@@ -181,7 +181,7 @@ fn _0021(b: &mut Bencher) {
 #[bench]
 fn _0022(b: &mut Bencher) {
   let invocable = "invoke_007";
-  let expected = "null(argument not provided: arg)";
+  let expected = "null(function has no parameter named 'arg1')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX));
 }

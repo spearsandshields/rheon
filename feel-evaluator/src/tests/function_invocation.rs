@@ -78,13 +78,13 @@ fn _0007() {
 #[test]
 fn _0008() {
   let scope = &te_scope(r#"{add: function(x: number, y: number) x + y }"#);
-  te_null(false, scope, r#"add(k: 17.82,l: 32.18)"#, "parameter with name x not found in arguments");
+  te_null(false, scope, r#"add(k: 17.82,l: 32.18)"#, "function has no parameter named 'k'");
 }
 
 #[test]
 fn _0009() {
   let scope = &te_scope(r#"{add: function(x: number, y: number) x + y }"#);
-  te_null(false, scope, r#"add(x: 17.82,y: 32.18, z:11.2)"#, "invalid number of arguments");
+  te_null(false, scope, r#"add(x: 17.82,y: 32.18, z:11.2)"#, "function has no parameter named 'z'");
 }
 
 #[test]
@@ -139,4 +139,27 @@ fn _0015() {
   te_bool(false, scope, r#"f("x") != null"#, false);
   te_bool(false, scope, r#"f("x") = f("y")"#, true);
   te_bool(false, scope, r#"f("x") = 1"#, false);
+}
+
+#[test]
+fn _0016() {
+  // named: an unsupplied parameter is bound to null and the body is evaluated (DMN 1.6, §10.3.2.13.5)
+  te_string(false, &scope!(), r#"(function(a, b) if b = null then "none" else "some")(a: 1)"#, "none");
+  te_string(false, &scope!(), r#"(function(a, b) if b = null then "none" else "some")(b: 1)"#, "some");
+}
+
+#[test]
+fn _0017() {
+  // named: a name that is not a parameter does not match the function (Table 64)
+  te_null(false, &scope!(), r#"(function(a) a)(b: 1)"#, "function has no parameter named 'b'");
+}
+
+#[test]
+fn _0018() {
+  // external functions: arguments are converted and checked like any other (Table 64), positional and named
+  let scope = &te_scope(r#"{f: function(x: number) external {pmml: {document: "d", model: "m"}}}"#);
+  let not_conformant = "argument for parameter 'x' does not conform to type number";
+  te_null(false, scope, r#"f("a")"#, not_conformant);
+  te_null(false, scope, r#"f(x: "a")"#, not_conformant);
+  te_string(false, scope, r#"f([1])"#, "PMML, document = d, model name = m");
 }

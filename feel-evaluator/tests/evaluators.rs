@@ -73,7 +73,7 @@ fn _0009() {
     )])),
   );
   assert_eq!(
-    "null(expected built-in function name or function definition, actual is null(context has no value for key 'calculate'))",
+    "null(expected AST node ParameterName, actual node is Boolean(true))",
     evaluate(&scope!(), &node).to_string()
   );
 }

@@ -1,8 +1,9 @@
+use crate::Dialect;
 use crate::errors::*;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
-use rheon_feel::{Evaluator, FeelScope};
+use rheon_feel::{Evaluator, FeelScope, Name};
 use rheon_feel_parser::AstNode;
 
 /// Evaluates a [Value] from given [AstNode].
@@ -38,6 +39,13 @@ pub fn evaluate_max(values: Vec<Value>) -> Value {
 /// Compares two values and returns `true` when the two `FEEL` values are equal.
 pub fn evaluate_equals(left: &Value, right: &Value) -> bool {
   crate::builders::eval_ternary_equality(left, right).unwrap_or(false)
+}
+
+/// Evaluates the invocation of a function with named arguments, `function(n1: v1, ...)` (DMN 1.6, Table 64):
+/// the meaning of a boxed invocation (§10.2.1.3) and of an invocable invoked with input data (§10.4).
+/// The dialect selects the semantics of built-in functions.
+pub fn evaluate_invocation(scope: &FeelScope, function: Value, arguments: Vec<(Name, Value)>, dialect: Dialect) -> Value {
+  crate::invocation::guarded(|| crate::invocation::invoke(scope, function, crate::invocation::Arguments::Named(arguments), dialect))
 }
 
 /// Evaluates a context from text containing `FEEL` expression.

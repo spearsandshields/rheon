@@ -138,7 +138,14 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "invoke_007", &CTX, "null(argument not provided: arg)");
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "invoke_007",
+    &CTX,
+    "null(function has no parameter named 'arg1')",
+  );
 }
 
 #[test]

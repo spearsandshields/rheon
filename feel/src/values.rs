@@ -641,6 +641,8 @@ impl Value {
   ///
   /// All these conversion rules are implemented in this function.
   ///
+  /// `None` when the value does not conform before or after the implicit conversions (§10.3.2.9.4);
+  /// in an invocation context the result of the invocation is then null.
   pub fn try_coerced(&self, target_type: &FeelType) -> Option<Value> {
     if let Value::FunctionDefinition(_, _, _, _, _, _) = self {
       return Some(self.clone());
@@ -684,8 +686,8 @@ impl Value {
     None
   }
 
-  /// Returns value coerced to specified type, or null when the value can not be
-  /// converted to this type (see [Value::try_coerced]).
+  /// Returns value coerced to specified type, or null when it can not be converted
+  /// (the binding contexts of §10.3.2.9.4; see [Value::try_coerced]).
   pub fn coerced(&self, target_type: &FeelType) -> Value {
     self.try_coerced(target_type).unwrap_or_else(|| value_null!("after coercion"))
   }

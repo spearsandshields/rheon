@@ -9,7 +9,7 @@ use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
-use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator, null_argument_not_conformant};
+use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator, evaluate_invocation};
 use rheon_feel_parser::{ClosureBuilder, parse_name};
 use rheon_model::*;
 use std::sync::Arc;
@@ -229,50 +229,23 @@ pub fn build_function_definition_evaluator(scope: &FeelScope, function_definitio
 }
 
 pub fn build_invocation_evaluator(scope: &FeelScope, invocation: &Invocation, model_builder: &ModelBuilder) -> Result<(Evaluator, Closure)> {
-  let item_definition_type_evaluator = model_builder.item_definition_type_evaluator();
-  let mut bindings = vec![];
   let (function_evaluator, _) = build_expression_instance_evaluator(scope, invocation.called_function(), model_builder)?;
+  // a boxed invocation means the textual invocation with named arguments (DMN 1.6, §10.2.1.3); bindings
+  // match parameters by name only (§7.3.6), so the type of a binding's parameter is not used
+  let mut argument_evaluators = vec![];
   for binding in invocation.bindings() {
-    if let Some(binding_formula) = binding.binding_formula() {
-      let param_name = binding.parameter().feel_name().clone();
-      let param_type = item_definition_type_evaluator
-        .information_item_type(binding.parameter().namespace(), binding.parameter().type_ref())
-        .ok_or_else(err_empty_feel_type)?;
-      let (evaluator, _) = build_expression_instance_evaluator(scope, binding_formula, model_builder)?;
-      bindings.push((param_name, param_type, evaluator));
-    }
+    let evaluator = match binding.binding_formula() {
+      Some(binding_formula) => build_expression_instance_evaluator(scope, binding_formula, model_builder)?.0,
+      // no binding formula: the parameter is bound to null, like an unsupplied named argument
+      None => Box::new(|_: &FeelScope| value_null!()) as Evaluator,
+    };
+    argument_evaluators.push((binding.parameter().feel_name().clone(), evaluator));
   }
+  let dialect = model_builder.dialect(invocation.namespace(), None);
   let invocation_evaluator = Box::new(move |scope: &FeelScope| {
-    let mut params_ctx = FeelContext::default();
-    for (param_name, param_type, evaluator) in &bindings {
-      let param_value = evaluator(scope) as Value;
-      // when the argument does not conform to the type of the parameter, the invocable is not called
-      let Some(coerced_param_value) = param_value.try_coerced(param_type) else {
-        return null_argument_not_conformant(param_name, param_type);
-      };
-      params_ctx.set_entry(param_name, coerced_param_value)
-    }
-    if let Value::FunctionDefinition(formal_parameters, body, false, _, closure_ctx, result_type) = function_evaluator(scope) {
-      for (formal_parameter_name, formal_parameter_type) in formal_parameters {
-        if let Some(param_value) = params_ctx.get(&formal_parameter_name) {
-          let Some(coerced_param_value) = param_value.try_coerced(&formal_parameter_type) else {
-            return null_argument_not_conformant(&formal_parameter_name, &formal_parameter_type);
-          };
-          // the body sees the value converted to the formal parameter's type (TCK 1157 011)
-          params_ctx.set_entry(&formal_parameter_name, coerced_param_value);
-        } else {
-          return value_null!("argument not provided: {}", formal_parameter_name);
-        }
-      }
-      scope.push(closure_ctx); // push closure_ctx <----
-      scope.push(params_ctx); //  push params_ctx <---  |
-      let value = body.evaluate(scope); //     |  |
-      scope.pop(); // pop params_ctx <----------------  |
-      scope.pop(); // pop closure_ctx <-----------------
-      value.coerced(&result_type)
-    } else {
-      value_null!("expected function definition in invocation evaluator")
-    }
+    let function = function_evaluator(scope);
+    let arguments = argument_evaluators.iter().map(|(name, evaluator)| (name.clone(), evaluator(scope))).collect();
+    evaluate_invocation(scope, function, arguments, dialect)
   });
   Ok((
     build_coerced_result_evaluator(invocation_evaluator, invocation, invocation.namespace(), model_builder),

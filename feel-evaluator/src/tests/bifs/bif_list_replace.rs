@@ -145,3 +145,20 @@ fn _0020() {
     "expected 3 parameters, actual number of parameters is 4",
   );
 }
+
+#[test]
+fn _0021() {
+  // the match function is invoked like any function: its arguments are converted and checked (Table 64)
+  te_value(
+    false,
+    &scope!(),
+    r#"list replace([[2], [4], [7]], function(item: number, newItem) item < 5, 0)"#,
+    "[0, 0, [7]]",
+  );
+  te_null(
+    false,
+    &scope!(),
+    r#"list replace(["a"], function(item: number, newItem) true, 0)"#,
+    "list replace: matching function must return boolean value",
+  );
+}

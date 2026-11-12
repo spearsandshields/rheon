@@ -44,7 +44,8 @@ pub enum FunctionBody {
 }
 
 impl FunctionBody {
-  /// Evaluates function body, takes a [FeelScope] as input and returns evaluated [Value].
+  /// Evaluates the body in a scope that already holds the bound arguments; functions are invoked
+  /// by the invocation of rheon-feel-evaluator, which binds them.
   pub fn evaluate(&self, scope: &FeelScope) -> Value {
     match self {
       FunctionBody::Conditional(evaluator) => evaluator(scope),

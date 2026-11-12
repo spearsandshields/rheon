@@ -21,13 +21,13 @@ fn _0003() {
 #[test]
 fn _0004() {
   let scope = te_scope(r#"{ cos: function(arg: number) external { java: { class: "java.lang.Math",method signature: "cos(double)" } } }"#);
-  te_null(false, &scope, "cos(x: 123)", "parameter with name arg not found in arguments");
+  te_null(false, &scope, "cos(x: 123)", "function has no parameter named 'x'");
 }
 
 #[test]
 fn _0005() {
   let scope = te_scope(r#"{ cos: function(arg: number) external { java: { class: "java.lang.Math",method signature: "cos(double)" } } }"#);
-  te_null(false, &scope, "cos(x: 1, y: 2)", r#"invalid number of arguments"#);
+  te_null(false, &scope, "cos(x: 1, y: 2)", "function has no parameter named 'x'");
 }
 
 #[test]

@@ -153,7 +153,7 @@ fn _0021(b: &mut Bencher) {
 
 #[bench]
 fn _0022(b: &mut Bencher) {
-  eqs(b, "decision_010_1", CTX, r#"null(parameter with name decision_010_3 not found in arguments)"#);
+  eqs(b, "decision_010_1", CTX, r#"null(function has no parameter named 'foo')"#);
 }
 
 #[bench]

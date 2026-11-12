@@ -168,6 +168,30 @@ Open in 1.6:
   `dmnVersion`, `InformationItem.defaultValue`, range types (`isRange`), iteration contexts in
   quantified expressions (`some x in 1..3`), B-FEEL null handling in collections (DMN17-112).
 - **Spec typo**: the 1.6 number() footnote cites grammar rule 37 (`digits`); rheon uses rule 35.
+- **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation now goes through
+  `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
+  with input data, `sort` and `list replace`). Left as they were:
+  - *Closures are not lexical.* A function returned by a body closes over the names as they are
+    where the body ends (`closed_over`, kept from dsntk), so `{f: function(x) {x: 10, g:
+    function(y) x + y}.g, h: f(1), r: h(5)}.r` is 6, not 15 (§10.3.2.13.2: "FEEL functions are
+    lexical closures"). Removing the rebuild needs a TCK run.
+  - *Decision service as a function.* Its body reads the arguments with `scope.peek()`
+    (decision_service.rs), so the invocation must push the parameters last, and it converts them
+    a second time through the input data and input decision evaluators.
+  - *Java and PMML BKMs are not external.* `build_bkm_evaluator` special-cases only ONNX; a BKM
+    with `kind="Java"` or `"PMML"` returns its mapping context instead of calling the function.
+  - *Binding types are not checked.* A binding's parameter `typeRef` is ignored (§7.3.6 binds by
+    name); §7.3.4 asks it to be compatible with the value, so a model-load warning would fit.
+  - *`try_coerced` lets any function value pass* whatever the target type (feel/src/values.rs).
+  - *`build_context` keeps its frame* when an entry is null: it returns without `scope.pop()`
+    (builders.rs, "value_null @ Value::Null(_) => return value_null"), so the caller's pops are
+    off by one.
+  - *Call depth counting.* FEEL invocations are counted at the expression (argument evaluation
+    included), boxed invocations and invocables in `evaluate_invocation`; `sort` and `list
+    replace` callbacks are not counted.
+  - *Unused values.* `Value::NamedParameter`, `Value::ParameterName` and
+    `Value::PositionalParameters` are no longer built for invocations (`ParameterName` still is,
+    for formal parameters).
 
 - **0085 decisionService_015 (1 test since the TCK update)** — not an engine bug. The engine returns the correct
   context with both output decisions. dsntk-test-runner evaluates the decision service once per
