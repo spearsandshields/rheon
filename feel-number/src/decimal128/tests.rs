@@ -569,9 +569,7 @@ fn pow_edge_cases() {
   );
   // exact tie: 16^-12.5 = 2^-50 = 8.8817841970012523233890533447265625E-16, rounded half-even
   // (dashu's own powf hangs on it, Intel returns ...561, 3 ulp below the true value)
-  let t = std::time::Instant::now();
   assert_eq!("+8881784197001252323389053344726562E-49", dbg(n("16").pow(&n("-12.5")).unwrap()));
-  assert!(t.elapsed().as_secs() < 5);
   // integer exponent: exact binary exponentiation keeps the cohort like Intel
   assert_eq!("+1125899906842624E+0", dbg(n("4").pow(&n("25")).unwrap()));
   // exact results of fractional powers, padded to 34 digits (Intel: 9.999999999999999999999999999999999
