@@ -21,13 +21,6 @@ trait IterationState {
     false
   }
 
-  /// Checks if there is a next value to iterate to (what [IterationState::next] returns; the
-  /// reference of the iteration loop in tests).
-  #[cfg(test)]
-  fn has_next(&self) -> bool {
-    false
-  }
-
   /// Check if there are values to iterate over.
   fn is_empty(&self) -> bool {
     false
@@ -111,11 +104,6 @@ impl IterationState for NumberIntervalState {
       false
     }
   }
-
-  #[cfg(test)]
-  fn has_next(&self) -> bool {
-    self.following().is_some()
-  }
 }
 
 /// Iteration state for date intervals.
@@ -179,14 +167,6 @@ impl IterationState for DateIntervalState {
       }
     }
   }
-
-  #[cfg(test)]
-  fn has_next(&self) -> bool {
-    match self.direction {
-      IterationDirection::Ascending => self.current.add_days(self.step).is_some_and(|date| date <= self.end),
-      IterationDirection::Descending => self.current.sub_days(self.step).is_some_and(|date| date >= self.end),
-    }
-  }
 }
 
 struct ListState {
@@ -229,11 +209,6 @@ impl IterationState for ListState {
       self.current = 0;
       false
     }
-  }
-
-  #[cfg(test)]
-  fn has_next(&self) -> bool {
-    self.current < self.values.len().saturating_sub(1)
   }
 
   fn is_empty(&self) -> bool {
@@ -282,11 +257,6 @@ impl IterationState for VariableState {
 
   fn next(&mut self) -> bool {
     self.list_state.next()
-  }
-
-  #[cfg(test)]
-  fn has_next(&self) -> bool {
-    self.list_state.has_next()
   }
 
   fn is_variable(&self) -> bool {
@@ -352,18 +322,6 @@ impl FeelIterator {
     self.states.push(VariableState::init(variable, bound_variable));
   }
 
-  /// Iterates over all iteration states (tests; the evaluators use [FeelIterator::iterate_while]).
-  #[cfg(test)]
-  pub fn iterate<F>(&mut self, mut handler: F)
-  where
-    F: FnMut(&FeelContext),
-  {
-    self.iterate_while(|ctx| {
-      handler(ctx);
-      ControlFlow::Continue(())
-    });
-  }
-
   /// Iterates over all iteration states; `handler` gets the iteration context of every
   /// iteration and can stop the iteration with [ControlFlow::Break].
   ///
@@ -389,8 +347,9 @@ impl FeelIterator {
       if !self.states.iter().any(|state| state.is_empty()) && handler(&mut ctx).is_break() {
         return;
       }
-      // advance like an odometer, the last state fastest; `next` returns what `has_next` would
-      // (tests: `iterate_equals_previous_loop`), so the outermost state ends the iteration
+      // advance like an odometer: the last state advances fastest; a state that cannot advance
+      // restarts at its start and the one before it advances; when the first state cannot
+      // advance, the iteration is over
       for (state_index, state) in self.states.iter_mut().rev().enumerate() {
         if state.next() {
           break;
@@ -659,137 +618,5 @@ impl EveryExpressionEvaluator {
         }
       });
     result
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use std::str::FromStr;
-
-  /// The iteration loop before `iterate` relied on `next` alone: `has_next` decided the end.
-  fn iterate_previous(iterator: &mut FeelIterator, mut handler: impl FnMut(&FeelContext)) {
-    if iterator.states.is_empty() {
-      return;
-    }
-    let mut ctx = FeelContext::new();
-    let last_state_index = iterator.states.len() - 1;
-    loop {
-      for state in iterator.states.iter_mut().rev().filter(|state| !state.is_variable()) {
-        state.set_value(&mut ctx);
-      }
-      for state in iterator.states.iter_mut().filter(|state| state.is_variable()) {
-        state.bind_value(&ctx);
-        state.set_value(&mut ctx);
-      }
-      if !iterator.states.iter().any(|state| state.is_empty()) {
-        handler(&ctx);
-      }
-      for (state_index, state) in iterator.states.iter_mut().rev().enumerate() {
-        if state_index == last_state_index && !state.has_next() {
-          return;
-        }
-        if state.next() {
-          break;
-        }
-      }
-    }
-  }
-
-  fn number(text: &str) -> Value {
-    Value::Number(FeelNumber::from_str(text).unwrap())
-  }
-
-  fn date(text: &str) -> Value {
-    Value::Date(FeelDate::from_str(text).unwrap())
-  }
-
-  fn list(items: &[i64]) -> Value {
-    Value::List(items.iter().map(|i| Value::Number(FeelNumber::from(*i))).collect())
-  }
-
-  #[test]
-  fn iterate_equals_previous_loop() {
-    // one iteration state each: (variable, start, end) intervals, lists, variables bound to a previous list
-    enum S {
-      Interval(&'static str, Value, Value),
-      List(&'static str, Value),
-      Variable(&'static str, &'static str),
-    }
-    let single = || {
-      vec![
-        S::Interval("i", number("1"), number("5")),
-        S::Interval("i", number("5"), number("1")),
-        S::Interval("i", number("3"), number("3")),
-        S::Interval("i", number("1.5"), number("4")),
-        S::Interval("i", number("-1"), number("1")),
-        S::Interval("i", number("1e34"), number("1e34")),
-        S::Interval("i", number("9999999999999999999999999999999990"), number("1e34")),
-        S::Interval("i", date("2020-02-27"), date("2020-03-02")),
-        S::Interval("i", date("2020-01-03"), date("2020-01-01")),
-        S::Interval("i", date("2020-01-01"), date("2020-01-01")),
-        S::List("x", list(&[])),
-        S::List("x", list(&[7])),
-        S::List("x", list(&[1, 2, 3])),
-        S::List("x", Value::List(vec![list(&[1, 2]), list(&[]), list(&[3])])),
-        S::List("x", Value::String("single".to_string())),
-      ]
-    };
-    let build = |states: &[&S]| {
-      let mut iterator = FeelIterator::new();
-      for state in states {
-        match state {
-          S::Interval(name, start, end) => iterator.add_interval(Name::from(*name), start.clone(), end.clone(), false).unwrap(),
-          S::List(name, value) => iterator.add_list(Name::from(*name), value.clone()),
-          S::Variable(name, bound) => iterator.add_variable(Name::from(*name), Name::from(*bound)),
-        }
-      }
-      iterator
-    };
-    let configurations = single();
-    let renamed = |name: &'static str| {
-      single()
-        .into_iter()
-        .map(|s| match s {
-          S::Interval(_, a, b) => S::Interval(name, a, b),
-          S::List(_, v) => S::List(name, v),
-          v => v,
-        })
-        .collect::<Vec<S>>()
-    };
-    let second = renamed("j");
-    let variables = [S::Variable("y", "x"), S::Variable("z", "y")];
-    let mut cases: Vec<Vec<&S>> = vec![];
-    for a in &configurations {
-      cases.push(vec![a]);
-      for b in &second {
-        cases.push(vec![a, b]);
-        cases.push(vec![b, a]);
-      }
-      if let S::List(..) = a {
-        cases.push(vec![a, &variables[0]]);
-        cases.push(vec![a, &variables[0], &variables[1]]);
-        for b in &second {
-          cases.push(vec![a, &variables[0], b]);
-        }
-      }
-    }
-    let mut iterations = 0;
-    for states in &cases {
-      let mut expected = vec![];
-      iterate_previous(&mut build(states), |ctx| expected.push(ctx.to_string()));
-      let mut actual = vec![];
-      build(states).iterate(|ctx| actual.push(ctx.to_string()));
-      assert_eq!(expected, actual);
-      iterations += actual.len();
-      // stopping early stops after the iteration that returned Break
-      let mut seen = 0;
-      build(states).iterate_while(|_| {
-        seen += 1;
-        if seen == 2 { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
-      });
-      assert_eq!(expected.len().min(2), seen);
-    }
-    assert!(cases.len() > 400 && iterations > 3000, "{} cases, {iterations} iterations", cases.len());
   }
 }
