@@ -1,10 +1,62 @@
 //! `FEEL` or `DMN` function body definition.
 
+use crate::closure::Closure;
+use crate::context::FeelContext;
 use crate::values::Value;
-use crate::{Evaluator, FeelScope};
+use crate::{Evaluator, FeelScope, FeelType, Name};
 use std::fmt;
 use std::fmt::Debug;
 use std::sync::Arc;
+
+/// A function: a FEEL function definition or a function built from a DMN model
+/// (the content of [Value::FunctionDefinition], shared: copying the value copies a pointer).
+#[derive(Clone, PartialEq)]
+pub struct FunctionDefinition {
+  /// Formal parameters of the function.
+  pub parameters: Vec<(Name, FeelType)>,
+  /// Body of the function.
+  pub body: FunctionBody,
+  /// Flag indicating if the function's body is an external function, `true` == external.
+  pub external: bool,
+  /// Closed names from function context (closure names).
+  pub closure: Closure,
+  /// Values of the closed names (closure values).
+  pub closure_ctx: FeelContext,
+  /// Return type of the function.
+  pub result_type: FeelType,
+}
+
+impl FunctionDefinition {
+  /// Creates a function definition.
+  pub fn new(parameters: Vec<(Name, FeelType)>, body: FunctionBody, external: bool, closure: Closure, closure_ctx: FeelContext, result_type: FeelType) -> Self {
+    Self {
+      parameters,
+      body,
+      external,
+      closure,
+      closure_ctx,
+      result_type,
+    }
+  }
+}
+
+impl From<FunctionDefinition> for Value {
+  /// Converts a function definition into a function value.
+  fn from(function: FunctionDefinition) -> Self {
+    Value::FunctionDefinition(Arc::new(function))
+  }
+}
+
+impl Debug for FunctionDefinition {
+  /// The fields in order, as the tuple variant `Value::FunctionDefinition(…)` showed them.
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "{:?}, {:?}, {:?}, {:?}, {:?}, {:?}",
+      self.parameters, self.body, self.external, self.closure, self.closure_ctx, self.result_type
+    )
+  }
+}
 
 /// Type alias of the closure that evaluates FEEL or DMN function body into [Value].
 pub type FunctionBodyEvaluator = Arc<Evaluator>;

@@ -562,3 +562,49 @@ fn dmn_1_6_singleton_list_filter() {
   te_number(false, &scope!(), "5[-1]", 5, 0);
   te_null(false, &scope!(), "null[item > 1]", "");
 }
+
+#[test]
+fn _moved_items_equal_copied_items() {
+  // the FEEL filter (items moved into the scope and back) equals the copying filter of boxed
+  // expressions on every kind of item, and leaves the scope as it found it
+  let scope = &te_scope("{x: 2, item: 9}");
+  let lists = [
+    "[1, 2, 3]",
+    "[{a: 1}, {a: 2}, {a: 3, b: {c: 4}}]",
+    "[{item: 5, a: 1}, {item: 1, a: 2}, {a: 3}, 4, null, [1, 2]]",
+    "[{a: null}, {b: 1}, {}, {item: null}]",
+    "[[1, 2], [3], []]",
+    "[]",
+  ];
+  let predicates = [
+    "true",
+    "false",
+    "item > 1",
+    "item = null",
+    "a > 1",
+    "a = null",
+    "item.a > 1",
+    "b.c = 4",
+    "item > x",
+    "count(item) > 1",
+    "2",
+    "-1",
+    "1.5",
+    "\"text\"",
+    "a",
+    "[1,2][\"x\"] = null",
+    "{y: item}.y != null",
+  ];
+  for list in lists {
+    for predicate in predicates {
+      let list_value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+      let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(scope, predicate, false).unwrap());
+      let depth = scope.depth();
+      let copied = crate::FilterExpressionEvaluator::new().evaluate(scope, list_value.clone(), &evaluator);
+      assert_eq!(depth, scope.depth());
+      let moved = crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list_value, &evaluator);
+      assert_eq!(depth, scope.depth());
+      assert_eq!(copied, moved, "{list}[{predicate}]");
+    }
+  }
+}

@@ -49,3 +49,12 @@ fn _0007() {
   let scope = &te_scope("{}");
   te_null(false, scope, r#"some element in 1 satisfies "not a boolean""#, "");
 }
+
+#[test]
+fn _some_stops_at_the_first_decisive_value() {
+  let scope = &te_scope("{}");
+  te_null(false, scope, "some x in [null, true] satisfies x", "");
+  te_bool(false, scope, "some x in [false, true, null] satisfies x", true);
+  te_bool(false, scope, "some x in [1, 2], y in [2, 3] satisfies x = y", true);
+  te_bool(false, scope, "some x in [] satisfies x", false);
+}

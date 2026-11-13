@@ -237,3 +237,55 @@ fn _0023() {
     "[9999999999999999999999999999999998, 9999999999999999999999999999999999]",
   );
 }
+
+/// Evaluates an expression in an empty scope.
+fn eval(expression: &str) -> rheon_feel::values::Value {
+  let scope = scope!();
+  let node = rheon_feel_parser::parse_expression(&scope, expression, false).unwrap();
+  crate::evaluate(&scope, &node)
+}
+
+#[test]
+fn _0024() {
+  // A filter whose index is neither a number nor a boolean returns early; the contexts it pushed
+  // must not stay on the scope: every iteration gets its own null, and the loop variable is not
+  // visible after the loop (0.3.0 returned `[null]` and `s: 3`).
+  let nulls = eval(r#"for i in 1..3 return [1,2]["x"]"#);
+  assert_eq!(
+    "[null(only number or boolean indexes are allowed in filters), null(only number or boolean indexes are allowed in filters), null(only number or boolean indexes are allowed in filters)]",
+    nulls.to_string()
+  );
+  assert!(eval(r#"{r: for i in 1..3 return [1,2]["x"], s: i}.s"#).is_null());
+  assert_eq!("3", eval(r#"count({r: for i in 1..3 return [1,2]["x"]}.r)"#).to_string());
+  // the same for some / every bodies and function bodies
+  assert!(eval(r#"{r: some i in [1, 2] satisfies [1]["x"] = null, s: i}.s"#).is_null());
+  assert!(eval(r#"{f: function(a) [1]["x"], r: f(1), s: a}.s"#).is_null());
+}
+
+#[test]
+fn _0025() {
+  // `partial`, loop variables, nesting: the iteration context is reused across iterations
+  te_be_value(false, &scope!(), "for partial in 1..3 return partial", "[[], [[]], [[], [[]]]]");
+  te_be_value(false, &scope!(), "for i in 1..3 return partial", "[[], [[]], [[], [[]]]]");
+  te_be_value(false, &scope!(), "for i in 1..4 return count(partial) + i", "[1, 3, 5, 7]");
+  te_be_value(false, &scope!(), "for i in 1..3 return for j in 1..i return j", "[[1], [1, 2], [1, 2, 3]]");
+  te_be_value(false, &scope!(), "for i in 1..2 return for j in 1..2 return count(partial)", "[[0, 1], [0, 1]]");
+  te_be_value(false, &scope!(), "for x in [[1,2],[3]], y in x return y", "[1, 2, 3]");
+  te_be_value(false, &scope!(), "for i in 1..2, j in 1..3 return i * 10 + j", "[11, 12, 13, 21, 22, 23]");
+  te_be_value(false, &scope!(), "for i in [] return i", "[]");
+  te_be_value(false, &scope!(), "for i in [1, 2], j in [] return i", "[]");
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for d in date("2020-02-28")..date("2020-03-01") return d"#,
+    r#"[date("2020-02-28"), date("2020-02-29"), date("2020-03-01")]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for d in date("2020-01-02")..date("2020-01-01") return d"#,
+    r#"[date("2020-01-02"), date("2020-01-01")]"#,
+  );
+  te_be_value(false, &scope!(), "for i in 1..3 return {a: i}.a", "[1, 2, 3]");
+  assert!(eval("{x: for i in 1..2 return i, y: i}.y").is_null());
+}

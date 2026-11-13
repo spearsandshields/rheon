@@ -78,7 +78,14 @@ fn test_debug() {
   );
   eq_dbg!(
     r#"FunctionDefinition([(Name("a"), Number)], FunctionBodyLiteralExpression, false, Closure({}), FeelContext({}), Number)"#,
-    Value::FunctionDefinition(vec![(name.clone(), t_number.clone())], v_function_body, v_external, v_closure, v_closure_ctx, t_number)
+    Value::from(crate::FunctionDefinition::new(
+      vec![(name.clone(), t_number.clone())],
+      v_function_body,
+      v_external,
+      v_closure,
+      v_closure_ctx,
+      t_number
+    ))
   );
   eq_dbg!(r#"IntervalEnd(Number(+1E+0), Opened)"#, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_dbg!(r#"IntervalStart(Number(+1E+0), Opened)"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
@@ -156,7 +163,14 @@ fn test_display() {
   eq_dsp!(r#"FunctionBody"#, Value::FunctionBody(v_function_body.clone(), v_external));
   eq_dsp!(
     r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#,
-    Value::FunctionDefinition(vec![(name.clone(), t_number.clone())], v_function_body, v_external, v_closure, v_closure_ctx, t_number)
+    Value::from(crate::FunctionDefinition::new(
+      vec![(name.clone(), t_number.clone())],
+      v_function_body,
+      v_external,
+      v_closure,
+      v_closure_ctx,
+      t_number
+    ))
   );
   eq_dsp!(r#"IntervalEnd"#, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_dsp!(r#"IntervalStart"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
@@ -221,14 +235,14 @@ fn test_type_of() {
   eq_typ!(FeelType::Any, Value::FunctionBody(v_function_body.clone(), v_external));
   eq_typ!(
     FeelType::Function(vec![FeelType::Number], Box::new(FeelType::Number)),
-    Value::FunctionDefinition(
+    Value::from(crate::FunctionDefinition::new(
       vec![(name.clone(), t_number.clone())],
       v_function_body,
       v_external,
       v_closure,
       v_closure_ctx,
       t_number.clone()
-    )
+    ))
   );
   eq_typ!(FeelType::Number, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_typ!(FeelType::Number, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
@@ -474,14 +488,14 @@ fn test_coerced() {
   let v_list_number_1 = Value::List(vec![value_number!(1, 0)]);
   let v_list_number_2 = Value::List(vec![value_number!(1, 0), value_number!(2, 0)]);
   let v_list_string_1 = Value::List(vec![Value::String("A".to_string())]);
-  let v_function_a = Value::FunctionDefinition(
+  let v_function_a = Value::from(crate::FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(1)))),
     false,
     Closure::default(),
     FeelContext::default(),
     T_NUMBER.clone(),
-  );
+  ));
   let v_irrelevant = Value::Irrelevant;
   let mut ctx_d = FeelContext::default();
   ctx_d.set_entry(&NAME_A, v_string.clone());
@@ -501,4 +515,77 @@ fn test_coerced() {
   );
   assert_eq!(r#"null(after coercion)"#, v_irrelevant.coerced(T_NUMBER).to_string());
   assert_eq!(r#"null(after coercion)"#, v_context_d.coerced(&T_CONTEXT_A).to_string());
+}
+
+/// `Value::type_is_conformant` equals `type_of().is_conformant` (random values and target types:
+/// nulls, missing and extra entries, nested contexts and lists, mixed lists).
+#[test]
+fn test_type_is_conformant_equals_type_of_is_conformant() {
+  struct Rng(u64);
+  impl Rng {
+    fn below(&mut self, n: u64) -> u64 {
+      self.0 ^= self.0 << 13;
+      self.0 ^= self.0 >> 7;
+      self.0 ^= self.0 << 17;
+      self.0 % n
+    }
+  }
+  fn value(rng: &mut Rng, depth: u32) -> Value {
+    match if depth > 3 { rng.below(4) } else { rng.below(9) } {
+      0 => value_null!(),
+      1 => value_number!(1),
+      2 => Value::String("s".to_string()),
+      3 => Value::Boolean(true),
+      4..=6 => {
+        let mut ctx = FeelContext::default();
+        for _ in 0..rng.below(4) {
+          ctx.set_entry(&["a", "b", "c"][rng.below(3) as usize].into(), value(rng, depth + 1));
+        }
+        Value::Context(ctx)
+      }
+      7 => Value::List((0..rng.below(4)).map(|_| value(rng, depth + 1)).collect()),
+      _ => Value::List(vec![value_null!(), value_number!(1)]),
+    }
+  }
+  fn target(rng: &mut Rng) -> FeelType {
+    match rng.below(10) {
+      0 => FeelType::Any,
+      1 => FeelType::Null,
+      2 => FeelType::Number,
+      3 => FeelType::List(Box::new(FeelType::Any)),
+      4 => FeelType::Context(BTreeMap::new()),
+      5 => FeelType::List(Box::new(target(rng))),
+      6 | 7 => {
+        let mut entries = BTreeMap::new();
+        for _ in 0..1 + rng.below(3) {
+          entries.insert(["a", "b", "c"][rng.below(3) as usize].into(), target(rng));
+        }
+        FeelType::Context(entries)
+      }
+      _ => value(rng, 1).type_of(),
+    }
+  }
+  let mut rng = Rng(0x2545_F491_4F6C_DD1D);
+  let (mut conformant, mut total) = (0, 0);
+  for _ in 0..20000 {
+    let value = value(&mut rng, 0);
+    let target = if rng.below(3) == 0 { value.type_of() } else { target(&mut rng) };
+    let expected = value.type_of().is_conformant(&target);
+    assert_eq!(expected, value.type_is_conformant(&target), "{value} : {target}");
+    conformant += usize::from(expected);
+    total += 1;
+  }
+  assert!(conformant > total / 10 && conformant < total * 9 / 10, "{conformant} of {total} conformant");
+  // the cases named in the review: [null, 1], a missing key, nested lists
+  let list = Value::List(vec![value_null!(), value_number!(1)]);
+  assert_eq!(
+    list.type_of().is_conformant(&FeelType::List(Box::new(FeelType::Number))),
+    list.type_is_conformant(&FeelType::List(Box::new(FeelType::Number)))
+  );
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&"a".into(), value_number!(1));
+  let missing = FeelType::Context(BTreeMap::from([("b".into(), FeelType::Number)]));
+  assert!(!Value::Context(ctx.clone()).type_is_conformant(&missing));
+  let nested = Value::List(vec![Value::List(vec![Value::Context(ctx)])]);
+  assert!(nested.type_is_conformant(&nested.type_of()));
 }

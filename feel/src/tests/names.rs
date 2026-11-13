@@ -126,7 +126,9 @@ fn test_name_as_hash_map_key() {
   assert_eq!("B", map.get(&name_b).unwrap());
   assert!(map.contains_key(&name_c));
   assert_eq!("C", map.get(&name_c).unwrap());
-  assert!(!map.contains_key(&"d".into()));
+  assert!(!map.contains_key(&Name::from("d")));
+  // a name is looked up by its text too (`Borrow<str>`)
+  assert!(map.contains_key("a") && !map.contains_key("d"));
 }
 
 #[test]

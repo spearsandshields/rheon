@@ -3,6 +3,7 @@ mod bifs;
 mod closure;
 mod context;
 mod expr;
+mod names_index;
 
 /// Creates a parsing scope.
 macro_rules! scope {

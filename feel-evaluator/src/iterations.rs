@@ -6,6 +6,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value, Values};
 use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, value_null};
 use rheon_feel_temporal::FeelDate;
+use std::ops::ControlFlow;
 
 /// Common interface for all iteration state types.
 trait IterationState {
@@ -20,7 +21,9 @@ trait IterationState {
     false
   }
 
-  /// Checks if there is a next value to iterate to.
+  /// Checks if there is a next value to iterate to (what [IterationState::next] returns; the
+  /// reference of the iteration loop in tests).
+  #[cfg(test)]
   fn has_next(&self) -> bool {
     false
   }
@@ -96,7 +99,7 @@ impl NumberIntervalState {
 
 impl IterationState for NumberIntervalState {
   fn set_value(&mut self, ctx: &mut FeelContext) {
-    ctx.set_entry(&self.variable, Value::Number(self.current));
+    ctx.assign_entry(&self.variable, Value::Number(self.current));
   }
 
   fn next(&mut self) -> bool {
@@ -109,6 +112,7 @@ impl IterationState for NumberIntervalState {
     }
   }
 
+  #[cfg(test)]
   fn has_next(&self) -> bool {
     self.following().is_some()
   }
@@ -147,7 +151,7 @@ impl DateIntervalState {
 
 impl IterationState for DateIntervalState {
   fn set_value(&mut self, ctx: &mut FeelContext) {
-    ctx.set_entry(&self.variable, Value::Date(self.current.clone()));
+    ctx.assign_entry(&self.variable, Value::Date(self.current.clone()));
   }
 
   fn next(&mut self) -> bool {
@@ -176,6 +180,7 @@ impl IterationState for DateIntervalState {
     }
   }
 
+  #[cfg(test)]
   fn has_next(&self) -> bool {
     match self.direction {
       IterationDirection::Ascending => self.current.add_days(self.step).is_some_and(|date| date <= self.end),
@@ -212,7 +217,7 @@ impl ListState {
 impl IterationState for ListState {
   fn set_value(&mut self, ctx: &mut FeelContext) {
     if !self.values.is_empty() {
-      ctx.set_entry(&self.variable, self.values[self.current].clone());
+      ctx.assign_entry(&self.variable, self.values[self.current].clone());
     }
   }
 
@@ -226,6 +231,7 @@ impl IterationState for ListState {
     }
   }
 
+  #[cfg(test)]
   fn has_next(&self) -> bool {
     self.current < self.values.len().saturating_sub(1)
   }
@@ -278,6 +284,7 @@ impl IterationState for VariableState {
     self.list_state.next()
   }
 
+  #[cfg(test)]
   fn has_next(&self) -> bool {
     self.list_state.has_next()
   }
@@ -345,10 +352,26 @@ impl FeelIterator {
     self.states.push(VariableState::init(variable, bound_variable));
   }
 
-  /// Iterates over all iteration states.
+  /// Iterates over all iteration states (tests; the evaluators use [FeelIterator::iterate_while]).
+  #[cfg(test)]
   pub fn iterate<F>(&mut self, mut handler: F)
   where
     F: FnMut(&FeelContext),
+  {
+    self.iterate_while(|ctx| {
+      handler(ctx);
+      ControlFlow::Continue(())
+    });
+  }
+
+  /// Iterates over all iteration states; `handler` gets the iteration context of every
+  /// iteration and can stop the iteration with [ControlFlow::Break].
+  ///
+  /// The iteration context is the same object in every iteration (the states set their values
+  /// in it), so the handler may move it out and back, but must put it back.
+  pub fn iterate_while<F>(&mut self, mut handler: F)
+  where
+    F: FnMut(&mut FeelContext) -> ControlFlow<()>,
   {
     if self.states.is_empty() {
       return;
@@ -363,25 +386,75 @@ impl FeelIterator {
         state.bind_value(&ctx);
         state.set_value(&mut ctx);
       }
-      if !self.states.iter().any(|state| state.is_empty()) {
-        handler(&ctx);
+      if !self.states.iter().any(|state| state.is_empty()) && handler(&mut ctx).is_break() {
+        return;
       }
+      // advance like an odometer, the last state fastest; `next` returns what `has_next` would
+      // (tests: `iterate_equals_previous_loop`), so the outermost state ends the iteration
       for (state_index, state) in self.states.iter_mut().rev().enumerate() {
-        if state_index == last_state_index && !state.has_next() {
-          return;
-        }
         if state.next() {
           break;
+        } else if state_index == last_state_index {
+          return;
         }
       }
     }
   }
 }
 
+/// How the body of a `for`, `some` or `every` expression gets the iteration context.
+#[derive(Clone, Copy, PartialEq)]
+enum IterationContext {
+  /// A copy in every iteration: what the body writes into the context on the top of the scope
+  /// (boxed contexts do, model-evaluator) does not reach the next iteration.
+  Copied,
+  /// The iteration context itself, moved into the scope and back: for FEEL expressions, whose
+  /// bodies never write into the context on the top of the scope.
+  Moved,
+}
+
+/// Evaluates `evaluator` with the iteration context `ctx` on the top of the scope.
+/// `prepare` runs on the context pushed, `finish` on the context popped.
+///
+/// `None` when the evaluation removed the iteration context from the scope (it popped more
+/// contexts than it pushed, which no evaluator does): the iteration can not go on correctly, and
+/// the caller returns null instead of a result that misses values.
+fn evaluate_in_iteration_context(
+  scope: &FeelScope,
+  ctx: &mut FeelContext,
+  mode: IterationContext,
+  evaluator: &Evaluator,
+  prepare: impl FnOnce(&mut FeelContext),
+  finish: impl FnOnce(&mut FeelContext),
+) -> Option<Value> {
+  let mut iteration_context = match mode {
+    IterationContext::Copied => ctx.clone(),
+    IterationContext::Moved => std::mem::take(ctx),
+  };
+  prepare(&mut iteration_context);
+  let depth = scope.depth();
+  scope.push(iteration_context);
+  let value = evaluator(scope);
+  let mut iteration_context = scope.pop_frame(depth)?;
+  finish(&mut iteration_context);
+  if mode == IterationContext::Moved {
+    *ctx = iteration_context;
+  }
+  Some(value)
+}
+
+/// The null returned when an iteration context was removed from the scope (see [evaluate_in_iteration_context]).
+#[cold]
+#[inline(never)]
+fn lost_iteration_context(expression: &str) -> Value {
+  value_null!("internal error: the evaluation removed the iteration context of a `{}` expression", expression)
+}
+
 /// `for` expression evaluator.
 pub struct ForExpressionEvaluator {
   iterator: FeelIterator,
   partial: Name,
+  mode: IterationContext,
 }
 
 impl Default for ForExpressionEvaluator {
@@ -392,11 +465,23 @@ impl Default for ForExpressionEvaluator {
 }
 
 impl ForExpressionEvaluator {
-  /// Creates a new `for` expression evaluator.
+  /// Creates a new `for` expression evaluator; its body gets a copy of the iteration context
+  /// in every iteration (see [ForExpressionEvaluator::for_feel]).
   pub fn new() -> Self {
     Self {
       iterator: FeelIterator::default(),
       partial: "partial".into(),
+      mode: IterationContext::Copied,
+    }
+  }
+
+  /// Creates a `for` expression evaluator for a FEEL `for` expression: the iteration context is
+  /// moved into the scope and back in every iteration instead of copied, because a FEEL body never
+  /// writes into the context on the top of the scope.
+  pub fn for_feel() -> Self {
+    Self {
+      mode: IterationContext::Moved,
+      ..Self::new()
     }
   }
 
@@ -419,30 +504,48 @@ impl ForExpressionEvaluator {
     self.iterator.add_variable(name, variable);
   }
 
-  pub fn evaluate(&mut self, scope: &FeelScope, evaluator: &Evaluator) -> Values {
+  /// Evaluates the `for` expression: the list of the values of `evaluator` in every iteration.
+  pub fn evaluate(&mut self, scope: &FeelScope, evaluator: &Evaluator) -> Value {
     let mut results = vec![];
-    self.iterator.iterate(|ctx| {
-      let mut iteration_context = ctx.clone();
+    let mut complete = true;
+    let (partial, mode) = (&self.partial, self.mode);
+    self.iterator.iterate_while(|ctx| {
       // The implicit `partial` variable holds the results of all previous iterations.
       // Move them into the iteration context and back out afterwards instead of
       // cloning the whole list on every iteration, which made `for` quadratic.
-      iteration_context.set_entry(&self.partial, Value::List(std::mem::take(&mut results)));
-      scope.push(iteration_context);
-      let iteration_value = evaluator(scope);
-      if let Some(mut iteration_context) = scope.pop()
-        && let Some(Value::List(previous_results)) = iteration_context.remove_entry(&self.partial)
-      {
-        results = previous_results;
+      let mut previous_results = None;
+      let Some(iteration_value) = evaluate_in_iteration_context(
+        scope,
+        ctx,
+        mode,
+        evaluator,
+        |iteration_context| iteration_context.assign_entry(partial, Value::List(std::mem::take(&mut results))),
+        |iteration_context| {
+          // the entry stays (with a placeholder) in a moved context; the next iteration sets it again
+          if let Some(entry) = iteration_context.get_entry_mut(partial)
+            && let Value::List(values) = std::mem::replace(entry, Value::Null(None))
+          {
+            previous_results = Some(values);
+          }
+        },
+      ) else {
+        complete = false;
+        return ControlFlow::Break(());
+      };
+      if let Some(values) = previous_results {
+        results = values;
       }
       results.push(iteration_value);
+      ControlFlow::Continue(())
     });
-    results
+    if complete { Value::List(results) } else { lost_iteration_context("for") }
   }
 }
 
 /// `some` expression evaluator.
 pub struct SomeExpressionEvaluator {
   iterator: FeelIterator,
+  mode: IterationContext,
 }
 
 impl Default for SomeExpressionEvaluator {
@@ -453,8 +556,21 @@ impl Default for SomeExpressionEvaluator {
 }
 
 impl SomeExpressionEvaluator {
+  /// Creates a new `some` expression evaluator; its body gets a copy of the iteration context
+  /// in every iteration.
   pub fn new() -> Self {
-    Self { iterator: FeelIterator::new() }
+    Self {
+      iterator: FeelIterator::new(),
+      mode: IterationContext::Copied,
+    }
+  }
+
+  /// Creates a `some` expression evaluator for a FEEL `some` expression (see [ForExpressionEvaluator::for_feel]).
+  pub fn for_feel() -> Self {
+    Self {
+      iterator: FeelIterator::new(),
+      mode: IterationContext::Moved,
+    }
   }
 
   pub fn add_list(&mut self, name: Name, value: Value) {
@@ -463,25 +579,25 @@ impl SomeExpressionEvaluator {
 
   pub fn evaluate(&mut self, scope: &FeelScope, evaluator: &Evaluator) -> Value {
     let mut result = VALUE_FALSE;
-    let mut skip = false;
-    self.iterator.iterate(|ctx| {
-      if !skip {
-        scope.push(ctx.clone());
-        let value = evaluator(scope);
-        match value {
-          Value::Boolean(true) => {
-            result = VALUE_TRUE;
-            skip = true;
-          }
-          Value::Boolean(false) => {}
-          _ => {
-            result = value_null!();
-            skip = true;
-          }
+    let mode = self.mode;
+    // the result is decided by the first `true` or non-boolean value
+    self
+      .iterator
+      .iterate_while(|ctx| match evaluate_in_iteration_context(scope, ctx, mode, evaluator, |_| {}, |_| {}) {
+        Some(Value::Boolean(true)) => {
+          result = VALUE_TRUE;
+          ControlFlow::Break(())
         }
-        scope.pop();
-      }
-    });
+        Some(Value::Boolean(false)) => ControlFlow::Continue(()),
+        Some(_) => {
+          result = value_null!();
+          ControlFlow::Break(())
+        }
+        None => {
+          result = lost_iteration_context("some");
+          ControlFlow::Break(())
+        }
+      });
     result
   }
 }
@@ -489,6 +605,7 @@ impl SomeExpressionEvaluator {
 /// `every` expression evaluator.
 pub struct EveryExpressionEvaluator {
   iterator: FeelIterator,
+  mode: IterationContext,
 }
 
 impl Default for EveryExpressionEvaluator {
@@ -499,8 +616,21 @@ impl Default for EveryExpressionEvaluator {
 }
 
 impl EveryExpressionEvaluator {
+  /// Creates a new `every` expression evaluator; its body gets a copy of the iteration context
+  /// in every iteration.
   pub fn new() -> Self {
-    Self { iterator: FeelIterator::new() }
+    Self {
+      iterator: FeelIterator::new(),
+      mode: IterationContext::Copied,
+    }
+  }
+
+  /// Creates an `every` expression evaluator for a FEEL `every` expression (see [ForExpressionEvaluator::for_feel]).
+  pub fn for_feel() -> Self {
+    Self {
+      iterator: FeelIterator::new(),
+      mode: IterationContext::Moved,
+    }
   }
 
   pub fn add_list(&mut self, name: Name, value: Value) {
@@ -509,25 +639,157 @@ impl EveryExpressionEvaluator {
 
   pub fn evaluate(&mut self, scope: &FeelScope, evaluator: &Evaluator) -> Value {
     let mut result = VALUE_TRUE;
-    let mut skip = false;
-    self.iterator.iterate(|ctx| {
-      if !skip {
-        scope.push(ctx.clone());
-        let value = evaluator(scope);
-        scope.pop();
-        match value {
-          Value::Boolean(false) => {
-            result = VALUE_FALSE;
-            skip = true;
-          }
-          Value::Boolean(true) => {}
-          _ => {
-            result = value_null!();
-            skip = true
-          }
+    let mode = self.mode;
+    // the result is decided by the first `false` or non-boolean value
+    self
+      .iterator
+      .iterate_while(|ctx| match evaluate_in_iteration_context(scope, ctx, mode, evaluator, |_| {}, |_| {}) {
+        Some(Value::Boolean(false)) => {
+          result = VALUE_FALSE;
+          ControlFlow::Break(())
+        }
+        Some(Value::Boolean(true)) => ControlFlow::Continue(()),
+        Some(_) => {
+          result = value_null!();
+          ControlFlow::Break(())
+        }
+        None => {
+          result = lost_iteration_context("every");
+          ControlFlow::Break(())
+        }
+      });
+    result
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::str::FromStr;
+
+  /// The iteration loop before `iterate` relied on `next` alone: `has_next` decided the end.
+  fn iterate_previous(iterator: &mut FeelIterator, mut handler: impl FnMut(&FeelContext)) {
+    if iterator.states.is_empty() {
+      return;
+    }
+    let mut ctx = FeelContext::new();
+    let last_state_index = iterator.states.len() - 1;
+    loop {
+      for state in iterator.states.iter_mut().rev().filter(|state| !state.is_variable()) {
+        state.set_value(&mut ctx);
+      }
+      for state in iterator.states.iter_mut().filter(|state| state.is_variable()) {
+        state.bind_value(&ctx);
+        state.set_value(&mut ctx);
+      }
+      if !iterator.states.iter().any(|state| state.is_empty()) {
+        handler(&ctx);
+      }
+      for (state_index, state) in iterator.states.iter_mut().rev().enumerate() {
+        if state_index == last_state_index && !state.has_next() {
+          return;
+        }
+        if state.next() {
+          break;
         }
       }
-    });
-    result
+    }
+  }
+
+  fn number(text: &str) -> Value {
+    Value::Number(FeelNumber::from_str(text).unwrap())
+  }
+
+  fn date(text: &str) -> Value {
+    Value::Date(FeelDate::from_str(text).unwrap())
+  }
+
+  fn list(items: &[i64]) -> Value {
+    Value::List(items.iter().map(|i| Value::Number(FeelNumber::from(*i))).collect())
+  }
+
+  #[test]
+  fn iterate_equals_previous_loop() {
+    // one iteration state each: (variable, start, end) intervals, lists, variables bound to a previous list
+    enum S {
+      Interval(&'static str, Value, Value),
+      List(&'static str, Value),
+      Variable(&'static str, &'static str),
+    }
+    let single = || {
+      vec![
+        S::Interval("i", number("1"), number("5")),
+        S::Interval("i", number("5"), number("1")),
+        S::Interval("i", number("3"), number("3")),
+        S::Interval("i", number("1.5"), number("4")),
+        S::Interval("i", number("-1"), number("1")),
+        S::Interval("i", number("1e34"), number("1e34")),
+        S::Interval("i", number("9999999999999999999999999999999990"), number("1e34")),
+        S::Interval("i", date("2020-02-27"), date("2020-03-02")),
+        S::Interval("i", date("2020-01-03"), date("2020-01-01")),
+        S::Interval("i", date("2020-01-01"), date("2020-01-01")),
+        S::List("x", list(&[])),
+        S::List("x", list(&[7])),
+        S::List("x", list(&[1, 2, 3])),
+        S::List("x", Value::List(vec![list(&[1, 2]), list(&[]), list(&[3])])),
+        S::List("x", Value::String("single".to_string())),
+      ]
+    };
+    let build = |states: &[&S]| {
+      let mut iterator = FeelIterator::new();
+      for state in states {
+        match state {
+          S::Interval(name, start, end) => iterator.add_interval(Name::from(*name), start.clone(), end.clone(), false).unwrap(),
+          S::List(name, value) => iterator.add_list(Name::from(*name), value.clone()),
+          S::Variable(name, bound) => iterator.add_variable(Name::from(*name), Name::from(*bound)),
+        }
+      }
+      iterator
+    };
+    let configurations = single();
+    let renamed = |name: &'static str| {
+      single()
+        .into_iter()
+        .map(|s| match s {
+          S::Interval(_, a, b) => S::Interval(name, a, b),
+          S::List(_, v) => S::List(name, v),
+          v => v,
+        })
+        .collect::<Vec<S>>()
+    };
+    let second = renamed("j");
+    let variables = [S::Variable("y", "x"), S::Variable("z", "y")];
+    let mut cases: Vec<Vec<&S>> = vec![];
+    for a in &configurations {
+      cases.push(vec![a]);
+      for b in &second {
+        cases.push(vec![a, b]);
+        cases.push(vec![b, a]);
+      }
+      if let S::List(..) = a {
+        cases.push(vec![a, &variables[0]]);
+        cases.push(vec![a, &variables[0], &variables[1]]);
+        for b in &second {
+          cases.push(vec![a, &variables[0], b]);
+        }
+      }
+    }
+    let mut iterations = 0;
+    for states in &cases {
+      let mut expected = vec![];
+      iterate_previous(&mut build(states), |ctx| expected.push(ctx.to_string()));
+      let mut actual = vec![];
+      build(states).iterate(|ctx| actual.push(ctx.to_string()));
+      assert_eq!(expected, actual);
+      iterations += actual.len();
+      // stopping early stops after the iteration that returned Break
+      let mut seen = 0;
+      build(states).iterate_while(|_| {
+        seen += 1;
+        if seen == 2 { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
+      });
+      assert_eq!(expected.len().min(2), seen);
+    }
+    assert!(cases.len() > 400 && iterations > 3000, "{} cases, {iterations} iterations", cases.len());
   }
 }

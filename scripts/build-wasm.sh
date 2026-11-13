@@ -52,7 +52,7 @@ if (extra.length) { console.error(`ERROR: WASI imports outside the contract shim
 const missing = ['memory', 'feel_alloc', 'feel_free', 'feel_call', '_initialize'].filter((e) => !exports.includes(e));
 if (missing.length) { console.error(`ERROR: missing exports: ${missing.join(', ')} (a reactor must export _initialize, see build.rs)`); failed = true; }
 
-// Memory limits (CONTRACT §1): the shadow stack must be 8 MiB and linear memory capped at 512 MiB.
+// Memory limits (CONTRACT §1): the shadow stack must be 10 MiB and linear memory capped at 512 MiB.
 // Read them from the binary: the memory section (id 5) limits and the initial value of the first
 // mutable i32 global (__stack_pointer; with the stack-first layout it equals the stack size).
 const readU32 = (buf, pos) => { let result = 0, shift = 0, b; do { b = buf[pos.i++]; result += (b & 0x7f) * 2 ** shift; shift += 7; } while (b & 0x80); return result; };
@@ -80,7 +80,7 @@ for (const pos = { i: 8 }; pos.i < bytes.length; ) {
 }
 const MiB = 1024 * 1024;
 console.log(`stack: ${stackPointer === null ? '?' : (stackPointer / MiB).toFixed(1) + ' MiB'}  max memory: ${maxPages === null ? 'unbounded' : (maxPages * 65536 / MiB) + ' MiB'}`);
-if (stackPointer !== 8 * MiB) { console.error('ERROR: the shadow stack must be 8 MiB (-zstack-size in build.rs)'); failed = true; }
+if (stackPointer !== 10 * MiB) { console.error('ERROR: the shadow stack must be 10 MiB (-zstack-size in build.rs)'); failed = true; }
 if (maxPages === null || maxPages * 65536 !== 512 * MiB) { console.error('ERROR: linear memory must be capped at 512 MiB (--max-memory in build.rs)'); failed = true; }
 if (failed) process.exit(1);
 console.log('interface ok');

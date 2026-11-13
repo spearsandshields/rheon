@@ -956,3 +956,47 @@ fn zoned_date_time_display() {
   assert_eq!(display(r#"@"2007-12-03T10:15:30+01:00""#), r#""2007-12-03T10:15:30+01:00""#);
   assert_eq!(display(r#"@"2007-12-03T10:15:30""#), r#""2007-12-03T10:15:30""#);
 }
+
+#[test]
+fn input_messages_name_the_place_of_the_value() {
+  // the exact texts of 0.3.0 (the paths are built only when a message needs them)
+  let warnings = |request: Json| -> Vec<String> {
+    let response = req(request);
+    assert_eq!(response["ok"], true, "{response}");
+    response["warnings"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|w| w["message"].as_str().unwrap().to_string())
+      .collect()
+  };
+  let message = |request: Json| -> String { req(request)["error"]["message"].as_str().unwrap().to_string() };
+  assert_eq!(
+    vec!["x.y[1].z: number 12345678901234567890123456789012345678 has more than 34 significant digits and was rounded to 12345678901234567890123456789012350000"],
+    warnings(json!({"op": "evaluate", "expression": "x", "context": {"x": {"y": [1, {"z": 12345678901234567890123456789012345678_u128}]}}}))
+  );
+  assert_eq!(
+    vec![
+      "input[0]: number 1e-7000 is too small for a 34-digit decimal (exponent below -6176) and became 0",
+      "input[1].k: number 1e-6177 is too small for a 34-digit decimal (exponent below -6176) and became 0"
+    ],
+    warnings(serde_json::from_str(r#"{"op": "evaluate", "expression": "?", "dialect": "unaryTests", "input": [1e-7000, {"k": 1e-6177}]}"#).unwrap())
+  );
+  assert_eq!(
+    "a. b [0]: empty context key",
+    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {"a": {" b ": [{"": 1}]}}}"#).unwrap())
+  );
+  assert_eq!(
+    "context: empty context key",
+    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {" ": 1}}"#).unwrap())
+  );
+  assert_eq!(
+    " x .q [0]: invalid number '1e+7000': <FeelNumberError> invalid number literal '1e+7000'",
+    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {" x ": {"q ": [1e7000]}}}"#).unwrap())
+  );
+  // a trimmed key is the same name as the untrimmed one; the later entry in key order (" a" < "a") wins
+  assert_eq!(
+    "1",
+    eval_ok(serde_json::from_str(r#"{"op": "evaluate", "expression": "a", "context": {"a": 1, " a": 2}}"#).unwrap())["display"]
+  );
+}

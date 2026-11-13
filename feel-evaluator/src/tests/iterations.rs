@@ -146,7 +146,9 @@ fn _0011() {
   let scope = &te_scope(r#"{x:null}"#);
   let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
   let evaluator = crate::builders::build_evaluator(&node);
-  let actual = iterator.evaluate(scope, &evaluator);
+  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
+    panic!("expected a list")
+  };
   assert_eq!(3, actual.len());
   assert_eq!(r#"[2, 3, 4]"#, values_to_string(&actual));
 }
@@ -159,7 +161,9 @@ fn _0012() {
   let scope = &te_scope(r#"{x:null,y:null}"#);
   let node = rheon_feel_parser::parse_expression(scope, "x+y", false).unwrap();
   let evaluator = crate::builders::build_evaluator(&node);
-  let actual = iterator.evaluate(scope, &evaluator);
+  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
+    panic!("expected a list")
+  };
   assert_eq!(6, actual.len());
   assert_eq!(r#"[6, 7, 8, 7, 8, 9]"#, values_to_string(&actual));
 }
@@ -171,7 +175,9 @@ fn _0013() {
   let scope = &te_scope(r#"{x:null}"#);
   let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
   let evaluator = crate::builders::build_evaluator(&node);
-  let actual = iterator.evaluate(scope, &evaluator);
+  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
+    panic!("expected a list")
+  };
   assert_eq!(0, actual.len());
   assert_eq!(r#"[]"#, values_to_string(&actual));
 }
@@ -183,7 +189,9 @@ fn _0014() {
   let scope = &te_scope(r#"{x:null}"#);
   let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
   let evaluator = crate::builders::build_evaluator(&node);
-  let actual = iterator.evaluate(scope, &evaluator);
+  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
+    panic!("expected a list")
+  };
   assert_eq!(1, actual.len());
   assert_eq!(r#"[2]"#, values_to_string(&actual));
 }
@@ -196,7 +204,9 @@ fn _0015() {
   let scope = &te_scope(r#"{x:null,y:null}"#);
   let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
   let evaluator = crate::builders::build_evaluator(&node);
-  let actual = iterator.evaluate(scope, &evaluator);
+  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
+    panic!("expected a list")
+  };
   assert_eq!(0, actual.len());
   assert_eq!(r#"[]"#, values_to_string(&actual));
 }
@@ -210,7 +220,9 @@ fn _0016() {
   let scope = &te_scope(r#"{x:null,y:null}"#);
   let node = rheon_feel_parser::parse_expression(scope, "y", false).unwrap();
   let evaluator = crate::builders::build_evaluator(&node);
-  let actual = iterator.evaluate(scope, &evaluator);
+  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
+    panic!("expected a list")
+  };
   assert_eq!(4, actual.len());
   assert_eq!(r#"[1, 2, 3, 4]"#, values_to_string(&actual));
 }

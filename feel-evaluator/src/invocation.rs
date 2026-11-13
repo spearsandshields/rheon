@@ -11,7 +11,8 @@ use crate::evaluator_pmml::evaluate_external_pmml_function;
 use rheon_feel::bif::Bif;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
-use rheon_feel::{FeelScope, FeelType, FunctionBody, Name, value_null};
+use rheon_feel::{FeelScope, FeelType, FunctionBody, FunctionDefinition, Name, QualifiedName, value_null};
+use std::sync::Arc;
 
 /// Maximum number of nested function invocations during one evaluation.
 ///
@@ -71,17 +72,17 @@ pub(crate) enum Arguments {
 pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, dialect: Dialect) -> Value {
   match function {
     Value::BuiltInFunction(bif) => apply_built_in(bif, arguments, dialect),
-    Value::FunctionDefinition(parameters, body, external, _, closure_ctx, result_type) => {
-      let values = match bind(&parameters, arguments) {
+    Value::FunctionDefinition(function) => {
+      let values = match bind(&function.parameters, arguments) {
         Ok(values) => values,
         Err(reason) => return value_null!(reason),
       };
-      let result = if external {
-        apply_external(scope, &body, &values)
+      let result = if function.external {
+        apply_external(scope, &function.body, &values)
       } else {
-        apply_body(scope, &parameters, values, &body, closure_ctx)
+        apply_body(scope, &function, values)
       };
-      result.coerced(&result_type)
+      result.into_coerced(&function.result_type)
     }
     other => value_null!("expected built-in function name or function definition, actual is {}", other),
   }
@@ -113,7 +114,7 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
     .zip(parameters)
     .map(|(value, (name, parameter_type))| {
       value
-        .try_coerced(parameter_type)
+        .try_into_coerced(parameter_type)
         .ok_or_else(|| format!("argument for parameter '{name}' does not conform to type {parameter_type}"))
     })
     .collect()
@@ -121,17 +122,17 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
 
 /// Evaluates the body of a FEEL function with its parameters bound to the argument values, in the
 /// scope of the invocation extended with the function's closure.
-fn apply_body(scope: &FeelScope, parameters: &[(Name, FeelType)], values: Vec<Value>, body: &FunctionBody, closure_ctx: FeelContext) -> Value {
+fn apply_body(scope: &FeelScope, function: &FunctionDefinition, values: Vec<Value>) -> Value {
   let mut params_ctx = FeelContext::default();
-  for ((name, _), value) in parameters.iter().zip(values) {
+  for ((name, _), value) in function.parameters.iter().zip(values) {
     params_ctx.set_entry(name, value);
   }
   // parameters innermost: a decision service body reads its inputs from the top (decision_service.rs)
-  scope.push(closure_ctx);
+  let depth = scope.depth();
+  scope.push(function.closure_ctx.clone());
   scope.push(params_ctx);
-  let result = closed_over(scope, body.evaluate(scope));
-  scope.pop();
-  scope.pop();
+  let result = closed_over(scope, function.body.evaluate(scope));
+  scope.truncate(depth);
   result
 }
 
@@ -139,13 +140,20 @@ fn apply_body(scope: &FeelScope, parameters: &[(Name, FeelType)], values: Vec<Va
 /// including entries the body added (kept from dsntk).
 fn closed_over(scope: &FeelScope, result: Value) -> Value {
   match result {
-    Value::FunctionDefinition(parameters, body, external, closure, mut closure_ctx, result_type) => {
-      for name in closure.iter() {
-        if let Some(value) = scope.search_entry(name) {
-          closure_ctx.create_entry(name, value)
+    Value::FunctionDefinition(mut function) => {
+      let closed: Vec<(QualifiedName, Value)> = function
+        .closure
+        .iter()
+        .filter_map(|name| scope.search_entry(name).map(|value| (name.clone(), value)))
+        .collect();
+      if !closed.is_empty() {
+        // a copy of the definition when it is shared (the function value has value semantics)
+        let function = Arc::make_mut(&mut function);
+        for (name, value) in closed {
+          function.closure_ctx.create_entry(&name, value);
         }
       }
-      Value::FunctionDefinition(parameters, body, external, closure, closure_ctx, result_type)
+      Value::FunctionDefinition(function)
     }
     other => other,
   }
@@ -189,7 +197,7 @@ mod tests {
   fn test_unimplemented_external_function_kind() {
     let evaluator = Box::new(move |_: &FeelScope| Value::Boolean(false)) as Evaluator;
     let body = FunctionBody::External(Arc::new(evaluator));
-    let function = Value::FunctionDefinition(vec![], body, true, Closure::default(), FeelContext::default(), FeelType::Boolean);
+    let function = FunctionDefinition::new(vec![], body, true, Closure::default(), FeelContext::default(), FeelType::Boolean).into();
     let result = invoke(&scope!(), function, Arguments::Positional(vec![]), Dialect::Feel);
     assert_eq!("null(expected JAVA or PMML mapping, actual value is false)", result.to_string())
   }

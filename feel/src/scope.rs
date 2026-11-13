@@ -4,7 +4,7 @@ use crate::context::FeelContext;
 use crate::values::Value;
 use crate::{Name, QualifiedName};
 use dsntk_common::Jsonify;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::fmt;
 
 /// This macro creates a default scope.
@@ -50,9 +50,11 @@ impl Jsonify for FeelScope {
 }
 
 impl FeelScope {
-  /// Temporary - remove
-  pub fn contexts(&self) -> Vec<FeelContext> {
-    self.stack.borrow().clone()
+  /// Returns the stack of contexts, bottom first, without copying it.
+  ///
+  /// The scope can not be changed while the returned reference is alive (it would panic).
+  pub fn frames(&self) -> Ref<'_, Vec<FeelContext>> {
+    self.stack.borrow()
   }
 
   /// Creates a new and empty [FeelScope].
@@ -73,6 +75,33 @@ impl FeelScope {
   /// Takes and returns a context from the top of the stack.
   pub fn pop(&self) -> Option<FeelContext> {
     self.stack.borrow_mut().pop()
+  }
+
+  /// Returns the number of contexts on the stack.
+  pub fn depth(&self) -> usize {
+    self.stack.borrow().len()
+  }
+
+  /// Restores the stack to `depth` contexts (a value [FeelScope::depth] returned): removes the
+  /// contexts pushed since then and not popped, e.g. by an evaluation that returned early.
+  ///
+  /// Every evaluation that pushes a context restores the depth this way afterwards, instead of
+  /// popping one context, so that a context left behind can not take the place of its own.
+  pub fn truncate(&self, depth: usize) {
+    self.stack.borrow_mut().truncate(depth);
+  }
+
+  /// Restores the stack to `depth` contexts like [FeelScope::truncate] and returns the context
+  /// that was pushed when the stack had `depth` contexts; `None` when that context is gone
+  /// (more contexts were popped than pushed since, which no evaluator does).
+  pub fn pop_frame(&self, depth: usize) -> Option<FeelContext> {
+    let mut stack = self.stack.borrow_mut();
+    if stack.len() > depth {
+      stack.truncate(depth + 1);
+      stack.pop()
+    } else {
+      None
+    }
   }
 
   /// Peeks a context from the top of the stack.

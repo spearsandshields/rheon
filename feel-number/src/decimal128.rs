@@ -150,12 +150,31 @@ pub(crate) trait Backend {
   fn pow_step(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32, precision: usize) -> PowStep;
 }
 
+/// The powers of ten that fit in `u128`: `POW10[n] = 10^n`.
+const POW10: [u128; 39] = {
+  let mut powers = [1_u128; 39];
+  let mut n = 1;
+  while n < 39 {
+    powers[n] = powers[n - 1] * 10;
+    n += 1;
+  }
+  powers
+};
+
 fn pow10(n: u32) -> u128 {
-  10_u128.pow(n)
+  POW10[n as usize]
 }
 
+/// Number of decimal digits of `c` (1 for zero), without a 128-bit division.
 pub(crate) fn digit_count(c: u128) -> u32 {
-  if c == 0 { 1 } else { c.ilog10() + 1 }
+  if c == 0 {
+    return 1;
+  }
+  // With `bits` significant bits, `d = ⌊bits · 1233 / 4096⌋` (1233 / 4096 is just below log10 2)
+  // is the number of digits or one less; one comparison decides.
+  let bits = 128 - c.leading_zeros();
+  let d = (bits * 1233) >> 12;
+  d + u32::from(c >= POW10[d as usize])
 }
 
 /// Unsigned 256-bit integer: just enough for the exact intermediate values of this module
@@ -411,6 +430,10 @@ fn round_pack(neg: bool, digits: &str, exp: i64) -> (V, bool) {
 /// Same as [round_pack] for a coefficient that fits in `u128` (at most 39 digits),
 /// without any string conversion.
 fn round_pack_u128(neg: bool, c: u128, exp: i64) -> (V, bool) {
+  if c < TEN_POW_34 && (EXP_MIN..=EXP_MAX).contains(&exp) {
+    // at most 34 digits and the exponent in range: already a decimal128 value, exact
+    return (V::Fin(neg, c, exp as i32), false);
+  }
   if c == 0 {
     return (V::Fin(neg, 0, exp.clamp(EXP_MIN, EXP_MAX) as i32), false);
   }
@@ -852,18 +875,23 @@ fn cmp_v(a: V, b: V) -> Option<Ordering> {
       if na != nb {
         return Some(if na { Ordering::Less } else { Ordering::Greater });
       }
-      // same sign, both non-zero: compare magnitudes
-      let la = digit_count(ca) as i64 + ea as i64;
-      let lb = digit_count(cb) as i64 + eb as i64;
-      let mag = if la != lb {
-        la.cmp(&lb)
-      } else {
-        let xa = ca * pow10(PRECISION as u32 - digit_count(ca));
-        let xb = cb * pow10(PRECISION as u32 - digit_count(cb));
-        xa.cmp(&xb)
+      // same sign, both non-zero: compare the magnitudes ca·10^ea and cb·10^eb exactly
+      let mag = match ea.cmp(&eb) {
+        Ordering::Equal => ca.cmp(&cb),
+        Ordering::Greater => cmp_scaled(ca, ea.abs_diff(eb), cb),
+        Ordering::Less => cmp_scaled(cb, eb.abs_diff(ea), ca).reverse(),
       };
       Some(if na { mag.reverse() } else { mag })
     }
+  }
+}
+
+/// Compares `c · 10^d` with `other`, for `c > 0`: when `c · 10^d` does not fit in `u128`, it is
+/// larger than any `u128`.
+fn cmp_scaled(c: u128, d: u32, other: u128) -> Ordering {
+  match POW10.get(d as usize).and_then(|p| c.checked_mul(*p)) {
+    Some(scaled) => scaled.cmp(&other),
+    None => Ordering::Greater,
   }
 }
 
@@ -1809,6 +1837,114 @@ mod tests {
 
   fn dbg(n: FeelNumber) -> String {
     format!("{n:?}")
+  }
+
+  #[test]
+  fn digit_count_equals_ilog10() {
+    let reference = |c: u128| if c == 0 { 1 } else { c.ilog10() + 1 };
+    let mut values = vec![0_u128, 1, u128::MAX];
+    for k in 0..128 {
+      values.extend([1_u128 << k, (1_u128 << k) - 1, (1_u128 << k) + 1]);
+    }
+    for (k, &p) in POW10.iter().enumerate() {
+      assert_eq!(10_u128.pow(k as u32), p);
+      values.extend([p - 1, p, p + 1]);
+    }
+    let mut state = 7;
+    for _ in 0..100_000 {
+      let c = ((rng(&mut state) as u128) << 64 | rng(&mut state) as u128) >> (rng(&mut state) % 128);
+      values.push(c);
+    }
+    for c in values {
+      assert_eq!(reference(c), digit_count(c), "{c}");
+    }
+  }
+
+  /// The comparison of two finite values before the fast paths: digit counts and 34-digit scaling.
+  fn cmp_v_reference(a: V, b: V) -> Option<Ordering> {
+    match (a, b) {
+      (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) if ca != 0 && cb != 0 && (sa && ca != 0) == (sb && cb != 0) => {
+        let na = sa && ca != 0;
+        let la = digit_count(ca) as i64 + ea as i64;
+        let lb = digit_count(cb) as i64 + eb as i64;
+        let mag = if la != lb {
+          la.cmp(&lb)
+        } else {
+          let xa = ca * pow10(PRECISION as u32 - digit_count(ca));
+          let xb = cb * pow10(PRECISION as u32 - digit_count(cb));
+          xa.cmp(&xb)
+        };
+        Some(if na { mag.reverse() } else { mag })
+      }
+      _ => cmp_v(a, b),
+    }
+  }
+
+  /// A random finite decimal128 value: coefficients of every length (and zero), exponents near
+  /// each other, far apart and at the limits.
+  fn random_v(state: &mut u64, base_exp: i32) -> V {
+    let digits = rng(state) % 35;
+    let c = if digits == 0 {
+      0
+    } else {
+      ((rng(state) as u128) << 64 | rng(state) as u128) % POW10[digits as usize]
+    };
+    let e = match rng(state) % 4 {
+      0 => base_exp,
+      1 => base_exp + (rng(state) % 7) as i32 - 3,
+      2 => (rng(state) % 12288) as i32 - 6176,
+      _ => [EXP_MIN as i32, EXP_MAX as i32, 0, -34, 34][(rng(state) % 5) as usize],
+    }
+    .clamp(EXP_MIN as i32, EXP_MAX as i32);
+    V::Fin(rng(state).is_multiple_of(2), c, e)
+  }
+
+  #[test]
+  fn cmp_v_equals_reference() {
+    let mut state = 11;
+    for _ in 0..300_000 {
+      let base = (rng(&mut state) % 12288) as i32 - 6176;
+      let a = random_v(&mut state, base);
+      let b = if rng(&mut state).is_multiple_of(8) { a } else { random_v(&mut state, base) };
+      assert_eq!(cmp_v_reference(a, b), cmp_v(a, b), "{a:?} {b:?}");
+    }
+    // equal values in different cohorts, and the extremes
+    let pairs = [
+      (V::Fin(false, 110, -2), V::Fin(false, 11, -1)),
+      (V::Fin(true, 1, 30), V::Fin(true, 1_000_000_000_000_000_000_000_000_000_000, 0)),
+      (V::Fin(false, TEN_POW_34 - 1, EXP_MAX as i32), V::Fin(false, 1, EXP_MIN as i32)),
+      (V::Fin(false, 1, 40), V::Fin(false, TEN_POW_34 - 1, 0)),
+      (V::Fin(false, 1, 34), V::Fin(false, TEN_POW_34 - 1, 0)),
+      (V::Fin(false, 1, 33), V::Fin(false, TEN_POW_34 - 1, 0)),
+    ];
+    for (a, b) in pairs {
+      assert_eq!(cmp_v_reference(a, b), cmp_v(a, b), "{a:?} {b:?}");
+      assert_eq!(cmp_v_reference(b, a), cmp_v(b, a), "{b:?} {a:?}");
+    }
+  }
+
+  #[test]
+  fn round_pack_u128_equals_round_pack() {
+    // the fast path (34 digits or fewer, exponent in range) and the rounding paths agree with
+    // the decimal-string version
+    let mut state = 13;
+    for _ in 0..200_000 {
+      let digits = rng(&mut state) % 40;
+      let c = if digits == 0 {
+        0
+      } else {
+        ((rng(&mut state) as u128) << 64 | rng(&mut state) as u128) % POW10[digits.min(38) as usize]
+      };
+      let exp = match rng(&mut state) % 3 {
+        0 => (rng(&mut state) % 12400) as i64 - 6200,
+        1 => [EXP_MIN, EXP_MAX, EXP_MIN - 1, EXP_MAX + 1, 0][(rng(&mut state) % 5) as usize],
+        _ => (rng(&mut state) % 80) as i64 - 40,
+      };
+      let neg = rng(&mut state).is_multiple_of(2);
+      let expected = round_pack(neg, &c.to_string(), exp);
+      let actual = round_pack_u128(neg, c, exp);
+      assert_eq!(format!("{expected:?}"), format!("{actual:?}"), "{neg} {c} {exp}");
+    }
   }
 
   /// Simple deterministic generator (splitmix64).

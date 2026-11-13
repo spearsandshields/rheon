@@ -41,7 +41,7 @@ macro_rules! trace_action {
 /// Parser.
 pub struct Parser<'parser> {
   /// Parsing scope.
-  scope: &'parser ParsingScope,
+  scope: &'parser ParsingScope<'parser>,
   /// Parsed input.
   input: &'parser str,
   /// Flag indicating whether the tracing messages should be printed to standard output.
@@ -70,7 +70,7 @@ pub struct Parser<'parser> {
 
 impl<'parser> Parser<'parser> {
   /// Creates a new parser.
-  pub fn new(scope: &'parser ParsingScope, start_token_type: TokenType, input: &'parser str, trace: bool) -> Self {
+  pub fn new(scope: &'parser ParsingScope<'parser>, start_token_type: TokenType, input: &'parser str, trace: bool) -> Self {
     let lexer = Lexer::new(scope, start_token_type, input);
     Self {
       scope,
@@ -87,6 +87,13 @@ impl<'parser> Parser<'parser> {
       yy_value_stack: vec![TokenValue::YyEmpty],
       yy_node_stack: vec![],
     }
+  }
+
+  /// Makes the lexer search names the way it did before [ParsingScope::contains] (test reference).
+  #[cfg(test)]
+  pub fn with_oracle_lexer(mut self) -> Self {
+    self.yy_lexer.set_oracle();
+    self
   }
 
   /// Parses the input.
@@ -167,7 +174,8 @@ impl<'parser> Parser<'parser> {
           trace!(self, "\nSHIFT");
           self.yy_state = self.yy_n as usize;
           self.yy_state_stack.push(self.yy_state);
-          self.yy_value_stack.push(self.yy_value.clone());
+          // the lookahead value is consumed by the shift (reset to `YyEmpty` below)
+          self.yy_value_stack.push(std::mem::replace(&mut self.yy_value, TokenValue::YyEmpty));
           trace!(self, "  state_stack={:?}", self.yy_state_stack);
           trace!(self, "  value_stack={:?}", self.yy_value_stack);
           trace!(self, "  node_stack={:?}", self.yy_node_stack);

@@ -88,7 +88,9 @@ upstream = "https://github.com/dsntk/dsntk-rs.git"
 # Kept separate from `release` so the native dsntk binaries keep their default settings.
 [profile.wasm]
 inherits = "release"
-opt-level = "z"
+# opt-level 3 (1.6x the speed of "z" for +20% download size); its larger stack frames are covered
+# by the 10 MiB shadow stack (wasm/feel-wasm/build.rs), checked with perf's probe-stack.
+opt-level = 3
 lto = true
 codegen-units = 1
 strip = true

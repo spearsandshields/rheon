@@ -171,9 +171,10 @@ fn apply(feel_operator: &Evaluator, scope: &FeelScope, lhs: &Value, rhs: &Value)
   let mut operands = FeelContext::default();
   operands.set_entry(&LHS, lhs.clone());
   operands.set_entry(&RHS, rhs.clone());
+  let depth = scope.depth();
   scope.push(operands);
   let value = feel_operator(scope);
-  scope.pop();
+  scope.truncate(depth);
   value
 }
 

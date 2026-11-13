@@ -149,7 +149,14 @@ pub fn build_function_definition_evaluator(scope: &FeelScope, function_definitio
             closure_ctx.create_entry(closure_name, closure_value);
           }
         }
-        Value::FunctionDefinition(parameters.clone(), function_body.clone(), false, closure.clone(), closure_ctx, result_type.clone())
+        Value::from(rheon_feel::FunctionDefinition::new(
+          parameters.clone(),
+          function_body.clone(),
+          false,
+          closure.clone(),
+          closure_ctx,
+          result_type.clone(),
+        ))
       });
       Ok((
         build_coerced_result_evaluator(function_definition_evaluator, function_definition, function_definition.namespace(), model_builder),
@@ -170,7 +177,14 @@ pub fn build_function_definition_evaluator(scope: &FeelScope, function_definitio
               let java_evaluator = Box::new(move |_: &FeelScope| Value::ExternalJavaFunction(java_class_name.clone(), java_method_signature.clone())) as Evaluator;
               let function_body_evaluator = Arc::new(java_evaluator);
               let function_body = FunctionBody::External(function_body_evaluator);
-              Value::FunctionDefinition(parameters.clone(), function_body, true, Closure::default(), FeelContext::default(), result_type.clone())
+              Value::from(rheon_feel::FunctionDefinition::new(
+                parameters.clone(),
+                function_body,
+                true,
+                Closure::default(),
+                FeelContext::default(),
+                result_type.clone(),
+              ))
             } else {
               value_null!("invalid Java function mapping, no method signature entry in context {}", java_mapping)
             }
@@ -209,7 +223,14 @@ pub fn build_function_definition_evaluator(scope: &FeelScope, function_definitio
               let pmml_evaluator = Box::new(move |_: &FeelScope| Value::ExternalPmmlFunction(pmml_document.clone(), pmml_model_name.clone())) as Evaluator;
               let function_body_evaluator = Arc::new(pmml_evaluator);
               let function_body = FunctionBody::External(function_body_evaluator);
-              Value::FunctionDefinition(parameters.clone(), function_body, true, Closure::default(), FeelContext::default(), result_type.clone())
+              Value::from(rheon_feel::FunctionDefinition::new(
+                parameters.clone(),
+                function_body,
+                true,
+                Closure::default(),
+                FeelContext::default(),
+                result_type.clone(),
+              ))
             } else {
               value_null!("invalid PMML function mapping, no model name entry in context {}", pmml_mapping)
             }
@@ -366,7 +387,7 @@ pub fn build_for_evaluator(scope: &FeelScope, r#for: &For, model_builder: &Model
       // any other value is a singleton list (DMN 1.6 boxed for, implicit conversion, DMN16-94)
       value => for_expression_evaluator.add_list(iterator_variable, Value::List(vec![value])),
     }
-    Value::List(for_expression_evaluator.evaluate(scope, &return_evaluator))
+    for_expression_evaluator.evaluate(scope, &return_evaluator)
   });
   Ok((build_coerced_result_evaluator(evaluator, r#for, r#for.namespace(), model_builder), Closure::default()))
 }

@@ -2,6 +2,8 @@
 
 use crate::errors::*;
 use crate::lalr::TokenType;
+#[cfg(test)]
+use crate::scope::MAX_BUILT_IN_PROPERTY_NAME_LEN;
 use crate::scope::ParsingScope;
 use dsntk_common::Result;
 use rheon_feel::Name;
@@ -91,7 +93,7 @@ pub enum TokenValue {
 /// FEEL lexer.
 pub struct Lexer<'lexer> {
   /// Parsing scope.
-  scope: &'lexer ParsingScope,
+  scope: &'lexer ParsingScope<'lexer>,
   /// Starting token type, returned before the first token.
   start_token_type: Option<TokenType>,
   /// Input characters.
@@ -116,12 +118,20 @@ pub struct Lexer<'lexer> {
   till_in: bool,
   /// ??
   after_dot: bool,
+  /// Buffer for the flattened candidate names of [Lexer::consume_name].
+  name_buf: String,
+  /// Second buffer for flattening names (the replacements alternate between the buffers).
+  name_tmp: String,
+  /// When set, names are searched in the set of all flattened keys built for every name token
+  /// (the lexer's search before [ParsingScope::contains]); the reference in differential tests.
+  #[cfg(test)]
+  oracle: bool,
 }
 
 /// FEEL lexer implementation.
 impl<'lexer> Lexer<'lexer> {
   /// Creates a new lexer for specified input text.
-  pub fn new(scope: &'lexer ParsingScope, start_token_type: TokenType, input: &str) -> Self {
+  pub fn new(scope: &'lexer ParsingScope<'lexer>, start_token_type: TokenType, input: &str) -> Self {
     Self {
       scope,
       start_token_type: Some(start_token_type),
@@ -132,7 +142,17 @@ impl<'lexer> Lexer<'lexer> {
       type_name: false,
       till_in: false,
       after_dot: false,
+      name_buf: String::new(),
+      name_tmp: String::new(),
+      #[cfg(test)]
+      oracle: false,
     }
+  }
+
+  /// Makes this lexer search names the way it did before [ParsingScope::contains] (test reference).
+  #[cfg(test)]
+  pub fn set_oracle(&mut self) {
+    self.oracle = true;
   }
 
   pub fn set_unary_tests(&mut self) {
@@ -636,9 +656,8 @@ impl<'lexer> Lexer<'lexer> {
             ch = self.peek_character();
             current_part.push(ch);
           } else {
-            parts.push(current_part.clone());
+            parts.push(std::mem::take(&mut current_part));
             consumed_positions.push(self.position);
-            current_part = String::new();
             state = 2;
           }
         }
@@ -660,9 +679,8 @@ impl<'lexer> Lexer<'lexer> {
             ch = self.peek_character();
             current_part.push(ch);
           } else {
-            parts.push(current_part.clone());
+            parts.push(std::mem::take(&mut current_part));
             consumed_positions.push(self.position);
-            current_part = String::new();
             state = 2;
           }
         }
@@ -672,8 +690,7 @@ impl<'lexer> Lexer<'lexer> {
             ch = self.peek_character();
             current_part.push(ch);
             consumed_positions.push(self.position);
-            parts.push(current_part.clone());
-            current_part = String::new();
+            parts.push(std::mem::take(&mut current_part));
           } else {
             state = 2;
           }
@@ -717,7 +734,7 @@ impl<'lexer> Lexer<'lexer> {
       self.till_in = false;
       parts.truncate(index);
       self.position = consumed_positions[index - 1] + 1;
-      return Ok((TokenType::Name, TokenValue::Name(parts.into())));
+      return Ok((TokenType::Name, TokenValue::Name(Name::from_parts(&parts))));
     }
 
     //-------------------------------------------------------------------------------
@@ -726,53 +743,26 @@ impl<'lexer> Lexer<'lexer> {
     // Return the whole name before the `:`.
     //-------------------------------------------------------------------------------
     if self.is_next_character(&[':'], 0) {
-      return Ok((TokenType::Name, TokenValue::Name(parts.into())));
+      return Ok((TokenType::Name, TokenValue::Name(Name::from_parts(&parts))));
     }
 
     //-------------------------------------------------------------------------------
     // begin with with the longest name containing all parts
     //-------------------------------------------------------------------------------
-    let flattened = self.scope.flattened();
-    // A prefix can only match a key in scope (or a built-in property name) when its flattened
-    // text is not longer than the longest such key, and the flattened text is never shorter
-    // than the trimmed parts it is made of. Skip the prefixes that are too long to match, so
-    // that a long chain like `a.a.a...` (every `.` is an additional name symbol, so the longest
-    // candidate name spans the whole chain) costs linear instead of quadratic time per token.
-    let max_key_len = flattened.iter().map(|key| key.len()).max().unwrap_or(0).max(MAX_BUILT_IN_PROPERTY_NAME_LEN);
-    let mut part_count = 0;
-    let mut prefix_len = 0;
-    for part in &parts {
-      prefix_len += part.trim().len();
-      if prefix_len > max_key_len {
-        break;
-      }
-      part_count += 1;
-    }
-    while part_count > 0 {
-      // take a sublist of the original part list until the list is empty
-      let part_sublist = &parts[..part_count];
-      // flatten the name parts to compare it with built-in names and keys in current scope
-      let name = flatten_name_parts(part_sublist);
-      // Check if the name is a built-in property name.
-      if self.after_dot && is_built_in_property_name(&name) {
+    if let Some((part_count, built_in_property)) = self.longest_name_in_scope(&parts) {
+      if built_in_property {
         self.after_dot = false;
-        self.position = consumed_positions[part_count - 1] + 1;
-        return Ok((TokenType::Name, TokenValue::Name(part_sublist.to_vec().into())));
       }
-      // check if the flattened name exists as a key in the current context
-      if flattened.contains(&name) {
-        // return to the input all characters that do not belong to the name that was found
-        self.position = consumed_positions[part_count - 1] + 1;
-        // return the name that exists in the current context
-        return Ok((TokenType::Name, TokenValue::Name(part_sublist.to_vec().into())));
-      }
-      part_count -= 1;
+      // return to the input all characters that do not belong to the name that was found
+      self.position = consumed_positions[part_count - 1] + 1;
+      // return the name that exists in the current context
+      return Ok((TokenType::Name, TokenValue::Name(Name::from_parts(&parts[..part_count]))));
     }
 
     //------------------------------------------------------------------------------
     // Build the name from name parts.
     //------------------------------------------------------------------------------
-    let name: Name = parts.into();
+    let name = Name::from_parts(&parts);
 
     //------------------------------------------------------------------------------
     // Tweak with the names of built-in types.
@@ -802,6 +792,73 @@ impl<'lexer> Lexer<'lexer> {
     // Return the name as it appears on input.
     //------------------------------------------------------------------------------
     Ok((TokenType::Name, TokenValue::Name(name)))
+  }
+
+  /// Returns the number of leading name parts that form the longest name in scope (a key in the
+  /// parsing scope, or a built-in property name right after a dot), and whether it is a
+  /// built-in property name. The candidates are the flattened prefixes of the parts, longest first.
+  fn longest_name_in_scope(&mut self, parts: &[String]) -> Option<(usize, bool)> {
+    #[cfg(test)]
+    if self.oracle {
+      return self.longest_name_in_scope_oracle(parts);
+    }
+    // A prefix can only match a name in scope (or a built-in property name) when its flattened
+    // text is not longer than the longest such name, and the flattened text is never shorter
+    // than the trimmed parts it is made of. Skip the prefixes that are too long to match, so
+    // that a long chain like `a.a.a...` (every `.` is an additional name symbol, so the longest
+    // candidate name spans the whole chain) costs linear instead of quadratic time per token.
+    let bound = self.scope.bound(self.after_dot, parts.iter().any(|part| part.trim().is_empty()));
+    let mut part_count = 0;
+    let mut prefix_len = 0;
+    for part in parts {
+      prefix_len += part.trim().len();
+      if prefix_len > bound {
+        break;
+      }
+      part_count += 1;
+    }
+    while part_count > 0 {
+      // flatten the name parts to compare it with built-in names and keys in current scope
+      flatten_name_parts_into(&parts[..part_count], &mut self.name_buf, &mut self.name_tmp);
+      // check if the name is a built-in property name
+      if self.after_dot && is_built_in_property_name(&self.name_buf) {
+        return Some((part_count, true));
+      }
+      // check if the flattened name exists as a key in the current scope
+      if self.scope.contains(&self.name_buf) {
+        return Some((part_count, false));
+      }
+      part_count -= 1;
+    }
+    None
+  }
+
+  /// [Lexer::longest_name_in_scope] as it was before [ParsingScope::contains]: builds the set of
+  /// all flattened keys in scope for every name token (test reference).
+  #[cfg(test)]
+  fn longest_name_in_scope_oracle(&self, parts: &[String]) -> Option<(usize, bool)> {
+    let flattened = self.scope.flattened();
+    let max_key_len = flattened.iter().map(|key| key.len()).max().unwrap_or(0).max(MAX_BUILT_IN_PROPERTY_NAME_LEN);
+    let mut part_count = 0;
+    let mut prefix_len = 0;
+    for part in parts {
+      prefix_len += part.trim().len();
+      if prefix_len > max_key_len {
+        break;
+      }
+      part_count += 1;
+    }
+    while part_count > 0 {
+      let name = flatten_name_parts(&parts[..part_count]);
+      if self.after_dot && is_built_in_property_name(&name) {
+        return Some((part_count, true));
+      }
+      if flattened.contains(&name) {
+        return Some((part_count, false));
+      }
+      part_count -= 1;
+    }
+    None
   }
 
   /// Consumes a HEX digit from input or reports an error.
@@ -946,9 +1003,6 @@ impl<'lexer> Lexer<'lexer> {
   }
 }
 
-/// Upper bound of the length of a built-in property name (`start included`), see [is_built_in_property_name].
-const MAX_BUILT_IN_PROPERTY_NAME_LEN: usize = 16;
-
 /// Returns `true` when the specified character is a separator (white space equivalent).
 fn is_separator(ch: char) -> bool {
   matches!(ch, WS | '=' | '!' | '<' | '>' | '+' | '-' | '*' | '/' | '%' | '.' | ',' | ')' | '[' | ']' | '}')
@@ -1023,9 +1077,59 @@ fn hex_to_decimal(ch: char) -> Result<u64> {
   }
 }
 
+/// The replacements that remove the spaces around additional name symbols in a flattened name,
+/// applied in this order, each with the symbol it is about.
+const NAME_SYMBOL_REPLACEMENTS: [(char, &str, &str); 6] = [
+  ('.', " . ", "."),
+  ('/', " / ", "/"),
+  ('-', " - ", "-"),
+  ('\'', " ' ", "'"),
+  ('+', " + ", "+"),
+  ('*', " * ", "*"),
+];
+
+/// Joins the parts of the name with single whitespace separator into `out`. Every part is
+/// trimmed from additional whitespaces at both sides. The final string is also trimmed.
+/// After trimming, spaces around additional characters (`.`,`/`,`-`,`'`,`+`,`*`) are removed.
+///
+/// The result is that of [flatten_name_parts] (the same steps, in the same order), built in
+/// reused buffers; `tmp` is scratch space.
+fn flatten_name_parts_into(parts: &[String], out: &mut String, tmp: &mut String) {
+  tmp.clear();
+  for (index, part) in parts.iter().enumerate() {
+    if index > 0 {
+      tmp.push(WS);
+    }
+    tmp.push_str(part.trim());
+  }
+  out.clear();
+  out.push_str(tmp.trim());
+  for (symbol, from, to) in NAME_SYMBOL_REPLACEMENTS {
+    // a replacement leaves a text without the symbol unchanged
+    if out.contains(symbol) {
+      replace_into(out, from, to, tmp);
+      std::mem::swap(out, tmp);
+    }
+  }
+}
+
+/// Writes `text` with every non-overlapping occurrence of `from` replaced by `to` into `out`,
+/// scanning from the left: the loop of [str::replace], into a reused buffer.
+fn replace_into(text: &str, from: &str, to: &str, out: &mut String) {
+  out.clear();
+  let mut last_end = 0;
+  for (start, part) in text.match_indices(from) {
+    out.push_str(&text[last_end..start]);
+    out.push_str(to);
+    last_end = start + part.len();
+  }
+  out.push_str(&text[last_end..]);
+}
+
 /// Joins the parts of the name with single whitespace separator. Every part is trimmed
 /// from additional whitespaces at both sides. The final string is also trimmed.
 /// After trimming, spaces around additional characters (`.`,`/`,`-`,`'`,`+`,`*`) are removed.
+#[cfg(test)]
 fn flatten_name_parts(parts: &[String]) -> String {
   parts
     .iter()
@@ -1099,6 +1203,34 @@ mod tests {
     assert_eq!("a*b", flatten_name_parts(&["   a  ".to_string(), " * ".to_string(), "  b ".to_string()]));
     assert_eq!("", flatten_name_parts(&["".to_string(), "".to_string(), "".to_string()]));
     assert_eq!("", flatten_name_parts(&[]));
+  }
+
+  #[test]
+  fn test_flatten_name_parts_into() {
+    // every sequence of up to 6 parts over names, U+1680-only parts and the additional symbols
+    let alphabet = ["a", "b c", "\u{1680}", "\u{1680}x", ".", "/", "-", "'", "+", "*", " . "];
+    let (mut out, mut tmp) = (String::from("stale"), String::from("stale"));
+    let mut parts = vec![];
+    let mut counters = [0_usize; 6];
+    for len in 0..=6 {
+      counters.iter_mut().for_each(|c| *c = 0);
+      loop {
+        parts.clear();
+        parts.extend(counters[..len].iter().map(|&i| alphabet[i].to_string()));
+        flatten_name_parts_into(&parts, &mut out, &mut tmp);
+        assert_eq!(flatten_name_parts(&parts), out, "{parts:?}");
+        // next combination
+        let mut i = 0;
+        while i < len && counters[i] == alphabet.len() - 1 {
+          counters[i] = 0;
+          i += 1;
+        }
+        if i == len {
+          break;
+        }
+        counters[i] += 1;
+      }
+    }
   }
 
   #[test]

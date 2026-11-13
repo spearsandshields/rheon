@@ -28,7 +28,7 @@ cargo build --profile wasm --target wasm32-wasip1 -p rheon-feel-wasm
 The `wasm` profile (opt-level z, lto, panic=abort, overflow checks) is defined in the
 repository's root `Cargo.toml`; from a crates.io checkout use `--release`. The build script
 links Rust's `crt1-reactor.o`, so the module is a WASI reactor (`_initialize`, no per-call
-command wrappers), sets an 8 MiB shadow stack and caps linear memory at 512 MiB. Any
+command wrappers), sets a 10 MiB shadow stack and caps linear memory at 512 MiB. Any
 WASI-preview1 host runs it: Wasmtime, Node's `node:wasi`, or the ten-function shim in the npm
 package for browsers.
 

@@ -7,6 +7,9 @@ use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
+/// Separator of the keys in a composite key (see [ParsingContext::contains_flattened]).
+const COMPOSITE_SEPARATOR: &str = " . ";
+
 /// Types of entries in parsing context.
 pub enum ParsingEntry {
   /// Parsing entry representing a context.
@@ -117,7 +120,78 @@ impl ParsingContext {
     self.0.insert(name, ParsingEntry::Context(ctx));
   }
 
+  /// Returns `true` when `name` is a key of this context or of a nested context, at any depth.
+  pub fn contains_key_deep(&self, name: &str) -> bool {
+    let mut stack = vec![self];
+    while let Some(ctx) = stack.pop() {
+      if ctx.0.contains_key(name) {
+        return true;
+      }
+      for entry in ctx.0.values() {
+        if let ParsingEntry::Context(sub_ctx) = entry {
+          stack.push(sub_ctx);
+        }
+      }
+    }
+    false
+  }
+
+  /// Returns `true` when `name` is one of the flattened keys of this context: a key at any depth,
+  /// or a composite key `k1 . k2 . … . kn` where every `k(i+1)` is a key at any depth below `ki`.
+  ///
+  /// The set of flattened keys grows exponentially with the nesting depth, so it is not built:
+  /// this is a search over the states (context, offset in `name`), each visited at most once.
+  /// In state (C, i), `name[i..]` is a flattened key of C when it is a key of C; or a flattened key
+  /// of a nested context D of C; or `k . rest` for a key `k` of C whose value is D and `rest` is
+  /// a flattened key of D.
+  pub fn contains_flattened(&self, name: &str) -> bool {
+    let mut visited: HashSet<(*const ParsingContext, usize)> = HashSet::new();
+    let mut stack = vec![(self, 0_usize)];
+    while let Some((ctx, offset)) = stack.pop() {
+      if !visited.insert((ctx as *const ParsingContext, offset)) {
+        continue;
+      }
+      let rest = &name[offset..];
+      if ctx.0.contains_key(rest) {
+        return true;
+      }
+      for (key, entry) in &ctx.0 {
+        if let ParsingEntry::Context(sub_ctx) = entry {
+          stack.push((sub_ctx, offset));
+          if rest.strip_prefix(key.as_str()).is_some_and(|tail| tail.starts_with(COMPOSITE_SEPARATOR)) {
+            stack.push((sub_ctx, offset + key.as_str().len() + COMPOSITE_SEPARATOR.len()));
+          }
+        }
+      }
+    }
+    false
+  }
+
+  /// Returns the length in bytes of the longest key at any depth, and of the longest flattened key.
+  pub fn key_lengths(&self) -> (usize, usize) {
+    let (mut max_plain, mut max_flattened) = (0, 0);
+    // contexts to visit, with the length of the composite key prefix `k1 . … . ki . ` leading to them
+    let mut stack = vec![(self, 0_usize)];
+    while let Some((ctx, prefix)) = stack.pop() {
+      for (key, entry) in &ctx.0 {
+        let len = key.as_str().len();
+        max_plain = max_plain.max(len);
+        max_flattened = max_flattened.max(prefix + len);
+        if let ParsingEntry::Context(sub_ctx) = entry {
+          stack.push((sub_ctx, prefix + len + COMPOSITE_SEPARATOR.len()));
+        }
+      }
+    }
+    (max_plain, max_flattened)
+  }
+
+  /// Returns `true` when this context has no entries.
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+
   /// Returns a list of flattened keys for this parsing context.
+  #[cfg(test)]
   pub fn flattened_keys(&self) -> HashSet<String> {
     let mut keys: HashSet<String> = HashSet::new();
     for (key, value) in self.0.iter() {

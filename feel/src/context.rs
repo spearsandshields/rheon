@@ -124,6 +124,27 @@ impl FeelContext {
     self.0.insert(name.clone(), value);
   }
 
+  /// Inserts an entry, taking the name (an entry with the same name is replaced, like [FeelContext::set_entry]).
+  pub fn insert(&mut self, name: Name, value: Value) {
+    self.0.insert(name, value);
+  }
+
+  /// Sets a value for specified entry name like [FeelContext::set_entry], but clones the name only
+  /// when the entry is new: for entries that are written again and again (iteration variables).
+  /// For a new entry it costs one more lookup than [FeelContext::set_entry].
+  pub fn assign_entry(&mut self, name: &Name, value: Value) {
+    if let Some(entry) = self.0.get_mut(name) {
+      *entry = value;
+    } else {
+      self.0.insert(name.clone(), value);
+    }
+  }
+
+  /// Returns a mutable reference to the value of an entry with specified name.
+  pub fn get_entry_mut(&mut self, name: &Name) -> Option<&mut Value> {
+    self.0.get_mut(name)
+  }
+
   /// Removes a value of an entry with specified name.
   pub fn remove_entry(&mut self, name: &Name) -> Option<Value> {
     self.0.remove(name)

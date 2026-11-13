@@ -2,9 +2,9 @@
 
 use crate::FunctionBody;
 use crate::bif::Bif;
-use crate::closure::Closure;
 use crate::context::FeelContext;
 use crate::errors::*;
+use crate::function::FunctionDefinition;
 use crate::names::Name;
 use crate::ranges::IntervalType;
 use crate::strings::ToFeelString;
@@ -18,6 +18,7 @@ use std::fmt;
 use std::fmt::Display;
 use std::ops::Deref;
 use std::str::FromStr;
+use std::sync::Arc;
 
 /// Creates `Value::Null` with optional tracing message.
 ///
@@ -151,20 +152,7 @@ pub enum Value {
 
   /// Value representing the function definition.
   /// This value holds the list of function's formal parameters, the function's body, closure for lambdas and expected result type.
-  FunctionDefinition(
-    /// Formal parameters of the function.
-    Vec<(Name, FeelType)>,
-    /// Body of the function.
-    FunctionBody,
-    /// Flag indicating if the function's body is an external function, `true` == external.
-    bool,
-    /// Closed names from function context (closure names).
-    Closure,
-    /// Values of the closed names (closure values).
-    FeelContext,
-    /// Return type of the function.
-    FeelType,
-  ),
+  FunctionDefinition(Arc<FunctionDefinition>),
 
   /// Value representing interval end.
   IntervalEnd(
@@ -298,8 +286,16 @@ impl Display for Value {
       Value::FormalParameter(_, _) => write!(f, "FormalParameter"),
       Value::FormalParameters(_) => write!(f, "FormalParameters"),
       Value::FunctionBody(_, external) => write!(f, "FunctionBody{}", if *external { " (external)" } else { "" }),
-      Value::FunctionDefinition(parameters, _body, external, closure, closure_ctx, return_type) => {
-        write!(f, "FunctionDefinition({parameters:?},_,{external},{closure},{closure_ctx},{return_type})")
+      Value::FunctionDefinition(function) => {
+        let FunctionDefinition {
+          parameters,
+          external,
+          closure,
+          closure_ctx,
+          result_type,
+          ..
+        } = function.as_ref();
+        write!(f, "FunctionDefinition({parameters:?},_,{external},{closure},{closure_ctx},{result_type})")
       }
       Value::IntervalEnd(_, _) => write!(f, "IntervalEnd"),
       Value::IntervalStart(_, _) => write!(f, "IntervalStart"),
@@ -494,9 +490,9 @@ impl Value {
       Value::FormalParameter(_, feel_type) => feel_type.clone(),
       Value::FormalParameters(_) => FeelType::Any,
       Value::FunctionBody(_, _) => FeelType::Any,
-      Value::FunctionDefinition(parameters, _, _, _, _, result_type) => {
-        let parameter_types = parameters.iter().map(|(_, feel_type)| feel_type.clone()).collect();
-        FeelType::Function(parameter_types, Box::new(result_type.clone()))
+      Value::FunctionDefinition(function) => {
+        let parameter_types = function.parameters.iter().map(|(_, feel_type)| feel_type.clone()).collect();
+        FeelType::Function(parameter_types, Box::new(function.result_type.clone()))
       }
       Value::IntervalEnd(interval_end, _) => interval_end.type_of(),
       Value::IntervalStart(interval_start, _) => interval_start.type_of(),
@@ -509,7 +505,7 @@ impl Value {
           // made the cost exponential in the nesting depth of lists ([[[...]]]).
           let item_type = values[0].type_of();
           for item in &values[1..] {
-            if !item.type_of().is_conformant(&item_type) {
+            if !item.type_is_conformant(&item_type) {
               return FeelType::List(Box::new(FeelType::Any));
             }
           }
@@ -543,6 +539,26 @@ impl Value {
       Value::UnaryNotEqual(_) => FeelType::Boolean,
       Value::Transparent(value) => value.type_of(),
       Value::YearsAndMonthsDuration(_) => FeelType::YearsAndMonthsDuration,
+    }
+  }
+
+  /// Returns `self.type_of().is_conformant(target_type)` without building the type of a context.
+  ///
+  /// The type of a context is the context type of its entries' types: it conforms to `Any`, and
+  /// to a context type when every entry of the target type has an entry here whose type conforms
+  /// to the target entry's type (extra entries are allowed); to nothing else
+  /// ([FeelType::is_conformant]). The type of `null` conforms to every type.
+  pub fn type_is_conformant(&self, target_type: &FeelType) -> bool {
+    match self {
+      Value::Null(_) => true,
+      Value::Context(ctx) => match target_type {
+        FeelType::Any => true,
+        FeelType::Context(target_entries) => target_entries
+          .iter()
+          .all(|(name, entry_type)| ctx.get_entry(name).is_some_and(|value| value.type_is_conformant(entry_type))),
+        _ => false,
+      },
+      other => other.type_of().is_conformant(target_type),
     }
   }
 
@@ -593,15 +609,15 @@ impl Value {
         }
         false
       }
-      Value::FunctionDefinition(parameters, _, _, _, _, result_type) => {
+      Value::FunctionDefinition(function) => {
         if let FeelType::Function(t_parameters, t_result) = target_type {
-          if parameters.len() != t_parameters.len() {
+          if function.parameters.len() != t_parameters.len() {
             return false;
           }
-          if !result_type.is_conformant(t_result) {
+          if !function.result_type.is_conformant(t_result) {
             return false;
           }
-          for (i, (_, parameter_type)) in parameters.iter().enumerate() {
+          for (i, (_, parameter_type)) in function.parameters.iter().enumerate() {
             if !parameter_type.is_conformant(&t_parameters[i]) {
               return false;
             }
@@ -644,7 +660,7 @@ impl Value {
   /// `None` when the value does not conform before or after the implicit conversions (§10.3.2.9.4);
   /// in an invocation context the result of the invocation is then null.
   pub fn try_coerced(&self, target_type: &FeelType) -> Option<Value> {
-    if let Value::FunctionDefinition(_, _, _, _, _, _) = self {
+    if let Value::FunctionDefinition(_) = self {
       return Some(self.clone());
     }
     if let Value::BuiltInFunction(bif) = self
@@ -690,6 +706,22 @@ impl Value {
   /// (the binding contexts of §10.3.2.9.4; see [Value::try_coerced]).
   pub fn coerced(&self, target_type: &FeelType) -> Value {
     self.try_coerced(target_type).unwrap_or_else(|| value_null!("after coercion"))
+  }
+
+  /// [Value::try_coerced] of an owned value: a value that needs no conversion is returned
+  /// itself instead of a copy.
+  pub fn try_into_coerced(self, target_type: &FeelType) -> Option<Value> {
+    // the cases in which `try_coerced` returns a copy of the value unchanged
+    if matches!(self, Value::FunctionDefinition(_)) || matches!(&self, Value::BuiltInFunction(bif) if bif.feel_type().is_conformant(target_type)) || self.is_conformant(target_type)
+    {
+      return Some(self);
+    }
+    self.try_coerced(target_type)
+  }
+
+  /// [Value::coerced] of an owned value (see [Value::try_into_coerced]).
+  pub fn into_coerced(self, target_type: &FeelType) -> Value {
+    self.try_into_coerced(target_type).unwrap_or_else(|| value_null!("after coercion"))
   }
 
   /// Tries to convert `xsd:integer` string into valid [Value] representing a number.
