@@ -98,10 +98,20 @@ fn _0012() {
     r#"some in"a" satisfies true"#,
     "every in-x in [] satisfies false",
     "for in in [1] return 1",
-    "for x in[1] return x",
-    "for item in [1] return in+1",
-    "for item in, x in [1] return 1",
   ] {
+    te(input, "ParserError", &format!("syntax error: {input}"));
+  }
+}
+
+#[test]
+fn _0013() {
+  // Syntax errors that come from the lexer's reading of `in` after an iteration variable:
+  // - the lexer reads the keyword `in` only before white space, so in `x in[1]` the `in` is a
+  //   name and the iteration context has no `in`;
+  // - after the iteration variable `item`, the lexer stays in iteration-variable mode, so the
+  //   next name that starts with `in` is read as the keyword `in`: `in+1` in the return
+  //   expression, and `in` before the comma.
+  for input in ["for x in[1] return x", "for item in [1] return in+1", "for item in, x in [1] return 1"] {
     te(input, "ParserError", &format!("syntax error: {input}"));
   }
 }
