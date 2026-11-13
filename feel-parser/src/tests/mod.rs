@@ -6,6 +6,7 @@ mod differential;
 mod expr;
 mod names_index;
 mod oracle;
+mod send_sync;
 pub(crate) mod work;
 
 /// Creates a parsing scope.

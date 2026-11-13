@@ -6,6 +6,7 @@ use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
 use std::cell::OnceCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::ptr;
 
 /// Separator of the keys in a composite name.
 const SEPARATOR: &str = " . ";
@@ -44,7 +45,7 @@ struct Keys<'a> {
   max_chain: usize,
   /// The item types of the lists of contexts, by the address of the list in the input context
   /// (computed, so kept for [FrameIndex::contains_composite]).
-  item_types: HashMap<*const Value, FeelType>,
+  item_types: HashMap<usize, FeelType>,
 }
 
 /// A node of the input context whose keys are names in the parsing context.
@@ -55,11 +56,11 @@ enum Node<'a> {
 }
 
 impl Node<'_> {
-  /// Returns the address of the node (a node of the input context is reached only by one path).
-  fn address(&self) -> *const () {
+  /// Returns the address of the node: input nodes are never shared, so the address identifies the node.
+  fn address(&self) -> usize {
     match self {
-      Node::Context(ctx) => *ctx as *const FeelContext as *const (),
-      Node::Type(entries) => *entries as *const BTreeMap<Name, FeelType> as *const (),
+      Node::Context(ctx) => ptr::from_ref(*ctx).addr(),
+      Node::Type(entries) => ptr::from_ref(*entries).addr(),
     }
   }
 
@@ -162,7 +163,7 @@ impl<'a> Keys<'a> {
     // nodes to visit, with the length of the composite name prefix `k1 . … . ki . ` leading to them
     let mut stack: Vec<(Node<'a>, usize)> = vec![];
     // list item types to visit (owned, see `owned`), with the address of the list and the same prefix length
-    let mut item_types: Vec<(*const Value, FeelType, usize)> = vec![];
+    let mut item_types: Vec<(usize, FeelType, usize)> = vec![];
     for (name, value) in top.iter() {
       let key = name.as_str();
       index.add_key_length(key.len(), 0);
@@ -206,7 +207,7 @@ impl<'a> Keys<'a> {
           let nested = match value {
             Value::Context(ctx) => Some(Node::Context(ctx)),
             Value::FeelType(feel_type) => context_type_entries(feel_type).map(Node::Type),
-            Value::List(_) => self.item_types.get(&(value as *const Value)).and_then(context_type_entries).map(Node::Type),
+            Value::List(_) => self.item_types.get(&ptr::from_ref(value).addr()).and_then(context_type_entries).map(Node::Type),
             _ => None,
           };
           if let Some(nested) = nested {
@@ -259,7 +260,7 @@ impl<'a> Keys<'a> {
 
 /// Schedules the names inside a value of an input context (see `ParsingContext::from`):
 /// a context, a context type, or the item type of a list of contexts.
-fn push_value<'a>(value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, usize)>, item_types: &mut Vec<(*const Value, FeelType, usize)>) {
+fn push_value<'a>(value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, usize)>, item_types: &mut Vec<(usize, FeelType, usize)>) {
   match value {
     Value::Context(ctx) => stack.push((Node::Context(ctx), prefix)),
     Value::FeelType(feel_type) => {
@@ -269,7 +270,7 @@ fn push_value<'a>(value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, us
     }
     Value::List(_) => {
       if let Some(item_type) = list_item_context_type(value) {
-        item_types.push((value, item_type, prefix));
+        item_types.push((ptr::from_ref(value).addr(), item_type, prefix));
       }
     }
     _ => {}
