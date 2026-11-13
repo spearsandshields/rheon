@@ -1863,8 +1863,8 @@ impl<'b> EvaluatorBuilder<'b> {
         }
         _ => {}
       }
-      // the operands as evaluated above (evaluating them again repeated their diagnostics, and
-      // took exponential time in a chain of failing subtractions)
+      // the operands as evaluated above: evaluating them again would repeat their diagnostics
+      // and take exponential time in a chain of failing subtractions
       value_null!("[subtraction] incompatible types: {} - {}", lhv, rhv)
     })
   }
