@@ -1070,3 +1070,12 @@ fn first_word_bounds_equal_prototype() {
   }
   println!("first-word bounds: {stats:?}");
 }
+
+/// The input contexts are indexed only when a name is looked up beyond their own keys.
+#[test]
+fn input_contexts_are_indexed_on_first_use() {
+  let frames = [ctx(&[("a", Value::Context(ctx(&[("b", number(1))]))), ("c", number(2))])];
+  for (input, builds) in [("1 + 2", None), ("{x: 1, y: \"s\"}", None), ("a + c", Some(&1)), ("a.b * 2", Some(&1))] {
+    assert_eq!(builds, work_of(&frames, input).get("index builds"), "{input}");
+  }
+}

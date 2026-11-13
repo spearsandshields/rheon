@@ -59,15 +59,15 @@ macro_rules! complete_list {
 }
 
 /// Parser.
-pub struct Parser<'parser> {
+pub struct Parser<'parser, 'scope> {
   /// Parsing scope.
-  scope: &'parser ParsingScope<'parser>,
+  scope: &'parser ParsingScope<'scope>,
   /// Parsed input.
   input: &'parser str,
   /// Flag indicating whether the tracing messages should be printed to standard output.
   yy_trace: bool,
   /// The FEEL [Lexer] used by this FEEL [Parser] as an input token stream.
-  yy_lexer: Lexer<'parser>,
+  yy_lexer: Lexer<'parser, 'scope>,
   /// The lookahead token type returned by lexer.
   yy_char: i16,
   /// The lookahead semantic value associated with token type returned by lexer.
@@ -94,9 +94,9 @@ pub struct Parser<'parser> {
   replay: Option<std::vec::IntoIter<(TokenType, TokenValue)>>,
 }
 
-impl<'parser> Parser<'parser> {
+impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// Creates a new parser.
-  pub fn new(scope: &'parser ParsingScope<'parser>, start_token_type: TokenType, input: &'parser str, trace: bool) -> Self {
+  pub fn new(scope: &'parser ParsingScope<'scope>, start_token_type: TokenType, input: &'parser str, trace: bool) -> Self {
     let lexer = Lexer::new(scope, start_token_type, input);
     Self {
       scope,
@@ -307,7 +307,7 @@ impl<'parser> Parser<'parser> {
   }
 }
 
-impl Parser<'_> {
+impl Parser<'_, '_> {
   /// Adds an item to a list. The lists of the grammar are right recursive, so the parser sees their
   /// items from the last to the first, and stores them in this order: the item below the top of
   /// the node stack is appended to the list on top (`items` returns the items of this kind of
@@ -331,7 +331,7 @@ impl Parser<'_> {
   }
 }
 
-impl Parser<'_> {
+impl Parser<'_, '_> {
   /// Takes the semantic value at `index` of the value stack, in the last action that reads it: the
   /// value of a symbol of the reduced rule (popped right after), or of a symbol before a mid-rule
   /// action that no later action reads. The AST gets the value without a copy.
@@ -355,7 +355,7 @@ fn complete_list(node: &mut AstNode, items: fn(&mut AstNode) -> Option<&mut Vec<
   }
 }
 
-impl ReduceActions for Parser<'_> {
+impl ReduceActions for Parser<'_, '_> {
   fn action_addition(&mut self) -> Result<()> {
     trace_action!(self, "addition");
     let rhs = self.yy_node_stack.pop().unwrap();

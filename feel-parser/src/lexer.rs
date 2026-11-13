@@ -90,9 +90,9 @@ pub enum TokenValue {
 }
 
 /// FEEL lexer.
-pub struct Lexer<'lexer> {
+pub struct Lexer<'lexer, 'scope> {
   /// Parsing scope.
-  scope: &'lexer ParsingScope<'lexer>,
+  scope: &'lexer ParsingScope<'scope>,
   /// Starting token type, returned before the first token.
   start_token_type: Option<TokenType>,
   /// Input characters.
@@ -153,9 +153,9 @@ struct ChainPart {
 }
 
 /// FEEL lexer implementation.
-impl<'lexer> Lexer<'lexer> {
+impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// Creates a new lexer for specified input text.
-  pub fn new(scope: &'lexer ParsingScope<'lexer>, start_token_type: TokenType, input: &str) -> Self {
+  pub fn new(scope: &'lexer ParsingScope<'scope>, start_token_type: TokenType, input: &str) -> Self {
     // one allocation of the exact size (collecting the characters would start at a quarter of it)
     let mut chars = Vec::with_capacity(input.chars().count());
     chars.extend(input.chars());
