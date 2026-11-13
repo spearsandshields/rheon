@@ -736,6 +736,25 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     }
 
     //-------------------------------------------------------------------------------
+    // A name of one part is the part, whether it is in scope or not, so it needs no
+    // lookup: except a built-in property name after a dot, and the names that the two
+    // tweaks after the lookup turn into other tokens when they are not in scope.
+    // (Those tweaks are the only difference between a name found in scope and one that
+    // is not; a new one there must be excluded here too.)
+    //-------------------------------------------------------------------------------
+    if self.chain_parts.len() - first == 1 {
+      let word = &self.chain_text[self.chain_parts[first].trimmed.clone()];
+      if self.after_dot && is_built_in_property_name(word) {
+        self.after_dot = false;
+        self.position = self.chain_parts[first].last + 1;
+        return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + 1))));
+      }
+      if !(self.type_name && is_built_in_type_name(word)) && !(is_built_in_date_time_function_name(word) && self.is_next_character(&['('], 0)) {
+        return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + 1))));
+      }
+    }
+
+    //-------------------------------------------------------------------------------
     // begin with with the longest name containing all parts
     //-------------------------------------------------------------------------------
     if let Some((part_count, built_in_property)) = self.longest_name_in_scope(first) {
@@ -758,12 +777,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // If the name is a built-in type name,
     // then return a type name instead of regular name.
     //------------------------------------------------------------------------------
-    if self.type_name
-      && matches!(
-        name.as_str(),
-        "Any" | "Null" | "boolean" | "number" | "string" | "date" | "date and time" | "time" | "years and months duration" | "days and time duration"
-      )
-    {
+    if self.type_name && is_built_in_type_name(name.as_str()) {
       self.type_name = false;
       return Ok((TokenType::BuiltInTypeName, TokenValue::BuiltInTypeName(name)));
     }
@@ -1146,6 +1160,14 @@ fn hex_to_decimal(ch: char) -> Result<u64> {
     'F' | 'f' => Ok(15),
     other => Err(err_expected_hex_digit(other)),
   }
+}
+
+/// Returns `true` when the specified name is a built-in type name.
+fn is_built_in_type_name(name: &str) -> bool {
+  matches!(
+    name,
+    "Any" | "Null" | "boolean" | "number" | "string" | "date" | "date and time" | "time" | "years and months duration" | "days and time duration"
+  )
 }
 
 /// Returns the number of leading parts whose trimmed lengths add up to at most `bound`.

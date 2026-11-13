@@ -1074,8 +1074,48 @@ fn first_word_bounds_equal_prototype() {
 /// The input contexts are indexed only when a name is looked up beyond their own keys.
 #[test]
 fn input_contexts_are_indexed_on_first_use() {
-  let frames = [ctx(&[("a", Value::Context(ctx(&[("b", number(1))]))), ("c", number(2))])];
-  for (input, builds) in [("1 + 2", None), ("{x: 1, y: \"s\"}", None), ("a + c", Some(&1)), ("a.b * 2", Some(&1))] {
+  let items = Value::List(vec![Value::Context(ctx(&[("amount", number(1))])); 3]);
+  let frames = [ctx(&[("a", Value::Context(ctx(&[("b", number(1))]))), ("c", number(2)), ("items", items)])];
+  for (input, builds) in [
+    ("1 + 2", None),
+    ("{x: 1, y: \"s\"}", None),
+    ("sum(items[amount > 100].amount)", None),
+    ("a + c", Some(&1)),
+    ("a.b * 2", Some(&1)),
+  ] {
     assert_eq!(builds, work_of(&frames, input).get("index builds"), "{input}");
   }
+}
+
+/// One-part names skip the lookup unless the scope decides the token (`consume_name`): built-in
+/// property names after a dot, built-in type names after `instance of`, temporal function names
+/// before `(`; also with U+1680 (trimmed) and U+180E (not trimmed) inside the part.
+#[test]
+fn one_part_names_equal_prototype() {
+  let frames_d = vec![ctx(&[
+    ("d", Value::Context(ctx(&[("year", number(1))]))),
+    ("x", number(2)),
+    ("date", number(3)),
+    ("number", number(4)),
+  ])];
+  let mut stats = Stats::default();
+  for frames in [vec![], frames_d] {
+    for ws in ["\u{1680}", "\u{180E}", "", " "] {
+      for input in [
+        format!("[d.year{ws}, start-1]"),
+        format!("date{ws}(\"2020-01-01\")"),
+        format!("x instance of number{ws}"),
+        format!("x instance of number{ws} and date{ws}(\"2020-01-01\") > x"),
+        format!("d.year{ws} + start + 1"),
+        format!("d . year{ws}.start"),
+        format!("date{ws} + time{ws}(\"10:00:00\") + duration"),
+        format!("[x{ws}, number{ws}, string{ws}]"),
+        format!("x // c\n{ws}+ d"),
+        format!("x{ws}"),
+      ] {
+        stats.check(&frames, &input);
+      }
+    }
+  }
+  println!("one-part names: {stats:?}");
 }
