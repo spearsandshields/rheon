@@ -3,7 +3,7 @@
 use crate::errors::*;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value, Values};
+use rheon_feel::values::{Value, Values};
 use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, value_null};
 use rheon_feel_temporal::FeelDate;
 use std::ops::ControlFlow;
@@ -391,11 +391,29 @@ fn evaluate_in_iteration_context(
   Some(value)
 }
 
-/// The null returned when an iteration context was removed from the scope (see [evaluate_in_iteration_context]).
-#[cold]
-#[inline(never)]
-fn lost_iteration_context(expression: &str) -> Value {
-  value_null!("internal error: the evaluation removed the iteration context of a `{}` expression", expression)
+/// The null returned when an evaluation removed from the scope the context that a `for`, `some`
+/// or `every` expression or a filter pushed for it (see [evaluate_in_iteration_context]):
+/// `context` names that context. No correct result can be given then.
+pub(super) fn lost_context(context: &str) -> Value {
+  value_null!("internal error: the evaluation removed the {}", context)
+}
+
+/// Evaluates a `some` expression (`decisive` is `true`) or an `every` expression (`decisive` is
+/// `false`): the first value of the body that is `decisive` decides the result, and so does the
+/// first value that is not a boolean (null); without either, the result is `!decisive`.
+fn quantified(iterator: &mut FeelIterator, scope: &FeelScope, mode: IterationContext, evaluator: &Evaluator, decisive: bool) -> Value {
+  let mut result = Value::Boolean(!decisive);
+  iterator.iterate_while(|ctx| {
+    result = match evaluate_in_iteration_context(scope, ctx, mode, evaluator, |_| {}, |_| {}) {
+      Some(Value::Boolean(value)) if value != decisive => return ControlFlow::Continue(()),
+      Some(Value::Boolean(_)) => Value::Boolean(decisive),
+      Some(_) => value_null!(),
+      None if decisive => lost_context("iteration context of a `some` expression"),
+      None => lost_context("iteration context of a `every` expression"),
+    };
+    ControlFlow::Break(())
+  });
+  result
 }
 
 /// `for` expression evaluator.
@@ -486,7 +504,11 @@ impl ForExpressionEvaluator {
       results.push(iteration_value);
       ControlFlow::Continue(())
     });
-    if complete { Value::List(results) } else { lost_iteration_context("for") }
+    if complete {
+      Value::List(results)
+    } else {
+      lost_context("iteration context of a `for` expression")
+    }
   }
 }
 
@@ -525,28 +547,10 @@ impl SomeExpressionEvaluator {
     self.iterator.add_list(name, value);
   }
 
+  /// Evaluates the `some` expression: `true` as soon as the body is `true`, null as soon as it is
+  /// not a boolean, otherwise `false`.
   pub fn evaluate(&mut self, scope: &FeelScope, evaluator: &Evaluator) -> Value {
-    let mut result = VALUE_FALSE;
-    let mode = self.mode;
-    // the result is decided by the first `true` or non-boolean value
-    self
-      .iterator
-      .iterate_while(|ctx| match evaluate_in_iteration_context(scope, ctx, mode, evaluator, |_| {}, |_| {}) {
-        Some(Value::Boolean(true)) => {
-          result = VALUE_TRUE;
-          ControlFlow::Break(())
-        }
-        Some(Value::Boolean(false)) => ControlFlow::Continue(()),
-        Some(_) => {
-          result = value_null!();
-          ControlFlow::Break(())
-        }
-        None => {
-          result = lost_iteration_context("some");
-          ControlFlow::Break(())
-        }
-      });
-    result
+    quantified(&mut self.iterator, scope, self.mode, evaluator, true)
   }
 }
 
@@ -585,27 +589,9 @@ impl EveryExpressionEvaluator {
     self.iterator.add_list(name, value);
   }
 
+  /// Evaluates the `every` expression: `false` as soon as the body is `false`, null as soon as it
+  /// is not a boolean, otherwise `true`.
   pub fn evaluate(&mut self, scope: &FeelScope, evaluator: &Evaluator) -> Value {
-    let mut result = VALUE_TRUE;
-    let mode = self.mode;
-    // the result is decided by the first `false` or non-boolean value
-    self
-      .iterator
-      .iterate_while(|ctx| match evaluate_in_iteration_context(scope, ctx, mode, evaluator, |_| {}, |_| {}) {
-        Some(Value::Boolean(false)) => {
-          result = VALUE_FALSE;
-          ControlFlow::Break(())
-        }
-        Some(Value::Boolean(true)) => ControlFlow::Continue(()),
-        Some(_) => {
-          result = value_null!();
-          ControlFlow::Break(())
-        }
-        None => {
-          result = lost_iteration_context("every");
-          ControlFlow::Break(())
-        }
-      });
-    result
+    quantified(&mut self.iterator, scope, self.mode, evaluator, false)
   }
 }

@@ -1,13 +1,13 @@
 //! # FEEL filter implementation
 
+use crate::iterations::lost_context;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
+use std::sync::LazyLock;
 
 /// Name of the special context entry holding the item of a filtered list.
-fn item_name() -> Name {
-  "item".into()
-}
+static ITEM: LazyLock<Name> = LazyLock::new(|| Name::from("item"));
 
 /// The outcome of the predicate for one item: `Ok(true)` when the item is kept; `Err` (a null)
 /// when the predicate is neither a boolean, a number nor null.
@@ -19,31 +19,29 @@ fn outcome(predicate: Value) -> Result<bool, Value> {
   }
 }
 
-/// The null returned when the predicate removed the item contexts from the scope: it popped more
-/// contexts than it pushed, or it replaced the special context `{item: value}` with a context
-/// that has no entry `item` (no FEEL predicate does either). The item is lost, so no result can
-/// be given.
-fn lost_item() -> Value {
-  value_null!("internal error: the evaluation removed the item context of a filter")
-}
+/// The context that [lost_context] names when the predicate removed the item contexts from the
+/// scope: it popped more contexts than it pushed, or it replaced the special context
+/// `{item: value}` with a context that has no entry `item` (no FEEL predicate does either). The
+/// item is lost, so no result can be given.
+const ITEM_CONTEXT: &str = "item context of a filter";
 
 /// Evaluates the predicate for every item with copies of the item in scope: the entries of a
 /// context item, and on top of them the special context `{item: value}`, which is searched
 /// first, unless the item has an entry `item`. Returns which items the predicate keeps.
 fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
-  let name_item = item_name();
+  let name_item: &Name = &ITEM;
   let mut matched = Vec::with_capacity(values.len());
   for value in values {
     let depth = scope.depth();
     let has_item_entry = if let Value::Context(local_context) = value {
       scope.push(local_context.clone());
-      local_context.contains_entry(&name_item)
+      local_context.contains_entry(name_item)
     } else {
       false
     };
     if !has_item_entry {
       let mut special_context = FeelContext::default();
-      special_context.set_entry(&name_item, value.clone());
+      special_context.set_entry(name_item, value.clone());
       scope.push(special_context);
     }
     let predicate = evaluator(scope);
@@ -58,17 +56,17 @@ fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) ->
 /// `item` is the item context itself; otherwise the item is the value of `item` in a special
 /// context reused for all items, on top of a copy of the item's entries for a context item.
 fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
-  let name_item = item_name();
+  let name_item: &Name = &ITEM;
   let mut special_context = FeelContext::default();
   let mut matched = Vec::with_capacity(values.len());
   for slot in values.iter_mut() {
     let depth = scope.depth();
     let predicate = match std::mem::replace(slot, Value::Null(None)) {
-      Value::Context(local_context) if local_context.contains_entry(&name_item) => {
+      Value::Context(local_context) if local_context.contains_entry(name_item) => {
         scope.push(local_context);
         let predicate = evaluator(scope);
         let Some(local_context) = scope.pop_frame(depth) else {
-          return Err(lost_item());
+          return Err(lost_context(ITEM_CONTEXT));
         };
         *slot = Value::Context(local_context);
         predicate
@@ -80,18 +78,18 @@ fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator)
         } else {
           depth
         };
-        special_context.assign_entry(&name_item, value);
+        special_context.assign_entry(name_item, value);
         scope.push(std::mem::take(&mut special_context));
         let predicate = evaluator(scope);
         let popped = scope.pop_frame(item_depth);
         scope.truncate(depth);
         let Some(ctx) = popped else {
-          return Err(lost_item());
+          return Err(lost_context(ITEM_CONTEXT));
         };
         special_context = ctx;
         // the entry stays (with a placeholder) for the next item
-        let Some(item) = special_context.get_entry_mut(&name_item).map(|entry| std::mem::replace(entry, Value::Null(None))) else {
-          return Err(lost_item());
+        let Some(item) = special_context.get_entry_mut(name_item).map(|entry| std::mem::replace(entry, Value::Null(None))) else {
+          return Err(lost_context(ITEM_CONTEXT));
         };
         *slot = item;
         predicate
