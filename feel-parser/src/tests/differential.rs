@@ -1119,3 +1119,59 @@ fn one_part_names_equal_prototype() {
   }
   println!("one-part names: {stats:?}");
 }
+
+/// String and number literals (taken in one allocation when they need no unescaping): escapes,
+/// surrogates, unterminated literals, vertical space, long literals, every form of number.
+#[test]
+fn literals_equal_prototype() {
+  let long = "x\u{1F600}é".repeat(3_000);
+  let mut inputs: Vec<String> = [
+    r#""""#,
+    r#""a""#,
+    r#""\"""#,
+    r#""\\""#,
+    r#""\n\r\t\'""#,
+    r#""A\U01F600""#,
+    r#""🙀""#,
+    r#""\uD83D""#,
+    r#""\uDE40""#,
+    r#""\uD83Dx""#,
+    r#""\u12G4""#,
+    r#""\x""#,
+    r#""abc"#,
+    r#""ab\"#,
+    "\"a\nb\"",
+    "\"a\rb\"",
+    "\"a\u{2028}b\"",
+    r#""a" + "b\"c" + "d""#,
+    r#""2026-03-01T10:00:00+01:00""#,
+    ".5",
+    "5.",
+    "5.e3",
+    "1e",
+    "1e+",
+    "1e-",
+    "1E-3",
+    "1e+30",
+    "007",
+    "0.000001",
+    "1.5e3x",
+    "12345678901234567890123456789012345",
+    "12345678901234567890.12345678901234567890e12345678901234567890",
+    "1..2",
+    "1.2.3",
+  ]
+  .map(String::from)
+  .to_vec();
+  inputs.push(format!("\"{long}\""));
+  inputs.push(format!("\"{long}"));
+  inputs.push(format!("\"{long}\\n{long}\""));
+  inputs.push("9".repeat(10_000));
+  inputs.push(format!("1.{}e-{}", "5".repeat(5_000), "3".repeat(5_000)));
+  let mut stats = Stats::default();
+  for input in &inputs {
+    stats.check(&[], input);
+    stats.check(&[], &format!("[{input}, {input}]"));
+  }
+  println!("literals: {stats:?}");
+}

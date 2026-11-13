@@ -536,8 +536,19 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   /// Consumes the string literal.
   fn consume_string(&mut self) -> Result<(TokenType, TokenValue)> {
-    let mut string = "".to_string();
     self.position += 1;
+    // a literal without escapes and vertical space is its characters up to the closing quote:
+    // taken in one allocation of the exact size
+    let rest = &self.input[self.position..];
+    if let Some(len) = rest.iter().position(|&ch| matches!(ch, '"' | '\\') || is_vertical_space(ch))
+      && rest[len] == '"'
+    {
+      let mut string = String::with_capacity(rest[..len].iter().map(|ch| ch.len_utf8()).sum());
+      string.extend(&rest[..len]);
+      self.position += len + 1;
+      return Ok((TokenType::String, TokenValue::String(string)));
+    }
+    let mut string = "".to_string();
     loop {
       let first = self.char_at(0);
       let second = self.char_at(1);
@@ -609,6 +620,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         1 => match ch {
           '0'..='9' => {
             // consume a digit before decimal separator
+            self.reserve_digits(&mut digits_before);
             digits_before.push(ch);
             self.position += 1;
           }
@@ -627,6 +639,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         2 => match ch {
           '0'..='9' => {
             // consume a digit after decimal separator
+            self.reserve_digits(&mut digits_after);
             digits_after.push(ch);
             self.position += 1;
           }
@@ -651,6 +664,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
           }
           '0'..='9' => {
             // consume the first digit of the exponent
+            self.reserve_digits(&mut digits_exponent);
             digits_exponent.push(ch);
             self.position += 1;
             state = 4;
@@ -660,6 +674,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         4 => match ch {
           '0'..='9' => {
             // consume digits of the exponent
+            self.reserve_digits(&mut digits_exponent);
             digits_exponent.push(ch);
             self.position += 1;
             state = 4;
@@ -1039,6 +1054,14 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       Some(self.input[self.position + offset])
     } else {
       None
+    }
+  }
+
+  /// Reserves the exact space for the run of digits that starts at the current position, before
+  /// its first digit is pushed to `digits`.
+  fn reserve_digits(&self, digits: &mut String) {
+    if digits.is_empty() {
+      digits.reserve_exact(self.input[self.position..].iter().take_while(|ch| ch.is_ascii_digit()).count());
     }
   }
 
