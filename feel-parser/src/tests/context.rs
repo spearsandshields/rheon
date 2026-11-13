@@ -132,6 +132,21 @@ fn test_from_feel_context_0009() {
   assert_eq!("{x: <v>, y: {a: <v>, b: {c: <v>, d: <v>}}}", format!("{pctx}"));
 }
 
+/// Asserts that every key of `keys` is a flattened key of `ctx` (a key at any depth, or a
+/// composite key `k1 . k2 . … . kn`), and that no text of `non_keys` is.
+fn assert_flattened_keys(ctx: &ParsingContext, keys: &[&str], non_keys: &[&str]) {
+  for key in keys {
+    if key.contains(" . ") {
+      assert!(ctx.contains_flattened(key), "{key:?} in {ctx}");
+    } else {
+      assert!(ctx.contains_key_deep(key), "{key:?} in {ctx}");
+    }
+  }
+  for text in non_keys {
+    assert!(!ctx.contains_key_deep(text) && !ctx.contains_flattened(text), "{text:?} in {ctx}");
+  }
+}
+
 #[test]
 fn test_context_flatten_keys_one_level() {
   let name_a = Name::from("a");
@@ -140,10 +155,7 @@ fn test_context_flatten_keys_one_level() {
   ctx.set_name(name_a);
   ctx.set_name(name_b);
   assert_eq!(r#"{a: <v>, b: <v>}"#, ctx.to_string());
-  let keys = ctx.flattened_keys();
-  assert_eq!(2, keys.len());
-  assert!(keys.contains("a"));
-  assert!(keys.contains("b"));
+  assert_flattened_keys(&ctx, &["a", "b"], &["a . a", "c . d . e", "", "c"]);
 }
 
 #[test]
@@ -159,14 +171,7 @@ fn test_flatten_two_levels() {
   ctx_a.set_name(name_a);
   ctx_a.set_name(name_b);
   ctx_a.set_context(name_c, ctx_b);
-  let keys = ctx_a.flattened_keys();
-  assert_eq!(6, keys.len());
-  assert!(keys.contains("a"));
-  assert!(keys.contains("b"));
-  assert!(keys.contains("c"));
-  assert!(keys.contains("c . a"));
-  assert!(keys.contains("c . b"));
-  assert!(keys.contains("c . c"));
+  assert_flattened_keys(&ctx_a, &["a", "b", "c", "c . a", "c . b", "c . c"], &["a . a", "c . d . e", "", "c . c . c", "d"]);
 }
 
 #[test]
@@ -189,24 +194,28 @@ fn test_flatten_three_levels() {
   ctx_a.set_name(name_a);
   ctx_a.set_name(name_b);
   ctx_a.set_context(name_c, ctx_b);
-  let keys = ctx_a.flattened_keys();
-  assert_eq!(16, keys.len());
-  assert!(keys.contains("a"));
-  assert!(keys.contains("b"));
-  assert!(keys.contains("c"));
-  assert!(keys.contains("d"));
-  assert!(keys.contains("c . a"));
-  assert!(keys.contains("c . b"));
-  assert!(keys.contains("c . c"));
-  assert!(keys.contains("c . d"));
-  assert!(keys.contains("c . d . a"));
-  assert!(keys.contains("c . d . b"));
-  assert!(keys.contains("c . d . c"));
-  assert!(keys.contains("c . d . d"));
-  assert!(keys.contains("d . a"));
-  assert!(keys.contains("d . b"));
-  assert!(keys.contains("d . c"));
-  assert!(keys.contains("d . d"));
+  assert_flattened_keys(
+    &ctx_a,
+    &[
+      "a",
+      "b",
+      "c",
+      "d",
+      "c . a",
+      "c . b",
+      "c . c",
+      "c . d",
+      "c . d . a",
+      "c . d . b",
+      "c . d . c",
+      "c . d . d",
+      "d . a",
+      "d . b",
+      "d . c",
+      "d . d",
+    ],
+    &["a . a", "c . d . e", "", "c . a . a", "d . d . d", "e"],
+  );
 }
 
 #[test]
@@ -227,24 +236,28 @@ fn test_flatten_list_values() {
   ctx_b.set_context(name_d, ctx_c);
   let mut ctx_a: ParsingContext = Default::default();
   ctx_a.set_context(name_a, ctx_b);
-  let keys = ctx_a.flattened_keys();
-  assert_eq!(16, keys.len());
-  assert!(keys.contains("a"));
-  assert!(keys.contains("b"));
-  assert!(keys.contains("c"));
-  assert!(keys.contains("d"));
-  assert!(keys.contains("a . a"));
-  assert!(keys.contains("a . b"));
-  assert!(keys.contains("a . c"));
-  assert!(keys.contains("a . d"));
-  assert!(keys.contains("d . a"));
-  assert!(keys.contains("d . b"));
-  assert!(keys.contains("d . c"));
-  assert!(keys.contains("d . d"));
-  assert!(keys.contains("a . d . a"));
-  assert!(keys.contains("a . d . b"));
-  assert!(keys.contains("a . d . c"));
-  assert!(keys.contains("a . d . d"));
+  assert_flattened_keys(
+    &ctx_a,
+    &[
+      "a",
+      "b",
+      "c",
+      "d",
+      "a . a",
+      "a . b",
+      "a . c",
+      "a . d",
+      "d . a",
+      "d . b",
+      "d . c",
+      "d . d",
+      "a . d . a",
+      "a . d . b",
+      "a . d . c",
+      "a . d . d",
+    ],
+    &["b . a", "c . d . e", "", "a . a . a", "e"],
+  );
 }
 
 #[test]
@@ -259,11 +272,15 @@ fn test_flatten_names_with_additional_characters() {
   ctx_a.set_name(name_a);
   ctx_a.set_name(name_b);
   ctx_a.set_context(name_c, ctx_b);
-  let keys = ctx_a.flattened_keys();
-  assert_eq!(5, keys.len());
-  assert!(keys.contains("b"));
-  assert!(keys.contains("lorem ipsum dolor sit amet"));
-  assert!(keys.contains("now let's go to the next paragraph"));
-  assert!(keys.contains("now let's go to the next paragraph . Curabitur rhoncus+sodales odio in fringilla"));
-  assert!(keys.contains("Curabitur rhoncus+sodales odio in fringilla"));
+  assert_flattened_keys(
+    &ctx_a,
+    &[
+      "b",
+      "lorem ipsum dolor sit amet",
+      "now let's go to the next paragraph",
+      "now let's go to the next paragraph . Curabitur rhoncus+sodales odio in fringilla",
+      "Curabitur rhoncus+sodales odio in fringilla",
+    ],
+    &["a . a", "c . d . e", "", "b . b", "lorem ipsum"],
+  );
 }

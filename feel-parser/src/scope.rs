@@ -226,17 +226,6 @@ impl ParsingScope<'_> {
     self.max_local.set(self.max_local.get().max(max_plain));
     self.max_local_chain.set(self.max_local_chain.get().max(max_flattened).max(max_plain));
   }
-
-  /// Returns already parsed flattened keys and names (the set the lexer used to search before
-  /// [contains](Self::contains) and [bound](Self::bound); kept as the reference in tests).
-  #[cfg(test)]
-  pub fn flattened(&self) -> HashSet<String> {
-    let input = self.input[..self.input_live.get()].iter().map(|frame| ParsingContext::from(frame.context()));
-    let mut keys = input.flat_map(|ctx| ctx.flattened_keys()).collect::<HashSet<String>>();
-    keys.extend(self.locals.borrow().iter().flat_map(|ctx| ctx.flattened_keys()));
-    let names = self.names.borrow().iter().map(|name| name.to_string()).collect::<HashSet<String>>();
-    keys.union(&names).cloned().collect()
-  }
 }
 
 /// Upper bound of the length of a built-in property name (`start included`), see [is_built_in_property_name](rheon_feel::bip::is_built_in_property_name).

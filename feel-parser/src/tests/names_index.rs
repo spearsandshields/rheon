@@ -1,7 +1,7 @@
-//! Differential tests of the name lookup in the parsing scope ([ParsingScope::contains],
-//! [ParsingScope::bound]) against the lexer's search before the prototype (the set of all flattened
-//! keys built for every name token: the frozen prototype's oracle mode, [oracle::lexer::Lexer::set_oracle]),
-//! and against the previous parsing scope. The generators are shared with [super::differential].
+//! Tests of the name lookup in the parsing scope ([ParsingScope::contains], [ParsingScope::bound]):
+//! against the flattened-key search of the frozen reference front end ([super::oracle]), which
+//! builds the set of all flattened keys for every name token, and against an independent model of
+//! the names in scope ([ReferenceScope]). The generators are shared with [super::differential].
 
 use super::oracle;
 use crate::context::ParsingContext;
@@ -17,10 +17,10 @@ use std::collections::{BTreeMap, HashSet};
 use std::time::Instant;
 
 /// Deterministic xorshift generator (no dependency, reproducible failures).
-pub(crate) struct Rng(pub(crate) u64);
+pub(super) struct Rng(pub(super) u64);
 
 impl Rng {
-  pub(crate) fn next(&mut self) -> u64 {
+  fn next(&mut self) -> u64 {
     let mut x = self.0;
     x ^= x << 13;
     x ^= x >> 7;
@@ -29,28 +29,28 @@ impl Rng {
     x
   }
 
-  pub(crate) fn below(&mut self, n: usize) -> usize {
+  pub(super) fn below(&mut self, n: usize) -> usize {
     (self.next() % n as u64) as usize
   }
 
-  pub(crate) fn chance(&mut self, percent: usize) -> bool {
+  pub(super) fn chance(&mut self, percent: usize) -> bool {
     self.below(100) < percent
   }
 
-  pub(crate) fn pick<'a, T>(&mut self, items: &'a [T]) -> &'a T {
+  pub(super) fn pick<'a, T>(&mut self, items: &'a [T]) -> &'a T {
     &items[self.below(items.len())]
   }
 
-  pub(crate) fn pick_str(&mut self, items: &[&'static str]) -> &'static str {
+  pub(super) fn pick_str(&mut self, items: &[&'static str]) -> &'static str {
     items[self.below(items.len())]
   }
 }
 
-pub(crate) const OGHAM: char = '\u{1680}';
+pub(super) const OGHAM: char = '\u{1680}';
 
 /// Keys of generated contexts: multi-word names, names with additional symbols, names containing
 /// the composite separator, U+1680 (a name character that `trim` removes), and keywords.
-pub(crate) const KEYS: &[&str] = &[
+pub(super) const KEYS: &[&str] = &[
   "a",
   "b",
   "a b",
@@ -91,7 +91,7 @@ pub(crate) const KEYS: &[&str] = &[
   "/",
 ];
 
-pub(crate) fn number(n: i64) -> Value {
+pub(super) fn number(n: i64) -> Value {
   Value::Number(FeelNumber::from(n))
 }
 
@@ -112,7 +112,7 @@ fn context_type(rng: &mut Rng, depth: usize) -> FeelType {
   FeelType::Context(entries)
 }
 
-pub(crate) fn context(rng: &mut Rng, depth: usize) -> FeelContext {
+pub(super) fn context(rng: &mut Rng, depth: usize) -> FeelContext {
   let mut ctx = FeelContext::default();
   for _ in 0..rng.below(5) {
     ctx.set_entry(&Name::from(*rng.pick(KEYS)), value(rng, depth));
@@ -162,7 +162,7 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
 
 /// A key as it can appear in an expression: words separated by random whitespace (including
 /// U+1680), additional symbols with or without spaces around them.
-pub(crate) fn key_text(rng: &mut Rng, key: &str) -> String {
+pub(super) fn key_text(rng: &mut Rng, key: &str) -> String {
   let mut text = String::new();
   for ch in key.chars() {
     match ch {
@@ -178,7 +178,7 @@ pub(crate) fn key_text(rng: &mut Rng, key: &str) -> String {
   text
 }
 
-pub(crate) fn expression(rng: &mut Rng, keys: &[String], depth: usize) -> String {
+fn expression(rng: &mut Rng, keys: &[String], depth: usize) -> String {
   let operand = |rng: &mut Rng| -> String {
     match rng.below(14) {
       0 => "1".to_string(),
@@ -331,70 +331,137 @@ fn name_lookup_equals_flattened_keys_search() {
   assert!(composite > 20, "only {composite} composite names");
 }
 
-/// The parsing scope before [ParsingScope::contains]: a stack of parsing contexts (input
-/// contexts converted on creation) and the parsed names.
-struct PreviousScope {
-  stack: Vec<ParsingContext>,
-  names: HashSet<Name>,
+/// The names in scope by definition: every flattened key of every context on the stack (a key at
+/// any depth, or a composite key `k1 . k2 . … . kn`), and the parsed names. An independent model
+/// of the parsing scope, built and changed by the same operations.
+struct ReferenceScope {
+  stack: Vec<ReferenceTree>,
+  names: HashSet<String>,
 }
 
-impl PreviousScope {
+/// The keys of a context, each with the tree of the names nested in its value, if any.
+#[derive(Default)]
+struct ReferenceTree(BTreeMap<String, Option<ReferenceTree>>);
+
+impl ReferenceTree {
+  /// The tree of an input context.
+  fn of_context(ctx: &FeelContext) -> Self {
+    Self(ctx.iter().map(|(name, value)| (name.to_string(), Self::of_value(value))).collect())
+  }
+
+  /// The tree of the names nested in a value: those of a context, of a type ([Self::of_type]),
+  /// and of a list whose type is a list of a context type (the type of its items).
+  fn of_value(value: &Value) -> Option<Self> {
+    match value {
+      Value::Context(ctx) => Some(Self::of_context(ctx)),
+      Value::FeelType(feel_type) => Self::of_type(feel_type),
+      Value::List(_) => Self::of_type(&value.type_of()),
+      _ => None,
+    }
+  }
+
+  /// The tree of the names nested in a type: the entries of a context type, or of the item type
+  /// of a list of a context type; the types of the entries are trees in the same way.
+  fn of_type(feel_type: &FeelType) -> Option<Self> {
+    match feel_type {
+      FeelType::Context(entries) => Some(Self(entries.iter().map(|(name, feel_type)| (name.to_string(), Self::of_type(feel_type))).collect())),
+      FeelType::List(item_type) if matches!(item_type.as_ref(), FeelType::Context(_)) => Self::of_type(item_type),
+      _ => None,
+    }
+  }
+
+  /// The keys at any depth.
+  fn keys(&self, keys: &mut HashSet<String>) {
+    for (key, nested) in &self.0 {
+      keys.insert(key.clone());
+      if let Some(nested) = nested {
+        nested.keys(keys);
+      }
+    }
+  }
+
+  /// The flattened keys: every key, every flattened key of a nested tree, and every
+  /// `key . flattened key` of the tree nested in the value of a key.
+  fn flattened(&self) -> HashSet<String> {
+    let mut flattened = HashSet::new();
+    for (key, nested) in &self.0 {
+      flattened.insert(key.clone());
+      if let Some(nested) = nested {
+        for nested_key in nested.flattened() {
+          flattened.insert(format!("{key} . {nested_key}"));
+          flattened.insert(nested_key);
+        }
+      }
+    }
+    flattened
+  }
+}
+
+impl ReferenceScope {
   fn new(frames: &[FeelContext]) -> Self {
     Self {
-      stack: frames.iter().map(ParsingContext::from).collect(),
+      stack: frames.iter().map(ReferenceTree::of_context).collect(),
       names: HashSet::new(),
     }
   }
 
+  /// The names in scope.
   fn flattened(&self) -> HashSet<String> {
-    let keys = self.stack.iter().flat_map(|ctx| ctx.flattened_keys()).collect::<HashSet<String>>();
-    let names = self.names.iter().map(|name| name.to_string()).collect::<HashSet<String>>();
-    keys.union(&names).cloned().collect()
+    let mut flattened: HashSet<String> = self.stack.iter().flat_map(ReferenceTree::flattened).collect();
+    flattened.extend(self.names.iter().cloned());
+    flattened
+  }
+
+  /// The names in scope that are not composite keys: the keys at any depth and the parsed names.
+  fn plain(&self) -> HashSet<String> {
+    let mut plain = self.names.clone();
+    for tree in &self.stack {
+      tree.keys(&mut plain);
+    }
+    plain
   }
 }
 
 #[test]
-fn scope_operations_equal_previous_scope() {
+fn scope_operations_equal_reference_scope() {
   let mut rng = Rng(0xD1B5_4A32_D192_ED03);
   for case in 0..1500 {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
     let scope = ParsingScope::new(&frames);
-    let mut previous = PreviousScope::new(&frames);
+    let mut reference = ReferenceScope::new(&frames);
     for step in 0..12 {
       // unbalanced pops and names set without a pushed context included
       match rng.below(6) {
         0 => {
           scope.pop();
-          previous.stack.pop();
+          reference.stack.pop();
         }
         1 => {
           scope.push_default();
-          previous.stack.push(ParsingContext::default());
+          reference.stack.push(ReferenceTree::default());
         }
         2 | 3 => {
           let name = Name::from(*rng.pick(KEYS));
           scope.set_entry_name(name.clone());
-          if let Some(top) = previous.stack.last_mut() {
-            top.set_name(name);
+          if let Some(top) = reference.stack.last_mut() {
+            top.0.insert(name.to_string(), None);
           }
         }
         4 => {
           let name = Name::from(*rng.pick(KEYS));
           scope.add_parsed_name(name.clone());
-          previous.names.insert(name);
+          reference.names.insert(name.to_string());
         }
         _ => {
-          // the same nested context on both sides (the conversion is deterministic)
           let name = Name::from(*rng.pick(KEYS));
           let nested = context(&mut rng, 1);
           scope.set_context(name.clone(), ParsingContext::from(&nested));
-          if let Some(top) = previous.stack.last_mut() {
-            top.set_context(name, ParsingContext::from(&nested));
+          if let Some(top) = reference.stack.last_mut() {
+            top.0.insert(name.to_string(), Some(ReferenceTree::of_context(&nested)));
           }
         }
       }
-      let flattened = previous.flattened();
-      assert_eq!(flattened, scope.flattened(), "case {case} step {step}: flattened keys");
+      let flattened = reference.flattened();
       let mut probes: Vec<String> = flattened.iter().cloned().collect();
       for key in KEYS {
         probes.push(key.to_string());
@@ -409,8 +476,7 @@ fn scope_operations_equal_previous_scope() {
         }
       }
       // the names `contains_plain` accepts, by first word, are within `group_bound`
-      let plain = previous.stack.iter().flat_map(ParsingContext::keys_deep).chain(previous.names.iter().map(Name::to_string));
-      for member in plain {
+      for member in reference.plain() {
         let word = first_word(&member);
         assert!(
           scope.group_bound(word, false, usize::MAX) >= member.len(),
@@ -434,7 +500,7 @@ fn scope_operations_equal_previous_scope() {
 
 /// A chain of nested contexts `k0: {k1: {… {leaf: 1}}}` of the given depth, at the top level and
 /// under the key `a./` (so that the lexer can produce composite names into it), next to `x: 1`.
-pub(crate) fn chain(depth: usize) -> FeelContext {
+pub(super) fn chain(depth: usize) -> FeelContext {
   let mut ctx = FeelContext::default();
   ctx.set_entry(&Name::from("leaf"), number(1));
   for level in (0..depth).rev() {

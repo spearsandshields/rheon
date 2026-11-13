@@ -207,39 +207,4 @@ impl ParsingContext {
   pub(crate) fn group_bound(&self, word: &str, fallback: usize) -> usize {
     first_word_bound(&self.0, word, fallback)
   }
-
-  /// Returns the keys of this parsing context at any depth (the flattened keys without the composite ones).
-  #[cfg(test)]
-  pub fn keys_deep(&self) -> HashSet<String> {
-    let mut keys = HashSet::new();
-    let mut stack = vec![self];
-    while let Some(ctx) = stack.pop() {
-      for (key, entry) in &ctx.0 {
-        keys.insert(key.to_string());
-        if let ParsingEntry::Context(sub_ctx) = entry {
-          stack.push(sub_ctx);
-        }
-      }
-    }
-    keys
-  }
-
-  /// Returns a list of flattened keys for this parsing context.
-  #[cfg(test)]
-  pub fn flattened_keys(&self) -> HashSet<String> {
-    let mut keys: HashSet<String> = HashSet::new();
-    for (key, value) in self.0.iter() {
-      keys.insert(key.into());
-      if let ParsingEntry::Context(sub_ctx) = value {
-        let sub_keys = sub_ctx.flattened_keys();
-        if !sub_keys.is_empty() {
-          for sub_key in sub_keys {
-            keys.insert(sub_key.clone());
-            keys.insert(format!("{key} . {sub_key}"));
-          }
-        }
-      }
-    }
-    keys
-  }
 }
