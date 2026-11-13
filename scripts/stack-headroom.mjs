@@ -38,11 +38,13 @@
 //     driven by a generated command module that copies each request into feel's memory, calls
 //     `feel_call` and writes the response to stdout.
 //
-// Each floor is set about 12% below the depth --report measures. On macOS arm64 the worker (with
-// either compiler) and Wasmtime all reach 64, where the 10 MiB shadow stack runs out before their
-// 4 MiB native stacks do. The margin absorbs platform and toolchain variation, while a real loss
-// of headroom fails the check. A change that alters the measured depths on purpose updates the
-// floors with them.
+// The floors are 60, the depth release 0.3.0 reaches in the TurboFan worker and in Wasmtime, so a
+// change that leaves less headroom than the release had fails here. On macOS arm64 the worker
+// (with either compiler) and Wasmtime all reach 64, where the 10 MiB shadow stack runs out before
+// their 4 MiB native stacks do. The shadow stack is in linear memory and the same on every host,
+// so the floors guard the native stack, whose use depends on the platform and on the V8 and
+// Wasmtime versions. A change that alters the measured depths on purpose updates the floors with
+// them.
 //
 // --report checks nothing: it prints the deepest recursion each host reaches (Node main thread and
 // worker with each compiler, Wasmtime with a wasm stack of 512 KiB, 1, 2, 4 and 16 MiB) and the
@@ -58,9 +60,9 @@ import path from 'node:path';
 import * as abi from './feel-abi.mjs';
 
 const WORKER_STACK_MB = 4;
-const WORKER_FLOOR = 56;
+const WORKER_FLOOR = 60;
 const WASMTIME_STACK = 4 * 1024 * 1024;
-const WASMTIME_FLOOR = 56;
+const WASMTIME_FLOOR = 60;
 const REPORT_WASMTIME_STACKS = [512 * 1024, 1024 * 1024, 2 * 1024 * 1024, 4 * 1024 * 1024, 16 * 1024 * 1024];
 const V8_COMPILERS = [
   { name: 'Liftoff', flag: '--liftoff-only' },
