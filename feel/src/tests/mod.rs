@@ -6,6 +6,7 @@ mod function;
 mod names;
 mod qualified_names;
 mod scope;
+mod send_sync;
 mod types;
 mod values;
 
