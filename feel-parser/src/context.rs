@@ -1,10 +1,10 @@
 //! Implementation of the parsing context.
 
+use crate::index::{Nested, context_type_entries, list_item_context_type, nested_names};
 use crate::scope::first_word_bound;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
-use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 
@@ -41,25 +41,25 @@ impl From<FeelType> for ParsingEntry {
 }
 
 impl From<&FeelType> for ParsingEntry {
-  /// Converts a feel type into parsing entry.
+  /// Converts a feel type into parsing entry: a context of the entries of a context type or of
+  /// a list type of a context type ([context_type_entries]), else a variable.
   fn from(value: &FeelType) -> Self {
-    match value {
-      FeelType::Context(feel_type_ctx) => {
-        let mut entries = BTreeMap::new();
-        for (name, feel_type) in feel_type_ctx {
-          entries.insert(name.to_owned(), feel_type.into());
-        }
-        ParsingEntry::Context(ParsingContext(entries))
-      }
-      FeelType::List(feel_type_items) => {
-        let feel_type = feel_type_items.borrow();
-        if let FeelType::Context(_) = feel_type {
-          Self::from(feel_type)
-        } else {
-          ParsingEntry::Variable
-        }
-      }
-      _ => ParsingEntry::Variable,
+    match context_type_entries(value) {
+      Some(entries) => ParsingEntry::Context(ParsingContext::from_type_entries(entries)),
+      None => ParsingEntry::Variable,
+    }
+  }
+}
+
+impl ParsingEntry {
+  /// Converts a value of an input context into parsing entry: a context of the names nested in
+  /// the value ([nested_names]), else a variable.
+  fn from_value(value: &Value) -> Self {
+    match nested_names(value) {
+      Some(Nested::Context(ctx)) => ParsingEntry::Context(ctx.into()),
+      Some(Nested::Type(entries)) => ParsingEntry::Context(ParsingContext::from_type_entries(entries)),
+      Some(Nested::List(list)) => list_item_context_type(list).map_or(ParsingEntry::Variable, |item_type| ParsingEntry::from(&item_type)),
+      None => ParsingEntry::Variable,
     }
   }
 }
@@ -89,28 +89,16 @@ impl From<FeelContext> for ParsingContext {
 impl From<&FeelContext> for ParsingContext {
   /// Converts a reference to feel context into parsing context.
   fn from(value: &FeelContext) -> Self {
-    let mut entries = BTreeMap::new();
-    for (name, value) in value.iter() {
-      match value {
-        Value::Context(ctx) => {
-          entries.insert(name.to_owned(), ParsingEntry::Context(ctx.into()));
-        }
-        list @ Value::List(_) => {
-          entries.insert(name.to_owned(), list.type_of().into());
-        }
-        Value::FeelType(feel_type) => {
-          entries.insert(name.to_owned(), feel_type.into());
-        }
-        _ => {
-          entries.insert(name.to_owned(), ParsingEntry::Variable);
-        }
-      }
-    }
-    Self(entries)
+    Self(value.iter().map(|(name, value)| (name.to_owned(), ParsingEntry::from_value(value))).collect())
   }
 }
 
 impl ParsingContext {
+  /// Converts the entries of a context type into parsing context.
+  fn from_type_entries(entries: &BTreeMap<Name, FeelType>) -> Self {
+    Self(entries.iter().map(|(name, feel_type)| (name.to_owned(), feel_type.into())).collect())
+  }
+
   /// Places a specified name in this parsing context.
   pub fn set_name(&mut self, name: Name) {
     self.0.insert(name, ParsingEntry::Variable);
