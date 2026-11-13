@@ -596,7 +596,10 @@ The API changes of 0.4.0 (commits 39-53):
     function value is the derived `Debug` of `FunctionDefinition`.
   - `rheon-feel-parser`: `ParsingScope<'a>` has a lifetime parameter (invariant) and borrows
     the input contexts; `From<&FeelScope>` is removed, so outside the crate a scope is built
-    with `Default`; `pop()` returns `()`; `flattened()` is removed.
+    with `Default`; `pop()` returns `()`; `flattened()` is removed. `ParsingScope` is no longer
+    `UnwindSafe`: it holds references to the input contexts, and `FeelContext` is not
+    `RefUnwindSafe`, so a closure that uses a scope needs `AssertUnwindSafe` for
+    `catch_unwind`. It is `Send` and not `Sync`, as at 0.3.0.
   - `rheon-feel-evaluator`: `ForExpressionEvaluator::evaluate` returns `Value` (was `Values`).
     `FilterExpressionEvaluator` has a private field, so it is built with `new()`, `default()`
     or `for_feel()`, not as `FilterExpressionEvaluator {}`.
@@ -607,8 +610,8 @@ The API changes of 0.4.0 (commits 39-53):
   `SomeExpressionEvaluator`, `EveryExpressionEvaluator` and `FilterExpressionEvaluator`.
 - Kept: `FeelScope::contexts()`. The value types of `rheon-feel`, `AstNode`, `ClosureBuilder`,
   `FilterExpressionEvaluator`, `Dialect` and `ModelEvaluator` are `Send` and `Sync`, and
-  `FeelScope` and `ParsingScope` are `Send`, as at 0.3.0; each crate's `send_sync` test checks this at compile
-  time.
+  `FeelScope` and `ParsingScope` are `Send`, as at 0.3.0; each crate's `send_sync` test checks
+  this at compile time.
 
 ### The pre-rename procedure (historical)
 
