@@ -149,7 +149,13 @@ short, rheon's engine differs from upstream dsntk in:
   depth limit, an iterative AST drop, linear `for` loops and list literals (upstream was quadratic);
 - **engine fixes** found by review and by the DMN TCK: scale rounding, lost-step `for` ranges,
   midnight wrap of `time + duration`, cross-offset temporal ordering, a cubic lexer path, the full
-  FEEL scale range, back-references in `matches`, readable null reasons.
+  FEEL scale range, back-references in `matches`, readable null reasons, scope frames left behind
+  by early returns, exponential subtraction reasons, a trap on an iteration variable that starts
+  with `in`, the named parameter of a range literal, quadratic list grammar actions, date ranges
+  that end at the first or last supported date;
+- **performance**: names in scope found through an index instead of an exponential set of keys,
+  loops and filters that move their contexts, shared function definitions, a lexer and parser
+  without per-token copies, and the wasm module built at opt-level 3 (`docs/FORK.md` 39-53).
 
 DMN TCK (patched suite, 3,511 tests): rheon passes 3,480, upstream at the base commit 3,479;
 the remaining failures are Java external functions (14), decision services (2), implicit
