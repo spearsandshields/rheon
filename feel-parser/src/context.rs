@@ -109,7 +109,7 @@ impl ParsingContext {
   }
 
   /// Returns `true` when `name` is a key of this context or of a nested context, at any depth.
-  pub fn contains_key_deep(&self, name: &str) -> bool {
+  pub(crate) fn contains_key_deep(&self, name: &str) -> bool {
     // the nested contexts to visit (no allocation for a context without nested contexts)
     let mut stack = vec![];
     let mut ctx = self;
@@ -131,7 +131,7 @@ impl ParsingContext {
   }
 
   /// Returns the length in bytes of the longest key at any depth, and of the longest flattened key.
-  pub fn key_lengths(&self) -> (usize, usize) {
+  pub(crate) fn key_lengths(&self) -> (usize, usize) {
     let (mut max_plain, mut max_flattened) = (0, 0);
     // contexts to visit, with the length of the composite key prefix `k1 . … . ki . ` leading to them
     let mut stack = vec![(self, 0_usize)];

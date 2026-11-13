@@ -5,7 +5,7 @@ use crate::context::ParsingContext;
 use crate::index::FrameIndex;
 use rheon_feel::Name;
 use rheon_feel::context::FeelContext;
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, RefCell, RefMut};
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fmt::Display;
@@ -19,7 +19,7 @@ use std::ops::Bound;
 /// is a key at any depth of a context on the stack, a composite key `a . b` of such a context,
 /// or an already parsed name (context entry keys).
 ///
-/// The input contexts are borrowed and indexed ([FrameIndex]), never copied.
+/// The input contexts are borrowed and indexed, never copied.
 pub struct ParsingScope<'a> {
   /// Indexes of the input contexts, bottom first.
   input: Vec<FrameIndex<'a>>,
@@ -44,7 +44,7 @@ pub struct ParsingScope<'a> {
 
 impl<'a> ParsingScope<'a> {
   /// Creates a parsing scope over input contexts (bottom first).
-  pub fn new(frames: &'a [FeelContext]) -> Self {
+  pub(crate) fn new(frames: &'a [FeelContext]) -> Self {
     Self {
       input: frames.iter().map(FrameIndex::new).collect(),
       input_live: Cell::new(frames.len()),
@@ -128,7 +128,7 @@ impl ParsingScope<'_> {
 
   /// Returns `true` when `name` (a flattened name, see the lexer) is in scope: a key at any depth
   /// of a context on the stack, a composite key of such a context, or a parsed name.
-  pub fn contains(&self, name: &str) -> bool {
+  pub(crate) fn contains(&self, name: &str) -> bool {
     if self.contains_plain(name) {
       return true;
     }
@@ -154,7 +154,7 @@ impl ParsingScope<'_> {
   /// Returns an upper bound of the length in bytes of the names that [contains](Self::contains)
   /// can accept, for the lexer to skip the candidate names that are too long to match; the
   /// composite keys count only when `composite` is `true`.
-  pub fn bound(&self, composite: bool) -> usize {
+  pub(crate) fn bound(&self, composite: bool) -> usize {
     let live = &self.input[..self.input_live.get()];
     let mut bound = live.iter().map(FrameIndex::max_plain).max().unwrap_or(0);
     bound = bound.max(self.max_local.get()).max(self.max_names.get());
@@ -191,7 +191,7 @@ impl ParsingScope<'_> {
   /// Returns the pushed contexts, the top one last. When none is pushed, the top input context
   /// (if any) is converted into a pushed context first, so that it can be changed; it stays at
   /// the same place in the stack.
-  fn top_mut(&self) -> std::cell::RefMut<'_, Vec<ParsingContext>> {
+  fn top_mut(&self) -> RefMut<'_, Vec<ParsingContext>> {
     let mut locals = self.locals.borrow_mut();
     if locals.is_empty() && self.input_live.get() > 0 {
       let index = self.input_live.get() - 1;
