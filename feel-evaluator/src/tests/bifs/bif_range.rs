@@ -188,3 +188,36 @@ fn _0032() {
     "[core::range] invalid argument type, expected string, actual type is number",
   );
 }
+
+#[test]
+fn _0033() {
+  // the temporal endpoints with named parameters equal those with positional parameters
+  for (named, positional) in [
+    (
+      r#"range("[date(from: \"2012-01-01\")..date(\"2013-01-01\")]")"#,
+      r#"range("[date(\"2012-01-01\")..date(\"2013-01-01\")]")"#,
+    ),
+    (
+      r#"range("[date(\"2012-01-01\")..date(from: \"2013-01-01\")]")"#,
+      r#"range("[date(\"2012-01-01\")..date(\"2013-01-01\")]")"#,
+    ),
+    (
+      r#"range("(time(from: \"10:00:00\")..time(\"11:00:00\"))")"#,
+      r#"range("(time(\"10:00:00\")..time(\"11:00:00\"))")"#,
+    ),
+    (
+      r#"range("[date and time(from: \"2012-01-01T10:00:00\")..date and time(from: \"2012-01-02T10:00:00\")]")"#,
+      r#"range("[date and time(\"2012-01-01T10:00:00\")..date and time(\"2012-01-02T10:00:00\")]")"#,
+    ),
+    (
+      r#"range("[duration(from: \"P1D\")..duration(\"P2D\")]")"#,
+      r#"range("[duration(\"P1D\")..duration(\"P2D\")]")"#,
+    ),
+  ] {
+    let expected = rheon_feel_parser::parse_textual_expression(&scope!(), positional, false)
+      .map(|node| build_evaluator(&node)(&scope!()).to_string())
+      .unwrap();
+    assert!(expected.starts_with('[') || expected.starts_with('('), "{expected}");
+    te_range(false, &scope!(), named, &expected);
+  }
+}

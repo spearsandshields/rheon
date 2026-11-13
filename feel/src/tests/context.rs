@@ -26,7 +26,7 @@ fn test_context_to_string() {
   assert_eq!(r#"{a: 10}"#, ctx.to_string());
   ctx.set_entry(&name_x_y, Value::Boolean(true));
   assert_eq!(r#"{a: 10, x y: true}"#, ctx.to_string());
-  ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".to_string()));
+  ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".into()));
   assert_eq!(r#"{a: 10, k+l-m: "KLM", x y: true}"#, ctx.to_string());
 }
 
@@ -40,7 +40,7 @@ fn test_context_to_feel_string() {
   assert_eq!(r#"{a: 10}"#, ctx.to_feel_string());
   ctx.set_entry(&name_x_y, Value::Boolean(true));
   assert_eq!(r#"{a: 10, x y: true}"#, ctx.to_feel_string());
-  ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".to_string()));
+  ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".into()));
   assert_eq!(r#"{a: 10, k+l-m: "KLM", x y: true}"#, ctx.to_feel_string());
   let mut ctx: FeelContext = Default::default();
   let name_left_bracket = Name::from("{");
@@ -70,7 +70,7 @@ fn test_context_to_json() {
   assert_eq!(r#"{"a": 10}"#, ctx.jsonify());
   ctx.set_entry(&name_x_y, Value::Boolean(true));
   assert_eq!(r#"{"a": 10, "x y": true}"#, ctx.jsonify());
-  ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".to_string()));
+  ctx.set_entry(&name_k_plus_l_minus_m, Value::String("KLM".into()));
   assert_eq!(r#"{"a": 10, "k+l-m": "KLM", "x y": true}"#, ctx.jsonify());
 }
 
@@ -134,7 +134,7 @@ fn test_context_three_levels() {
   let name_b = Name::from("b");
   let name_c = Name::from("c");
   let mut ctx_c: FeelContext = Default::default();
-  ctx_c.set_entry(&name_car, Value::String("opel".to_string()));
+  ctx_c.set_entry(&name_car, Value::String("opel".into()));
   assert_eq!(r#"{car: "opel"}"#, ctx_c.to_string());
   assert!(ctx_c.contains_entry(&name_car));
   let mut ctx_b: FeelContext = Default::default();
@@ -191,14 +191,14 @@ fn test_context_search_entries() {
   let qn_b_d_e = QualifiedName::new(&[&name_b, &name_d, &name_e]);
   // prepare contexts
   let mut ctx_c: FeelContext = Default::default();
-  ctx_c.set_entry(&name_e, Value::String("e".to_string()));
+  ctx_c.set_entry(&name_e, Value::String("e".into()));
   assert_eq!(r#"{e: "e"}"#, ctx_c.to_string());
   let mut ctx_b: FeelContext = Default::default();
-  ctx_b.set_entry(&name_c, Value::String("c".to_string()));
+  ctx_b.set_entry(&name_c, Value::String("c".into()));
   ctx_b.set_entry(&name_d, ctx_c.into());
   assert_eq!(r#"{c: "c", d: {e: "e"}}"#, ctx_b.to_string());
   let mut ctx_a: FeelContext = Default::default();
-  ctx_a.set_entry(&name_a, Value::String("a".to_string()));
+  ctx_a.set_entry(&name_a, Value::String("a".into()));
   ctx_a.set_entry(&name_b, ctx_b.into());
   assert_eq!(r#"{a: "a", b: {c: "c", d: {e: "e"}}}"#, ctx_a.to_string());
   // test searching entries
@@ -239,12 +239,12 @@ fn test_context_create_entry() {
   let mut ctx: FeelContext = Default::default();
   ctx.create_entry(&qn_a, Value::Boolean(true));
   ctx.create_entry(&qn_b, Value::Boolean(false));
-  ctx.create_entry(&qn_c_d, Value::String("deep".to_string()));
+  ctx.create_entry(&qn_c_d, Value::String("deep".into()));
   assert_eq!(r#"{a: true, b: false, c: {d: "deep"}}"#, ctx.to_string());
   let mut ctx: FeelContext = Default::default();
-  ctx.create_entry(&qn_a_b, Value::String("b".to_string()));
-  ctx.create_entry(&qn_a_c, Value::String("c".to_string()));
-  ctx.create_entry(&qn_a_d, Value::String("d".to_string()));
+  ctx.create_entry(&qn_a_b, Value::String("b".into()));
+  ctx.create_entry(&qn_a_c, Value::String("c".into()));
+  ctx.create_entry(&qn_a_d, Value::String("d".into()));
   assert_eq!(r#"{a: {b: "b", c: "c", d: "d"}}"#, ctx.to_string());
 }
 
@@ -303,6 +303,45 @@ fn test_context_set_null() {
   let mut ctx: FeelContext = Default::default();
   ctx.set_null(name_a);
   assert_eq!(r#"{a: null}"#, ctx.to_string());
+}
+
+#[test]
+fn test_context_insert() {
+  let mut ctx: FeelContext = Default::default();
+  ctx.insert(Name::from("a"), value_number!(1));
+  ctx.insert(Name::from("b"), value_number!(2));
+  assert_eq!(r#"{a: 1, b: 2}"#, ctx.to_string());
+  // an entry with the same name is replaced
+  ctx.insert(Name::from("a"), Value::Boolean(true));
+  assert_eq!(r#"{a: true, b: 2}"#, ctx.to_string());
+}
+
+#[test]
+fn test_context_assign_entry() {
+  let name_a = Name::from("a");
+  let name_b = Name::from("b");
+  let mut ctx: FeelContext = Default::default();
+  ctx.assign_entry(&name_a, value_number!(1));
+  assert_eq!(r#"{a: 1}"#, ctx.to_string());
+  // the value of an existing entry is replaced
+  ctx.assign_entry(&name_a, value_number!(2));
+  assert_eq!(r#"{a: 2}"#, ctx.to_string());
+  // a new entry is inserted
+  ctx.assign_entry(&name_b, value_number!(3));
+  assert_eq!(r#"{a: 2, b: 3}"#, ctx.to_string());
+}
+
+#[test]
+fn test_context_get_entry_mut() {
+  let name_a = Name::from("a");
+  let mut ctx: FeelContext = Default::default();
+  ctx.set_entry(&name_a, value_number!(1));
+  assert_eq!(None, ctx.get_entry_mut(&Name::from("b")));
+  let entry = ctx.get_entry_mut(&name_a).unwrap();
+  assert_eq!(&value_number!(1), entry);
+  *entry = Value::String("x".into());
+  assert_eq!(r#"{a: "x"}"#, ctx.to_string());
+  assert_eq!(1, ctx.len());
 }
 
 #[test]

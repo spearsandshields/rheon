@@ -448,7 +448,7 @@ pub fn concatenate(values: &[Value]) -> Value {
 pub fn contains(input_string_value: &Value, match_string_value: &Value) -> Value {
   if let Value::String(input_string) = input_string_value {
     if let Value::String(match_string) = match_string_value {
-      Value::Boolean(input_string.contains(match_string))
+      Value::Boolean(input_string.contains(match_string.as_str()))
     } else {
       invalid_argument_type!("contains", "string", match_string_value.type_of())
     }
@@ -471,7 +471,7 @@ pub fn context(entries: &Value) -> Value {
               return value_null!("context: no 'value' entry in context {}", ctx);
             };
             let key: Name = match key {
-              Value::String(key) => key.clone().into(),
+              Value::String(key) => key.as_str().into(),
               _ => return value_null!("context: 'key' entry is not a string, actual type is {}", key.type_of()),
             };
             if result_ctx.contains_key(&key) {
@@ -493,7 +493,7 @@ pub fn context(entries: &Value) -> Value {
         return value_null!("context: no 'value' entry in context {}", ctx);
       };
       let key: Name = match key {
-        Value::String(key) => key.clone().into(),
+        Value::String(key) => key.as_str().into(),
         _ => return value_null!("context: 'key' entry is not a string, actual type is {}", key.type_of()),
       };
       result_ctx.set_entry(&key, value.clone());
@@ -509,7 +509,7 @@ pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
     Value::Context(ctx) => {
       let mut result_ctx = ctx.clone();
       match keys {
-        Value::String(key) => result_ctx.set_entry(&key.into(), value.clone()),
+        Value::String(key) => result_ctx.set_entry(&key.as_str().into(), value.clone()),
         Value::List(items) => {
           if items.is_empty() {
             return value_null!();
@@ -517,7 +517,7 @@ pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
           let mut names = vec![];
           for item in items {
             match item {
-              Value::String(s) => names.push(s.into()),
+              Value::String(s) => names.push(s.as_str().into()),
               null @ Value::Null(_) => return null.clone(),
               other => return invalid_argument_type!("context put", "string", other.type_of()),
             }
@@ -849,7 +849,7 @@ pub fn during(value1: &Value, value2: &Value) -> Value {
 pub fn ends_with(input_string_value: &Value, match_string_value: &Value) -> Value {
   if let Value::String(input_string) = input_string_value {
     if let Value::String(match_string) = match_string_value {
-      Value::Boolean(input_string.ends_with(match_string))
+      Value::Boolean(input_string.ends_with(match_string.as_str()))
     } else {
       invalid_argument_type!("ends with", "string", match_string_value.type_of())
     }
@@ -1079,7 +1079,7 @@ pub fn get_entries(context: &Value) -> Value {
     let mut entries = vec![];
     ctx.get_entries().iter().for_each(|(name, value)| {
       let mut key_value_pair = FeelContext::default();
-      key_value_pair.set_entry(&name_key, Value::String(name.to_string()));
+      key_value_pair.set_entry(&name_key, Value::String(name.to_string().into()));
       key_value_pair.set_entry(&name_value, (**value).clone());
       entries.push(Value::Context(key_value_pair));
     });
@@ -1092,7 +1092,7 @@ pub fn get_entries(context: &Value) -> Value {
 pub fn get_value(context: &Value, key: &Value) -> Value {
   if let Value::Context(ctx) = context {
     if let Value::String(entry_key) = key {
-      let name = Name::from(entry_key.to_owned());
+      let name = Name::from(entry_key.as_str());
       if let Some(entry_value) = ctx.get_entry(&name) {
         entry_value.clone()
       } else {
@@ -1336,8 +1336,8 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
         value_null!("position exceeds integer range")
       }
     }
-    Value::FunctionDefinition(parameters, ..) => {
-      if parameters.len() != 2 {
+    Value::FunctionDefinition(function) => {
+      if function.parameters.len() != 2 {
         return value_null!("list replace: matching function must have exactly two arguments");
       }
       let mut elements = vec![];
@@ -1377,10 +1377,10 @@ pub fn lower_case(input_string_value: &Value) -> Value {
       if items.len() == 1
         && let Value::String(input_string) = &items[0]
       {
-        return Value::String(input_string.to_lowercase());
+        return Value::String(input_string.to_lowercase().into());
       }
     }
-    Value::String(input_string) => return Value::String(input_string.to_lowercase()),
+    Value::String(input_string) => return Value::String(input_string.to_lowercase().into()),
     _ => {}
   }
   invalid_argument_type!("lower case", "string", input_string_value.type_of())
@@ -1784,8 +1784,8 @@ pub fn number_single(from: &Value) -> Value {
 pub fn number(from: &Value, grouping_separator: &Value, decimal_separator: &Value) -> Value {
   // function for converting string to Value::Number; the text must be a FEEL numeric literal
   // (grammar rule 35; the 1.6 footnote's "rule 37" is a stale reference), so "+5" or "1." are null
-  let convert = |value: String| {
-    if !is_numeric_literal(&value) {
+  let convert = |value: &str| {
+    if !is_numeric_literal(value) {
       return value_null!("[core::number] not a FEEL numeric literal: {}", value);
     }
     match value.parse::<FeelNumber>() {
@@ -1798,7 +1798,7 @@ pub fn number(from: &Value, grouping_separator: &Value, decimal_separator: &Valu
       // prepare grouping separator from Value::String ot VALUE_NULL
       let grouping_sep = match grouping_separator {
         Value::String(s) => match s.as_str() {
-          " " | "." | "," => Some((*s).clone()),
+          " " | "." | "," => Some(s.as_str()),
           _ => return value_null!("[core::number] grouping separator must be space, period, comma or null"),
         },
         Value::Null(_) => None,
@@ -1807,7 +1807,7 @@ pub fn number(from: &Value, grouping_separator: &Value, decimal_separator: &Valu
       // prepare decimal separator from Value::String ot VALUE_NULL
       let decimal_sep = match decimal_separator {
         Value::String(s) => match s.as_str() {
-          "." | "," => Some((*s).clone()),
+          "." | "," => Some(s.as_str()),
           _ => return value_null!("[core::number] decimal separator must be period, comma or null"),
         },
         Value::Null(_) => None,
@@ -1818,7 +1818,7 @@ pub fn number(from: &Value, grouping_separator: &Value, decimal_separator: &Valu
         && let Some(dec_sep) = &decimal_sep
       {
         return if *grp_sep != *dec_sep {
-          convert(value.replace(grp_sep, "").replace(dec_sep, "."))
+          convert(&value.replace(grp_sep, "").replace(dec_sep, "."))
         } else {
           value_null!("[core::number] decimal separator must be different from grouping separator")
         };
@@ -1827,16 +1827,16 @@ pub fn number(from: &Value, grouping_separator: &Value, decimal_separator: &Valu
       if decimal_sep.is_none()
         && let Some(sep) = grouping_sep
       {
-        return convert(value.replace(&sep, ""));
+        return convert(&value.replace(sep, ""));
       }
       // replace decimal separator and try to convert
       if grouping_sep.is_none()
         && let Some(sep) = decimal_sep
       {
-        return convert(value.replace(&sep, "."));
+        return convert(&value.replace(sep, "."));
       }
       // try to convert an input parameter without replacing
-      convert(value.clone())
+      convert(value)
     }
     _ => invalid_argument_type!("number", "string", from.type_of()),
   }
@@ -2135,17 +2135,17 @@ pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replace
           if flags.is_empty() {
             if let Ok(re) = Regex::new(&patt) {
               let result = re.replace_all(input_string.as_str(), repl.as_str()).to_string();
-              return Value::String(result);
+              return Value::String(result.into());
             }
           } else if let Ok(re) = Regex::new(format!("(?{flags}){patt}").as_str()) {
             let result = re.replace_all(input_string.as_str(), repl.as_str()).to_string();
-            return Value::String(result);
+            return Value::String(result.into());
           }
         }
         // replace without any flags
         if let Ok(re) = Regex::new(pattern_string) {
           let result = re.replace_all(input_string.as_str(), repl.as_str()).to_string();
-          Value::String(result)
+          Value::String(result.into())
         } else {
           value_null!("replace: invalid pattern")
         }
@@ -2235,8 +2235,8 @@ pub fn round_up(n: &Value, scale: &Value) -> Value {
 
 pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   if let Value::List(items) = list {
-    if let Value::FunctionDefinition(parameters, ..) = ordering_function {
-      if parameters.len() == 2 {
+    if let Value::FunctionDefinition(function) = ordering_function {
+      if function.parameters.len() == 2 {
         let mut elements = items.clone();
         elements.sort_by(|x, y| {
           let arguments = Arguments::Positional(vec![x.clone(), y.clone()]);
@@ -2261,7 +2261,7 @@ pub fn split(input_string_value: &Value, delimiter_string_value: &Value) -> Valu
   if let Value::String(input_string) = input_string_value {
     if let Value::String(delimiter_string) = delimiter_string_value {
       if let Ok(re) = Regex::new(delimiter_string) {
-        Value::List(re.split(input_string).map(|s| Value::String(s.to_string())).collect())
+        Value::List(re.split(input_string).map(|s| Value::String(s.into())).collect())
       } else {
         value_null!("split: invalid delimiter")
       }
@@ -2483,7 +2483,7 @@ pub fn starts(value1: &Value, value2: &Value) -> Value {
 pub fn starts_with(input_string_value: &Value, match_string_value: &Value) -> Value {
   if let Value::String(input_string) = input_string_value {
     if let Value::String(match_string) = match_string_value {
-      Value::Boolean(input_string.starts_with(match_string))
+      Value::Boolean(input_string.starts_with(match_string.as_str()))
     } else {
       invalid_argument_type!("starts with", "string", match_string_value.type_of())
     }
@@ -2529,7 +2529,7 @@ pub fn string(value: &Value) -> Value {
   match value {
     Value::Null(_) => value_null!(),
     Value::String(s) => Value::String(s.clone()),
-    other => Value::String(other.to_feel_string()),
+    other => Value::String(other.to_feel_string().into()),
   }
 }
 
@@ -2538,8 +2538,8 @@ pub fn string_join(list: &Value, delimiter: &Value) -> Value {
   match list {
     Value::List(items) => {
       let delimiter = match delimiter {
-        Value::String(delimiter) => delimiter.clone(),
-        Value::Null(_) => "".to_string(),
+        Value::String(delimiter) => delimiter.as_str(),
+        Value::Null(_) => "",
         _ => return value_null!("string join: invalid delimiter, expected string, actual value type is {}", delimiter.type_of()),
       };
       let mut joined_string = String::new();
@@ -2547,7 +2547,7 @@ pub fn string_join(list: &Value, delimiter: &Value) -> Value {
         match item {
           Value::String(s) => {
             if i > 0 {
-              joined_string.push_str(&delimiter);
+              joined_string.push_str(delimiter);
             }
             joined_string.push_str(s);
           }
@@ -2555,7 +2555,7 @@ pub fn string_join(list: &Value, delimiter: &Value) -> Value {
           other => return invalid_argument_type!("string join", "string", other.type_of()),
         }
       }
-      Value::String(joined_string)
+      Value::String(joined_string.into())
     }
     Value::String(string) => Value::String(string.clone()),
     other => value_null!("string join: expected list or string, actual value type is {}", other.type_of()),
@@ -2703,7 +2703,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
               let first = position - 1;
               let last = first + length;
               if first < len && last <= len {
-                Value::String(input_string.chars().skip(first as usize).take(length as usize).collect())
+                Value::String(input_string.chars().skip(first as usize).take(length as usize).collect::<String>().into())
               } else {
                 value_null!(
                   "sublist: invalid range, len = {}, start position = {}, end position = {}",
@@ -2717,7 +2717,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
               let first = len + position;
               let last = first + length;
               if first >= 0 && first < len && last <= len {
-                Value::String(input_string.chars().skip(first as usize).take(length as usize).collect())
+                Value::String(input_string.chars().skip(first as usize).take(length as usize).collect::<String>().into())
               } else {
                 value_null!(
                   "sublist: invalid range, len = {}, start position = {}, end position = {}",
@@ -2734,7 +2734,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
           Ordering::Greater => {
             let index = position - 1;
             if index < len {
-              Value::String(input_string.chars().skip(index as usize).collect())
+              Value::String(input_string.chars().skip(index as usize).collect::<String>().into())
             } else {
               value_null!("substring: position is out of range, len = {}, position = {}", input_string_len, start_position_number)
             }
@@ -2742,7 +2742,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
           Ordering::Less => {
             let index = len + position;
             if index >= 0 {
-              Value::String(input_string.chars().skip(index as usize).collect())
+              Value::String(input_string.chars().skip(index as usize).collect::<String>().into())
             } else {
               value_null!("substring: position is out of range, len = {}, position = {}", input_string_len, start_position_number)
             }
@@ -2765,10 +2765,10 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
 pub fn substring_after(input_string_value: &Value, match_input_string: &Value) -> Value {
   if let Value::String(input_string) = input_string_value {
     if let Value::String(match_string) = match_input_string {
-      if let Some(index) = input_string.find(match_string) {
-        Value::String(input_string[match_string.len() + index..].to_string())
+      if let Some(index) = input_string.find(match_string.as_str()) {
+        Value::String(input_string[match_string.len() + index..].into())
       } else {
-        Value::String("".to_string())
+        Value::String("".into())
       }
     } else {
       value_null!("substring after: expected string, actual match type is: {}", match_input_string.type_of())
@@ -2782,10 +2782,10 @@ pub fn substring_after(input_string_value: &Value, match_input_string: &Value) -
 pub fn substring_before(input_string_value: &Value, match_input_string: &Value) -> Value {
   if let Value::String(input_string) = input_string_value {
     if let Value::String(match_string) = match_input_string {
-      if let Some(index) = input_string.find(match_string) {
-        Value::String(input_string[..index].to_string())
+      if let Some(index) = input_string.find(match_string.as_str()) {
+        Value::String(input_string[..index].into())
       } else {
-        Value::String("".to_string())
+        Value::String("".into())
       }
     } else {
       value_null!("substring before: expected string, actual match type is: {}", match_input_string.type_of())
@@ -2937,7 +2937,7 @@ pub fn trim(value: &Value) -> Value {
       | '\u{2000}'..='\u{200B}' | '\u{2028}' | '\u{2029}' | '\u{202F}' | '\u{205F}' | '\u{3000}' | '\u{FEFF}')
   }
   match value {
-    Value::String(s) => Value::String(s.trim_matches(is_feel_white_space).to_string()),
+    Value::String(s) => Value::String(s.trim_matches(is_feel_white_space).into()),
     Value::Null(_) => value_null!(),
     other => invalid_argument_type!("trim", "string", other.type_of()),
   }
@@ -2967,10 +2967,10 @@ pub fn upper_case(input_string_value: &Value) -> Value {
       if items.len() == 1
         && let Value::String(input_string) = &items[0]
       {
-        return Value::String(input_string.to_uppercase());
+        return Value::String(input_string.to_uppercase().into());
       }
     }
-    Value::String(input_string) => return Value::String(input_string.to_uppercase()),
+    Value::String(input_string) => return Value::String(input_string.to_uppercase().into()),
     _ => {}
   }
   invalid_argument_type!("upper case", "string", input_string_value.type_of())

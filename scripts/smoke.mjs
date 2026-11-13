@@ -4,32 +4,16 @@
 // Usage: node scripts/smoke.mjs [path/to/feel.wasm] ['{"op":"evaluate",...}' ...]
 // Exits non-zero if a built-in check fails.
 import { readFile } from 'node:fs/promises';
-import { WASI } from 'node:wasi';
 import { fileURLToPath } from 'node:url';
+import { instantiate, call as callRaw } from './feel-abi.mjs';
 
 const defaultWasm = fileURLToPath(new URL('../dist/feel.wasm', import.meta.url));
 const args = process.argv.slice(2);
 const wasmPath = args[0] && !args[0].trim().startsWith('{') ? args.shift() : defaultWasm;
 
-const wasi = new WASI({ version: 'preview1', args: [], env: {} });
 const module = await WebAssembly.compile(await readFile(wasmPath));
-const instance = await WebAssembly.instantiate(module, wasi.getImportObject());
-wasi.initialize(instance); // calls _initialize (reactor)
-const ex = instance.exports;
-
-const enc = new TextEncoder();
-const dec = new TextDecoder();
-function call(request) {
-  const bytes = enc.encode(typeof request === 'string' ? request : JSON.stringify(request));
-  const ptr = ex.feel_alloc(bytes.length);
-  new Uint8Array(ex.memory.buffer, ptr, bytes.length).set(bytes);
-  const packed = BigInt.asUintN(64, ex.feel_call(ptr, bytes.length)); // i64 arrives signed: pointers >= 2^31 would turn negative
-  const respPtr = Number(packed >> 32n);
-  const respLen = Number(packed & 0xffffffffn);
-  const text = dec.decode(new Uint8Array(ex.memory.buffer, respPtr, respLen));
-  ex.feel_free(respPtr, respLen);
-  return JSON.parse(text);
-}
+const ex = await instantiate(module);
+const call = (request) => callRaw(ex, typeof request === 'string' ? request : JSON.stringify(request));
 
 const tz = -new Date().getTimezoneOffset();
 const checks = [
@@ -71,6 +55,23 @@ if (args.length) {
   const leakOk = after === before;
   if (!leakOk) failed++;
   console.log(`${leakOk ? 'PASS' : 'FAIL'} 2000 calls: memory ${before} -> ${after} bytes`);
+  // memory check: 26 doublings of a string, on a fresh instance, build a 128 MiB result under the
+  // 512 MiB cap; shared strings keep the growth of linear memory near the live data (each level's
+  // string plus the result), at most 2.2 times the result
+  const doubling = { op: 'evaluate', expression: '{f: function(s, n) if n = 0 then string length(s) else f(s + s, n-1), r: f("ab", 26)}.r' };
+  const fresh = await instantiate(module);
+  const initial = fresh.memory.buffer.byteLength;
+  let outcome;
+  try {
+    outcome = callRaw(fresh, JSON.stringify(doubling)).result?.display;
+  } catch (trap) {
+    outcome = `trap: ${trap.message}`;
+  }
+  const growth = fresh.memory.buffer.byteLength - initial;
+  const resultBytes = 2 ** 27;
+  const memoryOk = outcome === String(resultBytes) && growth <= 2.2 * resultBytes;
+  if (!memoryOk) failed++;
+  console.log(`${memoryOk ? 'PASS' : 'FAIL'} 26 string doublings: ${outcome}, memory grew by ${(growth / resultBytes).toFixed(2)} times the result`);
   console.log(failed ? `${failed} check(s) failed` : 'smoke ok');
 }
 process.exit(failed ? 1 : 0);

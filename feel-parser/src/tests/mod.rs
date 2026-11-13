@@ -2,7 +2,12 @@ mod ast;
 mod bifs;
 mod closure;
 mod context;
+mod differential;
 mod expr;
+mod names_index;
+mod oracle;
+mod send_sync;
+pub(crate) mod work;
 
 /// Creates a parsing scope.
 macro_rules! scope {
@@ -75,8 +80,30 @@ pub(crate) use b_name;
 pub(crate) use b_num;
 use difference::Changeset;
 use rheon_feel::Name;
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
 pub(crate) use s;
 pub(crate) use scope;
+
+/// Returns `true` when the generated and exhaustive tests run their full size (`RHEON_FULL_TESTS`
+/// set; meant for a release build). By default they run a small number of cases, so that the
+/// debug test run stays fast.
+pub(crate) fn full_size() -> bool {
+  std::env::var_os("RHEON_FULL_TESTS").is_some()
+}
+
+/// Returns an input context of the parser tests: the `names` with null values, and the nested
+/// contexts `contexts`, each under its name.
+fn input_context(names: &[&str], contexts: Vec<(&str, FeelContext)>) -> FeelContext {
+  let mut ctx = FeelContext::default();
+  for name in names {
+    ctx.set_null(Name::from(*name));
+  }
+  for (name, nested) in contexts {
+    ctx.set_entry(&Name::from(name), Value::Context(nested));
+  }
+  ctx
+}
 
 /// Parses the input text and compared the result with expected value.
 fn accept(scope: &ParsingScope, start_token_type: TokenType, input: &str, expected: &str, trace: bool) {

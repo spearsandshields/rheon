@@ -49,3 +49,32 @@ fn _0007() {
   let scope = &te_scope("{}");
   te_null(false, scope, r#"some element in 1 satisfies "not a boolean""#, "");
 }
+
+#[test]
+fn _0008() {
+  // the first `true` or non-boolean value decides the result
+  let scope = &te_scope("{}");
+  te_null(false, scope, "some x in [null, true] satisfies x", "");
+  te_bool(false, scope, "some x in [false, true, null] satisfies x", true);
+  te_bool(false, scope, "some x in [1, 2], y in [2, 3] satisfies x = y", true);
+  te_bool(false, scope, "some x in [] satisfies x", false);
+}
+
+#[test]
+fn _0009() {
+  // A body that removes the iteration context from the scope (no FEEL body does, an evaluator
+  // supplied by a caller can) gives a null, and the scope is left as it was found.
+  let scope = &te_scope("{}");
+  let popping: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
+    scope.pop();
+    Value::Boolean(false)
+  });
+  let mut evaluator = crate::SomeExpressionEvaluator::for_feel();
+  evaluator.add_list("i".into(), Value::List(vec![Value::Boolean(true), Value::Boolean(false)]));
+  let depth = scope.depth();
+  assert_eq!(
+    Value::Null(Some("internal error: the evaluation removed the iteration context of a `some` expression".to_string())),
+    evaluator.evaluate(scope, &popping)
+  );
+  assert_eq!(depth, scope.depth());
+}

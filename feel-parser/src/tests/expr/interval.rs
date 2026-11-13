@@ -1,5 +1,4 @@
 use super::super::*;
-use crate::context::ParsingContext;
 
 #[test]
 fn _0001() {
@@ -165,11 +164,8 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  let scope = scope!();
-  let mut ctx = ParsingContext::default();
-  ctx.set_name("start".into());
-  ctx.set_name("end".into());
-  scope.set_context("r".into(), ctx);
+  let frames = [input_context(&[], vec![("r", input_context(&["start", "end"], vec![]))])];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,

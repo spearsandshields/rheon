@@ -14,7 +14,7 @@
 //!    (constructors run once, by the host) and turns the module into a proper reactor without
 //!    per-call wrappers.
 //!
-//!    It also raises the shadow stack from Rust's default 1 MiB to 8 MiB: dsntk's parser and
+//!    It also raises the shadow stack from Rust's default 1 MiB to 10 MiB: dsntk's parser and
 //!    evaluator are recursive, and with 1 MiB a chain of ~2000 `1+1+...` terms overflowed. A
 //!    stack overflow is a trap (the stack sits first in linear memory, so it runs off address 0).
 //!
@@ -23,13 +23,15 @@
 //!    host process to ~4 GiB first.
 //!
 //!    On wasm32-wasip1 a missing `crt1-reactor.o` is a hard build error: without it the module
-//!    would silently lose `_initialize` (CONTRACT §1) and the 8 MiB stack.
+//!    would silently lose `_initialize` (CONTRACT §1) and the 10 MiB stack.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Shadow stack size of the wasm module (bytes).
-const STACK_SIZE: usize = 8 * 1024 * 1024;
+/// Shadow stack size of the wasm module (bytes). 10 MiB: the `wasm` profile builds with opt-level 3,
+/// whose stack frames are larger than those of opt-level "z". The depth an evaluation reaches in
+/// the Node and Wasmtime hosts is checked by `scripts/stack-headroom.mjs` (run by CI).
+const STACK_SIZE: usize = 10 * 1024 * 1024;
 
 /// Maximum linear memory of the wasm module (bytes, a multiple of the 64 KiB page size).
 const MAX_MEMORY: usize = 512 * 1024 * 1024;

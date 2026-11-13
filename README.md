@@ -1,12 +1,15 @@
 # rheon
 
-**rheon** (Greek ῥέον, "that which flows", the root of *panta rhei*) is a Rust decision and
-process stack in the making: the FEEL expression language and DMN decisions today, BPMN later,
-with every engine also compiled to WebAssembly so that the same module runs in the browser, in
-Node and in .NET.
+**rheon** (Greek ῥέον, "that which flows", the root of *panta rhei*) is a Rust toolkit for
+decision and process automation. Its engines are built for native code and for WebAssembly
+alike; the FEEL engine already runs unchanged in the browser, in Node and in any WASI runtime.
 
-It is a fork of [dsntk](https://github.com/dsntk/dsntk-rs) (DecisionToolkit, by Dariusz Depta),
-the Rust FEEL/DMN engine, kept in upstream's layout so that upstream can be merged. On top of it
+The foundation is in place: a FEEL and DMN 1.6 engine with exact decimal arithmetic. On that
+core, rheon is growing into a BPMN toolbox, the building blocks for running processes, and a
+framework that embeds decisions and processes in applications.
+
+rheon builds on [dsntk](https://github.com/dsntk/dsntk-rs) (DecisionToolkit, by Dariusz Depta),
+the Rust FEEL/DMN engine, as a permanent fork that keeps upstream's crate layout. On top of it
 rheon adds a pure-Rust decimal128 number core, a set of engine fixes (listed in
 [`docs/FORK.md`](docs/FORK.md)), the `wasm32-wasip1` build of the FEEL engine, a TypeScript
 runtime and a browser playground.
@@ -17,7 +20,7 @@ trademarks of the OMG.
 
 ## What works today
 
-- **FEEL engine in wasm** (`dist/feel.wasm`, ~2.9 MiB raw, ~525 KiB brotli): expressions and
+- **FEEL engine in wasm** (`dist/feel.wasm`, ~3.6 MiB raw, ~650 KiB brotli): expressions and
   unary tests, exact 34-digit decimals (IEEE 754 decimal128 semantics in pure Rust on
   [dashu-float](https://crates.io/crates/dashu-float), so `0.1 + 0.2` is `0.3` and `1/3` is
   `0.3333333333333333333333333333333333`), typed results, "null because …" reasons, a JSON ABI
@@ -31,14 +34,15 @@ trademarks of the OMG.
   build is a static site. Live demo: <https://spearsandshields.github.io/rheon/> (GitHub Pages, deployed
   by CI from `main`).
 - **DMN 1.6** (the formal OMG version, September 2026) in the native engine: the `dsntk` CLI and
-  server, the DMN model evaluator, B-FEEL, lenient and strict error modes, and the DMN TCK at
-  3,392 of 3,407 (the rest need Java). Features the official TCK does not test yet have
-  TCK-format tests in [`tck-addendum/`](tck-addendum/MANIFEST.md); `scripts/tck.sh` runs both.
-  The DMN engine is not in wasm yet (next milestone); the FEEL module already offers B-FEEL and
-  the error modes (`language`, `errorMode`, CONTRACT §2).
+  server, the DMN model evaluator, B-FEEL, lenient and strict error modes, and the official DMN
+  TCK at 3,392 of 3,407 (14 of the 15 failures need Java). Features the official TCK does not
+  test yet have TCK-format tests in [`tck-addendum/`](tck-addendum/MANIFEST.md), 312 of 312
+  passing; `scripts/tck.sh` runs both.
+  The DMN engine is not in the wasm module; the FEEL module offers B-FEEL and the error modes
+  (`language`, `errorMode`, CONTRACT §2).
 
-The edge-case comparison with feelin and feel-scala is in
-[`docs/ENGINE-COMPARISON.md`](docs/ENGINE-COMPARISON.md); deferred work and open questions in
+The edge-case comparison with other FEEL engines is in
+[`docs/ENGINE-COMPARISON.md`](docs/ENGINE-COMPARISON.md); known bugs and limitations in
 [`docs/BACKLOG.md`](docs/BACKLOG.md).
 
 ## Architecture
@@ -73,11 +77,11 @@ The edge-case comparison with feelin and feel-scala is in
 | `wasm/feel-wasm` | `rheon-feel-wasm`: JSON request → engine → JSON response, built as a wasm32-wasip1 reactor (CONTRACT §1–3) |
 | `packages/feel-runtime` | `@rheon/feel-runtime`, the TypeScript runtime (CONTRACT §4) |
 | `apps/playground` | `@rheon/playground`, the web app |
-| `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to merge upstream), `BACKLOG.md`, `EDITOR-PLAN.md`, `ENGINE-COMPARISON.md` |
-| `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `smoke.mjs`, `third-party-notices.mjs` |
+| `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to take upstream fixes), `BACKLOG.md`, `ENGINE-COMPARISON.md` |
+| `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `feel-abi.mjs`, `smoke.mjs`, `stack-headroom.mjs`, `third-party-notices.mjs` |
 | `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
 | `Cargo.toml` | One workspace for all of the above; the `wasm` build profile |
-| `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, later .NET) |
+| `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, any WASI runtime) |
 
 ## Get it
 
@@ -117,8 +121,10 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `npm run dev` | Playground dev server (arguments after `--` go to Vite) |
 | `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
+| `npm run stack` | `scripts/stack-headroom.mjs`: five constructs nested to the AST depth limit must evaluate on Node's main thread, in a 4 MiB Node worker and in Wasmtime with a 4 MiB wasm stack, and a recursion of 190 calls with a body nested 60 levels in the worker and in Wasmtime; `npm run stack -- --report` prints the depths each host reaches |
 | `scripts/publish-crates.sh` | Publishes the `rheon-*` crates that crates.io lacks at the workspace version, waiting out the new-crate rate limit (see `docs/FORK.md`, "Publishing") |
 | `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); see `.github/workflows/ci.yml` |
+| `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases). `RHEON_PARSER_CORPUS=<absolute path of tools/evaluator-corpus/corpora>` with `-- --include-ignored` adds the parser's corpus test |
 
 The production build in `apps/playground/dist/` uses a relative base (`./`), so you can host it on
 any static file server and under any sub-path. `feel.wasm` is a hashed asset in `assets/`. Serve
@@ -147,16 +153,24 @@ short, rheon's engine differs from upstream dsntk in:
   depth limit, an iterative AST drop, linear `for` loops and list literals (upstream was quadratic);
 - **engine fixes** found by review and by the DMN TCK: scale rounding, lost-step `for` ranges,
   midnight wrap of `time + duration`, cross-offset temporal ordering, a cubic lexer path, the full
-  FEEL scale range, back-references in `matches`, readable null reasons.
+  FEEL scale range, back-references in `matches`, readable null reasons, scope frames left behind
+  by early returns, exponential subtraction reasons, a trap on an iteration variable that starts
+  with `in`, the named parameter of a range literal, quadratic list grammar actions, date ranges
+  that end at the first or last supported date;
+- **performance**: names in scope found through an index instead of an exponential set of keys,
+  loops and filters that move their contexts, shared function definitions, a lexer and parser
+  without per-token copies, shared strings, and the wasm module built at opt-level 3
+  (`docs/FORK.md` 39-54).
 
-DMN TCK (patched suite, 3,511 tests): rheon passes 3,480, upstream at the base commit 3,479;
-the remaining failures are Java external functions (14), decision services (2), implicit
-conversions (12) and multiple imports (3), all in the DMN layer.
+DMN TCK (`scripts/tck.sh`, the official suite with DecisionToolkit's patches): rheon passes
+3,392 of 3,407; the 15 failures are Java external functions (14) and one decision-service case,
+both in the DMN layer (`docs/tck-baseline.txt` lists them). The 312 tests of `tck-addendum/`
+all pass.
 
 Crate naming: a crate whose source rheon has changed is renamed `rheon-*` (today
 `rheon-feel`, `-feel-number`, `-feel-parser`, `-feel-evaluator`, `-feel-temporal`,
 `-feel-regex`, `-model` and `-model-evaluator`) and published on crates.io, so a Rust project
-can depend on `rheon-feel-evaluator = "0.1"` directly. Upstream crates rheon has not changed are
+can depend on `rheon-feel-evaluator = "0.3"` directly. Upstream crates rheon has not changed are
 used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-grammar`,
 `-recognizer`). The dsntk crates carried with manifest-only changes (`dsntk-evaluator`,
 `-workspace`, `-gendoc`, `-server`, `-examples` and the `dsntk` CLI) stay in the tree under their
@@ -180,27 +194,34 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   `2 ** -20000` and `0.5 ** 20000` (the same value) differ in their last digits. Small exponents
   on short operands are exact (`3 ** 50`, `2 ** 100`). Only a non-integer exponent takes the
   correctly rounded `exp(y ln x)` path.
-- **Size.** `feel.wasm` is about 2.9 MiB raw (3.1 MB), about 800 KiB gzip and 525 KiB brotli
-  (`npm run build:wasm` prints the exact figures; they were 3.7 MB / 1.6 MB / 1.3 MB with the
-  Intel C library). The build is reproducible: `scripts/build-wasm.sh` remaps `CARGO_HOME` and
-  the workspace path out of the module (the only machine-specific bytes were panic-location
-  strings), so the same toolchain, lock file and commit give a byte-identical `feel.wasm`
+- **Size.** `feel.wasm` is about 3.6 MiB raw (3.8 MB), about 995 KiB gzip and 650 KiB brotli
+  (`npm run build:wasm` prints the exact figures). The `wasm` profile builds at opt-level 3; at
+  opt-level z the same code is about 3.0 MiB raw and 540 KiB brotli and runs at about half the
+  speed. With the Intel C library (and opt-level z) the module was 3.7 MB / 1.6 MB / 1.3 MB.
+  The build is reproducible: `scripts/build-wasm.sh` remaps `CARGO_HOME` and the workspace
+  path out of the module (the only machine-specific bytes were panic-location strings), so the
+  same toolchain, lock file and commit give a byte-identical `feel.wasm`
   from any directory (verified by rebuilding from a copy at another path). A plain
   `cargo build` without the script still works but embeds the builder's paths. The JS bundle is
-  about 530 kB (180 kB gzip), mostly CodeMirror and lang-feel's completion docs.
+  about 523 kB (175 kB gzip), mostly CodeMirror and lang-feel's completion docs.
 - **Long loops** were quadratic in upstream dsntk (`for i in 1..100000` took tens of seconds);
-  this repository makes them linear (1M iterations in about 0.3 s in wasm). Expressions that are still
-  too slow hit the 2 s timeout; the worker is terminated and restarted. In the playground a
-  superseded evaluation is cancelled (its worker is replaced after a 100 ms grace period), so
-  typing never queues up behind a runaway one.
+  this repository makes them linear (`count(for i in 1..1000000 return i)` takes about 0.11 s
+  in wasm). Expressions that are still too slow hit the 2 s timeout; the worker is terminated
+  and restarted. In the playground a superseded evaluation is cancelled (its worker is replaced
+  after a 100 ms grace period), so typing never queues up behind a runaway one.
 - **Nesting and recursion limits.** Expressions nested deeper than 300 AST levels are a `syntax`
   error, and more than 200 nested function calls (e.g. runaway recursion) stop the evaluation with
   an `evaluation` error (CONTRACT §2). Both are sized for a browser worker's stack. A recursion
-  whose function body is itself very deeply nested can still exhaust the stack below 200 calls;
-  that is reported as `crash` and the worker is replaced.
+  whose function body is itself deeply nested can still exhaust the stack below 200 calls;
+  that is reported as `crash` and the worker is replaced. Measured (`npm run stack -- --report`):
+  190 nested calls run with a body nested 64 levels in a 4 MiB Node worker and in Wasmtime with a
+  4 MiB wasm stack, 14 to 17 levels on Node's main thread, 8 levels with Wasmtime's default
+  512 KiB wasm stack (CONTRACT §1).
 - **Memory.** Linear memory is capped at 512 MiB, so a runaway allocation traps early (`crash`).
-  A list element costs about 128 B and a one-entry context about 900 B, so
-  `for i in 1..2500000 return i` or a million small contexts hit the cap before the 2 s budget;
+  A list element costs about 130 B while the list grows (a 64-byte value plus the spare
+  capacity of the list; `count(for i in 1..1000000 return i)` grows memory by 128 MiB) and a
+  one-entry context about 1 KB, so `for i in 1..2500000 return i` (after about 0.3 s) or a
+  million one-entry contexts (after about 0.9 s) hit the cap before the 2 s budget;
   the runtime recognises Rust's "memory allocation of … failed" in that trap and the message
   starts with `out of memory:` (the playground shows "Out of memory — engine restarted" instead
   of a crash). Wasm memory never shrinks, so the runtime replaces a worker whose instance grew
@@ -228,40 +249,32 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   correctly when they are in the context, so the playground sends the context to `parse` too.
 - **Syntax errors have no position in dsntk.** The playground locates them with the lezer-feel
   parser (squiggle, gutter marker, "Jump to error", and a lezer tree with positions); lezer-feel
-  and dsntk can disagree on edge cases. `docs/EDITOR-PLAN.md` is the plan to make the engine the
-  single source of syntax validity.
+  and dsntk can disagree on edge cases.
 - **Context entries are sorted.** dsntk keeps contexts in a `BTreeMap`, so results list keys in
   name order.
 - **Only Chromium was tested** in a real browser.
 
-## Next steps: .NET host
+## Hosts outside a JS engine
 
-The same `dist/feel.wasm` is meant to run unchanged on .NET through the
-[Wasmtime NuGet package](https://www.nuget.org/packages/Wasmtime):
+`dist/feel.wasm` runs in any WASI preview1 runtime that provides the imports of CONTRACT §1
+(`npm run stack` runs it in Wasmtime):
 
-Do not copy `instantiateFeel` for a server: it runs on the calling thread with no way to interrupt
-it, so it is for trusted input only.
-
-1. `Engine` with `Config.WithFuelConsumption(true)` and/or `WithEpochInterruption(true)`. Fuel or
-   epoch deadlines replace the browser's worker-terminate timeout, so a runaway loop traps the
-   `Store` instead of hanging a thread. Also set `Store.SetLimits(memorySize: …)` to cap memory.
-2. Compile the `Module` once and cache it (or serialize it with `Module.Serialize`). Create one
-   `Store` + `Instance` per evaluation, or a pool of them, because instances are single-threaded.
-   After any trap (fuel, epoch, panic or stack overflow), throw the instance away, as the JS
-   runtime does.
-3. Provide WASI with `Linker.DefineWasi()` + `WasiConfiguration` (no preopens, no env), or with
-   the same 10 functions the JS shim implements (CONTRACT §1; the current module imports six of
-   them).
-4. Call `_initialize` once, then `feel_alloc` → write the UTF-8 request → `feel_call` → unpack
-   `(ptr << 32) | len` → read → `feel_free`. Exactly as in `packages/feel-runtime/src/instance.ts`.
-5. Send `tzOffsetMinutes` from `TimeZoneInfo.Local.GetUtcOffset(DateTime.Now)`. Keep decimals as
-   strings, or parse the `typed` DTO: .NET `decimal` holds only 28–29 digits, fewer than
-   decimal128's 34.
-6. Port the contract tests (`crates/feel-wasm/tests/contract.rs`) to xUnit against the same
-   request/response JSON.
-
-dotnet was not installed in the environment this repo was built in, so none of this has been run
-yet.
+- Give wasm at least 4 MiB of stack (Wasmtime: `max_wasm_stack` on the `Config`,
+  `-W max-wasm-stack=4194304` on the command line; the default 512 KiB lets a deeply nested
+  recursion trap early, CONTRACT §1), and call it on a thread whose native stack is larger than
+  that.
+- Bound every request with fuel or epoch interruption and cap the store's memory: nothing else
+  stops a runaway loop on the calling thread. `instantiateFeel` has neither and is for trusted
+  input only.
+- An instance is single-threaded: use one per thread or a pool, and discard an instance after any
+  trap (fuel, epoch, panic or stack overflow).
+- Capture the module's stderr (fd 2) to tell the traps apart: a failed allocation at the 512 MiB
+  cap writes `memory allocation of N bytes failed` before it traps, so the request needed more
+  memory than the cap allows, while a panic writes its message (CONTRACT §1, §4).
+- Call `_initialize` once, then `feel_alloc` → write the UTF-8 request → `feel_call` → unpack
+  `(ptr << 32) | len` → read → `feel_free`, as `packages/feel-runtime/src/instance.ts` does.
+- Send `tzOffsetMinutes` with each request, and keep decimals as strings or read the `typed`
+  result: decimal128 has 34 digits, more than most host decimal types.
 
 ## License
 

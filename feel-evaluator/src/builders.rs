@@ -9,7 +9,7 @@ use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value};
-use rheon_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, IntervalType, Name, value_null};
+use rheon_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, IntervalType, Name, value_null};
 use rheon_feel_parser::{AstNode, ClosureBuilder};
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
 use std::borrow::Borrow;
@@ -219,10 +219,9 @@ impl<'b> EvaluatorBuilder<'b> {
           value @ Value::Null(_) => value,
           _ => value_null!("incompatible types in addition: {}({}) + {}({})", lhv, lhv.type_of(), rhv, rhv.type_of()),
         },
-        Value::String(mut lh) => {
+        Value::String(lh) => {
           if let Value::String(rh) = rhv {
-            lh.push_str(&rh);
-            Value::String(lh)
+            Value::String(lh.concat(&rh))
           } else {
             value_null!("expected string as a second argument in addition")
           }
@@ -489,29 +488,32 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |scope: &FeelScope| {
       let mut evaluated_ctx = FeelContext::default();
       // prepare special context in scope, used for already evaluated context entries
+      let depth = scope.depth();
       scope.push(FeelContext::default());
       // evaluate context entries
-      for evaluator in &evaluators {
-        match evaluator(scope) {
-          Value::ContextEntry(name, value) => {
-            if evaluated_ctx.contains_entry(&name) {
-              // duplicated context entry keys are not allowed
-              scope.pop();
-              return value_null!("duplicated context entry key: {}", name);
-            } else {
-              // add newly evaluated entry to evaluated context
-              evaluated_ctx.set_entry(&name, (*value).clone());
-              // add newly evaluated entry to special context
-              scope.set_value(&name, *value);
+      let failure = 'entries: {
+        for evaluator in &evaluators {
+          match evaluator(scope) {
+            Value::ContextEntry(name, value) => {
+              if evaluated_ctx.contains_entry(&name) {
+                // duplicated context entry keys are not allowed
+                break 'entries Some(value_null!("duplicated context entry key: {}", name));
+              } else {
+                // add newly evaluated entry to evaluated context
+                evaluated_ctx.set_entry(&name, (*value).clone());
+                // add newly evaluated entry to special context
+                scope.set_value(&name, *value);
+              }
             }
+            value_null @ Value::Null(_) => break 'entries Some(value_null),
+            other => break 'entries Some(value_null!("expected context entry, actual value type is {}", other.type_of())),
           }
-          value_null @ Value::Null(_) => return value_null,
-          other => return value_null!("expected context entry, actual value type is {}", other.type_of()),
         }
-      }
-      // remove special context from scope
-      scope.pop();
-      Value::Context(evaluated_ctx)
+        None
+      };
+      // remove special context from scope, on every path
+      scope.truncate(depth);
+      failure.unwrap_or(Value::Context(evaluated_ctx))
     })
   }
 
@@ -691,7 +693,7 @@ impl<'b> EvaluatorBuilder<'b> {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
-      let filter_expression_evaluator = FilterExpressionEvaluator::new();
+      let filter_expression_evaluator = FilterExpressionEvaluator::for_feel();
       filter_expression_evaluator.evaluate(scope, lhe(scope), &rhe)
     })
   }
@@ -742,7 +744,7 @@ impl<'b> EvaluatorBuilder<'b> {
       }
     }
     Box::new(move |scope: &FeelScope| {
-      let mut for_expression_evaluator = ForExpressionEvaluator::new();
+      let mut for_expression_evaluator = ForExpressionEvaluator::for_feel();
       for iterator_type in &evaluators {
         match iterator_type {
           IteratorType::Interval((name, interval_start_evaluator, interval_end_evaluator)) => {
@@ -763,7 +765,7 @@ impl<'b> EvaluatorBuilder<'b> {
           }
         }
       }
-      Value::List(for_expression_evaluator.evaluate(scope, &rhe))
+      for_expression_evaluator.evaluate(scope, &rhe)
     })
   }
 
@@ -827,8 +829,8 @@ impl<'b> EvaluatorBuilder<'b> {
           if let Some(Value::Context(java_mapping)) = mapping_information.get_entry(&"java".into()) {
             return if let Some(Value::String(class_name)) = java_mapping.get_entry(&"class".into()) {
               if let Some(Value::String(method_signature)) = java_mapping.get_entry(&"method signature".into()) {
-                let java_class_name = class_name.to_owned();
-                let java_method_signature = method_signature.to_owned();
+                let java_class_name = class_name.as_str().to_owned();
+                let java_method_signature = method_signature.as_str().to_owned();
                 let java_evaluator = Box::new(move |_: &FeelScope| Value::ExternalJavaFunction(java_class_name.clone(), java_method_signature.clone())) as Evaluator;
                 let lhe = Arc::new(java_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
@@ -842,8 +844,8 @@ impl<'b> EvaluatorBuilder<'b> {
           if let Some(Value::Context(pmml_mapping)) = mapping_information.get_entry(&"pmml".into()) {
             return if let Some(Value::String(document)) = pmml_mapping.get_entry(&"document".into()) {
               if let Some(Value::String(model_name)) = pmml_mapping.get_entry(&"model".into()) {
-                let pmml_document = document.to_owned();
-                let pmml_model_name = model_name.to_owned();
+                let pmml_document = document.as_str().to_owned();
+                let pmml_model_name = model_name.as_str().to_owned();
                 let pmml_evaluator = Box::new(move |_: &FeelScope| Value::ExternalPmmlFunction(pmml_document.clone(), pmml_model_name.clone())) as Evaluator;
                 let lhe = Arc::new(pmml_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
@@ -879,7 +881,7 @@ impl<'b> EvaluatorBuilder<'b> {
               }
             }
             //TODO Check if `FeelType::Any` is always ok for function result type in function definition.
-            Value::FunctionDefinition(parameters, body, external, closure.clone(), closure_ctx, FeelType::Any)
+            FunctionDefinition::new(parameters, body, external, closure.clone(), closure_ctx, FeelType::Any).into()
           } else {
             value_null!("invalid body in function definition")
           }
@@ -927,7 +929,7 @@ impl<'b> EvaluatorBuilder<'b> {
     };
     let satisfies_evaluator = self.build(satisfies);
     Box::new(move |scope: &FeelScope| {
-      let mut expression_evaluator = EveryExpressionEvaluator::new();
+      let mut expression_evaluator = EveryExpressionEvaluator::for_feel();
       for (name, expr_evaluator) in &expr_evaluators {
         expression_evaluator.add_list(name.clone(), expr_evaluator(scope));
       }
@@ -1756,7 +1758,7 @@ impl<'b> EvaluatorBuilder<'b> {
     };
     let satisfies_evaluator = self.build(satisfies);
     Box::new(move |scope: &FeelScope| {
-      let mut expression_evaluator = SomeExpressionEvaluator::new();
+      let mut expression_evaluator = SomeExpressionEvaluator::for_feel();
       for (name, expr_evaluator) in &expr_evaluators {
         expression_evaluator.add_list(name.clone(), expr_evaluator(scope));
       }
@@ -1765,7 +1767,7 @@ impl<'b> EvaluatorBuilder<'b> {
   }
 
   fn build_string(&mut self, lhs: &str) -> Evaluator {
-    let value = Value::String(lhs.to_string());
+    let value = Value::String(lhs.into());
     Box::new(move |_: &FeelScope| value.clone())
   }
 
@@ -1775,90 +1777,94 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |scope: &FeelScope| {
       let lhv = lhe(scope);
       let rhv = rhe(scope);
-      match lhv {
+      // the operands stay available for the message below: temporal values are copied only in
+      // the arm that subtracts them
+      match &lhv {
         Value::Number(lh) => {
-          if let Value::Number(rh) = rhv {
-            return Value::Number(lh - rh);
+          if let Value::Number(rh) = &rhv {
+            return Value::Number(*lh - *rh);
           }
         }
-        Value::Date(lh) => match rhv {
+        Value::Date(lh) => match &rhv {
           Value::Date(rh) => {
-            let l = FeelDateTime::new(lh, FeelTime::utc(0, 0, 0, 0));
-            let r = FeelDateTime::new(rh, FeelTime::utc(0, 0, 0, 0));
+            let l = FeelDateTime::new(lh.clone(), FeelTime::utc(0, 0, 0, 0));
+            let r = FeelDateTime::new(rh.clone(), FeelTime::utc(0, 0, 0, 0));
             if let Some(result) = l - r {
               return Value::DaysAndTimeDuration(result);
             }
           }
           Value::DateTime(rh) => {
-            let l = FeelDateTime::new(lh, FeelTime::utc(0, 0, 0, 0));
-            if let Some(result) = l - rh {
+            let l = FeelDateTime::new(lh.clone(), FeelTime::utc(0, 0, 0, 0));
+            if let Some(result) = l - rh.clone() {
               return Value::DaysAndTimeDuration(result);
             }
           }
           Value::DaysAndTimeDuration(rh) => {
-            if let Some(date) = lh - rh {
+            if let Some(date) = lh.clone() - rh.clone() {
               return Value::Date(date);
             }
           }
           Value::YearsAndMonthsDuration(rh) => {
-            if let Some(date) = lh - rh {
+            if let Some(date) = lh.clone() - rh.clone() {
               return Value::Date(date);
             }
           }
           _ => {}
         },
-        Value::Time(lh) => match rhv {
+        Value::Time(lh) => match &rhv {
           Value::Time(rh) => {
-            if let Some(result) = lh - rh {
+            if let Some(result) = lh.clone() - rh.clone() {
               return Value::DaysAndTimeDuration(result);
             }
           }
           Value::DaysAndTimeDuration(rh) => {
-            return Value::Time(lh - rh);
+            return Value::Time(lh.clone() - rh.clone());
           }
           _ => {}
         },
-        Value::DateTime(lh) => match rhv {
+        Value::DateTime(lh) => match &rhv {
           Value::Date(rh) => {
-            let r = FeelDateTime::new(rh, FeelTime::utc(0, 0, 0, 0));
-            if let Some(result) = lh - r {
+            let r = FeelDateTime::new(rh.clone(), FeelTime::utc(0, 0, 0, 0));
+            if let Some(result) = lh.clone() - r {
               return Value::DaysAndTimeDuration(result);
             }
           }
           Value::DateTime(rh) => {
-            if let Some(result) = lh - rh {
+            if let Some(result) = lh.clone() - rh.clone() {
               return Value::DaysAndTimeDuration(result);
             }
           }
           Value::DaysAndTimeDuration(rh) => {
-            if let Some(result) = lh - rh {
+            if let Some(result) = lh.clone() - rh.clone() {
               return Value::DateTime(result);
             }
           }
           Value::YearsAndMonthsDuration(rh) => {
-            if let Some(result) = lh - rh {
+            if let Some(result) = lh.clone() - rh.clone() {
               return Value::DateTime(result);
             }
           }
           _ => {}
         },
         Value::DaysAndTimeDuration(lh) => {
-          if let Value::DaysAndTimeDuration(rh) = rhv {
+          if let Value::DaysAndTimeDuration(rh) = &rhv {
             return lh
-              .checked_sub(&rh)
+              .checked_sub(rh)
               .map_or_else(|| value_null!("days and time duration subtraction overflow"), Value::DaysAndTimeDuration);
           }
         }
         Value::YearsAndMonthsDuration(lh) => {
-          if let Value::YearsAndMonthsDuration(rh) = rhv {
+          if let Value::YearsAndMonthsDuration(rh) = &rhv {
             return lh
-              .checked_sub(&rh)
+              .checked_sub(rh)
               .map_or_else(|| value_null!("years and months duration subtraction overflow"), Value::YearsAndMonthsDuration);
           }
         }
         _ => {}
       }
-      value_null!("[subtraction] incompatible types: {} - {}", lhe(scope), rhe(scope))
+      // the operands as evaluated above: evaluating them again would repeat their diagnostics
+      // and take exponential time in a chain of failing subtractions
+      value_null!("[subtraction] incompatible types: {} - {}", lhv, rhv)
     })
   }
 
@@ -1961,7 +1967,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       }
       Bip::Timezone => {
         if let Some(feel_time_zone) = date_time.feel_time_zone() {
-          Value::String(feel_time_zone)
+          Value::String(feel_time_zone.into())
         } else {
           value_null!("could not retrieve timezone for date and time")
         }
@@ -1982,7 +1988,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       }
       Bip::Timezone => {
         if let Some(feel_time_zone) = time.feel_time_zone() {
-          Value::String(feel_time_zone)
+          Value::String(feel_time_zone.into())
         } else {
           value_null!("could not retrieve timezone for time")
         }

@@ -2,7 +2,7 @@ use super::*;
 use crate::bif::Bif;
 use crate::closure::Closure;
 use crate::context::FeelContext;
-use crate::function::FunctionBody;
+use crate::function::{FunctionBody, FunctionDefinition};
 use crate::values::{Value, Values};
 use crate::{FeelNumber, FeelScope, IntervalType, ToFeelString, value_null, value_number};
 use dsntk_common::Jsonify;
@@ -77,8 +77,15 @@ fn test_debug() {
     Value::FunctionBody(v_function_body.clone(), v_external)
   );
   eq_dbg!(
-    r#"FunctionDefinition([(Name("a"), Number)], FunctionBodyLiteralExpression, false, Closure({}), FeelContext({}), Number)"#,
-    Value::FunctionDefinition(vec![(name.clone(), t_number.clone())], v_function_body, v_external, v_closure, v_closure_ctx, t_number)
+    r#"FunctionDefinition(FunctionDefinition { parameters: [(Name("a"), Number)], body: FunctionBodyLiteralExpression, external: false, closure: Closure({}), closure_ctx: FeelContext({}), result_type: Number })"#,
+    Value::from(FunctionDefinition::new(
+      vec![(name.clone(), t_number.clone())],
+      v_function_body,
+      v_external,
+      v_closure,
+      v_closure_ctx,
+      t_number
+    ))
   );
   eq_dbg!(r#"IntervalEnd(Number(+1E+0), Opened)"#, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_dbg!(r#"IntervalStart(Number(+1E+0), Opened)"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
@@ -100,7 +107,7 @@ fn test_debug() {
     r#"Range(Number(+1E+0), Opened, Number(+1E+0), Closed)"#,
     Value::Range(b_number.clone(), IntervalType::Opened, b_number.clone(), IntervalType::Closed)
   );
-  eq_dbg!(r#"String("beta")"#, Value::String("beta".to_string()));
+  eq_dbg!(r#"String("beta")"#, Value::String("beta".into()));
   eq_dbg!(r#"Time(FeelTime(12, 13, 23, 0, Local))"#, Value::Time(v_time));
   eq_dbg!(r#"UnaryGreater(Number(+1E+0))"#, Value::UnaryGreater(b_number.clone()));
   eq_dbg!(r#"UnaryGreaterOrEqual(Number(+1E+0))"#, Value::UnaryGreaterOrEqual(b_number.clone()));
@@ -156,7 +163,14 @@ fn test_display() {
   eq_dsp!(r#"FunctionBody"#, Value::FunctionBody(v_function_body.clone(), v_external));
   eq_dsp!(
     r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#,
-    Value::FunctionDefinition(vec![(name.clone(), t_number.clone())], v_function_body, v_external, v_closure, v_closure_ctx, t_number)
+    Value::from(FunctionDefinition::new(
+      vec![(name.clone(), t_number.clone())],
+      v_function_body,
+      v_external,
+      v_closure,
+      v_closure_ctx,
+      t_number
+    ))
   );
   eq_dsp!(r#"IntervalEnd"#, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_dsp!(r#"IntervalStart"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
@@ -172,7 +186,7 @@ fn test_display() {
   eq_dsp!(r#"PositionalParameters"#, Value::PositionalParameters(Values::default()));
   eq_dsp!(r#"QualifiedNameSegment"#, Value::QualifiedNameSegment(name));
   eq_dsp!(r#"(1..1]"#, Value::Range(b_number.clone(), IntervalType::Opened, b_number.clone(), IntervalType::Closed));
-  eq_dsp!(r#""beta""#, Value::String("beta".to_string()));
+  eq_dsp!(r#""beta""#, Value::String("beta".into()));
   eq_dsp!(r#"12:13:23"#, Value::Time(v_time));
   eq_dsp!(r#"UnaryGreater(1)"#, Value::UnaryGreater(b_number.clone()));
   eq_dsp!(r#"UnaryGreaterOrEqual(1)"#, Value::UnaryGreaterOrEqual(b_number.clone()));
@@ -221,14 +235,14 @@ fn test_type_of() {
   eq_typ!(FeelType::Any, Value::FunctionBody(v_function_body.clone(), v_external));
   eq_typ!(
     FeelType::Function(vec![FeelType::Number], Box::new(FeelType::Number)),
-    Value::FunctionDefinition(
+    Value::from(FunctionDefinition::new(
       vec![(name.clone(), t_number.clone())],
       v_function_body,
       v_external,
       v_closure,
       v_closure_ctx,
       t_number.clone()
-    )
+    ))
   );
   eq_typ!(FeelType::Number, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_typ!(FeelType::Number, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
@@ -253,7 +267,7 @@ fn test_type_of() {
     FeelType::Range(Box::new(FeelType::Any)),
     Value::Range(b_number.clone(), IntervalType::Opened, b_boolean, IntervalType::Closed)
   );
-  eq_typ!(FeelType::String, Value::String("beta".to_string()));
+  eq_typ!(FeelType::String, Value::String("beta".into()));
   eq_typ!(FeelType::Time, Value::Time(v_time));
   eq_typ!(FeelType::Boolean, Value::UnaryGreater(b_number.clone()));
   eq_typ!(FeelType::Boolean, Value::UnaryGreaterOrEqual(b_number.clone()));
@@ -268,11 +282,11 @@ fn test_type_of() {
 #[test]
 fn test_type_of_list_with_context() {
   let mut ctx_a = FeelContext::default();
-  ctx_a.set_entry(&"a".into(), Value::String("alfa".to_string()));
-  ctx_a.set_entry(&"b".into(), Value::String("beta".to_string()));
+  ctx_a.set_entry(&"a".into(), Value::String("alfa".into()));
+  ctx_a.set_entry(&"b".into(), Value::String("beta".into()));
   let mut ctx_b = FeelContext::default();
-  ctx_b.set_entry(&"a".into(), Value::String("gamma".to_string()));
-  ctx_b.set_entry(&"b".into(), Value::String("gamma".to_string()));
+  ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
+  ctx_b.set_entry(&"b".into(), Value::String("gamma".into()));
   let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)]);
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
 }
@@ -280,10 +294,10 @@ fn test_type_of_list_with_context() {
 #[test]
 fn test_type_of_list_with_context_and_nulls() {
   let mut ctx_a = FeelContext::default();
-  ctx_a.set_entry(&"a".into(), Value::String("alfa".to_string()));
-  ctx_a.set_entry(&"b".into(), Value::String("beta".to_string()));
+  ctx_a.set_entry(&"a".into(), Value::String("alfa".into()));
+  ctx_a.set_entry(&"b".into(), Value::String("beta".into()));
   let mut ctx_b = FeelContext::default();
-  ctx_b.set_entry(&"a".into(), Value::String("gamma".to_string()));
+  ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
   ctx_b.set_entry(&"b".into(), value_null!());
   let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)]);
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
@@ -360,8 +374,8 @@ fn test_comparison() {
 
 #[test]
 fn test_value_to_feel_string() {
-  assert_eq!(r#""foo""#, Value::String("foo".to_string()).to_feel_string());
-  assert_eq!(r#""\"bar\"""#, Value::String("\"bar\"".to_string()).to_feel_string());
+  assert_eq!(r#""foo""#, Value::String("foo".into()).to_feel_string());
+  assert_eq!(r#""\"bar\"""#, Value::String("\"bar\"".into()).to_feel_string());
   assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).to_feel_string());
   assert_eq!(r#"[]"#, Value::List(Values::default()).to_feel_string());
   assert_eq!(
@@ -376,7 +390,7 @@ fn test_jsonify() {
   assert_eq!(r#"true"#, Value::Boolean(true).jsonify());
   assert_eq!(r#"false"#, Value::Boolean(false).jsonify());
   assert_eq!(r#"1.23"#, Value::Number(FeelNumber::new(123, 2)).jsonify());
-  assert_eq!(r#""beta""#, Value::String("beta".to_string()).jsonify());
+  assert_eq!(r#""beta""#, Value::String("beta".into()).jsonify());
   assert_eq!(r#""2023-02-24""#, Value::Date(FeelDate::new(2023, 2, 24).unwrap()).jsonify());
   assert_eq!(r#""18:35:12.000598677Z""#, Value::Time(FeelTime::utc(18, 35, 12, 598677)).jsonify());
   assert_eq!(
@@ -473,32 +487,174 @@ fn test_coerced() {
   let v_string = Value::String("a".into());
   let v_list_number_1 = Value::List(vec![value_number!(1, 0)]);
   let v_list_number_2 = Value::List(vec![value_number!(1, 0), value_number!(2, 0)]);
-  let v_list_string_1 = Value::List(vec![Value::String("A".to_string())]);
-  let v_function_a = Value::FunctionDefinition(
+  let v_list_string_1 = Value::List(vec![Value::String("A".into())]);
+  let v_function_a = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(1)))),
     false,
     Closure::default(),
     FeelContext::default(),
     T_NUMBER.clone(),
-  );
+  ));
   let v_irrelevant = Value::Irrelevant;
   let mut ctx_d = FeelContext::default();
   ctx_d.set_entry(&NAME_A, v_string.clone());
   let v_context_d = Value::Context(ctx_d);
-  assert_eq!(r#"[10]"#, v_number.coerced(&T_LIST_A).to_string());
-  assert_eq!(r#"[10]"#, v_number.coerced(&T_LIST_D).to_string());
-  assert_eq!(r#"1"#, v_list_number_1.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"null(after coercion)"#, v_list_number_2.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"null(after coercion)"#, v_list_string_1.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"["a"]"#, v_string.coerced(&T_LIST_C).to_string());
-  assert_eq!(r#"["a"]"#, v_string.coerced(&T_LIST_D).to_string());
-  assert_eq!(r#""A""#, v_list_string_1.coerced(T_STRING).to_string());
-  assert_eq!(r#"10"#, v_number.coerced(T_NUMBER).to_string());
-  assert_eq!(
-    r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#,
-    v_function_a.coerced(T_NUMBER).to_string()
+  let v_date = Value::Date(FeelDate::new(2022, 9, 27).unwrap());
+  let v_list_date_1 = Value::List(vec![v_date.clone()]);
+  let v_bif = Value::BuiltInFunction(Bif::Time);
+  // the coerced value; the owned forms (`try_into_coerced`, `into_coerced`) give the same results
+  let coerced = |value: &Value, target_type: &FeelType| {
+    assert_eq!(value.try_coerced(target_type), value.clone().try_into_coerced(target_type), "{value} : {target_type}");
+    let coerced = value.coerced(target_type);
+    assert_eq!(coerced, value.clone().into_coerced(target_type), "{value} : {target_type}");
+    coerced.to_string()
+  };
+  assert_eq!(r#"[10]"#, coerced(&v_number, &T_LIST_A));
+  assert_eq!(r#"[10]"#, coerced(&v_number, &T_LIST_D));
+  assert_eq!(r#"1"#, coerced(&v_list_number_1, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_list_number_2, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_list_string_1, T_NUMBER));
+  assert_eq!(r#"["a"]"#, coerced(&v_string, &T_LIST_C));
+  assert_eq!(r#"["a"]"#, coerced(&v_string, &T_LIST_D));
+  assert_eq!(r#""A""#, coerced(&v_list_string_1, T_STRING));
+  assert_eq!(r#"10"#, coerced(&v_number, T_NUMBER));
+  assert_eq!(r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#, coerced(&v_function_a, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_irrelevant, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_context_d, &T_CONTEXT_A));
+  assert_eq!(r#"2022-09-27T00:00:00Z"#, coerced(&v_date, T_DATE_TIME));
+  assert_eq!(r#"2022-09-27T00:00:00Z"#, coerced(&v_list_date_1, T_DATE_TIME));
+  assert_eq!(r#"2022-09-27"#, coerced(&v_list_date_1, T_DATE));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_date, T_TIME));
+  assert_eq!(r#"BuiltInFunction"#, coerced(&v_bif, T_ANY));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_bif, T_NUMBER));
+}
+
+#[test]
+fn test_type_of_list_items() {
+  let ctx = |entries: &[(&str, Value)]| {
+    let mut ctx = FeelContext::default();
+    for (name, value) in entries {
+      ctx.set_entry(&Name::from(*name), value.clone());
+    }
+    Value::Context(ctx)
+  };
+  let list_of = |item_type: FeelType| FeelType::List(Box::new(item_type));
+  let context_a = FeelType::Context(BTreeMap::from([(NAME_A.clone(), FeelType::Number)]));
+  // fixed cases: a null item (first, its type is conformed to only by null; later, it conforms to
+  // any item type), a missing entry, extra entries, nested lists
+  eq_typ!(list_of(FeelType::Any), Value::List(vec![value_null!(), value_number!(1)]));
+  eq_typ!(list_of(context_a.clone()), Value::List(vec![ctx(&[("a", value_number!(1))]), value_null!()]));
+  eq_typ!(list_of(FeelType::Any), Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("b", value_number!(1))])]));
+  eq_typ!(
+    list_of(context_a.clone()),
+    Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("a", value_number!(2)), ("b", Value::String("x".into()))])])
   );
-  assert_eq!(r#"null(after coercion)"#, v_irrelevant.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"null(after coercion)"#, v_context_d.coerced(&T_CONTEXT_A).to_string());
+  eq_typ!(list_of(list_of(context_a)), Value::List(vec![Value::List(vec![ctx(&[("a", value_number!(1))])])]));
+}
+
+/// `true` when the randomized tests run their full size (`RHEON_FULL_TESTS` set).
+fn full() -> bool {
+  std::env::var_os("RHEON_FULL_TESTS").is_some()
+}
+
+/// The type of a value by the list typing rule of [Value::type_of], applied at every level and
+/// with [FeelType::is_conformant] on the built type of every item: a list has the type of its
+/// first item when the type of every other item conforms to it, `Any` otherwise.
+fn reference_type(value: &Value) -> FeelType {
+  match value {
+    Value::List(items) => match items.split_first() {
+      None => FeelType::List(Box::new(FeelType::Null)),
+      Some((first, others)) => {
+        let item_type = reference_type(first);
+        if others.iter().all(|item| reference_type(item).is_conformant(&item_type)) {
+          FeelType::List(Box::new(item_type))
+        } else {
+          FeelType::List(Box::new(FeelType::Any))
+        }
+      }
+    },
+    Value::Context(ctx) => FeelType::Context(ctx.iter().map(|(name, value)| (name.clone(), reference_type(value))).collect()),
+    other => other.type_of(),
+  }
+}
+
+/// The type of a list equals [reference_type] on random lists: lists of contexts like a template
+/// context, with nulls, missing, extra and changed entries at any depth, and lists of random
+/// values (2,000 lists, 20,000 with `RHEON_FULL_TESTS`).
+#[test]
+fn test_type_of_list_equals_reference_rule() {
+  struct Rng(u64);
+  impl Rng {
+    fn below(&mut self, n: u64) -> u64 {
+      self.0 ^= self.0 << 13;
+      self.0 ^= self.0 >> 7;
+      self.0 ^= self.0 << 17;
+      self.0 % n
+    }
+    fn name(&mut self) -> Name {
+      ["a", "b", "c", "d"][self.below(4) as usize].into()
+    }
+  }
+  fn value(rng: &mut Rng, depth: u32) -> Value {
+    match if depth > 3 { rng.below(4) } else { rng.below(9) } {
+      0 => value_null!(),
+      1 => value_number!(1),
+      2 => Value::String("s".into()),
+      3 => Value::Boolean(true),
+      4..=6 => Value::Context(context(rng, depth)),
+      7 => Value::List((0..rng.below(4)).map(|_| value(rng, depth + 1)).collect()),
+      _ => Value::List(vec![value_null!(), value_number!(1)]),
+    }
+  }
+  fn context(rng: &mut Rng, depth: u32) -> FeelContext {
+    let mut ctx = FeelContext::default();
+    for _ in 0..rng.below(4) {
+      ctx.set_entry(&rng.name(), value(rng, depth + 1));
+    }
+    ctx
+  }
+  /// A value like the template: the template, the template with one entry removed, set to null,
+  /// added or replaced, or changed in the same way one level deeper; or null.
+  fn variant(rng: &mut Rng, template: &FeelContext) -> Value {
+    let mut ctx = template.clone();
+    let name = rng.name();
+    match rng.below(7) {
+      0 => {}
+      1 => {
+        ctx.remove_entry(&name);
+      }
+      2 => ctx.set_entry(&name, value_null!()),
+      3 => ctx.set_entry(&name, value(rng, 2)),
+      4 | 5 => {
+        if let Some(Value::Context(inner)) = template.get_entry(&name) {
+          ctx.set_entry(&name, variant(rng, inner));
+        }
+      }
+      _ => return value_null!(),
+    }
+    Value::Context(ctx)
+  }
+  let mut rng = Rng(0x2545_F491_4F6C_DD1D);
+  let (mut contexts, mut mixed, mut total) = (0, 0, 0);
+  for _ in 0..if full() { 20_000 } else { 2_000 } {
+    let items = if rng.below(2) == 0 {
+      (0..rng.below(5)).map(|_| value(&mut rng, 1)).collect()
+    } else {
+      let template = context(&mut rng, 0);
+      (0..1 + rng.below(4)).map(|_| variant(&mut rng, &template)).collect()
+    };
+    let list = Value::List(items);
+    let expected = reference_type(&list);
+    assert_eq!(expected, list.type_of(), "{list}");
+    if let (FeelType::List(item_type), Value::List(items)) = (&expected, &list)
+      && items.len() > 1
+    {
+      contexts += usize::from(matches!(item_type.as_ref(), FeelType::Context(_)));
+      mixed += usize::from(matches!(item_type.as_ref(), FeelType::Any));
+      total += 1;
+    }
+  }
+  // both outcomes of the rule are frequent among the lists with several items
+  assert!(contexts > total / 5 && mixed > total / 5, "{contexts} lists of contexts, {mixed} mixed lists, of {total}");
 }

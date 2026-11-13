@@ -81,7 +81,8 @@ TIMEOUT = killed at the cap.
 ## What changed in our fork (dsntk-rs `wasm` branch)
 
 - All panic sites above return `null` with a reason or a syntax error (robustness commit).
-- `for` loops and list literal parsing are linear (1M iterations ≈ 0.3 s in wasm).
+- `for` loops and list literal parsing are linear (`count(for i in 1..1000000 return i)` ≈ 0.11 s
+  in wasm, measured 2026-11-13).
 - Numbers come from the dashu-float backend: bit-identical to Intel on exact operations,
   correctly rounded on `exp`/`ln`/`log`/fractional `pow` (so A5 gives `…46801`).
 - Verification round of 2026-10-17 fixed four more engine bugs that exist upstream too:

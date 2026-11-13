@@ -160,10 +160,11 @@ impl ModelEvaluator {
       return value_null!();
     };
     // the inputs of a business knowledge model are its parameters (DMN 1.6, §10.4), taken from the input data by name
-    let Value::FunctionDefinition(parameters, ..) = &function else {
+    let Value::FunctionDefinition(function_definition) = &function else {
       return value_null!();
     };
-    let arguments = parameters
+    let arguments = function_definition
+      .parameters
       .iter()
       .filter_map(|(name, _)| input_data.get_entry(name).map(|value| (name.clone(), value.clone())))
       .collect();

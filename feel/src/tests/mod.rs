@@ -1,10 +1,13 @@
 mod bif;
+mod bip;
 mod context;
 mod dto;
 mod function;
 mod names;
 mod qualified_names;
 mod scope;
+mod send_sync;
+mod strings_shared;
 mod types;
 mod values;
 

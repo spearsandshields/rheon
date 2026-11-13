@@ -1,7 +1,7 @@
 //! Request handling: `docs/CONTRACT.md` §2 (request) and §3 (response).
 
 use crate::display::display;
-use crate::input::{feel_context, json_object_to_context, json_to_value};
+use crate::input::{Path, feel_context, json_into_value, json_object_into_context};
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, ErrorMode};
 use rheon_feel::dto::ValueDto;
@@ -118,16 +118,26 @@ fn handle(request: &str) -> Result<Json, Failure> {
   let Json::Object(req) = request else {
     return fail(Kind::Request, "request must be a JSON object");
   };
+  enum Op {
+    Info,
+    Evaluate,
+    Parse,
+  }
   let op = match req.get("op") {
-    Some(Json::String(op)) => op.as_str(),
+    Some(Json::String(op)) => match op.as_str() {
+      "info" => Op::Info,
+      "evaluate" => Op::Evaluate,
+      "parse" => Op::Parse,
+      other => return fail(Kind::Request, format!("unknown op '{other}' (expected 'evaluate', 'parse' or 'info')")),
+    },
     None => return fail(Kind::Request, "missing 'op'"),
     Some(_) => return fail(Kind::Request, "'op' must be a string"),
   };
+  // the request is handed over: its context and input are converted by value
   match op {
-    "info" => Ok(info()),
-    "evaluate" => evaluate(&req, started),
-    "parse" => parse(&req, started),
-    other => fail(Kind::Request, format!("unknown op '{other}' (expected 'evaluate', 'parse' or 'info')")),
+    Op::Info => Ok(info()),
+    Op::Evaluate => evaluate(req, started),
+    Op::Parse => parse(req, started),
   }
 }
 
@@ -175,26 +185,29 @@ fn error_mode(req: &Map<String, Json>) -> Result<ErrorMode, Failure> {
   }
 }
 
-fn expression(req: &Map<String, Json>) -> Result<&str, Failure> {
-  match req.get("expression") {
-    Some(Json::String(e)) => Ok(e.as_str()),
+/// Takes the expression out of the request.
+fn expression(req: &mut Map<String, Json>) -> Result<String, Failure> {
+  match req.remove("expression") {
+    Some(Json::String(e)) => Ok(e),
     None => fail(Kind::Request, "missing 'expression'"),
     Some(_) => fail(Kind::Request, "'expression' must be a string"),
   }
 }
 
-/// Builds the input context from `context` / `contextFormat`.
-fn context(req: &Map<String, Json>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
+/// Builds the input context from `context` / `contextFormat`, taking the context out of the request.
+fn context(req: &mut Map<String, Json>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
+  // a &'static str, so that the context can be taken out of the request below
   let format = match req.get("contextFormat") {
     None | Some(Json::Null) => "json",
-    Some(Json::String(f)) if f == "json" || f == "feel" => f.as_str(),
+    Some(Json::String(f)) if f == "json" => "json",
+    Some(Json::String(f)) if f == "feel" => "feel",
     Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {other} (expected \"json\" or \"feel\")")),
   };
-  match (format, req.get("context")) {
+  match (format, req.remove("context")) {
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
-    ("json", Some(Json::Object(map))) => json_object_to_context(map, "", warnings).map_err(|e| Failure(Kind::Context, e)),
+    ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e)),
     ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
-    (_, Some(Json::String(text))) => feel_context(text).map_err(|e| Failure(Kind::Context, e)),
+    (_, Some(Json::String(text))) => feel_context(&text).map_err(|e| Failure(Kind::Context, e)),
     (_, Some(_)) => fail(Kind::Context, "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal"),
   }
 }
@@ -227,18 +240,19 @@ fn question_mark() -> Name {
 }
 
 /// Prepares the scope (and for unary tests binds `?`), returning warnings collected so far.
-fn prepare_scope(req: &Map<String, Json>, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelScope, Failure> {
-  let mut ctx = context(req, warnings)?;
+/// Takes the rest of the request: it is not needed any more.
+fn prepare_scope(mut req: Map<String, Json>, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelScope, Failure> {
+  let mut ctx = context(&mut req, warnings)?;
   if dialect == Dialect::UnaryTests {
-    match req.get("input") {
+    match req.remove("input") {
       Some(input) => {
-        let value = json_to_value(input, "input", warnings).map_err(|e| Failure(Kind::Context, e))?;
-        ctx.set_entry(&question_mark(), value);
+        let value = json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e))?;
+        ctx.insert(question_mark(), value);
       }
       None => {
         if ctx.get_entry(&question_mark()).is_none() {
           warnings.push("no input value given ('input' or context[\"?\"]); testing null".to_string());
-          ctx.set_entry(&question_mark(), Value::Null(None));
+          ctx.insert(question_mark(), Value::Null(None));
         }
       }
     }
@@ -329,15 +343,15 @@ fn uses_question_mark(node: &AstNode) -> bool {
   false
 }
 
-fn evaluate(req: &Map<String, Json>, started: Instant) -> Result<Json, Failure> {
-  let dialect = dialect(req)?;
-  let language = language(req)?;
-  let error_mode = error_mode(req)?;
-  let expression = expression(req)?;
-  apply_tz_offset(req)?;
+fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failure> {
+  let dialect = dialect(&req)?;
+  let language = language(&req)?;
+  let error_mode = error_mode(&req)?;
+  let expression = expression(&mut req)?;
+  apply_tz_offset(&req)?;
   let mut warnings = vec![];
   let scope = prepare_scope(req, dialect, &mut warnings)?;
-  let node = parse_node(&scope, dialect, expression)?;
+  let node = parse_node(&scope, dialect, &expression)?;
   let node = match dialect {
     Dialect::Expression => node,
     Dialect::UnaryTests => {
@@ -366,12 +380,12 @@ fn evaluate(req: &Map<String, Json>, started: Instant) -> Result<Json, Failure> 
   }))
 }
 
-fn parse(req: &Map<String, Json>, started: Instant) -> Result<Json, Failure> {
-  let dialect = dialect(req)?;
-  let expression = expression(req)?;
+fn parse(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failure> {
+  let dialect = dialect(&req)?;
+  let expression = expression(&mut req)?;
   // The context is optional for parsing, but it tells the parser which (multi-word) names exist.
   let scope = prepare_scope(req, dialect, &mut vec![])?;
-  let node = parse_node(&scope, dialect, expression)?;
+  let node = parse_node(&scope, dialect, &expression)?;
   Ok(json!({
     "ok": true,
     "tree": node.to_string(),

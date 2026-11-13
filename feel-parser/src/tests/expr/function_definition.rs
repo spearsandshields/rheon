@@ -1,5 +1,4 @@
 use super::super::*;
-use crate::context::ParsingContext;
 use crate::lalr::TokenType::*;
 
 #[test]
@@ -223,12 +222,8 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  let scope = scope!();
-  let mut ctx_inner = ParsingContext::default();
-  ctx_inner.set_name("c".into());
-  let mut ctx_outer = ParsingContext::default();
-  ctx_outer.set_context("b".into(), ctx_inner);
-  scope.set_context("a".into(), ctx_outer);
+  let frames = [input_context(&[], vec![("a", input_context(&[], vec![("b", input_context(&["c"], vec![]))]))])];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,

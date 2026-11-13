@@ -13,11 +13,9 @@ repository's content now lives here (`wasm/`, `packages/`, `apps/`, `docs/`,
 
 Rules:
 
-- Engine changes are small, self-contained commits. The "PR candidate" column
-  below records which ones would be upstreamable; offering them is not a
-  priority (decision of 2026-10-28).
-- `fastnum-backend` is a side branch with the experimental fastnum number
-  backend (see below); it is not needed for wasm.
+- Engine changes are small, self-contained commits.
+- `fastnum-backend` is an unpublished side branch with the experimental fastnum
+  number backend (see below); it is not needed for wasm.
 - The `rheon-*` crates are published on crates.io (`cargo publish --workspace`, see
   "Publishing" below). The four upstream crates rheon never changed (`dsntk-common`,
   `-macros`, `-feel-grammar`, `-recognizer`) left the tree on 2026-11-09 and are used from
@@ -44,50 +42,66 @@ Rules:
   byte-identical to `dsntk-wasm/third_party/dsntk` (verified with
   `diff -r`, excluding `target/`, `.git/` and `.bootstrap-stamp`).
 
-## Commits on `wasm` (oldest first)
+## Engine commits (oldest first)
 
-| # | SHA | Title | Origin | PR candidate |
-|---|-----|-------|--------|--------------|
-| 1 | `e1fc50dc2a3fd9b941712ee0e76c01a51bf74b99` | Build on wasm32: gate Java external functions, 32-bit isize/usize conversions | `0001-wasm32-support.patch` | yes |
-| 2 | `b1a04ca6aaec7a93d57ca4141587e7f2c0b5eb4f` | feel-temporal: process-wide local UTC offset override for hosts without a time zone | `0002-local-offset-override.patch` | yes |
-| 3 | `ec2ced32fff2b0fdc72a8173385774cbb654a567` | Robustness: no user-reachable panics, non-finite numbers are null, call depth limit, iterative AST drop | `0003-robustness.patch` | yes (split, see below) |
-| 4 | `55948221d3e11df370366696d3d52431820d7c9f` | Linear `for` loops and list literal parsing (were quadratic) | `0004-linear-for-and-list-parsing.patch` | yes (overlaps upstream PR #112) |
-| 5 | `8c56f2c83c5fb28d3cdd5d8faa10444ffa4d4996` | Add docs/FORK.md | fork only | no |
-| 6 | `1fd27a4` | feel-number: shared decimal128 core for pure-Rust backends | dashu spike | maybe (see below) |
-| 7 | `dde684a` | feel-number: dashu-float backend, feature `dashu` (default) \| `intel` | dashu spike | maybe |
-| 8 | `c75b0da` | Forward the number backend features through the whole workspace | fork | with 6-7 |
-| 9 | `ecf9feb` | Tests: per-backend expectations where Intel's rounding error is encoded, dashu regressions | fork | with 6-7 |
-| 10 | `e6b67e8` | feel-number: track the sign of NaN like Intel (Debug-visible only) | fork | with 6-7 |
-| 11 | `6af4e49` | tools: differential fuzz and FEEL corpus harnesses (Intel vs dashu) | dashu spike | no |
-| 12 | `0bfbc9b` | feel-number: `NUMBER_BACKEND` constant naming the compiled-in backend | fork | with 6-7 |
-| 13 | `3fe6406` | tools: vendor the patched dfp-number-sys used as the Intel reference | fork only | no |
-| 14 | `8542135` | feel-number: scale rounding keeps the scale when the rounded coefficient is ±1 | upstream bug | yes |
-| 15 | `7c16676` | feel-evaluator: stop a numeric `for` range when the step is lost to rounding | upstream bug | yes |
-| 16 | `6f08eab` | feel-temporal: time ± duration wraps at midnight; order times and date-times across offsets as instants | upstream bug | yes |
-| 17 | `cb5997f` | feel-parser: bound the name-prefix search in the lexer (path chains were cubic) | upstream bug | yes |
-| 18 | `58bbc18` | feel-evaluator: readable null reasons for time/exp/log/duration; huge numbers in messages in scientific notation | fork | maybe |
-| 19 | `f619d8a` | feel-temporal: `is()` on times stays zone-strict now that `=` compares instants | with 16 | yes |
-| 20 | `3dbd70e` | model-evaluator: expectations for the new null reasons of time(), exp(), log() and duration() | with 18 | with 18 |
-| 21 | `4b5ca51` | feel-number: scale-based rounding accepts the full FEEL scale range -6111..=6176 | TCK 1141-1144 | yes |
-| 22 | `69e81cc` | feel-regex: back-references in `matches` patterns (fancy-regex) | TCK 1111 | yes |
-| 23 | `b3b616b` | model: accept the DMN 1.6 namespace | DMN 1.6 | no |
-| 24 | `f893c57` | feel: single-argument rounding and number(from); trim, intersection, insert after (1.7 beta) | DMN 1.6 | no |
-| 25 | `f3259a0` | feel: `value` property of temporal values; filters on a non-list; number() text must be a numeric literal; tck-addendum | DMN 1.6 | no |
-| 26 | `18bcd98` | feel: truncate fractional list positions before the sign check (remove panicked) | upstream bug | yes |
-| 27 | `f9b8111` | feel: date and time(date, time, timezone) | DMN 1.6 | no |
-| 28 | `4aa566d` | model: load ONNX functions; compatibility tests follow the 1.6 changes | DMN 1.6 | no |
-| 29 | `62bcf99` | feel-grammar back in the tree as rheon-feel-grammar (tables reproduce byte for byte) | fork | no |
-| 30 | `18f0fd1` | feel: descendant operator `e...name` (grammar, lexer, AST, evaluator) | DMN 1.6 | no |
-| 31 | `070be1a` | model: implicit conversions, TCK 1157 12/12 | TCK 1157 | no |
-| 32 | `b986c79` | model: multiple imports (per-model import names), TCK 1160 4/4; boxed for over a single value | TCK 1160 | no |
-| 33 | `e56f08c` | feel: B-FEEL; all()/any() follow the deciding item | DMN 1.6 | no |
-| 34 | `6baa444` | feel: diagnostics and lenient/strict error modes; wasm `language`, `errorMode`, `diagnostics` | DMN 1.6 | no |
-| 35 | `5e04541` | feel: equality with null no longer depends on the operand order | upstream bug | no |
-| 36 | `94ec326` | feel: null equality is one rule; a non-conformant argument ends the invocation | upstream bug | no |
-| 37 | `f65f252` | feel: one invocation for every function call (Table 64) | DMN 1.6 | no |
-| 38 | `a1d5a62` | feel: `in` treats every null alike | upstream bug | no |
+| # | SHA | Title | Origin |
+|---|-----|-------|--------|
+| 1 | `e1fc50dc2a3fd9b941712ee0e76c01a51bf74b99` | Build on wasm32: gate Java external functions, 32-bit isize/usize conversions | `0001-wasm32-support.patch` |
+| 2 | `b1a04ca6aaec7a93d57ca4141587e7f2c0b5eb4f` | feel-temporal: process-wide local UTC offset override for hosts without a time zone | `0002-local-offset-override.patch` |
+| 3 | `ec2ced32fff2b0fdc72a8173385774cbb654a567` | Robustness: no user-reachable panics, non-finite numbers are null, call depth limit, iterative AST drop | `0003-robustness.patch` |
+| 4 | `55948221d3e11df370366696d3d52431820d7c9f` | Linear `for` loops and list literal parsing (were quadratic) | `0004-linear-for-and-list-parsing.patch` |
+| 5 | `8c56f2c83c5fb28d3cdd5d8faa10444ffa4d4996` | Add docs/FORK.md | fork only |
+| 6 | `1fd27a4` | feel-number: shared decimal128 core for pure-Rust backends | dashu spike |
+| 7 | `dde684a` | feel-number: dashu-float backend, feature `dashu` (default) \| `intel` | dashu spike |
+| 8 | `c75b0da` | Forward the number backend features through the whole workspace | fork |
+| 9 | `ecf9feb` | Tests: per-backend expectations where Intel's rounding error is encoded, dashu regressions | fork |
+| 10 | `e6b67e8` | feel-number: track the sign of NaN like Intel (Debug-visible only) | fork |
+| 11 | `6af4e49` | tools: differential fuzz and FEEL corpus harnesses (Intel vs dashu) | dashu spike |
+| 12 | `0bfbc9b` | feel-number: `NUMBER_BACKEND` constant naming the compiled-in backend | fork |
+| 13 | `3fe6406` | tools: vendor the patched dfp-number-sys used as the Intel reference | fork only |
+| 14 | `8542135` | feel-number: scale rounding keeps the scale when the rounded coefficient is ±1 | upstream bug |
+| 15 | `7c16676` | feel-evaluator: stop a numeric `for` range when the step is lost to rounding | upstream bug |
+| 16 | `6f08eab` | feel-temporal: time ± duration wraps at midnight; order times and date-times across offsets as instants | upstream bug |
+| 17 | `cb5997f` | feel-parser: bound the name-prefix search in the lexer (path chains were cubic) | upstream bug |
+| 18 | `58bbc18` | feel-evaluator: readable null reasons for time/exp/log/duration; huge numbers in messages in scientific notation | fork |
+| 19 | `f619d8a` | feel-temporal: `is()` on times stays zone-strict now that `=` compares instants | with 16 |
+| 20 | `3dbd70e` | model-evaluator: expectations for the new null reasons of time(), exp(), log() and duration() | with 18 |
+| 21 | `4b5ca51` | feel-number: scale-based rounding accepts the full FEEL scale range -6111..=6176 | TCK 1141-1144 |
+| 22 | `69e81cc` | feel-regex: back-references in `matches` patterns (fancy-regex) | TCK 1111 |
+| 23 | `b3b616b` | model: accept the DMN 1.6 namespace | DMN 1.6 |
+| 24 | `f893c57` | feel: single-argument rounding and number(from); trim, intersection, insert after (1.7 beta) | DMN 1.6 |
+| 25 | `f3259a0` | feel: `value` property of temporal values; filters on a non-list; number() text must be a numeric literal; tck-addendum | DMN 1.6 |
+| 26 | `18bcd98` | feel: truncate fractional list positions before the sign check (remove panicked) | upstream bug |
+| 27 | `f9b8111` | feel: date and time(date, time, timezone) | DMN 1.6 |
+| 28 | `4aa566d` | model: load ONNX functions; compatibility tests follow the 1.6 changes | DMN 1.6 |
+| 29 | `62bcf99` | feel-grammar back in the tree as rheon-feel-grammar (tables reproduce byte for byte) | fork |
+| 30 | `18f0fd1` | feel: descendant operator `e...name` (grammar, lexer, AST, evaluator) | DMN 1.6 |
+| 31 | `070be1a` | model: implicit conversions, TCK 1157 12/12 | TCK 1157 |
+| 32 | `b986c79` | model: multiple imports (per-model import names), TCK 1160 4/4; boxed for over a single value | TCK 1160 |
+| 33 | `e56f08c` | feel: B-FEEL; all()/any() follow the deciding item | DMN 1.6 |
+| 34 | `6baa444` | feel: diagnostics and lenient/strict error modes; wasm `language`, `errorMode`, `diagnostics` | DMN 1.6 |
+| 35 | `5e04541` | feel: equality with null no longer depends on the operand order | upstream bug |
+| 36 | `94ec326` | feel: null equality is one rule; a non-conformant argument ends the invocation | upstream bug |
+| 37 | `f65f252` | feel: one invocation for every function call (Table 64) | DMN 1.6 |
+| 38 | `a1d5a62` | feel: `in` treats every null alike | upstream bug |
+| 39 | `d39b7d6` | feel-parser: names found in an index over the borrowed input contexts; composite names searched, not flattened | upstream bug |
+| 40 | `d39b7d6` | feel: the type of a list of contexts without building the item types | fork |
+| 41 | `d39b7d6` | feel-evaluator: every evaluator that pushes a context restores the scope depth on return | upstream bug |
+| 42 | `d39b7d6` | feel-evaluator: FEEL loops and filters move their contexts instead of cloning them | fork |
+| 43 | `d39b7d6` | feel-number: decimal128 comparison, digit count and packing without 128-bit division | fork |
+| 44 | `d39b7d6` | feel: function values share their definition (`Arc<FunctionDefinition>`) | fork |
+| 45 | `d39b7d6` | feel-wasm: request input converted by value | fork |
+| 46 | `d39b7d6` | feel-evaluator: subtraction null reasons from the evaluated operands (2^n - 1 diagnostics become n) | upstream bug |
+| 47 | `d39b7d6` | wasm profile at opt-level 3 with a 10 MiB shadow stack | fork |
+| 48 | `22afefd` | feel-parser: an iteration variable that starts with `in` is a syntax error, not a trap | upstream bug |
+| 49 | `075af71` | feel-parser: a range literal's named temporal parameter keeps its name | upstream bug |
+| 50 | `039128f` | feel-parser: list grammar actions append and complete each list once (the tails were quadratic) | upstream bug |
+| 51 | `35f53e6`..`4aca592` except `cb925d0` | feel-parser: lexer and parser without per-token copies | fork |
+| 52 | `cb925d0` | feel-parser: the composite-name search without recursion | fork |
+| 53 | `6dcbbba` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug |
+| 54 | `ff98977` | feel: strings share their text (`FeelString`) | fork |
 
-(Full SHAs: `git log --format='%H %s' main..wasm`.)
+(The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
 What each commit does:
 
@@ -195,8 +209,10 @@ What each commit does:
 17. **Lexer.** `.` is an additional name symbol, so after each `Dot` the lexer
     scanned the rest of an `a.a.a…` chain as one candidate name and tried
     every prefix (O(n³) for n steps; 400 steps took 2 s). Prefixes longer
-    than the longest key in scope (or built-in property name) are skipped;
-    the fallback name is unchanged.
+    than any name the scope can match are skipped; the fallback name is
+    unchanged. The bound counts the composite keys only for a candidate
+    with a part that trims to empty, and the built-in property names only
+    right after a dot (39).
 18. **Messages.** `time("10:00:00+15:00")` said `time_1`, `exp(14150)` said
     `exp`, `duration("P")` said `duration`, `log(0)` said nothing; they now
     say what is wrong, and type errors use the `invalid argument type` form.
@@ -219,6 +235,177 @@ What each commit does:
     `replace`/`split` keep `regex`. With the `x` flag, whitespace inside
     `\p{...}` is stripped before compiling. TCK 1111 `K2-MatchesFunc-17`
     passes unpatched.
+
+Commits 23-38 are described in their commit messages. Commits 39-54 make parsing and
+evaluation faster and fix the upstream bugs found on the way; apart from the fixes marked
+"upstream bug", every response is the same as 0.3.0's (measured below).
+
+39. **Name index.** For every parse 0.3.0 converted the whole evaluation scope into a parsing
+    scope (a deep copy of every input context), and for every name the lexer read it built
+    the set of all flattened keys in scope, the composite keys `k1 . k2 . … . kn` of nested
+    contexts included. That set grows exponentially with the nesting depth: a path
+    `k0.k1.….k99` into a 100-level context ran into the 512 MiB cap. `ParsingScope<'a>` now
+    borrows the input contexts (`FeelScope::frames`) and indexes each one on first use
+    (`FrameIndex`: one walk with an explicit stack over the nested contexts, the context types
+    and the item type of a list of contexts whose items all conform to it). A name that
+    contains the composite separator ` . ` is found by a search over the states (node, offset
+    in the name), each visited at most once. The lexer's prefix bound (17) is computed without
+    the set: the composite keys count only for a candidate with a part that trims to empty
+    (only U+1680 trims away, and only such a part can put ` . ` into a candidate), the
+    built-in property names (14 bytes at most, derived from `bip::BUILT_IN_PROPERTY_NAMES`,
+    `5954a8f`) only right after a dot. One function decides which values carry nested names,
+    for the index, the composite search and the contexts pushed while parsing (`4a6a585`); list
+    item types are keyed by address, so `ParsingScope` is `Send` as at 0.3.0 (`74620b7`).
+40. **List types.** `Value::type_of` of a list built the type of every item to find the common
+    item type of a list of contexts. A context is now checked against a context type entry by
+    entry, without building its type (`121517c`: one rule for the type of a list). The types are
+    the same; randomized tests compare the rule with 0.3.0's at every nesting level.
+41. **Scope depth.** The filter (`only number or boolean indexes`) and the context literal (an
+    entry that is a null) returned early without popping the context they had pushed, so the
+    caller popped the wrong one: `for i in 1..3 return [1,2]["x"]` was `[null]` (two results
+    lost), and in `{r: for i in 1..3 return [1,2]["x"], s: i}` the loop variable was still
+    visible after the loop (`s: 3`). Every evaluator that pushes a context (filter, context
+    literal, invocation, B-FEEL operands, iterations) records the depth and restores it on every
+    return (`FeelScope::{depth, truncate, pop_frame}`): three nulls, and `s: null`.
+42. **Loops and filters move their contexts.** FEEL `for`, `some` and `every` cloned the
+    iteration context into the scope for every iteration, and the filter cloned every item.
+    They now move the context into the scope and back (`partial` is assigned in place,
+    `FeelContext::assign_entry`). The filter moves each item: a context with an `item` entry
+    becomes the frame itself, another context is copied once for its entries, and the frame
+    `{item: …}` is reused from item to item. The iteration advances with `next()` alone, and
+    `some` and `every` stop iterating at the deciding item (0.3.0 stopped evaluating there but
+    ran the iteration to its end; results and diagnostics are the same). If an evaluation
+    removed the iteration or item context, which no evaluator does, the loop, filter, `some` or
+    `every` returns null with an internal-error reason instead of a wrong result, after the
+    scope is restored (`910a535`); `ForExpressionEvaluator::evaluate` returns that `Value`.
+    The model evaluator's boxed iterators and filters keep copying (`new()`), because a boxed
+    context writes its entries into the context on the top of the scope (docs/BACKLOG.md); the
+    FEEL builders use `for_feel()`. `count(for i in 1..10000 return i)` natively: 132
+    allocations (+17 reallocations) per call, 40,199 (+26) at 0.3.0.
+43. **Decimal fast paths.** `digit_count` comes from the bit length (times 1233/4096, then one
+    comparison with a power of ten) instead of 128-bit divisions. Two finite numbers with equal
+    exponents are compared by their coefficients; otherwise only the coefficient with the
+    larger exponent is scaled (`checked_mul`; an overflow means that side is larger).
+    `round_pack_u128` returns at once for a coefficient below 10^34 with the exponent in range.
+    Exact: unit tests compare each path with the general algorithm on every edge value and on
+    random values (`feel-number/src/decimal128/tests.rs`), and `tools/difftest/run.sh 100000`
+    (3,900,001 cases) on this code gives the same mismatch set, cohorts and oracle verdicts
+    against Intel as 0.3.0's core. The production code of `decimal128.rs` is unchanged since
+    `d39b7d6`.
+44. **Shared function definitions.** `Value::FunctionDefinition` holds an
+    `Arc<FunctionDefinition>` (named fields, `FunctionDefinition::new`, `From<FunctionDefinition>
+    for Value`) instead of six fields, so a name lookup or an argument copies a pointer. The
+    invocation borrows the definition, and `closed_over` copies it (`Arc::make_mut`) only when
+    the closure has entries to add. Arguments and results are coerced by value
+    (`Value::try_into_coerced`, `into_coerced`, with the checks of `try_coerced`, `6e5b59d`).
+    Without the copy of each argument the allocator placed strings differently, and a recursion
+    that doubles a string 26 times hit the 512 MiB cap; commit 54 removes that (shared strings).
+    `size_of::<Value>()` is 64 B natively (128 B at 0.3.0) and 64 B on wasm32 (as at 0.3.0:
+    there the 48-byte `FeelNumber` sets it). `FunctionDefinition` derives `Debug` (`359a14a`),
+    so the `Debug` text of a function value differs from 0.3.0's.
+45. **Input by value.** The request's `context` and `input` are converted by value: strings
+    and keys are moved (a key that trimming leaves unchanged becomes the `Name` without a
+    copy), numbers are parsed from the JSON number's own text (`arbitrary_precision`), entries
+    are inserted with `FeelContext::insert`, and the rest of the request is dropped before
+    parsing. The path of a value in warnings and errors (`a.b[0]`) is written only when a
+    message needs it, without recursion (`8dcba2b`). The texts and order of the warnings and
+    errors are 0.3.0's (golden tests in `wasm/feel-wasm/tests/contract.rs`).
+46. **Subtraction reasons.** The null reason of a failing subtraction evaluated both operands
+    again to print them, so a chain of failing subtractions was exponential:
+    `{a: "x", r: a - 1 - … - 1}.r` with 16 subtractions recorded 65,535 diagnostics
+    (2^n - 1). The reason is formatted from the operands already evaluated: 16 diagnostics, with
+    the same texts.
+47. **Build profile.** `[profile.wasm]` builds at `opt-level = 3` (was `"z"`); its stack frames
+    are larger, so the shadow stack is 10 MiB (was 8 MiB, `wasm/feel-wasm/build.rs`).
+    `scripts/stack-headroom.mjs` (`npm run stack`, run by CI, `4fffdf0`) checks that five
+    constructs nested to the AST depth limit evaluate on Node's main thread, in a Node worker
+    with a 4 MiB stack and in Wasmtime with a 4 MiB wasm stack, and that a recursion of 190
+    calls whose body is nested 60 levels (the depth 0.3.0 reaches in the TurboFan worker and in
+    Wasmtime, measured on macOS arm64) evaluates in the worker and in Wasmtime. Measured on
+    the final module (macOS arm64, Node 26, Wasmtime 49.0.3):
+    - engine time: an opt-level z build of the same code takes 1.85x as long (geomean of 24
+      requests, two alternating runs);
+    - size: 3,786,626 B raw, 1,018,652 B gzip, 667,524 B brotli (opt-level z: 3,160,691 /
+      840,786 / 552,386; 0.3.0: 3,129,141 / 830,762 / 545,186);
+    - initial linear memory: 11.38 MiB (0.3.0: 9.38 MiB);
+    - the deepest body (nesting levels) with which `npm run stack -- --report`'s recursion of
+      190 calls still evaluates: Node worker with a 4 MiB stack 64 with either V8 compiler
+      (0.3.0: 49 Liftoff, 60 TurboFan), Wasmtime with a 4 MiB wasm stack 64 (0.3.0: 60),
+      Wasmtime's default 512 KiB 8 (0.3.0: 6), Node's main thread 17 Liftoff, 14 TurboFan
+      (0.3.0: 10, 14). At 64 the 10 MiB shadow stack runs out, not the host's native stack.
+48. **`in` at the start of an iteration variable.** Where the grammar expects an iteration
+    variable, the lexer cuts the name before its first `in` part. When the first part was `in`
+    the cut underflowed (`index - 1`): `for in+1 in [1] return 1`, `for in[1] return 1` and
+    `some in.x in [1] satisfies true` panicked natively and trapped the wasm instance. Such an
+    `in` is now the keyword `in` (a name never starts with a literal terminal symbol,
+    DMN 1.6 §10.3.1.4), so these are syntax errors; `for in1 in [1] return in1` is `[1]` as
+    at 0.3.0. After a variable named `item` the mode stays set (docs/BACKLOG.md), so
+    `for item in[1] return item` (a trap at 0.3.0) is `[1]`.
+49. **Range literal with a named parameter.** The grammar action for the named temporal
+    parameter of a range literal read the colon's slot, so
+    `range("[date(from: \"2012-01-01\")..date(\"2013-01-01\")]")` built `date` with an unnamed
+    string and was null ("invalid range literal"). `feel.y` models the parameter like a named
+    parameter of an invocation (tables regenerated with Bison 3.8.2): the range
+    `[2012-01-01..2013-01-01]`.
+50. **List grammar actions.** The nine list-tail actions inserted each item at the front
+    (`insert(0)`, quadratic in the length of the list; commit 4 fixed only the list literal).
+    Every list is now built by appending and completed once by its consumer, through one pair
+    of helpers (`f8957b4`).
+51. **Lexer and parser without per-token copies.** Each step is exact (the token streams, ASTs
+    and errors are compared on exhaustive and randomized inputs):
+    - token values move into the AST; the parser's stacks start with room for 16 states,
+      16 values and 8 nodes;
+    - each name chain is scanned once per parse, and its parts are byte ranges into the input,
+      not strings;
+    - a candidate without an empty part skips the composite search, and probing the contexts
+      pushed while parsing allocates nothing;
+    - the candidate bound uses only the names that share the token's first word;
+    - the input index is built on first use, and a one-part name needs no lookup unless the
+      scope decides its token;
+    - string literals without escapes and runs of digits take one exact allocation;
+    - the keyword window (12 characters) is read only after a keyword's initial;
+    - the lexer reads the input `&str` in place (0.3.0 copied it into a `Vec<char>`, 4 bytes
+      per character).
+
+    Memory, measured natively on the final code against the code of commit 39: `x1 + x2 + … +
+    x400` with the 400 names in the context takes 2,953 allocations per call (164,153), and its
+    peak live memory is 172,541 B (147,801 B), because the parts of every name chain are kept
+    for the whole parse (32 B per part natively, 16 B on wasm32). The parse of `1 + 2` peaks at
+    2,338 B (1,338 B), the stacks reserved up front.
+52. **Composite search without recursion.** The first composite lookup converted every input
+    context into a parsing context with a recursive conversion (stack depth = nesting depth).
+    The search runs on the index's nodes with an explicit stack, and one implementation serves
+    the input contexts and the contexts pushed while parsing (`1e1f677`). A composite name
+    2,000 levels down parses in a 256 KiB thread. Requests to feel.wasm cannot nest that deep
+    (JSON contexts stop at about 125 levels, FEEL contexts at the AST limit), so this is
+    robustness for direct callers of the library.
+53. **Date range at the limit.** A date range that ends at the last supported date
+    (262142-12-31, going up) or the first (-262143-01-01, going down) repeated its end date when
+    an outer iteration context advanced, instead of restarting at its start: the iteration
+    contexts are a cross product, inner to outer (DMN 1.6 §10.3.2.14).
+54. **Shared strings.** `Value::String` holds a `FeelString`, a newtype over `Arc<String>`, so a
+    name lookup, a string literal or a copied list item copies a pointer, not the text. The one
+    operation that changes a string, `+` (FEEL and B-FEEL), appends in place when its left
+    operand is not shared and otherwise allocates the result once at its final length. Every
+    output, message and `Debug` text is unchanged. With commit 44's arguments moved instead of
+    copied, `s + s` had left freed operand copies behind as holes too small for the next, longer
+    string; now no operand is copied. A recursion that doubles a string argument 23 times grows
+    linear memory by 32.06 MiB, 2.00x the 16 MiB result (0.3.0: 48.06 MiB, 3.00x), and 26
+    doublings complete at a peak of 267.44 MiB (0.3.0: 393.44 MiB). Each string now carries a
+    40-byte shared header: filtering 10,000 contexts (`list-filter-count`) makes 40,000 fewer
+    allocations and peaks 3.3% higher natively (22.46 MB against 21.75 MB before this commit;
+    51.6 MB at 0.3.0). Speed against the build before this commit: 1.006x on the geomean of
+    the 24 requests.
+
+Speed, measured 2026-11-13 on the final module (wasm, Node 26 on macOS arm64, median wall time
+of a `feel_call` on a warm instance): 5.31x 0.3.0's speed on the geomean of 24 requests and
+5.10x on 84 parse-heavy requests. For example, a formula over a 1,000-entry input context
+7.13 ms → 0.46 ms; a 200-entry context literal with a 1,000-entry input context 188 ms →
+1.36 ms; `x1 + … + x400` 55.0 ms → 0.29 ms; the 100-segment path `a.a.….a` 356 ms → 0.36 ms;
+a 5,000-entry context literal 19.2 ms → 6.2 ms; `count(for i in 1..10000 return i)` 7.58 ms →
+1.11 ms; filtering 10,000 contexts 38.3 ms → 11.1 ms. Full responses (result, type, warnings,
+diagnostics, errors) of 1,174 requests (evaluate requests and a parse request made from each)
+equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48, 49 and 53.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -257,6 +444,19 @@ functions), 20 ignored. Clippy is clean for the touched crates.
   of such results (`exp(74.971090)`, `exp(log(2.5))`, `log(exp(7))`).
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
+
+Commits 39-53 (2026-11-13): workspace 8,488 passed, 0 failed, 24 ignored (CI's skips); clippy
+without warnings; feel.wasm tests 56 native and 57 under Wasmtime; runtime 33; the randomized
+and exhaustive tests at full size (`RHEON_FULL_TESTS=1`, release, with the parser corpus) 867
+passed, with no unregistered difference against the frozen reference front end; DMN TCK via
+`scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, no result changed against
+`docs/tck-baseline.txt`.
+
+Commit 54 (2026-11-13): workspace 8,500 passed, 0 failed (CI's skips); feel.wasm tests native
+and under Wasmtime, runtime 33 and smoke pass; full responses of 1,382 requests identical to
+the build before it; DMN TCK per-test results unchanged; the stack check passes, every depth at
+least as deep as before (Wasmtime with 512 KiB, 1 MiB, 2 MiB: 9, 23, 52 nested levels, was 8,
+21, 48).
 
 DMN 1.6 work (commits 23-34, 2026-11-10): workspace 8,383 passed, 0 failed (CI skips);
 feel.wasm contract tests 53 under wasmtime; runtime 33; DMN TCK via `scripts/tck.sh`
@@ -344,7 +544,8 @@ dashu spike built feel-evaluator with `dashu` for `wasm32-wasip1` and
 
 ## The `fastnum-backend` branch
 
-`fastnum-backend` = the head of `wasm` + one commit adding
+`fastnum-backend` = commits 1-12 of the table above as they were on 2026-10-16 (before the history
+rewrite, so with other hashes) + one commit adding
 `feel-number/src/backend_fastnum.rs` behind feature `fastnum` (fastnum's
 D256 division, the spike's exp/ln series, `pow` as `exp(y ln x)` at a fixed
 77 digits, every result rounded once by the core from its digit string),
@@ -389,7 +590,8 @@ push; crates.io still records the pre-rewrite hash of 0.2.0 (`3209ccd`, now `a91
 
 The ten `rheon-*` crates share the workspace version (`[workspace.package] version`,
 rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`, `0.3.0` changed the API of
-`rheon-feel` and `rheon-feel-evaluator`) and pin each other with `=<version>` in
+`rheon-feel` and `rheon-feel-evaluator`, `0.4.0` changes the API of `rheon-feel`, `rheon-feel-parser`
+and `rheon-feel-evaluator`, see below) and pin each other with `=<version>` in
 the root manifest. Every other workspace member is `publish = false`, so one command
 publishes the set in dependency order:
 
@@ -412,6 +614,36 @@ together, run the verification above, commit, tag `vX.Y.Z`, publish.
 The built module reaches users through the npm package `@rheon/feel-runtime` (which ships
 `feel.wasm`) and the GitHub Release that `.github/workflows/release.yml` creates for every
 `vX.Y.Z` tag (`feel.wasm`, its sha256, the npm tarball and the playground build).
+
+The API changes of 0.4.0 (commits 39-54):
+
+- Changed:
+  - `rheon-feel`: `Value::FunctionDefinition` holds an `Arc<FunctionDefinition>` instead of six
+    fields. `Name` implements `Borrow<str>`, so `map.contains_key(&"d".into())` on a map keyed
+    by `Name` no longer infers its type (write `&Name::from("d")`). The `Debug` text of a
+    function value is the derived `Debug` of `FunctionDefinition`. `Value::String` holds a
+    `FeelString` (a shared `Arc<String>`) instead of a `String`: a pattern that binds the
+    `String` by value no longer compiles (`into_string()` returns it, without a copy when the
+    text is not shared); `value_string!` accepts anything that converts into `FeelString`.
+  - `rheon-feel-parser`: `ParsingScope<'a>` has a lifetime parameter (invariant) and borrows
+    the input contexts; `From<&FeelScope>` is removed, so outside the crate a scope is built
+    with `Default`; `pop()` returns `()`; `flattened()` is removed. `ParsingScope` is no longer
+    `UnwindSafe`: it holds references to the input contexts, and `FeelContext` is not
+    `RefUnwindSafe`, so a closure that uses a scope needs `AssertUnwindSafe` for
+    `catch_unwind`. It is `Send` and not `Sync`, as at 0.3.0.
+  - `rheon-feel-evaluator`: `ForExpressionEvaluator::evaluate` returns `Value` (was `Values`).
+    `FilterExpressionEvaluator` has a private field, so it is built with `new()`, `default()`
+    or `for_feel()`, not as `FilterExpressionEvaluator {}`.
+- Added: `FunctionDefinition` (with `new` and `From<FunctionDefinition> for Value`); `FeelString`
+  (with `From<FeelString> for Value`);
+  `FeelScope::{frames, depth, truncate, pop_frame}`; `FeelContext::{insert, assign_entry,
+  get_entry_mut}`; `Value::{try_into_coerced, into_coerced}`; `Name::from_parts`;
+  `bip::BUILT_IN_PROPERTY_NAMES`; `for_feel()` on `ForExpressionEvaluator`,
+  `SomeExpressionEvaluator`, `EveryExpressionEvaluator` and `FilterExpressionEvaluator`.
+- Kept: `FeelScope::contexts()`. The value types of `rheon-feel`, `AstNode`, `ClosureBuilder`,
+  `FilterExpressionEvaluator`, `Dialect` and `ModelEvaluator` are `Send` and `Sync`, and
+  `FeelScope` and `ParsingScope` are `Send`, as at 0.3.0; each crate's `send_sync` test checks
+  this at compile time.
 
 ### The pre-rename procedure (historical)
 
@@ -458,35 +690,6 @@ cherry-pick procedure above replaces it.
 
 If a commit was merged upstream, `git rebase` drops it automatically when
 the patch is identical; otherwise drop it by hand with `git rebase -i`.
-
-## PR candidates for DecisionToolkit/dsntk
-
-Commits 1-4 are written to be upstreamable (no dsntk-wasm specifics,
-no behaviour change on native targets unless a panic is turned into a null):
-
-- **Commit 1 (wasm32 support)** - send as is. Small, cfg-gated, no native
-  change.
-- **Commit 2 (local offset override)** - send as is. Opt-in, additive API in
-  `feel-temporal`; when unset the code path is the original one.
-- **Commit 3 (robustness)** - ideally split into one PR per crate
-  (feel-number Display/is_finite; feel-parser lexer surrogates + iterative
-  AstNode drop; feel-temporal checked durations; feel-evaluator non-finite
-  -> null, call depth, 64-bit positions; feel type_of). The call depth limit
-  (`MAX_CALL_DEPTH`) is the only part where upstream might prefer a
-  configurable value.
-- **Commit 4 (linear for/list)** - same root-cause fixes as the open upstream
-  PR DecisionToolkit/dsntk#112 but without its parallel evaluator; offer it
-  as the minimal alternative or as a comment on #112.
-
-- **Commits 21-22 (scale range, back-references)** - send as is; each
-  makes an unpatched DMN TCK case pass and is covered by the TCK and crate
-  tests. Commit 22 adds the `fancy-regex` dependency to `feel-regex`.
-
-Commits 6-10 (the pure-Rust number backend) are a larger proposal: they
-would have to be offered with `intel` kept as upstream's default (one-line
-change in `feel-number/Cargo.toml` and the forwarding manifests) and with the
-per-backend test expectations explained by the oracle results above.
-Commit 11 (tools) and this file are fork-only.
 
 ## Layout note
 

@@ -562,3 +562,79 @@ fn dmn_1_6_singleton_list_filter() {
   te_number(false, &scope!(), "5[-1]", 5, 0);
   te_null(false, &scope!(), "null[item > 1]", "");
 }
+
+#[test]
+fn _0077() {
+  // the FEEL filter (items moved into the scope and back) equals the copying filter of boxed
+  // expressions on every kind of item, and leaves the scope as it found it
+  let scope = &te_scope("{x: 2, item: 9}");
+  let lists = [
+    "[1, 2, 3]",
+    "[{a: 1}, {a: 2}, {a: 3, b: {c: 4}}]",
+    "[{item: 5, a: 1}, {item: 1, a: 2}, {a: 3}, 4, null, [1, 2]]",
+    "[{a: null}, {b: 1}, {}, {item: null}]",
+    "[[1, 2], [3], []]",
+    "[]",
+  ];
+  let predicates = [
+    "true",
+    "false",
+    "item > 1",
+    "item = null",
+    "a > 1",
+    "a = null",
+    "item.a > 1",
+    "b.c = 4",
+    "item > x",
+    "count(item) > 1",
+    "2",
+    "-1",
+    "1.5",
+    "\"text\"",
+    "a",
+    "[1,2][\"x\"] = null",
+    "{y: item}.y != null",
+  ];
+  for list in lists {
+    for predicate in predicates {
+      let list_value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+      let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(scope, predicate, false).unwrap());
+      let depth = scope.depth();
+      let copied = crate::FilterExpressionEvaluator::new().evaluate(scope, list_value.clone(), &evaluator);
+      assert_eq!(depth, scope.depth());
+      let moved = crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list_value, &evaluator);
+      assert_eq!(depth, scope.depth());
+      assert_eq!(copied, moved, "{list}[{predicate}]");
+    }
+  }
+}
+
+#[test]
+fn _0078() {
+  // A predicate that removes the item contexts from the scope (no FEEL predicate does, an
+  // evaluator supplied by a caller can) gives a null, and the filter leaves the scope as it
+  // found it: for a context item with an entry `item`, a context item without one, and an item
+  // that is not a context. A predicate that replaces the special context `{item: value}` with
+  // another context gives the same null.
+  let scope = &te_scope("{}");
+  let popping: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
+    scope.pop();
+    Value::Boolean(true)
+  });
+  let replacing: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
+    scope.pop();
+    scope.push(rheon_feel::context::FeelContext::default());
+    Value::Boolean(true)
+  });
+  let lost = Value::Null(Some("internal error: the evaluation removed the item context of a filter".to_string()));
+  for (item, special_context) in [("{item: 1, a: 2}", false), ("{a: 2}", true), ("3", true)] {
+    let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item, false).unwrap())(scope)]);
+    let depth = scope.depth();
+    assert_eq!(lost, crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list.clone(), &popping), "{item}");
+    assert_eq!(depth, scope.depth(), "{item}");
+    if special_context {
+      assert_eq!(lost, crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list, &replacing), "{item}");
+      assert_eq!(depth, scope.depth(), "{item}");
+    }
+  }
+}

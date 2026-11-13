@@ -190,11 +190,8 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  let scope = scope!();
-  scope.set_entry_name("Power".into());
-  let mut ctx = ParsingContext::default();
-  ctx.set_name("power".into());
-  scope.set_context("engine".into(), ctx);
+  let frames = [input_context(&["Power"], vec![("engine", input_context(&["power"], vec![]))])];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,

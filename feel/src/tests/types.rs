@@ -3,7 +3,7 @@ use crate::closure::Closure;
 use crate::context::FeelContext;
 use crate::types::is_built_in_type_name;
 use crate::values::Value;
-use crate::{FeelScope, FunctionBody, IntervalType, value_null, value_number};
+use crate::{FeelScope, FunctionBody, FunctionDefinition, IntervalType, value_null, value_number};
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
 use std::str::FromStr;
 use std::sync::Arc;
@@ -47,7 +47,7 @@ fn test_from_name() {
 fn test_get_value_checked() {
   let v_null = Value::Null(None);
   let v_boolean = Value::Boolean(true);
-  let v_string = Value::String("hello".to_owned());
+  let v_string = Value::String("hello".into());
   assert_eq!("null", T_ANY.get_value_checked(&v_null).unwrap().to_string());
   assert_eq!("true", T_ANY.get_value_checked(&v_boolean).unwrap().to_string());
   assert!(T_BOOLEAN.get_value_checked(&v_string).is_err());
@@ -385,7 +385,7 @@ fn test_type_get_conformant_value() {
   let v_number_1 = value_number!(1);
   let v_number_2 = value_number!(2);
   // string
-  let v_string = Value::String("alpha".to_string());
+  let v_string = Value::String("alpha".into());
   // time
   let v_time = Value::Time(FeelTime::local_opt(9, 2, 0, 0).unwrap());
   // years and months duration
@@ -410,46 +410,46 @@ fn test_type_get_conformant_value() {
   ctx_d.set_entry(&NAME_D, v_number_1.clone());
   let v_context_d = Value::Context(ctx_d);
   // functions
-  let v_function_a = Value::FunctionDefinition(
+  let v_function_a = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone()), (NAME_B.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(1)))),
     false,
     Closure::default(),
     FeelContext::default(),
     T_NUMBER.clone(),
-  );
-  let v_function_b = Value::FunctionDefinition(
+  ));
+  let v_function_b = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone()), (NAME_B.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(2)))),
     false,
     Closure::default(),
     FeelContext::default(),
     T_BOOLEAN.clone(),
-  );
-  let v_function_c = Value::FunctionDefinition(
+  ));
+  let v_function_c = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(3)))),
     false,
     Closure::default(),
     FeelContext::default(),
     T_STRING.clone(),
-  );
-  let v_function_d = Value::FunctionDefinition(
+  ));
+  let v_function_d = Value::from(FunctionDefinition::new(
     vec![(NAME_D.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(4)))),
     false,
     Closure::default(),
     FeelContext::default(),
     T_STRING.clone(),
-  );
-  let v_function_e = Value::FunctionDefinition(
+  ));
+  let v_function_e = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_STRING.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(5)))),
     false,
     Closure::default(),
     FeelContext::default(),
     T_STRING.clone(),
-  );
+  ));
   // ranges
   let v_range_a = Value::Range(Box::new(v_number_1.clone()), IntervalType::Opened, Box::new(v_number_2), IntervalType::Opened);
   let v_range_b = Value::Range(Box::new(v_date.clone()), IntervalType::Opened, Box::new(v_date_b), IntervalType::Opened);

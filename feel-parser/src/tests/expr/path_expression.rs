@@ -1,5 +1,4 @@
 use super::super::*;
-use crate::context::ParsingContext;
 
 #[test]
 fn _0001() {
@@ -123,12 +122,11 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  let scope = scope!();
-  let mut ctx_a = ParsingContext::default();
-  ctx_a.set_name("Street".into());
-  let mut ctx_b = ParsingContext::default();
-  ctx_b.set_context("Address".into(), ctx_a);
-  scope.set_context("Manager".into(), ctx_b);
+  let frames = [input_context(
+    &[],
+    vec![("Manager", input_context(&[], vec![("Address", input_context(&["Street"], vec![]))]))],
+  )];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,
@@ -149,10 +147,8 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  let scope = scope!();
-  let mut ctx_1 = ParsingContext::default();
-  ctx_1.set_name("principal".into());
-  scope.set_context("loan".into(), ctx_1);
+  let frames = [input_context(&[], vec![("loan", input_context(&["principal"], vec![]))])];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,
@@ -225,12 +221,8 @@ fn _0010() {
 
 #[test]
 fn _0011() {
-  let scope = scope!();
-  let mut ctx_1 = ParsingContext::default();
-  ctx_1.set_name("principal".into());
-  ctx_1.set_name("rate".into());
-  ctx_1.set_name("termMonths".into());
-  scope.set_context("loan".into(), ctx_1);
+  let frames = [input_context(&[], vec![("loan", input_context(&["principal", "rate", "termMonths"], vec![]))])];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,
@@ -254,10 +246,8 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  let scope = scope!();
-  let mut ctx_1 = ParsingContext::default();
-  ctx_1.set_name("fromString".into());
-  scope.set_context("Date".into(), ctx_1);
+  let frames = [input_context(&[], vec![("Date", input_context(&["fromString"], vec![]))])];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,
@@ -278,18 +268,10 @@ fn _0012() {
 
 #[test]
 fn _0013() {
-  let scope = scope!();
-  let mut ctx_bounds = ParsingContext::default();
-  let mut ctx_min = ParsingContext::default();
-  ctx_min.set_name("Tenor".into());
-  ctx_min.set_name("Rate".into());
-  ctx_bounds.set_context("Min".into(), ctx_min);
-  let mut ctx_max = ParsingContext::default();
-  ctx_max.set_name("Tenor".into());
-  ctx_max.set_name("Rate".into());
-  ctx_bounds.set_context("Max".into(), ctx_max);
-  scope.set_context("Bounds".into(), ctx_bounds);
-  scope.set_entry_name("Days".into());
+  let tenor_rate = || input_context(&["Tenor", "Rate"], vec![]);
+  let bounds = input_context(&[], vec![("Min", tenor_rate()), ("Max", tenor_rate())]);
+  let frames = [input_context(&["Days"], vec![("Bounds", bounds)])];
+  let scope = ParsingScope::new(&frames);
   let input = "((Bounds.Max.Rate - Bounds.Min.Rate) * (Days - Bounds.Min.Tenor) / (Bounds.Max.Tenor - Bounds.Min.Tenor)) + Bounds.Min.Rate";
   let expected = r#"
        Add
@@ -376,14 +358,23 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  // A long chain of path expressions over a known name used to cost cubic time in the lexer
-  // (every `.` is an additional name symbol, so each token scanned the whole chain and tried
-  // every prefix); with 1000 steps this parses in milliseconds now.
-  let input = format!("{{a:1}}{}", ".a".repeat(1000));
-  let started = std::time::Instant::now();
-  let node = Parser::new(&scope!(), StartExpression, &input, false).parse().unwrap();
-  assert!(matches!(node, AstNode::Path(_, _)), "expected a path expression");
-  assert!(started.elapsed().as_secs() < 5, "parsing took {:?}", started.elapsed());
+  // A long chain of path expressions over a context literal: every `.` is an additional name
+  // symbol, so a lexer that scanned the rest of the chain for each token and tried every prefix
+  // would be cubic. The parts scanned and the candidates looked up grow, and grow linearly, with
+  // the steps.
+  let work = |steps: usize| {
+    let input = format!("{{a:1}}{}", ".a".repeat(steps));
+    crate::tests::work::take();
+    let node = Parser::new(&scope!(), StartExpression, &input, false).parse().unwrap();
+    assert!(matches!(node, AstNode::Path(_, _)), "expected a path expression");
+    crate::tests::work::take()
+  };
+  let (w1, w2, w3) = (work(1), work(1_001), work(2_001));
+  for unit in ["parts", "candidates"] {
+    let n = |w: &std::collections::BTreeMap<&str, usize>| w.get(unit).copied().unwrap_or(0);
+    assert!(n(&w2) > n(&w1), "{unit} does not grow: {w1:?} {w2:?} {w3:?}");
+    assert_eq!(n(&w3) - n(&w2), n(&w2) - n(&w1), "{unit}: {w1:?} {w2:?} {w3:?}");
+  }
 }
 
 #[test]

@@ -51,6 +51,7 @@ mod path;
 mod properties;
 mod range;
 mod satisfies;
+mod send_sync;
 mod some_expression;
 mod subtraction;
 mod types;
@@ -130,7 +131,7 @@ pub fn te_none(trace: bool, scope: &FeelScope, s: &str) {
 
 /// Utility function that tests evaluation to string value.
 fn te_string(trace: bool, scope: &FeelScope, s: &str, expected: &str) {
-  textual_expression(trace, scope, s, Value::String(expected.to_string()));
+  textual_expression(trace, scope, s, Value::String(expected.into()));
 }
 
 /// Utility function that tests evaluation of year and months duration.

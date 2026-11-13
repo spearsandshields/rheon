@@ -11,6 +11,7 @@ use walkdir::WalkDir;
 mod compatibility;
 mod exhaustive;
 mod input_data;
+mod send_sync;
 mod simulation;
 mod various;
 

@@ -87,6 +87,29 @@ fn conversion_from_str_vector() {
 }
 
 #[test]
+fn from_parts_equals_new() {
+  let cases: [&[&str]; 9] = [
+    &[],
+    &[""],
+    &["x", "y"],
+    &["   x   ", " y      \t", "  \n  z  \t  "],
+    &["x", "   .    ", "y"],
+    &[".", "x", "y", "-"],
+    &["a", "+", "b", "*", "c", "/", "d", "'", "e"],
+    &["x", "", "y", " "],
+    &["\u{1680}x\u{1680}", "y\u{1680}z", "\u{1680}"],
+  ];
+  for parts in cases {
+    let expected = Name::new(parts);
+    assert_eq!(expected, Name::from_parts(parts), "{parts:?}");
+    assert_eq!(expected, Name::from_parts(parts.iter().map(|part| part.to_string())), "{parts:?}");
+    assert_eq!(expected, Name::from(parts.iter().map(|part| part.to_string()).collect::<Vec<String>>()), "{parts:?}");
+  }
+  // U+1680 is white space: trimmed at both ends of a part, kept inside it
+  assert_eq!("x y\u{1680}z", Name::from_parts(["\u{1680}x\u{1680}", "y\u{1680}z", "\u{1680}"]).as_str());
+}
+
+#[test]
 fn additional_symbols() {
   let name: Name = vec!["x", "y"].into();
   assert_eq!("x y", name.to_string());
@@ -126,7 +149,9 @@ fn test_name_as_hash_map_key() {
   assert_eq!("B", map.get(&name_b).unwrap());
   assert!(map.contains_key(&name_c));
   assert_eq!("C", map.get(&name_c).unwrap());
-  assert!(!map.contains_key(&"d".into()));
+  assert!(!map.contains_key(&Name::from("d")));
+  // a name is looked up by its text too (`Borrow<str>`)
+  assert!(map.contains_key("a") && !map.contains_key("d"));
 }
 
 #[test]

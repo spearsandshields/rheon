@@ -237,3 +237,111 @@ fn _0023() {
     "[9999999999999999999999999999999998, 9999999999999999999999999999999999]",
   );
 }
+
+#[test]
+fn _0024() {
+  // A filter whose index is neither a number nor a boolean returns early, and the contexts it
+  // pushed do not stay on the scope: every iteration gets its own null, and the loop variable
+  // is not visible after the loop.
+  let filter_null = Value::Null(Some("only number or boolean indexes are allowed in filters".to_string()));
+  textual_expression(
+    false,
+    &scope!(),
+    r#"for i in 1..3 return [1,2]["x"]"#,
+    Value::List(vec![filter_null.clone(), filter_null.clone(), filter_null]),
+  );
+  te_null(false, &scope!(), r#"{r: for i in 1..3 return [1,2]["x"], s: i}.s"#, "context has no value for key 'i'");
+  te_number(false, &scope!(), r#"count({r: for i in 1..3 return [1,2]["x"]}.r)"#, 3, 0);
+  // the same for some / every bodies and function bodies
+  te_null(
+    false,
+    &scope!(),
+    r#"{r: some i in [1, 2] satisfies [1]["x"] = null, s: i}.s"#,
+    "context has no value for key 'i'",
+  );
+  te_null(false, &scope!(), r#"{f: function(a) [1]["x"], r: f(1), s: a}.s"#, "context has no value for key 'a'");
+}
+
+#[test]
+fn _0025() {
+  // `partial`, loop variables, nesting: the iteration context is reused across iterations
+  te_be_value(false, &scope!(), "for partial in 1..3 return partial", "[[], [[]], [[], [[]]]]");
+  te_be_value(false, &scope!(), "for i in 1..3 return partial", "[[], [[]], [[], [[]]]]");
+  te_be_value(false, &scope!(), "for i in 1..4 return count(partial) + i", "[1, 3, 5, 7]");
+  te_be_value(false, &scope!(), "for i in 1..3 return for j in 1..i return j", "[[1], [1, 2], [1, 2, 3]]");
+  te_be_value(false, &scope!(), "for i in 1..2 return for j in 1..2 return count(partial)", "[[0, 1], [0, 1]]");
+  te_be_value(false, &scope!(), "for x in [[1,2],[3]], y in x return y", "[1, 2, 3]");
+  te_be_value(false, &scope!(), "for i in 1..2, j in 1..3 return i * 10 + j", "[11, 12, 13, 21, 22, 23]");
+  te_be_value(false, &scope!(), "for i in [] return i", "[]");
+  te_be_value(false, &scope!(), "for i in [1, 2], j in [] return i", "[]");
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for d in date("2020-02-28")..date("2020-03-01") return d"#,
+    r#"[date("2020-02-28"), date("2020-02-29"), date("2020-03-01")]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for d in date("2020-01-02")..date("2020-01-01") return d"#,
+    r#"[date("2020-01-02"), date("2020-01-01")]"#,
+  );
+  te_be_value(false, &scope!(), "for i in 1..3 return {a: i}.a", "[1, 2, 3]");
+  te_null(false, &scope!(), "{x: for i in 1..2 return i, y: i}.y", "context has no value for key 'i'");
+}
+
+#[test]
+fn _0026() {
+  // Date ranges that end at the last or the first supported date. With several iteration
+  // contexts the iteration is their cross product (§10.3.2.14), so every step of an outer
+  // context iterates the date range again from its start.
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"262142-12-30"..@"262142-12-31" return string(d)"#,
+    r#"["262142-12-30", "262142-12-31", "262142-12-30", "262142-12-31"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"-262143-01-02"..@"-262143-01-01" return string(d)"#,
+    r#"["-262143-01-02", "-262143-01-01", "-262143-01-02", "-262143-01-01"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"262142-12-30"..@"262142-12-31", j in 1..2 return string(d)"#,
+    r#"["262142-12-30", "262142-12-30", "262142-12-31", "262142-12-31", "262142-12-30", "262142-12-30", "262142-12-31", "262142-12-31"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for d in @"262142-12-30"..@"262142-12-31", i in 1..2 return string(d)"#,
+    r#"["262142-12-30", "262142-12-30", "262142-12-31", "262142-12-31"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"262142-12-31"..@"262142-12-31" return string(d)"#,
+    r#"["262142-12-31", "262142-12-31"]"#,
+  );
+}
+
+#[test]
+fn _0027() {
+  // A body that removes the iteration context from the scope (no FEEL body does, an evaluator
+  // supplied by a caller can) gives a null, and the scope is left as it was found.
+  let scope = &te_scope("{}");
+  let popping: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
+    scope.pop();
+    Value::Boolean(true)
+  });
+  let mut evaluator = crate::ForExpressionEvaluator::for_feel();
+  evaluator.add_list("i".into(), Value::List(vec![Value::Boolean(true), Value::Boolean(false)]));
+  let depth = scope.depth();
+  assert_eq!(
+    Value::Null(Some("internal error: the evaluation removed the iteration context of a `for` expression".to_string())),
+    evaluator.evaluate(scope, &popping)
+  );
+  assert_eq!(depth, scope.depth());
+}

@@ -6,7 +6,7 @@ JS/TS runtime for the [rheon](https://github.com/spearsandshields/rheon) FEEL en
 [dsntk](https://github.com/dsntk/dsntk-rs)) compiled to WebAssembly (`wasm32-wasip1`, pure-Rust
 decimal128 numbers: exact 34-digit results). It implements
 [`docs/CONTRACT.md`](https://github.com/spearsandshields/rheon/blob/main/docs/CONTRACT.md) §4.
-The package ships the module itself, `feel.wasm` (about 2.9 MB, 0.8 MB gzipped), so nothing has to
+The package ships the module itself, `feel.wasm` (about 3.8 MB, 1.0 MB gzipped), so nothing has to
 be compiled. Try it in the [playground](https://spearsandshields.github.io/rheon/).
 
 ```sh
@@ -64,7 +64,7 @@ How the engine works:
 - **Worker bundling.** The worker is created with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`. Vite, webpack 5 and Parcel bundle this form automatically. Two cases need attention:
   - If Vite pre-bundles the package from `node_modules`, the `new URL` form breaks. Add `optimizeDeps: { exclude: ['@rheon/feel-runtime'] }`. A linked workspace package (`file:` or `workspace:` dependency) is not pre-bundled.
   - Use `worker: { format: 'es' }` if your Vite config sets a non-ES worker format.
-- **Custom workers.** `createWorker: () => WorkerLike` replaces worker creation, for example with your own `new Worker(...)` call or a `worker_threads` adapter (see `test/helpers.mjs` and `test/worker-bootstrap.mjs`). The worker script is also exported as `@rheon/feel-runtime/worker`.
+- **Custom workers.** `createWorker: () => WorkerLike` replaces worker creation, for example with your own `new Worker(...)` call or a `worker_threads` adapter (see `test/helpers.mjs` and `test/worker-bootstrap.mjs`). The worker script is also exported as `@rheon/feel-runtime/worker`. Keep a custom worker's stack at Node's default 4 MiB or more (`resourceLimits.stackSizeMb`); a smaller stack lets a nested recursion trap earlier.
 
 ## Usage in Node (in-thread)
 
@@ -84,11 +84,12 @@ feel.call('{"op":"info"}'); // a string is sent verbatim
 - For `evaluate` requests, `env.tzOffsetMinutes` is applied when the request has no offset of its own. It defaults to the host offset; set it to `null` to disable.
 - A trap returns `{ ok: false, error: { kind: 'crash' } }` and the instance is re-created synchronously, with the module reused.
 - **Trusted input only.** There is no timeout in-thread: a runaway expression blocks the calling thread (in a server, the event loop) until it finishes. Use `FeelEngine` for untrusted or long-running input.
+- **Stack.** On Node's main thread (about 1 MiB of stack) a recursion of 190 calls traps once its body is nested more than 14 to 17 levels; in a worker with Node's default 4 MiB stack the body can be nested 64 levels (CONTRACT §1). Run deeply nested input in a worker.
 - `env.recycleMemoryBytes` (default 256 MiB): the instance is re-created after a call that left its memory larger (wasm memory never shrinks).
 
 ## Known limits (from the core)
 
-- Long iterations are slow in dsntk (`sum(for i in 1..100000 return i)` takes about a minute). That is what the timeout is for.
+- Loops are linear (`count(for i in 1..1000000 return i)` takes about 0.11 s); an expression that runs too long, such as `count(for i in 1..100000 return count(for j in 1..100000 return j))` (10^10 iterations), is what the timeout is for.
 - Expressions nested deeper than 300 levels are a `syntax` error; more than 200 nested function calls stop with an `evaluation` error (CONTRACT §2).
 - A boolean expression used as a unary test (`? > 5`) is compared with the input, not treated as satisfied when true. Write `> 5` instead. See CONTRACT §2.
 

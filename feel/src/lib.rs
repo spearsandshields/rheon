@@ -25,7 +25,7 @@ mod ranges;
 mod tests;
 
 pub use evaluator::Evaluator;
-pub use function::FunctionBody;
+pub use function::{FunctionBody, FunctionDefinition};
 pub use names::Name;
 pub use qualified_names::QualifiedName;
 pub use ranges::IntervalType;

@@ -143,6 +143,73 @@ fn test_scope_pop() {
 //   assert_eq!("[{a: 1}, {b: 2}, {c: 3}]", scope.to_string());
 // }
 
+/// A scope with the contexts `{a: 1}`, `{b: 2}` and `{c: 3}`, bottom first.
+fn scope_a_b_c() -> FeelScope {
+  let scope = FeelScope::new();
+  for (name, value) in [("a", 1), ("b", 2), ("c", 3)] {
+    let mut ctx = FeelContext::default();
+    ctx.set_entry(&Name::from(name), value_number!(value));
+    scope.push(ctx);
+  }
+  scope
+}
+
+#[test]
+fn test_scope_depth() {
+  assert_eq!(0, FeelScope::new().depth());
+  assert_eq!(1, FeelScope::default().depth());
+  let scope = scope_a_b_c();
+  assert_eq!(3, scope.depth());
+  scope.pop();
+  assert_eq!(2, scope.depth());
+}
+
+#[test]
+fn test_scope_truncate() {
+  let scope = scope_a_b_c();
+  // a depth above the number of contexts leaves the stack unchanged
+  scope.truncate(5);
+  assert_eq!("[{a: 1}, {b: 2}, {c: 3}]", scope.to_string());
+  scope.truncate(3);
+  assert_eq!("[{a: 1}, {b: 2}, {c: 3}]", scope.to_string());
+  // a depth below it removes the contexts above that depth
+  scope.truncate(1);
+  assert_eq!("[{a: 1}]", scope.to_string());
+  scope.truncate(0);
+  assert_eq!("[]", scope.to_string());
+}
+
+#[test]
+fn test_scope_pop_frame() {
+  // the context above `depth` is returned, the contexts above it are dropped
+  let scope = scope_a_b_c();
+  assert_eq!("{b: 2}", scope.pop_frame(1).unwrap().to_string());
+  assert_eq!(1, scope.depth());
+  assert_eq!("[{a: 1}]", scope.to_string());
+  // the top context
+  let scope = scope_a_b_c();
+  assert_eq!("{c: 3}", scope.pop_frame(2).unwrap().to_string());
+  assert_eq!("[{a: 1}, {b: 2}]", scope.to_string());
+  // no context above `depth`: None, and the stack is unchanged
+  let scope = scope_a_b_c();
+  assert!(scope.pop_frame(3).is_none());
+  assert!(scope.pop_frame(4).is_none());
+  assert_eq!("[{a: 1}, {b: 2}, {c: 3}]", scope.to_string());
+  assert!(FeelScope::new().pop_frame(0).is_none());
+}
+
+#[test]
+fn test_scope_contexts_and_frames() {
+  let scope = scope_a_b_c();
+  let contexts = scope.contexts();
+  assert_eq!(3, contexts.len());
+  assert_eq!(contexts.as_slice(), &*scope.frames());
+  assert_eq!("{a: 1}", scope.frames()[0].to_string());
+  assert_eq!("{c: 3}", scope.frames()[2].to_string());
+  assert!(FeelScope::new().contexts().is_empty());
+  assert!(FeelScope::new().frames().is_empty());
+}
+
 #[test]
 fn test_get_entry() {
   let name_a = Name::from("a");
