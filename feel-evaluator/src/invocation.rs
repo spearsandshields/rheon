@@ -191,7 +191,6 @@ mod tests {
   use super::*;
   use rheon_feel::closure::Closure;
   use rheon_feel::{Evaluator, scope};
-  use std::sync::Arc;
 
   #[test]
   fn test_unimplemented_external_function_kind() {

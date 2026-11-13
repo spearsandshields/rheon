@@ -51,6 +51,7 @@ mod path;
 mod properties;
 mod range;
 mod satisfies;
+mod send_sync;
 mod some_expression;
 mod subtraction;
 mod types;

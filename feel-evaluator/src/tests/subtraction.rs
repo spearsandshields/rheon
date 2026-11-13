@@ -252,19 +252,18 @@ fn _0042() {
 }
 
 #[test]
-fn _failing_chain_is_linear() {
+fn _0043() {
   // `a - 1 - 1 - …` with `a` a string: the message of every failing subtraction shows the operands
-  // as evaluated, it does not evaluate them again (which took 2^30 evaluations of `a` here)
+  // as evaluated, it does not evaluate them again. Each evaluation of a failing subtraction adds
+  // one diagnostic, so 16 subtractions give 16 diagnostics; evaluating the operands again for the
+  // message would give 2^16 - 1.
   let scope = &te_scope(r#"{a: "x"}"#);
-  let expression = format!("a{}", " - 1".repeat(30));
+  let expression = format!("a{}", " - 1".repeat(16));
   let node = rheon_feel_parser::parse_expression(scope, &expression, false).unwrap();
   let evaluator = crate::builders::build_evaluator(&node);
-  let started = std::time::Instant::now();
   let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(scope));
-  assert!(started.elapsed().as_millis() < 100, "took {:?}", started.elapsed());
   assert!(value.is_null());
-  // one diagnostic per subtraction
-  assert_eq!(30, diagnostics.count);
+  assert_eq!(16, diagnostics.count);
   te_null(false, scope, r#""a" - 1"#, r#"[subtraction] incompatible types: "a" - 1"#);
   te_null(false, scope, r#"date("2020-01-01") - "x""#, r#"[subtraction] incompatible types: 2020-01-01 - "x""#);
 }

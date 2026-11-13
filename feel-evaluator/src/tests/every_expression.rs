@@ -51,7 +51,8 @@ fn _0007() {
 }
 
 #[test]
-fn _every_stops_at_the_first_decisive_value() {
+fn _0009() {
+  // the first `false` or non-boolean value decides the result
   let scope = &te_scope("{}");
   te_null(false, scope, "every x in [true, null] satisfies x", "");
   te_bool(false, scope, "every x in [true, false, null] satisfies x", false);

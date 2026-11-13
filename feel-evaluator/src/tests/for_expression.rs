@@ -238,28 +238,28 @@ fn _0023() {
   );
 }
 
-/// Evaluates an expression in an empty scope.
-fn eval(expression: &str) -> rheon_feel::values::Value {
-  let scope = scope!();
-  let node = rheon_feel_parser::parse_expression(&scope, expression, false).unwrap();
-  crate::evaluate(&scope, &node)
-}
-
 #[test]
 fn _0024() {
-  // A filter whose index is neither a number nor a boolean returns early; the contexts it pushed
-  // must not stay on the scope: every iteration gets its own null, and the loop variable is not
-  // visible after the loop (0.3.0 returned `[null]` and `s: 3`).
-  let nulls = eval(r#"for i in 1..3 return [1,2]["x"]"#);
-  assert_eq!(
-    "[null(only number or boolean indexes are allowed in filters), null(only number or boolean indexes are allowed in filters), null(only number or boolean indexes are allowed in filters)]",
-    nulls.to_string()
+  // A filter whose index is neither a number nor a boolean returns early, and the contexts it
+  // pushed do not stay on the scope: every iteration gets its own null, and the loop variable
+  // is not visible after the loop.
+  let filter_null = Value::Null(Some("only number or boolean indexes are allowed in filters".to_string()));
+  textual_expression(
+    false,
+    &scope!(),
+    r#"for i in 1..3 return [1,2]["x"]"#,
+    Value::List(vec![filter_null.clone(), filter_null.clone(), filter_null]),
   );
-  assert!(eval(r#"{r: for i in 1..3 return [1,2]["x"], s: i}.s"#).is_null());
-  assert_eq!("3", eval(r#"count({r: for i in 1..3 return [1,2]["x"]}.r)"#).to_string());
+  te_null(false, &scope!(), r#"{r: for i in 1..3 return [1,2]["x"], s: i}.s"#, "context has no value for key 'i'");
+  te_number(false, &scope!(), r#"count({r: for i in 1..3 return [1,2]["x"]}.r)"#, 3, 0);
   // the same for some / every bodies and function bodies
-  assert!(eval(r#"{r: some i in [1, 2] satisfies [1]["x"] = null, s: i}.s"#).is_null());
-  assert!(eval(r#"{f: function(a) [1]["x"], r: f(1), s: a}.s"#).is_null());
+  te_null(
+    false,
+    &scope!(),
+    r#"{r: some i in [1, 2] satisfies [1]["x"] = null, s: i}.s"#,
+    "context has no value for key 'i'",
+  );
+  te_null(false, &scope!(), r#"{f: function(a) [1]["x"], r: f(1), s: a}.s"#, "context has no value for key 'a'");
 }
 
 #[test]
@@ -287,7 +287,7 @@ fn _0025() {
     r#"[date("2020-01-02"), date("2020-01-01")]"#,
   );
   te_be_value(false, &scope!(), "for i in 1..3 return {a: i}.a", "[1, 2, 3]");
-  assert!(eval("{x: for i in 1..2 return i, y: i}.y").is_null());
+  te_null(false, &scope!(), "{x: for i in 1..2 return i, y: i}.y", "context has no value for key 'i'");
 }
 
 #[test]

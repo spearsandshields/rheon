@@ -564,7 +564,7 @@ fn dmn_1_6_singleton_list_filter() {
 }
 
 #[test]
-fn _moved_items_equal_copied_items() {
+fn _0078() {
   // the FEEL filter (items moved into the scope and back) equals the copying filter of boxed
   // expressions on every kind of item, and leaves the scope as it found it
   let scope = &te_scope("{x: 2, item: 9}");
