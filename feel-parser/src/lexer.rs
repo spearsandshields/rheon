@@ -2,11 +2,11 @@
 
 use crate::errors::*;
 use crate::lalr::TokenType;
-use crate::scope::ParsingScope;
+use crate::scope::{ParsingScope, first_word};
 use dsntk_common::Result;
 use rheon_feel::Name;
 use rheon_feel::bif::is_built_in_date_time_function_name;
-use rheon_feel::bip::is_built_in_property_name;
+use rheon_feel::bip::{BUILT_IN_PROPERTY_NAMES, is_built_in_property_name};
 use std::ops::Range;
 
 /// Definition of a single space character.
@@ -17,6 +17,10 @@ const BUF_SIZE: usize = 12;
 
 /// Definition of decimal separator.
 const DECIMAL_SEPARATOR: char = '.';
+
+/// Length in bytes of the longest built-in property name: after a dot, a candidate name that is
+/// longer than this and than every name in scope can match nothing.
+const MAX_BUILT_IN_PROPERTY_NAME_LEN: usize = longest(&BUILT_IN_PROPERTY_NAMES);
 
 /// Semantic value associated with token type.
 #[derive(Debug, Clone)]
@@ -117,7 +121,7 @@ pub struct Lexer<'lexer, 'scope> {
   till_in: bool,
   /// ??
   after_dot: bool,
-  /// Buffer for the flattened candidate names of [Lexer::consume_name].
+  /// Buffer for the flattened candidate names of [Lexer::longest_name_in_scope].
   name_buf: String,
   /// Second buffer for flattening names (the replacements alternate between the buffers).
   name_tmp: String,
@@ -883,16 +887,26 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // than the trimmed parts it is made of. Skip the prefixes that are too long to match, so
     // that a long chain like `a.a.a...` (every `.` is an additional name symbol, so the longest
     // candidate name spans the whole chain) costs linear instead of quadratic time per token.
+    // The candidates contain the composite separator `" . "` only when one of their parts is
+    // empty after trimming, so the composite keys count only then.
     let has_empty_part = self.chain_last_empty.is_some_and(|last| last >= first);
     let parts = &self.chain_parts[first..];
-    let mut part_count = admitted_parts(parts, self.scope.bound(self.after_dot, has_empty_part));
+    let mut bound = self.scope.bound(has_empty_part);
+    if self.after_dot {
+      bound = bound.max(MAX_BUILT_IN_PROPERTY_NAME_LEN);
+    }
+    let mut part_count = admitted_parts(parts, bound);
     // Without an empty part every candidate starts with the first part, followed by nothing, a
     // space or a symbol (no step of the flattening touches it), so it can only be a name with this
     // first word: the bound of these names is tighter, and worth looking up for two or more candidates.
     if part_count > 1 && !has_empty_part {
       let word = &self.input[parts[0].trimmed.clone()];
       let limit = parts[..part_count].iter().map(|part| part.trimmed.len()).sum();
-      part_count = part_count.min(admitted_parts(parts, self.scope.group_bound(word, self.after_dot, limit)));
+      let mut group_bound = self.scope.group_bound(word, limit);
+      if self.after_dot && group_bound < limit {
+        group_bound = group_bound.max(property_group_bound(word));
+      }
+      part_count = part_count.min(admitted_parts(parts, group_bound));
     }
     while part_count > 0 {
       work!(Candidates, 1);
@@ -904,7 +918,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         return Some((part_count, true));
       }
       // check if the flattened name exists as a key in the current scope; it can be a composite
-      // key only with an empty part (see [ParsingScope::bound])
+      // key only with an empty part
       let found = if has_empty_part {
         self.scope.contains(&self.name_buf)
       } else {
@@ -1171,6 +1185,31 @@ fn is_built_in_type_name(name: &str) -> bool {
     name,
     "Any" | "Null" | "boolean" | "number" | "string" | "date" | "date and time" | "time" | "years and months duration" | "days and time duration"
   )
+}
+
+/// Returns the length in bytes of the longest of `names`.
+const fn longest(names: &[&str]) -> usize {
+  let mut longest = 0;
+  let mut index = 0;
+  while index < names.len() {
+    if names[index].len() > longest {
+      longest = names[index].len();
+    }
+    index += 1;
+  }
+  longest
+}
+
+/// Returns the length in bytes of the longest built-in property name whose first word is `word`
+/// (see [first_word]), or zero: after a dot, a bound of the candidate names with this first word
+/// that can be built-in property names.
+fn property_group_bound(word: &str) -> usize {
+  BUILT_IN_PROPERTY_NAMES
+    .iter()
+    .filter(|name| name.starts_with(word) && first_word(name) == word)
+    .map(|name| name.len())
+    .max()
+    .unwrap_or(0)
 }
 
 /// Returns the number of leading parts whose trimmed lengths add up to at most `bound`.

@@ -9,7 +9,6 @@ use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
 use crate::parser::Parser;
 use crate::scope::{ParsingScope, first_word};
-use rheon_feel::bip::BUILT_IN_PROPERTY_NAMES;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, FeelScope, FeelType, Name};
@@ -484,21 +483,14 @@ fn scope_operations_equal_reference_scope() {
       for member in reference.plain() {
         let word = first_word(&member);
         assert!(
-          scope.group_bound(word, false, usize::MAX) >= member.len(),
+          scope.group_bound(word, usize::MAX) >= member.len(),
           "case {case} step {step}: group_bound({word:?}) for {member:?}"
-        );
-      }
-      for member in BUILT_IN_PROPERTY_NAMES {
-        assert!(
-          scope.group_bound(first_word(member), true, usize::MAX) >= member.len(),
-          "case {case} step {step}: group_bound after dot for {member:?}"
         );
       }
       let plain_max = flattened.iter().filter(|k| !k.contains(" . ")).map(String::len).max().unwrap_or(0);
       let all_max = flattened.iter().map(String::len).max().unwrap_or(0);
-      assert!(scope.bound(false, false) >= plain_max, "case {case} step {step}: bound without composite keys");
-      assert!(scope.bound(false, true) >= all_max, "case {case} step {step}: bound with composite keys");
-      assert!(scope.bound(true, false) >= plain_max.max(16), "case {case} step {step}: bound after dot");
+      assert!(scope.bound(false) >= plain_max, "case {case} step {step}: bound without composite keys");
+      assert!(scope.bound(true) >= all_max, "case {case} step {step}: bound with composite keys");
     }
   }
 }

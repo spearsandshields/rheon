@@ -102,7 +102,7 @@ fn test_flatten_name_parts_into() {
       parts.extend(counters[..len].iter().map(|&i| alphabet[i].to_string()));
       flatten_name_parts_into(parts.iter().map(String::as_str), &mut out, &mut tmp);
       assert_eq!(flatten_name_parts(&parts), out, "{parts:?}");
-      // without a part that is empty after trimming, no candidate is a composite name (see ParsingScope::bound)
+      // without a part that is empty after trimming, no candidate is a composite name (see Lexer::longest_name_in_scope)
       assert!(parts.iter().any(|part| part.trim().is_empty()) || !out.contains(" . "), "{parts:?}");
       // next combination
       let mut i = 0;
@@ -116,6 +116,17 @@ fn test_flatten_name_parts_into() {
       counters[i] += 1;
     }
   }
+}
+
+#[test]
+fn test_built_in_property_bounds() {
+  // after a dot, the bounds of the candidate names admit every built-in property name
+  for name in BUILT_IN_PROPERTY_NAMES {
+    assert!(name.len() <= MAX_BUILT_IN_PROPERTY_NAME_LEN, "{name}");
+    assert!(property_group_bound(first_word(name)) >= name.len(), "{name}");
+  }
+  assert_eq!(BUILT_IN_PROPERTY_NAMES.iter().map(|name| name.len()).max(), Some(MAX_BUILT_IN_PROPERTY_NAME_LEN));
+  assert_eq!(0, property_group_bound("x"));
 }
 
 #[test]

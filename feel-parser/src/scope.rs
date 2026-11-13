@@ -4,7 +4,6 @@ use crate::composite::{COMPOSITE_SEPARATOR, contains_composite};
 use crate::context::ParsingContext;
 use crate::index::FrameIndex;
 use rheon_feel::Name;
-use rheon_feel::bip::BUILT_IN_PROPERTY_NAMES;
 use rheon_feel::context::FeelContext;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashSet};
@@ -153,32 +152,25 @@ impl ParsingScope<'_> {
   }
 
   /// Returns an upper bound of the length in bytes of the names that [contains](Self::contains)
-  /// can accept (and of the built-in property names, after a dot), for the lexer to skip the
-  /// candidate names that are too long to match.
-  ///
-  /// The lexer's candidate names contain `" . "` only when one of their parts is empty after
-  /// trimming, so composite keys are taken into account only then (`has_empty_part`).
-  pub fn bound(&self, after_dot: bool, has_empty_part: bool) -> usize {
+  /// can accept, for the lexer to skip the candidate names that are too long to match; the
+  /// composite keys count only when `composite` is `true`.
+  pub fn bound(&self, composite: bool) -> usize {
     let live = &self.input[..self.input_live.get()];
     let mut bound = live.iter().map(FrameIndex::max_plain).max().unwrap_or(0);
     bound = bound.max(self.max_local.get()).max(self.max_names.get());
-    if has_empty_part {
+    if composite {
       bound = bound.max(live.iter().map(FrameIndex::max_chain).max().unwrap_or(0));
       bound = bound.max(self.max_local_chain.get());
-    }
-    if after_dot {
-      bound = bound.max(MAX_BUILT_IN_PROPERTY_NAME_LEN);
     }
     bound
   }
 
   /// Returns an upper bound of the length in bytes of the names that [contains_plain](Self::contains_plain)
-  /// can accept and whose first word is `word` (see [first_word]), `word` itself included (and of the
-  /// built-in property names with this first word, after a dot). The lexer's candidate names
-  /// without an empty part all start with the first part of the token, which is a first word, so
-  /// this bounds them more tightly than [bound](Self::bound). A result of at least `limit` (the
-  /// lexer's longest candidate) prunes nothing, so the search stops there.
-  pub(crate) fn group_bound(&self, word: &str, after_dot: bool, limit: usize) -> usize {
+  /// can accept and whose first word is `word` (see [first_word]), `word` itself included. The
+  /// lexer's candidate names without an empty part all start with the first part of the token,
+  /// which is a first word, so this bounds them more tightly than [bound](Self::bound). A result
+  /// of at least `limit` (the lexer's longest candidate) prunes nothing, so the search stops there.
+  pub(crate) fn group_bound(&self, word: &str, limit: usize) -> usize {
     let live = &self.input[..self.input_live.get()];
     // `word` itself, and the names that are longer than their first word, without a lookup
     let mut bound = live.iter().fold(word.len().max(self.max_names_longer.get()), |bound, frame| bound.max(frame.max_longer()));
@@ -192,13 +184,6 @@ impl ParsingScope<'_> {
     bound = live.iter().fold(bound, |bound, frame| bound.max(frame.group_bound(word)));
     if !self.local_nested.get() {
       bound = self.locals.borrow().iter().fold(bound, |bound, ctx| bound.max(ctx.group_bound(word, self.max_local.get())));
-    }
-    if after_dot {
-      for name in BUILT_IN_PROPERTY_NAMES {
-        if name.len() > bound && name.starts_with(word) && first_word(name) == word {
-          bound = name.len();
-        }
-      }
     }
     bound
   }
@@ -225,9 +210,6 @@ impl ParsingScope<'_> {
     self.max_local_chain.set(self.max_local_chain.get().max(max_flattened).max(max_plain));
   }
 }
-
-/// Upper bound of the length of a built-in property name (`start included`), see [is_built_in_property_name](rheon_feel::bip::is_built_in_property_name).
-pub(crate) const MAX_BUILT_IN_PROPERTY_NAME_LEN: usize = 16;
 
 /// Number of keys of a context that [first_word_bound] looks at before it gives up.
 const FIRST_WORD_WINDOW: usize = 16;
