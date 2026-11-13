@@ -17,6 +17,13 @@ use std::ptr;
 /// A name is in scope when it is a key at any depth: of the context itself, or of the names
 /// nested in its values ([nested_names]). Composite names (`a . b`) are not indexed but
 /// searched, see [FrameIndex::contains_composite].
+///
+/// Neither the index nor the composite search recurses over the nesting of the input context,
+/// so a deeply nested input context does not overflow the stack of a parse. Two steps do
+/// recurse: typing the items of a list ([list_item_context_type]), over the nesting of the
+/// items; and the conversion of an input context into a parsing context, which the parsing
+/// scope does only for its text and to set a name in the top input context when no context
+/// was pushed.
 pub(crate) struct FrameIndex<'a> {
   /// The input context; its own keys are looked up in it directly.
   top: &'a FeelContext,

@@ -86,7 +86,7 @@ impl From<FeelContext> for ParsingContext {
 }
 
 impl From<&FeelContext> for ParsingContext {
-  /// Converts a reference to feel context into parsing context.
+  /// Converts a reference to feel context into parsing context, recursing over its nesting.
   fn from(value: &FeelContext) -> Self {
     Self(value.iter().map(|(name, value)| (name.to_owned(), ParsingEntry::from_value(value))).collect())
   }
