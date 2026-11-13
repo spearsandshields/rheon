@@ -103,23 +103,10 @@ was written.
   `partial` and the results of the earlier iterations are lost (§10.3.2.14). Functions returned
   by boxed function bodies depend on these writes (*Closures are not lexical* below), so the two
   change together.
-- **Values are cloned on lookup** `[fork]`. Function definitions are shared
-  (`Arc<FunctionDefinition>`), and FEEL loops and filters move their contexts and items instead
-  of cloning them. Contexts and lists are still cloned on every scope lookup, and a function's
-  closure context on every call.
-- **Freed string blocks are too small for longer strings** `[fork]`. A string is cloned on every
-  lookup, and `s + s` allocates its result while both operand clones are alive, so the result is
-  placed above them; the two clones, freed afterwards, leave holes of the length of `s` that no
-  later, longer string fits. `{f: function(s, n) if n = 0 then string length(s) else f(s + s,
-  n-1), r: f("ab", 23)}.r` has at most 48 MiB of live data, as at 0.3.0, but grows linear memory
-  by 58.7 MiB (0.3.0: 48.1 MiB, where coercing each argument copied it once more, into the freed
-  holes); with 24 doublings by 138.7 MiB (0.3.0: 96.1 MiB). Under the 512 MiB cap this decides
-  whether one request completes: with 25 doublings (a 64 MiB string) memory peaks at 246 MiB,
-  with 26 (a 128 MiB string) an allocation fails at the cap and the instance traps (a `crash`
-  that the JS runtime reports as `out of memory:`), while 0.3.0 completes 26 doublings at a peak
-  of 393 MiB. Recycling instances does not help, as it is a single request. Nothing leaks: every
-  block is free when the request ends, but linear memory never shrinks, so hosts recycle
-  instances that grew large (CONTRACT §1).
+- **Values are cloned on lookup** `[fork]`. Function definitions and strings are shared
+  (`Arc<FunctionDefinition>`, `FeelString`), and FEEL loops and filters move their contexts and
+  items instead of cloning them. Contexts and lists are still cloned on every scope lookup, and a
+  function's closure context on every call.
 - **Loop variables are looked up by name** `[fork]`: every iteration resolves the variable
   through the scope stack (`FeelScope::get_value`).
 - **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),

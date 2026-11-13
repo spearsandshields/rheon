@@ -75,7 +75,7 @@ test('real worker: a worker whose memory grew past recycleMemoryBytes is replace
     wasmModule: module,
     createWorker: createNodeWorker,
     timeoutMs: 20000,
-    recycleMemoryBytes: 32 * 1024 * 1024, // the evaluation below grows the memory from about 11 to about 70 MiB
+    recycleMemoryBytes: 32 * 1024 * 1024, // the evaluation below grows the memory from about 11 to about 43 MiB
   });
   t.after(() => engine.dispose());
   const r = await engine.evaluate({ expression: '{f: function(s, n) if n = 0 then string length(s) else f(s + s, n-1), r: f("ab", 23)}.r' });

@@ -159,7 +159,8 @@ short, rheon's engine differs from upstream dsntk in:
   that end at the first or last supported date;
 - **performance**: names in scope found through an index instead of an exponential set of keys,
   loops and filters that move their contexts, shared function definitions, a lexer and parser
-  without per-token copies, and the wasm module built at opt-level 3 (`docs/FORK.md` 39-53).
+  without per-token copies, shared strings, and the wasm module built at opt-level 3
+  (`docs/FORK.md` 39-54).
 
 DMN TCK (`scripts/tck.sh`, the official suite with DecisionToolkit's patches): rheon passes
 3,392 of 3,407; the 15 failures are Java external functions (14) and one decision-service case,

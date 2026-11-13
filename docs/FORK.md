@@ -99,6 +99,7 @@ Rules:
 | 51 | `6faa802`..`984d22f` except `23fc84b` | feel-parser: lexer and parser without per-token copies | fork |
 | 52 | `23fc84b` | feel-parser: the composite-name search without recursion | fork |
 | 53 | `3cab20b` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug |
+| 54 | `22ba55d` | feel: strings share their text (`FeelString`) | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -235,7 +236,7 @@ What each commit does:
     `\p{...}` is stripped before compiling. TCK 1111 `K2-MatchesFunc-17`
     passes unpatched.
 
-Commits 23-38 are described in their commit messages. Commits 39-53 make parsing and
+Commits 23-38 are described in their commit messages. Commits 39-54 make parsing and
 evaluation faster and fix the upstream bugs found on the way; apart from the fixes marked
 "upstream bug", every response is the same as 0.3.0's (measured below).
 
@@ -297,11 +298,8 @@ evaluation faster and fix the upstream bugs found on the way; apart from the fix
     invocation borrows the definition, and `closed_over` copies it (`Arc::make_mut`) only when
     the closure has entries to add. Arguments and results are coerced by value
     (`Value::try_into_coerced`, `into_coerced`, with the checks of `try_coerced`, `593f3ad`).
-    Without the copy of each argument the allocator places strings differently: a recursion
-    that doubles a string argument 23 times grows linear memory by 58.7 MiB (0.3.0: 48.1 MiB)
-    with the same live data, and 26 doublings, which 0.3.0 completes at a peak of 393 MiB, hit
-    the 512 MiB cap and trap (docs/BACKLOG.md, *Freed string blocks are too small for longer
-    strings*).
+    Without the copy of each argument the allocator placed strings differently, and a recursion
+    that doubles a string 26 times hit the 512 MiB cap; commit 54 removes that (shared strings).
     `size_of::<Value>()` is 64 B natively (128 B at 0.3.0) and 64 B on wasm32 (as at 0.3.0:
     there the 48-byte `FeelNumber` sets it). `FunctionDefinition` derives `Debug` (`96776fd`),
     so the `Debug` text of a function value differs from 0.3.0's.
@@ -385,6 +383,19 @@ evaluation faster and fix the upstream bugs found on the way; apart from the fix
     (262142-12-31, going up) or the first (-262143-01-01, going down) repeated its end date when
     an outer iteration context advanced, instead of restarting at its start: the iteration
     contexts are a cross product, inner to outer (DMN 1.6 §10.3.2.14).
+54. **Shared strings.** `Value::String` holds a `FeelString`, a newtype over `Arc<String>`, so a
+    name lookup, a string literal or a copied list item copies a pointer, not the text. The one
+    operation that changes a string, `+` (FEEL and B-FEEL), appends in place when its left
+    operand is not shared and otherwise allocates the result once at its final length. Every
+    output, message and `Debug` text is unchanged. With commit 44's arguments moved instead of
+    copied, `s + s` had left freed operand copies behind as holes too small for the next, longer
+    string; now no operand is copied. A recursion that doubles a string argument 23 times grows
+    linear memory by 32.06 MiB, 2.00x the 16 MiB result (0.3.0: 48.06 MiB, 3.00x), and 26
+    doublings complete at a peak of 267.44 MiB (0.3.0: 393.44 MiB). Each string now carries a
+    40-byte shared header: filtering 10,000 contexts (`list-filter-count`) makes 40,000 fewer
+    allocations and peaks 3.3% higher natively (22.46 MB against 21.75 MB before this commit;
+    51.6 MB at 0.3.0). Speed against the build before this commit: 1.006x on the geomean of
+    the 24 requests.
 
 Speed, measured 2026-11-13 on the final module (wasm, Node 26 on macOS arm64, median wall time
 of a `feel_call` on a warm instance): 5.31x 0.3.0's speed on the geomean of 24 requests and
@@ -440,6 +451,12 @@ and exhaustive tests at full size (`RHEON_FULL_TESTS=1`, release, with the parse
 passed, with no unregistered difference against the frozen reference front end; DMN TCK via
 `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, no result changed against
 `docs/tck-baseline.txt`.
+
+Commit 54 (2026-11-13): workspace 8,500 passed, 0 failed (CI's skips); feel.wasm tests native
+and under Wasmtime, runtime 33 and smoke pass; full responses of 1,382 requests identical to
+the build before it; DMN TCK per-test results unchanged; the stack check passes, every depth at
+least as deep as before (Wasmtime with 512 KiB, 1 MiB, 2 MiB: 9, 23, 52 nested levels, was 8,
+21, 48).
 
 DMN 1.6 work (commits 23-34, 2026-11-10): workspace 8,383 passed, 0 failed (CI skips);
 feel.wasm contract tests 53 under wasmtime; runtime 33; DMN TCK via `scripts/tck.sh`
@@ -598,13 +615,16 @@ The built module reaches users through the npm package `@rheon/feel-runtime` (wh
 `feel.wasm`) and the GitHub Release that `.github/workflows/release.yml` creates for every
 `vX.Y.Z` tag (`feel.wasm`, its sha256, the npm tarball and the playground build).
 
-The API changes of 0.4.0 (commits 39-53):
+The API changes of 0.4.0 (commits 39-54):
 
 - Changed:
   - `rheon-feel`: `Value::FunctionDefinition` holds an `Arc<FunctionDefinition>` instead of six
     fields. `Name` implements `Borrow<str>`, so `map.contains_key(&"d".into())` on a map keyed
     by `Name` no longer infers its type (write `&Name::from("d")`). The `Debug` text of a
-    function value is the derived `Debug` of `FunctionDefinition`.
+    function value is the derived `Debug` of `FunctionDefinition`. `Value::String` holds a
+    `FeelString` (a shared `Arc<String>`) instead of a `String`: a pattern that binds the
+    `String` by value no longer compiles (`into_string()` returns it, without a copy when the
+    text is not shared); `value_string!` accepts anything that converts into `FeelString`.
   - `rheon-feel-parser`: `ParsingScope<'a>` has a lifetime parameter (invariant) and borrows
     the input contexts; `From<&FeelScope>` is removed, so outside the crate a scope is built
     with `Default`; `pop()` returns `()`; `flattened()` is removed. `ParsingScope` is no longer
@@ -614,7 +634,8 @@ The API changes of 0.4.0 (commits 39-53):
   - `rheon-feel-evaluator`: `ForExpressionEvaluator::evaluate` returns `Value` (was `Values`).
     `FilterExpressionEvaluator` has a private field, so it is built with `new()`, `default()`
     or `for_feel()`, not as `FilterExpressionEvaluator {}`.
-- Added: `FunctionDefinition` (with `new` and `From<FunctionDefinition> for Value`);
+- Added: `FunctionDefinition` (with `new` and `From<FunctionDefinition> for Value`); `FeelString`
+  (with `From<FeelString> for Value`);
   `FeelScope::{frames, depth, truncate, pop_frame}`; `FeelContext::{insert, assign_entry,
   get_entry_mut}`; `Value::{try_into_coerced, into_coerced}`; `Name::from_parts`;
   `bip::BUILT_IN_PROPERTY_NAMES`; `for_feel()` on `ForExpressionEvaluator`,
