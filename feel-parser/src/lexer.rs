@@ -754,7 +754,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position = self.chain_parts[first].end;
         return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + 1))));
       }
-      if !(self.type_name && is_built_in_type_name(word)) && !(is_built_in_date_time_function_name(word) && self.is_next_character(&['('], 0)) {
+      let decided_by_scope = (self.type_name && is_built_in_type_name(word)) || (is_built_in_date_time_function_name(word) && self.is_next_character(&['('], 0));
+      if !decided_by_scope {
         return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + 1))));
       }
     }
