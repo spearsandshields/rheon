@@ -500,21 +500,34 @@ fn test_coerced() {
   let mut ctx_d = FeelContext::default();
   ctx_d.set_entry(&NAME_A, v_string.clone());
   let v_context_d = Value::Context(ctx_d);
-  assert_eq!(r#"[10]"#, v_number.coerced(&T_LIST_A).to_string());
-  assert_eq!(r#"[10]"#, v_number.coerced(&T_LIST_D).to_string());
-  assert_eq!(r#"1"#, v_list_number_1.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"null(after coercion)"#, v_list_number_2.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"null(after coercion)"#, v_list_string_1.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"["a"]"#, v_string.coerced(&T_LIST_C).to_string());
-  assert_eq!(r#"["a"]"#, v_string.coerced(&T_LIST_D).to_string());
-  assert_eq!(r#""A""#, v_list_string_1.coerced(T_STRING).to_string());
-  assert_eq!(r#"10"#, v_number.coerced(T_NUMBER).to_string());
-  assert_eq!(
-    r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#,
-    v_function_a.coerced(T_NUMBER).to_string()
-  );
-  assert_eq!(r#"null(after coercion)"#, v_irrelevant.coerced(T_NUMBER).to_string());
-  assert_eq!(r#"null(after coercion)"#, v_context_d.coerced(&T_CONTEXT_A).to_string());
+  let v_date = Value::Date(FeelDate::new(2022, 9, 27).unwrap());
+  let v_list_date_1 = Value::List(vec![v_date.clone()]);
+  let v_bif = Value::BuiltInFunction(Bif::Time);
+  // the coerced value; the owned forms (`try_into_coerced`, `into_coerced`) give the same results
+  let coerced = |value: &Value, target_type: &FeelType| {
+    assert_eq!(value.try_coerced(target_type), value.clone().try_into_coerced(target_type), "{value} : {target_type}");
+    let coerced = value.coerced(target_type);
+    assert_eq!(coerced, value.clone().into_coerced(target_type), "{value} : {target_type}");
+    coerced.to_string()
+  };
+  assert_eq!(r#"[10]"#, coerced(&v_number, &T_LIST_A));
+  assert_eq!(r#"[10]"#, coerced(&v_number, &T_LIST_D));
+  assert_eq!(r#"1"#, coerced(&v_list_number_1, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_list_number_2, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_list_string_1, T_NUMBER));
+  assert_eq!(r#"["a"]"#, coerced(&v_string, &T_LIST_C));
+  assert_eq!(r#"["a"]"#, coerced(&v_string, &T_LIST_D));
+  assert_eq!(r#""A""#, coerced(&v_list_string_1, T_STRING));
+  assert_eq!(r#"10"#, coerced(&v_number, T_NUMBER));
+  assert_eq!(r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#, coerced(&v_function_a, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_irrelevant, T_NUMBER));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_context_d, &T_CONTEXT_A));
+  assert_eq!(r#"2022-09-27T00:00:00Z"#, coerced(&v_date, T_DATE_TIME));
+  assert_eq!(r#"2022-09-27T00:00:00Z"#, coerced(&v_list_date_1, T_DATE_TIME));
+  assert_eq!(r#"2022-09-27"#, coerced(&v_list_date_1, T_DATE));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_date, T_TIME));
+  assert_eq!(r#"BuiltInFunction"#, coerced(&v_bif, T_ANY));
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_bif, T_NUMBER));
 }
 
 #[test]

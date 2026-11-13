@@ -656,22 +656,33 @@ impl Value {
   ///  When the type of the value is T1, the target type is T2, and T1 conforms to T2,
   ///  the value remains unchanged, otherwise the result is `None`.
   ///
-  /// All these conversion rules are implemented in this function.
+  /// All these conversion rules are implemented in this function and in its owned form
+  /// [Value::try_into_coerced].
   ///
   /// `None` when the value does not conform before or after the implicit conversions (§10.3.2.9.4);
   /// in an invocation context the result of the invocation is then null.
   pub fn try_coerced(&self, target_type: &FeelType) -> Option<Value> {
-    if let Value::FunctionDefinition(_) = self {
-      return Some(self.clone());
+    if self.needs_no_coercion(target_type) {
+      Some(self.clone())
+    } else {
+      self.converted(target_type)
     }
-    if let Value::BuiltInFunction(bif) = self
-      && bif.feel_type().is_conformant(target_type)
-    {
-      return Some(self.clone());
+  }
+
+  /// `true` when [Value::try_coerced] returns the value unchanged: a function definition
+  /// (whatever the target type), a built-in function whose type conforms to the target type,
+  /// or a value that conforms to it.
+  fn needs_no_coercion(&self, target_type: &FeelType) -> bool {
+    match self {
+      Value::FunctionDefinition(_) => true,
+      Value::BuiltInFunction(bif) if bif.feel_type().is_conformant(target_type) => true,
+      _ => self.is_conformant(target_type),
     }
-    if self.is_conformant(target_type) {
-      return Some(self.clone());
-    }
+  }
+
+  /// The implicit conversions of [Value::try_coerced] of a value that needs one: from date to
+  /// date and time, from a singleton list, to a singleton list; `None` when none applies.
+  fn converted(&self, target_type: &FeelType) -> Option<Value> {
     match self {
       // from date to date and time: UTC midnight (DMN 1.6 §10.3.2.9.4 and §10.3.2.3.5)
       Value::Date(date) if *target_type == FeelType::DateTime => {
@@ -712,12 +723,7 @@ impl Value {
   /// [Value::try_coerced] of an owned value: a value that needs no conversion is returned
   /// itself instead of a copy.
   pub fn try_into_coerced(self, target_type: &FeelType) -> Option<Value> {
-    // the cases in which `try_coerced` returns a copy of the value unchanged
-    if matches!(self, Value::FunctionDefinition(_)) || matches!(&self, Value::BuiltInFunction(bif) if bif.feel_type().is_conformant(target_type)) || self.is_conformant(target_type)
-    {
-      return Some(self);
-    }
-    self.try_coerced(target_type)
+    if self.needs_no_coercion(target_type) { Some(self) } else { self.converted(target_type) }
   }
 
   /// [Value::coerced] of an owned value (see [Value::try_into_coerced]).
