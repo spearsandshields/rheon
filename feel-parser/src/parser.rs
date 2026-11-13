@@ -321,6 +321,15 @@ impl Parser<'_> {
   }
 }
 
+impl Parser<'_> {
+  /// Takes the semantic value at `index` of the value stack, in the last action that reads it: the
+  /// value of a symbol of the reduced rule (popped right after), or of a symbol before a mid-rule
+  /// action that no later action reads. The AST gets the value without a copy.
+  fn take_value(&mut self, index: usize) -> TokenValue {
+    std::mem::replace(&mut self.yy_value_stack[index], TokenValue::YyState)
+  }
+}
+
 /// Puts the items of a list built from the last item to the first (see [Parser::list_item]) into
 /// source order, for a list that is completed by the rule that uses it.
 fn complete_list(node: &mut AstNode, items: fn(&mut AstNode) -> Option<&mut Vec<AstNode>>) {
@@ -511,8 +520,8 @@ impl ReduceActions for Parser<'_> {
   fn action_context_type_entry(&mut self) -> Result<()> {
     trace_action!(self, "context_type_entry");
     let type_node = self.yy_node_stack.pop().unwrap();
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize] {
-      let lhs = Box::new(AstNode::ContextTypeEntryKey(name.clone()));
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
+      let lhs = Box::new(AstNode::ContextTypeEntryKey(name));
       let rhs = Box::new(type_node);
       self.yy_node_stack.push(AstNode::ContextTypeEntry(lhs, rhs));
     }
@@ -633,7 +642,7 @@ impl ReduceActions for Parser<'_> {
     self.yy_lexer.push_to_scope();
     // add name `partial` to the temporary context present on top of the scope,
     // this is the name of the implicit variable containing results of all previous iterations
-    self.yy_lexer.add_name_to_scope(&Name::from("partial"));
+    self.yy_lexer.add_name_to_scope(Name::from("partial"));
     Ok(())
   }
 
@@ -642,14 +651,14 @@ impl ReduceActions for Parser<'_> {
     // the type of the parameter is on top of node stack
     let rhs = self.yy_node_stack.pop().unwrap();
     // the name of the parameter is in value stack
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize] {
-      // push the new formal parameter on top of node stack
-      let parameter_name = Box::new(AstNode::ParameterName(name.clone()));
-      let parameter_type = Box::new(rhs);
-      self.yy_node_stack.push(AstNode::FormalParameter(parameter_name, parameter_type));
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
       // set the name of the parameter to local context on the top of the scope stack
       // this name will be properly interpreted as a name while parsing the function body
-      self.scope.set_entry_name(name.to_owned());
+      self.scope.set_entry_name(name.clone());
+      // push the new formal parameter on top of node stack
+      let parameter_name = Box::new(AstNode::ParameterName(name));
+      let parameter_type = Box::new(rhs);
+      self.yy_node_stack.push(AstNode::FormalParameter(parameter_name, parameter_type));
     }
     Ok(())
   }
@@ -657,14 +666,14 @@ impl ReduceActions for Parser<'_> {
   fn action_formal_parameter_without_type(&mut self) -> Result<()> {
     trace_action!(self, "function_formal_parameter_without_type");
     // the name of the parameter is in value stack
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize] {
-      // push the new formal parameter on top of node stack
-      let parameter_name = Box::new(AstNode::ParameterName(name.clone()));
-      let parameter_type = Box::new(AstNode::FeelType(FeelType::Any));
-      self.yy_node_stack.push(AstNode::FormalParameter(parameter_name, parameter_type));
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
       // set the name of the parameter to local context on the top of the scope stack
       // this name will be properly interpreted as a name while parsing the function body
-      self.scope.set_entry_name(name.to_owned());
+      self.scope.set_entry_name(name.clone());
+      // push the new formal parameter on top of node stack
+      let parameter_name = Box::new(AstNode::ParameterName(name));
+      let parameter_type = Box::new(AstNode::FeelType(FeelType::Any));
+      self.yy_node_stack.push(AstNode::FormalParameter(parameter_name, parameter_type));
     }
     Ok(())
   }
@@ -873,7 +882,7 @@ impl ReduceActions for Parser<'_> {
   /// This name is pushed onto `yy_node_stack`.
   fn action_iteration_context_variable_name(&mut self) -> Result<()> {
     trace_action!(self, "iteration_context_variable_name");
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - 1] {
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
       self.yy_node_stack.push(AstNode::Name(name.clone()));
       // add this variable name to the temporary context present on top of the scope
       self.yy_lexer.add_name_to_scope(name);
@@ -896,16 +905,16 @@ impl ReduceActions for Parser<'_> {
 
   fn action_key_name(&mut self) -> Result<()> {
     trace_action!(self, "key_name");
-    if let Some(TokenValue::Name(name)) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::ContextEntryKey(name.clone()));
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
+      self.yy_node_stack.push(AstNode::ContextEntryKey(name));
     }
     Ok(())
   }
 
   fn action_key_string(&mut self) -> Result<()> {
     trace_action!(self, "key_string");
-    if let Some(TokenValue::String(value)) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::ContextEntryKey(Name::from(value.clone())));
+    if let TokenValue::String(value) = self.take_value(self.yy_value_stack.len() - 1) {
+      self.yy_node_stack.push(AstNode::ContextEntryKey(Name::from(value)));
     }
     Ok(())
   }
@@ -952,8 +961,8 @@ impl ReduceActions for Parser<'_> {
 
   fn action_literal_at(&mut self) -> Result<()> {
     trace_action!(self, "literal_at");
-    if let Some(TokenValue::String(value)) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::At(value.clone()));
+    if let TokenValue::String(value) = self.take_value(self.yy_value_stack.len() - 1) {
+      self.yy_node_stack.push(AstNode::At(value));
     }
     Ok(())
   }
@@ -968,8 +977,9 @@ impl ReduceActions for Parser<'_> {
 
   fn action_literal_date_time(&mut self) -> Result<()> {
     trace_action!(self, "literal_date_time");
-    if let TokenValue::NameDateTime(name) = &self.yy_value_stack[self.yy_value_stack.len() - 2] {
-      self.yy_node_stack.push(AstNode::Name(name.clone()));
+    // a mid-rule action: `NAME_DATE_TIME LEFT_PAREN` are the last two values
+    if let TokenValue::NameDateTime(name) = self.take_value(self.yy_value_stack.len() - 2) {
+      self.yy_node_stack.push(AstNode::Name(name));
     }
     Ok(())
   }
@@ -984,16 +994,16 @@ impl ReduceActions for Parser<'_> {
 
   fn action_literal_numeric(&mut self) -> Result<()> {
     trace_action!(self, "numeric_literal");
-    if let Some(TokenValue::Numeric(before, after, sign, exponent)) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::Numeric(before.clone(), after.clone(), *sign, exponent.clone()));
+    if let TokenValue::Numeric(before, after, sign, exponent) = self.take_value(self.yy_value_stack.len() - 1) {
+      self.yy_node_stack.push(AstNode::Numeric(before, after, sign, exponent));
     }
     Ok(())
   }
 
   fn action_literal_string(&mut self) -> Result<()> {
     trace_action!(self, "string_literal");
-    if let Some(TokenValue::String(value)) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::String(value.clone()));
+    if let TokenValue::String(value) = self.take_value(self.yy_value_stack.len() - 1) {
+      self.yy_node_stack.push(AstNode::String(value));
     }
     Ok(())
   }
@@ -1008,8 +1018,8 @@ impl ReduceActions for Parser<'_> {
 
   fn action_name(&mut self) -> Result<()> {
     trace_action!(self, "name");
-    if let Some(TokenValue::Name(value)) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::Name(value.clone()));
+    if let TokenValue::Name(value) = self.take_value(self.yy_value_stack.len() - 1) {
+      self.yy_node_stack.push(AstNode::Name(value));
     }
     Ok(())
   }
@@ -1018,9 +1028,9 @@ impl ReduceActions for Parser<'_> {
     trace_action!(self, "named_parameter");
     trace!(self, "{:?}", self.yy_value_stack);
     // the name is the first symbol of the rule
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize] {
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
       let rhs = self.yy_node_stack.pop().unwrap();
-      let parameter_name = Box::new(AstNode::ParameterName(name.clone()));
+      let parameter_name = Box::new(AstNode::ParameterName(name));
       let parameter_value = Box::new(rhs);
       self.yy_node_stack.push(AstNode::NamedParameter(parameter_name, parameter_value));
     }
@@ -1050,8 +1060,8 @@ impl ReduceActions for Parser<'_> {
   fn action_descendant(&mut self) -> Result<()> {
     trace_action!(self, "descendant");
     let lhs = self.yy_node_stack.pop().unwrap();
-    if let Some(TokenValue::Name(name)) = &self.yy_value_stack.last() {
-      let rhs = AstNode::Name(name.clone());
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
+      let rhs = AstNode::Name(name);
       self.yy_node_stack.push(AstNode::Descendant(Box::new(lhs), Box::new(rhs)));
     }
     Ok(())
@@ -1060,8 +1070,8 @@ impl ReduceActions for Parser<'_> {
   fn action_path(&mut self) -> Result<()> {
     trace_action!(self, "path");
     let lhs = self.yy_node_stack.pop().unwrap();
-    if let Some(TokenValue::Name(name)) = &self.yy_value_stack.last() {
-      let rhs = AstNode::Name(name.clone());
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
+      let rhs = AstNode::Name(name);
       self.yy_node_stack.push(AstNode::Path(Box::new(lhs), Box::new(rhs)));
     }
     Ok(())
@@ -1081,8 +1091,8 @@ impl ReduceActions for Parser<'_> {
 
   fn action_qualified_name(&mut self) -> Result<()> {
     trace_action!(self, "action_qualified_name");
-    if let Some(TokenValue::Name(name)) = &self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::QualifiedName(vec![AstNode::QualifiedNameSegment(name.clone())]));
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
+      self.yy_node_stack.push(AstNode::QualifiedName(vec![AstNode::QualifiedNameSegment(name)]));
     }
     Ok(())
   }
@@ -1097,12 +1107,11 @@ impl ReduceActions for Parser<'_> {
 
   fn action_qualified_name_tail(&mut self) -> Result<()> {
     trace_action!(self, "action_qualified_name_tail");
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - 4] {
-      // The parent name is taken from the value stack, after adding actions to grammar rules,
-      // the index must be adjusted, now it is `-4` after adding `{/* after_dot */}`.
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
+      // The parent name is the first symbol of the rule (`NAME DOT {/* after_dot */} qualified_name`).
       // The segments are appended from the last to the first (see [Parser::list_item]).
       if let Some(AstNode::QualifiedName(parts)) = self.yy_node_stack.last_mut() {
-        parts.push(AstNode::QualifiedNameSegment(name.clone()));
+        parts.push(AstNode::QualifiedNameSegment(name));
       }
     }
     Ok(())
@@ -1122,7 +1131,7 @@ impl ReduceActions for Parser<'_> {
   /// This name is pushed onto `yy_node_stack`.
   fn action_quantified_expression_variable_name(&mut self) -> Result<()> {
     trace_action!(self, "quantified_expression_variable_name");
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - 1] {
+    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
       self.yy_node_stack.push(AstNode::Name(name.clone()));
       // add this variable name to the temporary context present on top of the scope
       self.yy_lexer.add_name_to_scope(name);

@@ -180,8 +180,8 @@ impl<'lexer> Lexer<'lexer> {
     self.scope.pop();
   }
 
-  pub fn add_name_to_scope(&mut self, name: &Name) {
-    self.scope.set_entry_name(name.to_owned());
+  pub fn add_name_to_scope(&mut self, name: Name) {
+    self.scope.set_entry_name(name);
   }
 
   pub fn add_parsed_name(&mut self, name: Name) {
