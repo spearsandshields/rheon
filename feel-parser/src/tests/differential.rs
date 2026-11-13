@@ -7,16 +7,16 @@
 //! ([registered_difference]).
 //!
 //! Generators (default size, and full size with `RHEON_FULL_TESTS` set, see [super::full_size]):
-//! - G1: every string of up to 2 characters (4) over [ALPHABET] (and over [ALPHABET_2]), in
-//!   [scopes], with every start rule; also after the heads of iteration contexts.
-//! - G2: random FEEL texts of every construct ([Feel]), with random input contexts (from
+//! - short strings: every string of up to 2 characters (4) over [ALPHABET] (and over
+//!   [ALPHABET_2]), in [scopes], with every start rule; also after the heads of iteration contexts.
+//! - random texts: random FEEL texts of every construct ([Feel]), with random input contexts (from
 //!   [super::names_index]): 1,000 (20,000).
-//! - G4: the expressions of the evaluator corpus, run only when `RHEON_PARSER_CORPUS` is the
+//! - corpus: the expressions of the evaluator corpus, run only when `RHEON_PARSER_CORPUS` is the
 //!   absolute path of a directory of `*.jsonl` files (`tools/evaluator-corpus/corpora`; the test
 //!   is ignored by default: `-- --include-ignored`).
-//! - G5: random edits and every prefix of G2 and G4 texts (cut-off inputs, syntax errors): 60
-//!   (3,000).
-//! - G6: random texts of multi-byte characters: 1,000 (20,000).
+//! - edited and cut texts: random edits and every prefix of random texts and corpus texts (cut-off
+//!   inputs, syntax errors): 60 (3,000).
+//! - unicode texts: random texts of multi-byte characters: 1,000 (20,000).
 //!
 //! The other tests cover chosen inputs; some of them use longer inputs in full size. The full
 //! size is meant for a release build: `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-parser`.
@@ -46,13 +46,13 @@ const START_RULES: [(&str, TokenType, oracle::lalr::TokenType); 9] = [
   ("range literal", TokenType::StartRangeLiteral, oracle::lalr::TokenType::StartRangeLiteral),
 ];
 
-/// The characters of the G1 strings: name characters, keyword letters, white space (U+1680 is a
+/// The characters of the short strings: name characters, keyword letters, white space (U+1680 is a
 /// name character too), the additional name symbols, digits and the punctuation of the grammar.
 const ALPHABET: [char; 24] = [
   'a', 'b', 'i', 'n', 'o', 'r', 'f', ' ', '.', '+', '-', '*', '/', ':', ',', '(', ')', '[', ']', '"', '1', OGHAM, '<', '?',
 ];
 
-/// The second alphabet of G1 (full size only): the remaining punctuation, escapes and white space.
+/// The second alphabet of the short strings (full size only): the remaining punctuation, escapes and white space.
 const ALPHABET_2: [char; 24] = [
   'a', 'e', 'i', 'n', 't', ' ', '{', '}', '=', '@', '\'', '\\', '\t', '\n', '\u{FEFF}', '\u{180E}', '.', ':', ',', '"', '5', 'E', '>', '!',
 ];
@@ -279,7 +279,7 @@ fn ctx(entries: &[(&str, Value)]) -> FeelContext {
   ctx
 }
 
-/// The scopes of the G1 strings (each a list of input contexts, bottom first).
+/// The scopes of the short strings (each a list of input contexts, bottom first).
 fn scopes() -> Vec<Vec<FeelContext>> {
   let nested = |key: &str, inner: FeelContext| ctx(&[(key, Value::Context(inner))]);
   let mut rng = Rng(0x2545_F491_4F6C_DD1D);
@@ -384,30 +384,30 @@ fn registered_fixes_differ_as_registered() {
   }
 }
 
-/// The length of the longest G1 strings.
-fn g1_length() -> usize {
+/// The length of the longest short strings.
+fn short_string_length() -> usize {
   if full_size() { 4 } else { 2 }
 }
 
 #[test]
-fn g1_short_strings_equal_reference() {
+fn short_strings_equal_reference() {
   let alphabets: &[&[char]] = if full_size() { &[&ALPHABET, &ALPHABET_2] } else { &[&ALPHABET] };
   let mut stats = Stats::default();
   for alphabet in alphabets {
     for frames in scopes() {
-      for len in 0..=g1_length() {
+      for len in 0..=short_string_length() {
         for_each_string(alphabet, len, |text| stats.check(&frames, text));
       }
     }
   }
-  println!("G1: {stats:?}");
+  println!("short strings: {stats:?}");
   assert!(stats.asts > 1000, "{stats:?}");
 }
 
 #[test]
-fn g1_iteration_contexts_equal_reference() {
+fn short_strings_after_iteration_heads_equal_reference() {
   // the heads that set the lexer's `till_in` flag, followed by every short string
-  let max_len = g1_length();
+  let max_len = short_string_length();
   let mut stats = Stats::default();
   for frames in &scopes()[..3] {
     for head in ["for ", "some ", "every ", "for x in [1], ", "for item in [1] return "] {
@@ -425,10 +425,10 @@ fn g1_iteration_contexts_equal_reference() {
       }
     }
   }
-  println!("G1 (iteration contexts): {stats:?}");
+  println!("short strings after iteration heads: {stats:?}");
 }
 
-/// Random FEEL texts (G2): every construct of the grammar, names of the input contexts written in
+/// Random FEEL texts: every construct of the grammar, names of the input contexts written in
 /// several ways ([key_text]), comments and every kind of white space.
 struct Feel<'a> {
   rng: &'a mut Rng,
@@ -660,18 +660,18 @@ impl Feel<'_> {
   }
 }
 
-/// The keys of the G2 scopes, with names that the generated texts use too.
-fn g2_keys() -> Vec<String> {
+/// The keys of the scopes of the random texts, with names that the generated texts use too.
+fn random_text_keys() -> Vec<String> {
   let mut keys: Vec<String> = KEYS.iter().map(|k| k.to_string()).collect();
   keys.extend(["zz", "in x", "a in b", "date", "number", "string length", "Full Name"].map(String::from));
   keys
 }
 
 #[test]
-fn g2_random_texts_equal_reference() {
+fn random_texts_equal_reference() {
   let count = if full_size() { 20_000 } else { 1_000 };
   let mut rng = Rng(0x853C_49E6_748F_EA9B);
-  let keys = g2_keys();
+  let keys = random_text_keys();
   let mut stats = Stats::default();
   for _ in 0..count {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
@@ -683,11 +683,11 @@ fn g2_random_texts_equal_reference() {
     .text();
     stats.check(&frames, &input);
   }
-  println!("G2: {stats:?}");
+  println!("random texts: {stats:?}");
   assert!(stats.asts > count, "{stats:?}");
 }
 
-/// Random edits of a text (G5): deletions, insertions of characters and keywords, duplications.
+/// Random edits of a text: deletions, insertions of characters and keywords, duplications.
 fn mutate(rng: &mut Rng, text: &str) -> String {
   let mut chars: Vec<char> = text.chars().collect();
   for _ in 0..1 + rng.below(3) {
@@ -715,10 +715,10 @@ fn mutate(rng: &mut Rng, text: &str) -> String {
 }
 
 #[test]
-fn g5_edited_and_cut_texts_equal_reference() {
+fn edited_and_cut_texts_equal_reference() {
   let count = if full_size() { 3_000 } else { 60 };
   let mut rng = Rng(0xDA94_2042_E4DD_58B5);
-  let keys = g2_keys();
+  let keys = random_text_keys();
   let mut stats = Stats::default();
   for _ in 0..count {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
@@ -739,7 +739,7 @@ fn g5_edited_and_cut_texts_equal_reference() {
       }
     }
   }
-  println!("G5: {stats:?}");
+  println!("edited and cut texts: {stats:?}");
 }
 
 /// An input context with the keys of a FEEL context literal (the values are numbers, nested
@@ -813,7 +813,7 @@ fn corpus() -> Vec<(String, String)> {
 
 #[test]
 #[ignore]
-fn g4_corpus_equals_reference() {
+fn corpus_equals_reference() {
   let corpus = corpus();
   assert!(!corpus.is_empty(), "set RHEON_PARSER_CORPUS to the absolute path of tools/evaluator-corpus/corpora");
   let mut rng = Rng(0x1234_5678_9ABC_DEF1);
@@ -823,7 +823,7 @@ fn g4_corpus_equals_reference() {
     for frames in [vec![], vec![keys_of_context_literal(ctx_text)], vec![rich.clone()]] {
       stats.check(&frames, expr);
     }
-    // cut-off and edited corpus texts (G5)
+    // cut-off and edited corpus texts (as in [edited_and_cut_texts_equal_reference])
     let frames = vec![keys_of_context_literal(ctx_text)];
     stats.check(&frames, &mutate(&mut rng, expr));
     if rng.chance(5) {
@@ -832,7 +832,7 @@ fn g4_corpus_equals_reference() {
       }
     }
   }
-  println!("G4: {} lines, {stats:?}", corpus.len());
+  println!("corpus: {} lines, {stats:?}", corpus.len());
 }
 
 /// Every reduction of a rule without symbols whose action changes the state of the lexer or of the
@@ -1326,5 +1326,5 @@ fn unicode_texts_equal_reference() {
     let text: String = (0..1 + rng.below(12)).map(|_| *rng.pick(&PIECES)).collect();
     stats.check(&frames, &text);
   }
-  println!("G6: {stats:?}");
+  println!("unicode texts: {stats:?}");
 }
