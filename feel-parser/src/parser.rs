@@ -51,6 +51,13 @@ macro_rules! list_item {
   };
 }
 
+/// Replaces the list of kind `$kind` on top of the node stack with a list of kind `$into`, see [Parser::convert_list].
+macro_rules! convert_list {
+  ($s:tt, $kind:ident, $into:ident) => {
+    $s.convert_list(|node| if let AstNode::$kind(items) = node { Some(items) } else { None }, AstNode::$into)
+  };
+}
+
 /// Puts the items of a list of kind `$kind` into source order, see [complete_list].
 macro_rules! complete_list {
   ($node:expr, $kind:ident) => {
@@ -304,6 +311,19 @@ impl Parser<'_, '_> {
       list_items.reverse();
     }
     self.yy_node_stack.push(list(list_items));
+  }
+
+  /// Replaces the list on top of the node stack, built from the last item to the first (see
+  /// [Parser::list_item]; `items` returns the items of this kind of list), with a list of another
+  /// kind (`list`) of the same items in source order. A node of another kind is removed.
+  fn convert_list(&mut self, items: fn(&mut AstNode) -> Option<&mut Vec<AstNode>>, list: fn(Vec<AstNode>) -> AstNode) {
+    if let Some(mut node) = self.yy_node_stack.pop()
+      && let Some(list_items) = items(&mut node)
+    {
+      let mut list_items = std::mem::take(list_items);
+      list_items.reverse();
+      self.yy_node_stack.push(list(list_items));
+    }
   }
 }
 
@@ -914,12 +934,7 @@ impl ReduceActions for Parser<'_, '_> {
 
   fn action_list(&mut self) -> Result<()> {
     trace_action!(self, "list");
-    if let Some(AstNode::CommaList(items)) = self.yy_node_stack.pop().as_mut() {
-      let mut items = std::mem::take(items);
-      // `action_list_tail` appends items last-to-first; restore the order with one reversal.
-      items.reverse();
-      self.yy_node_stack.push(AstNode::List(items));
-    }
+    convert_list!(self, CommaList, List);
     Ok(())
   }
 
@@ -931,17 +946,7 @@ impl ReduceActions for Parser<'_, '_> {
 
   fn action_list_tail(&mut self) -> Result<()> {
     trace_action!(self, "list_tail");
-    let mut node = self.yy_node_stack.pop().unwrap();
-    if let AstNode::CommaList(items) = &mut node {
-      let mut items = std::mem::take(items);
-      let item = self.yy_node_stack.pop().unwrap();
-      // `list_tail` is right recursive, so items arrive last-to-first. Appending keeps this
-      // action constant time instead of shifting every collected item; `action_list` reverses once.
-      items.push(item);
-      self.yy_node_stack.push(AstNode::CommaList(items));
-      return Ok(());
-    }
-    self.yy_node_stack.push(AstNode::CommaList(vec![node]));
+    list_item!(self, CommaList, false);
     Ok(())
   }
 
@@ -1254,11 +1259,7 @@ impl ReduceActions for Parser<'_, '_> {
 
   fn action_unary_tests_negated(&mut self) -> Result<()> {
     trace_action!(self, "unary_tests_negated");
-    if let Some(AstNode::ExpressionList(items)) = self.yy_node_stack.pop().as_mut() {
-      let mut items = std::mem::take(items);
-      items.reverse();
-      self.yy_node_stack.push(AstNode::NegatedList(items));
-    }
+    convert_list!(self, ExpressionList, NegatedList);
     Ok(())
   }
 }
