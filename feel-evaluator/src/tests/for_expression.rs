@@ -326,3 +326,22 @@ fn _0026() {
     r#"["262142-12-31", "262142-12-31"]"#,
   );
 }
+
+#[test]
+fn _0027() {
+  // A body that removes the iteration context from the scope (no FEEL body does, an evaluator
+  // supplied by a caller can) gives a null, and the scope is left as it was found.
+  let scope = &te_scope("{}");
+  let popping: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
+    scope.pop();
+    Value::Boolean(true)
+  });
+  let mut evaluator = crate::ForExpressionEvaluator::for_feel();
+  evaluator.add_list("i".into(), Value::List(vec![Value::Boolean(true), Value::Boolean(false)]));
+  let depth = scope.depth();
+  assert_eq!(
+    Value::Null(Some("internal error: the evaluation removed the iteration context of a `for` expression".to_string())),
+    evaluator.evaluate(scope, &popping)
+  );
+  assert_eq!(depth, scope.depth());
+}
