@@ -86,12 +86,10 @@ pub struct Parser<'parser, 'scope> {
   yy_value_stack: Vec<TokenValue>,
   /// AST node stack.
   yy_node_stack: Vec<AstNode>,
-  /// Tokens read from the lexer, with their start and end offsets (differential tests).
+  /// The token log: every token read from the lexer, with its start offset in the input (the
+  /// differential tests compare it with the tokens of the frozen reference front end).
   #[cfg(test)]
-  token_log: Option<Vec<(TokenType, TokenValue, usize, usize)>>,
-  /// Tokens to read instead of the lexer's (replay of a token log, for timing the parser alone).
-  #[cfg(test)]
-  replay: Option<std::vec::IntoIter<(TokenType, TokenValue)>>,
+  token_log: Option<Vec<(TokenType, TokenValue, usize)>>,
 }
 
 impl<'parser, 'scope> Parser<'parser, 'scope> {
@@ -114,8 +112,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       yy_node_stack: Vec::with_capacity(NODE_STACK_CAPACITY),
       #[cfg(test)]
       token_log: None,
-      #[cfg(test)]
-      replay: None,
     }
   }
 
@@ -128,34 +124,16 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
 
   /// Returns the recorded tokens.
   #[cfg(test)]
-  pub fn token_log(&mut self) -> Vec<(TokenType, TokenValue, usize, usize)> {
+  pub fn token_log(&mut self) -> Vec<(TokenType, TokenValue, usize)> {
     self.token_log.take().unwrap_or_default()
   }
 
-  /// Makes the lexer scan the name chain of every name token (see [Lexer::set_no_chain_memo]).
-  #[cfg(test)]
-  pub fn without_chain_memo(mut self) -> Self {
-    self.yy_lexer.set_no_chain_memo();
-    self
-  }
-
-  /// Reads the given tokens instead of the lexer's.
-  #[cfg(test)]
-  pub fn with_replay(mut self, tokens: Vec<(TokenType, TokenValue)>) -> Self {
-    self.replay = Some(tokens.into_iter());
-    self
-  }
-
-  /// Returns the next token from the lexer.
+  /// Returns the next token from the lexer (and records it in the token log of tests).
   fn next_token(&mut self) -> Result<(TokenType, TokenValue)> {
-    #[cfg(test)]
-    if let Some(replay) = &mut self.replay {
-      return Ok(replay.next().unwrap_or((TokenType::YyEof, TokenValue::YyEof)));
-    }
     let token = self.yy_lexer.next_token();
     #[cfg(test)]
     if let (Some(log), Ok((token_type, token_value))) = (&mut self.token_log, &token) {
-      log.push((token_type.clone(), token_value.clone(), self.yy_lexer.token_start(), self.yy_lexer.position()));
+      log.push((token_type.clone(), token_value.clone(), self.yy_lexer.token_start()));
     }
     token
   }
@@ -236,7 +214,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         Action::Shift => {
           trace!(self, "\nSHIFT");
-          work!(Shifts, 1);
           self.yy_state = self.yy_n as usize;
           self.yy_state_stack.push(self.yy_state);
           // the lookahead value is consumed by the shift (and reset to `YyEmpty`)
@@ -249,7 +226,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         Action::Reduce => {
           trace!(self, "\nREDUCE");
-          work!(Reductions, 1);
           // get the length of the right-hand side
           self.yy_len = YY_R2[self.yy_n as usize] as i16;
           trace!(self, "  reduce count = {}", self.yy_len);

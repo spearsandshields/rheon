@@ -146,7 +146,6 @@ impl ParsingScope<'_> {
   /// a parsed name: [contains](Self::contains) without the composite keys, for the names that can
   /// not be composite (see [bound](Self::bound)).
   pub(crate) fn contains_plain(&self, name: &str) -> bool {
-    work!(Contains, 1);
     if self.names.borrow().contains(name) {
       return true;
     }

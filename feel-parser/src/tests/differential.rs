@@ -64,8 +64,6 @@ enum Outcome {
 struct Run {
   tokens: Vec<(i16, String, usize)>,
   outcome: Outcome,
-  /// The end offsets of the tokens (the current front end only).
-  ends: Vec<usize>,
 }
 
 fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
@@ -76,18 +74,13 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
     .unwrap_or_default()
 }
 
-/// Runs the current front end (`memo`: name tokens reuse the scanned chain); a panic is an outcome.
-fn run_new(frames: &[FeelContext], start: &TokenType, input: &str, memo: bool) -> Run {
+/// Runs the current front end; a panic is an outcome.
+fn run_new(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
   let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
-  if !memo {
-    parser = parser.without_chain_memo();
-  }
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
-  let log = parser.token_log();
   Run {
-    ends: log.iter().map(|token| token.3).collect(),
-    tokens: log.into_iter().map(|(tt, tv, start, _)| (tt as i16, format!("{tv:?}"), start)).collect(),
+    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
     outcome: match outcome {
       Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
       Ok(Err(e)) => Outcome::Error(e.to_string()),
@@ -104,7 +97,6 @@ fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &s
   // the prototype counts positions in characters, the current lexer in bytes
   let bytes: Vec<usize> = input.char_indices().map(|(offset, _)| offset).chain([input.len()]).collect();
   Run {
-    ends: vec![],
     tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt, tv, bytes[start.min(bytes.len() - 1)])).collect(),
     outcome: match outcome {
       Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
@@ -163,11 +155,8 @@ impl Stats {
   }
 
   fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, oracle_start: &oracle::lalr::TokenType, input: &str) {
-    let new = run_new(frames, start, input, true);
+    let new = run_new(frames, start, input);
     let old = run_oracle(frames, oracle_start, input);
-    // the reuse of scanned name chains changes nothing, the end positions of the tokens included
-    let scanned = run_new(frames, start, input, false);
-    assert_eq!(new, scanned, "{name} {input:?} in {frames:?}: reused name chains");
     self.cases += 1;
     match &new.outcome {
       Outcome::Ast(_) => self.asts += 1,
@@ -795,114 +784,12 @@ fn deep_inputs_parse_in_a_small_stack() {
   handle.join().unwrap();
 }
 
-/// Inputs of the measurements below: (name, input contexts, expression) of suite workloads
-/// (perf/requests) and of parse workloads (perf/lexparse).
-fn measured_inputs() -> Vec<(&'static str, Vec<FeelContext>, String)> {
-  let numbers = |keys: &[&str]| ctx(&keys.iter().map(|k| (*k, number(1))).collect::<Vec<_>>());
-  let nested = |key: &str, inner: FeelContext| (key.to_string(), Value::Context(inner));
-  let mut names_10f = numbers(&["price", "quantity", "discount", "fee", "bonus", "adjustment", "f0"]);
-  for (key, value) in [
-    nested("tax", numbers(&["rate", "region"])),
-    nested("shipping", numbers(&["cost", "carrier"])),
-    nested("customer", {
-      let mut c = numbers(&["age", "name"]);
-      c.set_entry(&Name::from("loyalty"), Value::Context(numbers(&["points", "tier"])));
-      c
-    }),
-  ] {
-    names_10f.set_entry(&Name::from(key.as_str()), value);
-  }
-  let deep = ctx(&[("a", Value::Context(ctx(&[("b", Value::Context(ctx(&[("c", Value::Context(numbers(&["d"])))])))])))]);
-  let ctx200 = format!("{{a: 2, b: 3, {}}}.r7", (0..200).map(|i| format!("r{i}: a * {i} + b")).collect::<Vec<_>>().join(", "));
-  let chain = (0..100).map(|i| format!("k{}", i % 10)).collect::<Vec<_>>().join(" + ");
-  let mw = ctx(&[("monthly salary", number(1)), ("yearly bonus amount", number(2)), ("tax rate", number(3))]);
-  vec![
-    ("tiny", vec![], "1 + 2".to_string()),
-    ("decimal-arith", vec![numbers(&["a", "b", "c", "d"])], "(a * b + c) / d".to_string()),
-    (
-      "names-10f",
-      vec![names_10f],
-      "price * quantity - discount + tax.rate * price + shipping.cost + (if customer.age >= 18 then fee else 0) + bonus - adjustment".to_string(),
-    ),
-    (
-      "str-concat",
-      vec![numbers(&["name", "code"])],
-      r#"upper case(name) + " " + substring(code, 1, 3)"#.to_string(),
-    ),
-    ("date-add", vec![], r#"date("2026-01-01") + duration("P1M")"#.to_string()),
-    (
-      "datetime-compare",
-      vec![],
-      r#"date and time("2026-03-01T10:00:00+01:00") > date and time("2026-03-01T08:30:00Z")"#.to_string(),
-    ),
-    ("deep-path", vec![deep], "a.b.c.d".to_string()),
-    ("ctx200-0f", vec![], ctx200),
-    ("chain-names-100", vec![numbers(&["k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7", "k8", "k9"])], chain),
-    ("mw-names", vec![mw], "monthly salary * 12 + yearly bonus amount - tax rate * monthly salary".to_string()),
-  ]
-}
-
 /// The work counters of a parse (`work!`).
 fn work_of(frames: &[FeelContext], input: &str) -> BTreeMap<&'static str, usize> {
   super::work::take();
   let scope = ParsingScope::new(frames);
   let _ = Parser::new(&scope, TokenType::StartExpression, input, false).parse();
   super::work::take()
-}
-
-/// Prints the work counters of the measured inputs (run with `--ignored --nocapture`).
-#[test]
-#[ignore]
-fn work_counters() {
-  for (name, frames, input) in measured_inputs() {
-    println!("{name}: {:?}", work_of(&frames, &input));
-  }
-}
-
-/// Splits the parse time into the lexer and the rest (LALR driver, actions, AST): the parse of the
-/// recorded tokens (no lexer) against the full parse. Run with `--release --ignored --nocapture`.
-#[test]
-#[ignore]
-fn replay_split() {
-  use std::time::Instant;
-  for (name, frames, input) in measured_inputs() {
-    let scope = ParsingScope::new(&frames);
-    let mut parser = Parser::new(&scope, TokenType::StartExpression, &input, false).with_token_log();
-    parser.parse().unwrap();
-    let tokens: Vec<_> = parser.token_log().into_iter().map(|(tt, tv, _, _)| (tt, tv)).collect();
-    let n = (200_000 / input.len()).clamp(20, 20_000);
-    let time = |replay: bool| {
-      let mut best = f64::MAX;
-      for _ in 0..5 {
-        let started = Instant::now();
-        for _ in 0..n {
-          let scope = ParsingScope::new(&frames);
-          let mut parser = Parser::new(&scope, TokenType::StartExpression, &input, false);
-          if replay {
-            parser = parser.with_replay(tokens.clone());
-          }
-          std::hint::black_box(parser.parse().unwrap());
-        }
-        best = best.min(started.elapsed().as_secs_f64() * 1e6 / n as f64);
-      }
-      best
-    };
-    // the clone of the recorded tokens is part of the replay time
-    let clone = {
-      let started = Instant::now();
-      for _ in 0..n {
-        std::hint::black_box(tokens.clone());
-      }
-      started.elapsed().as_secs_f64() * 1e6 / n as f64
-    };
-    let (full, replay) = (time(false), time(true) - clone);
-    println!(
-      "{name}: {} tokens, full parse {full:.2} us, without the lexer {replay:.2} us, lexer {:.2} us ({:.0}%)",
-      tokens.len(),
-      full - replay,
-      100.0 * (full - replay) / full
-    );
-  }
 }
 
 /// Every kind of list keeps the source order of its items, at every length: the AST equals the
@@ -965,7 +852,7 @@ fn lists_keep_source_order() {
 }
 
 /// Name tokens that reuse a scanned chain (see `ChainPart` in the lexer) read the same tokens as the
-/// prototype, which scans the chain for every name token, and as a scan for every token.
+/// prototype, which scans the chain for every name token.
 #[test]
 fn reused_name_chains_equal_prototype() {
   let mut inputs = vec![];
@@ -1028,6 +915,18 @@ fn name_chains_are_scanned_once() {
   for (text, parts) in [(vec!["a"; 20_000].join(" + "), 39_999), (format!("b{}", ".b".repeat(19_999)), 39_999)] {
     assert_eq!(Some(&parts), work_of(&scope, &text).get("parts"), "{text:.20}");
   }
+}
+
+/// The candidate names a name token looks up are bounded by the longest name in scope: in an
+/// `a + a + …` chain with `a` in scope, every name token but the last (a single part, looked up
+/// by no candidate) looks up one candidate, whatever the length of the rest of the chain.
+#[test]
+fn candidates_grow_linearly_with_the_chain() {
+  let scope = [ctx(&[("a", number(1))])];
+  let terms = 1_000;
+  let text = vec!["a"; terms].join(" + ");
+  let candidates = work_of(&scope, &text).get("candidates").copied().unwrap_or(0);
+  assert!(candidates <= terms, "{candidates} candidates for {terms} terms");
 }
 
 /// The bound of the candidate names by the first word of the token (`ParsingScope::group_bound`):

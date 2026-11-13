@@ -127,12 +127,10 @@ pub struct Lexer<'lexer, 'scope> {
   chain_end: usize,
   /// Index of the last part of the chain that is empty after trimming (only U+1680), if any.
   chain_last_empty: Option<usize>,
-  /// Start offset of the last token read from input (for the token log of differential tests).
+  /// Start offset of the last token read from input: the hook of the token log of the parser
+  /// (`Parser::with_token_log`), which the differential tests compare.
   #[cfg(test)]
   token_start: usize,
-  /// Makes every name token scan its chain (the reference of the tests of the reuse).
-  #[cfg(test)]
-  no_chain_memo: bool,
 }
 
 /// A part of a name chain: the name parts (words and additional name symbols) and the white space
@@ -169,24 +167,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       chain_last_empty: None,
       #[cfg(test)]
       token_start: 0,
-      #[cfg(test)]
-      no_chain_memo: false,
     }
   }
 
-  /// Makes every name token scan its chain, as before the chains were reused.
-  #[cfg(test)]
-  pub fn set_no_chain_memo(&mut self) {
-    self.no_chain_memo = true;
-  }
-
-  /// Returns the current position (the end of the last token, a byte offset).
-  #[cfg(test)]
-  pub fn position(&self) -> usize {
-    self.position
-  }
-
-  /// Returns the start offset of the last token read from input.
+  /// Returns the start offset of the last token read from input (a byte offset).
   #[cfg(test)]
   pub fn token_start(&self) -> usize {
     self.token_start
@@ -682,15 +666,14 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   /// Consumes a name.
   fn consume_name(&mut self) -> Result<(TokenType, TokenValue)> {
-    work!(NameTokens, 1);
     //------------------------------------------------------------------------------
     // The name parts that follow the current position: the parts of the chain scanned
     // for an earlier name token when this token starts at one of its parts (the scan
     // reads only the input, so it would give the same parts), or a new scan.
     //------------------------------------------------------------------------------
     let first = match self.chain_parts.binary_search_by_key(&self.position, |part| part.start) {
-      Ok(index) if self.chain_memo() => index,
-      _ => {
+      Ok(index) => index,
+      Err(_) => {
         self.scan_chain();
         0
       }
@@ -743,9 +726,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     //-------------------------------------------------------------------------------
     // A name of one part is the part, whether it is in scope or not, so it needs no
     // lookup: except a built-in property name after a dot, and the names that the two
-    // tweaks after the lookup turn into other tokens when they are not in scope.
-    // (Those tweaks are the only difference between a name found in scope and one that
-    // is not; a new one there must be excluded here too.)
+    // tweaks after the lookup turn into other tokens when they are not in scope (a new
+    // tweak there must be excluded here too). The token type and value do not depend on
+    // the lookup, only the position after the token does: a name found by the lookup
+    // ends at the end of its part, this one after the white space that follows the part,
+    // which the next read skips anyway.
     //-------------------------------------------------------------------------------
     if self.chain_parts.len() - first == 1 {
       let word = &self.input[self.chain_parts[first].trimmed.clone()];
@@ -886,15 +871,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// Returns the name made of the parts `from..to` of the chain.
   fn chain_name(&self, from: usize, to: usize) -> Name {
     Name::from_parts(self.chain_parts[from..to].iter().map(|part| &self.input[part.trimmed.clone()]))
-  }
-
-  /// Returns `true` when name tokens reuse the scanned chain (`false` in tests that check the reuse).
-  fn chain_memo(&self) -> bool {
-    #[cfg(test)]
-    if self.no_chain_memo {
-      return false;
-    }
-    true
   }
 
   /// Returns the number of leading name parts (from part `first` of the chain) that form the
