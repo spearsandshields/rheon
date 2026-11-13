@@ -50,11 +50,16 @@ impl Jsonify for FeelScope {
 }
 
 impl FeelScope {
+  /// Returns a copy of the stack of contexts, bottom first.
+  pub fn contexts(&self) -> Vec<FeelContext> {
+    self.stack.borrow().clone()
+  }
+
   /// Returns the stack of contexts, bottom first, without copying it.
   ///
   /// The scope can not be changed while the returned reference is alive (it would panic).
-  pub fn frames(&self) -> Ref<'_, Vec<FeelContext>> {
-    self.stack.borrow()
+  pub fn frames(&self) -> Ref<'_, [FeelContext]> {
+    Ref::map(self.stack.borrow(), Vec::as_slice)
   }
 
   /// Creates a new and empty [FeelScope].
@@ -92,8 +97,11 @@ impl FeelScope {
   }
 
   /// Restores the stack to `depth` contexts like [FeelScope::truncate] and returns the context
-  /// that was pushed when the stack had `depth` contexts; `None` when that context is gone
-  /// (more contexts were popped than pushed since, which no evaluator does).
+  /// above them, the one pushed when the stack had `depth` contexts; `None` when the stack has
+  /// no more than `depth` contexts (more were popped than pushed since, which no evaluator does).
+  ///
+  /// Only the number of contexts is checked: a context that was popped and replaced by another
+  /// one is not detected, and the other one is returned.
   pub fn pop_frame(&self, depth: usize) -> Option<FeelContext> {
     let mut stack = self.stack.borrow_mut();
     if stack.len() > depth {
