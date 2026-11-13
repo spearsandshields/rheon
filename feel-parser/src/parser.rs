@@ -8,11 +8,11 @@ use crate::scope::ParsingScope;
 use dsntk_common::Result;
 use rheon_feel::{FeelType, IntervalType, Name};
 
-/// Initial capacity of the state and value stacks, enough for most expressions.
-const STACK_CAPACITY: usize = 32;
+/// Initial capacity of the state and value stacks, enough for small expressions.
+const STACK_CAPACITY: usize = 16;
 
 /// Initial capacity of the AST node stack.
-const NODE_STACK_CAPACITY: usize = 16;
+const NODE_STACK_CAPACITY: usize = 8;
 
 enum Action {
   Accept,
