@@ -14,8 +14,8 @@ repository's content now lives here (`wasm/`, `packages/`, `apps/`, `docs/`,
 Rules:
 
 - Engine changes are small, self-contained commits.
-- `fastnum-backend` is a side branch with the experimental fastnum number
-  backend (see below); it is not needed for wasm.
+- `fastnum-backend` is an unpublished side branch with the experimental fastnum
+  number backend (see below); it is not needed for wasm.
 - The `rheon-*` crates are published on crates.io (`cargo publish --workspace`, see
   "Publishing" below). The four upstream crates rheon never changed (`dsntk-common`,
   `-macros`, `-feel-grammar`, `-recognizer`) left the tree on 2026-11-09 and are used from
@@ -42,7 +42,7 @@ Rules:
   byte-identical to `dsntk-wasm/third_party/dsntk` (verified with
   `diff -r`, excluding `target/`, `.git/` and `.bootstrap-stamp`).
 
-## Commits on `wasm` (oldest first)
+## Engine commits (oldest first)
 
 | # | SHA | Title | Origin |
 |---|-----|-------|--------|
@@ -100,7 +100,7 @@ Rules:
 | 52 | `23fc84b` | feel-parser: the composite-name search without recursion | fork |
 | 53 | `3cab20b` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug |
 
-(Full SHAs: `git log --format='%H %s' main..wasm`.)
+(The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
 What each commit does:
 
@@ -526,7 +526,8 @@ dashu spike built feel-evaluator with `dashu` for `wasm32-wasip1` and
 
 ## The `fastnum-backend` branch
 
-`fastnum-backend` = the head of `wasm` + one commit adding
+`fastnum-backend` = commits 1-12 of the table above as they were on 2026-10-16 (before the history
+rewrite, so with other hashes) + one commit adding
 `feel-number/src/backend_fastnum.rs` behind feature `fastnum` (fastnum's
 D256 division, the spike's exp/ln series, `pow` as `exp(y ln x)` at a fixed
 77 digits, every result rounded once by the core from its digit string),
