@@ -264,6 +264,9 @@ pub enum Value {
   YearsAndMonthsDuration(FeelYearsAndMonthsDuration),
 }
 
+// Values are moved and copied everywhere in the evaluator, so their size is part of its speed.
+const _: () = assert!(std::mem::size_of::<Value>() <= 64);
+
 impl Display for Value {
   /// Implements [Display] for a [Value].
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
