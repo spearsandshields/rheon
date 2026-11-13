@@ -30,7 +30,8 @@
 //       reported but not asserted, because an application's main thread has an unknown part of
 //       that stack in use already;
 //     - a worker_threads worker with a 4 MiB stack (Node's default for workers): flat nesting, and
-//       the recursion at d = WORKER_FLOOR;
+//       the recursion at d = WORKER_FLOOR; --report also runs workers with 2 and 3 MiB stacks, where
+//       the native stack runs out before the shadow stack, to show the native margin;
 //   - Wasmtime (.tools/wasmtime, installed by scripts/bootstrap.sh) with a 4 MiB wasm stack
 //     (max-wasm-stack; Wasmtime's default is 512 KiB): flat nesting, and the recursion at
 //     d = WASMTIME_FLOOR. The module is preloaded as `feel`, which makes Wasmtime instantiate the
@@ -46,9 +47,9 @@
 // Wasmtime versions. A change that alters the measured depths on purpose updates the floors with
 // them.
 //
-// --report checks nothing: it prints the deepest recursion each host reaches (Node main thread and
-// worker with each compiler, Wasmtime with a wasm stack of 512 KiB, 1, 2, 4 and 16 MiB) and the
-// outcome of the flat nesting there. Exit status: 0 when every check passed (with --report: when
+// --report checks nothing: it prints the deepest recursion each host reaches (Node main thread, and
+// workers with 2, 3 and 4 MiB stacks, with each compiler; Wasmtime with a wasm stack of 512 KiB, 1,
+// 2, 4 and 16 MiB) and the outcome of the flat nesting there. Exit status: 0 when every check passed (with --report: when
 // every host ran), 1 when a check failed, 2 when a host could not be run.
 import { readFile, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -61,6 +62,7 @@ import * as abi from './feel-abi.mjs';
 
 const WORKER_STACK_MB = 4;
 const WORKER_FLOOR = 60;
+const REPORT_WORKER_STACKS_MB = [2, 3, WORKER_STACK_MB];
 const WASMTIME_STACK = 4 * 1024 * 1024;
 const WASMTIME_FLOOR = 60;
 const REPORT_WASMTIME_STACKS = [512 * 1024, 1024 * 1024, 2 * 1024 * 1024, 4 * 1024 * 1024, 16 * 1024 * 1024];
@@ -176,11 +178,11 @@ async function runThread(modulePath, limits, floor, report) {
   return result;
 }
 
-function runWorker(modulePath, limits, floor, report) {
+function runWorker(modulePath, limits, floor, report, stackMb) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(fileURLToPath(import.meta.url), {
       workerData: { modulePath, limits, floor, report },
-      resourceLimits: { stackSizeMb: WORKER_STACK_MB },
+      resourceLimits: { stackSizeMb: stackMb },
     });
     worker.once('message', resolve);
     worker.once('error', reject);
@@ -188,7 +190,7 @@ function runWorker(modulePath, limits, floor, report) {
   });
 }
 
-// The main thread and the worker, in a Node process with V8 pinned to one compiler.
+// The main thread and the workers, in a Node process with V8 pinned to one compiler.
 function runNodeProcess(compiler, modulePath, limits, report) {
   const options = JSON.stringify({ modulePath, limits, report });
   const r = spawnSync(process.execPath, [compiler.flag, '--no-warnings', fileURLToPath(import.meta.url), NODE_HOSTS_OPTION, options], {
@@ -351,9 +353,9 @@ async function main(args) {
     failures.push(...s.failures);
   };
   for (const compiler of V8_COMPILERS) {
-    const { main, worker } = runNodeProcess(compiler, modulePath, limits, report);
+    const { main, workers } = runNodeProcess(compiler, modulePath, limits, report);
     show(`Node main thread, ${compiler.name}`, main);
-    show(`Node worker (${WORKER_STACK_MB} MiB stack), ${compiler.name}`, worker, WORKER_FLOOR);
+    for (const { stackMb, result } of workers) show(`Node worker (${stackMb} MiB stack), ${compiler.name}`, result, WORKER_FLOOR);
   }
   const host = await wasmtimeHost(modulePath);
   try {
@@ -370,11 +372,15 @@ async function main(args) {
   return failures.length ? 1 : 0;
 }
 
-// The Node hosts of one process (see runNodeProcess): main thread, then worker.
+// The Node hosts of one process (see runNodeProcess): main thread, then the workers one after
+// another.
 async function nodeHosts({ modulePath, limits, report }) {
   const main = await runThread(modulePath, limits, null, report);
-  const worker = await runWorker(modulePath, limits, WORKER_FLOOR, report);
-  return { main, worker };
+  const workers = [];
+  for (const stackMb of report ? REPORT_WORKER_STACKS_MB : [WORKER_STACK_MB]) {
+    workers.push({ stackMb, result: await runWorker(modulePath, limits, WORKER_FLOOR, report, stackMb) });
+  }
+  return { main, workers };
 }
 
 if (!isMainThread) {
