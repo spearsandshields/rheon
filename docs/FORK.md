@@ -603,8 +603,8 @@ The API changes of 0.4.0 (commits 39-53):
   `bip::BUILT_IN_PROPERTY_NAMES`; `for_feel()` on `ForExpressionEvaluator`,
   `SomeExpressionEvaluator`, `EveryExpressionEvaluator` and `FilterExpressionEvaluator`.
 - Kept: `FeelScope::contexts()`. The value types of `rheon-feel`, `AstNode`, `ClosureBuilder`,
-  `FilterExpressionEvaluator` and `Dialect` are `Send` and `Sync`, and `FeelScope` and
-  `ParsingScope` are `Send`, as at 0.3.0; each crate's `send_sync` test checks this at compile
+  `FilterExpressionEvaluator`, `Dialect` and `ModelEvaluator` are `Send` and `Sync`, and
+  `FeelScope` and `ParsingScope` are `Send`, as at 0.3.0; each crate's `send_sync` test checks this at compile
   time.
 
 ### The pre-rename procedure (historical)
