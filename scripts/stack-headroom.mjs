@@ -270,13 +270,15 @@ async function wasmtimeHost(modulePath) {
   let n = 0;
   // Sends the requests in order in one process; returns their responses, and for a trap the
   // trap message in place of the response of the request that trapped (later ones are not sent).
+  // A Wasmtime failure that is not a wasm trap is a failure of the host and throws.
   const run = async (requests, stackBytes, wat = commandModule(requests)) => {
     const command = path.join(dir, `command-${n++}.wat`);
     await writeFile(command, wat);
     const r = exec(['run', '-C', 'cache=n', '-W', `max-wasm-stack=${stackBytes}`, '--allow-precompiled', '--preload', `feel=${precompiled}`, command]);
     const responses = r.stdout.split('\n').filter((line) => line !== '').map((line) => JSON.parse(line));
     if (r.status !== 0) {
-      const trap = r.stderr.match(/wasm trap: (.*)/)?.[1] ?? (r.error ? String(r.error) : `exit ${r.status ?? r.signal}: ${r.stderr.trim().split('\n').pop()}`);
+      const trap = r.stderr.match(/wasm trap: (.*)/)?.[1];
+      if (trap === undefined) throw new Error(`wasmtime failed (${r.error ?? `exit ${r.status ?? r.signal}`}): ${r.stderr.trim().split('\n').pop()}`);
       responses.push({ trap });
     }
     return responses;
@@ -284,9 +286,11 @@ async function wasmtimeHost(modulePath) {
   try {
     const compiled = exec(['compile', '-C', 'cache=n', '-o', precompiled, modulePath]);
     if (compiled.status !== 0) throw new Error(`wasmtime compile failed: ${compiled.error ?? compiled.stderr}`);
-    // A preloaded reactor must arrive initialized: its `_initialize` traps when called again.
+    // A preloaded reactor must arrive initialized: its `_initialize` traps (`unreachable`) when
+    // called again.
     const again = await run([], WASMTIME_STACK, '(module (import "feel" "_initialize" (func $init)) (func (export "_start") (call $init)))');
-    if (again.at(-1)?.trap === undefined) throw new Error('Wasmtime did not call _initialize of the preloaded module');
+    const trap = again.at(-1)?.trap;
+    if (!/unreachable/.test(trap ?? '')) throw new Error(`Wasmtime did not call _initialize of the preloaded module (${trap ?? 'the second call returned'})`);
   } catch (e) {
     await close();
     throw e;
