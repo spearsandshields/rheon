@@ -358,14 +358,21 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  // A long chain of path expressions over a known name used to cost cubic time in the lexer
-  // (every `.` is an additional name symbol, so each token scanned the whole chain and tried
-  // every prefix); with 1000 steps this parses in milliseconds now.
-  let input = format!("{{a:1}}{}", ".a".repeat(1000));
-  let started = std::time::Instant::now();
-  let node = Parser::new(&scope!(), StartExpression, &input, false).parse().unwrap();
-  assert!(matches!(node, AstNode::Path(_, _)), "expected a path expression");
-  assert!(started.elapsed().as_secs() < 5, "parsing took {:?}", started.elapsed());
+  // A long chain of path expressions over a context literal: every `.` is an additional name
+  // symbol, so a lexer that scanned the rest of the chain for each token and tried every prefix
+  // would be cubic. The parts scanned and the candidates looked up grow linearly with the steps.
+  let work = |steps: usize| {
+    let input = format!("{{a:1}}{}", ".a".repeat(steps));
+    crate::tests::work::take();
+    let node = Parser::new(&scope!(), StartExpression, &input, false).parse().unwrap();
+    assert!(matches!(node, AstNode::Path(_, _)), "expected a path expression");
+    crate::tests::work::take()
+  };
+  let (w1, w2, w3) = (work(1), work(1_001), work(2_001));
+  for unit in ["parts", "candidates"] {
+    let n = |w: &std::collections::BTreeMap<&str, usize>| w.get(unit).copied().unwrap_or(0);
+    assert_eq!(n(&w3) - n(&w2), n(&w2) - n(&w1), "{unit}: {w1:?} {w2:?} {w3:?}");
+  }
 }
 
 #[test]
