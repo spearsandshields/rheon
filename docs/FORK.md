@@ -86,6 +86,21 @@ Rules:
 | 36 | `94ec326` | feel: null equality is one rule; a non-conformant argument ends the invocation | upstream bug | no |
 | 37 | `f65f252` | feel: one invocation for every function call (Table 64) | DMN 1.6 | no |
 | 38 | `a1d5a62` | feel: `in` treats every null alike | upstream bug | no |
+| 39 | `ea795d2` | feel-parser: names found in an index over the borrowed input contexts; composite names searched, not flattened | upstream bug | no |
+| 40 | `ea795d2` | feel: the type of a list of contexts without building the item types | fork | no |
+| 41 | `ea795d2` | feel-evaluator: every evaluator that pushes a context restores the scope depth on return | upstream bug | no |
+| 42 | `ea795d2` | feel-evaluator: FEEL loops and filters move their contexts instead of cloning them | fork | no |
+| 43 | `ea795d2` | feel-number: decimal128 comparison, digit count and packing without 128-bit division | fork | no |
+| 44 | `ea795d2` | feel: function values share their definition (`Arc<FunctionDefinition>`) | fork | no |
+| 45 | `ea795d2` | feel-wasm: request input converted by value | fork | no |
+| 46 | `ea795d2` | feel-evaluator: subtraction null reasons from the evaluated operands (2^n - 1 diagnostics become n) | upstream bug | no |
+| 47 | `ea795d2` | wasm profile at opt-level 3 with a 10 MiB shadow stack | fork | no |
+| 48 | `6e581a7` | feel-parser: an iteration variable that starts with `in` is a syntax error, not a trap | upstream bug | no |
+| 49 | `1e4a58b` | feel-parser: a range literal's named temporal parameter keeps its name | upstream bug | no |
+| 50 | `a9244b6` | feel-parser: list grammar actions append and complete each list once (the tails were quadratic) | upstream bug | no |
+| 51 | `6faa802`..`984d22f` except `23fc84b` | feel-parser: lexer and parser without per-token copies | fork | no |
+| 52 | `23fc84b` | feel-parser: the composite-name search without recursion | fork | no |
+| 53 | `3cab20b` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug | no |
 
 (Full SHAs: `git log --format='%H %s' main..wasm`.)
 
@@ -195,8 +210,10 @@ What each commit does:
 17. **Lexer.** `.` is an additional name symbol, so after each `Dot` the lexer
     scanned the rest of an `a.a.a…` chain as one candidate name and tried
     every prefix (O(n³) for n steps; 400 steps took 2 s). Prefixes longer
-    than the longest key in scope (or built-in property name) are skipped;
-    the fallback name is unchanged.
+    than any name the scope can match are skipped; the fallback name is
+    unchanged. The bound counts the composite keys only for a candidate
+    with a part that trims to empty, and the built-in property names only
+    right after a dot (39).
 18. **Messages.** `time("10:00:00+15:00")` said `time_1`, `exp(14150)` said
     `exp`, `duration("P")` said `duration`, `log(0)` said nothing; they now
     say what is wrong, and type errors use the `invalid argument type` form.
@@ -219,6 +236,159 @@ What each commit does:
     `replace`/`split` keep `regex`. With the `x` flag, whitespace inside
     `\p{...}` is stripped before compiling. TCK 1111 `K2-MatchesFunc-17`
     passes unpatched.
+
+Commits 23-38 are described in their commit messages. Commits 39-53 make parsing and
+evaluation faster and fix the upstream bugs found on the way; apart from the fixes marked
+"upstream bug", every response is the same as 0.3.0's (measured below).
+
+39. **Name index.** For every parse 0.3.0 converted the whole evaluation scope into a parsing
+    scope (a deep copy of every input context), and for every name the lexer read it built
+    the set of all flattened keys in scope, the composite keys `k1 . k2 . … . kn` of nested
+    contexts included. That set grows exponentially with the nesting depth: a path
+    `k0.k1.….k99` into a 100-level context ran into the 512 MiB cap. `ParsingScope<'a>` now
+    borrows the input contexts (`FeelScope::frames`) and indexes each one on first use
+    (`FrameIndex`: one walk with an explicit stack over the nested contexts, the context types
+    and the item type of a list of contexts whose items all conform to it). A name that
+    contains the composite separator ` . ` is found by a search over the states (node, offset
+    in the name), each visited at most once. The lexer's prefix bound (17) is computed without
+    the set: the composite keys count only for a candidate with a part that trims to empty
+    (only U+1680 trims away, and only such a part can put ` . ` into a candidate), the
+    built-in property names (14 bytes at most, derived from `bip::BUILT_IN_PROPERTY_NAMES`,
+    `1d0b247`) only right after a dot. One function decides which values carry nested names,
+    for the index, the composite search and the contexts pushed while parsing (`9b8d01a`); list
+    item types are keyed by address, so `ParsingScope` is `Send` as at 0.3.0 (`736a442`).
+40. **List types.** `Value::type_of` of a list built the type of every item to find the common
+    item type of a list of contexts. A context is now checked against a context type entry by
+    entry, without building its type (`364254f`: one rule for the type of a list). The types are
+    the same; randomized tests compare the rule with 0.3.0's at every nesting level.
+41. **Scope depth.** The filter (`only number or boolean indexes`) and the context literal (an
+    entry that is a null) returned early without popping the context they had pushed, so the
+    caller popped the wrong one: `for i in 1..3 return [1,2]["x"]` was `[null]` (two results
+    lost), and in `{r: for i in 1..3 return [1,2]["x"], s: i}` the loop variable was still
+    visible after the loop (`s: 3`). Every evaluator that pushes a context (filter, context
+    literal, invocation, B-FEEL operands, iterations) records the depth and restores it on every
+    return (`FeelScope::{depth, truncate, pop_frame}`): three nulls, and `s: null`.
+42. **Loops and filters move their contexts.** FEEL `for`, `some` and `every` cloned the
+    iteration context into the scope for every iteration, and the filter cloned every item.
+    They now move the context into the scope and back (`partial` is assigned in place,
+    `FeelContext::assign_entry`). The filter moves each item: a context with an `item` entry
+    becomes the frame itself, another context is copied once for its entries, and the frame
+    `{item: …}` is reused from item to item. The iteration advances with `next()` alone, and
+    `some` and `every` stop iterating at the deciding item (0.3.0 stopped evaluating there but
+    ran the iteration to its end; results and diagnostics are the same). If an evaluation
+    removed the iteration or item context, which no evaluator does, the loop, filter, `some` or
+    `every` returns null with an internal-error reason instead of a wrong result, after the
+    scope is restored (`65858db`); `ForExpressionEvaluator::evaluate` returns that `Value`.
+    The model evaluator's boxed iterators and filters keep copying (`new()`), because a boxed
+    context writes its entries into the context on the top of the scope (docs/BACKLOG.md); the
+    FEEL builders use `for_feel()`. `count(for i in 1..10000 return i)` natively: 132
+    allocations (+17 reallocations) per call, 40,199 (+26) at 0.3.0.
+43. **Decimal fast paths.** `digit_count` comes from the bit length (times 1233/4096, then one
+    comparison with a power of ten) instead of 128-bit divisions. Two finite numbers with equal
+    exponents are compared by their coefficients; otherwise only the coefficient with the
+    larger exponent is scaled (`checked_mul`; an overflow means that side is larger).
+    `round_pack_u128` returns at once for a coefficient below 10^34 with the exponent in range.
+    Exact: unit tests compare each path with the general algorithm on every edge value and on
+    random values (`feel-number/src/decimal128/tests.rs`), and `tools/difftest/run.sh 100000`
+    (3,900,001 cases) on this code gives the same mismatch set, cohorts and oracle verdicts
+    against Intel as 0.3.0's core. The production code of `decimal128.rs` is unchanged since
+    `ea795d2`.
+44. **Shared function definitions.** `Value::FunctionDefinition` holds an
+    `Arc<FunctionDefinition>` (named fields, `FunctionDefinition::new`, `From<FunctionDefinition>
+    for Value`) instead of six fields, so a name lookup or an argument copies a pointer. The
+    invocation borrows the definition, and `closed_over` copies it (`Arc::make_mut`) only when
+    the closure has entries to add. Arguments and results are coerced by value
+    (`Value::try_into_coerced`, `into_coerced`, with the checks of `try_coerced`, `593f3ad`).
+    `size_of::<Value>()` is 64 B natively (128 B at 0.3.0) and 64 B on wasm32 (as at 0.3.0:
+    there the 48-byte `FeelNumber` sets it). `FunctionDefinition` derives `Debug` (`96776fd`),
+    so the `Debug` text of a function value differs from 0.3.0's.
+45. **Input by value.** The request's `context` and `input` are converted by value: strings
+    and keys are moved (a key that trimming leaves unchanged becomes the `Name` without a
+    copy), numbers are parsed from the JSON number's own text (`arbitrary_precision`), entries
+    are inserted with `FeelContext::insert`, and the rest of the request is dropped before
+    parsing. The path of a value in warnings and errors (`a.b[0]`) is written only when a
+    message needs it, without recursion (`649a317`). The texts and order of the warnings and
+    errors are 0.3.0's (golden tests in `wasm/feel-wasm/tests/contract.rs`).
+46. **Subtraction reasons.** The null reason of a failing subtraction evaluated both operands
+    again to print them, so a chain of failing subtractions was exponential:
+    `{a: "x", r: a - 1 - … - 1}.r` with 16 subtractions recorded 65,535 diagnostics
+    (2^n - 1). The reason is formatted from the operands already evaluated: 16 diagnostics, with
+    the same texts.
+47. **Build profile.** `[profile.wasm]` builds at `opt-level = 3` (was `"z"`); its stack frames
+    are larger, so the shadow stack is 10 MiB (was 8 MiB, `wasm/feel-wasm/build.rs`).
+    `scripts/stack-headroom.mjs` (`npm run stack`, run by CI, `b845690`) checks that requests
+    within the AST and call-depth limits evaluate in a Node worker and in Wasmtime. Measured on
+    the final module (macOS arm64, Node 26, Wasmtime 49.0.3):
+    - engine time: an opt-level z build of the same code takes 1.85x as long (geomean of 24
+      requests, two alternating runs);
+    - size: 3,786,561 B raw, 1,018,615 B gzip, 667,650 B brotli (opt-level z: 3,160,691 /
+      840,786 / 552,386; 0.3.0: 3,129,141 / 830,762 / 545,186);
+    - initial linear memory: 11.38 MiB (0.3.0: 9.38 MiB);
+    - the deepest body (nesting levels) with which `npm run stack -- --report`'s recursion of
+      190 calls still evaluates: Node worker with a 4 MiB stack 64 with either V8 compiler
+      (0.3.0: 49 Liftoff, 60 TurboFan), Wasmtime with a 4 MiB wasm stack 64 (0.3.0: 60),
+      Wasmtime's default 512 KiB 8 (0.3.0: 6), Node's main thread 17 Liftoff, 14 TurboFan
+      (0.3.0: 10, 14). At 64 the 10 MiB shadow stack runs out, not the host's native stack.
+48. **`in` at the start of an iteration variable.** Where the grammar expects an iteration
+    variable, the lexer cuts the name before its first `in` part. When the first part was `in`
+    the cut underflowed (`index - 1`): `for in+1 in [1] return 1`, `for in[1] return 1` and
+    `some in.x in [1] satisfies true` panicked natively and trapped the wasm instance. Such an
+    `in` is now the keyword `in` (a name never starts with a literal terminal symbol,
+    DMN 1.6 §10.3.1.4), so these are syntax errors; `for in1 in [1] return in1` is `[1]` as
+    at 0.3.0. After a variable named `item` the mode stays set (docs/BACKLOG.md), so
+    `for item in[1] return item` (a trap at 0.3.0) is `[1]`.
+49. **Range literal with a named parameter.** The grammar action for the named temporal
+    parameter of a range literal read the colon's slot, so
+    `range("[date(from: \"2012-01-01\")..date(\"2013-01-01\")]")` built `date` with an unnamed
+    string and was null ("invalid range literal"). `feel.y` models the parameter like a named
+    parameter of an invocation (tables regenerated with Bison 3.8.2): the range
+    `[2012-01-01..2013-01-01]`.
+50. **List grammar actions.** The nine list-tail actions inserted each item at the front
+    (`insert(0)`, quadratic in the length of the list; commit 4 fixed only the list literal).
+    Every list is now built by appending and completed once by its consumer, through one pair
+    of helpers (`e3bfd1b`).
+51. **Lexer and parser without per-token copies.** Each step is exact (the token streams, ASTs
+    and errors are compared on exhaustive and randomized inputs):
+    - token values move into the AST; the parser's stacks start with room for 16 states,
+      16 values and 8 nodes;
+    - each name chain is scanned once per parse, and its parts are byte ranges into the input,
+      not strings;
+    - a candidate without an empty part skips the composite search, and probing the contexts
+      pushed while parsing allocates nothing;
+    - the candidate bound uses only the names that share the token's first word;
+    - the input index is built on first use, and a one-part name needs no lookup unless the
+      scope decides its token;
+    - string literals without escapes and runs of digits take one exact allocation;
+    - the keyword window (12 characters) is read only after a keyword's initial;
+    - the lexer reads the input `&str` in place (0.3.0 copied it into a `Vec<char>`, 4 bytes
+      per character).
+
+    Memory, measured natively on the final code against the code of commit 39: `x1 + x2 + … +
+    x400` with the 400 names in the context takes 2,953 allocations per call (164,153), and its
+    peak live memory is 172,541 B (147,801 B), because the parts of every name chain are kept
+    for the whole parse (32 B per part natively, 16 B on wasm32). The parse of `1 + 2` peaks at
+    2,338 B (1,338 B), the stacks reserved up front.
+52. **Composite search without recursion.** The first composite lookup converted every input
+    context into a parsing context with a recursive conversion (stack depth = nesting depth).
+    The search runs on the index's nodes with an explicit stack, and one implementation serves
+    the input contexts and the contexts pushed while parsing (`4608025`). A composite name
+    2,000 levels down parses in a 256 KiB thread. Requests to feel.wasm cannot nest that deep
+    (JSON contexts stop at about 125 levels, FEEL contexts at the AST limit), so this is
+    robustness for direct callers of the library.
+53. **Date range at the limit.** A date range that ends at the last supported date
+    (262142-12-31, going up) or the first (-262143-01-01, going down) repeated its end date when
+    an outer iteration context advanced, instead of restarting at its start: the iteration
+    contexts are a cross product, inner to outer (DMN 1.6 §10.3.2.14).
+
+Speed, measured 2026-11-13 on the final module (wasm, Node 26 on macOS arm64, median wall time
+of a `feel_call` on a warm instance): 5.31x 0.3.0's speed on the geomean of 24 requests and
+5.10x on 84 parse-heavy requests. For example, a formula over a 1,000-entry input context
+7.13 ms → 0.46 ms; a 200-entry context literal with a 1,000-entry input context 188 ms →
+1.36 ms; `x1 + … + x400` 55.0 ms → 0.29 ms; the 100-segment path `a.a.….a` 356 ms → 0.36 ms;
+a 5,000-entry context literal 19.2 ms → 6.2 ms; `count(for i in 1..10000 return i)` 7.58 ms →
+1.11 ms; filtering 10,000 contexts 38.3 ms → 11.1 ms. Full responses (result, type, warnings,
+diagnostics, errors) of 1,002 requests, each also sent as a parse request, equal 0.3.0's except
+50 registered differences, all from commits 39, 41, 46, 48, 49 and 53.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -389,7 +559,8 @@ push; crates.io still records the pre-rewrite hash of 0.2.0 (`3209ccd`, now `a91
 
 The ten `rheon-*` crates share the workspace version (`[workspace.package] version`,
 rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`, `0.3.0` changed the API of
-`rheon-feel` and `rheon-feel-evaluator`) and pin each other with `=<version>` in
+`rheon-feel` and `rheon-feel-evaluator`, `0.4.0` changes the API of `rheon-feel`, `rheon-feel-parser`
+and `rheon-feel-evaluator`, see below) and pin each other with `=<version>` in
 the root manifest. Every other workspace member is `publish = false`, so one command
 publishes the set in dependency order:
 
@@ -412,6 +583,29 @@ together, run the verification above, commit, tag `vX.Y.Z`, publish.
 The built module reaches users through the npm package `@rheon/feel-runtime` (which ships
 `feel.wasm`) and the GitHub Release that `.github/workflows/release.yml` creates for every
 `vX.Y.Z` tag (`feel.wasm`, its sha256, the npm tarball and the playground build).
+
+The API changes of 0.4.0 (commits 39-53):
+
+- Changed:
+  - `rheon-feel`: `Value::FunctionDefinition` holds an `Arc<FunctionDefinition>` instead of six
+    fields. `Name` implements `Borrow<str>`, so `map.contains_key(&"d".into())` on a map keyed
+    by `Name` no longer infers its type (write `&Name::from("d")`). The `Debug` text of a
+    function value is the derived `Debug` of `FunctionDefinition`.
+  - `rheon-feel-parser`: `ParsingScope<'a>` has a lifetime parameter (invariant) and borrows
+    the input contexts; `From<&FeelScope>` is removed, so outside the crate a scope is built
+    with `Default`; `pop()` returns `()`; `flattened()` is removed.
+  - `rheon-feel-evaluator`: `ForExpressionEvaluator::evaluate` returns `Value` (was `Values`).
+    `FilterExpressionEvaluator` has a private field, so it is built with `new()`, `default()`
+    or `for_feel()`, not as `FilterExpressionEvaluator {}`.
+- Added: `FunctionDefinition` (with `new` and `From<FunctionDefinition> for Value`);
+  `FeelScope::{frames, depth, truncate, pop_frame}`; `FeelContext::{insert, assign_entry,
+  get_entry_mut}`; `Value::{try_into_coerced, into_coerced}`; `Name::from_parts`;
+  `bip::BUILT_IN_PROPERTY_NAMES`; `for_feel()` on `ForExpressionEvaluator`,
+  `SomeExpressionEvaluator`, `EveryExpressionEvaluator` and `FilterExpressionEvaluator`.
+- Kept: `FeelScope::contexts()`. The value types of `rheon-feel`, `AstNode`, `ClosureBuilder`,
+  `FilterExpressionEvaluator` and `Dialect` are `Send` and `Sync`, and `FeelScope` and
+  `ParsingScope` are `Send`, as at 0.3.0; each crate's `send_sync` test checks this at compile
+  time.
 
 ### The pre-rename procedure (historical)
 
