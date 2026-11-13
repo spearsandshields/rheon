@@ -88,20 +88,21 @@ impl Jsonify for Name {
 impl Name {
   /// Creates a [Name] from string parts.
   pub fn new(parts: &[&str]) -> Self {
-    Self::join(parts.iter().copied())
+    Self::join(parts)
   }
 
   /// Creates a [Name] from string parts, like [Name::new], without collecting the parts first.
-  pub fn from_parts(parts: &[String]) -> Self {
-    Self::join(parts.iter().map(String::as_str))
+  pub fn from_parts<S: AsRef<str>>(parts: impl IntoIterator<Item = S>) -> Self {
+    Self::join(parts)
   }
 
   /// Joins trimmed name parts with single spaces, except around additional name symbols.
-  fn join<'a>(parts: impl Iterator<Item = &'a str>) -> Self {
+  fn join<S: AsRef<str>>(parts: impl IntoIterator<Item = S>) -> Self {
     let mut result = String::new();
     let mut current;
     let mut prev = false;
-    for (index, part) in parts.map(|s| s.trim()).enumerate() {
+    for (index, part) in parts.into_iter().enumerate() {
+      let part = part.as_ref().trim();
       current = matches!(part, "." | "/" | "-" | "'" | "+" | "*");
       if index > 0 && !prev && !current && !part.is_empty() {
         result.push(' ');

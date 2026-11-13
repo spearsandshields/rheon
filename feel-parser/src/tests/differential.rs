@@ -59,11 +59,13 @@ enum Outcome {
   Panic(String),
 }
 
-/// The tokens read by the parser and the outcome.
+/// The tokens read by the parser (type, Debug text of the value, start offset) and the outcome.
 #[derive(Debug, PartialEq)]
 struct Run {
   tokens: Vec<(i16, String, usize)>,
   outcome: Outcome,
+  /// The end offsets of the tokens (the current front end only).
+  ends: Vec<usize>,
 }
 
 fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
@@ -74,13 +76,18 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
     .unwrap_or_default()
 }
 
-/// Runs the current front end; a panic is an outcome.
-fn run_new(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
+/// Runs the current front end (`memo`: name tokens reuse the scanned chain); a panic is an outcome.
+fn run_new(frames: &[FeelContext], start: &TokenType, input: &str, memo: bool) -> Run {
   let scope = ParsingScope::new(frames);
   let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
+  if !memo {
+    parser = parser.without_chain_memo();
+  }
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
+  let log = parser.token_log();
   Run {
-    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
+    ends: log.iter().map(|token| token.3).collect(),
+    tokens: log.into_iter().map(|(tt, tv, start, _)| (tt as i16, format!("{tv:?}"), start)).collect(),
     outcome: match outcome {
       Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
       Ok(Err(e)) => Outcome::Error(e.to_string()),
@@ -95,6 +102,7 @@ fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &s
   let mut parser = oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   Run {
+    ends: vec![],
     tokens: parser.token_log(),
     outcome: match outcome {
       Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
@@ -152,15 +160,18 @@ impl Stats {
   }
 
   fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, oracle_start: &oracle::lalr::TokenType, input: &str) {
-    let new = run_new(frames, start, input);
+    let new = run_new(frames, start, input, true);
     let old = run_oracle(frames, oracle_start, input);
+    // the reuse of scanned name chains changes nothing, the end positions of the tokens included
+    let scanned = run_new(frames, start, input, false);
+    assert_eq!(new, scanned, "{name} {input:?} in {frames:?}: reused name chains");
     self.cases += 1;
     match &new.outcome {
       Outcome::Ast(_) => self.asts += 1,
       Outcome::Error(_) => self.errors += 1,
       Outcome::Panic(message) => panic!("{name} {input:?} in {frames:?}: the parser panicked: {message}"),
     }
-    if new != old {
+    if (&new.tokens, &new.outcome) != (&old.tokens, &old.outcome) {
       match registered_difference(name, input, &old, &new) {
         Some(fix) => *self.registered.entry(fix).or_default() += 1,
         None => panic!("{name} {input:?} in {frames:?}:\nprototype {old:#?}\ncurrent {new:#?}"),
@@ -855,7 +866,7 @@ fn replay_split() {
     let scope = ParsingScope::new(&frames);
     let mut parser = Parser::new(&scope, TokenType::StartExpression, &input, false).with_token_log();
     parser.parse().unwrap();
-    let tokens: Vec<_> = parser.token_log().into_iter().map(|(tt, tv, _)| (tt, tv)).collect();
+    let tokens: Vec<_> = parser.token_log().into_iter().map(|(tt, tv, _, _)| (tt, tv)).collect();
     let n = (200_000 / input.len()).clamp(20, 20_000);
     let time = |replay: bool| {
       let mut best = f64::MAX;
@@ -947,5 +958,71 @@ fn lists_keep_source_order() {
       .map(|i| debug.find(&format!("{i}\"")).unwrap_or_else(|| panic!("{i} in {text:.80}")))
       .collect();
     assert!(positions.is_sorted(), "{text:.80}");
+  }
+}
+
+/// Name tokens that reuse a scanned chain (see `ChainPart` in the lexer) read the same tokens as the
+/// prototype, which scans the chain for every name token, and as a scan for every token.
+#[test]
+fn reused_name_chains_equal_prototype() {
+  let mut inputs = vec![];
+  for n in [1, 2, 3, 10, 50, 300] {
+    inputs.push(vec!["a"; n].join("+"));
+    inputs.push(vec!["a"; n].join(" + "));
+    inputs.push(vec!["a"; n].join("."));
+    inputs.push(vec!["a b"; n].join(" - "));
+    inputs.push((0..n).map(|i| format!("x{i}")).collect::<Vec<_>>().join(" * "));
+  }
+  for text in [
+    "a /*x*/ + b",
+    "a //c\n+ b",
+    "a /* ( */ + b",
+    "a * 1.5e3x",
+    "a * 0 + b",
+    "a*1e+b",
+    "a + if b then a else b",
+    "a + for x in b return x",
+    "a b + not(a) + item",
+    "item.a + a",
+    "for a in b return a + b",
+    "for item in a return item + b",
+    "{a: a + b, b: a.b + a}",
+    "a + b: 1",
+    "f(a: a + b)",
+    "x instance of number + date",
+    "a + date(\"2012-01-01\") + date",
+    "a\u{1680}.\u{1680}b + a",
+    "q + a\u{1680}.\u{1680} b",
+    "a\u{180E}b + a\u{FEFF}b + a",
+    "a.\u{180E}b + a",
+    "a+in\u{1680}b",
+    "a + b.c.d + b . c",
+    "a.b + start included",
+    "a.b + time offset",
+    "a b c d + a b",
+    "a +",
+    "a + b ",
+    "a + b.",
+    "a + b..",
+    "a + b /",
+    "a + b \u{1680}",
+  ] {
+    inputs.push(text.to_string());
+  }
+  let mut stats = Stats::default();
+  for frames in scopes() {
+    for input in &inputs {
+      stats.check(&frames, input);
+    }
+  }
+  println!("reused chains: {stats:?}");
+}
+
+/// A chain of name tokens is scanned once: the parts scanned grow linearly with the length.
+#[test]
+fn name_chains_are_scanned_once() {
+  let scope = [ctx(&[("a", number(1)), ("b", Value::Context(ctx(&[("b", number(2))])))])];
+  for (text, parts) in [(vec!["a"; 20_000].join(" + "), 39_999), (format!("b{}", ".b".repeat(19_999)), 39_999)] {
+    assert_eq!(Some(&parts), work_of(&scope, &text).get("parts"), "{text:.20}");
   }
 }

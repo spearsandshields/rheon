@@ -86,9 +86,9 @@ pub struct Parser<'parser> {
   yy_value_stack: Vec<TokenValue>,
   /// AST node stack.
   yy_node_stack: Vec<AstNode>,
-  /// Tokens read from the lexer, with their start offsets (differential tests).
+  /// Tokens read from the lexer, with their start and end offsets (differential tests).
   #[cfg(test)]
-  token_log: Option<Vec<(TokenType, TokenValue, usize)>>,
+  token_log: Option<Vec<(TokenType, TokenValue, usize, usize)>>,
   /// Tokens to read instead of the lexer's (replay of a token log, for timing the parser alone).
   #[cfg(test)]
   replay: Option<std::vec::IntoIter<(TokenType, TokenValue)>>,
@@ -128,8 +128,15 @@ impl<'parser> Parser<'parser> {
 
   /// Returns the recorded tokens.
   #[cfg(test)]
-  pub fn token_log(&mut self) -> Vec<(TokenType, TokenValue, usize)> {
+  pub fn token_log(&mut self) -> Vec<(TokenType, TokenValue, usize, usize)> {
     self.token_log.take().unwrap_or_default()
+  }
+
+  /// Makes the lexer scan the name chain of every name token (see [Lexer::set_no_chain_memo]).
+  #[cfg(test)]
+  pub fn without_chain_memo(mut self) -> Self {
+    self.yy_lexer.set_no_chain_memo();
+    self
   }
 
   /// Reads the given tokens instead of the lexer's.
@@ -148,7 +155,7 @@ impl<'parser> Parser<'parser> {
     let token = self.yy_lexer.next_token();
     #[cfg(test)]
     if let (Some(log), Ok((token_type, token_value))) = (&mut self.token_log, &token) {
-      log.push((token_type.clone(), token_value.clone(), self.yy_lexer.token_start()));
+      log.push((token_type.clone(), token_value.clone(), self.yy_lexer.token_start(), self.yy_lexer.position()));
     }
     token
   }

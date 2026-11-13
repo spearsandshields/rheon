@@ -7,6 +7,7 @@ use dsntk_common::Result;
 use rheon_feel::Name;
 use rheon_feel::bif::is_built_in_date_time_function_name;
 use rheon_feel::bip::is_built_in_property_name;
+use std::ops::Range;
 
 /// Definition of a single space character.
 const WS: char = ' ';
@@ -120,9 +121,35 @@ pub struct Lexer<'lexer> {
   name_buf: String,
   /// Second buffer for flattening names (the replacements alternate between the buffers).
   name_tmp: String,
+  /// Text of the parts of the last name chain scanned, see [ChainPart].
+  chain_text: String,
+  /// Parts of the last name chain scanned.
+  chain_parts: Vec<ChainPart>,
+  /// Position of the first character after the last name chain scanned.
+  chain_end: usize,
+  /// Index of the last part of the chain that is empty after trimming (only U+1680), if any.
+  chain_last_empty: Option<usize>,
   /// Start offset of the last token read from input (for the token log of differential tests).
   #[cfg(test)]
   token_start: usize,
+  /// Makes every name token scan its chain (the reference of the tests of the reuse).
+  #[cfg(test)]
+  no_chain_memo: bool,
+}
+
+/// A part of a name chain: the name parts (words and additional name symbols) and the white space
+/// between them that follow a `name start` character, up to the first character of none of
+/// these kinds. The chain is scanned once per parse: a following name token that starts at
+/// one of its parts (the token before took only some of the parts) reads the parts from there.
+struct ChainPart {
+  /// Position of the first character of the part.
+  start: usize,
+  /// Position of the last character of the part.
+  last: usize,
+  /// The text of the part in the chain text.
+  text: Range<usize>,
+  /// The text of the part without white space at both ends, in the chain text.
+  trimmed: Range<usize>,
 }
 
 /// FEEL lexer implementation.
@@ -144,9 +171,27 @@ impl<'lexer> Lexer<'lexer> {
       after_dot: false,
       name_buf: String::new(),
       name_tmp: String::new(),
+      chain_text: String::new(),
+      chain_parts: vec![],
+      chain_end: 0,
+      chain_last_empty: None,
       #[cfg(test)]
       token_start: 0,
+      #[cfg(test)]
+      no_chain_memo: false,
     }
+  }
+
+  /// Makes every name token scan its chain, as before the chains were reused.
+  #[cfg(test)]
+  pub fn set_no_chain_memo(&mut self) {
+    self.no_chain_memo = true;
+  }
+
+  /// Returns the current position (the end of the last token).
+  #[cfg(test)]
+  pub fn position(&self) -> usize {
+    self.position
   }
 
   /// Returns the start offset of the last token read from input.
@@ -633,101 +678,32 @@ impl<'lexer> Lexer<'lexer> {
   /// Consumes a name.
   fn consume_name(&mut self) -> Result<(TokenType, TokenValue)> {
     work!(NameTokens, 1);
-    // vector of all name parts
-    let mut parts = vec![];
-    // currently parsed name part
-    let mut current_part = String::new();
-    // positions of consumed characters
-    let mut consumed_positions = vec![];
-
     //------------------------------------------------------------------------------
-    // The current character on input is already a `name start` character;
-    // consume it and advance the input position.
+    // The name parts that follow the current position: the parts of the chain scanned
+    // for an earlier name token when this token starts at one of its parts (the scan
+    // reads only the input, so it would give the same parts), or a new scan.
     //------------------------------------------------------------------------------
-    let mut ch = self.peek_character();
-    current_part.push(ch);
-
-    //------------------------------------------------------------------------------
-    // The first character of the name was just consumed.
-    // Now start parsing the rest of the input using a state machine,
-    // looking for characters belonging to this name.
-    //------------------------------------------------------------------------------
-    let mut state = 1;
-    loop {
-      match state {
-        1 => {
-          if self.is_next_name_part_char() {
-            self.position += 1;
-            ch = self.peek_character();
-            current_part.push(ch);
-          } else {
-            work!(Parts, 1);
-            parts.push(std::mem::take(&mut current_part));
-            consumed_positions.push(self.position);
-            state = 2;
-          }
-        }
-        2 => {
-          if self.is_next_name_part_char() {
-            state = 3;
-          } else if self.is_next_additional_name_symbol() {
-            state = 4;
-          } else if self.is_next_whitespace() {
-            state = 5;
-          } else {
-            self.position += 1;
-            break;
-          }
-        }
-        3 => {
-          if self.is_next_name_part_char() {
-            self.position += 1;
-            ch = self.peek_character();
-            current_part.push(ch);
-          } else {
-            work!(Parts, 1);
-            parts.push(std::mem::take(&mut current_part));
-            consumed_positions.push(self.position);
-            state = 2;
-          }
-        }
-        4 => {
-          if self.is_next_additional_name_symbol() {
-            self.position += 1;
-            ch = self.peek_character();
-            current_part.push(ch);
-            consumed_positions.push(self.position);
-            work!(Parts, 1);
-            parts.push(std::mem::take(&mut current_part));
-          } else {
-            state = 2;
-          }
-        }
-        5 => {
-          if self.is_next_whitespace() {
-            self.position += 1;
-            self.peek_character();
-          } else {
-            state = 2;
-          }
-        }
-        _ => {}
+    let first = match self.chain_parts.binary_search_by_key(&self.position, |part| part.start) {
+      Ok(index) if self.chain_memo() => index,
+      _ => {
+        self.scan_chain();
+        0
       }
-    }
+    };
+    // the position after the whole chain, as after the scan
+    self.position = self.chain_end;
 
     //==============================================================================
-    // Now the `parts` vector contains all parts of the longest possible name.
-    // The `parts` vector is non-empty and contains minimum one element.
-    // Now decide, what kind of name it is.
+    // Now the parts `first..` of the chain are all parts of the longest possible name.
+    // There is at least one part. Now decide, what kind of name it is.
     //==============================================================================
 
     //------------------------------------------------------------------------------
     // Tweak with the name `item` used in filters.
     // If the first part is `item`, then treat it as a resulting name.
-    // Unwrapping is ok on the first element, because `parts` is non-empty.
     //-------------------------------------------------------------------------------
-    if parts.first().unwrap() == "item" {
-      self.position = consumed_positions[0] + 1;
+    if self.part_text(first) == "item" {
+      self.position = self.chain_parts[first].last + 1;
       return Ok((TokenType::Name, TokenValue::Name("item".into())));
     }
 
@@ -739,16 +715,15 @@ impl<'lexer> Lexer<'lexer> {
     // can not start with `in`: then `in` is the keyword (and the variable name is missing).
     //-------------------------------------------------------------------------------
     if self.till_in
-      && let Some(index) = parts.iter().position(|value| value == "in")
+      && let Some(index) = (first..self.chain_parts.len()).position(|part| self.part_text(part) == "in")
     {
       self.till_in = false;
       if index == 0 {
-        self.position = consumed_positions[0] + 1;
+        self.position = self.chain_parts[first].last + 1;
         return Ok((TokenType::In, TokenValue::In));
       }
-      parts.truncate(index);
-      self.position = consumed_positions[index - 1] + 1;
-      return Ok((TokenType::Name, TokenValue::Name(Name::from_parts(&parts))));
+      self.position = self.chain_parts[first + index - 1].last + 1;
+      return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + index))));
     }
 
     //-------------------------------------------------------------------------------
@@ -757,26 +732,26 @@ impl<'lexer> Lexer<'lexer> {
     // Return the whole name before the `:`.
     //-------------------------------------------------------------------------------
     if self.is_next_character(&[':'], 0) {
-      return Ok((TokenType::Name, TokenValue::Name(Name::from_parts(&parts))));
+      return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, self.chain_parts.len()))));
     }
 
     //-------------------------------------------------------------------------------
     // begin with with the longest name containing all parts
     //-------------------------------------------------------------------------------
-    if let Some((part_count, built_in_property)) = self.longest_name_in_scope(&parts) {
+    if let Some((part_count, built_in_property)) = self.longest_name_in_scope(first) {
       if built_in_property {
         self.after_dot = false;
       }
       // return to the input all characters that do not belong to the name that was found
-      self.position = consumed_positions[part_count - 1] + 1;
+      self.position = self.chain_parts[first + part_count - 1].last + 1;
       // return the name that exists in the current context
-      return Ok((TokenType::Name, TokenValue::Name(Name::from_parts(&parts[..part_count]))));
+      return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + part_count))));
     }
 
     //------------------------------------------------------------------------------
     // Build the name from name parts.
     //------------------------------------------------------------------------------
-    let name = Name::from_parts(&parts);
+    let name = self.chain_name(first, self.chain_parts.len());
 
     //------------------------------------------------------------------------------
     // Tweak with the names of built-in types.
@@ -808,20 +783,126 @@ impl<'lexer> Lexer<'lexer> {
     Ok((TokenType::Name, TokenValue::Name(name)))
   }
 
-  /// Returns the number of leading name parts that form the longest name in scope (a key in the
-  /// parsing scope, or a built-in property name right after a dot), and whether it is a
-  /// built-in property name. The candidates are the flattened prefixes of the parts, longest first.
-  fn longest_name_in_scope(&mut self, parts: &[String]) -> Option<(usize, bool)> {
+  /// Scans the name chain that starts at the current position (a `name start` character) into
+  /// the chain buffers, and moves the position to the first character after the chain.
+  fn scan_chain(&mut self) {
+    self.chain_text.clear();
+    self.chain_parts.clear();
+    self.chain_last_empty = None;
+    //------------------------------------------------------------------------------
+    // The current character on input is already a `name start` character;
+    // consume it and advance the input position.
+    //------------------------------------------------------------------------------
+    let mut start = self.position;
+    self.chain_text.push(self.peek_character());
+
+    //------------------------------------------------------------------------------
+    // The first character of the name was just consumed.
+    // Now start parsing the rest of the input using a state machine,
+    // looking for characters belonging to this name.
+    //------------------------------------------------------------------------------
+    let mut state = 1;
+    loop {
+      match state {
+        1 => {
+          if self.is_next_name_part_char() {
+            self.position += 1;
+            self.chain_text.push(self.peek_character());
+          } else {
+            self.push_chain_part(start);
+            state = 2;
+          }
+        }
+        2 => {
+          if self.is_next_name_part_char() {
+            // the next part starts with the next character
+            start = self.position + 1;
+            state = 1;
+          } else if self.is_next_additional_name_symbol() {
+            state = 4;
+          } else if self.is_next_whitespace() {
+            state = 5;
+          } else {
+            self.position += 1;
+            break;
+          }
+        }
+        4 => {
+          if self.is_next_additional_name_symbol() {
+            self.position += 1;
+            self.chain_text.push(self.peek_character());
+            self.push_chain_part(self.position);
+          } else {
+            state = 2;
+          }
+        }
+        5 => {
+          if self.is_next_whitespace() {
+            self.position += 1;
+            self.peek_character();
+          } else {
+            state = 2;
+          }
+        }
+        _ => {}
+      }
+    }
+    self.chain_end = self.position;
+  }
+
+  /// Ends a part of the chain: the text pushed since the previous part, from `start` to the current position.
+  fn push_chain_part(&mut self, start: usize) {
+    work!(Parts, 1);
+    let text_start = self.chain_parts.last().map_or(0, |part| part.text.end);
+    let text = &self.chain_text[text_start..];
+    let trim_start = text_start + (text.len() - text.trim_start().len());
+    let trimmed = trim_start..trim_start + text.trim().len();
+    if trimmed.is_empty() {
+      self.chain_last_empty = Some(self.chain_parts.len());
+    }
+    self.chain_parts.push(ChainPart {
+      start,
+      last: self.position,
+      text: text_start..self.chain_text.len(),
+      trimmed,
+    });
+  }
+
+  /// Returns the text of a part of the chain.
+  fn part_text(&self, part: usize) -> &str {
+    &self.chain_text[self.chain_parts[part].text.clone()]
+  }
+
+  /// Returns the name made of the parts `from..to` of the chain.
+  fn chain_name(&self, from: usize, to: usize) -> Name {
+    Name::from_parts(self.chain_parts[from..to].iter().map(|part| &self.chain_text[part.trimmed.clone()]))
+  }
+
+  /// Returns `true` when name tokens reuse the scanned chain (`false` in tests that check the reuse).
+  fn chain_memo(&self) -> bool {
+    #[cfg(test)]
+    if self.no_chain_memo {
+      return false;
+    }
+    true
+  }
+
+  /// Returns the number of leading name parts (from part `first` of the chain) that form the
+  /// longest name in scope (a key in the parsing scope, or a built-in property name right after
+  /// a dot), and whether it is a built-in property name. The candidates are the flattened
+  /// prefixes of the parts, longest first.
+  fn longest_name_in_scope(&mut self, first: usize) -> Option<(usize, bool)> {
     // A prefix can only match a name in scope (or a built-in property name) when its flattened
     // text is not longer than the longest such name, and the flattened text is never shorter
     // than the trimmed parts it is made of. Skip the prefixes that are too long to match, so
     // that a long chain like `a.a.a...` (every `.` is an additional name symbol, so the longest
     // candidate name spans the whole chain) costs linear instead of quadratic time per token.
-    let bound = self.scope.bound(self.after_dot, parts.iter().any(|part| part.trim().is_empty()));
+    let bound = self.scope.bound(self.after_dot, self.chain_last_empty.is_some_and(|last| last >= first));
+    let parts = &self.chain_parts[first..];
     let mut part_count = 0;
     let mut prefix_len = 0;
     for part in parts {
-      prefix_len += part.trim().len();
+      prefix_len += part.trimmed.len();
       if prefix_len > bound {
         break;
       }
@@ -830,7 +911,8 @@ impl<'lexer> Lexer<'lexer> {
     while part_count > 0 {
       work!(Candidates, 1);
       // flatten the name parts to compare it with built-in names and keys in current scope
-      flatten_name_parts_into(&parts[..part_count], &mut self.name_buf, &mut self.name_tmp);
+      let texts = parts[..part_count].iter().map(|part| &self.chain_text[part.trimmed.clone()]);
+      flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
       // check if the name is a built-in property name
       if self.after_dot && is_built_in_property_name(&self.name_buf) {
         return Some((part_count, true));
@@ -1077,9 +1159,9 @@ const NAME_SYMBOL_REPLACEMENTS: [(char, &str, &str); 6] = [
 ///
 /// The result is that of [flatten_name_parts] (the same steps, in the same order), built in
 /// reused buffers; `tmp` is scratch space.
-fn flatten_name_parts_into(parts: &[String], out: &mut String, tmp: &mut String) {
+fn flatten_name_parts_into<'a>(parts: impl Iterator<Item = &'a str>, out: &mut String, tmp: &mut String) {
   tmp.clear();
-  for (index, part) in parts.iter().enumerate() {
+  for (index, part) in parts.enumerate() {
     if index > 0 {
       tmp.push(WS);
     }
@@ -1200,7 +1282,7 @@ mod tests {
       loop {
         parts.clear();
         parts.extend(counters[..len].iter().map(|&i| alphabet[i].to_string()));
-        flatten_name_parts_into(&parts, &mut out, &mut tmp);
+        flatten_name_parts_into(parts.iter().map(String::as_str), &mut out, &mut tmp);
         assert_eq!(flatten_name_parts(&parts), out, "{parts:?}");
         // next combination
         let mut i = 0;
