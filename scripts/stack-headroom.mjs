@@ -51,11 +51,11 @@
 import { readFile, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { WASI } from 'node:wasi';
 import { Worker, isMainThread, workerData, parentPort } from 'node:worker_threads';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
+import * as abi from './feel-abi.mjs';
 
 const WORKER_STACK_MB = 4;
 const WORKER_FLOOR = 56;
@@ -99,32 +99,15 @@ function outcome(construct, d, response) {
 
 // ------------------------------------------------------------------ Node
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
-
 // Calls into an instance of the module through the raw ABI (CONTRACT §1); after a trap the
 // instance is dead, and the next call gets a fresh one.
 async function nodeHost(module) {
-  const instantiate = async () => {
-    const wasi = new WASI({ version: 'preview1', args: [], env: {} });
-    const instance = await WebAssembly.instantiate(module, wasi.getImportObject());
-    wasi.initialize(instance);
-    return instance.exports;
-  };
-  let ex = await instantiate();
+  let ex = await abi.instantiate(module);
   return async (json) => {
     try {
-      const bytes = encoder.encode(json);
-      const ptr = ex.feel_alloc(bytes.length);
-      new Uint8Array(ex.memory.buffer, ptr, bytes.length).set(bytes);
-      const packed = BigInt.asUintN(64, ex.feel_call(ptr, bytes.length));
-      const responsePtr = Number(packed >> 32n);
-      const responseLen = Number(packed & 0xffffffffn);
-      const text = decoder.decode(new Uint8Array(ex.memory.buffer, responsePtr, responseLen));
-      ex.feel_free(responsePtr, responseLen);
-      return JSON.parse(text);
+      return abi.call(ex, json);
     } catch (e) {
-      ex = await instantiate();
+      ex = await abi.instantiate(module);
       return { trap: `${e.constructor.name}: ${e.message}` };
     }
   };
@@ -218,6 +201,7 @@ function runNodeProcess(compiler, modulePath, limits, report) {
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const wasmtime = path.join(root, '.tools', 'wasmtime', 'wasmtime');
+const encoder = new TextEncoder();
 
 // A WASI command module that sends each request to the preloaded `feel` module and writes each
 // response, followed by a newline, to stdout. Responses are JSON without raw newlines.

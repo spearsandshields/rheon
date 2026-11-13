@@ -4,32 +4,15 @@
 // Usage: node scripts/smoke.mjs [path/to/feel.wasm] ['{"op":"evaluate",...}' ...]
 // Exits non-zero if a built-in check fails.
 import { readFile } from 'node:fs/promises';
-import { WASI } from 'node:wasi';
 import { fileURLToPath } from 'node:url';
+import { instantiate, call as callRaw } from './feel-abi.mjs';
 
 const defaultWasm = fileURLToPath(new URL('../dist/feel.wasm', import.meta.url));
 const args = process.argv.slice(2);
 const wasmPath = args[0] && !args[0].trim().startsWith('{') ? args.shift() : defaultWasm;
 
-const wasi = new WASI({ version: 'preview1', args: [], env: {} });
-const module = await WebAssembly.compile(await readFile(wasmPath));
-const instance = await WebAssembly.instantiate(module, wasi.getImportObject());
-wasi.initialize(instance); // calls _initialize (reactor)
-const ex = instance.exports;
-
-const enc = new TextEncoder();
-const dec = new TextDecoder();
-function call(request) {
-  const bytes = enc.encode(typeof request === 'string' ? request : JSON.stringify(request));
-  const ptr = ex.feel_alloc(bytes.length);
-  new Uint8Array(ex.memory.buffer, ptr, bytes.length).set(bytes);
-  const packed = BigInt.asUintN(64, ex.feel_call(ptr, bytes.length)); // i64 arrives signed: pointers >= 2^31 would turn negative
-  const respPtr = Number(packed >> 32n);
-  const respLen = Number(packed & 0xffffffffn);
-  const text = dec.decode(new Uint8Array(ex.memory.buffer, respPtr, respLen));
-  ex.feel_free(respPtr, respLen);
-  return JSON.parse(text);
-}
+const ex = await instantiate(await WebAssembly.compile(await readFile(wasmPath)));
+const call = (request) => callRaw(ex, typeof request === 'string' ? request : JSON.stringify(request));
 
 const tz = -new Date().getTimezoneOffset();
 const checks = [
