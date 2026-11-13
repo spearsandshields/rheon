@@ -1,15 +1,14 @@
 //! Implementation of the parsing context.
 
+use crate::composite::{NameTree, nested_prefix};
 use crate::index::{Nested, context_type_entries, list_item_context_type, nested_names};
 use crate::scope::first_word_bound;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::fmt;
-
-/// Separator of the keys in a composite key (see [ParsingContext::contains_flattened]).
-const COMPOSITE_SEPARATOR: &str = " . ";
+use std::ptr;
 
 /// Types of entries in parsing context.
 pub enum ParsingEntry {
@@ -131,37 +130,6 @@ impl ParsingContext {
     }
   }
 
-  /// Returns `true` when `name` is one of the flattened keys of this context: a key at any depth,
-  /// or a composite key `k1 . k2 . … . kn` where every `k(i+1)` is a key at any depth below `ki`.
-  ///
-  /// The set of flattened keys grows exponentially with the nesting depth, so it is not built:
-  /// this is a search over the states (context, offset in `name`), each visited at most once.
-  /// In state (C, i), `name[i..]` is a flattened key of C when it is a key of C; or a flattened key
-  /// of a nested context D of C; or `k . rest` for a key `k` of C whose value is D and `rest` is
-  /// a flattened key of D.
-  pub fn contains_flattened(&self, name: &str) -> bool {
-    let mut visited: HashSet<(*const ParsingContext, usize)> = HashSet::new();
-    let mut stack = vec![(self, 0_usize)];
-    while let Some((ctx, offset)) = stack.pop() {
-      if !visited.insert((ctx as *const ParsingContext, offset)) {
-        continue;
-      }
-      let rest = &name[offset..];
-      if ctx.0.contains_key(rest) {
-        return true;
-      }
-      for (key, entry) in &ctx.0 {
-        if let ParsingEntry::Context(sub_ctx) = entry {
-          stack.push((sub_ctx, offset));
-          if rest.strip_prefix(key.as_str()).is_some_and(|tail| tail.starts_with(COMPOSITE_SEPARATOR)) {
-            stack.push((sub_ctx, offset + key.as_str().len() + COMPOSITE_SEPARATOR.len()));
-          }
-        }
-      }
-    }
-    false
-  }
-
   /// Returns the length in bytes of the longest key at any depth, and of the longest flattened key.
   pub fn key_lengths(&self) -> (usize, usize) {
     let (mut max_plain, mut max_flattened) = (0, 0);
@@ -173,16 +141,11 @@ impl ParsingContext {
         max_plain = max_plain.max(len);
         max_flattened = max_flattened.max(prefix + len);
         if let ParsingEntry::Context(sub_ctx) = entry {
-          stack.push((sub_ctx, prefix + len + COMPOSITE_SEPARATOR.len()));
+          stack.push((sub_ctx, nested_prefix(prefix, key.as_str())));
         }
       }
     }
     (max_plain, max_flattened)
-  }
-
-  /// Returns `true` when this context has no entries.
-  pub fn is_empty(&self) -> bool {
-    self.0.is_empty()
   }
 
   /// Returns `true` when this context has a nested context.
@@ -194,5 +157,23 @@ impl ParsingContext {
   /// whose first word is `word`, see [first_word_bound].
   pub(crate) fn group_bound(&self, word: &str, fallback: usize) -> usize {
     first_word_bound(&self.0, word, fallback)
+  }
+}
+
+impl NameTree for &ParsingContext {
+  fn contains_key(self, key: &str) -> bool {
+    self.0.contains_key(key)
+  }
+
+  fn for_each_nested(self, mut f: impl FnMut(&str, Self)) {
+    for (key, entry) in &self.0 {
+      if let ParsingEntry::Context(sub_ctx) = entry {
+        f(key.as_str(), sub_ctx);
+      }
+    }
+  }
+
+  fn address(self) -> usize {
+    ptr::from_ref(self).addr()
   }
 }

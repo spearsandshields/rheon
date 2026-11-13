@@ -1,3 +1,4 @@
+use crate::composite::contains_composite;
 use crate::context::ParsingContext;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
@@ -137,13 +138,13 @@ fn test_from_feel_context_0009() {
 fn assert_flattened_keys(ctx: &ParsingContext, keys: &[&str], non_keys: &[&str]) {
   for key in keys {
     if key.contains(" . ") {
-      assert!(ctx.contains_flattened(key), "{key:?} in {ctx}");
+      assert!(contains_composite(ctx, key), "{key:?} in {ctx}");
     } else {
       assert!(ctx.contains_key_deep(key), "{key:?} in {ctx}");
     }
   }
   for text in non_keys {
-    assert!(!ctx.contains_key_deep(text) && !ctx.contains_flattened(text), "{text:?} in {ctx}");
+    assert!(!ctx.contains_key_deep(text) && !contains_composite(ctx, text), "{text:?} in {ctx}");
   }
 }
 

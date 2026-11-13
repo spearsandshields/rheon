@@ -11,22 +11,22 @@ pub(crate) enum Work {
   Parts,
   /// Candidate names the lexer looks up in the scope.
   Candidates,
-  /// Searches of composite names in the scope.
-  CompositeSearches,
+  /// States (node, offset) visited by the searches of composite names.
+  CompositeStates,
   /// Indexes of input contexts built.
   IndexBuilds,
 }
 
 impl Work {
   /// Every unit, in the order of the discriminants.
-  const ALL: [Work; 4] = [Work::Parts, Work::Candidates, Work::CompositeSearches, Work::IndexBuilds];
+  const ALL: [Work; 4] = [Work::Parts, Work::Candidates, Work::CompositeStates, Work::IndexBuilds];
 
   /// The name of the unit in the counts returned by [take].
   fn name(self) -> &'static str {
     match self {
       Work::Parts => "parts",
       Work::Candidates => "candidates",
-      Work::CompositeSearches => "composite searches",
+      Work::CompositeStates => "composite states",
       Work::IndexBuilds => "index builds",
     }
   }

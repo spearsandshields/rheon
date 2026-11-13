@@ -14,7 +14,6 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, FeelScope, FeelType, Name};
 use std::collections::{BTreeMap, HashSet};
-use std::time::Instant;
 
 /// Deterministic xorshift generator (no dependency, reproducible failures).
 pub(super) struct Rng(pub(super) u64);
@@ -540,20 +539,28 @@ fn composite_names_in_a_chain_equal_flattened_keys_search() {
   assert!(trace.contains("`a./. k5`") && !trace.contains("Path"), "{trace}");
 }
 
+/// A chain of n levels `k0 . k1 . … . k(n-1)` has more than 2^n flattened keys; the lookup builds
+/// none of them. A plain name needs no composite search (the index of the input context is built
+/// once), and the composite search of a name into the chain visits a number of states that grows
+/// linearly with the depth: 8 per level and per name token, as measured.
 #[test]
 fn deep_chain_of_distinct_keys_is_linear() {
-  // a 30-level chain k0 . k1 . … . k29 has more than 2^30 flattened keys; the lookup must not build them
-  let scope = FeelScope::from(chain(30));
-  let started = Instant::now();
-  let node = crate::parse_expression(&scope, "x + 1", false).unwrap();
-  assert_eq!(
-    format!("{:?}", crate::parse_expression(&FeelScope::from(chain(0)), "x + 1", false).unwrap()),
-    format!("{node:?}")
-  );
-  // a composite name into the chain, 30 levels down
-  let input = format!("a./{OGHAM}.{OGHAM} leaf + 1");
-  let node = crate::parse_expression(&scope, &input, false).unwrap();
-  let trace = node.trace();
-  assert!(trace.contains("`a./. leaf`") && !trace.contains("Path"), "{trace}");
-  assert!(started.elapsed().as_secs() < 5, "took {:?}", started.elapsed());
+  let expected = format!("{:?}", crate::parse_expression(&FeelScope::from(chain(0)), "x + 1", false).unwrap());
+  for depth in [30, 60] {
+    let scope = FeelScope::from(chain(depth));
+    super::work::take();
+    let node = crate::parse_expression(&scope, "x + 1", false).unwrap();
+    let work = super::work::take();
+    assert_eq!(expected, format!("{node:?}"));
+    assert_eq!(None, work.get("composite states"), "depth {depth}: {work:?}");
+    assert_eq!(Some(&1), work.get("index builds"), "depth {depth}: {work:?}");
+    // a composite name into the chain, `depth` levels down
+    let input = format!("a./{OGHAM}.{OGHAM} leaf + 1");
+    let node = crate::parse_expression(&scope, &input, false).unwrap();
+    let work = super::work::take();
+    let trace = node.trace();
+    assert!(trace.contains("`a./. leaf`") && !trace.contains("Path"), "{trace}");
+    let states = work.get("composite states").copied().unwrap_or(0);
+    assert!(states > 0 && states <= 8 * (depth + 1), "depth {depth}: {states} composite states");
+  }
 }

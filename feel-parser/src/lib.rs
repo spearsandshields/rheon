@@ -14,6 +14,7 @@ macro_rules! work {
 
 mod ast;
 mod closure;
+mod composite;
 mod context;
 mod errors;
 mod index;

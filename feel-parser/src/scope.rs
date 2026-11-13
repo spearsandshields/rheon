@@ -1,5 +1,6 @@
 //! Implementation of the scope used while parsing FEEL expressions.
 
+use crate::composite::{COMPOSITE_SEPARATOR, contains_composite};
 use crate::context::ParsingContext;
 use crate::index::FrameIndex;
 use rheon_feel::Name;
@@ -16,8 +17,8 @@ use std::ops::Bound;
 /// The scope is a stack of contexts: at the bottom the input contexts (the frames of the
 /// [FeelScope](rheon_feel::FeelScope) the expression is parsed in), above them the contexts
 /// pushed while parsing (function parameters, iteration variables). A name is in scope when it
-/// is a key at any depth of a context on the stack, a composite key `a . b` of such a context
-/// ([ParsingContext::contains_flattened]), or an already parsed name (context entry keys).
+/// is a key at any depth of a context on the stack, a composite key `a . b` of such a context,
+/// or an already parsed name (context entry keys).
 ///
 /// The input contexts are borrowed and indexed ([FrameIndex]), never copied.
 pub struct ParsingScope<'a> {
@@ -108,12 +109,11 @@ impl ParsingScope<'_> {
 
   /// Sets a context under a specified name in the context placed on the top of the stack.
   pub fn set_context(&self, name: Name, ctx: ParsingContext) {
-    let len = name.as_str().len();
-    let (max_plain, max_flattened) = ctx.key_lengths();
-    self.grow_local_lengths(len.max(max_plain), if ctx.is_empty() { len } else { len + 3 + max_flattened });
-    self.local_nested.set(true);
     if let Some(top) = self.top_mut().last_mut() {
       top.set_context(name, ctx);
+      let (max_plain, max_flattened) = top.key_lengths();
+      self.grow_local_lengths(max_plain, max_flattened);
+      self.local_nested.set(true);
     }
   }
 
@@ -134,10 +134,9 @@ impl ParsingScope<'_> {
       return true;
     }
     // every composite key contains the separator
-    if name.contains(" . ") {
-      work!(CompositeSearches, 1);
+    if name.contains(COMPOSITE_SEPARATOR) {
       let live = &self.input[..self.input_live.get()];
-      return live.iter().any(|frame| frame.contains_composite(name)) || self.locals.borrow().iter().any(|ctx| ctx.contains_flattened(name));
+      return live.iter().any(|frame| frame.contains_composite(name)) || self.locals.borrow().iter().any(|ctx| contains_composite(ctx, name));
     }
     false
   }

@@ -1,6 +1,7 @@
 //! Index of the names of an input context, used by the lexer to recognize names in scope, and
 //! the rule that says which names are nested in a value.
 
+use crate::composite::{NameTree, contains_composite, nested_prefix};
 use crate::scope::{first_word, first_word_bound};
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
@@ -9,12 +10,6 @@ use std::borrow::Cow;
 use std::cell::OnceCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr;
-
-/// Separator of the keys in a composite name.
-const SEPARATOR: &str = " . ";
-
-/// Length of the separator `" . "` between the keys of a composite name.
-const SEPARATOR_LEN: usize = SEPARATOR.len();
 
 /// The names in scope of an input context, indexed without copying the input context: the
 /// names of the [ParsingContext](crate::context::ParsingContext) converted from it.
@@ -43,7 +38,7 @@ struct Keys<'a> {
   /// depth zero, which is the longest of the composite names of that path); at least `max_plain`.
   max_chain: usize,
   /// The item types of the lists of contexts, by the address of the list in the input context
-  /// (computed, so kept for [FrameIndex::contains_composite]).
+  /// (computed, so kept for the composite-name search).
   item_types: HashMap<usize, FeelType>,
 }
 
@@ -118,20 +113,57 @@ enum Node<'a> {
   Type(&'a BTreeMap<Name, FeelType>),
 }
 
-impl Node<'_> {
-  /// Returns the address of the node: input nodes are never shared, so the address identifies the node.
-  fn address(&self) -> usize {
-    match self {
-      Node::Context(ctx) => ptr::from_ref(*ctx).addr(),
-      Node::Type(entries) => ptr::from_ref(*entries).addr(),
+/// A node of an indexed input context, with the item types of the lists the index computed: a
+/// node of the tree of names that [contains_composite] searches.
+#[derive(Clone, Copy)]
+struct InputNode<'s> {
+  node: Node<'s>,
+  item_types: &'s HashMap<usize, FeelType>,
+}
+
+impl<'s> NameTree for InputNode<'s> {
+  fn contains_key(self, key: &str) -> bool {
+    match self.node {
+      Node::Context(ctx) => ctx.contains_key(key),
+      Node::Type(entries) => entries.contains_key(key),
     }
   }
 
-  /// Returns `true` when `key` is a key of the node itself.
-  fn contains_key(&self, key: &str) -> bool {
-    match self {
-      Node::Context(ctx) => ctx.contains_key(key),
-      Node::Type(entries) => entries.contains_key(key),
+  /// The nested nodes are those of [nested_names], with the item types of lists computed by [Keys::new].
+  fn for_each_nested(self, mut f: impl FnMut(&str, Self)) {
+    let nested = |node| InputNode {
+      node,
+      item_types: self.item_types,
+    };
+    match self.node {
+      Node::Context(ctx) => {
+        for (name, value) in ctx.iter() {
+          let node = match nested_names(value) {
+            Some(Nested::Context(ctx)) => Some(Node::Context(ctx)),
+            Some(Nested::Type(entries)) => Some(Node::Type(entries)),
+            Some(Nested::List(list)) => self.item_types.get(&address(list)).and_then(context_type_entries).map(Node::Type),
+            None => None,
+          };
+          if let Some(node) = node {
+            f(name.as_str(), nested(node));
+          }
+        }
+      }
+      Node::Type(entries) => {
+        for (name, feel_type) in entries {
+          if let Some(entries) = context_type_entries(feel_type) {
+            f(name.as_str(), nested(Node::Type(entries)));
+          }
+        }
+      }
+    }
+  }
+
+  /// Input nodes are never shared, so the address identifies the node.
+  fn address(self) -> usize {
+    match self.node {
+      Node::Context(ctx) => ptr::from_ref(ctx).addr(),
+      Node::Type(entries) => ptr::from_ref(entries).addr(),
     }
   }
 }
@@ -174,30 +206,15 @@ impl<'a> FrameIndex<'a> {
     self.keys().max_longer
   }
 
-  /// Returns `true` when `name` is a composite name `k1 . k2 . … . kn` of the input context: the
-  /// search of [ParsingContext::contains_flattened](crate::context::ParsingContext::contains_flattened)
-  /// over the nodes of the input context instead of a converted copy, with an explicit stack, so
-  /// that a deeply nested input context does not overflow the stack.
+  /// Returns `true` when `name` is a flattened key of the input context, a composite name
+  /// `k1 . k2 . … . kn` included: [contains_composite] over the nodes of the input context,
+  /// without a converted copy.
   pub(crate) fn contains_composite(&self, name: &str) -> bool {
-    let keys = self.keys();
-    let mut visited = HashSet::new();
-    let mut stack = vec![(Node::Context(self.top), 0)];
-    while let Some((node, offset)) = stack.pop() {
-      if !visited.insert((node.address(), offset)) {
-        continue;
-      }
-      let rest = &name[offset..];
-      if node.contains_key(rest) {
-        return true;
-      }
-      keys.for_each_nested(node, |key, nested| {
-        stack.push((nested, offset));
-        if rest.strip_prefix(key).is_some_and(|tail| tail.starts_with(SEPARATOR)) {
-          stack.push((nested, offset + key.len() + SEPARATOR_LEN));
-        }
-      });
-    }
-    false
+    let root = InputNode {
+      node: Node::Context(self.top),
+      item_types: &self.keys().item_types,
+    };
+    contains_composite(root, name)
   }
 
   fn keys(&self) -> &Keys<'a> {
@@ -229,7 +246,7 @@ impl<'a> Keys<'a> {
     for (name, value) in top.iter() {
       let key = name.as_str();
       index.add_key_length(key.len(), 0);
-      push_value(value, key.len() + SEPARATOR_LEN, &mut stack, &mut item_types);
+      push_value(value, nested_prefix(0, key), &mut stack, &mut item_types);
     }
     while let Some((node, prefix)) = stack.pop() {
       match node {
@@ -238,7 +255,7 @@ impl<'a> Keys<'a> {
             let key = name.as_str();
             index.names.insert(Cow::Borrowed(key));
             index.add_nested_key_length(key, prefix);
-            push_value(value, prefix + key.len() + SEPARATOR_LEN, &mut stack, &mut item_types);
+            push_value(value, nested_prefix(prefix, key), &mut stack, &mut item_types);
           }
         }
         Node::Type(entries) => index.add_type_entries(entries, prefix, Cow::Borrowed),
@@ -265,34 +282,7 @@ impl<'a> Keys<'a> {
         }
         self.add_nested_key_length(key, prefix);
         if let Some(entries) = context_type_entries(feel_type) {
-          stack.push((entries, prefix + key.len() + SEPARATOR_LEN));
-        }
-      }
-    }
-  }
-
-  /// Calls `f` with the key and the node of every key of a node whose value has nested names
-  /// ([nested_names]; the item types of lists are those computed by [Keys::new]).
-  fn for_each_nested<'s>(&'s self, node: Node<'s>, mut f: impl FnMut(&'s str, Node<'s>)) {
-    match node {
-      Node::Context(ctx) => {
-        for (name, value) in ctx.iter() {
-          let nested = match nested_names(value) {
-            Some(Nested::Context(ctx)) => Some(Node::Context(ctx)),
-            Some(Nested::Type(entries)) => Some(Node::Type(entries)),
-            Some(Nested::List(list)) => self.item_types.get(&address(list)).and_then(context_type_entries).map(Node::Type),
-            None => None,
-          };
-          if let Some(nested) = nested {
-            f(name.as_str(), nested);
-          }
-        }
-      }
-      Node::Type(entries) => {
-        for (name, feel_type) in entries {
-          if let Some(entries) = context_type_entries(feel_type) {
-            f(name.as_str(), Node::Type(entries));
-          }
+          stack.push((entries, nested_prefix(prefix, key)));
         }
       }
     }
