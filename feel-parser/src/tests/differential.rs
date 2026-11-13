@@ -118,9 +118,10 @@ fn registered_difference(start: &str, _input: &str, old: &Run, new: &Run) -> Opt
   // Step 1. A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with
   // `in`: an iteration variable (`for in+1 in [1] return 1`), or the `in` after an `item` variable,
   // which leaves the flag set (`for item in[1] return item`):
-  // - old: `consumed_positions[index - 1]` with index 0 in the lexer, an overflow panic (a trap);
+  // - old: `consumed_positions[index - 1]` with index 0 in the lexer, an overflow panic (a trap; an
+  //   index out of bounds without overflow checks);
   // - new: the tokens read before, then the keyword `in`; for a variable, the parser's syntax error.
-  if matches!(&old.outcome, Outcome::Panic(message) if message == "attempt to subtract with overflow")
+  if matches!(&old.outcome, Outcome::Panic(message) if message == "attempt to subtract with overflow" || message.ends_with(&format!("the index is {}", usize::MAX)))
     && new.tokens.starts_with(&old.tokens)
     && new.tokens.get(old.tokens.len()).is_some_and(|(tt, tv, _)| *tt == TokenType::In as i16 && tv == "In")
   {

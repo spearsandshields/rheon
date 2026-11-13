@@ -480,7 +480,9 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       }
     }
     let mut buffer: [char; BUF_SIZE] = [WS; BUF_SIZE];
-    for (offset, value) in buffer.iter_mut().enumerate() {
+    // only the keywords look beyond the first three characters
+    let len = if self.char_at(0).is_some_and(is_keyword_initial) { BUF_SIZE } else { 3 };
+    for (offset, value) in buffer[..len].iter_mut().enumerate() {
       if let Some(ch) = self.char_at(offset)
         && !is_whitespace(ch)
       {
@@ -1114,6 +1116,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 /// Returns `true` when the specified character is a separator (white space equivalent).
 fn is_separator(ch: char) -> bool {
   matches!(ch, WS | '=' | '!' | '<' | '>' | '+' | '-' | '*' | '/' | '%' | '.' | ',' | ')' | '[' | ']' | '}')
+}
+
+/// Returns `true` when the specified character is the first character of a keyword.
+fn is_keyword_initial(ch: char) -> bool {
+  matches!(ch, 'a' | 'b' | 'c' | 'e' | 'f' | 'i' | 'l' | 'n' | 'o' | 'r' | 's' | 't')
 }
 
 /// Returns **true** when the specified character is an ASCII digit.
