@@ -452,3 +452,25 @@ fn _0022() {
     assert_eq!(*expected, listed(&seen), "case {}", index + 1);
   }
 }
+
+#[test]
+fn _0023() {
+  // A date interval that ends at the last or the first supported date, where no date follows,
+  // restarts at its start when the iteration context before it advances.
+  check(vec![
+    (
+      vec![
+        State::Interval("i", number("1"), number("2")),
+        State::Interval("d", date("262142-12-30"), date("262142-12-31")),
+      ],
+      "[{d: 262142-12-30, i: 1}, {d: 262142-12-31, i: 1}, {d: 262142-12-30, i: 2}, {d: 262142-12-31, i: 2}]",
+    ),
+    (
+      vec![
+        State::Interval("i", number("1"), number("2")),
+        State::Interval("d", date("-262143-01-02"), date("-262143-01-01")),
+      ],
+      "[{d: -262143-01-02, i: 1}, {d: -262143-01-01, i: 1}, {d: -262143-01-02, i: 2}, {d: -262143-01-01, i: 2}]",
+    ),
+  ]);
+}

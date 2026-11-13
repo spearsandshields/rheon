@@ -143,28 +143,17 @@ impl IterationState for DateIntervalState {
   }
 
   fn next(&mut self) -> bool {
-    match self.direction {
-      IterationDirection::Ascending => {
-        let Some(date) = self.current.add_days(self.step) else { return false };
-        if date <= self.end {
-          self.current = date;
-          true
-        } else {
-          self.current = self.start.clone();
-          false
-        }
-      }
-      IterationDirection::Descending => {
-        let Some(date) = self.current.sub_days(self.step) else { return false };
-
-        if date >= self.end {
-          self.current = date;
-          true
-        } else {
-          self.current = self.start.clone();
-          false
-        }
-      }
+    let following = match self.direction {
+      IterationDirection::Ascending => self.current.add_days(self.step).filter(|date| *date <= self.end),
+      IterationDirection::Descending => self.current.sub_days(self.step).filter(|date| *date >= self.end),
+    };
+    if let Some(date) = following {
+      self.current = date;
+      true
+    } else {
+      // past the end, or at the last or the first supported date, where no date follows
+      self.current = self.start.clone();
+      false
     }
   }
 }

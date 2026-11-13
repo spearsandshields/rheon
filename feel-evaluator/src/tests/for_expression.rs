@@ -289,3 +289,40 @@ fn _0025() {
   te_be_value(false, &scope!(), "for i in 1..3 return {a: i}.a", "[1, 2, 3]");
   assert!(eval("{x: for i in 1..2 return i, y: i}.y").is_null());
 }
+
+#[test]
+fn _0026() {
+  // Date ranges that end at the last or the first supported date. With several iteration
+  // contexts the iteration is their cross product (§10.3.2.14), so every step of an outer
+  // context iterates the date range again from its start.
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"262142-12-30"..@"262142-12-31" return string(d)"#,
+    r#"["262142-12-30", "262142-12-31", "262142-12-30", "262142-12-31"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"-262143-01-02"..@"-262143-01-01" return string(d)"#,
+    r#"["-262143-01-02", "-262143-01-01", "-262143-01-02", "-262143-01-01"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"262142-12-30"..@"262142-12-31", j in 1..2 return string(d)"#,
+    r#"["262142-12-30", "262142-12-30", "262142-12-31", "262142-12-31", "262142-12-30", "262142-12-30", "262142-12-31", "262142-12-31"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for d in @"262142-12-30"..@"262142-12-31", i in 1..2 return string(d)"#,
+    r#"["262142-12-30", "262142-12-30", "262142-12-31", "262142-12-31"]"#,
+  );
+  te_be_value(
+    false,
+    &scope!(),
+    r#"for i in 1..2, d in @"262142-12-31"..@"262142-12-31" return string(d)"#,
+    r#"["262142-12-31", "262142-12-31"]"#,
+  );
+}
