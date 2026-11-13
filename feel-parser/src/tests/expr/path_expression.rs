@@ -360,7 +360,8 @@ fn _0014() {
 fn _0015() {
   // A long chain of path expressions over a context literal: every `.` is an additional name
   // symbol, so a lexer that scanned the rest of the chain for each token and tried every prefix
-  // would be cubic. The parts scanned and the candidates looked up grow linearly with the steps.
+  // would be cubic. The parts scanned and the candidates looked up grow, and grow linearly, with
+  // the steps.
   let work = |steps: usize| {
     let input = format!("{{a:1}}{}", ".a".repeat(steps));
     crate::tests::work::take();
@@ -371,6 +372,7 @@ fn _0015() {
   let (w1, w2, w3) = (work(1), work(1_001), work(2_001));
   for unit in ["parts", "candidates"] {
     let n = |w: &std::collections::BTreeMap<&str, usize>| w.get(unit).copied().unwrap_or(0);
+    assert!(n(&w2) > n(&w1), "{unit} does not grow: {w1:?} {w2:?} {w3:?}");
     assert_eq!(n(&w3) - n(&w2), n(&w2) - n(&w1), "{unit}: {w1:?} {w2:?} {w3:?}");
   }
 }
