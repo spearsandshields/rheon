@@ -101,9 +101,11 @@ fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &s
   let scope = oracle::scope::ParsingScope::new(frames);
   let mut parser = oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
+  // the prototype counts positions in characters, the current lexer in bytes
+  let bytes: Vec<usize> = input.char_indices().map(|(offset, _)| offset).chain([input.len()]).collect();
   Run {
     ends: vec![],
-    tokens: parser.token_log(),
+    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt, tv, bytes[start.min(bytes.len() - 1)])).collect(),
     outcome: match outcome {
       Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
       Ok(Err(e)) => Outcome::Error(e.to_string()),
@@ -1227,4 +1229,62 @@ fn composite_names_in_deep_contexts_parse_in_a_small_stack() {
     .unwrap()
     .join()
     .unwrap();
+}
+
+/// Random texts of multi-byte characters (the lexer reads the input in place, by byte offsets):
+/// names of 2-, 3- and 4-byte characters and combining marks, every kind of white space, CRLF,
+/// comments, escapes, unterminated strings and comments, keywords at the end of the input.
+#[test]
+fn unicode_texts_equal_prototype() {
+  const PIECES: [&str; 40] = [
+    "é",
+    "中",
+    "😀",
+    "a\u{0300}",
+    "\u{00B7}",
+    "x",
+    "in",
+    "for ",
+    "if ",
+    "then ",
+    "else ",
+    "not",
+    "and ",
+    "or",
+    " ",
+    "\t",
+    "\r\n",
+    "\u{00A0}",
+    "\u{0085}",
+    "\u{1680}",
+    "\u{180E}",
+    "\u{2003}",
+    "\u{2028}",
+    "\u{3000}",
+    "\u{FEFF}",
+    "//c\n",
+    "/*é*/",
+    "/*",
+    "\"é",
+    "\"中\\\"\"",
+    "\"\\u00E9\"",
+    "\"\\uD83D\\uDE00\"",
+    ".",
+    ":",
+    "(",
+    ")",
+    "+",
+    "1",
+    "1.5e3",
+    "@\"",
+  ];
+  let count = env_usize("LEXPARSE_G6_CASES", 20_000);
+  let mut rng = Rng(0x6A09_E667_F3BC_C908);
+  let frames = [ctx(&[("é", number(1)), ("中 文", number(2)), ("😀", number(3)), ("x é", number(4))])];
+  let mut stats = Stats::default();
+  for _ in 0..count {
+    let text: String = (0..1 + rng.below(12)).map(|_| *rng.pick(&PIECES)).collect();
+    stats.check(&frames, &text);
+  }
+  println!("G6: {stats:?}");
 }

@@ -95,9 +95,9 @@ pub struct Lexer<'lexer, 'scope> {
   scope: &'lexer ParsingScope<'scope>,
   /// Starting token type, returned before the first token.
   start_token_type: Option<TokenType>,
-  /// Input characters.
-  input: Vec<char>,
-  /// Current cursor position in input vector.
+  /// Input text.
+  input: &'lexer str,
+  /// Current cursor position in the input text (a byte offset at a character boundary).
   position: usize,
   /// Flag indicating if the unary tests rule is the starting point.
   /// This flag is used to identify `not` keyword,
@@ -121,9 +121,7 @@ pub struct Lexer<'lexer, 'scope> {
   name_buf: String,
   /// Second buffer for flattening names (the replacements alternate between the buffers).
   name_tmp: String,
-  /// Text of the parts of the last name chain scanned, see [ChainPart].
-  chain_text: String,
-  /// Parts of the last name chain scanned.
+  /// Parts of the last name chain scanned, see [ChainPart].
   chain_parts: Vec<ChainPart>,
   /// Position of the first character after the last name chain scanned.
   chain_end: usize,
@@ -144,25 +142,20 @@ pub struct Lexer<'lexer, 'scope> {
 struct ChainPart {
   /// Position of the first character of the part.
   start: usize,
-  /// Position of the last character of the part.
-  last: usize,
-  /// The text of the part in the chain text.
-  text: Range<usize>,
-  /// The text of the part without white space at both ends, in the chain text.
+  /// Position after the last character of the part.
+  end: usize,
+  /// The text of the part without white space at both ends, in the input.
   trimmed: Range<usize>,
 }
 
 /// FEEL lexer implementation.
 impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// Creates a new lexer for specified input text.
-  pub fn new(scope: &'lexer ParsingScope<'scope>, start_token_type: TokenType, input: &str) -> Self {
-    // one allocation of the exact size (collecting the characters would start at a quarter of it)
-    let mut chars = Vec::with_capacity(input.chars().count());
-    chars.extend(input.chars());
+  pub fn new(scope: &'lexer ParsingScope<'scope>, start_token_type: TokenType, input: &'lexer str) -> Self {
     Self {
       scope,
       start_token_type: Some(start_token_type),
-      input: chars,
+      input,
       position: 0,
       unary_tests: false,
       between: false,
@@ -171,7 +164,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       after_dot: false,
       name_buf: String::new(),
       name_tmp: String::new(),
-      chain_text: String::new(),
       chain_parts: vec![],
       chain_end: 0,
       chain_last_empty: None,
@@ -188,7 +180,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.no_chain_memo = true;
   }
 
-  /// Returns the current position (the end of the last token).
+  /// Returns the current position (the end of the last token, a byte offset).
   #[cfg(test)]
   pub fn position(&self) -> usize {
     self.position
@@ -482,10 +474,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     let mut buffer: [char; BUF_SIZE] = [WS; BUF_SIZE];
     // only the keywords look beyond the first three characters
     let len = if self.char_at(0).is_some_and(is_keyword_initial) { BUF_SIZE } else { 3 };
-    for (offset, value) in buffer[..len].iter_mut().enumerate() {
-      if let Some(ch) = self.char_at(offset)
-        && !is_whitespace(ch)
-      {
+    for (value, ch) in buffer[..len].iter_mut().zip(self.input[self.position..].chars()) {
+      if !is_whitespace(ch) {
         *value = ch
       };
     }
@@ -497,7 +487,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   fn consume_whitespace(&mut self) {
     while let Some(ch) = self.char_at(0) {
       if is_whitespace(ch) {
-        self.position += 1;
+        self.position += ch.len_utf8();
       } else {
         break;
       }
@@ -516,7 +506,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
           if ch == '\n' {
             return true;
           }
-          self.position += 1;
+          self.position += ch.len_utf8();
         }
       }
       (Some('/'), Some('*')) => {
@@ -528,7 +518,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
             self.position += 2;
             return true;
           }
-          self.position += 1;
+          self.position += ch.len_utf8();
         }
       }
       _ => {}
@@ -542,13 +532,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // a literal without escapes and vertical space is its characters up to the closing quote:
     // taken in one allocation of the exact size
     let rest = &self.input[self.position..];
-    if let Some(len) = rest.iter().position(|&ch| matches!(ch, '"' | '\\') || is_vertical_space(ch))
-      && rest[len] == '"'
+    if let Some(len) = rest.find(|ch| matches!(ch, '"' | '\\') || is_vertical_space(ch))
+      && rest[len..].starts_with('"')
     {
-      let mut string = String::with_capacity(rest[..len].iter().map(|ch| ch.len_utf8()).sum());
-      string.extend(&rest[..len]);
       self.position += len + 1;
-      return Ok((TokenType::String, TokenValue::String(string)));
+      return Ok((TokenType::String, TokenValue::String(rest[..len].to_string())));
     }
     let mut string = "".to_string();
     loop {
@@ -594,7 +582,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         }
         (Some(ch), _) => {
           string.push(ch);
-          self.position += 1;
+          self.position += ch.len_utf8();
         }
         _ => return Ok((TokenType::YyEof, TokenValue::YyEof)),
       }
@@ -720,7 +708,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // If the first part is `item`, then treat it as a resulting name.
     //-------------------------------------------------------------------------------
     if self.part_text(first) == "item" {
-      self.position = self.chain_parts[first].last + 1;
+      self.position = self.chain_parts[first].end;
       return Ok((TokenType::Name, TokenValue::Name("item".into())));
     }
 
@@ -736,10 +724,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     {
       self.till_in = false;
       if index == 0 {
-        self.position = self.chain_parts[first].last + 1;
+        self.position = self.chain_parts[first].end;
         return Ok((TokenType::In, TokenValue::In));
       }
-      self.position = self.chain_parts[first + index - 1].last + 1;
+      self.position = self.chain_parts[first + index - 1].end;
       return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + index))));
     }
 
@@ -760,10 +748,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // is not; a new one there must be excluded here too.)
     //-------------------------------------------------------------------------------
     if self.chain_parts.len() - first == 1 {
-      let word = &self.chain_text[self.chain_parts[first].trimmed.clone()];
+      let word = &self.input[self.chain_parts[first].trimmed.clone()];
       if self.after_dot && is_built_in_property_name(word) {
         self.after_dot = false;
-        self.position = self.chain_parts[first].last + 1;
+        self.position = self.chain_parts[first].end;
         return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + 1))));
       }
       if !(self.type_name && is_built_in_type_name(word)) && !(is_built_in_date_time_function_name(word) && self.is_next_character(&['('], 0)) {
@@ -779,7 +767,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.after_dot = false;
       }
       // return to the input all characters that do not belong to the name that was found
-      self.position = self.chain_parts[first + part_count - 1].last + 1;
+      self.position = self.chain_parts[first + part_count - 1].end;
       // return the name that exists in the current context
       return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + part_count))));
     }
@@ -815,21 +803,18 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 
   /// Scans the name chain that starts at the current position (a `name start` character) into
-  /// the chain buffers, and moves the position to the first character after the chain.
+  /// the chain parts, and moves the position to the first character after the chain.
   fn scan_chain(&mut self) {
-    self.chain_text.clear();
     self.chain_parts.clear();
     self.chain_last_empty = None;
     //------------------------------------------------------------------------------
-    // The current character on input is already a `name start` character;
-    // consume it and advance the input position.
+    // The current character on input is already a `name start` character, the first
+    // character of the first part.
     //------------------------------------------------------------------------------
     let mut start = self.position;
-    self.chain_text.push(self.peek_character());
 
     //------------------------------------------------------------------------------
-    // The first character of the name was just consumed.
-    // Now start parsing the rest of the input using a state machine,
+    // Now parse the rest of the input using a state machine,
     // looking for characters belonging to this name.
     //------------------------------------------------------------------------------
     let mut state = 1;
@@ -837,8 +822,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       match state {
         1 => {
           if self.is_next_name_part_char() {
-            self.position += 1;
-            self.chain_text.push(self.peek_character());
+            self.advance();
           } else {
             self.push_chain_part(start);
             state = 2;
@@ -847,21 +831,20 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         2 => {
           if self.is_next_name_part_char() {
             // the next part starts with the next character
-            start = self.position + 1;
+            start = self.next_position();
             state = 1;
           } else if self.is_next_additional_name_symbol() {
             state = 4;
           } else if self.is_next_whitespace() {
             state = 5;
           } else {
-            self.position += 1;
+            self.advance();
             break;
           }
         }
         4 => {
           if self.is_next_additional_name_symbol() {
-            self.position += 1;
-            self.chain_text.push(self.peek_character());
+            self.advance();
             self.push_chain_part(self.position);
           } else {
             state = 2;
@@ -869,8 +852,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         }
         5 => {
           if self.is_next_whitespace() {
-            self.position += 1;
-            self.peek_character();
+            self.advance();
           } else {
             state = 2;
           }
@@ -881,32 +863,28 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.chain_end = self.position;
   }
 
-  /// Ends a part of the chain: the text pushed since the previous part, from `start` to the current position.
+  /// Ends a part of the chain: from `start` to the current character, the last of the part.
   fn push_chain_part(&mut self, start: usize) {
     work!(Parts, 1);
-    let text_start = self.chain_parts.last().map_or(0, |part| part.text.end);
-    let text = &self.chain_text[text_start..];
-    let trim_start = text_start + (text.len() - text.trim_start().len());
+    let end = self.next_position();
+    let text = &self.input[start..end];
+    let trim_start = start + (text.len() - text.trim_start().len());
     let trimmed = trim_start..trim_start + text.trim().len();
     if trimmed.is_empty() {
       self.chain_last_empty = Some(self.chain_parts.len());
     }
-    self.chain_parts.push(ChainPart {
-      start,
-      last: self.position,
-      text: text_start..self.chain_text.len(),
-      trimmed,
-    });
+    self.chain_parts.push(ChainPart { start, end, trimmed });
   }
 
   /// Returns the text of a part of the chain.
   fn part_text(&self, part: usize) -> &str {
-    &self.chain_text[self.chain_parts[part].text.clone()]
+    let part = &self.chain_parts[part];
+    &self.input[part.start..part.end]
   }
 
   /// Returns the name made of the parts `from..to` of the chain.
   fn chain_name(&self, from: usize, to: usize) -> Name {
-    Name::from_parts(self.chain_parts[from..to].iter().map(|part| &self.chain_text[part.trimmed.clone()]))
+    Name::from_parts(self.chain_parts[from..to].iter().map(|part| &self.input[part.trimmed.clone()]))
   }
 
   /// Returns `true` when name tokens reuse the scanned chain (`false` in tests that check the reuse).
@@ -935,14 +913,14 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // space or a symbol (no step of the flattening touches it), so it can only be a name with this
     // first word: the bound of these names is tighter, and worth looking up for two or more candidates.
     if part_count > 1 && !has_empty_part {
-      let word = &self.chain_text[parts[0].trimmed.clone()];
+      let word = &self.input[parts[0].trimmed.clone()];
       let limit = parts[..part_count].iter().map(|part| part.trimmed.len()).sum();
       part_count = part_count.min(admitted_parts(parts, self.scope.group_bound(word, self.after_dot, limit)));
     }
     while part_count > 0 {
       work!(Candidates, 1);
       // flatten the name parts to compare it with built-in names and keys in current scope
-      let texts = parts[..part_count].iter().map(|part| &self.chain_text[part.trimmed.clone()]);
+      let texts = parts[..part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
       flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
       // check if the name is a built-in property name
       if self.after_dot && is_built_in_property_name(&self.name_buf) {
@@ -977,9 +955,14 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     }
   }
 
-  /// Peeks the current character from input.
-  fn peek_character(&self) -> char {
-    self.char_at(0).unwrap()
+  /// Returns the position of the character after the current one.
+  fn next_position(&self) -> usize {
+    self.position + utf8_len(self.input.as_bytes()[self.position])
+  }
+
+  /// Moves the position to the next character.
+  fn advance(&mut self) {
+    self.position = self.next_position();
   }
 
   /// Consumes Unicode literal in one of the following forms:
@@ -1050,12 +1033,16 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     if let Some(ch) = self.char_at(1) { is_additional_name_symbol(ch) } else { false }
   }
 
-  /// Returns the character at the current position advanced with specified offset.
+  /// Returns the character at the current position advanced with specified offset (in characters).
   fn char_at(&self, offset: usize) -> Option<char> {
-    if self.position + offset < self.input.len() {
-      Some(self.input[self.position + offset])
-    } else {
-      None
+    let bytes = self.input.as_bytes();
+    let mut position = self.position;
+    for _ in 0..offset {
+      position += utf8_len(*bytes.get(position)?);
+    }
+    match *bytes.get(position)? {
+      byte if byte.is_ascii() => Some(byte as char),
+      _ => self.input[position..].chars().next(),
     }
   }
 
@@ -1063,7 +1050,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// its first digit is pushed to `digits`.
   fn reserve_digits(&self, digits: &mut String) {
     if digits.is_empty() {
-      digits.reserve_exact(self.input[self.position..].iter().take_while(|ch| ch.is_ascii_digit()).count());
+      digits.reserve_exact(self.input[self.position..].bytes().take_while(u8::is_ascii_digit).count());
     }
   }
 
@@ -1100,14 +1087,13 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   /// Returns `true` when the next character on input is a character
   /// from specified `chars` list.
-  fn is_next_character(&self, chars: &[char], mut offset: usize) -> bool {
-    while let Some(ch) = self.char_at(offset) {
+  fn is_next_character(&self, chars: &[char], offset: usize) -> bool {
+    for ch in self.input[self.position..].chars().skip(offset) {
       if chars.contains(&ch) {
         return true;
       } else if !is_whitespace(ch) {
         return false;
       }
-      offset += 1;
     }
     false
   }
@@ -1116,6 +1102,16 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 /// Returns `true` when the specified character is a separator (white space equivalent).
 fn is_separator(ch: char) -> bool {
   matches!(ch, WS | '=' | '!' | '<' | '>' | '+' | '-' | '*' | '/' | '%' | '.' | ',' | ')' | '[' | ']' | '}')
+}
+
+/// Returns the length in bytes of the UTF-8 encoded character that starts with `byte`.
+fn utf8_len(byte: u8) -> usize {
+  match byte {
+    0x00..0x80 => 1,
+    0xC0..0xE0 => 2,
+    0xE0..0xF0 => 3,
+    _ => 4,
+  }
 }
 
 /// Returns `true` when the specified character is the first character of a keyword.
