@@ -1175,3 +1175,26 @@ fn literals_equal_prototype() {
   }
   println!("literals: {stats:?}");
 }
+
+/// U+1680 between words: after a symbol it starts a part (empty after trimming when alone), after
+/// white space it is white space; so two empty parts never follow each other.
+#[test]
+fn empty_parts_equal_prototype() {
+  let mut stats = Stats::default();
+  let frames = [ctx(&[("x", number(1)), ("x y", number(2)), ("a", number(3)), (&format!("x {OGHAM} y"), number(4))])];
+  for n in [0, 1, 2, 3, 5, 20] {
+    let run = format!(" {OGHAM}").repeat(n);
+    for input in [
+      format!("x{run} y"),
+      format!("x{run}"),
+      format!("x{run} y{run} + a"),
+      format!("x{run}.{run}y + 1"),
+      format!("x {OGHAM}.{OGHAM}{run} y"),
+      format!("a{run} + x{run} y{run} * a"),
+    ] {
+      stats.check(&frames, &input);
+      stats.check(&[], &input);
+    }
+  }
+  println!("empty parts: {stats:?}");
+}
