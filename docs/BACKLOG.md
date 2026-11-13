@@ -107,6 +107,15 @@ was written.
   (`Arc<FunctionDefinition>`), and FEEL loops and filters move their contexts and items instead
   of cloning them. Contexts and lists are still cloned on every scope lookup, and a function's
   closure context on every call.
+- **Freed string blocks are too small for longer strings** `[fork]`. A string is cloned on every
+  lookup, and `s + s` allocates its result while both operand clones are alive, so the result is
+  placed above them; the two clones, freed afterwards, leave holes of the length of `s` that no
+  later, longer string fits. `{f: function(s, n) if n = 0 then string length(s) else f(s + s,
+  n-1), r: f("ab", 23)}.r` has at most 48 MiB of live data, as at 0.3.0, but grows linear memory
+  by 58.7 MiB (0.3.0: 48.1 MiB, where coercing each argument copied it once more, into the freed
+  holes); with 24 doublings by 138.7 MiB (0.3.0: 96.1 MiB). Nothing leaks: every block is free
+  when the request ends, but linear memory never shrinks, so hosts recycle instances that grew
+  large (CONTRACT §1).
 - **Loop variables are looked up by name** `[fork]`: every iteration resolves the variable
   through the scope stack (`FeelScope::get_value`).
 - **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),

@@ -297,6 +297,10 @@ evaluation faster and fix the upstream bugs found on the way; apart from the fix
     invocation borrows the definition, and `closed_over` copies it (`Arc::make_mut`) only when
     the closure has entries to add. Arguments and results are coerced by value
     (`Value::try_into_coerced`, `into_coerced`, with the checks of `try_coerced`, `593f3ad`).
+    Without the copy of each argument the allocator places strings differently: a recursion
+    that doubles a string argument 23 times grows linear memory by 58.7 MiB (0.3.0: 48.1 MiB)
+    with the same live data (docs/BACKLOG.md, *Freed string blocks are too small for longer
+    strings*).
     `size_of::<Value>()` is 64 B natively (128 B at 0.3.0) and 64 B on wasm32 (as at 0.3.0:
     there the 48-byte `FeelNumber` sets it). `FunctionDefinition` derives `Debug` (`96776fd`),
     so the `Debug` text of a function value differs from 0.3.0's.
