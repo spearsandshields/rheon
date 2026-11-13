@@ -267,6 +267,9 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   input only.
 - An instance is single-threaded: use one per thread or a pool, and discard an instance after any
   trap (fuel, epoch, panic or stack overflow).
+- Capture the module's stderr (fd 2) to tell the traps apart: a failed allocation at the 512 MiB
+  cap writes `memory allocation of N bytes failed` before it traps, so the request needed more
+  memory than the cap allows, while a panic writes its message (CONTRACT §1, §4).
 - Call `_initialize` once, then `feel_alloc` → write the UTF-8 request → `feel_call` → unpack
   `(ptr << 32) | len` → read → `feel_free`, as `packages/feel-runtime/src/instance.ts` does.
 - Send `tzOffsetMinutes` with each request, and keep decimals as strings or read the `typed`
