@@ -2,8 +2,6 @@
 
 use crate::errors::*;
 use crate::lalr::TokenType;
-#[cfg(test)]
-use crate::scope::MAX_BUILT_IN_PROPERTY_NAME_LEN;
 use crate::scope::ParsingScope;
 use dsntk_common::Result;
 use rheon_feel::Name;
@@ -122,10 +120,9 @@ pub struct Lexer<'lexer> {
   name_buf: String,
   /// Second buffer for flattening names (the replacements alternate between the buffers).
   name_tmp: String,
-  /// When set, names are searched in the set of all flattened keys built for every name token
-  /// (the lexer's search before [ParsingScope::contains]); the reference in differential tests.
+  /// Start offset of the last token read from input (for the token log of differential tests).
   #[cfg(test)]
-  oracle: bool,
+  token_start: usize,
 }
 
 /// FEEL lexer implementation.
@@ -145,14 +142,14 @@ impl<'lexer> Lexer<'lexer> {
       name_buf: String::new(),
       name_tmp: String::new(),
       #[cfg(test)]
-      oracle: false,
+      token_start: 0,
     }
   }
 
-  /// Makes this lexer search names the way it did before [ParsingScope::contains] (test reference).
+  /// Returns the start offset of the last token read from input.
   #[cfg(test)]
-  pub fn set_oracle(&mut self) {
-    self.oracle = true;
+  pub fn token_start(&self) -> usize {
+    self.token_start
   }
 
   pub fn set_unary_tests(&mut self) {
@@ -216,6 +213,10 @@ impl<'lexer> Lexer<'lexer> {
   /// Reads the next token starting from current position.
   fn read_next_token(&mut self) -> Result<(TokenType, TokenValue)> {
     let chars = self.read_input();
+    #[cfg(test)]
+    {
+      self.token_start = self.position;
+    }
     match chars {
       ['s', 'a', 't', 'i', 's', 'f', 'i', 'e', 's', WS, _, _] => {
         self.position += 9;
@@ -628,6 +629,7 @@ impl<'lexer> Lexer<'lexer> {
 
   /// Consumes a name.
   fn consume_name(&mut self) -> Result<(TokenType, TokenValue)> {
+    work!(NameTokens, 1);
     // vector of all name parts
     let mut parts = vec![];
     // currently parsed name part
@@ -656,6 +658,7 @@ impl<'lexer> Lexer<'lexer> {
             ch = self.peek_character();
             current_part.push(ch);
           } else {
+            work!(Parts, 1);
             parts.push(std::mem::take(&mut current_part));
             consumed_positions.push(self.position);
             state = 2;
@@ -679,6 +682,7 @@ impl<'lexer> Lexer<'lexer> {
             ch = self.peek_character();
             current_part.push(ch);
           } else {
+            work!(Parts, 1);
             parts.push(std::mem::take(&mut current_part));
             consumed_positions.push(self.position);
             state = 2;
@@ -690,6 +694,7 @@ impl<'lexer> Lexer<'lexer> {
             ch = self.peek_character();
             current_part.push(ch);
             consumed_positions.push(self.position);
+            work!(Parts, 1);
             parts.push(std::mem::take(&mut current_part));
           } else {
             state = 2;
@@ -798,10 +803,6 @@ impl<'lexer> Lexer<'lexer> {
   /// parsing scope, or a built-in property name right after a dot), and whether it is a
   /// built-in property name. The candidates are the flattened prefixes of the parts, longest first.
   fn longest_name_in_scope(&mut self, parts: &[String]) -> Option<(usize, bool)> {
-    #[cfg(test)]
-    if self.oracle {
-      return self.longest_name_in_scope_oracle(parts);
-    }
     // A prefix can only match a name in scope (or a built-in property name) when its flattened
     // text is not longer than the longest such name, and the flattened text is never shorter
     // than the trimmed parts it is made of. Skip the prefixes that are too long to match, so
@@ -818,6 +819,7 @@ impl<'lexer> Lexer<'lexer> {
       part_count += 1;
     }
     while part_count > 0 {
+      work!(Candidates, 1);
       // flatten the name parts to compare it with built-in names and keys in current scope
       flatten_name_parts_into(&parts[..part_count], &mut self.name_buf, &mut self.name_tmp);
       // check if the name is a built-in property name
@@ -826,34 +828,6 @@ impl<'lexer> Lexer<'lexer> {
       }
       // check if the flattened name exists as a key in the current scope
       if self.scope.contains(&self.name_buf) {
-        return Some((part_count, false));
-      }
-      part_count -= 1;
-    }
-    None
-  }
-
-  /// [Lexer::longest_name_in_scope] as it was before [ParsingScope::contains]: builds the set of
-  /// all flattened keys in scope for every name token (test reference).
-  #[cfg(test)]
-  fn longest_name_in_scope_oracle(&self, parts: &[String]) -> Option<(usize, bool)> {
-    let flattened = self.scope.flattened();
-    let max_key_len = flattened.iter().map(|key| key.len()).max().unwrap_or(0).max(MAX_BUILT_IN_PROPERTY_NAME_LEN);
-    let mut part_count = 0;
-    let mut prefix_len = 0;
-    for part in parts {
-      prefix_len += part.trim().len();
-      if prefix_len > max_key_len {
-        break;
-      }
-      part_count += 1;
-    }
-    while part_count > 0 {
-      let name = flatten_name_parts(&parts[..part_count]);
-      if self.after_dot && is_built_in_property_name(&name) {
-        return Some((part_count, true));
-      }
-      if flattened.contains(&name) {
         return Some((part_count, false));
       }
       part_count -= 1;

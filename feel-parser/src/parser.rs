@@ -66,6 +66,12 @@ pub struct Parser<'parser> {
   yy_value_stack: Vec<TokenValue>,
   /// AST node stack.
   yy_node_stack: Vec<AstNode>,
+  /// Tokens read from the lexer, with their start offsets (differential tests).
+  #[cfg(test)]
+  token_log: Option<Vec<(TokenType, TokenValue, usize)>>,
+  /// Tokens to read instead of the lexer's (replay of a token log, for timing the parser alone).
+  #[cfg(test)]
+  replay: Option<std::vec::IntoIter<(TokenType, TokenValue)>>,
 }
 
 impl<'parser> Parser<'parser> {
@@ -86,14 +92,45 @@ impl<'parser> Parser<'parser> {
       yy_state_stack: vec![0],
       yy_value_stack: vec![TokenValue::YyEmpty],
       yy_node_stack: vec![],
+      #[cfg(test)]
+      token_log: None,
+      #[cfg(test)]
+      replay: None,
     }
   }
 
-  /// Makes the lexer search names the way it did before [ParsingScope::contains] (test reference).
+  /// Records every token read from the lexer (see [Parser::token_log]).
   #[cfg(test)]
-  pub fn with_oracle_lexer(mut self) -> Self {
-    self.yy_lexer.set_oracle();
+  pub fn with_token_log(mut self) -> Self {
+    self.token_log = Some(vec![]);
     self
+  }
+
+  /// Returns the recorded tokens.
+  #[cfg(test)]
+  pub fn token_log(&mut self) -> Vec<(TokenType, TokenValue, usize)> {
+    self.token_log.take().unwrap_or_default()
+  }
+
+  /// Reads the given tokens instead of the lexer's.
+  #[cfg(test)]
+  pub fn with_replay(mut self, tokens: Vec<(TokenType, TokenValue)>) -> Self {
+    self.replay = Some(tokens.into_iter());
+    self
+  }
+
+  /// Returns the next token from the lexer.
+  fn next_token(&mut self) -> Result<(TokenType, TokenValue)> {
+    #[cfg(test)]
+    if let Some(replay) = &mut self.replay {
+      return Ok(replay.next().unwrap_or((TokenType::YyEof, TokenValue::YyEof)));
+    }
+    let token = self.yy_lexer.next_token();
+    #[cfg(test)]
+    if let (Some(log), Ok((token_type, token_value))) = (&mut self.token_log, &token) {
+      log.push((token_type.clone(), token_value.clone(), self.yy_lexer.token_start()));
+    }
+    token
   }
 
   /// Parses the input.
@@ -117,7 +154,7 @@ impl<'parser> Parser<'parser> {
           }
           // not known, so get a lookahead token, only if we don't have one already
           if self.yy_char == TokenType::YyEmpty as i16 {
-            let (token_type, opt_token_value) = self.yy_lexer.next_token()?;
+            let (token_type, opt_token_value) = self.next_token()?;
             self.yy_char = token_type as i16;
             self.yy_token = SymbolKind::YyEmpty as i16;
             self.yy_value = opt_token_value;
@@ -172,6 +209,7 @@ impl<'parser> Parser<'parser> {
         }
         Action::Shift => {
           trace!(self, "\nSHIFT");
+          work!(Shifts, 1);
           self.yy_state = self.yy_n as usize;
           self.yy_state_stack.push(self.yy_state);
           // the lookahead value is consumed by the shift (reset to `YyEmpty` below)
@@ -185,6 +223,7 @@ impl<'parser> Parser<'parser> {
         }
         Action::Reduce => {
           trace!(self, "\nREDUCE");
+          work!(Reductions, 1);
           // get the length of the right-hand side
           self.yy_len = YY_R2[self.yy_n as usize] as i16;
           trace!(self, "  reduce count = {}", self.yy_len);
@@ -417,6 +456,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::Context(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::Context(items));
       return Ok(());
@@ -442,6 +482,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::ContextType(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::ContextType(items));
       return Ok(());
@@ -506,6 +547,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::ExpressionList(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::ExpressionList(items));
       return Ok(());
@@ -693,6 +735,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::ParameterTypes(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::ParameterTypes(items));
       return Ok(());
@@ -807,6 +850,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::IterationContexts(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::IterationContexts(items));
       return Ok(());
@@ -953,6 +997,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::NamedParameters(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::NamedParameters(items));
       return Ok(());
@@ -995,6 +1040,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::PositionalParameters(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::PositionalParameters(items));
       return Ok(());
@@ -1018,6 +1064,7 @@ impl ReduceActions for Parser<'_> {
       // the index must be adjusted, now it is `-4` after adding `{/* after_dot */}`.
       if let Some(AstNode::QualifiedName(parts)) = self.yy_node_stack.pop().as_mut() {
         let mut parts = std::mem::take(parts);
+        work!(ListShifts, parts.len());
         parts.insert(0, AstNode::QualifiedNameSegment(name.clone()));
         self.yy_node_stack.push(AstNode::QualifiedName(parts));
       }
@@ -1059,6 +1106,7 @@ impl ReduceActions for Parser<'_> {
     if let AstNode::QuantifiedContexts(items) = &mut node {
       let mut items = std::mem::take(items);
       let item = self.yy_node_stack.pop().unwrap();
+      work!(ListShifts, items.len());
       items.insert(0, item);
       self.yy_node_stack.push(AstNode::QuantifiedContexts(items));
       return Ok(());

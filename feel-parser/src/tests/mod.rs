@@ -2,8 +2,11 @@ mod ast;
 mod bifs;
 mod closure;
 mod context;
+mod differential;
 mod expr;
 mod names_index;
+mod oracle;
+pub(crate) mod work;
 
 /// Creates a parsing scope.
 macro_rules! scope {

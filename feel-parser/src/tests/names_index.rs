@@ -1,7 +1,9 @@
 //! Differential tests of the name lookup in the parsing scope ([ParsingScope::contains],
-//! [ParsingScope::bound]) against the lexer's previous search (the set of all flattened keys built
-//! for every name token, [ParsingScope::flattened]), and against the previous parsing scope.
+//! [ParsingScope::bound]) against the lexer's search before the prototype (the set of all flattened
+//! keys built for every name token: the frozen prototype's oracle mode, [oracle::lexer::Lexer::set_oracle]),
+//! and against the previous parsing scope. The generators are shared with [super::differential].
 
+use super::oracle;
 use crate::context::ParsingContext;
 use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
@@ -14,10 +16,10 @@ use std::collections::{BTreeMap, HashSet};
 use std::time::Instant;
 
 /// Deterministic xorshift generator (no dependency, reproducible failures).
-struct Rng(u64);
+pub(crate) struct Rng(pub(crate) u64);
 
 impl Rng {
-  fn next(&mut self) -> u64 {
+  pub(crate) fn next(&mut self) -> u64 {
     let mut x = self.0;
     x ^= x << 13;
     x ^= x >> 7;
@@ -26,28 +28,28 @@ impl Rng {
     x
   }
 
-  fn below(&mut self, n: usize) -> usize {
+  pub(crate) fn below(&mut self, n: usize) -> usize {
     (self.next() % n as u64) as usize
   }
 
-  fn chance(&mut self, percent: usize) -> bool {
+  pub(crate) fn chance(&mut self, percent: usize) -> bool {
     self.below(100) < percent
   }
 
-  fn pick<'a, T>(&mut self, items: &'a [T]) -> &'a T {
+  pub(crate) fn pick<'a, T>(&mut self, items: &'a [T]) -> &'a T {
     &items[self.below(items.len())]
   }
 
-  fn pick_str(&mut self, items: &[&'static str]) -> &'static str {
+  pub(crate) fn pick_str(&mut self, items: &[&'static str]) -> &'static str {
     items[self.below(items.len())]
   }
 }
 
-const OGHAM: char = '\u{1680}';
+pub(crate) const OGHAM: char = '\u{1680}';
 
 /// Keys of generated contexts: multi-word names, names with additional symbols, names containing
 /// the composite separator, U+1680 (a name character that `trim` removes), and keywords.
-const KEYS: &[&str] = &[
+pub(crate) const KEYS: &[&str] = &[
   "a",
   "b",
   "a b",
@@ -88,7 +90,7 @@ const KEYS: &[&str] = &[
   "/",
 ];
 
-fn number(n: i64) -> Value {
+pub(crate) fn number(n: i64) -> Value {
   Value::Number(FeelNumber::from(n))
 }
 
@@ -109,7 +111,7 @@ fn context_type(rng: &mut Rng, depth: usize) -> FeelType {
   FeelType::Context(entries)
 }
 
-fn context(rng: &mut Rng, depth: usize) -> FeelContext {
+pub(crate) fn context(rng: &mut Rng, depth: usize) -> FeelContext {
   let mut ctx = FeelContext::default();
   for _ in 0..rng.below(5) {
     ctx.set_entry(&Name::from(*rng.pick(KEYS)), value(rng, depth));
@@ -159,7 +161,7 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
 
 /// A key as it can appear in an expression: words separated by random whitespace (including
 /// U+1680), additional symbols with or without spaces around them.
-fn key_text(rng: &mut Rng, key: &str) -> String {
+pub(crate) fn key_text(rng: &mut Rng, key: &str) -> String {
   let mut text = String::new();
   for ch in key.chars() {
     match ch {
@@ -175,7 +177,7 @@ fn key_text(rng: &mut Rng, key: &str) -> String {
   text
 }
 
-fn expression(rng: &mut Rng, keys: &[String], depth: usize) -> String {
+pub(crate) fn expression(rng: &mut Rng, keys: &[String], depth: usize) -> String {
   let operand = |rng: &mut Rng| -> String {
     match rng.below(14) {
       0 => "1".to_string(),
@@ -228,19 +230,43 @@ fn rng_key(rng: &mut Rng, keys: &[String]) -> String {
   rng.pick(keys).clone()
 }
 
-/// The token stream of a lexer run without the parser (no scope changes).
-fn tokens(scope: &ParsingScope, input: &str, oracle: bool) -> Vec<String> {
-  let mut lexer = Lexer::new(scope, TokenType::StartExpression, input);
-  if oracle {
-    lexer.set_oracle();
-  }
+/// The token stream of a lexer run without the parser (no scope changes); with `oracle`, the frozen
+/// prototype's lexer searching the set of all flattened keys.
+fn tokens(frames: &[FeelContext], input: &str, oracle: bool) -> Vec<String> {
   let mut tokens = vec![];
-  for _ in 0..1000 {
-    match lexer.next_token() {
-      Ok((TokenType::YyEof, _)) | Ok((_, TokenValue::YyEof)) => break,
-      Ok((tt, tv)) => tokens.push(format!("{} {tv:?}", tt as i16)),
-      Err(e) => {
-        tokens.push(format!("error {e}"));
+  let mut push = |token: dsntk_common::Result<(i16, String, bool)>| match token {
+    Ok((_, _, true)) => false,
+    Ok((tt, tv, false)) => {
+      tokens.push(format!("{tt} {tv}"));
+      true
+    }
+    Err(e) => {
+      tokens.push(format!("error {e}"));
+      false
+    }
+  };
+  if oracle {
+    let scope = oracle::scope::ParsingScope::new(frames);
+    let mut lexer = oracle::lexer::Lexer::new(&scope, oracle::lalr::TokenType::StartExpression, input);
+    lexer.set_oracle();
+    for _ in 0..1000 {
+      let token = lexer.next_token().map(|(tt, tv)| {
+        let tt = tt as i16;
+        (tt, format!("{tv:?}"), tt == 0 || matches!(tv, oracle::lexer::TokenValue::YyEof))
+      });
+      if !push(token) {
+        break;
+      }
+    }
+  } else {
+    let scope = ParsingScope::new(frames);
+    let mut lexer = Lexer::new(&scope, TokenType::StartExpression, input);
+    for _ in 0..1000 {
+      let token = lexer.next_token().map(|(tt, tv)| {
+        let tt = tt as i16;
+        (tt, format!("{tv:?}"), tt == 0 || matches!(tv, TokenValue::YyEof))
+      });
+      if !push(token) {
         break;
       }
     }
@@ -249,12 +275,16 @@ fn tokens(scope: &ParsingScope, input: &str, oracle: bool) -> Vec<String> {
 }
 
 fn parse(frames: &[FeelContext], input: &str, oracle: bool) -> String {
-  let scope = ParsingScope::new(frames);
-  let mut parser = Parser::new(&scope, TokenType::StartExpression, input, false);
-  if oracle {
-    parser = parser.with_oracle_lexer();
-  }
-  match parser.parse() {
+  let result = if oracle {
+    let scope = oracle::scope::ParsingScope::new(frames);
+    oracle::parser::Parser::new(&scope, oracle::lalr::TokenType::StartExpression, input, false)
+      .with_oracle_lexer()
+      .parse()
+  } else {
+    let scope = ParsingScope::new(frames);
+    Parser::new(&scope, TokenType::StartExpression, input, false).parse()
+  };
+  match result {
     Ok(node) => format!("{}\n{node:?}", node.trace()),
     Err(e) => format!("error {e}"),
   }
@@ -270,10 +300,8 @@ fn name_lookup_equals_flattened_keys_search() {
     let mut keys: Vec<String> = KEYS.iter().map(|k| k.to_string()).collect();
     keys.push("zz".to_string());
     let input = expression(&mut rng, &keys, 0);
-    let scope = ParsingScope::new(&frames);
-    let oracle_scope = ParsingScope::new(&frames);
-    let actual_tokens = tokens(&scope, &input, false);
-    let expected_tokens = tokens(&oracle_scope, &input, true);
+    let actual_tokens = tokens(&frames, &input, false);
+    let expected_tokens = tokens(&frames, &input, true);
     assert_eq!(expected_tokens, actual_tokens, "case {case}: tokens of {input:?} in {frames:?}");
     // names found as composite keys (the only names with a space after an additional symbol)
     composite += actual_tokens

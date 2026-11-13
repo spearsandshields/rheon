@@ -119,6 +119,7 @@ impl ParsingScope<'_> {
   /// Returns `true` when `name` (a flattened name, see the lexer) is in scope: a key at any depth
   /// of a context on the stack, a composite key of such a context, or a parsed name.
   pub fn contains(&self, name: &str) -> bool {
+    work!(Contains, 1);
     if self.names.borrow().contains(name) {
       return true;
     }
@@ -129,6 +130,7 @@ impl ParsingScope<'_> {
     }
     // every composite key contains the separator
     if name.contains(" . ") {
+      work!(CompositeSearches, 1);
       let trees = self.trees.get_or_init(|| self.input.iter().map(|frame| ParsingContext::from(frame.context())).collect());
       return trees[..live.len()].iter().chain(locals.iter()).any(|ctx| ctx.contains_flattened(name));
     }

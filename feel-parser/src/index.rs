@@ -43,6 +43,7 @@ impl<'a> FrameIndex<'a> {
   /// converts into nested parsing contexts; the traversal uses an explicit stack, so a deeply
   /// nested context can not overflow the stack.
   pub(crate) fn new(top: &'a FeelContext) -> Self {
+    work!(IndexBuilds, 1);
     let mut index = Self {
       top,
       nested: HashSet::new(),

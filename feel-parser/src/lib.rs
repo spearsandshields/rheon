@@ -4,6 +4,14 @@
 #[macro_use]
 extern crate dsntk_macros;
 
+/// Counts `n` units of parsing work in tests (see `tests::work`); nothing in other builds.
+macro_rules! work {
+  ($work:ident, $n:expr) => {{
+    #[cfg(test)]
+    crate::tests::work::count(crate::tests::work::Work::$work, $n);
+  }};
+}
+
 mod ast;
 mod closure;
 mod context;

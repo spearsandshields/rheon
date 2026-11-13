@@ -1,0 +1,211 @@
+//! Implementation of the parsing context.
+
+use rheon_feel::context::FeelContext;
+use rheon_feel::values::Value;
+use rheon_feel::{FeelType, Name};
+use std::borrow::Borrow;
+use std::collections::{BTreeMap, HashSet};
+use std::fmt;
+
+/// Separator of the keys in a composite key (see [ParsingContext::contains_flattened]).
+const COMPOSITE_SEPARATOR: &str = " . ";
+
+/// Types of entries in parsing context.
+pub enum ParsingEntry {
+  /// Parsing entry representing a context.
+  Context(ParsingContext),
+  /// Parsing entry representing a variable.
+  Variable,
+}
+
+impl fmt::Display for ParsingEntry {
+  /// Converts parsing entry into text representation.
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "{}",
+      match self {
+        ParsingEntry::Context(ctx) => ctx.to_string(),
+        ParsingEntry::Variable => "<v>".to_string(),
+      }
+    )
+  }
+}
+
+impl From<FeelType> for ParsingEntry {
+  /// Converts a reference to feel type into parsing entry.
+  fn from(value: FeelType) -> Self {
+    Self::from(&value)
+  }
+}
+
+impl From<&FeelType> for ParsingEntry {
+  /// Converts a feel type into parsing entry.
+  fn from(value: &FeelType) -> Self {
+    match value {
+      FeelType::Context(feel_type_ctx) => {
+        let mut entries = BTreeMap::new();
+        for (name, feel_type) in feel_type_ctx {
+          entries.insert(name.to_owned(), feel_type.into());
+        }
+        ParsingEntry::Context(ParsingContext(entries))
+      }
+      FeelType::List(feel_type_items) => {
+        let feel_type = feel_type_items.borrow();
+        if let FeelType::Context(_) = feel_type {
+          Self::from(feel_type)
+        } else {
+          ParsingEntry::Variable
+        }
+      }
+      _ => ParsingEntry::Variable,
+    }
+  }
+}
+
+/// Parsing context.
+#[derive(Default)]
+pub struct ParsingContext(BTreeMap<Name, ParsingEntry>);
+
+impl fmt::Display for ParsingContext {
+  /// Converts parsing context into text representation.
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(
+      f,
+      "{{{}}}",
+      self.0.iter().map(|(name, entry)| { format!(r#"{name}: {entry}"#) }).collect::<Vec<String>>().join(", ")
+    )
+  }
+}
+
+impl From<FeelContext> for ParsingContext {
+  /// Converts feel context into parsing context.
+  fn from(ctx: FeelContext) -> Self {
+    Self::from(&ctx)
+  }
+}
+
+impl From<&FeelContext> for ParsingContext {
+  /// Converts a reference to feel context into parsing context.
+  fn from(value: &FeelContext) -> Self {
+    let mut entries = BTreeMap::new();
+    for (name, value) in value.iter() {
+      match value {
+        Value::Context(ctx) => {
+          entries.insert(name.to_owned(), ParsingEntry::Context(ctx.into()));
+        }
+        list @ Value::List(_) => {
+          entries.insert(name.to_owned(), list.type_of().into());
+        }
+        Value::FeelType(feel_type) => {
+          entries.insert(name.to_owned(), feel_type.into());
+        }
+        _ => {
+          entries.insert(name.to_owned(), ParsingEntry::Variable);
+        }
+      }
+    }
+    Self(entries)
+  }
+}
+
+impl ParsingContext {
+  /// Places a specified name in this parsing context.
+  pub fn set_name(&mut self, name: Name) {
+    self.0.insert(name, ParsingEntry::Variable);
+  }
+
+  /// Places parsing context under specified name.
+  pub fn set_context(&mut self, name: Name, ctx: ParsingContext) {
+    self.0.insert(name, ParsingEntry::Context(ctx));
+  }
+
+  /// Returns `true` when `name` is a key of this context or of a nested context, at any depth.
+  pub fn contains_key_deep(&self, name: &str) -> bool {
+    let mut stack = vec![self];
+    while let Some(ctx) = stack.pop() {
+      if ctx.0.contains_key(name) {
+        return true;
+      }
+      for entry in ctx.0.values() {
+        if let ParsingEntry::Context(sub_ctx) = entry {
+          stack.push(sub_ctx);
+        }
+      }
+    }
+    false
+  }
+
+  /// Returns `true` when `name` is one of the flattened keys of this context: a key at any depth,
+  /// or a composite key `k1 . k2 . … . kn` where every `k(i+1)` is a key at any depth below `ki`.
+  ///
+  /// The set of flattened keys grows exponentially with the nesting depth, so it is not built:
+  /// this is a search over the states (context, offset in `name`), each visited at most once.
+  /// In state (C, i), `name[i..]` is a flattened key of C when it is a key of C; or a flattened key
+  /// of a nested context D of C; or `k . rest` for a key `k` of C whose value is D and `rest` is
+  /// a flattened key of D.
+  pub fn contains_flattened(&self, name: &str) -> bool {
+    let mut visited: HashSet<(*const ParsingContext, usize)> = HashSet::new();
+    let mut stack = vec![(self, 0_usize)];
+    while let Some((ctx, offset)) = stack.pop() {
+      if !visited.insert((ctx as *const ParsingContext, offset)) {
+        continue;
+      }
+      let rest = &name[offset..];
+      if ctx.0.contains_key(rest) {
+        return true;
+      }
+      for (key, entry) in &ctx.0 {
+        if let ParsingEntry::Context(sub_ctx) = entry {
+          stack.push((sub_ctx, offset));
+          if rest.strip_prefix(key.as_str()).is_some_and(|tail| tail.starts_with(COMPOSITE_SEPARATOR)) {
+            stack.push((sub_ctx, offset + key.as_str().len() + COMPOSITE_SEPARATOR.len()));
+          }
+        }
+      }
+    }
+    false
+  }
+
+  /// Returns the length in bytes of the longest key at any depth, and of the longest flattened key.
+  pub fn key_lengths(&self) -> (usize, usize) {
+    let (mut max_plain, mut max_flattened) = (0, 0);
+    // contexts to visit, with the length of the composite key prefix `k1 . … . ki . ` leading to them
+    let mut stack = vec![(self, 0_usize)];
+    while let Some((ctx, prefix)) = stack.pop() {
+      for (key, entry) in &ctx.0 {
+        let len = key.as_str().len();
+        max_plain = max_plain.max(len);
+        max_flattened = max_flattened.max(prefix + len);
+        if let ParsingEntry::Context(sub_ctx) = entry {
+          stack.push((sub_ctx, prefix + len + COMPOSITE_SEPARATOR.len()));
+        }
+      }
+    }
+    (max_plain, max_flattened)
+  }
+
+  /// Returns `true` when this context has no entries.
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+
+  /// Returns a list of flattened keys for this parsing context.
+  #[cfg(test)]
+  pub fn flattened_keys(&self) -> HashSet<String> {
+    let mut keys: HashSet<String> = HashSet::new();
+    for (key, value) in self.0.iter() {
+      keys.insert(key.into());
+      if let ParsingEntry::Context(sub_ctx) = value {
+        let sub_keys = sub_ctx.flattened_keys();
+        if !sub_keys.is_empty() {
+          for sub_key in sub_keys {
+            keys.insert(sub_key.clone());
+            keys.insert(format!("{key} . {sub_key}"));
+          }
+        }
+      }
+    }
+    keys
+  }
+}
