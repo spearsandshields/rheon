@@ -501,8 +501,9 @@ impl Value {
         if values.is_empty() {
           FeelType::List(Box::new(FeelType::Null))
         } else {
-          // Compute every item's type exactly once: calling type_of() on the first item twice
-          // made the cost exponential in the nesting depth of lists ([[[...]]]).
+          // The first item's type is built once (building it twice made the cost exponential in
+          // the nesting depth of lists); the other items are only checked against it, without
+          // building their context types.
           let item_type = values[0].type_of();
           for item in &values[1..] {
             if !item.type_is_conformant(&item_type) {
@@ -548,7 +549,7 @@ impl Value {
   /// to a context type when every entry of the target type has an entry here whose type conforms
   /// to the target entry's type (extra entries are allowed); to nothing else
   /// ([FeelType::is_conformant]). The type of `null` conforms to every type.
-  pub fn type_is_conformant(&self, target_type: &FeelType) -> bool {
+  fn type_is_conformant(&self, target_type: &FeelType) -> bool {
     match self {
       Value::Null(_) => true,
       Value::Context(ctx) => match target_type {

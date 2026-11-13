@@ -143,8 +143,8 @@ fn push_value<'a>(value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, us
         stack.push((Node::Type(entries), prefix));
       }
     }
-    Value::List(items) => {
-      if let Some(item_type) = list_item_context_type(items) {
+    Value::List(_) => {
+      if let Some(item_type) = list_item_context_type(value) {
         item_types.push((item_type, prefix));
       }
     }
@@ -165,20 +165,19 @@ fn context_type_entries(feel_type: &FeelType) -> Option<&BTreeMap<Name, FeelType
   }
 }
 
-/// The item type of a list when it is a context type, as `Value::List(items).type_of()` computes it:
-/// the type of the first item, when every other item conforms to it.
+/// The item type of a list value when it is a context type: the item type of [Value::type_of] of the list.
 ///
-/// Without a context type as the first item's type the list type is never a list of contexts, so the
-/// other items are not looked at.
-fn list_item_context_type(items: &[Value]) -> Option<FeelType> {
-  let first = items.first()?;
-  let item_type = first.type_of();
-  if !matches!(item_type, FeelType::Context(_)) {
+/// The type of a list whose first item does not have a context type is never a list of contexts, so
+/// such a list is not typed (its other items are not looked at).
+fn list_item_context_type(value: &Value) -> Option<FeelType> {
+  let Value::List(items) = value else {
+    return None;
+  };
+  if !matches!(items.first()?.type_of(), FeelType::Context(_)) {
     return None;
   }
-  if items[1..].iter().all(|item| item.type_is_conformant(&item_type)) {
-    Some(item_type)
-  } else {
-    None
+  match value.type_of() {
+    FeelType::List(item_type) if matches!(*item_type, FeelType::Context(_)) => Some(*item_type),
+    _ => None,
   }
 }

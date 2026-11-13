@@ -517,10 +517,63 @@ fn test_coerced() {
   assert_eq!(r#"null(after coercion)"#, v_context_d.coerced(&T_CONTEXT_A).to_string());
 }
 
-/// `Value::type_is_conformant` equals `type_of().is_conformant` (random values and target types:
-/// nulls, missing and extra entries, nested contexts and lists, mixed lists).
 #[test]
-fn test_type_is_conformant_equals_type_of_is_conformant() {
+fn test_type_of_list_items() {
+  let ctx = |entries: &[(&str, Value)]| {
+    let mut ctx = FeelContext::default();
+    for (name, value) in entries {
+      ctx.set_entry(&Name::from(*name), value.clone());
+    }
+    Value::Context(ctx)
+  };
+  let list_of = |item_type: FeelType| FeelType::List(Box::new(item_type));
+  let context_a = FeelType::Context(BTreeMap::from([(NAME_A.clone(), FeelType::Number)]));
+  // fixed cases: a null item (first, its type is conformed to only by null; later, it conforms to
+  // any item type), a missing entry, extra entries, nested lists
+  eq_typ!(list_of(FeelType::Any), Value::List(vec![value_null!(), value_number!(1)]));
+  eq_typ!(list_of(context_a.clone()), Value::List(vec![ctx(&[("a", value_number!(1))]), value_null!()]));
+  eq_typ!(list_of(FeelType::Any), Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("b", value_number!(1))])]));
+  eq_typ!(
+    list_of(context_a.clone()),
+    Value::List(vec![
+      ctx(&[("a", value_number!(1))]),
+      ctx(&[("a", value_number!(2)), ("b", Value::String("x".to_string()))])
+    ])
+  );
+  eq_typ!(list_of(list_of(context_a)), Value::List(vec![Value::List(vec![ctx(&[("a", value_number!(1))])])]));
+}
+
+/// `true` when the randomized tests run their full size (`RHEON_FULL_TESTS` set).
+fn full() -> bool {
+  std::env::var_os("RHEON_FULL_TESTS").is_some()
+}
+
+/// The type of a value by the list typing rule of [Value::type_of], applied at every level and
+/// with [FeelType::is_conformant] on the built type of every item: a list has the type of its
+/// first item when the type of every other item conforms to it, `Any` otherwise.
+fn reference_type(value: &Value) -> FeelType {
+  match value {
+    Value::List(items) => match items.split_first() {
+      None => FeelType::List(Box::new(FeelType::Null)),
+      Some((first, others)) => {
+        let item_type = reference_type(first);
+        if others.iter().all(|item| reference_type(item).is_conformant(&item_type)) {
+          FeelType::List(Box::new(item_type))
+        } else {
+          FeelType::List(Box::new(FeelType::Any))
+        }
+      }
+    },
+    Value::Context(ctx) => FeelType::Context(ctx.iter().map(|(name, value)| (name.clone(), reference_type(value))).collect()),
+    other => other.type_of(),
+  }
+}
+
+/// The type of a list equals [reference_type] on random lists: lists of contexts like a template
+/// context, with nulls, missing, extra and changed entries at any depth, and lists of random
+/// values (2,000 lists, 20,000 with `RHEON_FULL_TESTS`).
+#[test]
+fn test_type_of_list_equals_reference_rule() {
   struct Rng(u64);
   impl Rng {
     fn below(&mut self, n: u64) -> u64 {
@@ -529,6 +582,9 @@ fn test_type_is_conformant_equals_type_of_is_conformant() {
       self.0 ^= self.0 << 17;
       self.0 % n
     }
+    fn name(&mut self) -> Name {
+      ["a", "b", "c", "d"][self.below(4) as usize].into()
+    }
   }
   fn value(rng: &mut Rng, depth: u32) -> Value {
     match if depth > 3 { rng.below(4) } else { rng.below(9) } {
@@ -536,56 +592,59 @@ fn test_type_is_conformant_equals_type_of_is_conformant() {
       1 => value_number!(1),
       2 => Value::String("s".to_string()),
       3 => Value::Boolean(true),
-      4..=6 => {
-        let mut ctx = FeelContext::default();
-        for _ in 0..rng.below(4) {
-          ctx.set_entry(&["a", "b", "c"][rng.below(3) as usize].into(), value(rng, depth + 1));
-        }
-        Value::Context(ctx)
-      }
+      4..=6 => Value::Context(context(rng, depth)),
       7 => Value::List((0..rng.below(4)).map(|_| value(rng, depth + 1)).collect()),
       _ => Value::List(vec![value_null!(), value_number!(1)]),
     }
   }
-  fn target(rng: &mut Rng) -> FeelType {
-    match rng.below(10) {
-      0 => FeelType::Any,
-      1 => FeelType::Null,
-      2 => FeelType::Number,
-      3 => FeelType::List(Box::new(FeelType::Any)),
-      4 => FeelType::Context(BTreeMap::new()),
-      5 => FeelType::List(Box::new(target(rng))),
-      6 | 7 => {
-        let mut entries = BTreeMap::new();
-        for _ in 0..1 + rng.below(3) {
-          entries.insert(["a", "b", "c"][rng.below(3) as usize].into(), target(rng));
-        }
-        FeelType::Context(entries)
-      }
-      _ => value(rng, 1).type_of(),
+  fn context(rng: &mut Rng, depth: u32) -> FeelContext {
+    let mut ctx = FeelContext::default();
+    for _ in 0..rng.below(4) {
+      ctx.set_entry(&rng.name(), value(rng, depth + 1));
     }
+    ctx
+  }
+  /// A value like the template: the template, the template with one entry removed, set to null,
+  /// added or replaced, or changed in the same way one level deeper; or null.
+  fn variant(rng: &mut Rng, template: &FeelContext) -> Value {
+    let mut ctx = template.clone();
+    let name = rng.name();
+    match rng.below(7) {
+      0 => {}
+      1 => {
+        ctx.remove_entry(&name);
+      }
+      2 => ctx.set_entry(&name, value_null!()),
+      3 => ctx.set_entry(&name, value(rng, 2)),
+      4 | 5 => {
+        if let Some(Value::Context(inner)) = template.get_entry(&name) {
+          ctx.set_entry(&name, variant(rng, inner));
+        }
+      }
+      _ => return value_null!(),
+    }
+    Value::Context(ctx)
   }
   let mut rng = Rng(0x2545_F491_4F6C_DD1D);
-  let (mut conformant, mut total) = (0, 0);
-  for _ in 0..20000 {
-    let value = value(&mut rng, 0);
-    let target = if rng.below(3) == 0 { value.type_of() } else { target(&mut rng) };
-    let expected = value.type_of().is_conformant(&target);
-    assert_eq!(expected, value.type_is_conformant(&target), "{value} : {target}");
-    conformant += usize::from(expected);
-    total += 1;
+  let (mut contexts, mut mixed, mut total) = (0, 0, 0);
+  for _ in 0..if full() { 20_000 } else { 2_000 } {
+    let items = if rng.below(2) == 0 {
+      (0..rng.below(5)).map(|_| value(&mut rng, 1)).collect()
+    } else {
+      let template = context(&mut rng, 0);
+      (0..1 + rng.below(4)).map(|_| variant(&mut rng, &template)).collect()
+    };
+    let list = Value::List(items);
+    let expected = reference_type(&list);
+    assert_eq!(expected, list.type_of(), "{list}");
+    if let (FeelType::List(item_type), Value::List(items)) = (&expected, &list)
+      && items.len() > 1
+    {
+      contexts += usize::from(matches!(item_type.as_ref(), FeelType::Context(_)));
+      mixed += usize::from(matches!(item_type.as_ref(), FeelType::Any));
+      total += 1;
+    }
   }
-  assert!(conformant > total / 10 && conformant < total * 9 / 10, "{conformant} of {total} conformant");
-  // the cases named in the review: [null, 1], a missing key, nested lists
-  let list = Value::List(vec![value_null!(), value_number!(1)]);
-  assert_eq!(
-    list.type_of().is_conformant(&FeelType::List(Box::new(FeelType::Number))),
-    list.type_is_conformant(&FeelType::List(Box::new(FeelType::Number)))
-  );
-  let mut ctx = FeelContext::default();
-  ctx.set_entry(&"a".into(), value_number!(1));
-  let missing = FeelType::Context(BTreeMap::from([("b".into(), FeelType::Number)]));
-  assert!(!Value::Context(ctx.clone()).type_is_conformant(&missing));
-  let nested = Value::List(vec![Value::List(vec![Value::Context(ctx)])]);
-  assert!(nested.type_is_conformant(&nested.type_of()));
+  // both outcomes of the rule are frequent among the lists with several items
+  assert!(contexts > total / 5 && mixed > total / 5, "{contexts} lists of contexts, {mixed} mixed lists, of {total}");
 }

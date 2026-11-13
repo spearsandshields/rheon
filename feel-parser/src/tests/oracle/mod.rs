@@ -3,7 +3,9 @@
 //!
 //! The files are verbatim copies of `lexer.rs`, `parser.rs`, `lalr.rs`, `scope.rs`, `index.rs` and
 //! `context.rs`, except for the module paths (`super::` instead of `crate::`) and the test-only
-//! token log of the parser and lexer (`token_start`, `with_token_log`, marked `oracle:`).
+//! token log of the parser and lexer (`token_start`, `with_token_log`, marked `oracle:`), and for
+//! `list_item_context_type` in `index.rs`, which takes the item type of a list from
+//! `Value::type_of`, the only list typing rule rheon-feel publishes.
 #![allow(dead_code)]
 
 pub mod context;
