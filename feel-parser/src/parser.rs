@@ -8,6 +8,12 @@ use crate::scope::ParsingScope;
 use dsntk_common::Result;
 use rheon_feel::{FeelType, IntervalType, Name};
 
+/// Initial capacity of the state and value stacks, enough for most expressions.
+const STACK_CAPACITY: usize = 32;
+
+/// Initial capacity of the AST node stack.
+const NODE_STACK_CAPACITY: usize = 16;
+
 enum Action {
   Accept,
   NewState,
@@ -103,9 +109,9 @@ impl<'parser> Parser<'parser> {
       yy_state: 0,
       yy_n: 0,
       yy_len: 0,
-      yy_state_stack: vec![0],
-      yy_value_stack: vec![TokenValue::YyEmpty],
-      yy_node_stack: vec![],
+      yy_state_stack: stack(0),
+      yy_value_stack: stack(TokenValue::YyEmpty),
+      yy_node_stack: Vec::with_capacity(NODE_STACK_CAPACITY),
       #[cfg(test)]
       token_log: None,
       #[cfg(test)]
@@ -226,13 +232,12 @@ impl<'parser> Parser<'parser> {
           work!(Shifts, 1);
           self.yy_state = self.yy_n as usize;
           self.yy_state_stack.push(self.yy_state);
-          // the lookahead value is consumed by the shift (reset to `YyEmpty` below)
+          // the lookahead value is consumed by the shift (and reset to `YyEmpty`)
           self.yy_value_stack.push(std::mem::replace(&mut self.yy_value, TokenValue::YyEmpty));
           trace!(self, "  state_stack={:?}", self.yy_state_stack);
           trace!(self, "  value_stack={:?}", self.yy_value_stack);
           trace!(self, "  node_stack={:?}", self.yy_node_stack);
           self.yy_char = TokenType::YyEmpty as i16;
-          self.yy_value = TokenValue::YyEmpty;
           action = Action::NewState;
         }
         Action::Reduce => {
@@ -247,10 +252,8 @@ impl<'parser> Parser<'parser> {
           reduce(self, self.yy_n)?;
           trace!(self, "  --------------------------------------------");
           // pop the state stack and semantic value stack
-          for _ in 0..self.yy_len {
-            self.yy_state_stack.pop();
-            self.yy_value_stack.pop();
-          }
+          self.yy_state_stack.truncate(self.yy_state_stack.len() - self.yy_len as usize);
+          self.yy_value_stack.truncate(self.yy_value_stack.len() - self.yy_len as usize);
           // keep yy_len = 0
           self.yy_len = 0;
           let yy_lhs = (YY_R1[self.yy_n as usize] as usize) - YY_N_TOKENS;
@@ -328,6 +331,13 @@ impl Parser<'_> {
   fn take_value(&mut self, index: usize) -> TokenValue {
     std::mem::replace(&mut self.yy_value_stack[index], TokenValue::YyState)
   }
+}
+
+/// Returns a parser stack holding its first element.
+fn stack<T>(first: T) -> Vec<T> {
+  let mut stack = Vec::with_capacity(STACK_CAPACITY);
+  stack.push(first);
+  stack
 }
 
 /// Puts the items of a list built from the last item to the first (see [Parser::list_item]) into

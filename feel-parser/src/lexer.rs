@@ -129,10 +129,13 @@ pub struct Lexer<'lexer> {
 impl<'lexer> Lexer<'lexer> {
   /// Creates a new lexer for specified input text.
   pub fn new(scope: &'lexer ParsingScope<'lexer>, start_token_type: TokenType, input: &str) -> Self {
+    // one allocation of the exact size (collecting the characters would start at a quarter of it)
+    let mut chars = Vec::with_capacity(input.chars().count());
+    chars.extend(input.chars());
     Self {
       scope,
       start_token_type: Some(start_token_type),
-      input: input.chars().collect(),
+      input: chars,
       position: 0,
       unary_tests: false,
       between: false,
