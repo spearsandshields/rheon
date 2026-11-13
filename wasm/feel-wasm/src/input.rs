@@ -24,15 +24,38 @@ pub enum Path<'a> {
 
 impl fmt::Display for Path<'_> {
   /// `key` under the root context, `parent.key` elsewhere, `parent[index]` for array items.
+  ///
+  /// The steps from this path up to its root are collected first and then written root first,
+  /// so the depth of the path costs no recursion and no text per level.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Path::Root(root) => f.write_str(root),
-      Path::Key(parent, key) => {
-        let parent = parent.to_string();
-        if parent.is_empty() { f.write_str(key) } else { write!(f, "{parent}.{key}") }
-      }
-      Path::Index(parent, index) => write!(f, "{parent}[{index}]"),
+    let mut steps = vec![self];
+    let mut path = self;
+    while let Path::Key(parent, _) | Path::Index(parent, _) = path {
+      path = parent;
+      steps.push(path);
     }
+    // whether nothing but empty text has been written so far: a key then needs no dot before it
+    let mut empty = true;
+    for step in steps.into_iter().rev() {
+      match step {
+        Path::Root(root) => {
+          f.write_str(root)?;
+          empty = root.is_empty();
+        }
+        Path::Key(_, key) => {
+          if !empty {
+            f.write_str(".")?;
+          }
+          f.write_str(key)?;
+          empty &= key.is_empty();
+        }
+        Path::Index(_, index) => {
+          write!(f, "[{index}]")?;
+          empty = false;
+        }
+      }
+    }
+    Ok(())
   }
 }
 
@@ -142,6 +165,12 @@ mod tests {
     assert_eq!("input[0]", Path::Index(&input, 0).to_string());
     assert_eq!("input.a", Path::Key(&input, "a").to_string());
     assert_eq!("[0]", Path::Index(&context, 0).to_string());
+    assert_eq!("[0][1].a", Path::Key(&Path::Index(&Path::Index(&context, 0), 1), "a").to_string());
+    // a key after nothing but empty text has no dot before it
+    let blank = Path::Key(&context, "");
+    assert_eq!("", blank.to_string());
+    assert_eq!("a", Path::Key(&blank, "a").to_string());
+    assert_eq!("input.", Path::Key(&input, "").to_string());
   }
 
   #[test]
