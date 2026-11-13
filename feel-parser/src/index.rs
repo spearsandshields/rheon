@@ -61,9 +61,9 @@ pub(crate) enum Nested<'a> {
   List(&'a Value),
 }
 
-/// Returns the names nested in a value of an input context, or `None` when it has none: those
-/// of a context, of a context type or list of context type ([Value::FeelType]), and of a list
-/// whose item type is a context type.
+/// Returns the kind of names a value of an input context can carry, or `None` when it can carry
+/// none: a context, a context type or list type of a context type ([Value::FeelType]), or a list;
+/// whether a list carries names depends on its item type ([list_item_context_type]).
 ///
 /// The one rule for nested names: the index of input contexts, the composite-name search and the
 /// conversion of input contexts into parsing contexts follow it.
@@ -92,14 +92,30 @@ pub(crate) fn context_type_entries(feel_type: &FeelType) -> Option<&BTreeMap<Nam
 /// Returns the item type of a list value when it is a context type: the item type of
 /// [Value::type_of] of the list.
 ///
-/// The type of a list whose first item does not have a context type is never a list of contexts, so
-/// such a list is not typed (its other items are not looked at). Typing the items recurses over
-/// their nesting, as [Value::type_of] does.
+/// A list whose first item is a scalar, a list, a range, a null or a function never has a context
+/// item type, so such a list is not typed (its items are not looked at). Otherwise
+/// [Value::type_of] types the list, the first item once; typing the items recurses over their
+/// nesting, as [Value::type_of] does.
 pub(crate) fn list_item_context_type(value: &Value) -> Option<FeelType> {
   let Value::List(items) = value else {
     return None;
   };
-  if !matches!(items.first()?.type_of(), FeelType::Context(_)) {
+  if matches!(
+    items.first()?,
+    Value::Boolean(_)
+      | Value::Number(_)
+      | Value::String(_)
+      | Value::Date(_)
+      | Value::Time(_)
+      | Value::DateTime(_)
+      | Value::DaysAndTimeDuration(_)
+      | Value::YearsAndMonthsDuration(_)
+      | Value::List(_)
+      | Value::Range(..)
+      | Value::Null(_)
+      | Value::FunctionDefinition(_)
+      | Value::BuiltInFunction(_)
+  ) {
     return None;
   }
   match value.type_of() {

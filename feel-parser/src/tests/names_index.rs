@@ -5,6 +5,7 @@
 
 use super::{differential, full_size, oracle};
 use crate::context::ParsingContext;
+use crate::index::list_item_context_type;
 use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
 use crate::parser::Parser;
@@ -550,5 +551,36 @@ fn deep_chain_of_distinct_keys_is_linear() {
     assert!(trace.contains("`a./. leaf`") && !trace.contains("Path"), "{trace}");
     let states = work.get("composite states").copied().unwrap_or(0);
     assert!(states > 0 && states <= 8 * (depth + 1), "depth {depth}: {states} composite states");
+  }
+}
+
+/// The item type of a list in an input context is a context type exactly when [Value::type_of] of
+/// the list says so, for lists whose first item is not looked at further and for lists that are
+/// typed.
+#[test]
+fn list_item_context_types() {
+  let one = |key: &str| {
+    let mut ctx = FeelContext::default();
+    ctx.set_entry(&Name::from(key), number(1));
+    Value::Context(ctx)
+  };
+  let context_type = FeelType::Context(BTreeMap::from([(Name::from("a"), FeelType::Number)]));
+  for (list, has_context_items) in [
+    (vec![one("a"), one("a")], true),
+    (vec![Value::FeelType(context_type.clone()), Value::FeelType(context_type.clone())], true),
+    (vec![one("a"), one("b")], false),
+    (vec![one("a"), number(1)], false),
+    (vec![number(1), one("a")], false),
+    (vec![Value::Null(None), one("a")], false),
+    (vec![Value::List(vec![one("a")])], false),
+    (vec![], false),
+  ] {
+    let list = Value::List(list);
+    let expected = match list.type_of() {
+      FeelType::List(item_type) if matches!(*item_type, FeelType::Context(_)) => Some(*item_type),
+      _ => None,
+    };
+    assert_eq!(has_context_items, expected.is_some(), "{list:?}");
+    assert_eq!(expected, list_item_context_type(&list), "{list:?}");
   }
 }
