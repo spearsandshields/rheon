@@ -119,22 +119,29 @@ impl ParsingScope<'_> {
   /// Returns `true` when `name` (a flattened name, see the lexer) is in scope: a key at any depth
   /// of a context on the stack, a composite key of such a context, or a parsed name.
   pub fn contains(&self, name: &str) -> bool {
-    work!(Contains, 1);
-    if self.names.borrow().contains(name) {
-      return true;
-    }
-    let live = &self.input[..self.input_live.get()];
-    let locals = self.locals.borrow();
-    if locals.iter().any(|ctx| ctx.contains_key_deep(name)) || live.iter().any(|frame| frame.contains(name)) {
+    if self.contains_plain(name) {
       return true;
     }
     // every composite key contains the separator
     if name.contains(" . ") {
       work!(CompositeSearches, 1);
+      let live = &self.input[..self.input_live.get()];
       let trees = self.trees.get_or_init(|| self.input.iter().map(|frame| ParsingContext::from(frame.context())).collect());
-      return trees[..live.len()].iter().chain(locals.iter()).any(|ctx| ctx.contains_flattened(name));
+      return trees[..live.len()].iter().chain(self.locals.borrow().iter()).any(|ctx| ctx.contains_flattened(name));
     }
     false
+  }
+
+  /// Returns `true` when `name` is in scope as a key at any depth of a context on the stack or as
+  /// a parsed name: [contains](Self::contains) without the composite keys, for the names that can
+  /// not be composite (see [bound](Self::bound)).
+  pub(crate) fn contains_plain(&self, name: &str) -> bool {
+    work!(Contains, 1);
+    if self.names.borrow().contains(name) {
+      return true;
+    }
+    let live = &self.input[..self.input_live.get()];
+    self.locals.borrow().iter().any(|ctx| ctx.contains_key_deep(name)) || live.iter().any(|frame| frame.contains(name))
   }
 
   /// Returns an upper bound of the length in bytes of the names that [contains](Self::contains)

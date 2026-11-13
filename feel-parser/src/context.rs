@@ -122,18 +122,24 @@ impl ParsingContext {
 
   /// Returns `true` when `name` is a key of this context or of a nested context, at any depth.
   pub fn contains_key_deep(&self, name: &str) -> bool {
-    let mut stack = vec![self];
-    while let Some(ctx) = stack.pop() {
+    // the nested contexts to visit (no allocation for a context without nested contexts)
+    let mut stack = vec![];
+    let mut ctx = self;
+    loop {
       if ctx.0.contains_key(name) {
         return true;
       }
-      for entry in ctx.0.values() {
-        if let ParsingEntry::Context(sub_ctx) = entry {
-          stack.push(sub_ctx);
-        }
+      stack.extend(
+        ctx
+          .0
+          .values()
+          .filter_map(|entry| if let ParsingEntry::Context(sub_ctx) = entry { Some(sub_ctx) } else { None }),
+      );
+      match stack.pop() {
+        Some(sub_ctx) => ctx = sub_ctx,
+        None => return false,
       }
     }
-    false
   }
 
   /// Returns `true` when `name` is one of the flattened keys of this context: a key at any depth,

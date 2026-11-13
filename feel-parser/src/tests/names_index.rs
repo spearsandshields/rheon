@@ -403,6 +403,9 @@ fn scope_operations_equal_previous_scope() {
       probes.push(String::new());
       for probe in &probes {
         assert_eq!(flattened.contains(probe), scope.contains(probe), "case {case} step {step}: contains({probe:?})");
+        if !probe.contains(" . ") {
+          assert_eq!(flattened.contains(probe), scope.contains_plain(probe), "case {case} step {step}: contains_plain({probe:?})");
+        }
       }
       let plain_max = flattened.iter().filter(|k| !k.contains(" . ")).map(String::len).max().unwrap_or(0);
       let all_max = flattened.iter().map(String::len).max().unwrap_or(0);

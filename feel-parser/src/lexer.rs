@@ -897,7 +897,8 @@ impl<'lexer> Lexer<'lexer> {
     // than the trimmed parts it is made of. Skip the prefixes that are too long to match, so
     // that a long chain like `a.a.a...` (every `.` is an additional name symbol, so the longest
     // candidate name spans the whole chain) costs linear instead of quadratic time per token.
-    let bound = self.scope.bound(self.after_dot, self.chain_last_empty.is_some_and(|last| last >= first));
+    let has_empty_part = self.chain_last_empty.is_some_and(|last| last >= first);
+    let bound = self.scope.bound(self.after_dot, has_empty_part);
     let parts = &self.chain_parts[first..];
     let mut part_count = 0;
     let mut prefix_len = 0;
@@ -917,8 +918,14 @@ impl<'lexer> Lexer<'lexer> {
       if self.after_dot && is_built_in_property_name(&self.name_buf) {
         return Some((part_count, true));
       }
-      // check if the flattened name exists as a key in the current scope
-      if self.scope.contains(&self.name_buf) {
+      // check if the flattened name exists as a key in the current scope; it can be a composite
+      // key only with an empty part (see [ParsingScope::bound])
+      let found = if has_empty_part {
+        self.scope.contains(&self.name_buf)
+      } else {
+        self.scope.contains_plain(&self.name_buf)
+      };
+      if found {
         return Some((part_count, false));
       }
       part_count -= 1;
@@ -1284,6 +1291,8 @@ mod tests {
         parts.extend(counters[..len].iter().map(|&i| alphabet[i].to_string()));
         flatten_name_parts_into(parts.iter().map(String::as_str), &mut out, &mut tmp);
         assert_eq!(flatten_name_parts(&parts), out, "{parts:?}");
+        // without a part that is empty after trimming, no candidate is a composite name (see ParsingScope::bound)
+        assert!(parts.iter().any(|part| part.trim().is_empty()) || !out.contains(" . "), "{parts:?}");
         // next combination
         let mut i = 0;
         while i < len && counters[i] == alphabet.len() - 1 {
