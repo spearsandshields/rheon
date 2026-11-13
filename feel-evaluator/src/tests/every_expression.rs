@@ -51,7 +51,7 @@ fn _0007() {
 }
 
 #[test]
-fn _0009() {
+fn _0008() {
   // the first `false` or non-boolean value decides the result
   let scope = &te_scope("{}");
   te_null(false, scope, "every x in [true, null] satisfies x", "");
@@ -61,7 +61,7 @@ fn _0009() {
 }
 
 #[test]
-fn _0008() {
+fn _0009() {
   // A body that removes the iteration context from the scope (no FEEL body does, an evaluator
   // supplied by a caller can) gives a null, and the scope is left as it was found.
   let scope = &te_scope("{}");

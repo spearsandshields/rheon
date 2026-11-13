@@ -564,7 +564,7 @@ fn dmn_1_6_singleton_list_filter() {
 }
 
 #[test]
-fn _0078() {
+fn _0077() {
   // the FEEL filter (items moved into the scope and back) equals the copying filter of boxed
   // expressions on every kind of item, and leaves the scope as it found it
   let scope = &te_scope("{x: 2, item: 9}");
@@ -610,7 +610,7 @@ fn _0078() {
 }
 
 #[test]
-fn _0077() {
+fn _0078() {
   // A predicate that removes the item contexts from the scope (no FEEL predicate does, an
   // evaluator supplied by a caller can) gives a null, and the filter leaves the scope as it
   // found it: for a context item with an entry `item`, a context item without one, and an item
