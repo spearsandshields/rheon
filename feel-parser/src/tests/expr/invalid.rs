@@ -81,6 +81,32 @@ fn _0010() {
 }
 
 #[test]
+fn _0012() {
+  // The name of an iteration variable can not start with the keyword `in` (DMN 1.6 §10.3.1.4,
+  // "A name start SHALL NOT be a literal terminal symbol"), whatever follows it.
+  for input in [
+    "for in+1 in [1] return 1",
+    "for in+1 in [1] return in+1",
+    "for in[1] return 1",
+    "for in(1) return 1",
+    "for in.x in [1] return 1",
+    "for in/2 in [1] return 1",
+    "for in'x in [1] return 1",
+    "for in: 1 return 1",
+    "for x in [1], in*2 in [2] return x",
+    "some in.x in [1] satisfies true",
+    r#"some in"a" satisfies true"#,
+    "every in-x in [] satisfies false",
+    "for in in [1] return 1",
+    "for x in[1] return x",
+    "for item in [1] return in+1",
+    "for item in, x in [1] return 1",
+  ] {
+    te(input, "ParserError", &format!("syntax error: {input}"));
+  }
+}
+
+#[test]
 fn _0011() {
   // There is no `+=` operator in FEEL, but this expression parses properly (will return null on execution).
   let input = "1 += 2";

@@ -308,13 +308,19 @@ fn name_lookup_equals_flattened_keys_search() {
       .iter()
       .filter(|t| t.contains("Name(Name(") && ["./. ", ".. ", ".-. ", "/. "].iter().any(|c| t.contains(c)))
       .count();
-    // a panic must happen on both sides (a pre-existing lexer bug: in `for in+1 in [1] return 1`
-    // the iteration variable's name parts start with `in`, and `consumed_positions[index - 1]`
-    // underflows in the `till_in` tweak of `consume_name`)
-    let guarded = |oracle| std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| parse(&frames, &input, oracle))).unwrap_or_else(|_| "panic".to_string());
-    let actual = guarded(false);
-    let expected = guarded(true);
-    assert_eq!(expected, actual, "case {case}: parse of {input:?} in {frames:?}");
+    // the old lexer panics when an iteration variable's name parts start with `in` (`for in+1 in
+    // [1] return 1`: `consumed_positions[index - 1]` underflows in the `till_in` tweak); now the
+    // `in` is the keyword, and a syntax error (see differential::registered_difference)
+    let actual = parse(&frames, &input, false);
+    let expected = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| parse(&frames, &input, true))).unwrap_or_else(|_| "panic".to_string());
+    if expected == "panic" {
+      assert!(
+        actual.starts_with("error <ParserError> syntax error"),
+        "case {case}: parse of {input:?} in {frames:?}: {actual}"
+      );
+    } else {
+      assert_eq!(expected, actual, "case {case}: parse of {input:?} in {frames:?}");
+    }
     if !actual.starts_with("error") {
       parsed += 1;
     }

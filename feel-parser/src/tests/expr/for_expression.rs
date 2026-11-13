@@ -226,6 +226,57 @@ fn _0006() {
 }
 
 #[test]
+fn _0008() {
+  // iteration variables that start with `in` without being the keyword `in`
+  let scope = scope!();
+  accept(
+    &scope,
+    StartExpression,
+    "for in1 in [1] return in1",
+    r#"
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `in1`
+       │     └─ List
+       │        └─ Numeric
+       │           └─ `1`
+       └─ EvaluatedExpression
+          └─ Name
+             └─ `in1`
+    "#,
+    false,
+  );
+}
+
+#[test]
+fn _0009() {
+  // `item` leaves the lexer in iteration-variable mode (its tweak returns before `till_in` is
+  // cleared), so the `in` that follows is the keyword even before `[`
+  let scope = scope!();
+  accept(
+    &scope,
+    StartExpression,
+    "for item in[1] return item",
+    r#"
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `item`
+       │     └─ List
+       │        └─ Numeric
+       │           └─ `1`
+       └─ EvaluatedExpression
+          └─ Name
+             └─ `item`
+    "#,
+    false,
+  );
+}
+
+#[test]
 fn _0007() {
   // This test is not correct syntactically, because the variable `partial` is a list,
   // but only this way it is well tested, if this variable is properly defined

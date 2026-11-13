@@ -732,11 +732,17 @@ impl<'lexer> Lexer<'lexer> {
     // Tweak with the name in `for` and `quantified` expressions.
     // The variable's name is the name until the keyword `in` appears.
     // Return the whole name before the `in` keyword.
+    // A name start is never a literal terminal symbol (DMN 1.6 §10.3.1.4), so a variable
+    // can not start with `in`: then `in` is the keyword (and the variable name is missing).
     //-------------------------------------------------------------------------------
     if self.till_in
       && let Some(index) = parts.iter().position(|value| value == "in")
     {
       self.till_in = false;
+      if index == 0 {
+        self.position = consumed_positions[0] + 1;
+        return Ok((TokenType::In, TokenValue::In));
+      }
       parts.truncate(index);
       self.position = consumed_positions[index - 1] + 1;
       return Ok((TokenType::Name, TokenValue::Name(Name::from_parts(&parts))));

@@ -76,16 +76,11 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
 
 /// Runs the current front end; a panic is an outcome.
 fn run_new(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
-  let mut tokens = vec![];
-  let outcome = catch_unwind(AssertUnwindSafe(|| {
-    let scope = ParsingScope::new(frames);
-    let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
-    let result = parser.parse();
-    tokens = parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect();
-    result
-  }));
+  let scope = ParsingScope::new(frames);
+  let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
+  let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   Run {
-    tokens,
+    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
     outcome: match outcome {
       Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
       Ok(Err(e)) => Outcome::Error(e.to_string()),
@@ -96,16 +91,11 @@ fn run_new(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
 
 /// Runs the frozen prototype; a panic is an outcome.
 fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &str) -> Run {
-  let mut tokens = vec![];
-  let outcome = catch_unwind(AssertUnwindSafe(|| {
-    let scope = oracle::scope::ParsingScope::new(frames);
-    let mut parser = oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log();
-    let result = parser.parse();
-    tokens = parser.token_log();
-    result
-  }));
+  let scope = oracle::scope::ParsingScope::new(frames);
+  let mut parser = oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log();
+  let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   Run {
-    tokens,
+    tokens: parser.token_log(),
     outcome: match outcome {
       Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
       Ok(Err(e)) => Outcome::Error(e.to_string()),
@@ -116,7 +106,18 @@ fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &s
 
 /// The registered differences: bug fixes, each with the old and the new behaviour. Returns the
 /// name of the fix when the difference between `old` (the prototype) and `new` is one of them.
-fn registered_difference(_start: &str, _input: &str, _old: &Run, _new: &Run) -> Option<&'static str> {
+fn registered_difference(_start: &str, _input: &str, old: &Run, new: &Run) -> Option<&'static str> {
+  // Step 1. A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with
+  // `in`: an iteration variable (`for in+1 in [1] return 1`), or the `in` after an `item` variable,
+  // which leaves the flag set (`for item in[1] return item`):
+  // - old: `consumed_positions[index - 1]` with index 0 in the lexer, an overflow panic (a trap);
+  // - new: the tokens read before, then the keyword `in`; for a variable, the parser's syntax error.
+  if matches!(&old.outcome, Outcome::Panic(message) if message == "attempt to subtract with overflow")
+    && new.tokens.starts_with(&old.tokens)
+    && new.tokens.get(old.tokens.len()).is_some_and(|(tt, tv, _)| *tt == TokenType::In as i16 && tv == "In")
+  {
+    return Some("step 1: name starting with `in` in iteration-variable mode");
+  }
   None
 }
 
@@ -126,8 +127,6 @@ struct Stats {
   cases: usize,
   asts: usize,
   errors: usize,
-  /// Panics of the current front end (each one also a panic of the prototype, else a difference).
-  panics: usize,
   registered: BTreeMap<&'static str, usize>,
 }
 
@@ -146,7 +145,7 @@ impl Stats {
     match &new.outcome {
       Outcome::Ast(_) => self.asts += 1,
       Outcome::Error(_) => self.errors += 1,
-      Outcome::Panic(_) => self.panics += 1,
+      Outcome::Panic(message) => panic!("{name} {input:?} in {frames:?}: the parser panicked: {message}"),
     }
     if new != old {
       match registered_difference(name, input, &old, &new) {
