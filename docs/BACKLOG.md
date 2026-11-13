@@ -106,11 +106,9 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
   the FEEL grammar; hidden in DMN models because item definitions put every name in scope, so the
   TCK does not catch it. Fix: after the scope lookup fails, cut the name at the first reserved
   keyword (`return then else satisfies in and or between instance of for if some every function`)
-  while keeping built-in multi-word names (`date and time`, `years and months duration`). Same
-  function as the `in` panic below (`consume_name` in `feel-parser/src/lexer.rs`); do both together.
+  while keeping built-in multi-word names (`date and time`, `years and months duration`). The
+  name is read by `consume_name` in `feel-parser/src/lexer.rs`.
   Workaround until then: parenthesise the path, `for i in (current(p).incomeItems) return …`. Hours.
-- **Lexer panic on `in` as a name part** `[fork]` (2026-10-18). `for in.x in [1] return x` indexes
-  one position back (`feel-parser/src/lexer.rs:713`), a native panic and a wasm trap. Hours.
 - **Decision-table bounds** `[fork]` (2026-10-18). Rules and outputs are indexed by clause position
   with no count check (`model-evaluator/src/decision_table.rs`): a short rule or a zero-output table
   panics. Count checks in the parser, `.get()` in evaluation. Hours.
@@ -125,15 +123,60 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
   `? > 5` semantics.
 - **Zoned `now()`** `[fork]` `[upstream]` (2026-10-17). `now()` is zone-less, so
   `now() - date and time("…Z")` is null. Proposal written, not applied.
-- **Remaining `insert(0)` tails** `[fork]` (2026-10-18). Nine list-tail grammar actions are still
-  quadratic; only the list literal was fixed. One shared helper. Small.
-- **Double evaluation in `build_sub`** `[fork]` (2026-10-18). Operands re-run to format the null
-  reason, so side effects happen twice. Trivial.
 - **`sort` comparator bypasses guards** `[fork]` (2026-10-18). Depth and finiteness guards are
   skipped for the user comparator; non-boolean result silently means equal. Small.
 - **Globals in the engine** `[fork]` `[upstream]` (2026-10-17). The tz-offset override is a process
   atomic and the call depth is thread-local; thread both through the evaluator scope and drop
   `ENGINE_LOCK`. A day; likely an upstream request anyway.
+
+## Lexer and evaluation limits (2026-11-13)
+
+- **Iteration-variable mode outlives `item`** `[fork]`. Where the grammar expects an iteration
+  variable, the lexer reads names in a mode that cuts the name before its `in` part; the mode
+  ends only when the lexer reads a name with an `in` part (`consume_name`). A variable named
+  `item` is returned before that check, so the mode stays on for the rest of the expression:
+  `for item in[1] return item` is `[1]`, while `for x in[1] return x` is a syntax error, and
+  with `"a in b": 5` in the context `for x in [1] return a in b` is `[5]`, while
+  `for item in [1] return a in b` reads `a in b` as the `in` test (`[true]`).
+- **`in` directly before `[`, `(` or a quote** `[fork]` is read as part of a name: `x in["a"]`,
+  `x in("a")` and `x in"a"` are syntax errors, `x in ["a"]` is `true`. The keyword `in` is
+  recognised only when white space follows it.
+- **Composite names** `[fork]`. A composite key `k1 . k2` (keys of nested contexts joined by
+  ` . `) is a name in scope, as in upstream. A candidate name contains ` . ` only through a name
+  part that is U+1680 alone (the only name character that trimming removes), and the lexer
+  reads such a part only right after an additional name symbol (`.`, `/`, `-`, `'`, `+`, `*`).
+  The composite search visits up to (nested contexts) × (separators in the candidate + 1)
+  states per candidate.
+- **An empty list in a `for` with a dependent variable** `[fork]`.
+  `for x in [[1,2],[],[3]], y in x return y` is `[1, 2, 2, 3]`, not `[1, 2, 3]`: when the list of
+  `y` is empty the iteration is not skipped, and `y` keeps its value from the iteration before.
+  DMN 1.6 §10.3.2.14: an empty iteration context contributes no iteration.
+  `feel-evaluator/src/tests/iterations.rs` `_0020` pins the sequence as it is.
+- **Filters evaluate their expression once more in the outer scope** `[fork]`. After
+  evaluating the expression for every item, the filter evaluates it once in the enclosing scope
+  to decide between indexing and filtering (`FilterExpressionEvaluator::evaluate`). A predicate
+  that names an item entry fails there: in strict mode `sum(items[amount > 100].amount)` is the
+  error "context has no value for key 'amount'" (lenient mode returns the sum with two
+  diagnostics). Indexing (`list[i]`) evaluates the index once per item as well.
+- **Boxed contexts write into the context below them** `[fork]`. The boxed context evaluator
+  (`build_context_evaluator`, `model-evaluator/src/boxed_expressions.rs`) pushes no context of
+  its own when it evaluates: it writes each entry into the context on the top of the scope. The
+  entries of a boxed context are therefore visible outside it, in an enclosing boxed context or
+  boxed list: a boxed context with an entry `a`, whose value is a boxed context with the entry
+  `b: 1`, and an entry `c: b` gives `c` the value 1 (DMN 1.6 §10.2.1.4: outside a boxed context
+  its entries are reachable only through a qualified name, `a.b`). In a boxed `for` whose body
+  is a boxed context with an entry named `partial`, that entry overwrites the iteration's
+  `partial` and the results of the earlier iterations are lost (§10.3.2.14). Functions returned
+  by boxed function bodies depend on these writes (*Closures are not lexical* below), so the two
+  change together.
+- **Values are cloned on lookup** `[fork]`. Function definitions are shared
+  (`Arc<FunctionDefinition>`), and FEEL loops and filters move their contexts and items instead
+  of cloning them. Contexts and lists are still cloned on every scope lookup, and a function's
+  closure context on every call.
+- **Loop variables are looked up by name** `[fork]`: every iteration resolves the variable
+  through the scope stack (`FeelScope::get_value`).
+- **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),
+  `replace` and `split` compile their pattern for each invocation.
 
 ## DMN 1.6 (target since 2026-11-10)
 
@@ -198,7 +241,10 @@ Open in 1.6:
   - *Closures are not lexical.* A function returned by a body closes over the names as they are
     where the body ends (`closed_over`, kept from dsntk), so `{f: function(x) {x: 10, g:
     function(y) x + y}.g, h: f(1), r: h(5)}.r` is 6, not 15 (§10.3.2.13.2: "FEEL functions are
-    lexical closures"). Removing the rebuild needs a TCK run.
+    lexical closures"). Removing the rebuild needs a TCK run. A function returned by a boxed
+    function body finds the entries of its boxed context through these writes (see *Boxed
+    contexts write into the context below them* in "Lexer and evaluation limits"), so the two
+    change together.
   - *Decision service as a function.* Its body reads the arguments with `scope.peek()`
     (decision_service.rs), so the invocation must push the parameters last, and it converts them
     a second time through the input data and input decision evaluators.
@@ -207,9 +253,6 @@ Open in 1.6:
   - *Binding types are not checked.* A binding's parameter `typeRef` is ignored (§7.3.6 binds by
     name); §7.3.4 asks it to be compatible with the value, so a model-load warning would fit.
   - *`try_coerced` lets any function value pass* whatever the target type (feel/src/values.rs).
-  - *`build_context` keeps its frame* when an entry is null: it returns without `scope.pop()`
-    (builders.rs, "value_null @ Value::Null(_) => return value_null"), so the caller's pops are
-    off by one.
   - *Call depth counting.* FEEL invocations are counted at the expression (argument evaluation
     included), boxed invocations and invocables in `evaluate_invocation`; `sort` and `list
     replace` callbacks are not counted.
@@ -250,8 +293,6 @@ back-references via fancy-regex). The unpatched subset now stands at 289/298. Re
 
 ## Engine design conversations (upstream, not ours to carry)
 
-- Share contexts/lists behind `Rc`/`Arc` instead of cloning on every scope lookup, function call
-  and loop iteration (the main evaluation-performance lever).
 - Split `Value` into FEEL values and evaluator intermediates (~20 of 45 variants are plumbing).
 - One comparison helper instead of ~12 hand-written orderings; one null-reason format.
 - A static table for built-in functions instead of two 90-arm dispatch matches.
