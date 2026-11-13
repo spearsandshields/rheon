@@ -8,9 +8,11 @@
 // the native stack the host runs wasm code on (V8: the thread's stack; Wasmtime: at most
 // max-wasm-stack bytes). Running out of either is a trap. The engine bounds what a request can
 // nest: ASTs deeper than 300 levels are rejected and evaluations stop after 200 nested function
-// calls. This check asserts that requests within those bounds evaluate, so that a change that
-// makes stack frames larger (a compiler setting, more inlining, larger locals) fails here and not
-// in a host.
+// calls. This check asserts that five constructs nested to the AST depth limit evaluate on every
+// host, and that a recursion of 190 calls with a body nested to the floor evaluates in the worker
+// and in Wasmtime (the main thread's recursion depth is only shown by --report), so that a change
+// that makes stack frames larger (a compiler setting, more inlining, larger locals) fails here and
+// not in a host.
 //
 // Requests:
 //   - flat nesting: five constructs (a right-nested addition chain, nested lists, nested contexts,
