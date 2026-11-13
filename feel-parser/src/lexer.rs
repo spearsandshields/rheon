@@ -898,16 +898,15 @@ impl<'lexer> Lexer<'lexer> {
     // that a long chain like `a.a.a...` (every `.` is an additional name symbol, so the longest
     // candidate name spans the whole chain) costs linear instead of quadratic time per token.
     let has_empty_part = self.chain_last_empty.is_some_and(|last| last >= first);
-    let bound = self.scope.bound(self.after_dot, has_empty_part);
     let parts = &self.chain_parts[first..];
-    let mut part_count = 0;
-    let mut prefix_len = 0;
-    for part in parts {
-      prefix_len += part.trimmed.len();
-      if prefix_len > bound {
-        break;
-      }
-      part_count += 1;
+    let mut part_count = admitted_parts(parts, self.scope.bound(self.after_dot, has_empty_part));
+    // Without an empty part every candidate starts with the first part, followed by nothing, a
+    // space or a symbol (no step of the flattening touches it), so it can only be a name with this
+    // first word: the bound of these names is tighter, and worth looking up for two or more candidates.
+    if part_count > 1 && !has_empty_part {
+      let word = &self.chain_text[parts[0].trimmed.clone()];
+      let limit = parts[..part_count].iter().map(|part| part.trimmed.len()).sum();
+      part_count = part_count.min(admitted_parts(parts, self.scope.group_bound(word, self.after_dot, limit)));
     }
     while part_count > 0 {
       work!(Candidates, 1);
@@ -1147,6 +1146,18 @@ fn hex_to_decimal(ch: char) -> Result<u64> {
     'F' | 'f' => Ok(15),
     other => Err(err_expected_hex_digit(other)),
   }
+}
+
+/// Returns the number of leading parts whose trimmed lengths add up to at most `bound`.
+fn admitted_parts(parts: &[ChainPart], bound: usize) -> usize {
+  let mut prefix_len = 0;
+  parts
+    .iter()
+    .take_while(|part| {
+      prefix_len += part.trimmed.len();
+      prefix_len <= bound
+    })
+    .count()
 }
 
 /// The replacements that remove the spaces around additional name symbols in a flattened name,

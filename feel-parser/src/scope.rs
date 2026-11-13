@@ -3,11 +3,13 @@
 use crate::context::ParsingContext;
 use crate::index::FrameIndex;
 use rheon_feel::Name;
+use rheon_feel::bip::BUILT_IN_PROPERTY_NAMES;
 use rheon_feel::context::FeelContext;
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fmt::Display;
+use std::ops::Bound;
 
 /// Parsing scope: the names the lexer recognizes as names in scope.
 ///
@@ -28,6 +30,10 @@ pub struct ParsingScope<'a> {
   locals: RefCell<Vec<ParsingContext>>,
   /// Set of parsed names.
   names: RefCell<HashSet<Name>>,
+  /// Length of the longest parsed name that is longer than its first word ([first_word]); grows only.
+  max_names_longer: Cell<usize>,
+  /// `true` when a pushed context has nested contexts (their keys are not in [group_bound](Self::group_bound)'s windows).
+  local_nested: Cell<bool>,
   /// Upper bound of the length of the keys (at any depth) of the pushed contexts; grows only.
   max_local: Cell<usize>,
   /// Upper bound of the length of the composite keys of the pushed contexts; grows only.
@@ -46,6 +52,8 @@ impl<'a> ParsingScope<'a> {
       input_live: Cell::new(frames.len()),
       locals: RefCell::new(vec![]),
       names: RefCell::new(HashSet::default()),
+      max_names_longer: Cell::new(0),
+      local_nested: Cell::new(false),
       max_local: Cell::new(0),
       max_local_chain: Cell::new(0),
       max_names: Cell::new(0),
@@ -84,6 +92,7 @@ impl ParsingScope<'_> {
   pub fn push(&self, ctx: ParsingContext) {
     let (max_plain, max_flattened) = ctx.key_lengths();
     self.grow_local_lengths(max_plain, max_flattened);
+    self.local_nested.set(self.local_nested.get() || ctx.has_nested());
     self.locals.borrow_mut().push(ctx);
   }
 
@@ -105,6 +114,7 @@ impl ParsingScope<'_> {
     let len = name.as_str().len();
     let (max_plain, max_flattened) = ctx.key_lengths();
     self.grow_local_lengths(len.max(max_plain), if ctx.is_empty() { len } else { len + 3 + max_flattened });
+    self.local_nested.set(true);
     if let Some(top) = self.top_mut().last_mut() {
       top.set_context(name, ctx);
     }
@@ -112,7 +122,11 @@ impl ParsingScope<'_> {
 
   /// Adds a name to a set of already parsed names.
   pub fn add_parsed_name(&self, name: Name) {
-    self.max_names.set(self.max_names.get().max(name.as_str().len()));
+    let len = name.as_str().len();
+    self.max_names.set(self.max_names.get().max(len));
+    if len > self.max_names_longer.get() && first_word(name.as_str()).len() < len {
+      self.max_names_longer.set(len);
+    }
     self.names.borrow_mut().insert(name);
   }
 
@@ -164,6 +178,37 @@ impl ParsingScope<'_> {
     bound
   }
 
+  /// Returns an upper bound of the length in bytes of the names that [contains_plain](Self::contains_plain)
+  /// can accept and whose first word is `word` (see [first_word]), `word` itself included (and of the
+  /// built-in property names with this first word, after a dot). The lexer's candidate names
+  /// without an empty part all start with the first part of the token, which is a first word, so
+  /// this bounds them more tightly than [bound](Self::bound). A result of at least `limit` (the
+  /// lexer's longest candidate) prunes nothing, so the search stops there.
+  pub(crate) fn group_bound(&self, word: &str, after_dot: bool, limit: usize) -> usize {
+    let live = &self.input[..self.input_live.get()];
+    // `word` itself, and the names that are longer than their first word, without a lookup
+    let mut bound = live.iter().fold(word.len().max(self.max_names_longer.get()), |bound, frame| bound.max(frame.max_longer()));
+    if self.local_nested.get() {
+      bound = bound.max(self.max_local.get());
+    }
+    if bound >= limit {
+      return bound;
+    }
+    // the keys of the contexts themselves
+    bound = live.iter().fold(bound, |bound, frame| bound.max(frame.group_bound(word)));
+    if !self.local_nested.get() {
+      bound = self.locals.borrow().iter().fold(bound, |bound, ctx| bound.max(ctx.group_bound(word, self.max_local.get())));
+    }
+    if after_dot {
+      for name in BUILT_IN_PROPERTY_NAMES {
+        if name.len() > bound && name.starts_with(word) && first_word(name) == word {
+          bound = name.len();
+        }
+      }
+    }
+    bound
+  }
+
   /// Returns the pushed contexts, the top one last. When none is pushed, the top input context
   /// (if any) is converted into a pushed context first, so that it can be changed; it stays at
   /// the same place in the stack.
@@ -175,6 +220,7 @@ impl ParsingScope<'_> {
       let ctx = ParsingContext::from(self.input[index].context());
       let (max_plain, max_flattened) = ctx.key_lengths();
       self.grow_local_lengths(max_plain, max_flattened);
+      self.local_nested.set(self.local_nested.get() || ctx.has_nested());
       locals.push(ctx);
     }
     locals
@@ -199,3 +245,29 @@ impl ParsingScope<'_> {
 
 /// Upper bound of the length of a built-in property name (`start included`), see [is_built_in_property_name](rheon_feel::bip::is_built_in_property_name).
 pub(crate) const MAX_BUILT_IN_PROPERTY_NAME_LEN: usize = 16;
+
+/// Number of keys of a context that [first_word_bound] looks at before it gives up.
+const FIRST_WORD_WINDOW: usize = 16;
+
+/// Returns the first word of a name: the text before its first space or additional name symbol.
+pub(crate) fn first_word(name: &str) -> &str {
+  name.find([' ', '.', '/', '-', '\'', '+', '*']).map_or(name, |end| &name[..end])
+}
+
+/// Returns an upper bound of the length in bytes of the keys of `keys` whose first word is `word`
+/// (see [first_word]), or `fallback` (a bound of all keys) when there are too many keys to look at.
+/// These keys are `word` followed by a space or a symbol, all bytes below `0`, so they follow
+/// `word` in the order of the keys; the keys looked at may include others, which only enlarges the bound.
+pub(crate) fn first_word_bound<V>(keys: &BTreeMap<Name, V>, word: &str, fallback: usize) -> usize {
+  let mut bound = 0;
+  for (count, key) in keys.range::<str, _>((Bound::Included(word), Bound::Unbounded)).map(|(key, _)| key.as_str()).enumerate() {
+    if !key.starts_with(word) || key.as_bytes().get(word.len()).is_some_and(|&byte| byte >= b'0') {
+      break;
+    }
+    if count == FIRST_WORD_WINDOW {
+      return fallback;
+    }
+    bound = bound.max(key.len());
+  }
+  bound
+}

@@ -1026,3 +1026,47 @@ fn name_chains_are_scanned_once() {
     assert_eq!(Some(&parts), work_of(&scope, &text).get("parts"), "{text:.20}");
   }
 }
+
+/// The bound of the candidate names by the first word of the token (`ParsingScope::group_bound`):
+/// keys that share their first word, keys with a byte below `0` after a word, more keys with
+/// the same first word than the window looks at, long multi-word keys, list item keys, nested
+/// keys, parsed names, parameters and built-in properties after a dot.
+#[test]
+fn first_word_bounds_equal_prototype() {
+  let mut keys: Vec<String> = ["a", "a b", "a.b", "a!b", "a\tb", "a0", "ab c", "a b c d e f g h", "x", "x y", "start", "start x", "end"]
+    .map(String::from)
+    .to_vec();
+  keys.extend((0..40).map(|i| format!("a/{i}")));
+  keys.push("monthly salary amount before tax and social security deductions".to_string());
+  keys.push("monthly".to_string());
+  let top = ctx(&keys.iter().map(|k| (k.as_str(), number(1))).collect::<Vec<_>>());
+  let nested = ctx(&[
+    ("n", Value::Context(ctx(&[("p q", number(1)), ("p", number(2)), ("q r s", number(3))]))),
+    ("items", Value::List(vec![Value::Context(ctx(&[("u v", number(1)), ("u", number(2))]))])),
+    ("d", Value::Context(ctx(&[("a", Value::Context(ctx(&[("b", number(1))])))]))),
+  ]);
+  let inputs = [
+    "a + a b + a.b + a!b + a\tb + a0 + ab c",
+    "a b c d e f g h + a b c d + a / 3 + a/39 + a/0 - a",
+    "monthly salary amount before tax and social security deductions * 2 - monthly salary",
+    "x y + x + p q + q r s + u v + u + n.p q + items.u v",
+    "d.a.b + start + start x + end",
+    "d.a.b + start included + time offset + end included",
+    "d.a.b + x y + start x",
+    "{p q: 1, p q r: 2, r: p q + p q r}",
+    "{a b c: 1, a: a b c + a b}.a",
+    "function(p q, x y z) p q + x y z",
+    "for p q in [1], r s in [2] return p q + r s",
+    "some u v in items satisfies u v > a",
+    "x instance of context<p q: number>",
+    "date(\"2012-01-01\").year + d.a.b + time offset",
+    "a\u{1680} b + a\u{FEFF} b + a\u{180E}b",
+  ];
+  let mut stats = Stats::default();
+  for frames in [vec![top.clone()], vec![nested.clone()], vec![top, nested], vec![]] {
+    for input in inputs {
+      stats.check(&frames, input);
+    }
+  }
+  println!("first-word bounds: {stats:?}");
+}

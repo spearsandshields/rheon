@@ -1,5 +1,6 @@
 //! Implementation of the parsing context.
 
+use crate::scope::first_word_bound;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
@@ -194,6 +195,33 @@ impl ParsingContext {
   /// Returns `true` when this context has no entries.
   pub fn is_empty(&self) -> bool {
     self.0.is_empty()
+  }
+
+  /// Returns `true` when this context has a nested context.
+  pub(crate) fn has_nested(&self) -> bool {
+    self.0.values().any(|entry| matches!(entry, ParsingEntry::Context(_)))
+  }
+
+  /// Returns an upper bound of the length of the keys of this context (not of the nested ones)
+  /// whose first word is `word`, see [first_word_bound].
+  pub(crate) fn group_bound(&self, word: &str, fallback: usize) -> usize {
+    first_word_bound(&self.0, word, fallback)
+  }
+
+  /// Returns the keys of this parsing context at any depth (the flattened keys without the composite ones).
+  #[cfg(test)]
+  pub fn keys_deep(&self) -> HashSet<String> {
+    let mut keys = HashSet::new();
+    let mut stack = vec![self];
+    while let Some(ctx) = stack.pop() {
+      for (key, entry) in &ctx.0 {
+        keys.insert(key.to_string());
+        if let ParsingEntry::Context(sub_ctx) = entry {
+          stack.push(sub_ctx);
+        }
+      }
+    }
+    keys
   }
 
   /// Returns a list of flattened keys for this parsing context.

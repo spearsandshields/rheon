@@ -1,4 +1,5 @@
 mod bif;
+mod bip;
 mod context;
 mod dto;
 mod function;

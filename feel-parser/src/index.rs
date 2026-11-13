@@ -1,5 +1,6 @@
 //! Index of the names of an input context, used by the lexer to recognize names in scope.
 
+use crate::scope::{first_word, first_word_bound};
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
@@ -23,6 +24,8 @@ pub(crate) struct FrameIndex<'a> {
   nested: HashSet<&'a str>,
   /// Keys of list item types; computed by [Value::type_of], so owned.
   owned: HashSet<String>,
+  /// Length in bytes of the longest key of `nested` or `owned` that is longer than its first word ([first_word]).
+  max_longer: usize,
   /// Length in bytes of the longest key at any depth.
   max_plain: usize,
   /// Length in bytes of the longest composite name `k1 . k2 . … . kn` (keys along a path from
@@ -48,6 +51,7 @@ impl<'a> FrameIndex<'a> {
       top,
       nested: HashSet::new(),
       owned: HashSet::new(),
+      max_longer: 0,
       max_plain: 0,
       max_chain: 0,
     };
@@ -66,7 +70,7 @@ impl<'a> FrameIndex<'a> {
           for (name, value) in ctx.iter() {
             let key = name.as_str();
             index.nested.insert(key);
-            index.add_key_length(key.len(), prefix);
+            index.add_nested_key_length(key, prefix);
             push_value(value, prefix + key.len() + SEPARATOR_LEN, &mut stack, &mut item_types);
           }
         }
@@ -74,7 +78,7 @@ impl<'a> FrameIndex<'a> {
           for (name, feel_type) in entries {
             let key = name.as_str();
             index.nested.insert(key);
-            index.add_key_length(key.len(), prefix);
+            index.add_nested_key_length(key, prefix);
             if let Some(entries) = context_type_entries(feel_type) {
               stack.push((Node::Type(entries), prefix + key.len() + SEPARATOR_LEN));
             }
@@ -108,9 +112,28 @@ impl<'a> FrameIndex<'a> {
     self.max_chain
   }
 
+  /// Upper bound of the length in bytes of the keys of the input context itself whose first word
+  /// is `word` (see [first_word]).
+  pub(crate) fn group_bound(&self, word: &str) -> usize {
+    first_word_bound(self.top, word, self.max_plain)
+  }
+
+  /// Length in bytes of the longest key at depth one or more (or of a list item type) that is
+  /// longer than its first word: with `word` itself, a bound of the deeper keys whose first word is `word`.
+  pub(crate) fn max_longer(&self) -> usize {
+    self.max_longer
+  }
+
   fn add_key_length(&mut self, len: usize, prefix: usize) {
     self.max_plain = self.max_plain.max(len);
     self.max_chain = self.max_chain.max(prefix + len);
+  }
+
+  fn add_nested_key_length(&mut self, key: &str, prefix: usize) {
+    self.add_key_length(key.len(), prefix);
+    if key.len() > self.max_longer && first_word(key).len() < key.len() {
+      self.max_longer = key.len();
+    }
   }
 
   /// Adds the keys of a list item type (a context type) at any depth.
@@ -125,7 +148,7 @@ impl<'a> FrameIndex<'a> {
         if !self.owned.contains(key) {
           self.owned.insert(key.to_string());
         }
-        self.add_key_length(key.len(), prefix);
+        self.add_nested_key_length(key, prefix);
         if let Some(entries) = context_type_entries(feel_type) {
           stack.push((entries, prefix + key.len() + SEPARATOR_LEN));
         }

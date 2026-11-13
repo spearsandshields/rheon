@@ -8,7 +8,8 @@ use crate::context::ParsingContext;
 use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
 use crate::parser::Parser;
-use crate::scope::ParsingScope;
+use crate::scope::{ParsingScope, first_word};
+use rheon_feel::bip::BUILT_IN_PROPERTY_NAMES;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, FeelScope, FeelType, Name};
@@ -406,6 +407,21 @@ fn scope_operations_equal_previous_scope() {
         if !probe.contains(" . ") {
           assert_eq!(flattened.contains(probe), scope.contains_plain(probe), "case {case} step {step}: contains_plain({probe:?})");
         }
+      }
+      // the names `contains_plain` accepts, by first word, are within `group_bound`
+      let plain = previous.stack.iter().flat_map(ParsingContext::keys_deep).chain(previous.names.iter().map(Name::to_string));
+      for member in plain {
+        let word = first_word(&member);
+        assert!(
+          scope.group_bound(word, false, usize::MAX) >= member.len(),
+          "case {case} step {step}: group_bound({word:?}) for {member:?}"
+        );
+      }
+      for member in BUILT_IN_PROPERTY_NAMES {
+        assert!(
+          scope.group_bound(first_word(member), true, usize::MAX) >= member.len(),
+          "case {case} step {step}: group_bound after dot for {member:?}"
+        );
       }
       let plain_max = flattened.iter().filter(|k| !k.contains(" . ")).map(String::len).max().unwrap_or(0);
       let all_max = flattened.iter().map(String::len).max().unwrap_or(0);

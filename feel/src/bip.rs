@@ -109,29 +109,31 @@ impl std::fmt::Display for Bip {
   }
 }
 
+/// The built-in property names.
+pub const BUILT_IN_PROPERTY_NAMES: [&str; 20] = [
+  BIP_END,
+  BIP_END_INCLUDED,
+  BIP_START,
+  BIP_START_INCLUDED,
+  BIP_YEAR,
+  BIP_YEARS,
+  BIP_MONTH,
+  BIP_MONTHS,
+  BIP_DAY,
+  BIP_DAYS,
+  BIP_WEEKDAY,
+  BIP_HOUR,
+  BIP_HOURS,
+  BIP_MINUTE,
+  BIP_MINUTES,
+  BIP_SECOND,
+  BIP_SECONDS,
+  BIP_TIME_OFFSET,
+  BIP_TIMEZONE,
+  BIP_VALUE,
+];
+
 /// Returns `true` when the specified name is a built-in property name.
 pub fn is_built_in_property_name(name: impl AsRef<str>) -> bool {
-  matches!(
-    name.as_ref(),
-    BIP_END
-      | BIP_END_INCLUDED
-      | BIP_START
-      | BIP_START_INCLUDED
-      | BIP_YEAR
-      | BIP_YEARS
-      | BIP_MONTH
-      | BIP_MONTHS
-      | BIP_DAY
-      | BIP_DAYS
-      | BIP_WEEKDAY
-      | BIP_HOUR
-      | BIP_HOURS
-      | BIP_MINUTE
-      | BIP_MINUTES
-      | BIP_SECOND
-      | BIP_SECONDS
-      | BIP_TIME_OFFSET
-      | BIP_TIMEZONE
-      | BIP_VALUE
-  )
+  BUILT_IN_PROPERTY_NAMES.contains(&name.as_ref())
 }
