@@ -138,9 +138,9 @@ DecisionToolkit/dsntk rather than carry ourselves. Dates are when the item was w
   `for item in[1] return item` is `[1]`, while `for x in[1] return x` is a syntax error, and
   with `"a in b": 5` in the context `for x in [1] return a in b` is `[5]`, while
   `for item in [1] return a in b` reads `a in b` as the `in` test (`[true]`).
-- **`in` directly before `[`, `(` or a quote** `[fork]` is read as part of a name: `x in["a"]`,
-  `x in("a")` and `x in"a"` are syntax errors, `x in ["a"]` is `true`. The keyword `in` is
-  recognised only when white space follows it.
+- **`in` directly before `[`, `(` or a quote** `[fork]` is read as part of a name: with `x: "a"`
+  in the context, `x in["a"]`, `x in("a")` and `x in"a"` are syntax errors, while `x in ["a"]` is
+  `true`. The keyword `in` is recognised only when white space follows it.
 - **Composite names** `[fork]`. A composite key `k1 . k2` (keys of nested contexts joined by
   ` . `) is a name in scope, as in upstream. A candidate name contains ` . ` only through a name
   part that is U+1680 alone (the only name character that trimming removes), and the lexer
