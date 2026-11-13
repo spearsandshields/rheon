@@ -125,7 +125,7 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
   }
   match rng.below(14) {
     0..=3 => number(rng.below(10) as i64),
-    4 => Value::String("s".to_string()),
+    4 => Value::String("s".into()),
     5 => Value::Null(None),
     6 | 7 => Value::Context(context(rng, depth + 1)),
     8 => {
@@ -150,7 +150,7 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
       let mut a = FeelContext::default();
       a.set_entry(&key, number(1));
       let mut b = FeelContext::default();
-      b.set_entry(&key, if rng.chance(50) { Value::String("s".to_string()) } else { Value::Null(None) });
+      b.set_entry(&key, if rng.chance(50) { Value::String("s".into()) } else { Value::Null(None) });
       Value::List(vec![Value::Context(a), Value::Context(b)])
     }
     11 => Value::FeelType(context_type(rng, depth)),

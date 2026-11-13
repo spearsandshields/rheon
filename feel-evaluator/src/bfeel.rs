@@ -49,9 +49,7 @@ pub fn bif_default(bif: &Bif) -> Option<Value> {
     | Overlaps | OverlapsAfter | OverlapsBefore | StartedBy | Starts | StartsWith => Value::Boolean(false),
     Abs | Ceiling | Count | DayOfYear | Decimal | Exp | Floor | Log | Mean | Median | Modulo | Number | Product | RoundDown | RoundHalfDown | RoundHalfUp | RoundUp | Sqrt
     | Stddev | StringLength | Sum | WeekOfYear => zero(),
-    DayOfWeek | LoweCase | MonthOfYear | Replace | String | StringJoin | Substring | SubstringAfter | SubstringBefore | Trim | UpperCase => {
-      Value::String(std::string::String::new())
-    }
+    DayOfWeek | LoweCase | MonthOfYear | Replace | String | StringJoin | Substring | SubstringAfter | SubstringBefore | Trim | UpperCase => Value::String(Default::default()),
     Date | Today => epoch_date(),
     DateAndTime | Now => epoch_date_time(),
     Time => epoch_time(),
@@ -198,7 +196,7 @@ pub fn arithmetic(operator: Operator, feel_operator: &Evaluator, scope: &FeelSco
     Operator::Add | Operator::Sub => {
       if either(is_string) {
         if operator == Operator::Sub {
-          return Value::String(String::new());
+          return Value::String(Default::default());
         }
         return convert(is_string, to_string);
       }
@@ -264,5 +262,5 @@ fn epoch_date_time() -> Value {
   }
 }
 fn empty_range() -> Value {
-  bifs::core::range(&Value::String("(0..0)".to_string()))
+  bifs::core::range(&Value::String("(0..0)".into()))
 }

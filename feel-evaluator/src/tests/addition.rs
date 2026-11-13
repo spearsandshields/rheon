@@ -328,3 +328,13 @@ fn _0046() {
   te_be_value(false, &scope!(), r#" string(@"23:59:59" + @"P1DT1S") "#, r#""00:00:00""#);
   te_bool(false, &scope!(), r#" (@"23:59:59" + @"PT1S") = @"00:00:00" "#, true);
 }
+
+#[test]
+fn _0047() {
+  // String addition never changes an operand that is still referenced.
+  te_value(false, &scope!(), r#"{s: "ab", t: s + s, r: [s, t]}.r"#, r#"["ab", "abab"]"#);
+  te_value(false, &scope!(), r#"{s: "ab", t: s + "c", u: s + "d", r: [s, t, u]}.r"#, r#"["ab", "abc", "abd"]"#);
+  te_value(false, &scope!(), r#"{s: "ab", t: (s + "c") + "d", r: [s, t]}.r"#, r#"["ab", "abcd"]"#);
+  te_value(false, &scope!(), r#"{f: function(s) s + "!", s: "ab", r: [f(s), f(s), s]}.r"#, r#"["ab!", "ab!", "ab"]"#);
+  te_value(false, &scope!(), r#"for s in ["a", "b"] return s + s + s"#, r#"["aaa", "bbb"]"#);
+}

@@ -102,7 +102,7 @@ impl TryFrom<&Value> for ValueDto {
   fn try_from(value: &Value) -> Result<Self, Self::Error> {
     match value {
       Value::String(inner) => Ok(ValueDto {
-        simple: SimpleDto::new(XSD_STRING, inner.to_string()),
+        simple: SimpleDto::new(XSD_STRING, inner.as_str().to_string()),
         ..Default::default()
       }),
       v @ Value::Number(_) => Ok(ValueDto {
@@ -193,7 +193,7 @@ impl TryFrom<&SimpleDto> for Value {
     if let Some(typ) = &value.typ {
       if let Some(text) = &value.text {
         match typ.as_str() {
-          XSD_STRING => Ok(Value::String(text.clone())),
+          XSD_STRING => Ok(Value::String(text.into())),
           XSD_INTEGER => Ok(Value::try_from_xsd_integer(text)?),
           XSD_DECIMAL => Ok(Value::try_from_xsd_decimal(text)?),
           XSD_DOUBLE => Ok(Value::try_from_xsd_double(text)?),

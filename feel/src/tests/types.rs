@@ -47,7 +47,7 @@ fn test_from_name() {
 fn test_get_value_checked() {
   let v_null = Value::Null(None);
   let v_boolean = Value::Boolean(true);
-  let v_string = Value::String("hello".to_owned());
+  let v_string = Value::String("hello".into());
   assert_eq!("null", T_ANY.get_value_checked(&v_null).unwrap().to_string());
   assert_eq!("true", T_ANY.get_value_checked(&v_boolean).unwrap().to_string());
   assert!(T_BOOLEAN.get_value_checked(&v_string).is_err());
@@ -385,7 +385,7 @@ fn test_type_get_conformant_value() {
   let v_number_1 = value_number!(1);
   let v_number_2 = value_number!(2);
   // string
-  let v_string = Value::String("alpha".to_string());
+  let v_string = Value::String("alpha".into());
   // time
   let v_time = Value::Time(FeelTime::local_opt(9, 2, 0, 0).unwrap());
   // years and months duration

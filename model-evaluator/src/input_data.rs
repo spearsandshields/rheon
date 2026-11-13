@@ -72,7 +72,7 @@ mod tests {
     let context_str = r#"{Full Name: "John"}"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
-      Some((Name::new(&["Full", "Name"]), Value::String("John".to_string()))),
+      Some((Name::new(&["Full", "Name"]), Value::String("John".into()))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
     );
   }
@@ -87,7 +87,7 @@ mod tests {
     let context_str = r#"{Full Name: "Phillip"}"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
-      Some((Name::new(&["Full", "Name"]), Value::String("Phillip".to_string()))),
+      Some((Name::new(&["Full", "Name"]), Value::String("Phillip".into()))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
     );
   }
@@ -208,7 +208,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let name = Name::new(&["Employment", "Status"]);
     assert_eq!(
-      Some((name, Value::String("EMPLOYED".to_string()))),
+      Some((name, Value::String("EMPLOYED".into()))),
       input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
     );
   }

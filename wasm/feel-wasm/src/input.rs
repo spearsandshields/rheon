@@ -68,7 +68,7 @@ pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> R
   Ok(match json {
     Json::Null => Value::Null(None),
     Json::Bool(b) => Value::Boolean(b),
-    Json::String(s) => Value::String(s),
+    Json::String(s) => Value::String(s.into()),
     Json::Number(n) => {
       let text = n.as_str();
       let (number, rounded) = FeelNumber::from_str_reporting_rounding(text).map_err(|e| format!("{path}: invalid number '{text}': {e}"))?;

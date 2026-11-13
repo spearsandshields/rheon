@@ -107,7 +107,7 @@ fn test_debug() {
     r#"Range(Number(+1E+0), Opened, Number(+1E+0), Closed)"#,
     Value::Range(b_number.clone(), IntervalType::Opened, b_number.clone(), IntervalType::Closed)
   );
-  eq_dbg!(r#"String("beta")"#, Value::String("beta".to_string()));
+  eq_dbg!(r#"String("beta")"#, Value::String("beta".into()));
   eq_dbg!(r#"Time(FeelTime(12, 13, 23, 0, Local))"#, Value::Time(v_time));
   eq_dbg!(r#"UnaryGreater(Number(+1E+0))"#, Value::UnaryGreater(b_number.clone()));
   eq_dbg!(r#"UnaryGreaterOrEqual(Number(+1E+0))"#, Value::UnaryGreaterOrEqual(b_number.clone()));
@@ -186,7 +186,7 @@ fn test_display() {
   eq_dsp!(r#"PositionalParameters"#, Value::PositionalParameters(Values::default()));
   eq_dsp!(r#"QualifiedNameSegment"#, Value::QualifiedNameSegment(name));
   eq_dsp!(r#"(1..1]"#, Value::Range(b_number.clone(), IntervalType::Opened, b_number.clone(), IntervalType::Closed));
-  eq_dsp!(r#""beta""#, Value::String("beta".to_string()));
+  eq_dsp!(r#""beta""#, Value::String("beta".into()));
   eq_dsp!(r#"12:13:23"#, Value::Time(v_time));
   eq_dsp!(r#"UnaryGreater(1)"#, Value::UnaryGreater(b_number.clone()));
   eq_dsp!(r#"UnaryGreaterOrEqual(1)"#, Value::UnaryGreaterOrEqual(b_number.clone()));
@@ -267,7 +267,7 @@ fn test_type_of() {
     FeelType::Range(Box::new(FeelType::Any)),
     Value::Range(b_number.clone(), IntervalType::Opened, b_boolean, IntervalType::Closed)
   );
-  eq_typ!(FeelType::String, Value::String("beta".to_string()));
+  eq_typ!(FeelType::String, Value::String("beta".into()));
   eq_typ!(FeelType::Time, Value::Time(v_time));
   eq_typ!(FeelType::Boolean, Value::UnaryGreater(b_number.clone()));
   eq_typ!(FeelType::Boolean, Value::UnaryGreaterOrEqual(b_number.clone()));
@@ -282,11 +282,11 @@ fn test_type_of() {
 #[test]
 fn test_type_of_list_with_context() {
   let mut ctx_a = FeelContext::default();
-  ctx_a.set_entry(&"a".into(), Value::String("alfa".to_string()));
-  ctx_a.set_entry(&"b".into(), Value::String("beta".to_string()));
+  ctx_a.set_entry(&"a".into(), Value::String("alfa".into()));
+  ctx_a.set_entry(&"b".into(), Value::String("beta".into()));
   let mut ctx_b = FeelContext::default();
-  ctx_b.set_entry(&"a".into(), Value::String("gamma".to_string()));
-  ctx_b.set_entry(&"b".into(), Value::String("gamma".to_string()));
+  ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
+  ctx_b.set_entry(&"b".into(), Value::String("gamma".into()));
   let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)]);
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
 }
@@ -294,10 +294,10 @@ fn test_type_of_list_with_context() {
 #[test]
 fn test_type_of_list_with_context_and_nulls() {
   let mut ctx_a = FeelContext::default();
-  ctx_a.set_entry(&"a".into(), Value::String("alfa".to_string()));
-  ctx_a.set_entry(&"b".into(), Value::String("beta".to_string()));
+  ctx_a.set_entry(&"a".into(), Value::String("alfa".into()));
+  ctx_a.set_entry(&"b".into(), Value::String("beta".into()));
   let mut ctx_b = FeelContext::default();
-  ctx_b.set_entry(&"a".into(), Value::String("gamma".to_string()));
+  ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
   ctx_b.set_entry(&"b".into(), value_null!());
   let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)]);
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
@@ -374,8 +374,8 @@ fn test_comparison() {
 
 #[test]
 fn test_value_to_feel_string() {
-  assert_eq!(r#""foo""#, Value::String("foo".to_string()).to_feel_string());
-  assert_eq!(r#""\"bar\"""#, Value::String("\"bar\"".to_string()).to_feel_string());
+  assert_eq!(r#""foo""#, Value::String("foo".into()).to_feel_string());
+  assert_eq!(r#""\"bar\"""#, Value::String("\"bar\"".into()).to_feel_string());
   assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).to_feel_string());
   assert_eq!(r#"[]"#, Value::List(Values::default()).to_feel_string());
   assert_eq!(
@@ -390,7 +390,7 @@ fn test_jsonify() {
   assert_eq!(r#"true"#, Value::Boolean(true).jsonify());
   assert_eq!(r#"false"#, Value::Boolean(false).jsonify());
   assert_eq!(r#"1.23"#, Value::Number(FeelNumber::new(123, 2)).jsonify());
-  assert_eq!(r#""beta""#, Value::String("beta".to_string()).jsonify());
+  assert_eq!(r#""beta""#, Value::String("beta".into()).jsonify());
   assert_eq!(r#""2023-02-24""#, Value::Date(FeelDate::new(2023, 2, 24).unwrap()).jsonify());
   assert_eq!(r#""18:35:12.000598677Z""#, Value::Time(FeelTime::utc(18, 35, 12, 598677)).jsonify());
   assert_eq!(
@@ -487,7 +487,7 @@ fn test_coerced() {
   let v_string = Value::String("a".into());
   let v_list_number_1 = Value::List(vec![value_number!(1, 0)]);
   let v_list_number_2 = Value::List(vec![value_number!(1, 0), value_number!(2, 0)]);
-  let v_list_string_1 = Value::List(vec![Value::String("A".to_string())]);
+  let v_list_string_1 = Value::List(vec![Value::String("A".into())]);
   let v_function_a = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(1)))),
@@ -548,10 +548,7 @@ fn test_type_of_list_items() {
   eq_typ!(list_of(FeelType::Any), Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("b", value_number!(1))])]));
   eq_typ!(
     list_of(context_a.clone()),
-    Value::List(vec![
-      ctx(&[("a", value_number!(1))]),
-      ctx(&[("a", value_number!(2)), ("b", Value::String("x".to_string()))])
-    ])
+    Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("a", value_number!(2)), ("b", Value::String("x".into()))])])
   );
   eq_typ!(list_of(list_of(context_a)), Value::List(vec![Value::List(vec![ctx(&[("a", value_number!(1))])])]));
 }
@@ -603,7 +600,7 @@ fn test_type_of_list_equals_reference_rule() {
     match if depth > 3 { rng.below(4) } else { rng.below(9) } {
       0 => value_null!(),
       1 => value_number!(1),
-      2 => Value::String("s".to_string()),
+      2 => Value::String("s".into()),
       3 => Value::Boolean(true),
       4..=6 => Value::Context(context(rng, depth)),
       7 => Value::List((0..rng.below(4)).map(|_| value(rng, depth + 1)).collect()),

@@ -219,10 +219,9 @@ impl<'b> EvaluatorBuilder<'b> {
           value @ Value::Null(_) => value,
           _ => value_null!("incompatible types in addition: {}({}) + {}({})", lhv, lhv.type_of(), rhv, rhv.type_of()),
         },
-        Value::String(mut lh) => {
+        Value::String(lh) => {
           if let Value::String(rh) = rhv {
-            lh.push_str(&rh);
-            Value::String(lh)
+            Value::String(lh.concat(&rh))
           } else {
             value_null!("expected string as a second argument in addition")
           }
@@ -830,8 +829,8 @@ impl<'b> EvaluatorBuilder<'b> {
           if let Some(Value::Context(java_mapping)) = mapping_information.get_entry(&"java".into()) {
             return if let Some(Value::String(class_name)) = java_mapping.get_entry(&"class".into()) {
               if let Some(Value::String(method_signature)) = java_mapping.get_entry(&"method signature".into()) {
-                let java_class_name = class_name.to_owned();
-                let java_method_signature = method_signature.to_owned();
+                let java_class_name = class_name.as_str().to_owned();
+                let java_method_signature = method_signature.as_str().to_owned();
                 let java_evaluator = Box::new(move |_: &FeelScope| Value::ExternalJavaFunction(java_class_name.clone(), java_method_signature.clone())) as Evaluator;
                 let lhe = Arc::new(java_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
@@ -845,8 +844,8 @@ impl<'b> EvaluatorBuilder<'b> {
           if let Some(Value::Context(pmml_mapping)) = mapping_information.get_entry(&"pmml".into()) {
             return if let Some(Value::String(document)) = pmml_mapping.get_entry(&"document".into()) {
               if let Some(Value::String(model_name)) = pmml_mapping.get_entry(&"model".into()) {
-                let pmml_document = document.to_owned();
-                let pmml_model_name = model_name.to_owned();
+                let pmml_document = document.as_str().to_owned();
+                let pmml_model_name = model_name.as_str().to_owned();
                 let pmml_evaluator = Box::new(move |_: &FeelScope| Value::ExternalPmmlFunction(pmml_document.clone(), pmml_model_name.clone())) as Evaluator;
                 let lhe = Arc::new(pmml_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
@@ -1768,7 +1767,7 @@ impl<'b> EvaluatorBuilder<'b> {
   }
 
   fn build_string(&mut self, lhs: &str) -> Evaluator {
-    let value = Value::String(lhs.to_string());
+    let value = Value::String(lhs.into());
     Box::new(move |_: &FeelScope| value.clone())
   }
 
@@ -1968,7 +1967,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       }
       Bip::Timezone => {
         if let Some(feel_time_zone) = date_time.feel_time_zone() {
-          Value::String(feel_time_zone)
+          Value::String(feel_time_zone.into())
         } else {
           value_null!("could not retrieve timezone for date and time")
         }
@@ -1989,7 +1988,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       }
       Bip::Timezone => {
         if let Some(feel_time_zone) = time.feel_time_zone() {
-          Value::String(feel_time_zone)
+          Value::String(feel_time_zone.into())
         } else {
           value_null!("could not retrieve timezone for time")
         }

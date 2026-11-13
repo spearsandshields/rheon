@@ -20,6 +20,10 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
+mod string;
+
+pub use string::FeelString;
+
 /// Creates `Value::Null` with optional tracing message.
 ///
 /// # Examples
@@ -68,8 +72,7 @@ macro_rules! value_number {
 
 #[macro_export]
 macro_rules! value_string {
-  ($s:literal) => {{ Value::String($s.to_string()) }};
-  ($s:expr) => {{ Value::String($s) }};
+  ($s:expr) => {{ Value::String($s.into()) }};
 }
 
 /// Utility constant for value `true `of type `Boolean`.
@@ -215,8 +218,8 @@ pub enum Value {
     IntervalType,
   ),
 
-  /// `String` value...
-  String(String),
+  /// Value representing `FEEL` string type.
+  String(FeelString),
 
   /// Value for storing time as [FeelTime].
   Time(FeelTime),

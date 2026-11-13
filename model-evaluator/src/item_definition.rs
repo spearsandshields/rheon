@@ -471,10 +471,7 @@ mod tests {
     let context_str = r#"{ Customer Name : "Whistler" }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Customer", "Name"])).unwrap();
-    assert_eq!(
-      Value::String("Whistler".to_string()),
-      evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), value).unwrap()
-    );
+    assert_eq!(Value::String("Whistler".into()), evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), value).unwrap());
   }
 
   #[test]
@@ -601,10 +598,7 @@ mod tests {
     let context_str = r#"{ Customer Name : "Bloomberg" }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Customer", "Name"])).unwrap();
-    assert_eq!(
-      Value::String("Bloomberg".to_string()),
-      evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), value).unwrap()
-    );
+    assert_eq!(Value::String("Bloomberg".into()), evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), value).unwrap());
   }
 
   #[test]
@@ -637,10 +631,10 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
-      Value::String("Mercury".to_string()),
-      Value::String("Venus".to_string()),
-      Value::String("Earth".to_string()),
-      Value::String("Mars".to_string()),
+      Value::String("Mercury".into()),
+      Value::String("Venus".into()),
+      Value::String("Earth".into()),
+      Value::String("Mars".into()),
     ]);
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
@@ -747,11 +741,7 @@ mod tests {
     let context_str = r#"{ Items : ["Mercury", "Venus", "Earth"] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      Value::String("Mercury".to_string()),
-      Value::String("Venus".to_string()),
-      Value::String("Earth".to_string()),
-    ]);
+    let expected = Value::List(vec![Value::String("Mercury".into()), Value::String("Venus".into()), Value::String("Earth".into())]);
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -763,16 +753,16 @@ mod tests {
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let mut ctx_1 = FeelContext::default();
     ctx_1.set_entry(&"number".into(), value_number!(1));
-    ctx_1.set_entry(&"name".into(), Value::String("One".to_string()));
-    ctx_1.set_entry(&"manager".into(), Value::String("John".to_string()));
+    ctx_1.set_entry(&"name".into(), Value::String("One".into()));
+    ctx_1.set_entry(&"manager".into(), Value::String("John".into()));
     let mut ctx_2 = FeelContext::default();
     ctx_2.set_entry(&"number".into(), value_number!(2));
-    ctx_2.set_entry(&"name".into(), Value::String("Two".to_string()));
-    ctx_2.set_entry(&"manager".into(), Value::String("Mike".to_string()));
+    ctx_2.set_entry(&"name".into(), Value::String("Two".into()));
+    ctx_2.set_entry(&"manager".into(), Value::String("Mike".into()));
     let mut ctx_3 = FeelContext::default();
     ctx_3.set_entry(&"number".into(), value_number!(3));
-    ctx_3.set_entry(&"name".into(), Value::String("Three".to_string()));
-    ctx_3.set_entry(&"manager".into(), Value::String("Bob".to_string()));
+    ctx_3.set_entry(&"name".into(), Value::String("Three".into()));
+    ctx_3.set_entry(&"manager".into(), Value::String("Bob".into()));
     let expected = Value::List(vec![Value::Context(ctx_1), Value::Context(ctx_2), Value::Context(ctx_3)]);
     assert_eq!(Some(expected), evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value));
   }

@@ -95,7 +95,7 @@ fn _0006() {
 #[test]
 fn _0007() {
   let mut iterator = FeelIterator::new();
-  let list = vec![Value::String("a".to_string()), Value::String("b".to_string()), Value::String("c".to_string())];
+  let list = vec![Value::String("a".into()), Value::String("b".into()), Value::String("c".into())];
   iterator.add_list("x".into(), Value::List(list));
   let actual = iterated(&mut iterator);
   assert_eq!(3, actual.len());
@@ -105,7 +105,7 @@ fn _0007() {
 #[test]
 fn _0008() {
   let mut iterator = FeelIterator::new();
-  let list1 = vec![Value::String("a".to_string()), Value::String("b".to_string()), Value::String("c".to_string())];
+  let list1 = vec![Value::String("a".into()), Value::String("b".into()), Value::String("c".into())];
   iterator.add_list("x".into(), Value::List(list1));
   let list2 = vec![value_number!(1), value_number!(2), value_number!(3)];
   iterator.add_list("y".into(), Value::List(list2));
@@ -120,7 +120,7 @@ fn _0008() {
 #[test]
 fn _0009() {
   let mut iterator = FeelIterator::new();
-  let list_x = vec![Value::String("a".to_string()), Value::String("b".to_string())];
+  let list_x = vec![Value::String("a".into()), Value::String("b".into())];
   let list_y = vec![value_number!(1), value_number!(2), value_number!(3)];
   let list_z = vec![value_number!(1), value_number!(2), value_number!(3), value_number!(4)];
   iterator.add_list("x".into(), Value::List(list_x));
@@ -325,7 +325,7 @@ fn _0019() {
       vec![State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[]), numbers(&[3])]))],
       "[{x: [1, 2]}, {x: []}, {x: [3]}]",
     ),
-    (vec![State::List("x", Value::String("single".to_string()))], r#"[{x: "single"}]"#),
+    (vec![State::List("x", Value::String("single".into()))], r#"[{x: "single"}]"#),
   ]);
 }
 
@@ -401,11 +401,11 @@ fn _0021() {
       "[{i: 1, x: 7}, {i: 2, x: 7}, {i: 3, x: 7}]",
     ),
     (
-      vec![State::List("x", Value::String("single".to_string())), State::List("j", numbers(&[1, 2]))],
+      vec![State::List("x", Value::String("single".into())), State::List("j", numbers(&[1, 2]))],
       r#"[{j: 1, x: "single"}, {j: 2, x: "single"}]"#,
     ),
     (
-      vec![State::List("j", numbers(&[1, 2])), State::List("x", Value::String("single".to_string()))],
+      vec![State::List("j", numbers(&[1, 2])), State::List("x", Value::String("single".into()))],
       r#"[{j: 1, x: "single"}, {j: 2, x: "single"}]"#,
     ),
     (
