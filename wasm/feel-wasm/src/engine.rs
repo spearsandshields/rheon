@@ -196,18 +196,19 @@ fn expression(req: &mut Map<String, Json>) -> Result<String, Failure> {
 
 /// Builds the input context from `context` / `contextFormat`, taking the context out of the request.
 fn context(req: &mut Map<String, Json>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
-  let feel_format = match req.get("contextFormat") {
-    None | Some(Json::Null) => false,
-    Some(Json::String(f)) if f == "json" => false,
-    Some(Json::String(f)) if f == "feel" => true,
+  // a &'static str, so that the context can be taken out of the request below
+  let format = match req.get("contextFormat") {
+    None | Some(Json::Null) => "json",
+    Some(Json::String(f)) if f == "json" => "json",
+    Some(Json::String(f)) if f == "feel" => "feel",
     Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {other} (expected \"json\" or \"feel\")")),
   };
-  match (feel_format, req.remove("context")) {
+  match (format, req.remove("context")) {
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
-    (false, Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e)),
-    (false, Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
-    (true, Some(Json::String(text))) => feel_context(&text).map_err(|e| Failure(Kind::Context, e)),
-    (true, Some(_)) => fail(Kind::Context, "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal"),
+    ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e)),
+    ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
+    (_, Some(Json::String(text))) => feel_context(&text).map_err(|e| Failure(Kind::Context, e)),
+    (_, Some(_)) => fail(Kind::Context, "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal"),
   }
 }
 
@@ -246,12 +247,12 @@ fn prepare_scope(mut req: Map<String, Json>, dialect: Dialect, warnings: &mut Ve
     match req.remove("input") {
       Some(input) => {
         let value = json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e))?;
-        ctx.set_entry(&question_mark(), value);
+        ctx.insert(question_mark(), value);
       }
       None => {
         if ctx.get_entry(&question_mark()).is_none() {
           warnings.push("no input value given ('input' or context[\"?\"]); testing null".to_string());
-          ctx.set_entry(&question_mark(), Value::Null(None));
+          ctx.insert(question_mark(), Value::Null(None));
         }
       }
     }
