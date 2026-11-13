@@ -109,8 +109,10 @@ impl ParsingScope<'_> {
   /// Sets a context under a specified name in the context placed on the top of the stack.
   pub fn set_context(&self, name: Name, ctx: ParsingContext) {
     if let Some(top) = self.top_mut().last_mut() {
+      // the bounds cover the other entries of the top context already: each was added by an
+      // operation that grew them
+      let (max_plain, max_flattened) = ParsingContext::entry_key_lengths(name.as_str(), &ctx);
       top.set_context(name, ctx);
-      let (max_plain, max_flattened) = top.key_lengths();
       self.grow_local_lengths(max_plain, max_flattened);
       self.local_nested.set(true);
     }

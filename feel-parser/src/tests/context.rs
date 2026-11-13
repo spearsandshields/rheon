@@ -285,3 +285,30 @@ fn test_flatten_names_with_additional_characters() {
     &["a . a", "c . d . e", "", "b . b", "lorem ipsum"],
   );
 }
+
+/// The name-length bounds of a scope after [crate::ParsingScope::set_context] equal the key
+/// lengths of its top context, the only context with keys: setting an entry grows the bounds by
+/// that entry, so they cover every entry set.
+#[test]
+fn set_context_bounds_equal_the_keys_of_the_top_context() {
+  // a context of depth `depth` (0: empty) whose keys have lengths that vary with `seed`
+  fn nested(depth: usize, seed: usize) -> ParsingContext {
+    let mut ctx = ParsingContext::default();
+    if depth > 0 {
+      ctx.set_name("v".repeat(1 + seed % 5).into());
+      ctx.set_context(format!("c{}", "d".repeat(seed % 7)).into(), nested(depth - 1, seed / 2 + 3));
+    }
+    ctx
+  }
+  let scope = crate::ParsingScope::default();
+  scope.push_default();
+  let mut model = ParsingContext::default();
+  for i in 0..40_usize {
+    let name: Name = format!("n{i}{}", "x".repeat((i * 7) % 13)).into();
+    scope.set_context(name.clone(), nested(i % 4, i));
+    model.set_context(name, nested(i % 4, i));
+    let (max_plain, max_flattened) = model.key_lengths();
+    assert_eq!(max_plain, scope.bound(false), "entry {i}");
+    assert_eq!(max_plain.max(max_flattened), scope.bound(true), "entry {i}");
+  }
+}

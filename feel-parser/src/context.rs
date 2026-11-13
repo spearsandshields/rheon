@@ -132,9 +132,17 @@ impl ParsingContext {
 
   /// Returns the length in bytes of the longest key at any depth, and of the longest flattened key.
   pub(crate) fn key_lengths(&self) -> (usize, usize) {
-    let (mut max_plain, mut max_flattened) = (0, 0);
-    // contexts to visit, with the length of the composite key prefix `k1 . … . ki . ` leading to them
-    let mut stack = vec![(self, 0_usize)];
+    Self::lengths(vec![(self, 0)], (0, 0))
+  }
+
+  /// Returns [key_lengths](Self::key_lengths) of a context whose only entry is `name: ctx`.
+  pub(crate) fn entry_key_lengths(name: &str, ctx: &ParsingContext) -> (usize, usize) {
+    Self::lengths(vec![(ctx, nested_prefix(0, name))], (name.len(), name.len()))
+  }
+
+  /// The walk of [key_lengths](Self::key_lengths): the contexts to visit, with the length of the
+  /// composite key prefix `k1 . … . ki . ` leading to them, and the maxima so far.
+  fn lengths(mut stack: Vec<(&ParsingContext, usize)>, (mut max_plain, mut max_flattened): (usize, usize)) -> (usize, usize) {
     while let Some((ctx, prefix)) = stack.pop() {
       for (key, entry) in &ctx.0 {
         let len = key.as_str().len();
