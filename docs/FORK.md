@@ -13,9 +13,7 @@ repository's content now lives here (`wasm/`, `packages/`, `apps/`, `docs/`,
 
 Rules:
 
-- Engine changes are small, self-contained commits. The "PR candidate" column
-  below records which ones would be upstreamable; offering them is not a
-  priority (decision of 2026-10-28).
+- Engine changes are small, self-contained commits.
 - `fastnum-backend` is a side branch with the experimental fastnum number
   backend (see below); it is not needed for wasm.
 - The `rheon-*` crates are published on crates.io (`cargo publish --workspace`, see
@@ -46,61 +44,61 @@ Rules:
 
 ## Commits on `wasm` (oldest first)
 
-| # | SHA | Title | Origin | PR candidate |
-|---|-----|-------|--------|--------------|
-| 1 | `e1fc50dc2a3fd9b941712ee0e76c01a51bf74b99` | Build on wasm32: gate Java external functions, 32-bit isize/usize conversions | `0001-wasm32-support.patch` | yes |
-| 2 | `b1a04ca6aaec7a93d57ca4141587e7f2c0b5eb4f` | feel-temporal: process-wide local UTC offset override for hosts without a time zone | `0002-local-offset-override.patch` | yes |
-| 3 | `ec2ced32fff2b0fdc72a8173385774cbb654a567` | Robustness: no user-reachable panics, non-finite numbers are null, call depth limit, iterative AST drop | `0003-robustness.patch` | yes (split, see below) |
-| 4 | `55948221d3e11df370366696d3d52431820d7c9f` | Linear `for` loops and list literal parsing (were quadratic) | `0004-linear-for-and-list-parsing.patch` | yes (overlaps upstream PR #112) |
-| 5 | `8c56f2c83c5fb28d3cdd5d8faa10444ffa4d4996` | Add docs/FORK.md | fork only | no |
-| 6 | `1fd27a4` | feel-number: shared decimal128 core for pure-Rust backends | dashu spike | maybe (see below) |
-| 7 | `dde684a` | feel-number: dashu-float backend, feature `dashu` (default) \| `intel` | dashu spike | maybe |
-| 8 | `c75b0da` | Forward the number backend features through the whole workspace | fork | with 6-7 |
-| 9 | `ecf9feb` | Tests: per-backend expectations where Intel's rounding error is encoded, dashu regressions | fork | with 6-7 |
-| 10 | `e6b67e8` | feel-number: track the sign of NaN like Intel (Debug-visible only) | fork | with 6-7 |
-| 11 | `6af4e49` | tools: differential fuzz and FEEL corpus harnesses (Intel vs dashu) | dashu spike | no |
-| 12 | `0bfbc9b` | feel-number: `NUMBER_BACKEND` constant naming the compiled-in backend | fork | with 6-7 |
-| 13 | `3fe6406` | tools: vendor the patched dfp-number-sys used as the Intel reference | fork only | no |
-| 14 | `8542135` | feel-number: scale rounding keeps the scale when the rounded coefficient is ±1 | upstream bug | yes |
-| 15 | `7c16676` | feel-evaluator: stop a numeric `for` range when the step is lost to rounding | upstream bug | yes |
-| 16 | `6f08eab` | feel-temporal: time ± duration wraps at midnight; order times and date-times across offsets as instants | upstream bug | yes |
-| 17 | `cb5997f` | feel-parser: bound the name-prefix search in the lexer (path chains were cubic) | upstream bug | yes |
-| 18 | `58bbc18` | feel-evaluator: readable null reasons for time/exp/log/duration; huge numbers in messages in scientific notation | fork | maybe |
-| 19 | `f619d8a` | feel-temporal: `is()` on times stays zone-strict now that `=` compares instants | with 16 | yes |
-| 20 | `3dbd70e` | model-evaluator: expectations for the new null reasons of time(), exp(), log() and duration() | with 18 | with 18 |
-| 21 | `4b5ca51` | feel-number: scale-based rounding accepts the full FEEL scale range -6111..=6176 | TCK 1141-1144 | yes |
-| 22 | `69e81cc` | feel-regex: back-references in `matches` patterns (fancy-regex) | TCK 1111 | yes |
-| 23 | `b3b616b` | model: accept the DMN 1.6 namespace | DMN 1.6 | no |
-| 24 | `f893c57` | feel: single-argument rounding and number(from); trim, intersection, insert after (1.7 beta) | DMN 1.6 | no |
-| 25 | `f3259a0` | feel: `value` property of temporal values; filters on a non-list; number() text must be a numeric literal; tck-addendum | DMN 1.6 | no |
-| 26 | `18bcd98` | feel: truncate fractional list positions before the sign check (remove panicked) | upstream bug | yes |
-| 27 | `f9b8111` | feel: date and time(date, time, timezone) | DMN 1.6 | no |
-| 28 | `4aa566d` | model: load ONNX functions; compatibility tests follow the 1.6 changes | DMN 1.6 | no |
-| 29 | `62bcf99` | feel-grammar back in the tree as rheon-feel-grammar (tables reproduce byte for byte) | fork | no |
-| 30 | `18f0fd1` | feel: descendant operator `e...name` (grammar, lexer, AST, evaluator) | DMN 1.6 | no |
-| 31 | `070be1a` | model: implicit conversions, TCK 1157 12/12 | TCK 1157 | no |
-| 32 | `b986c79` | model: multiple imports (per-model import names), TCK 1160 4/4; boxed for over a single value | TCK 1160 | no |
-| 33 | `e56f08c` | feel: B-FEEL; all()/any() follow the deciding item | DMN 1.6 | no |
-| 34 | `6baa444` | feel: diagnostics and lenient/strict error modes; wasm `language`, `errorMode`, `diagnostics` | DMN 1.6 | no |
-| 35 | `5e04541` | feel: equality with null no longer depends on the operand order | upstream bug | no |
-| 36 | `94ec326` | feel: null equality is one rule; a non-conformant argument ends the invocation | upstream bug | no |
-| 37 | `f65f252` | feel: one invocation for every function call (Table 64) | DMN 1.6 | no |
-| 38 | `a1d5a62` | feel: `in` treats every null alike | upstream bug | no |
-| 39 | `ea795d2` | feel-parser: names found in an index over the borrowed input contexts; composite names searched, not flattened | upstream bug | no |
-| 40 | `ea795d2` | feel: the type of a list of contexts without building the item types | fork | no |
-| 41 | `ea795d2` | feel-evaluator: every evaluator that pushes a context restores the scope depth on return | upstream bug | no |
-| 42 | `ea795d2` | feel-evaluator: FEEL loops and filters move their contexts instead of cloning them | fork | no |
-| 43 | `ea795d2` | feel-number: decimal128 comparison, digit count and packing without 128-bit division | fork | no |
-| 44 | `ea795d2` | feel: function values share their definition (`Arc<FunctionDefinition>`) | fork | no |
-| 45 | `ea795d2` | feel-wasm: request input converted by value | fork | no |
-| 46 | `ea795d2` | feel-evaluator: subtraction null reasons from the evaluated operands (2^n - 1 diagnostics become n) | upstream bug | no |
-| 47 | `ea795d2` | wasm profile at opt-level 3 with a 10 MiB shadow stack | fork | no |
-| 48 | `6e581a7` | feel-parser: an iteration variable that starts with `in` is a syntax error, not a trap | upstream bug | no |
-| 49 | `1e4a58b` | feel-parser: a range literal's named temporal parameter keeps its name | upstream bug | no |
-| 50 | `a9244b6` | feel-parser: list grammar actions append and complete each list once (the tails were quadratic) | upstream bug | no |
-| 51 | `6faa802`..`984d22f` except `23fc84b` | feel-parser: lexer and parser without per-token copies | fork | no |
-| 52 | `23fc84b` | feel-parser: the composite-name search without recursion | fork | no |
-| 53 | `3cab20b` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug | no |
+| # | SHA | Title | Origin |
+|---|-----|-------|--------|
+| 1 | `e1fc50dc2a3fd9b941712ee0e76c01a51bf74b99` | Build on wasm32: gate Java external functions, 32-bit isize/usize conversions | `0001-wasm32-support.patch` |
+| 2 | `b1a04ca6aaec7a93d57ca4141587e7f2c0b5eb4f` | feel-temporal: process-wide local UTC offset override for hosts without a time zone | `0002-local-offset-override.patch` |
+| 3 | `ec2ced32fff2b0fdc72a8173385774cbb654a567` | Robustness: no user-reachable panics, non-finite numbers are null, call depth limit, iterative AST drop | `0003-robustness.patch` |
+| 4 | `55948221d3e11df370366696d3d52431820d7c9f` | Linear `for` loops and list literal parsing (were quadratic) | `0004-linear-for-and-list-parsing.patch` |
+| 5 | `8c56f2c83c5fb28d3cdd5d8faa10444ffa4d4996` | Add docs/FORK.md | fork only |
+| 6 | `1fd27a4` | feel-number: shared decimal128 core for pure-Rust backends | dashu spike |
+| 7 | `dde684a` | feel-number: dashu-float backend, feature `dashu` (default) \| `intel` | dashu spike |
+| 8 | `c75b0da` | Forward the number backend features through the whole workspace | fork |
+| 9 | `ecf9feb` | Tests: per-backend expectations where Intel's rounding error is encoded, dashu regressions | fork |
+| 10 | `e6b67e8` | feel-number: track the sign of NaN like Intel (Debug-visible only) | fork |
+| 11 | `6af4e49` | tools: differential fuzz and FEEL corpus harnesses (Intel vs dashu) | dashu spike |
+| 12 | `0bfbc9b` | feel-number: `NUMBER_BACKEND` constant naming the compiled-in backend | fork |
+| 13 | `3fe6406` | tools: vendor the patched dfp-number-sys used as the Intel reference | fork only |
+| 14 | `8542135` | feel-number: scale rounding keeps the scale when the rounded coefficient is ±1 | upstream bug |
+| 15 | `7c16676` | feel-evaluator: stop a numeric `for` range when the step is lost to rounding | upstream bug |
+| 16 | `6f08eab` | feel-temporal: time ± duration wraps at midnight; order times and date-times across offsets as instants | upstream bug |
+| 17 | `cb5997f` | feel-parser: bound the name-prefix search in the lexer (path chains were cubic) | upstream bug |
+| 18 | `58bbc18` | feel-evaluator: readable null reasons for time/exp/log/duration; huge numbers in messages in scientific notation | fork |
+| 19 | `f619d8a` | feel-temporal: `is()` on times stays zone-strict now that `=` compares instants | with 16 |
+| 20 | `3dbd70e` | model-evaluator: expectations for the new null reasons of time(), exp(), log() and duration() | with 18 |
+| 21 | `4b5ca51` | feel-number: scale-based rounding accepts the full FEEL scale range -6111..=6176 | TCK 1141-1144 |
+| 22 | `69e81cc` | feel-regex: back-references in `matches` patterns (fancy-regex) | TCK 1111 |
+| 23 | `b3b616b` | model: accept the DMN 1.6 namespace | DMN 1.6 |
+| 24 | `f893c57` | feel: single-argument rounding and number(from); trim, intersection, insert after (1.7 beta) | DMN 1.6 |
+| 25 | `f3259a0` | feel: `value` property of temporal values; filters on a non-list; number() text must be a numeric literal; tck-addendum | DMN 1.6 |
+| 26 | `18bcd98` | feel: truncate fractional list positions before the sign check (remove panicked) | upstream bug |
+| 27 | `f9b8111` | feel: date and time(date, time, timezone) | DMN 1.6 |
+| 28 | `4aa566d` | model: load ONNX functions; compatibility tests follow the 1.6 changes | DMN 1.6 |
+| 29 | `62bcf99` | feel-grammar back in the tree as rheon-feel-grammar (tables reproduce byte for byte) | fork |
+| 30 | `18f0fd1` | feel: descendant operator `e...name` (grammar, lexer, AST, evaluator) | DMN 1.6 |
+| 31 | `070be1a` | model: implicit conversions, TCK 1157 12/12 | TCK 1157 |
+| 32 | `b986c79` | model: multiple imports (per-model import names), TCK 1160 4/4; boxed for over a single value | TCK 1160 |
+| 33 | `e56f08c` | feel: B-FEEL; all()/any() follow the deciding item | DMN 1.6 |
+| 34 | `6baa444` | feel: diagnostics and lenient/strict error modes; wasm `language`, `errorMode`, `diagnostics` | DMN 1.6 |
+| 35 | `5e04541` | feel: equality with null no longer depends on the operand order | upstream bug |
+| 36 | `94ec326` | feel: null equality is one rule; a non-conformant argument ends the invocation | upstream bug |
+| 37 | `f65f252` | feel: one invocation for every function call (Table 64) | DMN 1.6 |
+| 38 | `a1d5a62` | feel: `in` treats every null alike | upstream bug |
+| 39 | `ea795d2` | feel-parser: names found in an index over the borrowed input contexts; composite names searched, not flattened | upstream bug |
+| 40 | `ea795d2` | feel: the type of a list of contexts without building the item types | fork |
+| 41 | `ea795d2` | feel-evaluator: every evaluator that pushes a context restores the scope depth on return | upstream bug |
+| 42 | `ea795d2` | feel-evaluator: FEEL loops and filters move their contexts instead of cloning them | fork |
+| 43 | `ea795d2` | feel-number: decimal128 comparison, digit count and packing without 128-bit division | fork |
+| 44 | `ea795d2` | feel: function values share their definition (`Arc<FunctionDefinition>`) | fork |
+| 45 | `ea795d2` | feel-wasm: request input converted by value | fork |
+| 46 | `ea795d2` | feel-evaluator: subtraction null reasons from the evaluated operands (2^n - 1 diagnostics become n) | upstream bug |
+| 47 | `ea795d2` | wasm profile at opt-level 3 with a 10 MiB shadow stack | fork |
+| 48 | `6e581a7` | feel-parser: an iteration variable that starts with `in` is a syntax error, not a trap | upstream bug |
+| 49 | `1e4a58b` | feel-parser: a range literal's named temporal parameter keeps its name | upstream bug |
+| 50 | `a9244b6` | feel-parser: list grammar actions append and complete each list once (the tails were quadratic) | upstream bug |
+| 51 | `6faa802`..`984d22f` except `23fc84b` | feel-parser: lexer and parser without per-token copies | fork |
+| 52 | `23fc84b` | feel-parser: the composite-name search without recursion | fork |
+| 53 | `3cab20b` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug |
 
 (Full SHAs: `git log --format='%H %s' main..wasm`.)
 
@@ -658,35 +656,6 @@ cherry-pick procedure above replaces it.
 
 If a commit was merged upstream, `git rebase` drops it automatically when
 the patch is identical; otherwise drop it by hand with `git rebase -i`.
-
-## PR candidates for DecisionToolkit/dsntk
-
-Commits 1-4 are written to be upstreamable (no dsntk-wasm specifics,
-no behaviour change on native targets unless a panic is turned into a null):
-
-- **Commit 1 (wasm32 support)** - send as is. Small, cfg-gated, no native
-  change.
-- **Commit 2 (local offset override)** - send as is. Opt-in, additive API in
-  `feel-temporal`; when unset the code path is the original one.
-- **Commit 3 (robustness)** - ideally split into one PR per crate
-  (feel-number Display/is_finite; feel-parser lexer surrogates + iterative
-  AstNode drop; feel-temporal checked durations; feel-evaluator non-finite
-  -> null, call depth, 64-bit positions; feel type_of). The call depth limit
-  (`MAX_CALL_DEPTH`) is the only part where upstream might prefer a
-  configurable value.
-- **Commit 4 (linear for/list)** - same root-cause fixes as the open upstream
-  PR DecisionToolkit/dsntk#112 but without its parallel evaluator; offer it
-  as the minimal alternative or as a comment on #112.
-
-- **Commits 21-22 (scale range, back-references)** - send as is; each
-  makes an unpatched DMN TCK case pass and is covered by the TCK and crate
-  tests. Commit 22 adds the `fancy-regex` dependency to `feel-regex`.
-
-Commits 6-10 (the pure-Rust number backend) are a larger proposal: they
-would have to be offered with `intel` kept as upstream's default (one-line
-change in `feel-number/Cargo.toml` and the forwarding manifests) and with the
-per-backend test expectations explained by the oracle results above.
-Commit 11 (tools) and this file are fork-only.
 
 ## Layout note
 
