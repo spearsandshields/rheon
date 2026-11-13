@@ -1,11 +1,15 @@
 # rheon
 
-**rheon** (Greek ῥέον, "that which flows", the root of *panta rhei*) is a Rust FEEL and DMN
-engine whose FEEL engine is also compiled to WebAssembly, so that the same module runs in the
-browser, in Node and in any WASI runtime.
+**rheon** (Greek ῥέον, "that which flows", the root of *panta rhei*) is a Rust toolkit for
+decision and process automation. Its engines are built for native code and for WebAssembly
+alike; the FEEL engine already runs unchanged in the browser, in Node and in any WASI runtime.
 
-It is a fork of [dsntk](https://github.com/dsntk/dsntk-rs) (DecisionToolkit, by Dariusz Depta),
-the Rust FEEL/DMN engine, kept in upstream's layout so that upstream can be merged. On top of it
+The foundation is in place: a FEEL and DMN 1.6 engine with exact decimal arithmetic. On that
+core, rheon is growing into a BPMN toolbox, the building blocks for running processes, and a
+framework that embeds decisions and processes in applications.
+
+rheon builds on [dsntk](https://github.com/dsntk/dsntk-rs) (DecisionToolkit, by Dariusz Depta),
+the Rust FEEL/DMN engine, as a permanent fork that keeps upstream's crate layout. On top of it
 rheon adds a pure-Rust decimal128 number core, a set of engine fixes (listed in
 [`docs/FORK.md`](docs/FORK.md)), the `wasm32-wasip1` build of the FEEL engine, a TypeScript
 runtime and a browser playground.
