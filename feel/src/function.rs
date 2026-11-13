@@ -1,4 +1,4 @@
-//! `FEEL` or `DMN` function body definition.
+//! `FEEL` or `DMN` function definitions and bodies.
 
 use crate::closure::Closure;
 use crate::context::FeelContext;
@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /// A function: a FEEL function definition or a function built from a DMN model
 /// (the content of [Value::FunctionDefinition], shared: copying the value copies a pointer).
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FunctionDefinition {
   /// Formal parameters of the function.
   pub parameters: Vec<(Name, FeelType)>,
@@ -44,17 +44,6 @@ impl From<FunctionDefinition> for Value {
   /// Converts a function definition into a function value.
   fn from(function: FunctionDefinition) -> Self {
     Value::FunctionDefinition(Arc::new(function))
-  }
-}
-
-impl Debug for FunctionDefinition {
-  /// The fields in order, as the tuple variant `Value::FunctionDefinition(…)` showed them.
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
-      f,
-      "{:?}, {:?}, {:?}, {:?}, {:?}, {:?}",
-      self.parameters, self.body, self.external, self.closure, self.closure_ctx, self.result_type
-    )
   }
 }
 

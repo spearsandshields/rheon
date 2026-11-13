@@ -2,7 +2,7 @@ use super::*;
 use crate::bif::Bif;
 use crate::closure::Closure;
 use crate::context::FeelContext;
-use crate::function::FunctionBody;
+use crate::function::{FunctionBody, FunctionDefinition};
 use crate::values::{Value, Values};
 use crate::{FeelNumber, FeelScope, IntervalType, ToFeelString, value_null, value_number};
 use dsntk_common::Jsonify;
@@ -77,8 +77,8 @@ fn test_debug() {
     Value::FunctionBody(v_function_body.clone(), v_external)
   );
   eq_dbg!(
-    r#"FunctionDefinition([(Name("a"), Number)], FunctionBodyLiteralExpression, false, Closure({}), FeelContext({}), Number)"#,
-    Value::from(crate::FunctionDefinition::new(
+    r#"FunctionDefinition(FunctionDefinition { parameters: [(Name("a"), Number)], body: FunctionBodyLiteralExpression, external: false, closure: Closure({}), closure_ctx: FeelContext({}), result_type: Number })"#,
+    Value::from(FunctionDefinition::new(
       vec![(name.clone(), t_number.clone())],
       v_function_body,
       v_external,
@@ -163,7 +163,7 @@ fn test_display() {
   eq_dsp!(r#"FunctionBody"#, Value::FunctionBody(v_function_body.clone(), v_external));
   eq_dsp!(
     r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#,
-    Value::from(crate::FunctionDefinition::new(
+    Value::from(FunctionDefinition::new(
       vec![(name.clone(), t_number.clone())],
       v_function_body,
       v_external,
@@ -235,7 +235,7 @@ fn test_type_of() {
   eq_typ!(FeelType::Any, Value::FunctionBody(v_function_body.clone(), v_external));
   eq_typ!(
     FeelType::Function(vec![FeelType::Number], Box::new(FeelType::Number)),
-    Value::from(crate::FunctionDefinition::new(
+    Value::from(FunctionDefinition::new(
       vec![(name.clone(), t_number.clone())],
       v_function_body,
       v_external,
@@ -488,7 +488,7 @@ fn test_coerced() {
   let v_list_number_1 = Value::List(vec![value_number!(1, 0)]);
   let v_list_number_2 = Value::List(vec![value_number!(1, 0), value_number!(2, 0)]);
   let v_list_string_1 = Value::List(vec![Value::String("A".to_string())]);
-  let v_function_a = Value::from(crate::FunctionDefinition::new(
+  let v_function_a = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(1)))),
     false,
