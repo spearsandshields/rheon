@@ -41,13 +41,13 @@
 //     driven by a generated command module that copies each request into feel's memory, calls
 //     `feel_call` and writes the response to stdout.
 //
-// The floors are 60, the depth release 0.3.0 reaches in the TurboFan worker and in Wasmtime, so a
-// change that leaves less headroom than the release had fails here. On macOS arm64 the worker
-// (with either compiler) and Wasmtime all reach 64, where the 10 MiB shadow stack runs out before
-// their 4 MiB native stacks do. The shadow stack is in linear memory and the same on every host,
-// so the floors guard the native stack, whose use depends on the platform and on the V8 and
-// Wasmtime versions. A change that alters the measured depths on purpose updates the floors with
-// them.
+// The floors are 60, the depth release 0.3.0 reaches in the TurboFan worker and in Wasmtime on
+// macOS arm64 (its Liftoff worker reaches 49), so a change that leaves less headroom than the
+// release had fails here. On macOS arm64 the worker (with either compiler) and Wasmtime all reach
+// 64, where the 10 MiB shadow stack runs out before their 4 MiB native stacks do. The shadow stack
+// is in linear memory and the same on every host, so the floors guard the native stack, whose use
+// depends on the platform and on the V8 and Wasmtime versions. A change that alters the measured
+// depths on purpose updates the floors with them.
 //
 // --report checks nothing: it prints the deepest recursion each host reaches (Node main thread, and
 // workers with 2, 3 and 4 MiB stacks, with each compiler; Wasmtime with a wasm stack of 512 KiB, 1,

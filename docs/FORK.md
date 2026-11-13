@@ -321,8 +321,8 @@ evaluation faster and fix the upstream bugs found on the way; apart from the fix
     `scripts/stack-headroom.mjs` (`npm run stack`, run by CI, `b845690`) checks that five
     constructs nested to the AST depth limit evaluate on Node's main thread, in a Node worker
     with a 4 MiB stack and in Wasmtime with a 4 MiB wasm stack, and that a recursion of 190
-    calls whose body is nested 60 levels (0.3.0's depth) evaluates in the worker and in
-    Wasmtime. Measured on
+    calls whose body is nested 60 levels (the depth 0.3.0 reaches in the TurboFan worker and in
+    Wasmtime, measured on macOS arm64) evaluates in the worker and in Wasmtime. Measured on
     the final module (macOS arm64, Node 26, Wasmtime 49.0.3):
     - engine time: an opt-level z build of the same code takes 1.85x as long (geomean of 24
       requests, two alternating runs);
