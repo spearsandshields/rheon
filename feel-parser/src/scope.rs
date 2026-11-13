@@ -5,7 +5,7 @@ use crate::index::FrameIndex;
 use rheon_feel::Name;
 use rheon_feel::bip::BUILT_IN_PROPERTY_NAMES;
 use rheon_feel::context::FeelContext;
-use std::cell::{Cell, OnceCell, RefCell};
+use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, HashSet};
 use std::fmt;
 use std::fmt::Display;
@@ -40,8 +40,6 @@ pub struct ParsingScope<'a> {
   max_local_chain: Cell<usize>,
   /// Length of the longest parsed name; grows only.
   max_names: Cell<usize>,
-  /// Parsing contexts of the input contexts, built on the first lookup of a composite name.
-  trees: OnceCell<Vec<ParsingContext>>,
 }
 
 impl<'a> ParsingScope<'a> {
@@ -57,7 +55,6 @@ impl<'a> ParsingScope<'a> {
       max_local: Cell::new(0),
       max_local_chain: Cell::new(0),
       max_names: Cell::new(0),
-      trees: OnceCell::new(),
     }
   }
 }
@@ -140,8 +137,7 @@ impl ParsingScope<'_> {
     if name.contains(" . ") {
       work!(CompositeSearches, 1);
       let live = &self.input[..self.input_live.get()];
-      let trees = self.trees.get_or_init(|| self.input.iter().map(|frame| ParsingContext::from(frame.context())).collect());
-      return trees[..live.len()].iter().chain(self.locals.borrow().iter()).any(|ctx| ctx.contains_flattened(name));
+      return live.iter().any(|frame| frame.contains_composite(name)) || self.locals.borrow().iter().any(|ctx| ctx.contains_flattened(name));
     }
     false
   }

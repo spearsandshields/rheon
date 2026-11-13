@@ -434,7 +434,7 @@ fn scope_operations_equal_previous_scope() {
 
 /// A chain of nested contexts `k0: {k1: {… {leaf: 1}}}` of the given depth, at the top level and
 /// under the key `a./` (so that the lexer can produce composite names into it), next to `x: 1`.
-fn chain(depth: usize) -> FeelContext {
+pub(crate) fn chain(depth: usize) -> FeelContext {
   let mut ctx = FeelContext::default();
   ctx.set_entry(&Name::from("leaf"), number(1));
   for level in (0..depth).rev() {

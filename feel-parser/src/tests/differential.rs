@@ -1198,3 +1198,32 @@ fn empty_parts_equal_prototype() {
   }
   println!("empty parts: {stats:?}");
 }
+
+/// Composite names into deep input contexts are searched without recursion: a 2,000-level chain
+/// (built and dropped in a thread with a large stack: values are cloned and dropped recursively),
+/// parsed in a thread with a small stack.
+#[test]
+fn composite_names_in_deep_contexts_parse_in_a_small_stack() {
+  let depth = env_usize("LEXPARSE_CHAIN", 2_000);
+  std::thread::Builder::new()
+    .stack_size(256 * 1024 * 1024)
+    .spawn(move || {
+      let frames = vec![super::names_index::chain(depth)];
+      std::thread::scope(|scope| {
+        std::thread::Builder::new()
+          .stack_size(256 * 1024)
+          .spawn_scoped(scope, || {
+            let parsing_scope = ParsingScope::new(&frames);
+            let input = format!("a./{OGHAM}.{OGHAM} leaf + 1");
+            let node = Parser::new(&parsing_scope, TokenType::StartExpression, &input, false).parse().unwrap();
+            assert!(matches!(&node, crate::AstNode::Add(lhs, _) if matches!(lhs.as_ref(), crate::AstNode::Name(name) if name.as_str() == "a./. leaf")));
+          })
+          .unwrap()
+          .join()
+          .unwrap();
+      });
+    })
+    .unwrap()
+    .join()
+    .unwrap();
+}
