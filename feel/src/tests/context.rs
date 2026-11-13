@@ -306,6 +306,45 @@ fn test_context_set_null() {
 }
 
 #[test]
+fn test_context_insert() {
+  let mut ctx: FeelContext = Default::default();
+  ctx.insert(Name::from("a"), value_number!(1));
+  ctx.insert(Name::from("b"), value_number!(2));
+  assert_eq!(r#"{a: 1, b: 2}"#, ctx.to_string());
+  // an entry with the same name is replaced
+  ctx.insert(Name::from("a"), Value::Boolean(true));
+  assert_eq!(r#"{a: true, b: 2}"#, ctx.to_string());
+}
+
+#[test]
+fn test_context_assign_entry() {
+  let name_a = Name::from("a");
+  let name_b = Name::from("b");
+  let mut ctx: FeelContext = Default::default();
+  ctx.assign_entry(&name_a, value_number!(1));
+  assert_eq!(r#"{a: 1}"#, ctx.to_string());
+  // the value of an existing entry is replaced
+  ctx.assign_entry(&name_a, value_number!(2));
+  assert_eq!(r#"{a: 2}"#, ctx.to_string());
+  // a new entry is inserted
+  ctx.assign_entry(&name_b, value_number!(3));
+  assert_eq!(r#"{a: 2, b: 3}"#, ctx.to_string());
+}
+
+#[test]
+fn test_context_get_entry_mut() {
+  let name_a = Name::from("a");
+  let mut ctx: FeelContext = Default::default();
+  ctx.set_entry(&name_a, value_number!(1));
+  assert_eq!(None, ctx.get_entry_mut(&Name::from("b")));
+  let entry = ctx.get_entry_mut(&name_a).unwrap();
+  assert_eq!(&value_number!(1), entry);
+  *entry = Value::String("x".to_string());
+  assert_eq!(r#"{a: "x"}"#, ctx.to_string());
+  assert_eq!(1, ctx.len());
+}
+
+#[test]
 fn test_get_entries() {
   let mut ctx: FeelContext = Default::default();
   assert_eq!(0, ctx.get_entries().len());
