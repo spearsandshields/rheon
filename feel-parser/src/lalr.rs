@@ -257,8 +257,10 @@ pub trait ReduceActions {
   fn action_conjunction(&mut self) -> Result<()>;
   fn action_context_begin(&mut self) -> Result<()>;
   fn action_context_end(&mut self) -> Result<()>;
+  fn action_context_entries(&mut self) -> Result<()>;
   fn action_context_entry(&mut self) -> Result<()>;
   fn action_context_entry_tail(&mut self) -> Result<()>;
+  fn action_context_type_entries(&mut self) -> Result<()>;
   fn action_context_type_entry(&mut self) -> Result<()>;
   fn action_context_type_entry_tail(&mut self) -> Result<()>;
   fn action_descendant(&mut self) -> Result<()>;
@@ -268,6 +270,8 @@ pub trait ReduceActions {
   fn action_every(&mut self) -> Result<()>;
   fn action_every_begin(&mut self) -> Result<()>;
   fn action_exponentiation(&mut self) -> Result<()>;
+  fn action_expression_list(&mut self) -> Result<()>;
+  fn action_expression_list_head(&mut self) -> Result<()>;
   fn action_expression_list_tail(&mut self) -> Result<()>;
   fn action_filter(&mut self) -> Result<()>;
   fn action_for(&mut self) -> Result<()>;
@@ -284,6 +288,7 @@ pub trait ReduceActions {
   fn action_function_invocation(&mut self) -> Result<()>;
   fn action_function_invocation_no_parameters(&mut self) -> Result<()>;
   fn action_function_type(&mut self) -> Result<()>;
+  fn action_function_type_parameters(&mut self) -> Result<()>;
   fn action_function_type_parameters_empty(&mut self) -> Result<()>;
   fn action_function_type_parameters_tail(&mut self) -> Result<()>;
   fn action_if(&mut self) -> Result<()>;
@@ -311,11 +316,14 @@ pub trait ReduceActions {
   fn action_multiplication(&mut self) -> Result<()>;
   fn action_name(&mut self) -> Result<()>;
   fn action_named_parameter(&mut self) -> Result<()>;
+  fn action_named_parameters(&mut self) -> Result<()>;
   fn action_named_parameters_tail(&mut self) -> Result<()>;
   fn action_negation(&mut self) -> Result<()>;
   fn action_path(&mut self) -> Result<()>;
+  fn action_positional_parameters(&mut self) -> Result<()>;
   fn action_positional_parameters_tail(&mut self) -> Result<()>;
   fn action_qualified_name(&mut self) -> Result<()>;
+  fn action_qualified_name_complete(&mut self) -> Result<()>;
   fn action_qualified_name_tail(&mut self) -> Result<()>;
   fn action_quantified_expression(&mut self) -> Result<()>;
   fn action_quantified_expression_variable_name(&mut self) -> Result<()>;
@@ -339,7 +347,9 @@ pub trait ReduceActions {
 /// Calls requested reduce action.
 pub fn reduce(reduce_actions: &mut impl ReduceActions, rule_number: i16) -> Result<()> {
   match rule_number {
+    5 => reduce_actions.action_expression_list(),
     6 => reduce_actions.action_unary_tests_begin(),
+    9 => reduce_actions.action_expression_list(),
     17 => reduce_actions.action_for_begin(),
     18 => reduce_actions.action_for(),
     19 => reduce_actions.action_if(),
@@ -383,9 +393,10 @@ pub fn reduce(reduce_actions: &mut impl ReduceActions, rule_number: i16) -> Resu
     61 => reduce_actions.action_expression_list_tail(),
     62 => reduce_actions.action_unary_tests_irrelevant(),
     63 => reduce_actions.action_unary_tests_negated(),
+    64 => reduce_actions.action_expression_list(),
     65 => reduce_actions.action_expression_list_tail(),
     66 => reduce_actions.action_expression_list_tail(),
-    67 => reduce_actions.action_expression_list_tail(),
+    67 => reduce_actions.action_expression_list_head(),
     68 => reduce_actions.action_addition(),
     69 => reduce_actions.action_subtraction(),
     70 => reduce_actions.action_multiplication(),
@@ -401,6 +412,7 @@ pub fn reduce(reduce_actions: &mut impl ReduceActions, rule_number: i16) -> Resu
     81 => reduce_actions.action_interval_end(),
     82 => reduce_actions.action_interval_end(),
     83 => reduce_actions.action_interval_end(),
+    85 => reduce_actions.action_qualified_name_complete(),
     88 => reduce_actions.action_literal_null(),
     89 => reduce_actions.action_literal_numeric(),
     90 => reduce_actions.action_literal_string(),
@@ -410,7 +422,7 @@ pub fn reduce(reduce_actions: &mut impl ReduceActions, rule_number: i16) -> Resu
     95 => reduce_actions.action_context_begin(),
     96 => reduce_actions.action_context_end(),
     97 => reduce_actions.action_empty_context(),
-    98 => reduce_actions.action_context_entry_tail(),
+    98 => reduce_actions.action_context_entries(),
     99 => reduce_actions.action_context_entry(),
     101 => reduce_actions.action_context_entry_tail(),
     102 => reduce_actions.action_key_name(),
@@ -422,28 +434,29 @@ pub fn reduce(reduce_actions: &mut impl ReduceActions, rule_number: i16) -> Resu
     109 => reduce_actions.action_function_invocation_no_parameters(),
     110 => reduce_actions.action_function_invocation(),
     111 => reduce_actions.action_function_invocation(),
-    112 => reduce_actions.action_named_parameters_tail(),
+    112 => reduce_actions.action_named_parameters(),
     113 => reduce_actions.action_named_parameter(),
     115 => reduce_actions.action_named_parameters_tail(),
-    116 => reduce_actions.action_positional_parameters_tail(),
+    116 => reduce_actions.action_positional_parameters(),
     118 => reduce_actions.action_positional_parameters_tail(),
     119 => reduce_actions.action_after_dot(),
     120 => reduce_actions.action_qualified_name_tail(),
     121 => reduce_actions.action_qualified_name(),
     122 => reduce_actions.action_built_in_type_name(),
+    123 => reduce_actions.action_qualified_name_complete(),
     124 => reduce_actions.action_type_name(),
     125 => reduce_actions.action_list_type(),
     126 => reduce_actions.action_type_name(),
     127 => reduce_actions.action_range_type(),
     129 => reduce_actions.action_type_name(),
     130 => reduce_actions.action_function_type(),
-    131 => reduce_actions.action_context_type_entry_tail(),
+    131 => reduce_actions.action_context_type_entries(),
     132 => reduce_actions.action_type_name(),
     133 => reduce_actions.action_context_type_entry(),
     135 => reduce_actions.action_context_type_entry_tail(),
     136 => reduce_actions.action_function_type_parameters_empty(),
     137 => reduce_actions.action_type_name(),
-    138 => reduce_actions.action_function_type_parameters_tail(),
+    138 => reduce_actions.action_function_type_parameters(),
     140 => reduce_actions.action_type_name(),
     141 => reduce_actions.action_function_type_parameters_tail(),
     142 => reduce_actions.action_iteration_contexts_tail(),
@@ -483,8 +496,8 @@ pub fn reduce(reduce_actions: &mut impl ReduceActions, rule_number: i16) -> Resu
     180 => reduce_actions.action_literal_at(),
     181 => reduce_actions.action_literal_date_time(),
     182 => reduce_actions.action_function_invocation(),
-    183 => reduce_actions.action_named_parameters_tail(),
-    184 => reduce_actions.action_positional_parameters_tail(),
+    183 => reduce_actions.action_named_parameters(),
+    184 => reduce_actions.action_positional_parameters(),
     185 => reduce_actions.action_named_parameter(),
     186 => reduce_actions.action_literal_string(),
     _ => Ok(()),

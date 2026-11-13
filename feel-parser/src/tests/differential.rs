@@ -890,3 +890,62 @@ fn replay_split() {
     );
   }
 }
+
+/// Every kind of list keeps the source order of its items, at every length: the AST equals the
+/// prototype's for up to 1,000 items, and the items are in order for 20,000 (the prototype shifts
+/// every collected item for each new one, so it is not run there).
+#[test]
+fn lists_keep_source_order() {
+  let join = |n: usize, item: &dyn Fn(usize) -> String| (0..n).map(item).collect::<Vec<_>>().join(", ");
+  let texts = |n: usize| -> Vec<(usize, String)> {
+    vec![
+      (0, format!("{{{}}}", join(n, &|i| format!("k{i}: {i}")))),
+      (0, format!("[{}]", join(n, &|i| i.to_string()))),
+      (0, format!("f({})", join(n, &|i| i.to_string()))),
+      (0, format!("f({})", join(n, &|i| format!("p{i}: {i}")))),
+      (0, format!("x in ({})", join(n, &|i| i.to_string()))),
+      (0, format!("x instance of context<{}>", join(n, &|i| format!("k{i}: number")))),
+      (
+        0,
+        format!(
+          "x instance of function<{}> -> number",
+          join(n, &|i| if i % 2 == 0 { format!("t{i}") } else { "number".to_string() })
+        ),
+      ),
+      (0, format!("for {} return 0", join(n, &|i| format!("v{i} in [{i}]")))),
+      (0, format!("some {} satisfies true", join(n, &|i| format!("v{i} in [{i}]")))),
+      (0, format!("every {} satisfies true", join(n, &|i| format!("v{i} in [{i}]")))),
+      (4, join(n, &|i| i.to_string())),
+      (4, format!("not({})", join(n, &|i| i.to_string()))),
+      (3, join(n, &|i| format!("{i} + 1"))),
+      (6, join(n, &|i| format!("{i} * 2"))),
+    ]
+  };
+  // `x` and `f` are names in scope (else `x instance of context` would be one name)
+  let frames = [ctx(&[("x", number(1)), ("f", number(2))])];
+  for n in [1, 2, 3, 10, 1000] {
+    let mut texts = texts(n);
+    // qualified names (a chain of names is lexed again for every name token: up to 1,000 here)
+    let path = (0..n).map(|i| format!("q{i}")).collect::<Vec<_>>().join(".");
+    texts.push((0, format!("x instance of {path}")));
+    texts.push((7, path));
+    for (rule, text) in &texts {
+      let (name, start, oracle_start) = &START_RULES[*rule];
+      let mut stats = Stats::default();
+      stats.check_rule(&frames, name, start, oracle_start, text);
+      assert_eq!(1, stats.asts, "{n} items: {text:.80}");
+    }
+  }
+  // 20,000 items: in source order
+  for (rule, text) in texts(20_000) {
+    let scope = ParsingScope::new(&frames);
+    let node = Parser::new(&scope, START_RULES[rule].1.clone(), &text, false).parse().unwrap();
+    let debug = format!("{node:?}");
+    // the first `{i}"` is the item i (`"{i}"`, `"k{i}"`, ...): other texts ending with these digits are larger numbers
+    let positions: Vec<usize> = (0..20_000)
+      .step_by(998)
+      .map(|i| debug.find(&format!("{i}\"")).unwrap_or_else(|| panic!("{i} in {text:.80}")))
+      .collect();
+    assert!(positions.is_sorted(), "{text:.80}");
+  }
+}

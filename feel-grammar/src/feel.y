@@ -62,10 +62,10 @@ feel:
     START_EXPRESSION expression
   | START_BOXED_EXPRESSION boxed_expression
   | START_TEXTUAL_EXPRESSION textual_expression
-  | START_TEXTUAL_EXPRESSIONS textual_expressions
+  | START_TEXTUAL_EXPRESSIONS textual_expressions {/* expression_list */}
   | START_UNARY_TESTS {/* unary_tests_begin */} unary_tests
   | START_SIMPLE_EXPRESSION simple_expression
-  | START_SIMPLE_EXPRESSIONS simple_expressions
+  | START_SIMPLE_EXPRESSIONS simple_expressions {/* expression_list */}
   | START_SIMPLE_VALUE simple_value
   | START_RANGE_LITERAL range_literal
   ;
@@ -128,7 +128,7 @@ textual_expressions:
 unary_tests:
     MINUS {/* unary_tests_irrelevant */}
   | NOT LEFT_PAREN positive_unary_tests RIGHT_PAREN {/* unary_tests_negated */}
-  | positive_unary_tests
+  | positive_unary_tests {/* expression_list */}
   ;
 
 positive_unary_tests:
@@ -137,7 +137,7 @@ positive_unary_tests:
   ;
 
 comparison_in:
-    expression COMMA positive_unary_tests RIGHT_PAREN {/* expression_list_tail */}
+    expression COMMA positive_unary_tests RIGHT_PAREN {/* expression_list_head */}
   ;
 
 simple_expression:
@@ -176,7 +176,7 @@ endpoint:
   ;
 
 simple_value:
-    qualified_name
+    qualified_name {/* qualified_name_complete */}
   | simple_literal
   ;
 
@@ -199,7 +199,7 @@ context:
 
 context_entries:
     RIGHT_BRACE {/* empty_context */}
-  | context_entry context_entry_tail {/* context_entry_tail */}
+  | context_entry context_entry_tail {/* context_entries */}
   ;
 
 context_entry:
@@ -237,7 +237,7 @@ parameters:
   ;
 
 named_parameters:
-    named_parameter named_parameters_tail {/* named_parameters_tail */}
+    named_parameter named_parameters_tail {/* named_parameters */}
   ;
 
 named_parameter:
@@ -250,7 +250,7 @@ named_parameters_tail:
   ;
 
 positional_parameters:
-    expression positional_parameters_tail {/* positional_parameters_tail */}
+    expression positional_parameters_tail {/* positional_parameters */}
   ;
 
 positional_parameters_tail:
@@ -265,7 +265,7 @@ qualified_name:
 
 type:
     BUILT_IN_TYPE_NAME {/* built_in_type_name */}
-  | qualified_name
+  | qualified_name {/* qualified_name_complete */}
   | LIST LT {/* type_name */} type GT {/* list_type */}
   | RANGE LT {/* type_name */} type GT {/* range_type */}
   | CONTEXT LT context_type_entries
@@ -273,7 +273,7 @@ type:
   ;
 
 context_type_entries:
-    context_type_entry context_type_entry_tail {/* context_type_entry_tail */}
+    context_type_entry context_type_entry_tail {/* context_type_entries */}
   ;
 
 context_type_entry:
@@ -287,7 +287,7 @@ context_type_entry_tail:
 
 function_type_parameters:
     GT {/* function_type_parameters_empty */}
-  | {/* type_name */} type function_type_parameters_tail {/* function_type_parameters_tail */}
+  | {/* type_name */} type function_type_parameters_tail {/* function_type_parameters */}
   ;
 
 function_type_parameters_tail:
@@ -370,8 +370,8 @@ range_literal_endpoint:
   ;
 
 range_literal_temporal_parameters:
-    range_literal_named_parameter {/* named_parameters_tail */}
-  | range_literal_string {/* positional_parameters_tail */}
+    range_literal_named_parameter {/* named_parameters */}
+  | range_literal_string {/* positional_parameters */}
   ;
 
 range_literal_named_parameter:

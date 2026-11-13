@@ -14,7 +14,6 @@ pub(crate) enum Work {
   Contains,
   CompositeSearches,
   IndexBuilds,
-  ListShifts,
 }
 
 const NAMES: [&str; 9] = [
@@ -30,7 +29,7 @@ const NAMES: [&str; 9] = [
 ];
 
 thread_local! {
-  static COUNTS: [Cell<usize>; 9] = const { [const { Cell::new(0) }; 9] };
+  static COUNTS: [Cell<usize>; 8] = const { [const { Cell::new(0) }; 8] };
 }
 
 /// Adds `n` units of work.
