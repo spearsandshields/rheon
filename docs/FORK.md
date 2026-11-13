@@ -326,7 +326,7 @@ evaluation faster and fix the upstream bugs found on the way; apart from the fix
     the final module (macOS arm64, Node 26, Wasmtime 49.0.3):
     - engine time: an opt-level z build of the same code takes 1.85x as long (geomean of 24
       requests, two alternating runs);
-    - size: 3,786,561 B raw, 1,018,615 B gzip, 667,650 B brotli (opt-level z: 3,160,691 /
+    - size: 3,786,626 B raw, 1,018,652 B gzip, 667,524 B brotli (opt-level z: 3,160,691 /
       840,786 / 552,386; 0.3.0: 3,129,141 / 830,762 / 545,186);
     - initial linear memory: 11.38 MiB (0.3.0: 9.38 MiB);
     - the deepest body (nesting levels) with which `npm run stack -- --report`'s recursion of
@@ -392,8 +392,8 @@ of a `feel_call` on a warm instance): 5.31x 0.3.0's speed on the geomean of 24 r
 1.36 ms; `x1 + … + x400` 55.0 ms → 0.29 ms; the 100-segment path `a.a.….a` 356 ms → 0.36 ms;
 a 5,000-entry context literal 19.2 ms → 6.2 ms; `count(for i in 1..10000 return i)` 7.58 ms →
 1.11 ms; filtering 10,000 contexts 38.3 ms → 11.1 ms. Full responses (result, type, warnings,
-diagnostics, errors) of 1,002 requests, each also sent as a parse request, equal 0.3.0's except
-50 registered differences, all from commits 39, 41, 46, 48, 49 and 53.
+diagnostics, errors) of 1,174 requests (evaluate requests and a parse request made from each)
+equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48, 49 and 53.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -432,6 +432,13 @@ functions), 20 ignored. Clippy is clean for the touched crates.
   of such results (`exp(74.971090)`, `exp(log(2.5))`, `log(exp(7))`).
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
+
+Commits 39-53 (2026-11-13): workspace 8,488 passed, 0 failed, 24 ignored (CI's skips); clippy
+without warnings; feel.wasm tests 56 native and 57 under Wasmtime; runtime 33; the randomized
+and exhaustive tests at full size (`RHEON_FULL_TESTS=1`, release, with the parser corpus) 867
+passed, with no unregistered difference against the frozen reference front end; DMN TCK via
+`scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, no result changed against
+`docs/tck-baseline.txt`.
 
 DMN 1.6 work (commits 23-34, 2026-11-10): workspace 8,383 passed, 0 failed (CI skips);
 feel.wasm contract tests 53 under wasmtime; runtime 33; DMN TCK via `scripts/tck.sh`
