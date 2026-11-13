@@ -11,7 +11,7 @@ pub struct Name(String);
 impl From<Vec<String>> for Name {
   /// Converts a vector of strings into [Name].
   fn from(value: Vec<String>) -> Self {
-    Self::from_parts(&value)
+    Self::join(&value)
   }
 }
 
