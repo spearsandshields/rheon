@@ -521,18 +521,22 @@ fn duration_overflow_is_null_not_wrapped() {
 }
 
 /// `Value::type_of` on lists used to be exponential in the nesting depth (a 26-deep list took
-/// seconds, 40 levels would never finish).
+/// seconds, 40 levels would never finish). A list nested 40 levels is typed exactly as a literal
+/// and as an input context entry, and an expression parses against a context holding it; with an
+/// exponential typing rule this test does not finish.
 #[test]
 fn nested_lists_are_typed_in_linear_time() {
   let deep = format!("{}1{}", "[".repeat(40), "]".repeat(40));
-  let started = std::time::Instant::now();
-  let r = expr(&deep);
-  assert_eq!(r["type"].as_str().unwrap().matches("list<").count(), 40);
+  let deep_type = format!("{}number{}", "list<".repeat(40), ">".repeat(40));
+  assert_eq!(expr(&deep)["type"], deep_type);
+  let request = format!(r#"{{"op":"evaluate","expression":"x","context":{{"x":{deep}}}}}"#);
+  let r = eval_ok(serde_json::from_str(&request).unwrap());
+  assert_eq!(r["type"], deep_type, "{r}");
+  assert_eq!(r["feel"], deep, "{r}");
   let request = format!(r#"{{"op":"evaluate","expression":"count(x)","context":{{"x":{deep}}}}}"#);
   assert_eq!(eval_ok(serde_json::from_str(&request).unwrap())["display"], "1");
   let request = format!(r#"{{"op":"parse","expression":"x","context":{{"x":{deep}}}}}"#);
-  assert_eq!(raw(&request)["ok"], true);
-  assert!(started.elapsed().as_secs() < 10, "took {:?}", started.elapsed());
+  assert_eq!(raw(&request)["tree"], " Name\n └─ `x`\n");
 }
 
 /// Deeply nested expressions are rejected before the recursive parser/evaluator code can overflow
@@ -1040,15 +1044,16 @@ fn null_reasons_are_readable_and_short() {
 }
 
 #[test]
-fn long_path_chains_parse_in_bounded_time() {
-  // the lexer was cubic in the chain length (fork commit f308a34): 1000 steps now take
-  // milliseconds and then hit the 300-level nesting limit (CONTRACT §2)
+fn long_path_chains_are_parsed_to_the_nesting_limit() {
+  // The lexer was cubic in the chain length (docs/FORK.md, commit 17). A chain of 1000 steps is
+  // lexed and parsed completely and then rejected by the 300-level nesting limit (CONTRACT §2);
+  // the parser's tests (path expression _0015) check that the lexer's work grows linearly with
+  // the steps.
   let expression = format!("{{a:1}}{}", ".a".repeat(1000));
-  let started = std::time::Instant::now();
-  let response = req(json!({"op": "parse", "expression": expression}));
-  assert_eq!(error_kind(&response), "syntax", "{response}");
-  assert!(response["error"]["message"].as_str().unwrap().contains("nested too deeply"), "{response}");
-  assert!(started.elapsed() < std::time::Duration::from_secs(5), "parse took {:?}", started.elapsed());
+  for op in ["parse", "evaluate"] {
+    let response = req(json!({"op": op, "expression": expression}));
+    assert_error(&response, "syntax", "expression is nested too deeply (1003 levels, the limit is 300)");
+  }
   let ok = req(json!({"op": "evaluate", "expression": format!("{{a:{{a:1}}}}{}", ".a".repeat(2))}));
   assert_eq!(ok["result"]["display"], "1", "{ok}");
 }
