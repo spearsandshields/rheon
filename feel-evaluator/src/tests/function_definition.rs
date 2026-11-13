@@ -19,6 +19,9 @@ fn _0002() {
   // of that body (`closed_over` in invocation.rs): the `k` that `f` returns captures `a` = 100, so
   // `r` is 101. The function definition is shared with the entry `k` and copied before the
   // capture, so the stored `k` is unchanged and still has no `a`: `s` is null.
+  // By §10.3.2.13.2 (FEEL functions are lexical closures) `k` sees no `a`, so `r` would be null
+  // as well; the case pins the current rule (docs/BACKLOG.md, *Closures are not lexical*), so
+  // that changing it is deliberate.
   let expression = "{k: function(y) y + a, f: function(a) k, r: f(100)(1), s: k(1)}";
   te_number(false, &scope!(), &format!("{expression}.r"), 101, 0);
   te_null(false, &scope!(), &format!("{expression}.s"), "context has no value for key 'a'");
