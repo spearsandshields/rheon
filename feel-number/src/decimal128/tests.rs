@@ -1,6 +1,9 @@
 //! Targeted tests for the exact-op fast paths, the 256-bit helper and the guards around
 //! the backend. Every expected value below was checked against the Intel backend
 //! (`tools/difftest eval`), except where a comment says that Intel differs.
+//!
+//! The randomized comparisons with a reference whose size depends on [full] run a reduced
+//! number of cases by default and their full size when `RHEON_FULL_TESTS` is set.
 use super::*;
 
 fn n(s: &str) -> FeelNumber {
@@ -11,112 +14,9 @@ fn dbg(n: FeelNumber) -> String {
   format!("{n:?}")
 }
 
-#[test]
-fn digit_count_equals_ilog10() {
-  let reference = |c: u128| if c == 0 { 1 } else { c.ilog10() + 1 };
-  let mut values = vec![0_u128, 1, u128::MAX];
-  for k in 0..128 {
-    values.extend([1_u128 << k, (1_u128 << k) - 1, (1_u128 << k) + 1]);
-  }
-  for (k, &p) in POW10.iter().enumerate() {
-    assert_eq!(10_u128.pow(k as u32), p);
-    values.extend([p - 1, p, p + 1]);
-  }
-  let mut state = 7;
-  for _ in 0..100_000 {
-    let c = ((rng(&mut state) as u128) << 64 | rng(&mut state) as u128) >> (rng(&mut state) % 128);
-    values.push(c);
-  }
-  for c in values {
-    assert_eq!(reference(c), digit_count(c), "{c}");
-  }
-}
-
-/// The comparison of two finite values before the fast paths: digit counts and 34-digit scaling.
-fn cmp_v_reference(a: V, b: V) -> Option<Ordering> {
-  match (a, b) {
-    (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) if ca != 0 && cb != 0 && (sa && ca != 0) == (sb && cb != 0) => {
-      let na = sa && ca != 0;
-      let la = digit_count(ca) as i64 + ea as i64;
-      let lb = digit_count(cb) as i64 + eb as i64;
-      let mag = if la != lb {
-        la.cmp(&lb)
-      } else {
-        let xa = ca * pow10(PRECISION as u32 - digit_count(ca));
-        let xb = cb * pow10(PRECISION as u32 - digit_count(cb));
-        xa.cmp(&xb)
-      };
-      Some(if na { mag.reverse() } else { mag })
-    }
-    _ => cmp_v(a, b),
-  }
-}
-
-/// A random finite decimal128 value: coefficients of every length (and zero), exponents near
-/// each other, far apart and at the limits.
-fn random_v(state: &mut u64, base_exp: i32) -> V {
-  let digits = rng(state) % 35;
-  let c = if digits == 0 {
-    0
-  } else {
-    ((rng(state) as u128) << 64 | rng(state) as u128) % POW10[digits as usize]
-  };
-  let e = match rng(state) % 4 {
-    0 => base_exp,
-    1 => base_exp + (rng(state) % 7) as i32 - 3,
-    2 => (rng(state) % 12288) as i32 - 6176,
-    _ => [EXP_MIN as i32, EXP_MAX as i32, 0, -34, 34][(rng(state) % 5) as usize],
-  }
-  .clamp(EXP_MIN as i32, EXP_MAX as i32);
-  V::Fin(rng(state).is_multiple_of(2), c, e)
-}
-
-#[test]
-fn cmp_v_equals_reference() {
-  let mut state = 11;
-  for _ in 0..300_000 {
-    let base = (rng(&mut state) % 12288) as i32 - 6176;
-    let a = random_v(&mut state, base);
-    let b = if rng(&mut state).is_multiple_of(8) { a } else { random_v(&mut state, base) };
-    assert_eq!(cmp_v_reference(a, b), cmp_v(a, b), "{a:?} {b:?}");
-  }
-  // equal values in different cohorts, and the extremes
-  let pairs = [
-    (V::Fin(false, 110, -2), V::Fin(false, 11, -1)),
-    (V::Fin(true, 1, 30), V::Fin(true, 1_000_000_000_000_000_000_000_000_000_000, 0)),
-    (V::Fin(false, TEN_POW_34 - 1, EXP_MAX as i32), V::Fin(false, 1, EXP_MIN as i32)),
-    (V::Fin(false, 1, 40), V::Fin(false, TEN_POW_34 - 1, 0)),
-    (V::Fin(false, 1, 34), V::Fin(false, TEN_POW_34 - 1, 0)),
-    (V::Fin(false, 1, 33), V::Fin(false, TEN_POW_34 - 1, 0)),
-  ];
-  for (a, b) in pairs {
-    assert_eq!(cmp_v_reference(a, b), cmp_v(a, b), "{a:?} {b:?}");
-    assert_eq!(cmp_v_reference(b, a), cmp_v(b, a), "{b:?} {a:?}");
-  }
-}
-
-#[test]
-fn round_pack_u128_equals_round_pack() {
-  // the fast path (34 digits or fewer, exponent in range) and the rounding paths agree with
-  // the decimal-string version
-  let mut state = 13;
-  for _ in 0..200_000 {
-    let digits = rng(&mut state) % 40;
-    let c = if digits == 0 {
-      0
-    } else {
-      ((rng(&mut state) as u128) << 64 | rng(&mut state) as u128) % POW10[digits.min(38) as usize]
-    };
-    let exp = match rng(&mut state) % 3 {
-      0 => (rng(&mut state) % 12400) as i64 - 6200,
-      1 => [EXP_MIN, EXP_MAX, EXP_MIN - 1, EXP_MAX + 1, 0][(rng(&mut state) % 5) as usize],
-      _ => (rng(&mut state) % 80) as i64 - 40,
-    };
-    let neg = rng(&mut state).is_multiple_of(2);
-    let expected = round_pack(neg, &c.to_string(), exp);
-    let actual = round_pack_u128(neg, c, exp);
-    assert_eq!(format!("{expected:?}"), format!("{actual:?}"), "{neg} {c} {exp}");
-  }
+/// `true` when the randomized comparisons run their full size (`RHEON_FULL_TESTS` set).
+fn full() -> bool {
+  std::env::var_os("RHEON_FULL_TESTS").is_some()
 }
 
 /// Simple deterministic generator (splitmix64).
@@ -330,6 +230,15 @@ fn round_pack_u128_matches_round_pack() {
     let neg = rng(&mut s).is_multiple_of(2);
     assert_eq!(round_pack(neg, &c.to_string(), exp), round_pack_u128(neg, c, exp), "c={c} exp={exp}");
   }
+  // zero, one, the largest coefficient of 34 digits and the smallest of 35, each at exponent 0,
+  // at both exponent limits and one step past each limit
+  for c in [0, 1, TEN_POW_34 - 1, TEN_POW_34] {
+    for exp in [EXP_MIN - 1, EXP_MIN, 0, EXP_MAX, EXP_MAX + 1] {
+      for neg in [false, true] {
+        assert_eq!(round_pack(neg, &c.to_string(), exp), round_pack_u128(neg, c, exp), "c={c} exp={exp}");
+      }
+    }
+  }
 }
 
 /// Random coefficient with 1..=34 digits.
@@ -340,6 +249,84 @@ fn coefficient(s: &mut u64) -> u128 {
     c = c * 10 + (rng(s) % 10) as u128;
   }
   c
+}
+
+#[test]
+fn digit_count_equals_ilog10() {
+  let reference = |c: u128| if c == 0 { 1 } else { c.ilog10() + 1 };
+  let mut values = vec![0_u128, 1, u128::MAX];
+  for k in 0..128 {
+    values.extend([1_u128 << k, (1_u128 << k) - 1, (1_u128 << k) + 1]);
+  }
+  for (k, &p) in POW10.iter().enumerate() {
+    assert_eq!(10_u128.pow(k as u32), p);
+    values.extend([p - 1, p, p + 1]);
+  }
+  let mut s = 7_u64;
+  let count = if full() { 100_000 } else { 10_000 };
+  values.extend((0..count).map(|_| random_u128(&mut s)));
+  for c in values {
+    assert_eq!(reference(c), digit_count(c), "{c}");
+  }
+}
+
+/// Reference comparison of two finite non-zero values of the same sign: adjusted exponents first,
+/// then both coefficients scaled to 34 digits. Every other pair is compared by [cmp_v].
+fn cmp_v_reference(a: V, b: V) -> Option<Ordering> {
+  match (a, b) {
+    (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) if ca != 0 && cb != 0 && (sa && ca != 0) == (sb && cb != 0) => {
+      let na = sa && ca != 0;
+      let la = digit_count(ca) as i64 + ea as i64;
+      let lb = digit_count(cb) as i64 + eb as i64;
+      let mag = if la != lb {
+        la.cmp(&lb)
+      } else {
+        let xa = ca * pow10(PRECISION as u32 - digit_count(ca));
+        let xb = cb * pow10(PRECISION as u32 - digit_count(cb));
+        xa.cmp(&xb)
+      };
+      Some(if na { mag.reverse() } else { mag })
+    }
+    _ => cmp_v(a, b),
+  }
+}
+
+/// A random finite decimal128 value: coefficients of every length (and zero), exponents near
+/// each other, far apart and at the limits.
+fn random_v(state: &mut u64, base_exp: i32) -> V {
+  let c = if rng(state).is_multiple_of(35) { 0 } else { coefficient(state) };
+  let e = match rng(state) % 4 {
+    0 => base_exp,
+    1 => base_exp + (rng(state) % 7) as i32 - 3,
+    2 => (rng(state) % 12288) as i32 - 6176,
+    _ => [EXP_MIN as i32, EXP_MAX as i32, 0, -34, 34][(rng(state) % 5) as usize],
+  }
+  .clamp(EXP_MIN as i32, EXP_MAX as i32);
+  V::Fin(rng(state).is_multiple_of(2), c, e)
+}
+
+#[test]
+fn cmp_v_equals_reference() {
+  let mut state = 11;
+  for _ in 0..if full() { 300_000 } else { 20_000 } {
+    let base = (rng(&mut state) % 12288) as i32 - 6176;
+    let a = random_v(&mut state, base);
+    let b = if rng(&mut state).is_multiple_of(8) { a } else { random_v(&mut state, base) };
+    assert_eq!(cmp_v_reference(a, b), cmp_v(a, b), "{a:?} {b:?}");
+  }
+  // equal values in different cohorts, and the extremes
+  let pairs = [
+    (V::Fin(false, 110, -2), V::Fin(false, 11, -1)),
+    (V::Fin(true, 1, 30), V::Fin(true, 1_000_000_000_000_000_000_000_000_000_000, 0)),
+    (V::Fin(false, TEN_POW_34 - 1, EXP_MAX as i32), V::Fin(false, 1, EXP_MIN as i32)),
+    (V::Fin(false, 1, 40), V::Fin(false, TEN_POW_34 - 1, 0)),
+    (V::Fin(false, 1, 34), V::Fin(false, TEN_POW_34 - 1, 0)),
+    (V::Fin(false, 1, 33), V::Fin(false, TEN_POW_34 - 1, 0)),
+  ];
+  for (a, b) in pairs {
+    assert_eq!(cmp_v_reference(a, b), cmp_v(a, b), "{a:?} {b:?}");
+    assert_eq!(cmp_v_reference(b, a), cmp_v(b, a), "{b:?} {a:?}");
+  }
 }
 
 #[test]
