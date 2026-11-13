@@ -17,7 +17,7 @@ trademarks of the OMG.
 
 ## What works today
 
-- **FEEL engine in wasm** (`dist/feel.wasm`, ~2.9 MiB raw, ~525 KiB brotli): expressions and
+- **FEEL engine in wasm** (`dist/feel.wasm`, ~3.6 MiB raw, ~650 KiB brotli): expressions and
   unary tests, exact 34-digit decimals (IEEE 754 decimal128 semantics in pure Rust on
   [dashu-float](https://crates.io/crates/dashu-float), so `0.1 + 0.2` is `0.3` and `1/3` is
   `0.3333333333333333333333333333333333`), typed results, "null because …" reasons, a JSON ABI
@@ -74,7 +74,7 @@ The edge-case comparison with feelin and feel-scala is in
 | `packages/feel-runtime` | `@rheon/feel-runtime`, the TypeScript runtime (CONTRACT §4) |
 | `apps/playground` | `@rheon/playground`, the web app |
 | `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to merge upstream), `BACKLOG.md`, `EDITOR-PLAN.md`, `ENGINE-COMPARISON.md` |
-| `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `smoke.mjs`, `third-party-notices.mjs` |
+| `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `smoke.mjs`, `stack-headroom.mjs`, `third-party-notices.mjs` |
 | `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
 | `Cargo.toml` | One workspace for all of the above; the `wasm` build profile |
 | `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, later .NET) |
@@ -117,8 +117,10 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `npm run dev` | Playground dev server (arguments after `--` go to Vite) |
 | `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
+| `npm run stack` | `scripts/stack-headroom.mjs`: requests nested to the AST and call-depth limits must evaluate in Node (main thread and a 4 MiB worker) and in Wasmtime with a 4 MiB wasm stack; `npm run stack -- --report` prints the depths each host reaches |
 | `scripts/publish-crates.sh` | Publishes the `rheon-*` crates that crates.io lacks at the workspace version, waiting out the new-crate rate limit (see `docs/FORK.md`, "Publishing") |
 | `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); see `.github/workflows/ci.yml` |
+| `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases). `RHEON_PARSER_CORPUS=<absolute path of tools/evaluator-corpus/corpora>` with `-- --include-ignored` adds the parser's corpus test |
 
 The production build in `apps/playground/dist/` uses a relative base (`./`), so you can host it on
 any static file server and under any sub-path. `feel.wasm` is a hashed asset in `assets/`. Serve
@@ -180,27 +182,34 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   `2 ** -20000` and `0.5 ** 20000` (the same value) differ in their last digits. Small exponents
   on short operands are exact (`3 ** 50`, `2 ** 100`). Only a non-integer exponent takes the
   correctly rounded `exp(y ln x)` path.
-- **Size.** `feel.wasm` is about 2.9 MiB raw (3.1 MB), about 800 KiB gzip and 525 KiB brotli
-  (`npm run build:wasm` prints the exact figures; they were 3.7 MB / 1.6 MB / 1.3 MB with the
-  Intel C library). The build is reproducible: `scripts/build-wasm.sh` remaps `CARGO_HOME` and
-  the workspace path out of the module (the only machine-specific bytes were panic-location
-  strings), so the same toolchain, lock file and commit give a byte-identical `feel.wasm`
+- **Size.** `feel.wasm` is about 3.6 MiB raw (3.8 MB), about 995 KiB gzip and 650 KiB brotli
+  (`npm run build:wasm` prints the exact figures). The `wasm` profile builds at opt-level 3; at
+  opt-level z the same code is about 3.0 MiB raw and 540 KiB brotli and runs at about half the
+  speed. With the Intel C library (and opt-level z) the module was 3.7 MB / 1.6 MB / 1.3 MB.
+  The build is reproducible: `scripts/build-wasm.sh` remaps `CARGO_HOME` and the workspace
+  path out of the module (the only machine-specific bytes were panic-location strings), so the
+  same toolchain, lock file and commit give a byte-identical `feel.wasm`
   from any directory (verified by rebuilding from a copy at another path). A plain
   `cargo build` without the script still works but embeds the builder's paths. The JS bundle is
   about 530 kB (180 kB gzip), mostly CodeMirror and lang-feel's completion docs.
 - **Long loops** were quadratic in upstream dsntk (`for i in 1..100000` took tens of seconds);
-  this repository makes them linear (1M iterations in about 0.3 s in wasm). Expressions that are still
-  too slow hit the 2 s timeout; the worker is terminated and restarted. In the playground a
-  superseded evaluation is cancelled (its worker is replaced after a 100 ms grace period), so
-  typing never queues up behind a runaway one.
+  this repository makes them linear (`count(for i in 1..1000000 return i)` takes about 0.11 s
+  in wasm). Expressions that are still too slow hit the 2 s timeout; the worker is terminated
+  and restarted. In the playground a superseded evaluation is cancelled (its worker is replaced
+  after a 100 ms grace period), so typing never queues up behind a runaway one.
 - **Nesting and recursion limits.** Expressions nested deeper than 300 AST levels are a `syntax`
   error, and more than 200 nested function calls (e.g. runaway recursion) stop the evaluation with
   an `evaluation` error (CONTRACT §2). Both are sized for a browser worker's stack. A recursion
-  whose function body is itself very deeply nested can still exhaust the stack below 200 calls;
-  that is reported as `crash` and the worker is replaced.
+  whose function body is itself deeply nested can still exhaust the stack below 200 calls;
+  that is reported as `crash` and the worker is replaced. Measured (`npm run stack -- --report`):
+  190 nested calls run with a body nested 64 levels in a 4 MiB Node worker and in Wasmtime with a
+  4 MiB wasm stack, 14 to 17 levels on Node's main thread, 8 levels with Wasmtime's default
+  512 KiB wasm stack (CONTRACT §1).
 - **Memory.** Linear memory is capped at 512 MiB, so a runaway allocation traps early (`crash`).
-  A list element costs about 128 B and a one-entry context about 900 B, so
-  `for i in 1..2500000 return i` or a million small contexts hit the cap before the 2 s budget;
+  A list element costs about 130 B while the list grows (a 64-byte value plus the spare
+  capacity of the list; `count(for i in 1..1000000 return i)` grows memory by 128 MiB) and a
+  one-entry context about 1 KB, so `for i in 1..2500000 return i` (after about 0.3 s) or a
+  million one-entry contexts (after about 0.9 s) hit the cap before the 2 s budget;
   the runtime recognises Rust's "memory allocation of … failed" in that trap and the message
   starts with `out of memory:` (the playground shows "Out of memory — engine restarted" instead
   of a crash). Wasm memory never shrinks, so the runtime replaces a worker whose instance grew
@@ -245,6 +254,10 @@ it, so it is for trusted input only.
 1. `Engine` with `Config.WithFuelConsumption(true)` and/or `WithEpochInterruption(true)`. Fuel or
    epoch deadlines replace the browser's worker-terminate timeout, so a runaway loop traps the
    `Store` instead of hanging a thread. Also set `Store.SetLimits(memorySize: …)` to cap memory.
+   Give wasm at least 4 MiB of stack (Wasmtime's `max_wasm_stack`, set on the `Config`; the
+   default 512 KiB lets a deeply nested recursion trap early, CONTRACT §1) and call it on a
+   thread whose native stack is larger than that (for example a `Thread` created with an 8 MiB
+   `maxStackSize`).
 2. Compile the `Module` once and cache it (or serialize it with `Module.Serialize`). Create one
    `Store` + `Instance` per evaluation, or a pool of them, because instances are single-threaded.
    After any trap (fuel, epoch, panic or stack overflow), throw the instance away, as the JS

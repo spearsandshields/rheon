@@ -6,7 +6,7 @@ JS/TS runtime for the [rheon](https://github.com/spearsandshields/rheon) FEEL en
 [dsntk](https://github.com/dsntk/dsntk-rs)) compiled to WebAssembly (`wasm32-wasip1`, pure-Rust
 decimal128 numbers: exact 34-digit results). It implements
 [`docs/CONTRACT.md`](https://github.com/spearsandshields/rheon/blob/main/docs/CONTRACT.md) §4.
-The package ships the module itself, `feel.wasm` (about 2.9 MB, 0.8 MB gzipped), so nothing has to
+The package ships the module itself, `feel.wasm` (about 3.8 MB, 1.0 MB gzipped), so nothing has to
 be compiled. Try it in the [playground](https://spearsandshields.github.io/rheon/).
 
 ```sh
