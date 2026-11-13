@@ -3,7 +3,7 @@
 //! builds the set of all flattened keys for every name token, and against an independent model of
 //! the names in scope ([ReferenceScope]). The generators are shared with [super::differential].
 
-use super::{full_size, oracle};
+use super::{differential, full_size, oracle};
 use crate::context::ParsingContext;
 use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
@@ -311,21 +311,11 @@ fn name_lookup_equals_flattened_keys_search() {
       .iter()
       .filter(|t| t.contains("Name(Name(") && ["./. ", ".. ", ".-. ", "/. "].iter().any(|c| t.contains(c)))
       .count();
-    // the reference lexer panics when an iteration variable's name parts start with `in` (`for
-    // in+1 in [1] return 1`: `consumed_positions[index - 1]` underflows in the `till_in` tweak);
-    // the production lexer reads the keyword `in`, and the parser reports a syntax error (see
-    // differential::registered_difference)
-    let actual = parse(&frames, &input, false);
-    let expected = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| parse(&frames, &input, true))).unwrap_or_else(|_| "panic".to_string());
-    if expected == "panic" {
-      assert!(
-        actual.starts_with("error <ParserError> syntax error"),
-        "case {case}: parse of {input:?} in {frames:?}: {actual}"
-      );
-    } else {
-      assert_eq!(expected, actual, "case {case}: parse of {input:?} in {frames:?}");
-    }
-    if !actual.starts_with("error") {
+    // the parse: equal to the reference's (flattened-key search), or a registered fix
+    let production = differential::run_production(&frames, &TokenType::StartExpression, &input);
+    let reference = differential::run_reference_flattened(&frames, &input);
+    differential::compare("expression", &frames, &input, &reference, &production);
+    if matches!(production.outcome, differential::Outcome::Ast(_)) {
       parsed += 1;
     }
   }

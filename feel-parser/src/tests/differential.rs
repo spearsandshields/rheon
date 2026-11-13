@@ -59,7 +59,7 @@ const ALPHABET_2: [char; 24] = [
 
 /// What a front end did with an input.
 #[derive(Debug, PartialEq)]
-enum Outcome {
+pub(super) enum Outcome {
   /// The AST: tree text and Debug text.
   Ast(String),
   /// The error message.
@@ -70,9 +70,9 @@ enum Outcome {
 
 /// The tokens read by the parser (type, Debug text of the value, start offset) and the outcome.
 #[derive(Debug, PartialEq)]
-struct Run {
-  tokens: Vec<(i16, String, usize)>,
-  outcome: Outcome,
+pub(super) struct Run {
+  pub(super) tokens: Vec<(i16, String, usize)>,
+  pub(super) outcome: Outcome,
 }
 
 fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
@@ -84,7 +84,7 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
 }
 
 /// Runs the production front end; a panic is an outcome.
-fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
+pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
   let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
@@ -101,7 +101,21 @@ fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run
 /// Runs the frozen reference front end; a panic is an outcome.
 fn run_reference(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &str) -> Run {
   let scope = oracle::scope::ParsingScope::new(frames);
-  let mut parser = oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log();
+  reference_run(oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log(), input)
+}
+
+/// Runs the frozen reference front end on an expression, with its lexer in the flattened-key mode
+/// (it searches the set of all flattened keys); a panic is an outcome.
+pub(super) fn run_reference_flattened(frames: &[FeelContext], input: &str) -> Run {
+  let scope = oracle::scope::ParsingScope::new(frames);
+  let parser = oracle::parser::Parser::new(&scope, oracle::lalr::TokenType::StartExpression, input, false)
+    .with_token_log()
+    .with_oracle_lexer();
+  reference_run(parser, input)
+}
+
+/// Parses with a reference parser that records its tokens.
+fn reference_run(mut parser: oracle::parser::Parser<'_>, input: &str) -> Run {
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   // the reference lexer counts positions in characters, the production lexer in bytes
   let bytes: Vec<usize> = input.char_indices().map(|(offset, _)| offset).chain([input.len()]).collect();
@@ -226,18 +240,34 @@ impl Stats {
   fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, reference_start: &oracle::lalr::TokenType, input: &str) {
     let production = run_production(frames, start, input);
     let reference = run_reference(frames, reference_start, input);
+    // a panic of the production front end fails in compare
+    if let Some(fix) = compare(name, frames, input, &reference, &production) {
+      *self.registered.entry(fix).or_default() += 1;
+    }
     self.cases += 1;
-    match &production.outcome {
-      Outcome::Ast(_) => self.asts += 1,
-      Outcome::Error(_) => self.errors += 1,
-      Outcome::Panic(message) => panic!("{name} {input:?} in {frames:?}: the parser panicked: {message}"),
+    if matches!(production.outcome, Outcome::Ast(_)) {
+      self.asts += 1;
+    } else {
+      self.errors += 1;
     }
-    if (&production.tokens, &production.outcome) != (&reference.tokens, &reference.outcome) {
-      match registered_difference(name, &reference, &production) {
-        Some(fix) => *self.registered.entry(fix).or_default() += 1,
-        None => panic!("{name} {input:?} in {frames:?}:\nreference {reference:#?}\nproduction {production:#?}"),
-      }
-    }
+  }
+}
+
+/// Compares a run of the production front end with a run of the reference on the same input,
+/// start rule `start` and scope `frames`. Returns `None` when both read the same tokens and have
+/// the same outcome, and the name of the fix when they differ by a registered difference
+/// ([registered_difference]); panics when the production front end panicked or the difference is
+/// not registered.
+pub(super) fn compare(start: &str, frames: &[FeelContext], input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
+  if let Outcome::Panic(message) = &production.outcome {
+    panic!("{start} {input:?} in {frames:?}: the parser panicked: {message}");
+  }
+  if (&production.tokens, &production.outcome) == (&reference.tokens, &reference.outcome) {
+    return None;
+  }
+  match registered_difference(start, reference, production) {
+    Some(fix) => Some(fix),
+    None => panic!("{start} {input:?} in {frames:?}:\nreference {reference:#?}\nproduction {production:#?}"),
   }
 }
 
