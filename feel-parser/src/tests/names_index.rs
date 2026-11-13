@@ -435,7 +435,7 @@ fn scope_operations_equal_reference_scope() {
     let mut reference = ReferenceScope::new(&frames);
     for step in 0..12 {
       // unbalanced pops and names set without a pushed context included
-      match rng.below(6) {
+      match rng.below(7) {
         0 => {
           scope.pop();
           reference.stack.pop();
@@ -443,6 +443,12 @@ fn scope_operations_equal_reference_scope() {
         1 => {
           scope.push_default();
           reference.stack.push(ReferenceTree::default());
+        }
+        6 => {
+          // the same context on both sides (the conversion is deterministic)
+          let pushed = context(&mut rng, 0);
+          scope.push(ParsingContext::from(&pushed));
+          reference.stack.push(ReferenceTree::of_context(&pushed));
         }
         2 | 3 => {
           let name = Name::from(*rng.pick(KEYS));

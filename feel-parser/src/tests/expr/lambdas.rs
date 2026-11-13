@@ -1,5 +1,4 @@
 use super::super::*;
-use crate::context::ParsingContext;
 use crate::lalr::TokenType::*;
 
 #[test]
@@ -80,22 +79,13 @@ fn _0002() {
 
 #[test]
 fn _0003() {
-  // prepare the context with names
-  let mut ctx_inner = ParsingContext::default();
-  ctx_inner.set_name("Surname".into());
-  ctx_inner.set_name("City".into());
-  ctx_inner.set_name("Street".into());
-  ctx_inner.set_name(vec!["Marital", "status"].into());
-  let mut ctx_outer = ParsingContext::default();
-  ctx_outer.set_context("Person".into(), ctx_inner);
-  let mut ctx = ParsingContext::default();
-  ctx.set_context(vec!["Customer", "data"].into(), ctx_outer);
-  // prepare scope
-  let scope = scope!();
-  scope.set_entry_name("x".into());
-  scope.set_entry_name("y".into());
-  scope.set_entry_name(vec!["Customer", "data"].into());
-  scope.push(ctx);
+  // prepare the input contexts with names
+  let person = input_context(&["Surname", "City", "Street", "Marital status"], vec![]);
+  let frames = [
+    input_context(&["x", "y", "Customer data"], vec![]),
+    input_context(&[], vec![("Customer data", input_context(&[], vec![("Person", person)]))]),
+  ];
+  let scope = ParsingScope::new(&frames);
   assert_eq!(
     "[{Customer data: <v>, x: <v>, y: <v>}, {Customer data: {Person: {City: <v>, Marital status: <v>, Street: <v>, Surname: <v>}}}]",
     scope.to_string()

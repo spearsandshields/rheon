@@ -1,17 +1,12 @@
 //! Additional test for expressions found in compatibility tests.
 
 use super::super::*;
-use crate::context::ParsingContext;
 use crate::lalr::TokenType::List;
 
 #[test]
 fn _0001() {
-  let scope = scope!();
-  let mut ctx = ParsingContext::default();
-  ctx.set_name("principal".into());
-  ctx.set_name("rate".into());
-  ctx.set_name("termMonths".into());
-  scope.set_context("loan".into(), ctx);
+  let frames = [input_context(&[], vec![("loan", input_context(&["principal", "rate", "termMonths"], vec![]))])];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,

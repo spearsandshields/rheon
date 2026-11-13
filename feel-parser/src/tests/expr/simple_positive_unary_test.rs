@@ -1,5 +1,4 @@
 use super::super::*;
-use crate::context::ParsingContext;
 
 #[test]
 fn _0001() {
@@ -71,11 +70,8 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  let scope = scope!();
-  let mut ctx = ParsingContext::default();
-  let name_power = Name::from("power");
-  ctx.set_name(name_power);
-  scope.set_context("engine".into(), ctx);
+  let frames = [input_context(&[], vec![("engine", input_context(&["power"], vec![]))])];
+  let scope = ParsingScope::new(&frames);
   assert_eq!("[{engine: {power: <v>}}]", scope.to_string());
   accept(
     &scope,

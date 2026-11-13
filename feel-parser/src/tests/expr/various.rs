@@ -1,17 +1,12 @@
 use super::super::*;
-use crate::context::ParsingContext;
 
 #[test]
 fn _0001() {
-  let scope = scope!();
-  let mut ctx_1 = ParsingContext::default();
-  ctx_1.set_name("tenor".into());
-  ctx_1.set_name("rate".into());
-  scope.set_context("offer".into(), ctx_1);
-  let mut ctx_2 = ParsingContext::default();
-  ctx_2.set_name("tenor".into());
-  ctx_2.set_name("rate".into());
-  scope.set_context("bid".into(), ctx_2);
+  let frames = [input_context(
+    &[],
+    vec![("offer", input_context(&["tenor", "rate"], vec![])), ("bid", input_context(&["tenor", "rate"], vec![]))],
+  )];
+  let scope = ParsingScope::new(&frames);
   accept(
     &scope,
     StartExpression,
@@ -122,23 +117,10 @@ fn _0001() {
 
 #[test]
 fn _0002() {
-  let scope = scope!();
-  scope.set_entry_name("Days".into());
-  let mut ctx_1 = ParsingContext::default();
-
-  let mut ctx_2 = ParsingContext::default();
-  ctx_2.set_name("Tenor".into());
-  ctx_2.set_name("Rate".into());
-
-  ctx_1.set_context("Min".into(), ctx_2);
-
-  let mut ctx_3 = ParsingContext::default();
-  ctx_3.set_name("Tenor".into());
-  ctx_3.set_name("Rate".into());
-
-  ctx_1.set_context("Max".into(), ctx_3);
-
-  scope.set_context("Bounds".into(), ctx_1);
+  let tenor_rate = || input_context(&["Tenor", "Rate"], vec![]);
+  let bounds = input_context(&[], vec![("Min", tenor_rate()), ("Max", tenor_rate())]);
+  let frames = [input_context(&["Days"], vec![("Bounds", bounds)])];
+  let scope = ParsingScope::new(&frames);
 
   let input = r#"(((Bounds.Max.Rate - Bounds.Min.Rate) * (Days - Bounds.Min.Tenor)) / (Bounds.Max.Tenor - Bounds.Min.Tenor)) + Bounds.Min.Rate"#;
   accept(
