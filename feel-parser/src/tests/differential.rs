@@ -106,7 +106,7 @@ fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &s
 
 /// The registered differences: bug fixes, each with the old and the new behaviour. Returns the
 /// name of the fix when the difference between `old` (the prototype) and `new` is one of them.
-fn registered_difference(_start: &str, _input: &str, old: &Run, new: &Run) -> Option<&'static str> {
+fn registered_difference(start: &str, _input: &str, old: &Run, new: &Run) -> Option<&'static str> {
   // Step 1. A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with
   // `in`: an iteration variable (`for in+1 in [1] return 1`), or the `in` after an `item` variable,
   // which leaves the flag set (`for item in[1] return item`):
@@ -117,6 +117,19 @@ fn registered_difference(_start: &str, _input: &str, old: &Run, new: &Run) -> Op
     && new.tokens.get(old.tokens.len()).is_some_and(|(tt, tv, _)| *tt == TokenType::In as i16 && tv == "In")
   {
     return Some("step 1: name starting with `in` in iteration-variable mode");
+  }
+  // Step 2. A named parameter of a temporal function in a range literal (`[date(from: "2012-01-01")..x]`):
+  // - old: the parameter name was read from the slot of the colon, so the invocation had
+  //   `NamedParameters([String(..)])` (no name; the range() built-in returned null);
+  // - new: `NamedParameters([NamedParameter(ParameterName(..), String(..))])`.
+  if start == "range literal"
+    && old.tokens == new.tokens
+    && let (Outcome::Ast(old_ast), Outcome::Ast(new_ast)) = (&old.outcome, &new.outcome)
+    && old_ast.contains("NamedParameters([String(")
+    && !new_ast.contains("NamedParameters([String(")
+    && new_ast.contains("NamedParameters([NamedParameter(ParameterName(")
+  {
+    return Some("step 2: named temporal parameter in a range literal");
   }
   None
 }

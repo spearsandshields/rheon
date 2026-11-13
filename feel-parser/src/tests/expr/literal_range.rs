@@ -278,3 +278,56 @@ fn _0022() {
   let input = r#"[string("a").."z"]"#;
   Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
 }
+
+#[test]
+fn _0023() {
+  // a named parameter of a temporal function (DMN 1.6 grammar rules 60 and 67)
+  let input = r#"[date(from: "2012-01-01")..date("2021-12-31")]"#;
+  let expected = r#"
+       Range
+       ├─ IntervalStart (closed)
+       │  └─ FunctionInvocation
+       │     ├─ Name
+       │     │  └─ `date`
+       │     └─ NamedParameters
+       │        └─ NamedParameter
+       │           ├─ ParameterName
+       │           │  └─ `from`
+       │           └─ String
+       │              └─ `2012-01-01`
+       └─ IntervalEnd (closed)
+          └─ FunctionInvocation
+             ├─ Name
+             │  └─ `date`
+             └─ PositionalParameters
+                └─ String
+                   └─ `2021-12-31`
+    "#;
+  accept(&scope!(), StartRangeLiteral, input, expected, false);
+}
+
+#[test]
+fn _0024() {
+  let input = r#"(time("10:00:00")..duration(x: "P1D")]"#;
+  let expected = r#"
+       Range
+       ├─ IntervalStart (opened)
+       │  └─ FunctionInvocation
+       │     ├─ Name
+       │     │  └─ `time`
+       │     └─ PositionalParameters
+       │        └─ String
+       │           └─ `10:00:00`
+       └─ IntervalEnd (closed)
+          └─ FunctionInvocation
+             ├─ Name
+             │  └─ `duration`
+             └─ NamedParameters
+                └─ NamedParameter
+                   ├─ ParameterName
+                   │  └─ `x`
+                   └─ String
+                      └─ `P1D`
+    "#;
+  accept(&scope!(), StartRangeLiteral, input, expected, false);
+}

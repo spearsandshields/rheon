@@ -370,8 +370,16 @@ range_literal_endpoint:
   ;
 
 range_literal_temporal_parameters:
-    NAME COLON STRING {/* literal_string */} {/* named_parameter */} {/* named_parameters_tail */}
-  | STRING {/* literal_string */} {/* positional_parameters_tail */}
+    range_literal_named_parameter {/* named_parameters_tail */}
+  | range_literal_string {/* positional_parameters_tail */}
+  ;
+
+range_literal_named_parameter:
+    NAME COLON range_literal_string {/* named_parameter */}
+  ;
+
+range_literal_string:
+    STRING {/* literal_string */}
   ;
 
 %%

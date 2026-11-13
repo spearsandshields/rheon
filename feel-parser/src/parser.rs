@@ -982,7 +982,8 @@ impl ReduceActions for Parser<'_> {
   fn action_named_parameter(&mut self) -> Result<()> {
     trace_action!(self, "named_parameter");
     trace!(self, "{:?}", self.yy_value_stack);
-    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - 3] {
+    // the name is the first symbol of the rule
+    if let TokenValue::Name(name) = &self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize] {
       let rhs = self.yy_node_stack.pop().unwrap();
       let parameter_name = Box::new(AstNode::ParameterName(name.clone()));
       let parameter_value = Box::new(rhs);
