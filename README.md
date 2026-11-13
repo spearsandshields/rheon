@@ -1,9 +1,8 @@
 # rheon
 
-**rheon** (Greek ῥέον, "that which flows", the root of *panta rhei*) is a Rust decision and
-process stack in the making: the FEEL expression language and DMN decisions today, BPMN later,
-with every engine also compiled to WebAssembly so that the same module runs in the browser, in
-Node and in .NET.
+**rheon** (Greek ῥέον, "that which flows", the root of *panta rhei*) is a Rust FEEL and DMN
+engine whose FEEL engine is also compiled to WebAssembly, so that the same module runs in the
+browser, in Node and in any WASI runtime.
 
 It is a fork of [dsntk](https://github.com/dsntk/dsntk-rs) (DecisionToolkit, by Dariusz Depta),
 the Rust FEEL/DMN engine, kept in upstream's layout so that upstream can be merged. On top of it
@@ -34,11 +33,11 @@ trademarks of the OMG.
   server, the DMN model evaluator, B-FEEL, lenient and strict error modes, and the DMN TCK at
   3,392 of 3,407 (the rest need Java). Features the official TCK does not test yet have
   TCK-format tests in [`tck-addendum/`](tck-addendum/MANIFEST.md); `scripts/tck.sh` runs both.
-  The DMN engine is not in wasm yet (next milestone); the FEEL module already offers B-FEEL and
-  the error modes (`language`, `errorMode`, CONTRACT §2).
+  The DMN engine is not in the wasm module; the FEEL module offers B-FEEL and the error modes
+  (`language`, `errorMode`, CONTRACT §2).
 
 The edge-case comparison with feelin and feel-scala is in
-[`docs/ENGINE-COMPARISON.md`](docs/ENGINE-COMPARISON.md); deferred work and open questions in
+[`docs/ENGINE-COMPARISON.md`](docs/ENGINE-COMPARISON.md); known bugs and limitations in
 [`docs/BACKLOG.md`](docs/BACKLOG.md).
 
 ## Architecture
@@ -77,7 +76,7 @@ The edge-case comparison with feelin and feel-scala is in
 | `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `feel-abi.mjs`, `smoke.mjs`, `stack-headroom.mjs`, `third-party-notices.mjs` |
 | `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
 | `Cargo.toml` | One workspace for all of the above; the `wasm` build profile |
-| `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, later .NET) |
+| `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, any WASI runtime) |
 
 ## Get it
 
@@ -243,44 +242,29 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   correctly when they are in the context, so the playground sends the context to `parse` too.
 - **Syntax errors have no position in dsntk.** The playground locates them with the lezer-feel
   parser (squiggle, gutter marker, "Jump to error", and a lezer tree with positions); lezer-feel
-  and dsntk can disagree on edge cases. `docs/EDITOR-PLAN.md` is the plan to make the engine the
-  single source of syntax validity.
+  and dsntk can disagree on edge cases.
 - **Context entries are sorted.** dsntk keeps contexts in a `BTreeMap`, so results list keys in
   name order.
 - **Only Chromium was tested** in a real browser.
 
-## Next steps: .NET host
+## Hosts outside a JS engine
 
-The same `dist/feel.wasm` is meant to run unchanged on .NET through the
-[Wasmtime NuGet package](https://www.nuget.org/packages/Wasmtime):
+`dist/feel.wasm` runs in any WASI preview1 runtime that provides the imports of CONTRACT §1
+(`npm run stack` runs it in Wasmtime):
 
-Do not copy `instantiateFeel` for a server: it runs on the calling thread with no way to interrupt
-it, so it is for trusted input only.
-
-1. `Engine` with `Config.WithFuelConsumption(true)` and/or `WithEpochInterruption(true)`. Fuel or
-   epoch deadlines replace the browser's worker-terminate timeout, so a runaway loop traps the
-   `Store` instead of hanging a thread. Also set `Store.SetLimits(memorySize: …)` to cap memory.
-   Give wasm at least 4 MiB of stack (Wasmtime's `max_wasm_stack`, set on the `Config`; the
-   default 512 KiB lets a deeply nested recursion trap early, CONTRACT §1) and call it on a
-   thread whose native stack is larger than that (for example a `Thread` created with an 8 MiB
-   `maxStackSize`).
-2. Compile the `Module` once and cache it (or serialize it with `Module.Serialize`). Create one
-   `Store` + `Instance` per evaluation, or a pool of them, because instances are single-threaded.
-   After any trap (fuel, epoch, panic or stack overflow), throw the instance away, as the JS
-   runtime does.
-3. Provide WASI with `Linker.DefineWasi()` + `WasiConfiguration` (no preopens, no env), or with
-   the same 10 functions the JS shim implements (CONTRACT §1; the current module imports six of
-   them).
-4. Call `_initialize` once, then `feel_alloc` → write the UTF-8 request → `feel_call` → unpack
-   `(ptr << 32) | len` → read → `feel_free`. Exactly as in `packages/feel-runtime/src/instance.ts`.
-5. Send `tzOffsetMinutes` from `TimeZoneInfo.Local.GetUtcOffset(DateTime.Now)`. Keep decimals as
-   strings, or parse the `typed` DTO: .NET `decimal` holds only 28–29 digits, fewer than
-   decimal128's 34.
-6. Port the contract tests (`crates/feel-wasm/tests/contract.rs`) to xUnit against the same
-   request/response JSON.
-
-dotnet was not installed in the environment this repo was built in, so none of this has been run
-yet.
+- Give wasm at least 4 MiB of stack (Wasmtime: `max_wasm_stack` on the `Config`,
+  `-W max-wasm-stack=4194304` on the command line; the default 512 KiB lets a deeply nested
+  recursion trap early, CONTRACT §1), and call it on a thread whose native stack is larger than
+  that.
+- Bound every request with fuel or epoch interruption and cap the store's memory: nothing else
+  stops a runaway loop on the calling thread. `instantiateFeel` has neither and is for trusted
+  input only.
+- An instance is single-threaded: use one per thread or a pool, and discard an instance after any
+  trap (fuel, epoch, panic or stack overflow).
+- Call `_initialize` once, then `feel_alloc` → write the UTF-8 request → `feel_call` → unpack
+  `(ptr << 32) | len` → read → `feel_free`, as `packages/feel-runtime/src/instance.ts` does.
+- Send `tzOffsetMinutes` with each request, and keep decimals as strings or read the `typed`
+  result: decimal128 has 34 digits, more than most host decimal types.
 
 ## License
 
