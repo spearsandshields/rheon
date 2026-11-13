@@ -47,6 +47,7 @@ jobs:
       - run: npm run test:rust:wasm # the same tests under wasmtime
       - run: npm run test:runtime # @rheon/feel-runtime (node --test)
       - run: npm run smoke # dist/feel.wasm under node:wasi
+      - run: npm run stack # stack headroom of dist/feel.wasm: Node main thread and worker, Wasmtime with a 4 MiB wasm stack
       - run: npm run build:playground # svelte-check + vite build + third-party notices
       - uses: actions/upload-artifact@v7
         with:

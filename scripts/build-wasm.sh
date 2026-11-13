@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds wasm/feel-wasm (crate rheon-feel-wasm) for wasm32-wasip1 with the `wasm` profile
-# (root Cargo.toml: opt-level z, lto, panic=abort, overflow checks) into dist/feel.wasm, prints its size
+# (root Cargo.toml: opt-level 3, lto, panic=abort, overflow checks) into dist/feel.wasm, prints its size
 # (raw / gzip / brotli) and checks the module interface against docs/CONTRACT.md §1:
 # imports must all be wasi_snapshot_preview1.*, and the contract exports must be present.
 # A plain `cargo build`: the engine is pure Rust, no C toolchain or environment is needed.

@@ -28,8 +28,9 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Shadow stack size of the wasm module (bytes). 10 MiB with opt-level 3, whose stack frames are
-/// larger than those of opt-level "z" (8 MiB): the depth an evaluation can reach must not shrink.
+/// Shadow stack size of the wasm module (bytes). 10 MiB: the `wasm` profile builds with opt-level 3,
+/// whose stack frames are larger than those of opt-level "z". The depth an evaluation reaches in
+/// the Node and Wasmtime hosts is checked by `scripts/stack-headroom.mjs` (run by CI).
 const STACK_SIZE: usize = 10 * 1024 * 1024;
 
 /// Maximum linear memory of the wasm module (bytes, a multiple of the 64 KiB page size).
