@@ -82,6 +82,13 @@ use rheon_feel::Name;
 pub(crate) use s;
 pub(crate) use scope;
 
+/// Returns `true` when the generated and exhaustive tests run their full size (`RHEON_FULL_TESTS`
+/// set; meant for a release build). By default they run a small number of cases, so that the
+/// debug test run stays fast.
+pub(crate) fn full_size() -> bool {
+  std::env::var_os("RHEON_FULL_TESTS").is_some()
+}
+
 /// Parses the input text and compared the result with expected value.
 fn accept(scope: &ParsingScope, start_token_type: TokenType, input: &str, expected: &str, trace: bool) {
   let node = Parser::new(scope, start_token_type, input, trace).parse().unwrap();

@@ -1,6 +1,7 @@
 //! Unit tests of the lexer's character classes and of the flattening of name parts.
 
 use super::*;
+use crate::tests::full_size;
 
 #[test]
 fn test_is_separator() {
@@ -87,12 +88,14 @@ fn test_flatten_name_parts() {
 
 #[test]
 fn test_flatten_name_parts_into() {
-  // every sequence of up to 6 parts over names, U+1680-only parts and the additional symbols
+  // every sequence of up to 4 parts (6 in full size) over names, U+1680-only parts and the
+  // additional symbols
   let alphabet = ["a", "b c", "\u{1680}", "\u{1680}x", ".", "/", "-", "'", "+", "*", " . "];
+  let max_len = if full_size() { 6 } else { 4 };
   let (mut out, mut tmp) = (String::from("stale"), String::from("stale"));
   let mut parts = vec![];
   let mut counters = [0_usize; 6];
-  for len in 0..=6 {
+  for len in 0..=max_len {
     counters.iter_mut().for_each(|c| *c = 0);
     loop {
       parts.clear();

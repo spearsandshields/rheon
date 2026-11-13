@@ -1,18 +1,27 @@
-//! Differential tests of the lexer and parser against the frozen prototype ([super::oracle]).
+//! Differential tests of the lexer and parser against the frozen reference front end
+//! ([super::oracle]).
 //!
 //! For every input, start rule and scope, both front ends must read the same tokens (token type,
 //! Debug text of the value, start offset of the token in the input), and give the same AST (tree
 //! and Debug text) or the same error. The only allowed differences are the registered bug fixes
 //! ([registered_difference]).
 //!
-//! Generators:
-//! - G1: every string of up to 3 characters over [ALPHABET], in [scopes], with every start rule;
-//!   also prefixed with the heads of iteration contexts. Longer strings: `LEXPARSE_G1_LEN`.
-//! - G2: random FEEL texts of every construct ([feel]), with random input contexts (G3, from
-//!   [super::names_index]).
-//! - G4: the expressions of the evaluator corpus (`LEXPARSE_CORPUS`, a directory of `*.jsonl`).
-//! - G5: random edits and every prefix of G2 and G4 texts (cut-off inputs, syntax errors).
+//! Generators (default size, and full size with `RHEON_FULL_TESTS` set, see [super::full_size]):
+//! - G1: every string of up to 2 characters (4) over [ALPHABET] (and over [ALPHABET_2]), in
+//!   [scopes], with every start rule; also after the heads of iteration contexts.
+//! - G2: random FEEL texts of every construct ([Feel]), with random input contexts (from
+//!   [super::names_index]): 1,000 (20,000).
+//! - G4: the expressions of the evaluator corpus, run only when `RHEON_PARSER_CORPUS` is the
+//!   absolute path of a directory of `*.jsonl` files (`tools/evaluator-corpus/corpora`; the test
+//!   is ignored by default: `-- --include-ignored`).
+//! - G5: random edits and every prefix of G2 and G4 texts (cut-off inputs, syntax errors): 60
+//!   (3,000).
+//! - G6: random texts of multi-byte characters: 1,000 (20,000).
+//!
+//! The other tests cover chosen inputs; some of them use longer inputs in full size. The full
+//! size is meant for a release build: `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-parser`.
 
+use super::full_size;
 use super::names_index::{KEYS, OGHAM, Rng, context, key_text, number};
 use super::oracle;
 use crate::lalr::TokenType;
@@ -43,7 +52,7 @@ const ALPHABET: [char; 24] = [
   'a', 'b', 'i', 'n', 'o', 'r', 'f', ' ', '.', '+', '-', '*', '/', ':', ',', '(', ')', '[', ']', '"', '1', OGHAM, '<', '?',
 ];
 
-/// The second alphabet (`LEXPARSE_G1_ALPHABET=2`): the remaining punctuation, escapes and white space.
+/// The second alphabet of G1 (full size only): the remaining punctuation, escapes and white space.
 const ALPHABET_2: [char; 24] = [
   'a', 'e', 'i', 'n', 't', ' ', '{', '}', '=', '@', '\'', '\\', '\t', '\n', '\u{FEFF}', '\u{180E}', '.', ':', ',', '"', '5', 'E', '>', '!',
 ];
@@ -74,8 +83,8 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
     .unwrap_or_default()
 }
 
-/// Runs the current front end; a panic is an outcome.
-fn run_new(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
+/// Runs the production front end; a panic is an outcome.
+fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
   let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
@@ -89,12 +98,12 @@ fn run_new(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   }
 }
 
-/// Runs the frozen prototype; a panic is an outcome.
-fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &str) -> Run {
+/// Runs the frozen reference front end; a panic is an outcome.
+fn run_reference(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &str) -> Run {
   let scope = oracle::scope::ParsingScope::new(frames);
   let mut parser = oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
-  // the prototype counts positions in characters, the current lexer in bytes
+  // the reference lexer counts positions in characters, the production lexer in bytes
   let bytes: Vec<usize> = input.char_indices().map(|(offset, _)| offset).chain([input.len()]).collect();
   Run {
     tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt, tv, bytes[start.min(bytes.len() - 1)])).collect(),
@@ -106,33 +115,93 @@ fn run_oracle(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &s
   }
 }
 
-/// The registered differences: bug fixes, each with the old and the new behaviour. Returns the
-/// name of the fix when the difference between `old` (the prototype) and `new` is one of them.
-fn registered_difference(start: &str, _input: &str, old: &Run, new: &Run) -> Option<&'static str> {
-  // Step 1. A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with
-  // `in`: an iteration variable (`for in+1 in [1] return 1`), or the `in` after an `item` variable,
-  // which leaves the flag set (`for item in[1] return item`):
-  // - old: `consumed_positions[index - 1]` with index 0 in the lexer, an overflow panic (a trap; an
-  //   index out of bounds without overflow checks);
-  // - new: the tokens read before, then the keyword `in`; for a variable, the parser's syntax error.
-  if matches!(&old.outcome, Outcome::Panic(message) if message == "attempt to subtract with overflow" || message.ends_with(&format!("the index is {}", usize::MAX)))
-    && new.tokens.starts_with(&old.tokens)
-    && new.tokens.get(old.tokens.len()).is_some_and(|(tt, tv, _)| *tt == TokenType::In as i16 && tv == "In")
+/// The registered differences: bug fixes of the production front end, each with the reference's
+/// and the production behaviour. Returns the name of the fix when the difference between
+/// `reference` and `production` is one of them.
+fn registered_difference(start: &str, reference: &Run, production: &Run) -> Option<&'static str> {
+  // A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with `in`:
+  // an iteration variable (`for in+1 in [1] return 1`), or the `in` after an iteration variable
+  // `item`, which leaves the mode set (`for item in[1] return item`):
+  // - reference: `consumed_positions[index - 1]` with index 0 in the lexer, an overflow panic (a
+  //   trap; an index out of bounds without overflow checks);
+  // - production: the tokens read before, then the keyword `in`; a syntax error, unless an
+  //   iteration variable `item` comes before (`for item in[1] return item` is a for expression).
+  if matches!(&reference.outcome, Outcome::Panic(message) if message == "attempt to subtract with overflow" || message.ends_with(&format!("the index is {}", usize::MAX)))
+    && production.tokens.starts_with(&reference.tokens)
+    && production
+      .tokens
+      .get(reference.tokens.len())
+      .is_some_and(|(tt, tv, _)| *tt == TokenType::In as i16 && tv == "In")
+    && (matches!(&production.outcome, Outcome::Error(message) if message.starts_with("<ParserError> syntax error")) || has_item_variable(&reference.tokens))
   {
-    return Some("step 1: name starting with `in` in iteration-variable mode");
+    return Some("a name starting with `in` in iteration-variable mode");
   }
-  // Step 2. A named parameter of a temporal function in a range literal (`[date(from: "2012-01-01")..x]`):
-  // - old: the parameter name was read from the slot of the colon, so the invocation had
+  // A named parameter of a temporal function in a range literal (`[date(from: "2012-01-01")..x]`):
+  // - reference: the parameter name was read from the slot of the colon, so the invocation had
   //   `NamedParameters([String(..)])` (no name; the range() built-in returned null);
-  // - new: `NamedParameters([NamedParameter(ParameterName(..), String(..))])`.
+  // - production: `NamedParameters([NamedParameter(ParameterName(..), String(..))])`, with the
+  //   name token before the colon; otherwise the same AST.
   if start == "range literal"
-    && old.tokens == new.tokens
-    && let (Outcome::Ast(old_ast), Outcome::Ast(new_ast)) = (&old.outcome, &new.outcome)
-    && old_ast.contains("NamedParameters([String(")
-    && !new_ast.contains("NamedParameters([String(")
-    && new_ast.contains("NamedParameters([NamedParameter(ParameterName(")
+    && reference.tokens == production.tokens
+    && let (Outcome::Ast(reference_ast), Outcome::Ast(production_ast)) = (&reference.outcome, &production.outcome)
+    && let (Some((_, reference_debug)), Some((_, production_debug))) = (reference_ast.rsplit_once('\n'), production_ast.rsplit_once('\n'))
+    && reference_debug != production_debug
+    && with_named_parameters(reference_debug, &reference.tokens).is_some_and(|expected| expected == production_debug)
   {
-    return Some("step 2: named temporal parameter in a range literal");
+    return Some("a named temporal parameter in a range literal");
+  }
+  None
+}
+
+/// Returns `true` when the tokens have an iteration variable `item`: a name `item` right after
+/// `for`, `some`, `every` or a comma.
+fn has_item_variable(tokens: &[(i16, String, usize)]) -> bool {
+  let heads = [TokenType::For, TokenType::Some, TokenType::Every, TokenType::Comma].map(|tt| tt as i16);
+  tokens.windows(2).any(|pair| heads.contains(&pair[0].0) && pair[1].1 == r#"Name(Name("item"))"#)
+}
+
+/// Returns the Debug text of a range literal's AST with the parameter names put into its named
+/// parameters: every `NamedParameters([String(s)])` becomes
+/// `NamedParameters([NamedParameter(ParameterName(name), String(s))])`, with the name of the
+/// name token before the corresponding colon. `None` when the names and parameters do not pair up.
+fn with_named_parameters(debug: &str, tokens: &[(i16, String, usize)]) -> Option<String> {
+  const PARAMETERS: &str = "NamedParameters([String(";
+  let mut names = tokens
+    .windows(2)
+    .filter(|pair| pair[1].0 == TokenType::Colon as i16)
+    .map(|pair| pair[0].1.strip_prefix("Name(").and_then(|name| name.strip_suffix(')')));
+  let mut text = String::new();
+  let mut rest = debug;
+  while let Some(at) = rest.find(PARAMETERS) {
+    let name = names.next()??;
+    text.push_str(&rest[..at]);
+    rest = &rest[at + PARAMETERS.len()..];
+    let literal = debug_string_len(rest)?;
+    text.push_str(&format!("NamedParameters([NamedParameter(ParameterName({name}), String({}))", &rest[..literal]));
+    rest = rest[literal..].strip_prefix(")")?;
+  }
+  if names.next().is_some() {
+    return None;
+  }
+  text.push_str(rest);
+  Some(text)
+}
+
+/// Returns the length in bytes of the Debug text of a string at the start of `text` (quotes
+/// included), or `None` when `text` does not start with one.
+fn debug_string_len(text: &str) -> Option<usize> {
+  let mut chars = text.char_indices();
+  if chars.next()?.1 != '"' {
+    return None;
+  }
+  while let Some((offset, ch)) = chars.next() {
+    match ch {
+      '\\' => {
+        chars.next();
+      }
+      '"' => return Some(offset + 1),
+      _ => {}
+    }
   }
   None
 }
@@ -149,24 +218,24 @@ struct Stats {
 impl Stats {
   /// Compares both front ends on one input; panics on an unregistered difference.
   fn check(&mut self, frames: &[FeelContext], input: &str) {
-    for (name, start, oracle_start) in &START_RULES {
-      self.check_rule(frames, name, start, oracle_start, input);
+    for (name, start, reference_start) in &START_RULES {
+      self.check_rule(frames, name, start, reference_start, input);
     }
   }
 
-  fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, oracle_start: &oracle::lalr::TokenType, input: &str) {
-    let new = run_new(frames, start, input);
-    let old = run_oracle(frames, oracle_start, input);
+  fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, reference_start: &oracle::lalr::TokenType, input: &str) {
+    let production = run_production(frames, start, input);
+    let reference = run_reference(frames, reference_start, input);
     self.cases += 1;
-    match &new.outcome {
+    match &production.outcome {
       Outcome::Ast(_) => self.asts += 1,
       Outcome::Error(_) => self.errors += 1,
       Outcome::Panic(message) => panic!("{name} {input:?} in {frames:?}: the parser panicked: {message}"),
     }
-    if (&new.tokens, &new.outcome) != (&old.tokens, &old.outcome) {
-      match registered_difference(name, input, &old, &new) {
+    if (&production.tokens, &production.outcome) != (&reference.tokens, &reference.outcome) {
+      match registered_difference(name, &reference, &production) {
         Some(fix) => *self.registered.entry(fix).or_default() += 1,
-        None => panic!("{name} {input:?} in {frames:?}:\nprototype {old:#?}\ncurrent {new:#?}"),
+        None => panic!("{name} {input:?} in {frames:?}:\nreference {reference:#?}\nproduction {production:#?}"),
       }
     }
   }
@@ -247,18 +316,58 @@ fn for_each_string(alphabet: &[char], len: usize, mut f: impl FnMut(&str)) {
   }
 }
 
-fn env_usize(name: &str, default: usize) -> usize {
-  std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
+/// Every registered difference is registered for the inputs of its fix: the reference traps on
+/// a name starting with `in` in iteration-variable mode, and drops the name of a named temporal
+/// parameter in a range literal.
+#[test]
+fn registered_fixes_differ_as_registered() {
+  let in_names = [
+    "for in+1 in [1] return 1",
+    "for in+1 in [1] return in+1",
+    "for in[1] return 1",
+    "for in(1) return 1",
+    "for in.x in [1] return 1",
+    "for in: 1 return 1",
+    "for x in [1], in*2 in [2] return x",
+    r#"some in"a" satisfies true"#,
+    "every in-x in [] satisfies false",
+    "for item in [1] return in+1",
+    "for item in, x in [1] return 1",
+    "for item in[1] return item",
+    "some item in[1] satisfies item > 0",
+  ];
+  let range_literals = [
+    r#"[date(from: "2012-01-01")..date(from: "2012-12-31")]"#,
+    r#"(date and time(from: "2012-01-01T10:00:00")..10]"#,
+    r#"]"a"..duration(from: "P1D\"x")["#,
+  ];
+  for (inputs, rule, fix) in [
+    (&in_names[..], 0, "a name starting with `in` in iteration-variable mode"),
+    (&range_literals[..], 8, "a named temporal parameter in a range literal"),
+  ] {
+    let (name, start, reference_start) = &START_RULES[rule];
+    for input in inputs {
+      let mut stats = Stats::default();
+      stats.check_rule(&[], name, start, reference_start, input);
+      assert_eq!(Some(&1), stats.registered.get(fix), "{input}: {stats:?}");
+    }
+  }
+}
+
+/// The length of the longest G1 strings.
+fn g1_length() -> usize {
+  if full_size() { 4 } else { 2 }
 }
 
 #[test]
-fn g1_short_strings_equal_prototype() {
-  let max_len = env_usize("LEXPARSE_G1_LEN", 3);
-  let alphabet: &[char] = if env_usize("LEXPARSE_G1_ALPHABET", 1) == 2 { &ALPHABET_2 } else { &ALPHABET };
+fn g1_short_strings_equal_reference() {
+  let alphabets: &[&[char]] = if full_size() { &[&ALPHABET, &ALPHABET_2] } else { &[&ALPHABET] };
   let mut stats = Stats::default();
-  for frames in scopes() {
-    for len in 0..=max_len {
-      for_each_string(alphabet, len, |text| stats.check(&frames, text));
+  for alphabet in alphabets {
+    for frames in scopes() {
+      for len in 0..=g1_length() {
+        for_each_string(alphabet, len, |text| stats.check(&frames, text));
+      }
     }
   }
   println!("G1: {stats:?}");
@@ -266,21 +375,21 @@ fn g1_short_strings_equal_prototype() {
 }
 
 #[test]
-fn g1_iteration_contexts_equal_prototype() {
+fn g1_iteration_contexts_equal_reference() {
   // the heads that set the lexer's `till_in` flag, followed by every short string
-  let max_len = env_usize("LEXPARSE_G1_LEN", 3);
+  let max_len = g1_length();
   let mut stats = Stats::default();
   for frames in &scopes()[..3] {
     for head in ["for ", "some ", "every ", "for x in [1], ", "for item in [1] return "] {
       for len in 0..=max_len {
         for_each_string(&ALPHABET, len, |text| {
           let input = format!("{head}{text}");
-          for (name, start, oracle_start) in &START_RULES[..1] {
-            stats.check_rule(frames, name, start, oracle_start, &input);
+          for (name, start, reference_start) in &START_RULES[..1] {
+            stats.check_rule(frames, name, start, reference_start, &input);
           }
           let input = format!("{head}{text} in [1] return 1");
-          for (name, start, oracle_start) in &START_RULES[..1] {
-            stats.check_rule(frames, name, start, oracle_start, &input);
+          for (name, start, reference_start) in &START_RULES[..1] {
+            stats.check_rule(frames, name, start, reference_start, &input);
           }
         });
       }
@@ -529,8 +638,8 @@ fn g2_keys() -> Vec<String> {
 }
 
 #[test]
-fn g2_random_texts_equal_prototype() {
-  let count = env_usize("LEXPARSE_G2_CASES", 20_000);
+fn g2_random_texts_equal_reference() {
+  let count = if full_size() { 20_000 } else { 1_000 };
   let mut rng = Rng(0x853C_49E6_748F_EA9B);
   let keys = g2_keys();
   let mut stats = Stats::default();
@@ -576,8 +685,8 @@ fn mutate(rng: &mut Rng, text: &str) -> String {
 }
 
 #[test]
-fn g5_edited_and_cut_texts_equal_prototype() {
-  let count = env_usize("LEXPARSE_G5_CASES", 3_000);
+fn g5_edited_and_cut_texts_equal_reference() {
+  let count = if full_size() { 3_000 } else { 60 };
   let mut rng = Rng(0xDA94_2042_E4DD_58B5);
   let keys = g2_keys();
   let mut stats = Stats::default();
@@ -604,7 +713,7 @@ fn g5_edited_and_cut_texts_equal_prototype() {
 }
 
 /// An input context with the keys of a FEEL context literal (the values are numbers, nested
-/// literals become nested contexts), parsed by the current parser.
+/// literals become nested contexts), parsed by the production parser.
 fn keys_of_context_literal(text: &str) -> FeelContext {
   use crate::AstNode;
   fn convert(node: &AstNode) -> FeelContext {
@@ -630,13 +739,14 @@ fn keys_of_context_literal(text: &str) -> FeelContext {
   }
 }
 
-/// The expressions and context literals of the evaluator corpus (`tools/evaluator-corpus/corpora`).
+/// The expressions and context literals of the evaluator corpus: the `*.jsonl` files of the
+/// directory `RHEON_PARSER_CORPUS` (an absolute path, such as that of `tools/evaluator-corpus/corpora`).
 fn corpus() -> Vec<(String, String)> {
-  let Ok(dir) = std::env::var("LEXPARSE_CORPUS") else {
+  let Some(dir) = std::env::var_os("RHEON_PARSER_CORPUS") else {
     return vec![];
   };
   let mut lines = vec![];
-  let mut files: Vec<_> = std::fs::read_dir(&dir).expect("LEXPARSE_CORPUS").map(|e| e.unwrap().path()).collect();
+  let mut files: Vec<_> = std::fs::read_dir(&dir).expect("RHEON_PARSER_CORPUS").map(|e| e.unwrap().path()).collect();
   files.sort();
   for file in files.into_iter().filter(|f| f.extension().is_some_and(|e| e == "jsonl")) {
     for line in std::fs::read_to_string(file).unwrap().lines() {
@@ -673,9 +783,9 @@ fn corpus() -> Vec<(String, String)> {
 
 #[test]
 #[ignore]
-fn g4_corpus_equals_prototype() {
+fn g4_corpus_equals_reference() {
   let corpus = corpus();
-  assert!(!corpus.is_empty(), "set LEXPARSE_CORPUS to tools/evaluator-corpus/corpora");
+  assert!(!corpus.is_empty(), "set RHEON_PARSER_CORPUS to the absolute path of tools/evaluator-corpus/corpora");
   let mut rng = Rng(0x1234_5678_9ABC_DEF1);
   let rich = context(&mut rng, 0);
   let mut stats = Stats::default();
@@ -793,10 +903,11 @@ fn work_of(frames: &[FeelContext], input: &str) -> BTreeMap<&'static str, usize>
 }
 
 /// Every kind of list keeps the source order of its items, at every length: the AST equals the
-/// prototype's for up to 1,000 items, and the items are in order for 20,000 (the prototype shifts
-/// every collected item for each new one, so it is not run there).
+/// reference's for up to 100 items (1,000 in full size), and the items are in order for 2,000
+/// (20,000; the reference shifts every collected item for each new one, so it is not run there).
 #[test]
 fn lists_keep_source_order() {
+  let (compared, ordered) = if full_size() { (1_000, 20_000) } else { (100, 2_000) };
   let join = |n: usize, item: &dyn Fn(usize) -> String| (0..n).map(item).collect::<Vec<_>>().join(", ");
   let texts = |n: usize| -> Vec<(usize, String)> {
     vec![
@@ -824,27 +935,27 @@ fn lists_keep_source_order() {
   };
   // `x` and `f` are names in scope (else `x instance of context` would be one name)
   let frames = [ctx(&[("x", number(1)), ("f", number(2))])];
-  for n in [1, 2, 3, 10, 1000] {
+  for n in [1, 2, 3, 10, compared] {
     let mut texts = texts(n);
-    // qualified names (a chain of names is lexed again for every name token: up to 1,000 here)
+    // qualified names (a chain of names is lexed again for every name token)
     let path = (0..n).map(|i| format!("q{i}")).collect::<Vec<_>>().join(".");
     texts.push((0, format!("x instance of {path}")));
     texts.push((7, path));
     for (rule, text) in &texts {
-      let (name, start, oracle_start) = &START_RULES[*rule];
+      let (name, start, reference_start) = &START_RULES[*rule];
       let mut stats = Stats::default();
-      stats.check_rule(&frames, name, start, oracle_start, text);
+      stats.check_rule(&frames, name, start, reference_start, text);
       assert_eq!(1, stats.asts, "{n} items: {text:.80}");
     }
   }
-  // 20,000 items: in source order
-  for (rule, text) in texts(20_000) {
+  // the longest lists: in source order
+  for (rule, text) in texts(ordered) {
     let scope = ParsingScope::new(&frames);
     let node = Parser::new(&scope, START_RULES[rule].1.clone(), &text, false).parse().unwrap();
     let debug = format!("{node:?}");
     // the first `{i}"` is the item i (`"{i}"`, `"k{i}"`, ...): other texts ending with these digits are larger numbers
-    let positions: Vec<usize> = (0..20_000)
-      .step_by(998)
+    let positions: Vec<usize> = (0..ordered)
+      .step_by(ordered / 20 - 2)
       .map(|i| debug.find(&format!("{i}\"")).unwrap_or_else(|| panic!("{i} in {text:.80}")))
       .collect();
     assert!(positions.is_sorted(), "{text:.80}");
@@ -852,11 +963,11 @@ fn lists_keep_source_order() {
 }
 
 /// Name tokens that reuse a scanned chain (see `ChainPart` in the lexer) read the same tokens as the
-/// prototype, which scans the chain for every name token.
+/// reference, which scans the chain for every name token: chains of up to 50 names (300 in full size).
 #[test]
-fn reused_name_chains_equal_prototype() {
+fn reused_name_chains_equal_reference() {
   let mut inputs = vec![];
-  for n in [1, 2, 3, 10, 50, 300] {
+  for n in [1, 2, 3, 10, if full_size() { 300 } else { 50 }] {
     inputs.push(vec!["a"; n].join("+"));
     inputs.push(vec!["a"; n].join(" + "));
     inputs.push(vec!["a"; n].join("."));
@@ -934,7 +1045,7 @@ fn candidates_grow_linearly_with_the_chain() {
 /// the same first word than the window looks at, long multi-word keys, list item keys, nested
 /// keys, parsed names, parameters and built-in properties after a dot.
 #[test]
-fn first_word_bounds_equal_prototype() {
+fn first_word_bounds_equal_reference() {
   let mut keys: Vec<String> = ["a", "a b", "a.b", "a!b", "a\tb", "a0", "ab c", "a b c d e f g h", "x", "x y", "start", "start x", "end"]
     .map(String::from)
     .to_vec();
@@ -993,7 +1104,7 @@ fn input_contexts_are_indexed_on_first_use() {
 /// property names after a dot, built-in type names after `instance of`, temporal function names
 /// before `(`; also with U+1680 (trimmed) and U+180E (not trimmed) inside the part.
 #[test]
-fn one_part_names_equal_prototype() {
+fn one_part_names_equal_reference() {
   let frames_d = vec![ctx(&[
     ("d", Value::Context(ctx(&[("year", number(1))]))),
     ("x", number(2)),
@@ -1025,7 +1136,7 @@ fn one_part_names_equal_prototype() {
 /// String and number literals (taken in one allocation when they need no unescaping): escapes,
 /// surrogates, unterminated literals, vertical space, long literals, every form of number.
 #[test]
-fn literals_equal_prototype() {
+fn literals_equal_reference() {
   let long = "x\u{1F600}é".repeat(3_000);
   let mut inputs: Vec<String> = [
     r#""""#,
@@ -1081,7 +1192,7 @@ fn literals_equal_prototype() {
 /// U+1680 between words: after a symbol it starts a part (empty after trimming when alone), after
 /// white space it is white space; so two empty parts never follow each other.
 #[test]
-fn empty_parts_equal_prototype() {
+fn empty_parts_equal_reference() {
   let mut stats = Stats::default();
   let frames = [ctx(&[("x", number(1)), ("x y", number(2)), ("a", number(3)), (&format!("x {OGHAM} y"), number(4))])];
   for n in [0, 1, 2, 3, 5, 20] {
@@ -1106,7 +1217,7 @@ fn empty_parts_equal_prototype() {
 /// parsed in a thread with a small stack.
 #[test]
 fn composite_names_in_deep_contexts_parse_in_a_small_stack() {
-  let depth = env_usize("LEXPARSE_CHAIN", 2_000);
+  let depth = 2_000;
   std::thread::Builder::new()
     .stack_size(256 * 1024 * 1024)
     .spawn(move || {
@@ -1134,7 +1245,7 @@ fn composite_names_in_deep_contexts_parse_in_a_small_stack() {
 /// names of 2-, 3- and 4-byte characters and combining marks, every kind of white space, CRLF,
 /// comments, escapes, unterminated strings and comments, keywords at the end of the input.
 #[test]
-fn unicode_texts_equal_prototype() {
+fn unicode_texts_equal_reference() {
   const PIECES: [&str; 40] = [
     "é",
     "中",
@@ -1177,7 +1288,7 @@ fn unicode_texts_equal_prototype() {
     "1.5e3",
     "@\"",
   ];
-  let count = env_usize("LEXPARSE_G6_CASES", 20_000);
+  let count = if full_size() { 20_000 } else { 1_000 };
   let mut rng = Rng(0x6A09_E667_F3BC_C908);
   let frames = [ctx(&[("é", number(1)), ("中 文", number(2)), ("😀", number(3)), ("x é", number(4))])];
   let mut stats = Stats::default();

@@ -3,7 +3,7 @@
 //! builds the set of all flattened keys for every name token, and against an independent model of
 //! the names in scope ([ReferenceScope]). The generators are shared with [super::differential].
 
-use super::oracle;
+use super::{full_size, oracle};
 use crate::context::ParsingContext;
 use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
@@ -231,9 +231,10 @@ fn rng_key(rng: &mut Rng, keys: &[String]) -> String {
   rng.pick(keys).clone()
 }
 
-/// The token stream of a lexer run without the parser (no scope changes); with `oracle`, the frozen
-/// prototype's lexer searching the set of all flattened keys.
-fn tokens(frames: &[FeelContext], input: &str, oracle: bool) -> Vec<String> {
+/// The token stream of a lexer run without the parser (no scope changes); with `reference`, of the
+/// frozen reference lexer in its flattened-key mode (it searches the set of all flattened keys,
+/// built for every name token).
+fn tokens(frames: &[FeelContext], input: &str, reference: bool) -> Vec<String> {
   let mut tokens = vec![];
   let mut push = |token: dsntk_common::Result<(i16, String, bool)>| match token {
     Ok((_, _, true)) => false,
@@ -246,7 +247,7 @@ fn tokens(frames: &[FeelContext], input: &str, oracle: bool) -> Vec<String> {
       false
     }
   };
-  if oracle {
+  if reference {
     let scope = oracle::scope::ParsingScope::new(frames);
     let mut lexer = oracle::lexer::Lexer::new(&scope, oracle::lalr::TokenType::StartExpression, input);
     lexer.set_oracle();
@@ -275,8 +276,10 @@ fn tokens(frames: &[FeelContext], input: &str, oracle: bool) -> Vec<String> {
   tokens
 }
 
-fn parse(frames: &[FeelContext], input: &str, oracle: bool) -> String {
-  let result = if oracle {
+/// The AST (tree and Debug text) or the error of a parse; with `reference`, of the frozen
+/// reference parser with its lexer in the flattened-key mode.
+fn parse(frames: &[FeelContext], input: &str, reference: bool) -> String {
+  let result = if reference {
     let scope = oracle::scope::ParsingScope::new(frames);
     oracle::parser::Parser::new(&scope, oracle::lalr::TokenType::StartExpression, input, false)
       .with_oracle_lexer()
@@ -293,10 +296,11 @@ fn parse(frames: &[FeelContext], input: &str, oracle: bool) -> String {
 
 #[test]
 fn name_lookup_equals_flattened_keys_search() {
+  let cases = if full_size() { 4_000 } else { 300 };
   let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
   let mut parsed = 0;
   let mut composite = 0;
-  for case in 0..4000 {
+  for case in 0..cases {
     let frames: Vec<FeelContext> = (0..1 + rng.below(2)).map(|_| context(&mut rng, 0)).collect();
     let mut keys: Vec<String> = KEYS.iter().map(|k| k.to_string()).collect();
     keys.push("zz".to_string());
@@ -309,9 +313,10 @@ fn name_lookup_equals_flattened_keys_search() {
       .iter()
       .filter(|t| t.contains("Name(Name(") && ["./. ", ".. ", ".-. ", "/. "].iter().any(|c| t.contains(c)))
       .count();
-    // the old lexer panics when an iteration variable's name parts start with `in` (`for in+1 in
-    // [1] return 1`: `consumed_positions[index - 1]` underflows in the `till_in` tweak); now the
-    // `in` is the keyword, and a syntax error (see differential::registered_difference)
+    // the reference lexer panics when an iteration variable's name parts start with `in` (`for
+    // in+1 in [1] return 1`: `consumed_positions[index - 1]` underflows in the `till_in` tweak);
+    // the production lexer reads the keyword `in`, and the parser reports a syntax error (see
+    // differential::registered_difference)
     let actual = parse(&frames, &input, false);
     let expected = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| parse(&frames, &input, true))).unwrap_or_else(|_| "panic".to_string());
     if expected == "panic" {
@@ -326,9 +331,10 @@ fn name_lookup_equals_flattened_keys_search() {
       parsed += 1;
     }
   }
+  println!("name lookup: {parsed} of {cases} expressions parsed, {composite} composite names");
   // enough of the random expressions are valid FEEL for the AST comparison to matter
-  assert!(parsed > 1000, "only {parsed} expressions parsed");
-  assert!(composite > 20, "only {composite} composite names");
+  assert!(parsed > cases / 4, "only {parsed} of {cases} expressions parsed");
+  assert!(composite > cases / 200, "only {composite} composite names in {cases} expressions");
 }
 
 /// The names in scope by definition: every flattened key of every context on the stack (a key at
@@ -425,7 +431,7 @@ impl ReferenceScope {
 #[test]
 fn scope_operations_equal_reference_scope() {
   let mut rng = Rng(0xD1B5_4A32_D192_ED03);
-  for case in 0..1500 {
+  for case in 0..if full_size() { 1_500 } else { 100 } {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
     let scope = ParsingScope::new(&frames);
     let mut reference = ReferenceScope::new(&frames);
