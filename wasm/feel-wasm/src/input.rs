@@ -129,7 +129,7 @@ mod tests {
   use super::{Path, significant_digits};
 
   #[test]
-  fn paths_are_displayed_like_the_previous_strings() {
+  fn paths_are_displayed_as_dotted_keys_and_indexes() {
     let context = Path::Root("");
     let input = Path::Root("input");
     let items = Path::Key(&context, "items");

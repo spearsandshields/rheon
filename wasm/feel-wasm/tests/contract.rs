@@ -34,10 +34,27 @@ fn unary(tests: &str, input: Json) -> Json {
   eval_ok(json!({"op": "evaluate", "dialect": "unaryTests", "expression": tests, "input": input}))
 }
 
-fn error_kind(response: &Json) -> &str {
+/// The kind and the message of a failed response.
+fn error_of(response: &Json) -> (&str, &str) {
   assert_eq!(response["ok"], false, "expected failure, got {response}");
-  assert!(response["error"]["message"].is_string(), "{response}");
-  response["error"]["kind"].as_str().unwrap()
+  let message = response["error"]["message"].as_str().unwrap_or_else(|| panic!("no error message: {response}"));
+  (response["error"]["kind"].as_str().unwrap(), message)
+}
+
+fn error_kind(response: &Json) -> &str {
+  error_of(response).0
+}
+
+/// Asserts that a response is an error of `kind` with exactly `message`.
+#[track_caller]
+fn assert_error(response: &Json, kind: &str, message: &str) {
+  assert_eq!(error_of(response), (kind, message), "{response}");
+}
+
+/// The messages of a successful response's warnings.
+fn warnings(response: &Json) -> Vec<&str> {
+  assert_eq!(response["ok"], true, "expected success, got {response}");
+  response["warnings"].as_array().unwrap().iter().map(|w| w["message"].as_str().unwrap()).collect()
 }
 
 // ---------------------------------------------------------------- numbers
@@ -130,20 +147,17 @@ fn feel_context_literal() {
 
 #[test]
 fn bad_contexts() {
-  assert_eq!(
-    error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "{a: }"}))),
-    "context"
-  );
-  assert_eq!(
-    error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "[1,2]"}))),
-    "context"
-  );
-  assert_eq!(
-    error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": {"a": 1}}))),
-    "context"
-  );
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "context": [1, 2]}))), "context");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "context": "{a: 1}"}))), "context");
+  let feel = |context: Json| req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": context}));
+  assert_error(&feel(json!("{a: }")), "context", "invalid FEEL context: <ParserError> syntax error: {a: }");
+  assert_error(&feel(json!("[1,2]")), "context", "FEEL context literal expected, it evaluated to [1, 2] (list<number>)");
+  assert_error(&feel(json!("{a: 1, a: 2}")), "context", "FEEL context evaluated to null: duplicated context entry key: a");
+  let feel_text_expected = "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal";
+  assert_error(&feel(json!({"a": 1})), "context", feel_text_expected);
+  let json_object_expected = "with contextFormat \"json\", 'context' must be a JSON object";
+  assert_error(&req(json!({"op": "evaluate", "expression": "1", "context": [1, 2]})), "context", json_object_expected);
+  assert_error(&req(json!({"op": "evaluate", "expression": "1", "context": "{a: 1}"})), "context", json_object_expected);
+  let explicit_json = json!({"op": "evaluate", "expression": "1", "contextFormat": "json", "context": 1});
+  assert_error(&req(explicit_json), "context", json_object_expected);
   // empty / missing contexts are fine
   assert_eq!(
     eval_ok(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "  "}))["display"],
@@ -274,7 +288,7 @@ fn unary_tests_input_from_context() {
   // no input at all: tests null and warns
   let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "null"}));
   assert_eq!(response["result"]["display"], "true", "{response}");
-  assert_eq!(response["warnings"].as_array().unwrap().len(), 1, "{response}");
+  assert_eq!(warnings(&response), ["no input value given ('input' or context[\"?\"]); testing null"]);
 }
 
 // ---------------------------------------------------------------- errors and nulls
@@ -539,40 +553,37 @@ fn nesting_and_recursion_limits() {
 }
 
 fn nesting_and_recursion_limits_body() {
-  for e in [
-    format!("1{}", "+1".repeat(20000)),
-    format!("1{}+", "+1".repeat(20000)),
-    format!("{}1{}", "[".repeat(5000), "]".repeat(5000)),
-    format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000)),
+  let too_deep = |levels: usize| format!("expression is nested too deeply ({levels} levels, the limit is 300)");
+  let trailing_operator = format!("1{}+", "+1".repeat(20000));
+  for (e, message) in [
+    (format!("1{}", "+1".repeat(20000)), too_deep(20001)),
+    // a syntax error is reported before the depth is measured
+    (trailing_operator.clone(), format!("syntax error: {trailing_operator}")),
+    (format!("{}1{}", "[".repeat(5000), "]".repeat(5000)), too_deep(5001)),
+    (format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000)), too_deep(6001)),
+    (format!("1{}", "+1".repeat(300)), too_deep(301)),
   ] {
-    let response = req(json!({"op": "evaluate", "expression": e}));
-    assert_eq!(error_kind(&response), "syntax");
-    let response = req(json!({"op": "parse", "expression": e}));
-    assert_eq!(error_kind(&response), "syntax");
+    assert_error(&req(json!({"op": "evaluate", "expression": e})), "syntax", &message);
+    assert_error(&req(json!({"op": "parse", "expression": e})), "syntax", &message);
   }
-  assert!(
-    req(json!({"op": "evaluate", "expression": format!("1{}", "+1".repeat(20000))}))["error"]["message"]
-      .as_str()
-      .unwrap()
-      .contains("nested too deeply")
-  );
   assert_eq!(display(&format!("1{}", "+1".repeat(250))), "251");
   let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000))}));
-  assert_eq!(error_kind(&response), "context");
+  assert_error(&response, "context", &format!("invalid FEEL context: {}", too_deep(6001)));
   // recursion
+  let call_depth = "function calls are nested too deeply (more than 200 levels, e.g. runaway recursion); evaluation stopped";
   let rec = |n: u32| format!("{{f: function(n) if n = 0 then 0 else 1 + f(n - 1), r: f({n})}}.r");
   assert_eq!(display(&rec(150)), "150");
   for e in [rec(5000), "{f: function(n) f(n + 1), r: f(1)}.r".to_string()] {
-    let response = req(json!({"op": "evaluate", "expression": e}));
-    assert_eq!(error_kind(&response), "evaluation", "{response}");
+    assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", call_depth);
   }
   let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "{f: function(n) f(n + 1), r: f(1)}"}));
-  assert_eq!(error_kind(&response), "context");
+  assert_error(&response, "context", call_depth);
   // the limit does not leak into the next request
   assert_eq!(display(&rec(150)), "150");
   // a JSON context nested deeper than the request parser allows is a context error
   let request = format!(r#"{{"op":"evaluate","expression":"1","context":{{"x":{}1{}}}}}"#, "[".repeat(200), "]".repeat(200));
-  assert_eq!(error_kind(&raw(&request)), "context");
+  let message = "context or input JSON is nested too deeply (at most about 125 levels): recursion limit exceeded at line 1 column 175";
+  assert_error(&raw(&request), "context", message);
 }
 
 #[test]
@@ -593,13 +604,72 @@ fn json_numbers_that_underflow_warn() {
 }
 
 #[test]
+fn input_messages_name_the_place_of_the_value() {
+  // golden texts of the input warnings and errors
+  let message = |request: Json| -> String { req(request)["error"]["message"].as_str().unwrap().to_string() };
+  assert_eq!(
+    vec!["x.y[1].z: number 12345678901234567890123456789012345678 has more than 34 significant digits and was rounded to 12345678901234567890123456789012350000"],
+    warnings(&req(
+      json!({"op": "evaluate", "expression": "x", "context": {"x": {"y": [1, {"z": 12345678901234567890123456789012345678_u128}]}}})
+    ))
+  );
+  assert_eq!(
+    vec![
+      "input[0]: number 1e-7000 is too small for a 34-digit decimal (exponent below -6176) and became 0",
+      "input[1].k: number 1e-6177 is too small for a 34-digit decimal (exponent below -6176) and became 0"
+    ],
+    warnings(&raw(
+      r#"{"op": "evaluate", "expression": "?", "dialect": "unaryTests", "input": [1e-7000, {"k": 1e-6177}]}"#
+    ))
+  );
+  assert_eq!(
+    vec![format!(
+      "a[0]: number 1.5e-6176 is too small for a 34-digit decimal and was rounded to 0.{}2",
+      "0".repeat(6175)
+    )],
+    warnings(&raw(r#"{"op": "evaluate", "expression": "x", "context": {"a": [1.5e-6176]}}"#))
+  );
+  // the context's warnings come before the input's
+  assert_eq!(
+    vec![
+      "a: number 1e-7000 is too small for a 34-digit decimal (exponent below -6176) and became 0",
+      "input: number 1e-7000 is too small for a 34-digit decimal (exponent below -6176) and became 0"
+    ],
+    warnings(&raw(
+      r#"{"op": "evaluate", "expression": "1", "dialect": "unaryTests", "input": 1e-7000, "context": {"a": 1e-7000}}"#
+    ))
+  );
+  assert_eq!(
+    "a. b [0]: empty context key",
+    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {"a": {" b ": [{"": 1}]}}}"#).unwrap())
+  );
+  assert_eq!(
+    "context: empty context key",
+    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {" ": 1}}"#).unwrap())
+  );
+  assert_eq!(
+    "input: empty context key",
+    message(json!({"op": "evaluate", "expression": "1", "dialect": "unaryTests", "input": {"": 1}}))
+  );
+  assert_eq!(
+    " x .q [0]: invalid number '1e+7000': <FeelNumberError> invalid number literal '1e+7000'",
+    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {" x ": {"q ": [1e7000]}}}"#).unwrap())
+  );
+  assert_eq!(
+    "input[0]: invalid number '1e+7000': <FeelNumberError> invalid number literal '1e+7000'",
+    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "1", "dialect": "unaryTests", "input": [1e7000]}"#).unwrap())
+  );
+}
+
+#[test]
 fn boolean_unary_tests_with_question_mark_warn() {
-  for tests in ["? > 5", "? > 5 and ? < 10", "not(? = 1)", "> 1, ? < 3"] {
+  for (tests, number) in [("? > 5", 1), ("? > 5 and ? < 10", 1), ("not(? = 1)", 1), ("> 1, ? < 3", 2)] {
     let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": tests, "input": 7}));
-    assert_eq!(response["ok"], true, "{response}");
-    let warnings = response["warnings"].as_array().unwrap();
-    assert_eq!(warnings.len(), 1, "{tests}: {response}");
-    assert!(warnings[0]["message"].as_str().unwrap().contains("'?'"), "{response}");
+    let expected = format!(
+      "unary test #{number} is a boolean expression using '?': dsntk compares the input with its result (input = true/false) \
+       instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+    );
+    assert_eq!(warnings(&response), [expected.as_str()], "{tests}");
   }
   for tests in ["> 5", "[1..10]", "(? * 0) + 7", "-", "\"a\""] {
     let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": tests, "input": 7}));
@@ -619,6 +689,8 @@ fn syntax_error_messages_have_no_type_prefix() {
 fn context_keys_are_trimmed_but_inner_whitespace_is_kept() {
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "x", "context": {" x ": 1}}))["display"], "1");
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a b", "context": {"a  b": 1}}))["isNull"], true);
+  // a trimmed key is the same name as the untrimmed one; the later entry in key order (" a" < "a") wins
+  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a", "context": {"a": 1, " a": 2}}))["display"], "1");
 }
 
 #[test]
@@ -628,30 +700,125 @@ fn unknown_names_are_null() {
 }
 
 #[test]
-fn request_errors() {
-  assert_eq!(error_kind(&raw("not json")), "request");
-  assert_eq!(error_kind(&raw("[1]")), "request");
-  assert_eq!(error_kind(&raw("{}")), "request");
-  assert_eq!(error_kind(&req(json!({"op": "explode"}))), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate"}))), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": 1}))), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "dialect": "boxed"}))), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "contextFormat": "xml"}))), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "tzOffsetMinutes": 5000}))), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "tzOffsetMinutes": "UTC"}))), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "tzOffsetMinutes": 1.5}))), "request");
+fn request_error_messages() {
+  // the request text (the serde_json texts of the locked serde_json version)
+  assert_error(&raw("not json"), "request", "malformed request JSON: expected ident at line 1 column 2");
+  assert_error(&raw(""), "request", "malformed request JSON: EOF while parsing a value at line 1 column 0");
+  assert_error(
+    &raw(r#"{"op": "evaluate", "expression": "1",}"#),
+    "request",
+    "malformed request JSON: trailing comma at line 1 column 38",
+  );
+  assert_error(&raw("[1]"), "request", "request must be a JSON object");
   // invalid UTF-8 (only possible through bytes: the wasm ABI, or call_bytes)
-  let response: Json = serde_json::from_str(&feel_wasm::call_bytes(&[0xff, 0xfe])).unwrap();
-  assert_eq!(error_kind(&response), "request");
+  let invalid_utf8 = "request is not valid UTF-8: invalid utf-8 sequence of 1 bytes from index 0";
+  assert_error(&serde_json::from_str(&feel_wasm::call_bytes(&[0xff, 0xfe])).unwrap(), "request", invalid_utf8);
   #[cfg(target_arch = "wasm32")]
-  {
-    let response: Json = serde_json::from_str(&abi_call(&[0xff, 0xfe])).unwrap();
-    assert_eq!(error_kind(&response), "request");
+  assert_error(&serde_json::from_str(&abi_call(&[0xff, 0xfe])).unwrap(), "request", invalid_utf8);
+  // the operation
+  assert_error(&raw("{}"), "request", "missing 'op'");
+  assert_error(&req(json!({"op": 1})), "request", "'op' must be a string");
+  assert_error(&req(json!({"op": "explode"})), "request", "unknown op 'explode' (expected 'evaluate', 'parse' or 'info')");
+  // the expression
+  for op in ["evaluate", "parse"] {
+    assert_error(&req(json!({"op": op})), "request", "missing 'expression'");
+    assert_error(&req(json!({"op": op, "expression": 1})), "request", "'expression' must be a string");
+    assert_error(&req(json!({"op": op, "expression": null})), "request", "'expression' must be a string");
+  }
+  // the options name the offending JSON value
+  for (option, value, expected) in [
+    ("dialect", json!("boxed"), "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")"),
+    ("dialect", json!(1), "invalid 'dialect' 1 (expected \"expression\" or \"unaryTests\")"),
+    ("language", json!("x"), "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")"),
+    ("language", json!(true), "invalid 'language' true (expected \"feel\" or \"b-feel\")"),
+    ("errorMode", json!("x"), "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")"),
+    ("errorMode", json!({"a": 1}), "invalid 'errorMode' {\"a\":1} (expected \"lenient\" or \"strict\")"),
+    ("contextFormat", json!("xml"), "invalid 'contextFormat' \"xml\" (expected \"json\" or \"feel\")"),
+    ("contextFormat", json!(2), "invalid 'contextFormat' 2 (expected \"json\" or \"feel\")"),
+    ("tzOffsetMinutes", json!(5000), "'tzOffsetMinutes' must be an integer in -1080..=1080, got 5000"),
+    ("tzOffsetMinutes", json!(-1081), "'tzOffsetMinutes' must be an integer in -1080..=1080, got -1081"),
+    ("tzOffsetMinutes", json!(1.5), "'tzOffsetMinutes' must be an integer in -1080..=1080, got 1.5"),
+    ("tzOffsetMinutes", json!("UTC"), "'tzOffsetMinutes' must be a number, got \"UTC\""),
+  ] {
+    let mut request = json!({"op": "evaluate", "expression": "1"});
+    request[option] = value;
+    assert_error(&req(request), "request", expected);
   }
   // i64::MIN must not slip through the range check (abs() overflow)
-  assert_eq!(error_kind(&raw(r#"{"op":"evaluate","expression":"1","tzOffsetMinutes":-9223372036854775808}"#)), "request");
-  assert_eq!(error_kind(&req(json!({"op": "evaluate", "expression": "1", "tzOffsetMinutes": -1081}))), "request");
+  assert_error(
+    &raw(r#"{"op":"evaluate","expression":"1","tzOffsetMinutes":-9223372036854775808}"#),
+    "request",
+    "'tzOffsetMinutes' must be an integer in -1080..=1080, got -9223372036854775808",
+  );
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "1", "tzOffsetMinutes": -1080}))["display"], "1");
+  // strict mode reports the first diagnostic
+  assert_error(
+    &req(json!({"op": "evaluate", "expression": "if 1 + \"a\" = null then 1 else 2", "errorMode": "strict"})),
+    "evaluation",
+    "strict error mode: incompatible types in addition: 1(number) + \"a\"(string)",
+  );
+}
+
+/// The request is parsed first; then, of several invalid fields, the one read first is reported:
+/// dialect, language, errorMode, expression, tzOffsetMinutes, contextFormat, context, input, and
+/// last the syntax of the expression. `parse` reads only dialect, expression, contextFormat,
+/// context and input; `info` reads nothing but `op`.
+#[test]
+fn request_error_order() {
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'parse' or 'info')";
+  let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
+  let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
+  let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
+  let missing_expression = "missing 'expression'";
+  let tz_offset = "'tzOffsetMinutes' must be an integer in -1080..=1080, got 5000";
+  let context_format = "invalid 'contextFormat' \"xml\" (expected \"json\" or \"feel\")";
+  let json_context = "with contextFormat \"json\", 'context' must be a JSON object";
+  let input = "input: empty context key";
+  for (request, kind, message) in [
+    (json!({"op": "explode", "dialect": "boxed"}), "request", unknown_op),
+    (json!({"op": "evaluate", "dialect": "boxed", "language": "x"}), "request", dialect),
+    (json!({"op": "evaluate", "dialect": "boxed"}), "request", dialect),
+    (json!({"op": "evaluate", "language": "x", "errorMode": "x"}), "request", language),
+    (json!({"op": "evaluate", "errorMode": "x"}), "request", error_mode),
+    (json!({"op": "evaluate", "tzOffsetMinutes": 5000}), "request", missing_expression),
+    (
+      json!({"op": "evaluate", "expression": "1", "tzOffsetMinutes": 5000, "contextFormat": "xml"}),
+      "request",
+      tz_offset,
+    ),
+    (json!({"op": "evaluate", "expression": "1 +", "tzOffsetMinutes": 5000}), "request", tz_offset),
+    (
+      json!({"op": "evaluate", "expression": "1", "contextFormat": "xml", "context": [1]}),
+      "request",
+      context_format,
+    ),
+    (json!({"op": "evaluate", "expression": "1 +", "context": [1]}), "context", json_context),
+    (
+      json!({"op": "evaluate", "expression": "1", "dialect": "unaryTests", "context": [1], "input": {"": 1}}),
+      "context",
+      json_context,
+    ),
+    (json!({"op": "evaluate", "expression": "1 +", "dialect": "unaryTests", "input": {"": 1}}), "context", input),
+    (json!({"op": "parse", "dialect": "boxed", "context": [1]}), "request", dialect),
+    (json!({"op": "parse", "context": [1]}), "request", missing_expression),
+    (
+      json!({"op": "parse", "expression": "1", "language": "x", "contextFormat": "xml"}),
+      "request",
+      context_format,
+    ),
+    (json!({"op": "parse", "expression": "1 +", "context": [1]}), "context", json_context),
+    (json!({"op": "parse", "expression": "1 +", "dialect": "unaryTests", "input": {"": 1}}), "context", input),
+  ] {
+    assert_error(&req(request), kind, message);
+  }
+  // a JSON nesting error is found while the request is parsed, before 'op' is read
+  let request = format!(r#"{{"x":{}1{}}}"#, "[".repeat(200), "]".repeat(200));
+  let message = "context or input JSON is nested too deeply (at most about 125 levels): recursion limit exceeded at line 1 column 132";
+  assert_error(&raw(&request), "context", message);
+  // fields an operation does not read are not checked
+  let parsed = req(json!({"op": "parse", "expression": "1", "language": "x", "errorMode": "x", "tzOffsetMinutes": "x"}));
+  assert_eq!(parsed["ok"], true, "{parsed}");
+  assert_eq!(req(json!({"op": "info", "dialect": "boxed", "expression": 1}))["ok"], true);
 }
 
 // ---------------------------------------------------------------- parse / info
@@ -955,48 +1122,4 @@ fn zoned_date_time_display() {
   // offsets and local values are unchanged
   assert_eq!(display(r#"@"2007-12-03T10:15:30+01:00""#), r#""2007-12-03T10:15:30+01:00""#);
   assert_eq!(display(r#"@"2007-12-03T10:15:30""#), r#""2007-12-03T10:15:30""#);
-}
-
-#[test]
-fn input_messages_name_the_place_of_the_value() {
-  // the exact texts of 0.3.0 (the paths are built only when a message needs them)
-  let warnings = |request: Json| -> Vec<String> {
-    let response = req(request);
-    assert_eq!(response["ok"], true, "{response}");
-    response["warnings"]
-      .as_array()
-      .unwrap()
-      .iter()
-      .map(|w| w["message"].as_str().unwrap().to_string())
-      .collect()
-  };
-  let message = |request: Json| -> String { req(request)["error"]["message"].as_str().unwrap().to_string() };
-  assert_eq!(
-    vec!["x.y[1].z: number 12345678901234567890123456789012345678 has more than 34 significant digits and was rounded to 12345678901234567890123456789012350000"],
-    warnings(json!({"op": "evaluate", "expression": "x", "context": {"x": {"y": [1, {"z": 12345678901234567890123456789012345678_u128}]}}}))
-  );
-  assert_eq!(
-    vec![
-      "input[0]: number 1e-7000 is too small for a 34-digit decimal (exponent below -6176) and became 0",
-      "input[1].k: number 1e-6177 is too small for a 34-digit decimal (exponent below -6176) and became 0"
-    ],
-    warnings(serde_json::from_str(r#"{"op": "evaluate", "expression": "?", "dialect": "unaryTests", "input": [1e-7000, {"k": 1e-6177}]}"#).unwrap())
-  );
-  assert_eq!(
-    "a. b [0]: empty context key",
-    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {"a": {" b ": [{"": 1}]}}}"#).unwrap())
-  );
-  assert_eq!(
-    "context: empty context key",
-    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {" ": 1}}"#).unwrap())
-  );
-  assert_eq!(
-    " x .q [0]: invalid number '1e+7000': <FeelNumberError> invalid number literal '1e+7000'",
-    message(serde_json::from_str(r#"{"op": "evaluate", "expression": "x", "context": {" x ": {"q ": [1e7000]}}}"#).unwrap())
-  );
-  // a trimmed key is the same name as the untrimmed one; the later entry in key order (" a" < "a") wins
-  assert_eq!(
-    "1",
-    eval_ok(serde_json::from_str(r#"{"op": "evaluate", "expression": "a", "context": {"a": 1, " a": 2}}"#).unwrap())["display"]
-  );
 }
