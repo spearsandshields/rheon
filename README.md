@@ -197,7 +197,7 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   same toolchain, lock file and commit give a byte-identical `feel.wasm`
   from any directory (verified by rebuilding from a copy at another path). A plain
   `cargo build` without the script still works but embeds the builder's paths. The JS bundle is
-  about 530 kB (180 kB gzip), mostly CodeMirror and lang-feel's completion docs.
+  about 523 kB (175 kB gzip), mostly CodeMirror and lang-feel's completion docs.
 - **Long loops** were quadratic in upstream dsntk (`for i in 1..100000` took tens of seconds);
   this repository makes them linear (`count(for i in 1..1000000 return i)` takes about 0.11 s
   in wasm). Expressions that are still too slow hit the 2 s timeout; the worker is terminated
