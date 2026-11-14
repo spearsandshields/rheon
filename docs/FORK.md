@@ -1168,6 +1168,14 @@ The totals are under "Verification" below.
     evaluated (60), and `string()` results that carry those texts (23). The listed classes cover
     them; the full run, 2,896,576 cases in 5.3 min, has no other wrong answer, no trap and no
     undecided case. No API change.
+91. **CI runs the number oracle.** Job `wasm` runs the quick size of the oracle (item 90) on the
+    build after the identity check: a virtual environment of the runner's `python3`, mpmath
+    installed with `pip install --require-hashes` from `tools/number-oracle/requirements.txt`, and
+    `run.sh quick` with `PYTHON` pointing into it. A planted exemption for a healthy family
+    (`sqrt/perfect`, `value`) makes the same command fail as a stale entry (exit 1); without it
+    the command passes, 35,924 cases in 6.4 s. The install from PyPI was not run here (no network
+    on the development machine); there the environment held the same mpmath 1.3.0 files, checked
+    against the wheel's `RECORD`. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

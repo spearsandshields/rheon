@@ -51,6 +51,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
       - run: npm run test:identity # the identity tool's own checks, on the baseline and the build
+      # every number result of the build judged against its truth under DMN 1.6 (tools/number-oracle):
+      # the runner's own python3 in a virtual environment with mpmath, pinned by hash
+      - run: python3 -m venv .tools/py && .tools/py/bin/pip install --require-hashes -r tools/number-oracle/requirements.txt
+      - run: bash tools/number-oracle/run.sh quick
+        env:
+          PYTHON: .tools/py/bin/python
       - run: npm run test:rust # native contract tests of rheon-feel-wasm
       - run: npm run test:rust:wasm # the same tests under wasmtime
       - run: npm run test:runtime # @rheon/feel-runtime (node --test)
