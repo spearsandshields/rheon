@@ -949,6 +949,26 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     decision service is semantically equivalent to a FEEL function"); the owner rule that memory
     never accumulates beyond a request. API break (behaviour, rheon-model-evaluator): a
     decision-service function value called after its model was dropped is null with that reason.
+83. **The wasm display measures the width of a line before rendering it.** `display` writes a list
+    or context on one line when that line fits 80 columns, else expanded. It built the one-line
+    text of every container to compare its length and kept it while it rendered the children, so
+    a result nested d levels deep around a string of s bytes held about d × s bytes at once: a
+    2 MiB string inside 280 lists filled the 512 MiB memory cap and trapped the module. Now one
+    one-line writer writes either into the output or into a measure that counts the bytes and
+    stops once they pass the width left on the line (strings and keys are counted as serde_json
+    escapes them, without a copy, and a string longer than that width stops the measure at
+    once), and each node is written once. The output is byte-identical: `indent + width <= 80`
+    holds exactly when `width <= 80 - indent`, and past indent 80 no container fits, as before;
+    tests pin the 80/81-byte boundary at indent 0, 2 and 78, a width counted in bytes, the
+    escapes of strings and keys at the boundary, empty containers and nesting past indent 80.
+    `scripts/smoke.mjs` evaluates the 280-level probe on a fresh instance: the 0.4.0 module
+    traps after growing by 498 MiB, the new one answers with the expanded display and grows by
+    26.5 MiB (bound 32 MiB). Speed against 0.4.0 (engine benchmarks): geomean 1.00x, larger
+    results 1.05-1.10x (`ctx200-*`), every workload at 0.96x or above. 1 registered difference:
+    the probe, which trapped and now answers. What remains: a scalar other than a string (a
+    range with long string endpoints) is still rendered to text when it is measured, at most
+    once per enclosing level within 80 bytes of it. Basis: CONTRACT §3, the `display` rule;
+    the owner rule that robustness comes first. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -84,6 +84,14 @@ if (args.length) {
   const comparisons = '{big: for i in 1..100000 return i, r: for j in 1..1000 return big = j}.r';
   const nulls = (r) => r.ok && r.result?.type === 'list<Null>' && r.diagnostics?.count === 1000;
   if (!(await memoryCheck('1,000 null reasons quoting a 100,000-item list', comparisons, nulls, 32 * 2 ** 20))) failed++;
+  // memory check: a 2 MiB string inside 280 lists; the display measures each level's width
+  // instead of rendering it on one line, so it holds the output, not one copy of the string per level
+  const depth = 280;
+  const leaf = 'x'.repeat(2 ** 21);
+  const deep = `${'['.repeat(depth)}{d: function(s, n) if n = 0 then s else d(s + s, n - 1), r: d("x", 21)}.r${']'.repeat(depth)}`;
+  let expanded = JSON.stringify(leaf);
+  for (let level = depth - 1; level >= 0; level--) expanded = `[\n${' '.repeat(2 * level + 2)}${expanded}\n${' '.repeat(2 * level)}]`;
+  if (!(await memoryCheck('a 2 MiB string inside 280 lists', deep, (r) => r.ok && r.result?.display === expanded, 16 * 2 ** 21))) failed++;
   console.log(failed ? `${failed} check(s) failed` : 'smoke ok');
 }
 process.exit(failed ? 1 : 0);
