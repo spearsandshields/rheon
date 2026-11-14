@@ -103,6 +103,7 @@ Rules:
 | 55 | | feel-wasm: test that no corpus request traps the module | fork |
 | 56 | | tools: identity check of full responses against the previous release | fork |
 | 57 | | ci: check response identity against the previous release | fork |
+| 58 | | tools: frozen temporal request corpus | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -458,6 +459,20 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     the four requests of the corpus that quote it; the unchanged build passes it; a download with
     a different sha256 is deleted and fails the step, and so does a failed download. No API
     change.
+58. **Frozen temporal corpus.** `tools/identity/requests/temporal.json` holds 440 temporal requests
+    and no expected answers: the previous release answers them, and every change of an answer is
+    registered with the change that makes it. It covers fractional seconds of 1 to 9 digits (all
+    zeros, a final 1, all nines, fractions whose binary product is known to be off, exact ones) and
+    of more than 9 digits, in each literal form (`time`, `date and time` and `duration` texts and
+    `@"…"` literals); the exact constructor paths (`time(h, m, s)` with fractional and computed
+    seconds, `date and time(date, time[, zone])`) and carries at 24:00 and at the end of a year;
+    the range edges of dates, date-times and both duration kinds, year 0 and years below 1000;
+    daylight saving gaps and overlaps (Europe/Paris, America/New_York, the 30-minute shift of
+    Australia/Lord_Howe, the skipped day of Pacific/Apia, a date beyond the zone rules' horizon);
+    zoned against zone-less comparisons; and offsets at and beyond ±18:00, with seconds and with
+    invalid minutes. With the evaluate requests also sent as parse requests and the no-trap corpus,
+    the identity check sends 1,008 requests, all answered without a trap and identical between the
+    build and 0.4.0. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

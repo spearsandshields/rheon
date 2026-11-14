@@ -16,5 +16,5 @@ if [ $# -lt 2 ]; then
 fi
 reference=$1 candidate=$2
 shift 2
-sources=("$root/wasm/feel-wasm/tests/corpus/no-trap.json")
+sources=("$here/requests" "$root/wasm/feel-wasm/tests/corpus/no-trap.json")
 node "$here/equal.mjs" "$reference" "$candidate" --parse-too "${sources[@]}" --ledger "$here/registered" "$@"
