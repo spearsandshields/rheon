@@ -697,6 +697,21 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     `compose`, at most 1,000 characters. Native only (DMN is not in the wasm module); the TCK
     results are identical. Basis: messages name the value by a short preview and its size
     (owner decision). No API change.
+71. **Request echoes are previews and every message is capped.** The wasm layer quoted request
+    values whole: an invalid `dialect`, `language`, `errorMode`, `contextFormat`, `op` or
+    `tzOffsetMinutes` was echoed in full, a JSON number's text and the path of a value in the
+    input messages too, and a rounded input number in its plain digits
+    (`a[0]: number 1.5e-6176 is too small for a 34-digit decimal and was rounded to 0.<6175
+    zeros>2`). They now quote through `arg` (`invalid 'dialect' "xxx…… (200 characters) (expected
+    "expression" or "unaryTests")`, `… was rounded to 2E-6176`); the path of an input value is
+    written as it goes, never built as a text, and a long one is a preview with its size in
+    characters in every message; the FEEL-context error quotes its value and `TypeOf`, and every `error.message`, warning and strict-mode text goes
+    through `compose`, so no message of a response exceeds 1,000 characters (CONTRACT §3 states
+    the rule). 11 registered differences: the echoes of a long `dialect` and `contextFormat` (each
+    for evaluate and parse), `op` and a 1,000-digit `tzOffsetMinutes`, the empty-key error under a
+    2,000-character key (evaluate and parse) and the number warning under it, a 5,002-character
+    number and the rounded `1.5e-6176`; the identity check sends these numbers as written. Basis: messages name the value by a short
+    preview and its size (owner decision); CONTRACT §3. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

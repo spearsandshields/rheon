@@ -646,11 +646,9 @@ fn input_messages_name_the_place_of_the_value() {
       r#"{"op": "evaluate", "expression": "?", "dialect": "unaryTests", "input": [1e-7000, {"k": 1e-6177}]}"#
     ))
   );
+  // a number longer than 40 characters is quoted in scientific notation
   assert_eq!(
-    vec![format!(
-      "a[0]: number 1.5e-6176 is too small for a 34-digit decimal and was rounded to 0.{}2",
-      "0".repeat(6175)
-    )],
+    vec!["a[0]: number 1.5e-6176 is too small for a 34-digit decimal and was rounded to 2E-6176"],
     warnings(&raw(r#"{"op": "evaluate", "expression": "x", "context": {"a": [1.5e-6176]}}"#))
   );
   // the context's warnings come before the input's
@@ -721,6 +719,84 @@ fn context_keys_are_trimmed_but_inner_whitespace_is_kept() {
 fn unknown_names_are_null() {
   let r = expr("unknown variable + 1");
   assert_eq!(r["isNull"], true, "{r}");
+}
+
+/// Every message of a response: the error, the null reason, the diagnostics and the warnings.
+fn messages(response: &Json) -> Vec<String> {
+  let mut messages = vec![];
+  for text in [&response["error"]["message"], &response["result"]["nullReason"]] {
+    if let Some(text) = text.as_str() {
+      messages.push(text.to_string());
+    }
+  }
+  for list in [&response["diagnostics"]["messages"], &response["warnings"]] {
+    for item in list.as_array().into_iter().flatten() {
+      messages.push(item.as_str().or_else(|| item["message"].as_str()).unwrap().to_string());
+    }
+  }
+  messages
+}
+
+#[test]
+fn request_echoes_are_previews_and_every_message_is_capped() {
+  let check = |request: Json, kind: &str, message: String| {
+    let response = req(request);
+    assert_error(&response, kind, &message);
+    assert!(messages(&response).iter().all(|m| m.chars().count() <= 1000), "{response}");
+  };
+  let x = "x".repeat(200);
+  check(
+    json!({"op": "evaluate", "expression": "41 + 1", "dialect": x}),
+    "request",
+    format!("invalid 'dialect' \"{}… (200 characters) (expected \"expression\" or \"unaryTests\")", "x".repeat(119)),
+  );
+  check(
+    json!({"op": "y".repeat(300)}),
+    "request",
+    format!("unknown op '{}… (300 characters)' (expected 'evaluate', 'parse' or 'info')", "y".repeat(120)),
+  );
+  check(
+    json!({"op": "evaluate", "expression": "1", "contextFormat": (1..=300).collect::<Vec<_>>()}),
+    "request",
+    format!(
+      "invalid 'contextFormat' [{}… (300 items) (expected \"json\" or \"feel\")",
+      &(1..=300).map(|i| i.to_string()).collect::<Vec<_>>().join(",")[..119]
+    ),
+  );
+  let digits = "7".repeat(1000);
+  let request = format!(r#"{{"op": "evaluate", "expression": "1", "tzOffsetMinutes": {digits}}}"#);
+  let response = raw(&request);
+  assert_error(
+    &response,
+    "request",
+    &format!("'tzOffsetMinutes' must be an integer in -1080..=1080, got {}… (1000 characters)", &digits[..120]),
+  );
+  let key = "k".repeat(2000);
+  let response = req(json!({"op": "evaluate", "expression": "1", "context": {key.clone(): {" ": 1}}}));
+  assert_error(&response, "context", &format!("{}… (2000 characters): empty context key", &key[..120]));
+  // every message quotes a path the same way: a preview and its size
+  let response = raw(&format!(r#"{{"op": "evaluate", "expression": "1", "context": {{"{key}": {{"a": 1e-7000}}}}}}"#));
+  assert_eq!(
+    vec![format!(
+      "{}… (2002 characters): number 1e-7000 is too small for a 34-digit decimal (exponent below -6176) and became 0",
+      &key[..120]
+    )],
+    warnings(&response)
+  );
+  // a long number text is a preview, the rounded number is in scientific notation
+  let long = format!("1.{}", "2".repeat(5000));
+  let response = raw(&format!(r#"{{"op": "evaluate", "expression": "x", "context": {{"x": {long}}}}}"#));
+  assert_eq!(
+    vec![format!(
+      "x: number {}… (5002 characters) has more than 34 significant digits and was rounded to 1.222222222222222222222222222222222",
+      &long[..120]
+    )],
+    warnings(&response)
+  );
+  // a strict-mode error quotes the first reason, which quotes a preview
+  let response = req(json!({"op": "evaluate", "expression": "(for i in 1..1000 return i) = 2", "errorMode": "strict"}));
+  assert!(messages(&response).iter().all(|m| m.chars().count() <= 1000), "{response}");
+  assert!(error_of(&response).1.ends_with("… (1000 items)' =?= '2'"), "{response}");
 }
 
 #[test]
