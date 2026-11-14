@@ -2,6 +2,7 @@
 
 use crate::context::FeelContext;
 use crate::errors::*;
+use crate::message::{MessageArg, Size};
 use crate::names::Name;
 use crate::strings::write_separated;
 use crate::value_null;
@@ -82,22 +83,12 @@ impl fmt::Display for FeelType {
     match self {
       FeelType::Any => write!(f, "{FEEL_TYPE_NAME_ANY}"),
       FeelType::Boolean => write!(f, "{FEEL_TYPE_NAME_BOOLEAN}"),
-      FeelType::Context(entries) => {
-        f.write_str("context<")?;
-        write_separated(f, entries, |f, (entry_name, entry_type)| write!(f, "{entry_name}: {entry_type}"))?;
-        f.write_str(">")
-      }
+      FeelType::Context(entries) => write_context_type(f, entries),
       FeelType::Date => write!(f, "{FEEL_TYPE_NAME_DATE}"),
       FeelType::DateTime => write!(f, "{FEEL_TYPE_NAME_DATE_AND_TIME}"),
       FeelType::DaysAndTimeDuration => write!(f, "{FEEL_TYPE_NAME_DAYS_AND_TIME_DURATION}"),
-      FeelType::Function(parameter_types, result_type) => {
-        f.write_str("function<")?;
-        write_separated(f, parameter_types, |f, parameter_type| write!(f, "{parameter_type}"))?;
-        write!(f, ">->{result_type}")
-      }
-      FeelType::List(item_type) => {
-        write!(f, "list<{item_type}>")
-      }
+      FeelType::Function(parameter_types, result_type) => write_function_type(f, parameter_types, result_type),
+      FeelType::List(item_type) => write_list_type(f, item_type),
       FeelType::Null => write!(f, "{FEEL_TYPE_NAME_NULL}"),
       FeelType::Number => write!(f, "{FEEL_TYPE_NAME_NUMBER}"),
       FeelType::Range(range_type) => {
@@ -106,6 +97,38 @@ impl fmt::Display for FeelType {
       FeelType::String => write!(f, "{FEEL_TYPE_NAME_STRING}"),
       FeelType::Time => write!(f, "{FEEL_TYPE_NAME_TIME}"),
       FeelType::YearsAndMonthsDuration => write!(f, "{FEEL_TYPE_NAME_YEARS_AND_MONTHS_DURATION}"),
+    }
+  }
+}
+
+/// Writes a context type, `context<a: number, b: string>`, from its entries' names and types.
+pub(crate) fn write_context_type<N: fmt::Display, T: fmt::Display>(f: &mut fmt::Formatter<'_>, entries: impl IntoIterator<Item = (N, T)>) -> fmt::Result {
+  f.write_str("context<")?;
+  write_separated(f, entries, |f, (entry_name, entry_type)| write!(f, "{entry_name}: {entry_type}"))?;
+  f.write_str(">")
+}
+
+/// Writes a list type, `list<number>`, from its item type.
+pub(crate) fn write_list_type(f: &mut fmt::Formatter<'_>, item_type: impl fmt::Display) -> fmt::Result {
+  write!(f, "list<{item_type}>")
+}
+
+/// Writes a function type, `function<number, string>->boolean`, from its parameter and result types.
+pub(crate) fn write_function_type<T: fmt::Display>(f: &mut fmt::Formatter<'_>, parameter_types: impl IntoIterator<Item = T>, result_type: impl fmt::Display) -> fmt::Result {
+  f.write_str("function<")?;
+  write_separated(f, parameter_types, |f, parameter_type| write!(f, "{parameter_type}"))?;
+  write!(f, ">->{result_type}")
+}
+
+impl MessageArg for FeelType {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{self}")
+  }
+
+  fn size(&self) -> Option<Size> {
+    match self {
+      FeelType::Context(entries) => Some(Size::Entries(entries.len())),
+      _ => None,
     }
   }
 }

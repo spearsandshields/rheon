@@ -7,6 +7,7 @@ use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
 use regex::Regex;
 use rheon_feel::context::FeelContext;
+use rheon_feel::message::arg;
 use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value, Values};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, MonthOfYear, WeekOfYear};
@@ -3067,32 +3068,9 @@ fn during_rr<T: PartialOrd>(
     && (end_1 < end_2 || (end_1 == end_2 && (end_type_1.closed() == end_type_2.closed() || end_type_2.closed())))
 }
 
-/// Formats a number for an error message. Numbers whose plain decimal text is longer than
-/// 40 characters (e.g. `9e6144`, which prints as 6145 digits) are shown in scientific notation,
-/// so that a message stays readable.
+/// Formats a number for an error message (numbers longer than 40 characters in scientific notation).
 fn message_number(number: &FeelNumber) -> String {
-  const MAX_PLAIN_LEN: usize = 40;
-  let plain = number.to_string();
-  if plain.len() <= MAX_PLAIN_LEN {
-    return plain;
-  }
-  let (sign, unsigned) = match plain.strip_prefix('-') {
-    Some(rest) => ("-", rest),
-    None => ("", plain.as_str()),
-  };
-  let (int_part, frac_part) = unsigned.split_once('.').unwrap_or((unsigned, ""));
-  let digits = format!("{int_part}{frac_part}");
-  let Some(first) = digits.find(|c: char| c != '0') else {
-    return plain;
-  };
-  let exponent = int_part.len() as i64 - first as i64 - 1;
-  let mantissa = digits[first..].trim_end_matches('0');
-  let (head, tail) = mantissa.split_at(1);
-  if tail.is_empty() {
-    format!("{sign}{head}E{exponent:+}")
-  } else {
-    format!("{sign}{head}.{tail}E{exponent:+}")
-  }
+  arg(number).to_string()
 }
 
 #[cfg(test)]

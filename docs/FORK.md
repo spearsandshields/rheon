@@ -615,6 +615,45 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     wanted 200. Each element is now written straight to the formatter, separated by `, ` in one
     helper, so formatting stops at the first refused write. Every text is byte for byte the same.
     Basis: messages must be bounded in time and memory, not only in length. No API change.
+67. **One bounded renderer for message arguments and a cap per message.** A null reason was
+    `format!` of whatever its arguments printed, so a reason that quoted a long list, context or
+    pattern held all of it: `(for i in 1..1000 return i) = 1` gave a 4,913-character reason, and
+    1,000 comparisons of a 100,000-item list (`{big: for i in 1..100000 return i, r: for j in
+    1..1000 return big = j}.r`) built about 690 MB of reasons and trapped the module at its 512 MiB
+    cap. The new module `rheon_feel::message` has the one renderer and the one funnel: `arg` quotes
+    a value, type, context, name or text whole when its text is at most 120 characters and as a
+    preview otherwise (its first 120 characters, `…` and its size: `N items`, `N entries`, `N
+    characters`), and a number whose plain text is longer than 40 characters in scientific notation;
+    `compose` builds a message of at most 1,000 characters, a longer one keeping its first 999 and
+    `…`, and stops formatting there. `value_null!` builds every reason through `compose`, so every
+    reason is bounded by construction, even at a site that quotes a value without `arg`, and builds
+    it out of line, in `values::null_with_reason`, which is cold and never inlined: a reason's
+    arguments and formatting take no space in the stack frame of the code that returns the null,
+    often an evaluator that recursion nests deeply. The recursion of the stack check
+    (`scripts/stack-headroom.mjs --report`, a body nested d levels in 190 calls) reaches at least
+    the depths of 0.4.0 on every host (0.4.0 → this build, macOS arm64): the Node main thread 17 →
+    18 with Liftoff and 14 → 14 with TurboFan, the 2 MiB worker 37 → 40 and 31 → 31, the 3 MiB
+    worker 60 → 64 and 50 → 50, the 4 MiB worker 64 → 89 and 64 → 69, Wasmtime with 512 KiB, 1, 2
+    and 4 MiB 9, 23, 52, 64 → 10, 25, 57, 98; a level of `+` takes 227 bytes of the Liftoff stack,
+    243 before. The type of a value is quoted as `values::TypeOf`, which writes the text of
+    `type_of()` from the value itself: a context type entry by entry, a list type from its first
+    item's type built with at most 1,000 type nodes (`list<…>` when it would hold more), declared
+    types as they are; `type_of()` itself is the same body with an unlimited budget. The
+    `MessageArg` impls live with their types. With streaming `Display` (item 66), a message
+    allocates a bounded amount, never a whole value or type. This commit caps; the sites quote
+    previews from the next ones on. 5 answers change: four reasons over 1,000 characters (a list
+    compared with a number, in lenient and strict mode, a missing path entry of a long context, an
+    invalid pattern of 5,001 characters) are cut, and the evaluation of 1,000 such reasons, which
+    trapped, answers; `scripts/smoke.mjs` checks it on a fresh instance (22 MiB of growth; 0.4.0
+    traps at 500 MiB). Item 68 gives four of them previews and registers them with those answers, so
+    1 registered difference is this item's: the reason of the invalid pattern, which stays cut.
+    Speed against 0.4.0: the suite geomean 1.00x, 1,000 error nulls 1.00x. Basis: messages name the
+    value by a short preview and its size, at most 1,000 characters each (owner decision); CONTRACT
+    §3 (numbers over 40 characters in scientific notation). API breaks (rheon-feel): `message::{arg,
+    Arg, compose, MessageArg, Size}`, `values::TypeOf` and `values::null_with_reason` are added,
+    with `MessageArg` for `TypeOf` and for the existing `Value`, `FeelType`, `FeelNumber`, `Name`,
+    `FeelContext`, `Bip`, `str`, `String` and `serde_json::Value`; `value_null!` caps its message at
+    1,000 characters.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

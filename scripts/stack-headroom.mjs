@@ -43,10 +43,11 @@
 //
 // The floors are 60, the depth release 0.3.0 reaches in the TurboFan worker and in Wasmtime on
 // macOS arm64 (its Liftoff worker reaches 49), so a change that leaves less headroom than the
-// release had fails here. On macOS arm64 the worker (with either compiler) and Wasmtime all reach
-// 64, where the 10 MiB shadow stack runs out before their 4 MiB native stacks do. The shadow stack
-// is in linear memory and the same on every host, so the floors guard the native stack, whose use
-// depends on the platform and on the V8 and Wasmtime versions. A change that alters the measured
+// release had fails here. On macOS arm64 the 4 MiB worker reaches 89 with Liftoff and 69 with
+// TurboFan, where its native stack runs out, and Wasmtime reaches 98, where the 10 MiB shadow stack
+// runs out before its 4 MiB native stack does. The shadow stack is in linear memory and the same on
+// every host, so the floors guard the native stack, whose use depends on the platform and on the V8
+// and Wasmtime versions. A change that alters the measured
 // depths on purpose updates the floors with them.
 //
 // --report checks nothing: it prints the deepest recursion each host reaches (Node main thread, and

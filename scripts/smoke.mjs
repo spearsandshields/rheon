@@ -36,6 +36,24 @@ const checks = [
 ];
 
 let failed = 0;
+
+// Evaluates `expression` on a fresh instance: the response must pass `check`, and linear memory
+// must grow by at most `bound` bytes.
+async function memoryCheck(label, expression, check, bound) {
+  const fresh = await instantiate(module);
+  const initial = fresh.memory.buffer.byteLength;
+  let outcome;
+  try {
+    const response = callRaw(fresh, JSON.stringify({ op: 'evaluate', expression }));
+    outcome = check(response) ? 'answered' : `wrong answer ${JSON.stringify(response).slice(0, 200)}`;
+  } catch (trap) {
+    outcome = `trap: ${trap.message}`;
+  }
+  const growth = fresh.memory.buffer.byteLength - initial;
+  const ok = outcome === 'answered' && growth <= bound;
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${label}: ${outcome}, memory grew by ${(growth / 2 ** 20).toFixed(1)} MiB (at most ${(bound / 2 ** 20).toFixed(1)})`);
+  return ok;
+}
 if (args.length) {
   for (const a of args) console.log(JSON.stringify(call(a), null, 2));
 } else {
@@ -55,23 +73,17 @@ if (args.length) {
   const leakOk = after === before;
   if (!leakOk) failed++;
   console.log(`${leakOk ? 'PASS' : 'FAIL'} 2000 calls: memory ${before} -> ${after} bytes`);
-  // memory check: 26 doublings of a string, on a fresh instance, build a 128 MiB result under the
-  // 512 MiB cap; shared strings keep the growth of linear memory near the live data (each level's
-  // string plus the result), at most 2.2 times the result
-  const doubling = { op: 'evaluate', expression: '{f: function(s, n) if n = 0 then string length(s) else f(s + s, n-1), r: f("ab", 26)}.r' };
-  const fresh = await instantiate(module);
-  const initial = fresh.memory.buffer.byteLength;
-  let outcome;
-  try {
-    outcome = callRaw(fresh, JSON.stringify(doubling)).result?.display;
-  } catch (trap) {
-    outcome = `trap: ${trap.message}`;
-  }
-  const growth = fresh.memory.buffer.byteLength - initial;
+  // memory check: 26 doublings of a string build a 128 MiB result under the 512 MiB cap; shared
+  // strings keep the growth of linear memory near the live data (each level's string plus the
+  // result), at most 2.2 times the result
+  const doubling = '{f: function(s, n) if n = 0 then string length(s) else f(s + s, n-1), r: f("ab", 26)}.r';
   const resultBytes = 2 ** 27;
-  const memoryOk = outcome === String(resultBytes) && growth <= 2.2 * resultBytes;
-  if (!memoryOk) failed++;
-  console.log(`${memoryOk ? 'PASS' : 'FAIL'} 26 string doublings: ${outcome}, memory grew by ${(growth / resultBytes).toFixed(2)} times the result`);
+  if (!(await memoryCheck('26 string doublings', doubling, (r) => r.result?.display === String(resultBytes), 2.2 * resultBytes))) failed++;
+  // memory check: 1,000 comparisons of a 100,000-item list give 1,000 null reasons; each quotes
+  // a preview of the list, so the reasons stay small instead of filling the 512 MiB cap
+  const comparisons = '{big: for i in 1..100000 return i, r: for j in 1..1000 return big = j}.r';
+  const nulls = (r) => r.ok && r.result?.type === 'list<Null>' && r.diagnostics?.count === 1000;
+  if (!(await memoryCheck('1,000 null reasons quoting a 100,000-item list', comparisons, nulls, 32 * 2 ** 20))) failed++;
   console.log(failed ? `${failed} check(s) failed` : 'smoke ok');
 }
 process.exit(failed ? 1 : 0);

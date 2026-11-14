@@ -1,6 +1,7 @@
 //! FEEL context.
 
 use crate::errors::*;
+use crate::message::{MessageArg, Size};
 use crate::names::Name;
 use crate::qualified_names::QualifiedName;
 use crate::strings::{ToFeelString, write_separated};
@@ -41,6 +42,16 @@ impl From<FeelContext> for Value {
   /// Converts [FeelContext] to [Value].
   fn from(ctx: FeelContext) -> Self {
     Value::Context(ctx)
+  }
+}
+
+impl MessageArg for FeelContext {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{self}")
+  }
+
+  fn size(&self) -> Option<Size> {
+    Some(Size::Entries(self.0.len()))
   }
 }
 

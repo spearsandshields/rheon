@@ -215,9 +215,9 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   an `evaluation` error (CONTRACT §2). Both are sized for a browser worker's stack. A recursion
   whose function body is itself deeply nested can still exhaust the stack below 200 calls;
   that is reported as `crash` and the worker is replaced. Measured (`npm run stack -- --report`):
-  190 nested calls run with a body nested 64 levels in a 4 MiB Node worker and in Wasmtime with a
-  4 MiB wasm stack, 14 to 17 levels on Node's main thread, 8 levels with Wasmtime's default
-  512 KiB wasm stack (CONTRACT §1).
+  190 nested calls run with a body nested 69 levels (TurboFan; 89 with Liftoff) in a 4 MiB Node
+  worker and 98 levels in Wasmtime with a 4 MiB wasm stack, 14 to 18 levels on Node's main thread,
+  10 levels with Wasmtime's default 512 KiB wasm stack (CONTRACT §1).
 - **Memory.** Linear memory is capped at 512 MiB, so a runaway allocation traps early (`crash`).
   A list element costs about 130 B while the list grows (a 64-byte value plus the spare
   capacity of the list; `count(for i in 1..1000000 return i)` grows memory by 128 MiB) and a

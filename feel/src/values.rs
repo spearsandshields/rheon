@@ -5,10 +5,11 @@ use crate::bif::Bif;
 use crate::context::FeelContext;
 use crate::errors::*;
 use crate::function::FunctionDefinition;
+use crate::message::{MessageArg, Size};
 use crate::names::Name;
 use crate::ranges::IntervalType;
 use crate::strings::{ToFeelString, write_separated};
-use crate::types::FeelType;
+use crate::types::{FeelType, write_context_type, write_function_type, write_list_type};
 use dsntk_common::{Jsonify, Result};
 use rheon_feel_number::FeelNumber;
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
@@ -26,6 +27,11 @@ pub use string::FeelString;
 
 /// Creates `Value::Null` with optional tracing message.
 ///
+/// The message is built by [compose](crate::message::compose), so it holds at most 1,000
+/// characters whatever its arguments; values in it are quoted with [arg](crate::message::arg).
+/// It is built out of line, in [null_with_reason](crate::values::null_with_reason), so the code
+/// that returns the null keeps the small stack frame of its other paths.
+///
 /// # Examples
 ///
 /// ```
@@ -42,24 +48,30 @@ pub use string::FeelString;
 /// ```
 #[macro_export]
 macro_rules! value_null {
-  ($module:expr, $function:literal, $format:literal, $($arguments:tt)*) => {{
-    let message = format!("[{}::{}] {}", $module, $function, format!($format, $($arguments)*));
-    $crate::diagnostics::record(&message);
-    Value::Null(Some(message))
-  }};
-  ($format:literal, $($arguments:tt)*) => {{
-    let message = format!($format, $($arguments)*);
-    $crate::diagnostics::record(&message);
-    Value::Null(Some(message))
-  }};
-  ($argument:expr) => {{
-    let message = format!("{}", $argument);
-    $crate::diagnostics::record(&message);
-    Value::Null(Some(message))
-  }};
+  ($module:expr, $function:literal, $format:literal, $($arguments:tt)*) => {
+    $crate::values::null_with_reason(|| $crate::message::compose(format_args!("[{}::{}] {}", $module, $function, format_args!($format, $($arguments)*))))
+  };
+  ($format:literal, $($arguments:tt)*) => {
+    $crate::values::null_with_reason(|| $crate::message::compose(format_args!($format, $($arguments)*)))
+  };
+  ($argument:expr) => {
+    $crate::values::null_with_reason(|| $crate::message::compose(format_args!("{}", $argument)))
+  };
   () => {
     Value::Null(None)
   };
+}
+
+/// The null with the reason that `reason` builds, recorded in the running diagnostics collection
+/// (the body of `value_null!`). It is cold and never inlined: building a message takes stack space
+/// for its arguments and formatting, and a null with a reason is the rare path of the code that
+/// returns it, often an evaluator that recursion nests deeply.
+#[cold]
+#[inline(never)]
+pub fn null_with_reason(reason: impl FnOnce() -> String) -> Value {
+  let message = reason();
+  crate::diagnostics::record(&message);
+  Value::Null(Some(message))
 }
 
 #[macro_export]
@@ -475,20 +487,28 @@ impl Value {
 
   /// Returns the type of this [Value].
   pub fn type_of(&self) -> FeelType {
-    match self {
+    // an unlimited budget is never used up
+    self.type_of_within(&mut Budget::unlimited()).unwrap_or(FeelType::Any)
+  }
+
+  /// The type of this value, or `None` when it would hold more type nodes than `budget` has
+  /// left: the body of [type_of](Self::type_of), which passes an unlimited budget.
+  pub(crate) fn type_of_within(&self, budget: &mut Budget) -> Option<FeelType> {
+    budget.take(1)?;
+    Some(match self {
       Value::Boolean(_) => FeelType::Boolean,
       Value::BuiltInFunction(_) => FeelType::Any,
       Value::Context(context) => {
         let mut entries = BTreeMap::new();
         for (name, value) in context.deref() {
-          entries.insert(name.clone(), value.type_of());
+          entries.insert(name.clone(), value.type_of_within(budget)?);
         }
         FeelType::Context(entries)
       }
       Value::ContextEntry(_, _) => FeelType::Any,
       Value::ContextEntryKey(_) => FeelType::Any,
-      Value::ContextType(feel_type) => feel_type.clone(),
-      Value::ContextTypeEntry(_, feel_type) => feel_type.clone(),
+      Value::ContextType(feel_type) => budget.copy(feel_type)?,
+      Value::ContextTypeEntry(_, feel_type) => budget.copy(feel_type)?,
       Value::ContextTypeEntryKey(_) => FeelType::Any,
       Value::Date(_) => FeelType::Date,
       Value::DateTime(_) => FeelType::DateTime,
@@ -496,33 +516,21 @@ impl Value {
       Value::ExpressionList(_) => FeelType::Any,
       Value::ExternalJavaFunction(_, _) => FeelType::Any,
       Value::ExternalPmmlFunction(_, _) => FeelType::Any,
-      Value::FeelType(feel_type) => feel_type.clone(),
-      Value::FormalParameter(_, feel_type) => feel_type.clone(),
+      Value::FeelType(feel_type) => budget.copy(feel_type)?,
+      Value::FormalParameter(_, feel_type) => budget.copy(feel_type)?,
       Value::FormalParameters(_) => FeelType::Any,
       Value::FunctionBody(_, _) => FeelType::Any,
       Value::FunctionDefinition(function) => {
-        let parameter_types = function.parameters.iter().map(|(_, feel_type)| feel_type.clone()).collect();
-        FeelType::Function(parameter_types, Box::new(function.result_type.clone()))
-      }
-      Value::IntervalEnd(interval_end, _) => interval_end.type_of(),
-      Value::IntervalStart(interval_start, _) => interval_start.type_of(),
-      Value::Irrelevant => FeelType::Any,
-      Value::List(values) => {
-        if values.is_empty() {
-          FeelType::List(Box::new(FeelType::Null))
-        } else {
-          // The first item's type is built once (building it twice made the cost exponential in
-          // the nesting depth of lists); the other items are only checked against it, without
-          // building their context types.
-          let item_type = values[0].type_of();
-          for item in &values[1..] {
-            if !item.type_is_conformant(&item_type) {
-              return FeelType::List(Box::new(FeelType::Any));
-            }
-          }
-          FeelType::List(Box::new(item_type))
+        let mut parameter_types = Vec::with_capacity(function.parameters.len());
+        for (_, feel_type) in &function.parameters {
+          parameter_types.push(budget.copy(feel_type)?);
         }
+        FeelType::Function(parameter_types, Box::new(budget.copy(&function.result_type)?))
       }
+      Value::IntervalEnd(interval_end, _) => interval_end.type_of_within(budget)?,
+      Value::IntervalStart(interval_start, _) => interval_start.type_of_within(budget)?,
+      Value::Irrelevant => FeelType::Any,
+      Value::List(values) => FeelType::List(Box::new(list_item_type(values, budget)?)),
       Value::NamedParameter(_, _) => FeelType::Any,
       Value::NamedParameters(_) => FeelType::Any,
       Value::NegatedCommaList(_) => FeelType::Any,
@@ -533,10 +541,10 @@ impl Value {
       Value::PositionalParameters(_) => FeelType::Any,
       Value::QualifiedNameSegment(_) => FeelType::Any,
       Value::Range(range_start, _, range_end, _) => {
-        let range_start_type = range_start.type_of();
-        let range_end_type = range_end.type_of();
+        let range_start_type = range_start.type_of_within(budget)?;
+        let range_end_type = range_end.type_of_within(budget)?;
         if range_start_type == range_end_type {
-          return FeelType::Range(Box::new(range_start_type));
+          return Some(FeelType::Range(Box::new(range_start_type)));
         }
         FeelType::Range(Box::new(FeelType::Any))
       }
@@ -548,28 +556,41 @@ impl Value {
       Value::UnaryLessOrEqual(_) => FeelType::Boolean,
       Value::UnaryEqual(_) => FeelType::Boolean,
       Value::UnaryNotEqual(_) => FeelType::Boolean,
-      Value::Transparent(value) => value.type_of(),
+      Value::Transparent(value) => value.type_of_within(budget)?,
       Value::YearsAndMonthsDuration(_) => FeelType::YearsAndMonthsDuration,
-    }
+    })
   }
 
-  /// Returns `self.type_of().is_conformant(target_type)` without building the type of a context.
+  /// Returns `self.type_of().is_conformant(target_type)` without building the type of a context,
+  /// or `None` when a type it builds would hold more type nodes than `budget` has left.
   ///
   /// The type of a context is the context type of its entries' types: it conforms to `Any`, and
   /// to a context type when every entry of the target type has an entry here whose type conforms
   /// to the target entry's type (extra entries are allowed); to nothing else
   /// ([FeelType::is_conformant]). The type of `null` conforms to every type.
-  fn type_is_conformant(&self, target_type: &FeelType) -> bool {
+  fn type_is_conformant_within(&self, target_type: &FeelType, budget: &mut Budget) -> Option<bool> {
     match self {
-      Value::Null(_) => true,
+      Value::Null(_) => Some(true),
       Value::Context(ctx) => match target_type {
-        FeelType::Any => true,
-        FeelType::Context(target_entries) => target_entries
-          .iter()
-          .all(|(name, entry_type)| ctx.get_entry(name).is_some_and(|value| value.type_is_conformant(entry_type))),
-        _ => false,
+        FeelType::Any => Some(true),
+        FeelType::Context(target_entries) => {
+          for (name, entry_type) in target_entries {
+            match ctx.get_entry(name) {
+              Some(value) if value.type_is_conformant_within(entry_type, budget)? => {}
+              _ => return Some(false),
+            }
+          }
+          Some(true)
+        }
+        _ => Some(false),
       },
-      other => other.type_of().is_conformant(target_type),
+      other => {
+        // the type is dropped after the check, so its nodes are given back
+        let mark = budget.mark();
+        let conformant = other.type_of_within(budget)?.is_conformant(target_type);
+        budget.restore(mark);
+        Some(conformant)
+      }
     }
   }
 
@@ -807,6 +828,174 @@ impl Value {
 
 /// Type alias to a collection of values.
 pub type Values = Vec<Value>;
+
+/// The type of the items of a list, `Null` for an empty one: the type of the first item when
+/// every other item conforms to it, `Any` otherwise. The first item's type is built once
+/// (building it twice made the cost exponential in the nesting depth of lists); the other items
+/// are only checked against it, without building their context types.
+fn list_item_type(values: &[Value], budget: &mut Budget) -> Option<FeelType> {
+  let Some((first, rest)) = values.split_first() else {
+    budget.take(1)?;
+    return Some(FeelType::Null);
+  };
+  let item_type = first.type_of_within(budget)?;
+  for item in rest {
+    if !item.type_is_conformant_within(&item_type, budget)? {
+      budget.take(1)?;
+      return Some(FeelType::Any);
+    }
+  }
+  Some(item_type)
+}
+
+/// The number of type nodes a type may still build; unlimited for [Value::type_of].
+pub(crate) struct Budget {
+  left: Option<usize>,
+}
+
+impl Budget {
+  /// No limit.
+  pub(crate) fn unlimited() -> Self {
+    Self { left: None }
+  }
+
+  /// At most `nodes` type nodes.
+  pub(crate) fn nodes(nodes: usize) -> Self {
+    Self { left: Some(nodes) }
+  }
+
+  /// Takes `nodes` type nodes; `None` when fewer are left.
+  fn take(&mut self, nodes: usize) -> Option<()> {
+    if let Some(left) = &mut self.left {
+      *left = left.checked_sub(nodes)?;
+    }
+    Some(())
+  }
+
+  /// A copy of `feel_type` when its nodes are left.
+  fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType> {
+    if self.left.is_some() {
+      self.take(type_nodes(feel_type))?;
+    }
+    Some(feel_type.clone())
+  }
+
+  /// The nodes left, for [restore](Self::restore).
+  fn mark(&self) -> Option<usize> {
+    self.left
+  }
+
+  /// Gives back the nodes taken since `mark`, of a type that was dropped.
+  fn restore(&mut self, mark: Option<usize>) {
+    self.left = mark;
+  }
+}
+
+/// The number of nodes of a type.
+fn type_nodes(feel_type: &FeelType) -> usize {
+  1 + match feel_type {
+    FeelType::Context(entries) => entries.values().map(type_nodes).sum(),
+    FeelType::Function(parameter_types, result_type) => parameter_types.iter().map(type_nodes).sum::<usize>() + type_nodes(result_type),
+    FeelType::List(item_type) | FeelType::Range(item_type) => type_nodes(item_type),
+    _ => 0,
+  }
+}
+
+/// The type nodes a message may build for the type of one list item ([TypeOf]).
+const TYPE_NODE_BUDGET: usize = 1_000;
+
+/// The type of a value as a message argument: the text of [Value::type_of], written from the
+/// value itself, so a message never builds the whole type of a value.
+///
+/// The type of a context is written entry by entry, so entries past a preview are never visited.
+/// The type of a list builds the type of its first item, of at most 1,000 type nodes, and checks
+/// the other items against it: `list<…>` when it would hold more. Declared types (of functions,
+/// formal parameters and type values) are written as they are, without a copy.
+pub struct TypeOf<'a>(pub &'a Value);
+
+impl Display for TypeOf<'_> {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self.0 {
+      Value::Context(context) => write_context_type(f, context.iter().map(|(name, value)| (name, TypeOf(value)))),
+      Value::List(values) => match list_item_type(values, &mut Budget::nodes(TYPE_NODE_BUDGET)) {
+        Some(item_type) => write_list_type(f, item_type),
+        None => write_list_type(f, "…"),
+      },
+      Value::FunctionDefinition(function) => write_function_type(f, function.parameters.iter().map(|(_, feel_type)| feel_type), &function.result_type),
+      Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => {
+        write!(f, "{feel_type}")
+      }
+      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::Transparent(value) => write!(f, "{}", TypeOf(value)),
+      other => write!(f, "{}", other.type_of()),
+    }
+  }
+}
+
+impl MessageArg for TypeOf<'_> {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{self}")
+  }
+
+  /// The size of the type itself: the entries of a context type.
+  fn size(&self) -> Option<Size> {
+    match self.0 {
+      Value::Context(context) => Some(Size::Entries(context.len())),
+      Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => feel_type.size(),
+      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::Transparent(value) => TypeOf(value).size(),
+      _ => None,
+    }
+  }
+}
+
+impl MessageArg for Value {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Value::Number(number) => number.write_message(f),
+      other => write!(f, "{other}"),
+    }
+  }
+
+  fn size(&self) -> Option<Size> {
+    match self {
+      Value::List(items) | Value::ExpressionList(items) => Some(Size::Items(items.len())),
+      Value::Context(context) => context.size(),
+      Value::String(text) => text.as_str().size(),
+      _ => None,
+    }
+  }
+}
+
+/// Characters of the plain text of a number quoted in a message at most; a longer one is
+/// quoted in scientific notation.
+const MAX_PLAIN_NUMBER_CHARS: usize = 40;
+
+impl MessageArg for FeelNumber {
+  /// The plain text, or scientific notation when that is longer than 40 characters (`9e6144`
+  /// prints as 6145 digits), so that a message stays readable.
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    let plain = self.to_string();
+    if plain.len() <= MAX_PLAIN_NUMBER_CHARS {
+      return f.write_str(&plain);
+    }
+    let (sign, unsigned) = match plain.strip_prefix('-') {
+      Some(rest) => ("-", rest),
+      None => ("", plain.as_str()),
+    };
+    let (int_part, frac_part) = unsigned.split_once('.').unwrap_or((unsigned, ""));
+    let digits = format!("{int_part}{frac_part}");
+    let Some(first) = digits.find(|c: char| c != '0') else {
+      return f.write_str(&plain);
+    };
+    let exponent = int_part.len() as i64 - first as i64 - 1;
+    let mantissa = digits[first..].trim_end_matches('0');
+    let (head, tail) = mantissa.split_at(1);
+    if tail.is_empty() {
+      write!(f, "{sign}{head}E{exponent:+}")
+    } else {
+      write!(f, "{sign}{head}.{tail}E{exponent:+}")
+    }
+  }
+}
 
 /// Converts a collection of values into string.
 pub fn values_to_string(values: &Values) -> String {

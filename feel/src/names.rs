@@ -1,5 +1,6 @@
 //! `FEEL` name implementation.
 
+use crate::message::{MessageArg, Size};
 use dsntk_common::Jsonify;
 use std::borrow::Borrow;
 use std::fmt;
@@ -75,6 +76,16 @@ impl fmt::Display for Name {
   /// Implements [Display](fmt::Display) trait for [Name].
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     write!(f, "{}", self.0)
+  }
+}
+
+impl MessageArg for Name {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(&self.0)
+  }
+
+  fn size(&self) -> Option<Size> {
+    self.0.size()
   }
 }
 

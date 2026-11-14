@@ -1,5 +1,6 @@
 use super::super::*;
 use rheon_feel::scope;
+use rheon_feel::values::Value;
 
 #[test]
 fn _0001() {
@@ -286,4 +287,16 @@ fn back_references() {
   te_bool(false, &scope!(), r#"matches("aa", "(a)\\1")"#, true);
   te_bool(false, &scope!(), r#"matches("aA", "(a)\\1", "i")"#, true);
   te_bool(false, &scope!(), r#"matches("ab", "(a)\\1")"#, false);
+}
+
+#[test]
+fn the_reason_of_a_long_invalid_pattern_holds_at_most_1000_characters() {
+  let expression = format!(r#"matches("a", "({}")"#, "a".repeat(5000));
+  let node = rheon_feel_parser::parse_textual_expression(&scope!(), &expression, false).unwrap();
+  let Value::Null(Some(reason)) = crate::evaluate(&scope!(), &node).into_result().unwrap() else {
+    panic!("a null with a reason")
+  };
+  assert_eq!(1000, reason.chars().count(), "{} characters", reason.chars().count());
+  assert!(reason.starts_with("<FeelRegexError> invalid regex pattern: '(aaa"), "{reason}");
+  assert!(reason.ends_with('…'), "{reason}");
 }

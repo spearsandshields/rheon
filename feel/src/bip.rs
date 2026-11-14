@@ -1,5 +1,7 @@
 //! # Built-in properties
 
+use crate::message::{MessageArg, Size};
+
 const BIP_END: &str = "end";
 const BIP_END_INCLUDED: &str = "end included";
 const BIP_START: &str = "start";
@@ -73,6 +75,19 @@ impl Bip {
       BIP_TIMEZONE => Self::Timezone,
       BIP_VALUE => Self::Value,
       other => Self::Unknown(other.to_string()),
+    }
+  }
+}
+
+impl MessageArg for Bip {
+  fn write_message(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{self}")
+  }
+
+  fn size(&self) -> Option<Size> {
+    match self {
+      Bip::Unknown(name) => name.size(),
+      _ => None,
     }
   }
 }
