@@ -66,9 +66,10 @@ impl FeelDaysAndTimeDuration {
     ((self.0.unsigned_abs() % NANOSECONDS_IN_MINUTE as u64) / NANOSECONDS_IN_SECOND as u64) as usize
   }
 
-  /// Returns the seconds component of this duration with sign.
-  pub fn as_seconds(&self) -> isize {
-    (self.0 / NANOSECONDS_IN_SECOND) as isize
+  /// Returns the whole seconds of this duration with sign, truncated toward zero; a 64-bit
+  /// number on every target.
+  pub fn as_seconds(&self) -> i64 {
+    self.0 / NANOSECONDS_IN_SECOND
   }
 
   /// Returns the this duration as nanoseconds.
@@ -514,6 +515,8 @@ mod tests {
     assert_eq!(7_200, dt_duration_c.as_seconds());
     let dt_duration_d = FeelDaysAndTimeDuration::try_from("-PT2H").unwrap();
     assert_eq!(-7_200, dt_duration_d.as_seconds());
+    assert_eq!(4_294_967_296, FeelDaysAndTimeDuration::try_from("PT4294967296S").unwrap().as_seconds());
+    assert_eq!(-9_223_372_036, FeelDaysAndTimeDuration::from_n(-i64::MAX).unwrap().as_seconds());
   }
 
   #[test]

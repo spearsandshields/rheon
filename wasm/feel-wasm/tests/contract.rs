@@ -504,6 +504,21 @@ fn time_offset_out_of_range_is_null_not_panic() {
   assert_eq!(display("string(time(1, 2, 3, duration(\"PT2H\")))"), "\"01:02:03+02:00\"");
 }
 
+/// The whole seconds of a duration are a 64-bit number on every target, so an offset of 2^32
+/// seconds or more is out of range on wasm32 as natively, not taken modulo 2^32.
+#[test]
+fn time_offset_beyond_32_bits_is_null() {
+  for (e, reason) in [
+    ("time(10, 0, 0, duration(\"PT4294967296S\"))", "time: offset is out of range: P49710DT6H28M16S"),
+    ("time(10, 0, 0, duration(\"PT4294971296S\"))", "time: offset is out of range: P49710DT7H34M56S"),
+    ("time(10, 0, 0, duration(\"-PT4294967296S\"))", "time: offset is out of range: -P49710DT6H28M16S"),
+  ] {
+    let r = expr(e);
+    assert_eq!(r["isNull"], true, "{e}: {r}");
+    assert_eq!(r["nullReason"], reason, "{e}: {r}");
+  }
+}
+
 #[test]
 fn lexer_surrogate_escapes_are_syntax_errors_not_panic() {
   for e in ["\"\\uD800\"", "\"\\uD83D\"", "\"\\uD800x\"", "\"\\uDC00\"", "\"\\uD800\\u0041\""] {

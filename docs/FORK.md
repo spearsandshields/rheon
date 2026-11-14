@@ -536,6 +536,15 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     remainder. 12 registered differences, 9 of them combinations of the edge-operand product of
     item 84: a date minus one nanosecond is the day before (6), and from the first supported date
     it is out of range and null (3). No API change.
+63. **Whole seconds of a duration are an `i64` on every target.**
+    `FeelDaysAndTimeDuration::as_seconds` returned an `isize`, 32 bits on wasm32, so `time(h, m,
+    s, offset)` read an offset of 2^32 seconds or more modulo 2^32 there:
+    `time(10, 0, 0, duration("PT4294967296S"))` was `10:00:00Z` on wasm and null natively. Every
+    target now answers null, `time: offset is out of range: …`, as 64-bit native builds did; the
+    positions and lengths of the built-ins already go through 64-bit integers for the same
+    reason (CONTRACT §5). Basis: results never depend on where the core runs. 4 registered
+    differences (wasm only). API break (rheon-feel-temporal): `FeelDaysAndTimeDuration::as_seconds`
+    returns `i64` (was `isize`).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
