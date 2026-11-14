@@ -1133,6 +1133,41 @@ The totals are under "Verification" below.
     0.4.0 (good) and the tree before commit 85 (bad), 31 commits, with the entries of
     `registered/sort-own-order.json` and a copy of the script outside the tree: five steps, each a
     wasm build, ended at `c6a7a69` (item 64), the change that registered them. No API change.
+90. **A number oracle that judges every number result.** `tools/number-oracle/run.sh [quick|full]
+    [module.wasm]` sends requests to a `feel.wasm` and judges each number result against its truth
+    under DMN 1.6, computed in Python (`decimal` with a decimal128 context, exact rationals, and
+    mpmath 1.3.0 pinned by hash in `requirements.txt`): every operation applied to the exact values
+    of its operands and rounded once to 34 digits, half even, with gradual underflow; null for no
+    value (§10.3.2.3.1); the scale functions by their rounding modes within -6111..6176, a scale
+    without its fractional part (Table 77, footnotes 1 and 2); `modulo` by its formula over exact
+    values; `odd` and `even` by the parity of an integer, false for any other number; `**`
+    correctly rounded, with exponents within ±999,999,999 (Table 61); `number()` by footnote 1 of
+    Table 73; and one canonical text per value (plain digits, no trailing zeros, no `-0`) in
+    `display`, `feel`, `typed` and `string()`.
+    `exp`, `log` and fractional `**` are decided by an interval rule (mpmath at rising precision
+    with guard digits for the condition, both ends of the enclosure rounded once, a rounding
+    boundary such as a tie decided exactly), and `exp` and `log` must also agree with Python's
+    correctly rounded functions. 188 families, 2,522 fixed edge vectors in literal form, and a
+    random part per family sent as JSON numbers in the context, 200 cases each in a quick run and
+    20,000 in a full one. `known-wrong.json` lists the classes (family glob and verdict) the engine
+    is known to get wrong, each with its reason; any other wrong answer fails the run, and so does
+    an entry that no failing edge vector matches, so a change that repairs a class must delete its
+    entry. `scripts/feel-answers.mjs` answers a file of requests with a module, one response line
+    per request. The oracle replaces the differential tools as the judge of the number core: they
+    compared the two backends and, for the scale functions, re-ran the engine's own algorithm, so
+    they could not see a defect both backends share. Before the truths, `oracle.py --self-test`
+    (Table 77's examples, the conversion examples of Table 73 and §10.3.2.3.1, Table 40's values,
+    the domain rules, and second formulations of `modulo`, integer powers and `sqrt`) fails on
+    every planted wrong truth but one that agrees on every case (integer powers through Python's
+    own `power`). With an empty exemption list the quick run against the build fails: 4,354 of
+    35,924 cases in 142 classes, all of them known defects of the number core: a zero printed with
+    a minus sign (430 cases), trailing zeros of the scale (592), the rounding functions with a
+    scale (null for a zero or a tiny number, 1,922; wrong values for subnormals, near the scale
+    limits and in `round half down`, 671), `modulo` beyond 34-digit quotients (248), integer
+    powers that are not correctly rounded (408), exponents outside Table 61's range that are
+    evaluated (60), and `string()` results that carry those texts (23). The listed classes cover
+    them; the full run, 2,896,576 cases in 5.3 min, has no other wrong answer, no trap and no
+    undecided case. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

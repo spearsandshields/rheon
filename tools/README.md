@@ -3,6 +3,8 @@
 - `identity/`: the identity check of full responses of `feel.wasm` against the previous release,
   with the ledger of registered differences (see `identity/README.md`). CI runs it after every
   wasm build.
+- `number-oracle/`: every number result of `feel.wasm` judged against its truth under DMN 1.6,
+  computed in Python with `decimal`, exact rationals and mpmath (see `number-oracle/README.md`).
 - `difftest/` and `evaluator-corpus/`: the differential test tools for the number backends (below).
 
 ## Differential test tools for the number backends
