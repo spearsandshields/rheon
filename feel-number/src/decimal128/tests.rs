@@ -1,6 +1,6 @@
 //! Targeted tests for the exact-op fast paths, the 256-bit helper and the guards around
-//! the backend. Every expected value below was checked against the Intel backend
-//! (`tools/difftest eval`), except where a comment says that Intel differs.
+//! the backend. Every expected value below was checked against Intel's BID128 library while the
+//! repository still built it, except where a comment says that Intel differs.
 //!
 //! The randomized comparisons with a reference whose size depends on [full] run a reduced
 //! number of cases by default and their full size when `RHEON_FULL_TESTS` is set.

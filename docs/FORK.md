@@ -209,7 +209,9 @@ What each commit does:
     `Debug` prints `-NaN` exactly like `bid128_to_string`; `Display` and FEEL
     are unchanged (`NaN` / null).
 11. **Tools** (`tools/`, see `tools/README.md`): the op-by-op differential
-    fuzzer with the mpmath/decimal oracle and the FEEL corpus harness.
+    fuzzer with the mpmath/decimal oracle and the FEEL corpus harness. Both
+    were removed in item 94; the number oracle of item 90 judges the number
+    core, and the corpus is kept in `tools/feel-corpus/`.
 12. **`NUMBER_BACKEND`.** `rheon_feel_number::NUMBER_BACKEND` is `"dashu"` or
     `"intel"`, selected by the same feature as the backend itself; dsntk-wasm
     reports it as `numberBackend` in its `info` op.
@@ -217,7 +219,8 @@ What each commit does:
     `tools/` harnesses build the Intel side with. It was vendored in full
     (17 MB, mostly Intel's C library); it is now `tools/dfp-number-sys.patch`
     on top of the crates.io 0.2.14 release, fetched by
-    `tools/fetch-dfp-number-sys.sh`.
+    `tools/fetch-dfp-number-sys.sh`. The patch and the script were removed
+    with the tools in item 94.
 14. **Scale rounding.** `unscale()` (both backends) returned `±1` without
     scaling back whenever the rounded integral was `±1`, so `round up(0.1, 1)`
     was `1`, `floor(0.19, 1)` was `1`, `round up(10, -1)` was `1`. The
@@ -322,7 +325,7 @@ evaluation faster and fix the upstream bugs found on the way; apart from the fix
     larger exponent is scaled (`checked_mul`; an overflow means that side is larger).
     `round_pack_u128` returns at once for a coefficient below 10^34 with the exponent in range.
     Exact: unit tests compare each path with the general algorithm on every edge value and on
-    random values (`feel-number/src/decimal128/tests.rs`), and `tools/difftest/run.sh 100000`
+    random values (`feel-number/src/decimal128/tests.rs`), and `tools/difftest/run.sh 100000` (removed in item 94)
     (3,900,001 cases) on this code gives the same mismatch set, cohorts and oracle verdicts
     against Intel as 0.3.0's core. The production code of `decimal128.rs` is unchanged since
     `d39b7d6`.
@@ -1204,6 +1207,23 @@ The totals are under "Verification" below.
     are identical in the build. The harvested corpora they come from are removed with the
     differential tools (item 94), so the expressions are kept here, frozen. The W3C test suite of
     the regular expressions is not imported. No API change.
+94. **The Intel differential tools are removed.** `tools/difftest` (the op-by-op fuzzer of the
+    number core, item 11) and `tools/evaluator-corpus` (the FEEL corpus through the evaluator)
+    built the number crate twice, once with Intel's BID128 library, and judged where the two
+    backends disagreed; `tools/fetch-dfp-number-sys.sh` and `tools/dfp-number-sys.patch` fetched
+    and patched that library for them (item 13). The number oracle (item 90) judges every number
+    result of the module against DMN 1.6 instead, without a second implementation. Every
+    operation of the fuzzer that a FEEL expression reaches has a family in the oracle (parsing,
+    `+ - * /`, negation, `abs`, `sqrt`, `exp`, `ln` and `log`, the four kinds of `**`, `modulo`,
+    `decimal` and the six rounding functions, `odd` and `even`, comparisons, formatting, and chains
+    of operations through nested expressions); the rest (`%`, the assign
+    operators, `trunc`, `frac`, `square`, the quantum rounding, the integer comparisons and
+    conversions, `new`, the constructors from integers and the constants) are internal to the
+    number core and keep their unit tests. The four FEEL corpora of the second tool (17,217
+    expressions) are kept as data in `tools/feel-corpus/`, because the parser's corpus test reads
+    them (`RHEON_PARSER_CORPUS`). The `tools/` ignore list keeps `__pycache__/` only, and the
+    root one loses the fetched library's directory. The `intel` feature of the number crate is not
+    part of this change. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -1326,6 +1346,8 @@ git checkout Cargo.lock          # --config patch.crates-io rewrites the lock fi
 same `--config`) succeeds and `cargo tree` then shows no dashu crate.
 
 ### Differential results (`tools/`, commit 10)
+
+The two tools were removed in item 94; the number oracle (item 90) judges the number core since.
 
 - `tools/difftest/run.sh 200000`: 7,800,001 cases (200k per op, 39 ops), 58.8 s
   wall (263 s CPU), 184,687 Display mismatches, all judged by the oracle:
@@ -1556,8 +1578,8 @@ git rebase -x 'CARGO_BUILD_JOBS=4 cargo check -p rheon-feel-evaluator' upstream/
 
 Then:
 
-1. Rerun the verification above (suites, `tools/difftest/run.sh`,
-   `tools/evaluator-corpus/run.sh`).
+1. Rerun the verification above (the suites, the identity check
+   `tools/identity/run.sh` and the number oracle `tools/number-oracle/run.sh full`).
 2. Rebuild and re-verify the wasm side in this repository: `npm test`,
    `npm run build:wasm`, `npm run smoke`, `npm run build` (the module's
    `engineCommit` follows HEAD automatically), and update `upstream-commit`

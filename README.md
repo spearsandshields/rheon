@@ -79,7 +79,7 @@ The edge-case comparison with other FEEL engines is in
 | `apps/playground` | `@rheon/playground`, the web app |
 | `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to take upstream fixes), `BACKLOG.md`, `ENGINE-COMPARISON.md` |
 | `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `feel-abi.mjs`, `smoke.mjs`, `stack-headroom.mjs`, `third-party-notices.mjs` |
-| `tools/` | The identity check of full responses against the previous release (`tools/identity/`), and the dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
+| `tools/` | The identity check of full responses against the previous release (`tools/identity/`), the number oracle (`tools/number-oracle/`) and the frozen FEEL corpus of the parser's corpus test (`tools/feel-corpus/`; see `tools/README.md`) |
 | `Cargo.toml` | One workspace for all of the above; the `wasm` build profile |
 | `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, any WASI runtime) |
 
@@ -127,7 +127,7 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `bash tools/number-oracle/run.sh [quick\|full]` | Every number result of `dist/feel.wasm` judged against its truth under DMN 1.6, computed in Python with `decimal`, exact rationals and mpmath (`PYTHON` names an interpreter with the C `decimal` module and mpmath 1.3.0, see `tools/number-oracle/README.md`); the known wrong classes are listed in `known-wrong.json`, and a listed class that no longer fails fails the run. CI runs the quick size |
 | `scripts/publish-crates.sh` | Publishes the `rheon-*` crates that crates.io lacks at the workspace version, waiting out the new-crate rate limit (see `docs/FORK.md`, "Publishing") |
 | `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); see `.github/workflows/ci.yml` |
-| `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser -p rheon-feel-wasm` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases; for `rheon-feel-wasm`, the edge-operand product with all its binary templates). `RHEON_PARSER_CORPUS=<absolute path of tools/evaluator-corpus/corpora>` with `-- --include-ignored` adds the parser's corpus test |
+| `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser -p rheon-feel-wasm` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases; for `rheon-feel-wasm`, the edge-operand product with all its binary templates). `RHEON_PARSER_CORPUS=<absolute path of tools/feel-corpus>` with `-- --include-ignored` adds the parser's corpus test |
 
 The production build in `apps/playground/dist/` uses a relative base (`./`), so you can host it on
 any static file server and under any sub-path. `feel.wasm` is a hashed asset in `assets/`. Serve
