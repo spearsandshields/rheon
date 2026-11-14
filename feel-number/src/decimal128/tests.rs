@@ -618,12 +618,11 @@ fn sqrt_near_half_way() {
   assert_eq!("+0E-2", dbg(n("-0E-3").sqrt().unwrap()));
 }
 
-/// Scaling by 10^n pads the coefficient to the full 34 digits before overflowing,
-/// so every representable value stays finite (mathematically correct per the oracle).
-/// Intel's `bid128_scalbn` overflows some of these to infinity (its coefficient padding
-/// stops at ~10^33); that quirk is not reproduced.
+/// `new(n, s)` is `n · 10^-s` rounded once: above the maximum exponent the coefficient is padded
+/// to the full 34 digits before the value overflows, so every representable value stays finite,
+/// and the scale is never clamped.
 #[test]
-fn scalbn_overflow_pads_to_34_digits() {
+fn new_pads_to_34_digits_and_never_clamps() {
   assert_eq!("+9999999999999990000000000000000000E+6111", dbg(n("999999999999999E+6130")));
   assert_eq!("+9999999999999990000000000000000000E+6111", dbg(FeelNumber::new(999999999999999, -6130)));
   assert_eq!("+999999999999999000000000000000000E+6111", dbg(FeelNumber::new(999999999999999, -6129)));
@@ -632,12 +631,14 @@ fn scalbn_overflow_pads_to_34_digits() {
   // still infinite when 34 digits are not enough
   assert_eq!("+Inf", dbg(FeelNumber::new(8999999999999999999, -6127)));
   assert_eq!("+8999999999999999999000000000000000E+6111", dbg(FeelNumber::new(8999999999999999999, -6126)));
-  // the scale is clamped to 6144 like Intel's bid128_scalbn, so this is still 1E+6144
-  assert_eq!("+1000000000000000000000000000000000E+6111", dbg(FeelNumber::new(1, -6145)));
+  assert_eq!("+Inf", dbg(FeelNumber::new(1, -6145)));
   assert_eq!("+Inf", dbg(FeelNumber::new(10, -6144)));
   assert_eq!("-Inf", dbg(FeelNumber::new(-10, -6144)));
-  assert_eq!("+1E-6176", dbg(FeelNumber::new(1, i32::MAX)));
-  assert_eq!("+1000000000000000000000000000000000E+6111", dbg(FeelNumber::new(1, i32::MIN)));
+  // below the smallest subnormal: rounded once, half-even
+  assert_eq!("+0E-6176", dbg(FeelNumber::new(1, i32::MAX)));
+  assert_eq!("+0E-6176", dbg(FeelNumber::new(5, 6177)));
+  assert_eq!("+1E-6176", dbg(FeelNumber::new(6, 6177)));
+  assert_eq!("+Inf", dbg(FeelNumber::new(1, i32::MIN)));
 }
 
 /// Rounding at a scale near the overflow edge: a number with no digit below the scale is itself,

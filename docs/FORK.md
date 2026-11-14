@@ -1366,6 +1366,16 @@ The totals are under "Verification" below.
     `round_down`, `round_half_up`, `round_half_down` and `round` are removed; use
     `round_to(scale, RoundingMode::…)`, which returns `Err` only for a scale outside
     `-6111..=6176` (`round(&scale)` took the scale as a number and gave NaN there).
+102. **`FeelNumber::new` scales without a clamp.** `new(n, s)` multiplied `n` by `10^-s` through
+    a scaling step that clamped the power to -6176..6144 like Intel's `bid128_scalbn`, so
+    `new(890, 6177)` was `890E-6176` (ten times too large) and `new(1, -6177)` was `1E+6144`
+    instead of an overflow. Since item 100 nothing else used that step; it goes, and `new` packs
+    `n · 10^-s` with the one rounding of the core (half-even, gradual underflow, infinity beyond
+    the range). Test first: `test_debug_004` and the unit test of the padding near the overflow
+    edge failed on the parent with the clamped values (`+890E-6176`, `1E+6144` for `new(1,
+    -6145)`). Identity: no difference (no FEEL path passes such a scale). Rust behaviour break:
+    `new(n, s)` with `s` beyond the range of the exponent is the rounded value or infinite
+    (`new(890, 6177)` is `89E-6176`, `new(1, i32::MAX)` is 0, `new(1, i32::MIN)` is infinite).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

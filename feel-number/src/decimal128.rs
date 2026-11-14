@@ -8,7 +8,7 @@
 //! (< 10^34) and `i32` exponent, plus infinity and NaN. Everything whose exact result has a
 //! bounded number of digits is computed here, directly on that triple, in `u128` when the
 //! intermediate fits and in a tiny 256-bit integer ([U256]) otherwise: `+ - *`, square root,
-//! rounding to a scale, scaling, comparisons, parsing, formatting, conversions, the
+//! rounding to a scale, comparisons, parsing, formatting, conversions, the
 //! integer-exponent power. Only the operations with an unbounded exact
 //! result (`/`, `exp`, `ln`, `pow` with a non-integer exponent) are delegated to a [Backend],
 //! which returns a correctly rounded value together with the side the exact value lies on; that
@@ -620,31 +620,6 @@ fn div_v(a: V, b: V) -> V {
   }
 }
 
-/// Multiplies the value by 10^n (exact unless out of range).
-///
-/// Like `bid128_scalbn` of Intel's BID128 library, `n` is first clamped to
-/// `-6176..=6144`. This clamping is observable through `new`.
-///
-/// Above the maximum exponent the coefficient is padded with trailing zeros up to the
-/// full 34 digits before the result is declared infinite, exactly like every other
-/// operation here: `scalbn(999999999999999, 6130)` is
-/// `9999999999999990000000000000000000E+6111`, the same value `FromStr`, `+` and `*`
-/// produce for `999999999999999E+6130`.
-///
-/// Intel's `bid128_scalbn` deliberately is *not* reproduced in this respect: it shifts
-/// the coefficient left only while its high 64-bit word is below that of 10^33 (i.e.
-/// while `c < 0x314dc6448d93 * 2^64`), so it reports overflow for values that are
-/// representable (`new(999999999999999, -6130)`, `floor(999999999999999E+6121, 9)` are
-/// `+Inf` on Intel). The mathematically correct finite value is returned instead; this
-/// is the one known place where this core differs from Intel on an exact operation.
-fn scalbn_v(v: V, n: i32) -> V {
-  let n = n.clamp(-6176, 6144);
-  match v {
-    V::Fin(s, c, e) => round_pack_u128(s, c, e as i64 + n as i64).0,
-    other => other,
-  }
-}
-
 /// Rounds the value to a multiple of `10^exponent` by `mode`, in one step on the coefficient.
 ///
 /// A value with no digit below `10^exponent` (its exponent is at least `exponent`), a zero with
@@ -1003,9 +978,10 @@ impl FeelNumber {
     Self::of(V::Fin(false, 1_000_000_000, 0))
   }
 
-  /// Creates a new [FeelNumber] from integer value and a scale.
+  /// Creates the number `n · 10^-s`, rounded once to decimal128 (half-even, gradual underflow,
+  /// infinite beyond the range); every scale `s` is taken as it is.
   pub fn new(n: i64, s: i32) -> Self {
-    Self::of(scalbn_v(V::Fin(n < 0, n.unsigned_abs() as u128, 0), s.saturating_neg()))
+    Self::of(round_pack_u128(n < 0, n.unsigned_abs() as u128, -i64::from(s)).0)
   }
 
   /// Creates a new [FeelNumber] from [isize].
