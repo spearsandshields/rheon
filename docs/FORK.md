@@ -686,6 +686,17 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     first 120 characters, `…` and `(40002 characters)`. Every shorter input keeps its full echo.
     2 registered differences (the evaluate and the parse request). Basis: messages name the input
     by a short preview and its size (owner decision); CONTRACT §3. No API change.
+70. **Values in DMN messages are previews.** The item-definition, variable, boxed-expression and
+    invocable messages of rheon-model-evaluator quoted whole values and built whole types: an
+    input of the wrong type quoted all of it twice, as `expected type 'string', actual type is
+    '<its whole type>' in value '<its whole text>'`. They now quote through `arg` and `TypeOf`, so
+    `{Customer Name: for i in 1..1000 return i}` against a string item definition gives
+    `expected type 'string', actual type is 'list<number>' in value '[1, 2, 3, …, 32, … (1000
+    items)'`, and a 10,000-entry context gives the previews of its type and its text, each
+    ending `… (10000 entries)`. The strict-mode text of `evaluate_invocable_with_mode` is built by
+    `compose`, at most 1,000 characters. Native only (DMN is not in the wasm module); the TCK
+    results are identical. Basis: messages name the value by a short preview and its size
+    (owner decision). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

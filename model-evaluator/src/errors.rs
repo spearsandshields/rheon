@@ -1,12 +1,13 @@
 use dsntk_common::{DsntkError, ToErrorMessage};
 use rheon_feel::FeelType;
+use rheon_feel::message::arg;
 
 /// Errors related to model evaluation.
 #[derive(ToErrorMessage)]
 struct ModelEvaluatorError(String);
 
 pub fn err_business_knowledge_model_with_reference_not_found(namespace: &str, id: &str) -> DsntkError {
-  ModelEvaluatorError(format!("no business knowledge model with reference: '{namespace}#{id}'")).into()
+  ModelEvaluatorError(format!("no business knowledge model with reference: '{}#{}'", arg(namespace), arg(id))).into()
 }
 
 pub fn err_empty_literal_expression() -> DsntkError {
@@ -18,11 +19,11 @@ pub fn err_empty_encapsulated_logic() -> DsntkError {
 }
 
 pub fn err_invalid_item_definition_type(s: &str) -> DsntkError {
-  ModelEvaluatorError(format!("invalid item definition type for '{s}'")).into()
+  ModelEvaluatorError(format!("invalid item definition type for '{}'", arg(s))).into()
 }
 
 pub fn err_unsupported_feel_type(feel_type: FeelType, s: &str) -> DsntkError {
-  ModelEvaluatorError(format!("unsupported FEEL type: {feel_type} in {s}")).into()
+  ModelEvaluatorError(format!("unsupported FEEL type: {} in {s}", arg(&feel_type))).into()
 }
 
 pub fn err_empty_feel_type() -> DsntkError {

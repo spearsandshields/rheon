@@ -7,6 +7,7 @@ use crate::model_definitions::*;
 use dsntk_common::Result;
 use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
+use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
 use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator, evaluate_invocation};
@@ -186,10 +187,10 @@ pub fn build_function_definition_evaluator(scope: &FeelScope, function_definitio
                 result_type.clone(),
               ))
             } else {
-              value_null!("invalid Java function mapping, no method signature entry in context {}", java_mapping)
+              value_null!("invalid Java function mapping, no method signature entry in context {}", arg(&java_mapping))
             }
           } else {
-            value_null!("invalid Java function mapping, no class name entry in context {}", java_mapping)
+            value_null!("invalid Java function mapping, no class name entry in context {}", arg(&java_mapping))
           }
         } else {
           value_null!("expected context as external function mapping")
@@ -232,10 +233,10 @@ pub fn build_function_definition_evaluator(scope: &FeelScope, function_definitio
                 result_type.clone(),
               ))
             } else {
-              value_null!("invalid PMML function mapping, no model name entry in context {}", pmml_mapping)
+              value_null!("invalid PMML function mapping, no model name entry in context {}", arg(&pmml_mapping))
             }
           } else {
-            value_null!("invalid PMML function mapping, no document entry in context {}", pmml_mapping)
+            value_null!("invalid PMML function mapping, no document entry in context {}", arg(&pmml_mapping))
           }
         } else {
           value_null!("expected context as external function mapping")

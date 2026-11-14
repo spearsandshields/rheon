@@ -10,6 +10,7 @@ use crate::model_definitions::{DefKey, InvocableType, Invocables};
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Diagnostics, ErrorMode};
+use rheon_feel::message::{arg, compose};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, Name, value_null};
 use rheon_feel_evaluator::{Dialect, Outcome, Session, evaluate_invocation};
@@ -117,7 +118,7 @@ impl ModelEvaluator {
     Session::new().run(|| {
       let (value, diagnostics) = diagnostics::collect(|| self.invoke(model_namespace, model_name, invocable_name, input_data));
       match (error_mode, diagnostics.first()) {
-        (ErrorMode::Strict, Some(first)) => (Value::Null(Some(format!("strict error mode: {first}"))), diagnostics),
+        (ErrorMode::Strict, Some(first)) => (Value::Null(Some(compose(format_args!("strict error mode: {first}")))), diagnostics),
         _ => (value, diagnostics),
       }
     })
@@ -126,7 +127,7 @@ impl ModelEvaluator {
   /// Invokes an invocable as part of the running session.
   fn invoke(&self, model_namespace: &str, model_name: &str, invocable_name: &str, input_data: &FeelContext) -> Value {
     let Some(invocable) = self.invocables.by_name(model_namespace, model_name, invocable_name) else {
-      return value_null!("invocable '{}' not found in namespace '{}'", invocable_name, model_namespace);
+      return value_null!("invocable '{}' not found in namespace '{}'", arg(&invocable_name), arg(&model_namespace));
     };
     match invocable {
       InvocableType::Decision(def_key) => {
