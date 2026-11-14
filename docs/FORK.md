@@ -712,6 +712,33 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     2,000-character key (evaluate and parse) and the number warning under it, a 5,002-character
     number and the rounded `1.5e-6176`; the identity check sends these numbers as written. Basis: messages name the value by a short
     preview and its size (owner decision); CONTRACT §3. No API change.
+72. **rheon-feel-regex tells engine limits from invalid patterns.** The regex engines give up on
+    some valid patterns: fancy-regex's backtracking budget and stack, the compiled-size limit of
+    the automata, and the nesting limits of the parsers (64 levels in fancy-regex, 250 in
+    regex-syntax). Every such failure was reported as an invalid pattern. The crate now has a
+    typed `RegexError`: `Invalid` (an invalid pattern or flags, XQuery F&O FORX0001-FORX0004,
+    whose FEEL result is null) or `LimitExceeded(Limit)` with `Limit::{Backtracking,
+    BacktrackingStack, CompiledSize, Nesting}`. A pattern is called invalid only when the engine
+    finds it invalid within its limits; one the engine cannot read within them is a limit:
+    fancy-regex's recursion error, a build error with a size limit or a nest-limit syntax error,
+    and every run-time failure are limits; the `regex` crate's `CompiledTooBig` is one, and on
+    its syntax-error path the pattern is parsed again with the engine's defaults to tell a
+    nesting limit apart. So a pattern that nests past fancy-regex's limit and is invalid further
+    on (300 `(` and then `[`) is a nesting limit in `matches`, whose parser stops at the limit,
+    and invalid in `replace` and `split`, whose parser reads the whole pattern before it checks
+    the nesting. `replace` and `split` move into the crate with the replacement-group rewriting,
+    the `q` quoting and the fallback to the pattern without flags when the flagged pattern is
+    invalid, as they were; a limit on the flagged pattern is reported at once instead of falling
+    back, since the flags apply to the pattern (XQuery F&O 3.1 §5.6.3, `fn:replace` takes the
+    flags of `fn:matches`): `replace("x", "k{100000}", "y", "i")`, where only the flagged pattern
+    exceeds the compiled-size limit (case folding gives `k` the Kelvin sign as a third form), was
+    the answer of the pattern without flags, `"x"`. That answer change is registered with item 73,
+    which gives it its final form. The built-ins keep their argument checks and messages, and
+    every other FEEL answer is unchanged in this commit (the identity check includes the limit
+    inputs). API breaks (rheon-feel-regex):
+    `RegexError`, `Limit`, `replace` and `split` are added, and `regex` and `regex-syntax` become
+    dependencies (both already in the build graph); rheon-feel-evaluator no longer depends on
+    `regex`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

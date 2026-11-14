@@ -1,15 +1,12 @@
-use crate::errors::{err_empty_flags, err_invalid_flag, err_invalid_pattern};
+use crate::errors::{Limit, RegexError, err_empty_flags, err_invalid_flag, err_invalid_pattern};
 use crate::unicode_blocks::replace_block_names;
 use crate::utils::is_special_character;
 use fancy_regex::Regex;
+use regex_syntax::ast;
+use std::sync::LazyLock;
 
 pub fn is_match(input: &str, pattern: &str) -> dsntk_common::Result<bool> {
-  let Ok(re) = Regex::new(&fix_pattern(pattern, false, false)) else {
-    return Err(err_invalid_pattern(pattern));
-  };
-  // A runtime failure (the backtracking limit for patterns with back-references or
-  // look-around) is reported like an invalid pattern.
-  re.is_match(&fix_input(input)).map_err(|_| err_invalid_pattern(pattern))
+  search(input, &fix_pattern(pattern, false, false)).map_err(|_| err_invalid_pattern(pattern))
 }
 
 pub fn is_match_with_flags(input: &str, pattern: &str, flags: &str) -> dsntk_common::Result<bool> {
@@ -35,10 +32,96 @@ pub fn is_match_with_flags(input: &str, pattern: &str, flags: &str) -> dsntk_com
     regex_flags = format!("(?{})", regex_flags);
   }
   let pattern = format!("{}{}", regex_flags, fix_pattern(pattern, whitespaces, themselves));
-  let Ok(re) = Regex::new(&pattern) else {
-    return Err(err_invalid_pattern(&pattern));
+  search(input, &pattern).map_err(|_| err_invalid_pattern(&pattern))
+}
+
+/// Whether `input` matches the backtracking engine's `pattern` (back-references and look-around
+/// included), or which limit the engine hit, or that the pattern is invalid.
+fn search(input: &str, pattern: &str) -> Result<bool, RegexError> {
+  let classify = |error: fancy_regex::Error| match error {
+    fancy_regex::Error::ParseError(_, fancy_regex::ParseError::RecursionExceeded) => RegexError::LimitExceeded(Limit::Nesting),
+    fancy_regex::Error::CompileError(error) => match *error {
+      fancy_regex::CompileError::InnerError(error) if error.size_limit().is_some() => RegexError::LimitExceeded(Limit::CompiledSize),
+      fancy_regex::CompileError::InnerError(error) if error.syntax_error().is_some_and(is_nest_limit) => RegexError::LimitExceeded(Limit::Nesting),
+      _ => RegexError::Invalid(err_invalid_pattern(pattern)),
+    },
+    fancy_regex::Error::RuntimeError(fancy_regex::RuntimeError::StackOverflow) => RegexError::LimitExceeded(Limit::BacktrackingStack),
+    // a search that fails at run time always ran out of its backtracking budget
+    fancy_regex::Error::RuntimeError(_) => RegexError::LimitExceeded(Limit::Backtracking),
+    _ => RegexError::Invalid(err_invalid_pattern(pattern)),
   };
-  re.is_match(&fix_input(input)).map_err(|_| err_invalid_pattern(&pattern))
+  Regex::new(pattern).map_err(classify)?.is_match(&fix_input(input)).map_err(classify)
+}
+
+/// Whether a pattern nests groups deeper than the parser's limit.
+fn is_nest_limit(error: &regex_syntax::Error) -> bool {
+  matches!(error, regex_syntax::Error::Parse(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)))
+}
+
+/// The pattern compiled by the automata engine (no back-references), or which limit it hit, or
+/// that it is invalid.
+fn compile(pattern: &str) -> Result<regex::Regex, RegexError> {
+  regex::Regex::new(pattern).map_err(|error| match error {
+    regex::Error::CompiledTooBig(_) => RegexError::LimitExceeded(Limit::CompiledSize),
+    // the error names no kind; the parser with the engine's defaults tells a nesting limit apart,
+    // and it runs only on this error path
+    regex::Error::Syntax(_) => match ast::parse::Parser::new().parse(pattern) {
+      Err(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)) => RegexError::LimitExceeded(Limit::Nesting),
+      _ => RegexError::Invalid(err_invalid_pattern(pattern)),
+    },
+    _ => RegexError::Invalid(err_invalid_pattern(pattern)),
+  })
+}
+
+/// Numbered groups of a replacement in braces, `$1` as `${1}`: the engine reads the longest
+/// name after `$`, so `$1a` would name the group `1a`.
+static REPLACEMENT_GROUP: LazyLock<regex::Regex> = LazyLock::new(|| regex::Regex::new("\\$([1-9][0-9]*)").expect("a valid pattern"));
+
+/// Replaces every match of `pattern` in `input` with `replacement` (`$1` names a group).
+///
+/// The flags `s`, `m`, `i` and `x` apply to the pattern; `q` quotes it, unless a flag other than
+/// `i` comes with it. When the pattern with flags is invalid, the pattern without them is used.
+/// An engine limit is reported at once.
+pub fn replace(input: &str, pattern: &str, replacement: &str, flags: Option<&str>) -> Result<String, RegexError> {
+  let replacement = REPLACEMENT_GROUP.replace_all(replacement, "$${${1}}");
+  if let Some(flags_string) = flags {
+    let mut flags = String::new();
+    let mut flag_q = false;
+    let mut clear_flag_q = false;
+    for ch in flags_string.chars() {
+      if ch == 'q' {
+        flag_q = true;
+      }
+      if matches!(ch, 's' | 'm' | 'i' | 'x') {
+        flags.push(ch);
+        if ch != 'i' {
+          clear_flag_q = true;
+        }
+      }
+    }
+    if clear_flag_q {
+      flag_q = false;
+    }
+    let mut patt = String::new();
+    for ch in pattern.chars() {
+      if flag_q {
+        patt.push('\\');
+      }
+      patt.push(ch);
+    }
+    let flagged = if flags.is_empty() { patt } else { format!("(?{flags}){patt}") };
+    match compile(&flagged) {
+      Ok(re) => return Ok(re.replace_all(input, replacement.as_ref()).into_owned()),
+      Err(RegexError::LimitExceeded(limit)) => return Err(RegexError::LimitExceeded(limit)),
+      Err(RegexError::Invalid(_)) => {}
+    }
+  }
+  Ok(compile(pattern)?.replace_all(input, replacement.as_ref()).into_owned())
+}
+
+/// Splits `input` at every match of `delimiter`.
+pub fn split(input: &str, delimiter: &str) -> Result<Vec<String>, RegexError> {
+  Ok(compile(delimiter)?.split(input).map(String::from).collect())
 }
 
 // Nasty tricks on input.
@@ -93,4 +176,33 @@ fn collapse_whitespace_in_property_names(pattern: &str) -> String {
     }
   }
   output
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn nested(levels: usize) -> String {
+    format!("{}a{}", "(".repeat(levels), ")".repeat(levels))
+  }
+
+  #[test]
+  fn the_backtracking_engine_reports_its_limits() {
+    let input = format!("{}!", "a".repeat(40));
+    assert_eq!(Err(RegexError::LimitExceeded(Limit::Backtracking)), search(&input, r"^(a|a)*\1$"));
+    assert_eq!(Err(RegexError::LimitExceeded(Limit::CompiledSize)), search("a", r"\w{10000}"));
+    assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), search("a", &nested(100)));
+    assert_eq!(Ok(true), search("a", &nested(60)));
+    // the parser stops at its nesting limit, before the unclosed class
+    assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), search("a", &format!("{}[", "(".repeat(300))));
+  }
+
+  #[test]
+  fn invalid_patterns_stay_invalid() {
+    for pattern in [r"(.)\3", "[a-z", r"(asd)[\1]"] {
+      assert_eq!(Err(RegexError::Invalid(err_invalid_pattern(pattern))), search("a", pattern));
+      assert_eq!(Err(err_invalid_pattern(pattern)), is_match("a", pattern));
+    }
+    assert_eq!(Err(err_invalid_pattern(r"\p{ IsBasicLatin}+")), is_match("a", r"\p{ IsBasicLatin}+"));
+  }
 }

@@ -1937,7 +1937,6 @@ version = "0.4.0"
 dependencies = [
  "dsntk-common",
  "dsntk-macros",
- "regex",
  "reqwest",
  "rheon-feel",
  "rheon-feel-parser",
@@ -1986,6 +1985,8 @@ dependencies = [
  "dsntk-common",
  "dsntk-macros",
  "fancy-regex",
+ "regex",
+ "regex-syntax",
 ]
 
 [[package]]

@@ -19,7 +19,6 @@ dashu = ["rheon-feel/dashu", "rheon-feel-parser/dashu", "rheon-feel-temporal/das
 intel = ["rheon-feel/intel", "rheon-feel-parser/intel", "rheon-feel-temporal/intel"]
 
 [dependencies]
-regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 dsntk-common = { workspace = true }

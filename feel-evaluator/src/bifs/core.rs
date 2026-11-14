@@ -5,7 +5,6 @@ use crate::invocation::{Arguments, invoke};
 use crate::macros::invalid_argument_type;
 use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
-use regex::Regex;
 use rheon_feel::context::FeelContext;
 use rheon_feel::message::arg;
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values};
@@ -14,7 +13,6 @@ use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDays
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::str::FromStr;
-use std::sync::LazyLock;
 
 /// Returns the absolute value of the argument.
 pub fn abs(value: &Value) -> Value {
@@ -2098,66 +2096,24 @@ pub fn remove(list: &Value, position_value: &Value) -> Value {
   value_null!("probably index is out of range")
 }
 
-// Rust implementation is eager when parsing matching groups, so place numbers in square brackets.
-static RG_REPLACE_NUM: LazyLock<Regex> = LazyLock::new(|| Regex::new("\\$([1-9][0-9]*)").unwrap());
-
-/// ???
+/// Replaces the matches of a pattern in a string (DMN 1.6, Table 75): null for an invalid pattern.
 pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replacement_string_value: &Value, flags_string_value: &Value) -> Value {
-  if let Value::String(input_string) = input_string_value {
-    if let Value::String(pattern_string) = pattern_string_value {
-      if let Value::String(replacement_string) = replacement_string_value {
-        let repl = RG_REPLACE_NUM.replace_all(replacement_string.as_str(), "$${${1}}").to_string();
-        // check and use flags
-        if let Value::String(flags_string) = flags_string_value {
-          let mut flags = "".to_string();
-          let mut flag_q = false;
-          let mut clear_flag_q = false;
-          for ch in flags_string.chars() {
-            if ch == 'q' {
-              flag_q = true;
-            }
-            if matches!(ch, 's' | 'm' | 'i' | 'x') {
-              flags.push(ch);
-              if ch != 'i' {
-                clear_flag_q = true;
-              }
-            }
-          }
-          if clear_flag_q {
-            flag_q = false;
-          }
-          let mut patt = "".to_string();
-          for ch in pattern_string.chars() {
-            if flag_q {
-              patt.push('\\');
-            }
-            patt.push(ch);
-          }
-          if flags.is_empty() {
-            if let Ok(re) = Regex::new(&patt) {
-              let result = re.replace_all(input_string.as_str(), repl.as_str()).to_string();
-              return Value::String(result.into());
-            }
-          } else if let Ok(re) = Regex::new(format!("(?{flags}){patt}").as_str()) {
-            let result = re.replace_all(input_string.as_str(), repl.as_str()).to_string();
-            return Value::String(result.into());
-          }
-        }
-        // replace without any flags
-        if let Ok(re) = Regex::new(pattern_string) {
-          let result = re.replace_all(input_string.as_str(), repl.as_str()).to_string();
-          Value::String(result.into())
-        } else {
-          value_null!("replace: invalid pattern")
-        }
-      } else {
-        value_null!("replace: replacement must be a string")
-      }
-    } else {
-      value_null!("replace: pattern must be a string")
-    }
-  } else {
-    value_null!("replace: input must be a string")
+  let Value::String(input_string) = input_string_value else {
+    return value_null!("replace: input must be a string");
+  };
+  let Value::String(pattern_string) = pattern_string_value else {
+    return value_null!("replace: pattern must be a string");
+  };
+  let Value::String(replacement_string) = replacement_string_value else {
+    return value_null!("replace: replacement must be a string");
+  };
+  let flags = match flags_string_value {
+    Value::String(flags_string) => Some(flags_string.as_str()),
+    _ => None,
+  };
+  match rheon_feel_regex::replace(input_string, pattern_string, replacement_string, flags) {
+    Ok(result) => Value::String(result.into()),
+    Err(_) => value_null!("replace: invalid pattern"),
   }
 }
 
@@ -2255,19 +2211,17 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   }
 }
 
+/// Splits a string at the matches of a delimiter pattern (DMN 1.6, Table 75): null for an invalid pattern.
 pub fn split(input_string_value: &Value, delimiter_string_value: &Value) -> Value {
-  if let Value::String(input_string) = input_string_value {
-    if let Value::String(delimiter_string) = delimiter_string_value {
-      if let Ok(re) = Regex::new(delimiter_string) {
-        Value::List(re.split(input_string).map(|s| Value::String(s.into())).collect())
-      } else {
-        value_null!("split: invalid delimiter")
-      }
-    } else {
-      value_null!("split: delimiter must be a string")
-    }
-  } else {
-    value_null!("split: input must be a string")
+  let Value::String(input_string) = input_string_value else {
+    return value_null!("split: input must be a string");
+  };
+  let Value::String(delimiter_string) = delimiter_string_value else {
+    return value_null!("split: delimiter must be a string");
+  };
+  match rheon_feel_regex::split(input_string, delimiter_string) {
+    Ok(parts) => Value::List(parts.into_iter().map(|part| Value::String(part.into())).collect()),
+    Err(_) => value_null!("split: invalid delimiter"),
   }
 }
 
