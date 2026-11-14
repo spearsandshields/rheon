@@ -12,7 +12,7 @@ fn _0001(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &ctx,
-    r#"2778.693549432766768088520383236288"#,
+    r#"2778.693549432766768088520383236299"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx));
 }
@@ -27,7 +27,7 @@ fn _0002(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &ctx,
-    r#"549.1175498364002934927000148859422"#,
+    r#"549.117549836400293492700014885945"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx));
 }
@@ -42,7 +42,7 @@ fn _0003(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &ctx,
-    r#"2758.11609989659140087141889328903"#,
+    r#"2758.116099896591400871418893289041"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx));
 }

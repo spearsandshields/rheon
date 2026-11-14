@@ -182,7 +182,7 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
 
 - **Java external functions are not supported.** They need a JVM, and on wasm32 they evaluate to
   null with a reason.
-- **Rounding of `exp`, `ln`, `log` and fractional `**`.** These are correctly rounded to 34
+- **Rounding of `exp`, `ln`, `log` and `**`.** These are correctly rounded to 34
   digits (the exact result, rounded once, half-even). Upstream dsntk with the Intel library is
   1 ulp off for roughly 11–16 % of inputs and occasionally more, so the last digit of such results
   can differ from upstream dsntk; e.g. `12.2384283 ** 4.25` is `41959.85737359436186095331070746801`
@@ -190,13 +190,13 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   result), while Intel gives …800. The number oracle (`tools/number-oracle/`) judges every
   number result against DMN 1.6; the classes that still deviate are listed in its
   `known-wrong.json`.
-- **Integer-exponent `**` is not correctly rounded.** `x ** n` with an integer `n` is a binary
-  exponentiation with 34-digit rounding after every multiplication, so the error grows with
-  |n|: `1.1 ** 100000` is 294 ulp from the exact value rounded to 34 digits, `1.1 ** -100000`
-  853 ulp, `1.0001 ** 1000000` about 89,000 ulp, and
-  `2 ** -20000` and `0.5 ** 20000` (the same value) differ in their last digits. Small exponents
-  on short operands are exact (`3 ** 50`, `2 ** 100`). Only a non-integer exponent takes the
-  correctly rounded `exp(y ln x)` path.
+- **Integer-exponent `**`.** `x ** n` with an integer `n` is the exact power rounded once while
+  it has at most about 4,900 digits (its reciprocal one correctly rounded division), and the
+  correctly rounded `exp(y ln x)` beyond: `1.05 ** 360` is
+  `42476396.40868002039560415895318542`, and `2 ** -20000 = 0.5 ** 20000`. Upstream dsntk
+  multiplies with a rounding after every product, so its last digits differ, by 294 ulp for
+  `1.1 ** 100000` and about 89,000 ulp for `1.0001 ** 1000000`. A large exponent beyond the
+  exact power costs about 0.4 ms per evaluation.
 - **Size.** `feel.wasm` is about 3.6 MiB raw (3.8 MB), about 995 KiB gzip and 650 KiB brotli
   (`npm run build:wasm` prints the exact figures). The `wasm` profile builds at opt-level 3; at
   opt-level z the same code is about 3.0 MiB raw and 540 KiB brotli and runs at about half the

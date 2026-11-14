@@ -1401,6 +1401,46 @@ The totals are under "Verification" below.
     judges every `modulo` result right. Rust API break: `impl Rem` and `impl RemAssign` for
     `FeelNumber` (`%` was the same 34-digit-step floor modulo) are removed; use
     `FeelNumber::modulo`, which returns `None` for a zero divisor.
+104. **Integer powers are correctly rounded.** DMN 1.6 Table 61: `e1 ** e2` is "(p,s) such that
+    value(p,s) = value(e1)^value(e2) + ε", "p is limited to 34 digits", "ε is rounding error",
+    with the one rounding of §10.3.2.3.1; the owner's decision is correctly rounded. An integer
+    exponent within `i32` was a binary exponentiation that rounded every product to 34 digits,
+    so the error grew with the exponent: `1.05 ** 360` ended in …541 instead of …542, `(1 +
+    0.05/12) ** 360` in …413408 instead of …41355, `1.1 ** 100000` was 294 ulp off,
+    `1.0001 ** 1000000` about 89,000 ulp, `2 ** -20000 = 0.5 ** 20000` was false and `3 ** (4 **
+    5)` 1 ulp off. Now `pow_integer` takes the base `c0 · 10^e0` without trailing zeros and `n =
+    |y|`: (1) `y > 0` and `c0^n` within 256 bits (`U256::checked_pow`, square and multiply with
+    checked products, no allocation): that exact power, rounded once; (2) `y < 0` and `c0` a
+    power of two or of five: `1/c0` is the exact `5^k · 10^-k` or `2^k · 10^-k`, raised the same
+    way, so ties such as `2 ** -50` are exact; (3) otherwise while `c0^n` has at most 16,384
+    bits (about 4,900 digits): the exact power from the backend (`Backend::int_pow`,
+    `UBig::pow`), or for `y < 0` one correctly rounded division `1 / c0^n`, moved to the
+    exponent `±e0 · n` and rounded once into the range; (4) beyond that the certified
+    `exp(y ln x)` loop with the integer as exponent. An inexact integer power is never a tie, so
+    that loop no longer falls back to the tie assumption for it: it goes on from 140 to 280 and
+    560 working digits, and a result still undecided there (within about 10^-520 of a half-way
+    point, relatively; no such operand is known) is rounded as its computed digits say;
+    CONTRACT §3 states this bound. The `(-1)^y` emulation of Intel's cohort for an exponent
+    outside `i32` goes with the binary exponentiation; `|x| = 1` gives ±1 by the parity of `y`
+    on the exact path. Test first: `integer_powers_are_correctly_rounded`
+    (`feel-number/tests/pow.rs`, the exact powers rounded once, ties included) failed on the
+    parent with 12 wrong powers; the cohort test of `(-1)^y` is a value test now. Pinned values
+    updated: `3 ** (4 ** 5)` in feel-evaluator, and the payment amounts of TCK 0008, 0009, 0003,
+    0005, 0014, 0040 and 0041 in model-evaluator with their bench copies (checked by grep; each
+    new value is the one the number oracle computes for the same formula); the TCK runner
+    compares decimals with an epsilon, and those folders, 0075 and 0100 pass as before.
+    Identity: 16 registered differences in `registered/integer-powers.json`, all on the number
+    oracle's edge vectors (`(1 + 0.05/12) ** 360` is …41355, not …413550: the value ends in a
+    zero, which the canonical text drops). The oracle's exemption for wrong integer-power values
+    is deleted; its quick run judges every power right but the exponents outside Table 61's
+    range. Speed, per evaluation against 0.4.0 (`feel.wasm`, a random 34-digit `x`): `x ** 2`
+    1.0×, `x ** -3` 0.9×, `x ** 12` 1.35×, `x ** 100` 7.8× (0.14 ms, an exact power of 3,400
+    digits), `x ** 1000000` and `1.0001 ** 1000000` 8.4× (0.43 ms, the certified loop; it was a
+    binary exponentiation of 20 rounded products). Rust behaviour break: `FeelNumber::pow` with
+    an integer exponent gives the correctly rounded value; `Debug` of an integer power shows the
+    cohort of the exact power of the base without its trailing zeros (`10 ** 2` is `+1E+2`, was
+    `+100E+0`; `1.50 ** 2` is `+225E-2`, was `+22500E-4`), and `(-1).pow(y)` for a huge `y` has
+    the cohort of 1.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

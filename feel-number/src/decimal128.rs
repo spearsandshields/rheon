@@ -8,9 +8,10 @@
 //! (< 10^34) and `i32` exponent, plus infinity and NaN. Everything whose exact result has a
 //! bounded number of digits is computed here, directly on that triple, in `u128` when the
 //! intermediate fits and in a tiny 256-bit integer ([U256]) otherwise: `+ - *`, square root,
-//! rounding to a scale, comparisons, parsing, formatting, conversions, the
-//! integer-exponent power. Only the operations with an unbounded exact
-//! result (`/`, `exp`, `ln`, `pow` with a non-integer exponent) are delegated to a [Backend],
+//! rounding to a scale, `modulo`, comparisons, parsing, formatting, conversions, the
+//! integer-exponent power that fits in 256 bits. The operations with an unbounded or a large exact
+//! result (`/`, `exp`, `ln`, `pow` with a non-integer exponent, a larger exact integer power and its
+//! reciprocal) are delegated to a [Backend],
 //! which returns a correctly rounded value together with the side the exact value lies on; that
 //! side becomes a sticky digit and the value is passed **once** through [round_pack], which also
 //! applies the decimal128 exponent range (subnormals, clamping and overflow to infinity).
@@ -53,8 +54,17 @@ pub(crate) const POW_T_OVERFLOW: f64 = 14200.0;
 pub(crate) const POW_T_UNDERFLOW: f64 = -14250.0;
 
 /// Working precisions of [pow_exp_log]: the first one leaves 11 digits to decide the rounding,
-/// the later ones are only used when the result is very close to a rounding boundary.
+/// the later ones are only used when the result is very close to a rounding boundary. An integer
+/// exponent goes on to the precisions of [POW_INTEGER_PRECISIONS].
 const POW_PRECISIONS: [usize; 4] = [45, 60, 90, 140];
+
+/// The largest exact integer power, in bits, that [Backend::int_pow] computes (about 4,900
+/// digits): beyond it [pow_exp_log] is faster than the exact power.
+pub(crate) const POW_EXACT_MAX_BITS: u64 = 16_384;
+
+/// The further working precisions of [pow_exp_log] for an integer exponent, whose inexact result
+/// is never a tie.
+const POW_INTEGER_PRECISIONS: [usize; 2] = [280, 560];
 
 /// Unpacked decimal128 value.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -134,6 +144,11 @@ pub(crate) trait Backend {
 
   /// `ln(c · 10^e)`, correctly rounded to [PRECISION] digits.
   fn ln(c: u128, e: i32) -> Wide;
+
+  /// `c^n` exactly (as [Wide::Digits]), or with `reciprocal` `1 / c^n` correctly rounded to
+  /// [PRECISION] digits, for `c > 0` and `n > 0`; `None` when `c^n` would have more than
+  /// [POW_EXACT_MAX_BITS] bits.
+  fn int_pow(c: u128, n: u64, reciprocal: bool) -> Option<Wide>;
 
   /// One round of `x^y = exp(t)`, `t = y ln x`, for `x = cx · 10^ex` and `y = ±cy · 10^ey`
   /// (`sy` is the sign of `y`), with `ln`, `*` and `exp` each correctly rounded to `precision`
@@ -228,6 +243,31 @@ impl U256 {
       hi: lo.hi.checked_add(hi.lo)?,
       lo: lo.lo,
     })
+  }
+
+  /// Product of two values, `None` when it does not fit in 256 bits.
+  fn checked_mul(self, other: U256) -> Option<U256> {
+    match (self.hi, other.hi) {
+      (0, _) => other.checked_mul_u128(self.lo),
+      (_, 0) => self.checked_mul_u128(other.lo),
+      _ => None,
+    }
+  }
+
+  /// `base^n`, `None` when it does not fit in 256 bits (square and multiply with exact products;
+  /// a square is only taken when a later bit needs it, so no intermediate overflows needlessly).
+  fn checked_pow(base: u128, n: u64) -> Option<U256> {
+    let (mut result, mut square, mut n) = (U256::from_u128(1), U256::from_u128(base), n);
+    while n > 0 {
+      if n & 1 == 1 {
+        result = result.checked_mul(square)?;
+      }
+      n >>= 1;
+      if n > 0 {
+        square = square.checked_mul(square)?;
+      }
+    }
+    Some(result)
   }
 
   fn checked_mul_pow10(self, n: u32) -> Option<U256> {
@@ -925,22 +965,29 @@ fn ln_v(c: u128, e: i32) -> V {
   pack(B::ln(c, e)).0
 }
 
-/// `x^y = exp(y ln x)` for a finite `x > 0` and a finite, non-zero `y` that is either not an
-/// integer or an integer outside `i32`, correctly rounded to 34 digits (Ziv's strategy).
+/// `x^y = exp(y ln x)` for a finite `x > 0` and a finite, non-zero `y`, correctly rounded to 34
+/// digits (Ziv's strategy); `integer` tells that `y` is an integer whose exact power is beyond
+/// [POW_EXACT_MAX_BITS] or `|y|` beyond `u64` ([pow_integer] takes the others).
 ///
 /// The backend evaluates `ln`, `*` and `exp` at the working precision `p` (each correctly
 /// rounded, see [Backend::pow_step]), so the relative error of the result is below
 /// `|t| * 10^(1-p) + 10^(1-p)` with `t = y ln x`, `|t| < 14250`, i.e. below `2 * 10^5` units of
 /// the `p`-th digit. The result is accepted when its digits after the final rounding position
 /// are more than `10^7` units away from the half-way point `5000…`, otherwise the precision is
-/// increased. When even 140 digits do not settle it, the value is taken to be an exact tie (an
-/// algebraic result such as `16^-12.5 = 2^-50`, 35 digits ending in 5) and rounded half-even as
-/// such (the computed digits themselves carry an error of a few units in the 140th digit, so
-/// they cannot decide); a true value within `10^-133` of a tie without being one is not expected
-/// to exist for decimal128 operands.
-fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
+/// increased.
+///
+/// A non-integer `y` stops at 140 digits: a result still undecided there is taken to be an exact
+/// tie (an algebraic result such as `16^-12.5 = 2^-50`, 35 digits ending in 5) and rounded
+/// half-even as such, since the computed digits carry an error of a few units in the 140th digit
+/// and cannot decide; a true value within `10^-133` of a tie without being one is not expected to
+/// exist for decimal128 operands. An integer `y` cannot give a tie here (an exact power with a
+/// 35-digit tie is far below that size), so it goes on to 280 and 560 digits, and a result still
+/// undecided at 560 digits, within about `10^-520` of a half-way point relatively, is rounded as
+/// its computed digits say.
+fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32, integer: bool) -> V {
+  let further: &[usize] = if integer { &POW_INTEGER_PRECISIONS } else { &[] };
   let mut result = None;
-  for &precision in POW_PRECISIONS.iter() {
+  for &precision in POW_PRECISIONS.iter().chain(further) {
     let (mut digits, mut e) = match B::pow_step(cx, ex, sy, cy, ey, precision) {
       PowStep::Overflow => return V::Inf(false),
       PowStep::Underflow => return V::Fin(false, 0, EXP_MIN as i32),
@@ -966,10 +1013,77 @@ fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
     if !near_tie {
       return round_pack(false, &digits, e).0;
     }
-    // an exact tie: the digits above the rounding position followed by a single 5
-    result = Some(round_pack(false, &format!("{}5", &digits[..p - tail_len]), e + tail_len as i64 - 1).0);
+    result = Some(if integer {
+      // never a tie: the computed digits decide
+      round_pack(false, &digits, e).0
+    } else {
+      // an exact tie: the digits above the rounding position followed by a single 5
+      round_pack(false, &format!("{}5", &digits[..p - tail_len]), e + tail_len as i64 - 1).0
+    });
   }
   result.unwrap_or(V::NaN)
+}
+
+/// `|x|^y` for `x = cx · 10^ex` (`cx > 0`) and an integer `y = ±cy · 10^ey` that is not zero,
+/// rounded once to 34 digits (DMN 1.6 Table 61: "p is limited to 34 digits"; §10.3.2.3.1).
+///
+/// With the trailing zeros of the base stripped, `|x| = c0 · 10^e0` and `n = |y|`:
+/// - `y > 0` and `c0^n` fits in 256 bits: that exact power at the exponent `e0 · n`, rounded once;
+/// - `y < 0` and `c0` a power of two (or of five): `1/c0` is the exact `5^k · 10^-k` (or
+///   `2^k · 10^-k`), raised to `n` the same way, so the ties such as `2 ** -50` are exact;
+/// - otherwise, while `c0^n` has at most [POW_EXACT_MAX_BITS] bits: the exact power from the
+///   backend, or its correctly rounded reciprocal, at the exponent `±e0 · n`, rounded once more
+///   only by the exponent range;
+/// - beyond that, the certified loop of [pow_exp_log] with the integer as exponent.
+fn pow_integer(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
+  let (mut c0, mut e0) = (cx, i64::from(ex));
+  while c0 % 10 == 0 {
+    c0 /= 10;
+    e0 += 1;
+  }
+  if let Some(n) = to_unsigned(V::Fin(false, cy, ey), u64::MAX as u128).map(|n| n as u64) {
+    // base^k at the exponent unit · n, rounded once; None when base^k exceeds 256 bits
+    let exact = |base: u128, k: Option<u64>, unit: i64| -> Option<V> {
+      let power = U256::checked_pow(base, k?)?;
+      // beyond the range of i64 the value is zero or infinite anyway
+      let e = (i128::from(unit) * i128::from(n)).clamp(-(1 << 62), 1 << 62) as i64;
+      Some(if power.hi == 0 {
+        round_pack_u128(false, power.lo, e).0
+      } else {
+        round_pack(false, &power.to_decimal(), e).0
+      })
+    };
+    let reciprocal = || {
+      // 1 / 2^a = 5^a · 10^-a and 1 / 5^b = 2^b · 10^-b (1 is 2^0)
+      let twos = c0.trailing_zeros();
+      if c0 >> twos == 1 {
+        return exact(5, u64::from(twos).checked_mul(n), -e0 - i64::from(twos));
+      }
+      let (mut rest, mut fives) = (c0, 0_u32);
+      while rest % 5 == 0 {
+        rest /= 5;
+        fives += 1;
+      }
+      if rest == 1 {
+        exact(2, u64::from(fives).checked_mul(n), -e0 - i64::from(fives))
+      } else {
+        None
+      }
+    };
+    if let Some(v) = if sy { reciprocal() } else { exact(c0, Some(n), e0) } {
+      return v;
+    }
+    // the exact power, or its correctly rounded reciprocal, moved to the exponent ±e0 · n and
+    // rounded once into the range
+    let e = (i128::from(e0) * i128::from(n) * if sy { -1 } else { 1 }).clamp(-(1 << 62), 1 << 62) as i64;
+    match B::int_pow(c0, n, sy) {
+      Some(Wide::Rounded(neg, c, x, side)) => return pack(Wide::Rounded(neg, c, x.saturating_add(e), side)).0,
+      Some(Wide::Digits(neg, digits, x)) => return pack(Wide::Digits(neg, digits, x.saturating_add(e))).0,
+      Some(other) => return pack(other).0,
+      None => {}
+    }
+  }
+  pow_exp_log(cx, ex, sy, cy, ey, true)
 }
 
 /// Square root of a finite, positive value, correctly rounded.
@@ -1194,12 +1308,10 @@ impl FeelNumber {
   }
 }
 
-/// Power function, mirrors the structure of Intel's `bid128_pow`:
-/// - special cases (zero exponent, base one, NaN, infinities, zero base, negative base),
-/// - integer exponent fitting in `i32`: binary exponentiation using decimal128
-///   multiplications (each rounded to 34 digits, exactly like Intel), `1/x^|n|` for n < 0,
-/// - otherwise `exp(y ln x)` correctly rounded by [pow_exp_log] (more accurate than Intel,
-///   which goes through binary128 and may differ in the last digit).
+/// Power function:
+/// - special cases (zero exponent, base one, NaN, infinities, zero base, negative base);
+/// - an integer exponent: [pow_integer], correctly rounded;
+/// - otherwise `exp(y ln x)` correctly rounded by [pow_exp_log].
 fn pow_v(x: V, y: V) -> V {
   // 1^y = x^0 = 1, even for NaN
   if is_zero_v(y) || eq_v(x, ONE) {
@@ -1233,37 +1345,16 @@ fn pow_v(x: V, y: V) -> V {
   if x_negative && !y_integer {
     return V::NaN;
   }
-  // integer exponent that fits in i32 (and is not i32::MIN, like in Intel's implementation)
-  if y_integer && let Some(n) = to_signed(y, i32::MIN as i128 + 1, i32::MAX as i128) {
-    let mut n_abs = (n as i32).unsigned_abs();
-    let mut r = ONE;
-    let mut p = x;
-    while n_abs > 0 {
-      if n_abs & 1 == 1 {
-        r = mul_v(r, p);
-      }
-      if n_abs > 1 {
-        p = mul_v(p, p);
-      }
-      n_abs >>= 1;
-    }
-    return if n < 0 { div_v(ONE, r) } else { r };
-  }
   let V::Fin(_, cx, ex) = x else { return V::NaN };
   let V::Fin(sy, cy, ey) = y else { return V::NaN };
-  // (-1)^y for an integer y outside i32: Intel's logarithm takes its Taylor branch with
-  // t = |x| - 1 = 0, all intermediate values are zeros whose exponents propagate into
-  // the final `fma(exp(l), l_lo, exp(l)) = 1`; with x = -1 written with k fractional
-  // zeros (-1.000...), l_lo = 0E(ey - 34 - 3k), so the result is 1 with exponent
-  // min(0, ey - 34 - 3k), but at most 34 digits (e.g. (-1)**1E+10 = 1E-24 as 1.000...).
-  if (-33..=0).contains(&ex) && cx == pow10((-ex) as u32) {
-    let k = -ex as i64;
-    let l_lo_exp = (ey as i64 - 34 - 3 * k).clamp(EXP_MIN, EXP_MAX);
-    let exp = l_lo_exp.min(0).max(1 - PRECISION as i64) as i32;
-    return V::Fin(odd_negative, pow10((-exp) as u32), exp);
-  }
-  match pow_exp_log(cx, ex, sy, cy, ey) {
-    // like Intel: zero (underflow) and infinity (overflow) are returned without sign correction
+  let magnitude = if y_integer {
+    pow_integer(cx, ex, sy, cy, ey)
+  } else {
+    pow_exp_log(cx, ex, sy, cy, ey, false)
+  };
+  match magnitude {
+    // zero (underflow) and infinity (overflow) carry no sign: FEEL has neither a signed zero nor
+    // an infinity
     V::Fin(_, 0, _) => V::Fin(false, 0, EXP_MIN as i32),
     V::Fin(_, c, e) => V::Fin(odd_negative, c, e),
     other => other,
