@@ -100,10 +100,36 @@ Rules:
 | 52 | `cb925d0` | feel-parser: the composite-name search without recursion | fork |
 | 53 | `6dcbbba` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug |
 | 54 | `ff98977` | feel: strings share their text (`FeelString`) | fork |
-| 55 | | feel-wasm: test that no corpus request traps the module | fork |
-| 56 | | tools: identity check of full responses against the previous release | fork |
-| 57 | | ci: check response identity against the previous release | fork |
-| 58 | | tools: frozen temporal request corpus | fork |
+| 55 | `5c2789f` | feel-wasm: test that no corpus request traps the module | fork |
+| 56 | `cf5349d` | tools: identity check of full responses against the previous release | fork |
+| 57 | `149beef` | ci: check response identity against the previous release | fork |
+| 58 | `637cc8c` | tools: frozen temporal request corpus | fork |
+| 59 | `77e25bf` | temporal: durations hold a symmetric range | upstream bug |
+| 60 | `b4a7710` | temporal: a years and months literal is invalid when any component does not fit | upstream bug |
+| 61 | `ae63142` | temporal: date and date-time arithmetic takes one signed step | upstream bug |
+| 62 | `97decb9` | temporal: date plus or minus a days and time duration follows Table 58 | DMN 1.6 |
+| 63 | `061ad26` | temporal: whole seconds of a duration are an i64 on every target | fork |
+| 64 | `c6a7a69` | feel-evaluator: sort cannot panic on any predicate | upstream bug |
+| 65 | `5fdaa0d` | feel-evaluator: one abort channel, reset and read by every entry point | fork |
+| 66 | `8c4eee8` | feel: Display of lists, contexts and types writes as it goes | fork |
+| 67 | `f1f09d6` | feel: one bounded renderer for message arguments and a cap per message | fork |
+| 68 | `1f7c11e` | feel-evaluator: values in null reasons are previews | fork |
+| 69 | `94eab15` | feel-parser: a syntax error quotes a preview of the input | fork |
+| 70 | `032af5b` | model-evaluator: values in DMN messages are previews | fork |
+| 71 | `30c2d9e` | feel-wasm: request echoes are previews and every message is capped | fork |
+| 72 | `c7027b4` | regex: rheon-feel-regex tells engine limits from invalid patterns | fork |
+| 73 | `a499385` | feel-evaluator: a regex engine limit aborts the evaluation | fork |
+| 74 | `a27959d` | temporal: read fractional seconds as an exact integer | upstream bug |
+| 75 | `2b9f135` | temporal: keep every time of day below 24:00:00 | upstream bug |
+| 76 | `9ea1bf6` | feel-evaluator: build date and time(date, time, zone) from its parts | with 27 |
+| 77 | `b67ace8` | diagnostics: report fractional seconds truncated to nanoseconds as warnings | fork |
+| 78 | `e3af54d` | feel-evaluator: warn when time() seconds carry more than nine fractional digits | fork |
+| 79 | `6c91a51` | model: bound how deeply the elements of a model nest | upstream bug |
+| 80 | `e5a60d7` | model-evaluator: item definitions that form a cycle are a build error naming the cycle | upstream bug |
+| 81 | `6512eef` | model-evaluator: an item definition type beyond the size or depth bound is a build error | upstream bug |
+| 82 | `b25e023` | model-evaluator: decision-service function values hold a weak model reference | upstream bug |
+| 83 | `078c1cd` | feel-wasm: display measures the inline width before rendering | fork |
+| 84 | `3577ebe` | feel-wasm: no combination of edge operands traps the module | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -221,7 +247,9 @@ What each commit does:
     `exp`, `duration("P")` said `duration`, `log(0)` said nothing; they now
     say what is wrong, and type errors use the `invalid argument type` form.
     `sublist([1,2,3], 9e6144)` embedded 6,145 digits in its reason; numbers
-    longer than 40 characters are formatted as `9E+6144` in messages.
+    longer than 40 characters are formatted as `9E+6144` in messages. (Other
+    null reasons still quoted such numbers in full until commit 68 made the
+    values in null reasons previews.)
 19. **`is()` on times.** `FeelTime::is` compares the fields and the zone as
     written (TCK 0103 `is(@"20:00:50+00:00", @"21:00:50+01:00")` is false),
     since `==` now compares instants.
@@ -235,7 +263,9 @@ What each commit does:
     unpatched (dsntk-tck-patches had rewritten them to 6144).
 22. **Back-references in `matches`.** `feel-regex` compiles `matches` patterns
     with `fancy-regex` (back-references, look-around, a backtracking limit
-    that turns pathological patterns into an error instead of a hang);
+    that turns pathological patterns into a null instead of a hang; since
+    commit 73 a pattern beyond an engine limit stops the evaluation with an
+    error);
     `replace`/`split` keep `regex`. With the `x` flag, whitespace inside
     `\p{...}` is stripped before compiling. TCK 1111 `K2-MatchesFunc-17`
     passes unpatched.
@@ -411,6 +441,14 @@ a 5,000-entry context literal 19.2 ms → 6.2 ms; `count(for i in 1..10000 retur
 diagnostics, errors) of 1,174 requests (evaluate requests and a parse request made from each)
 equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48, 49 and 53.
 
+Commits 55-84 (0.5.0) make the engine robust at its limits: no input traps the module, every
+message and evaluation is bounded, temporal values are exact at their edges and in their
+fractions, and model loading is bounded. Each change of a wasm answer against 0.4.0 that the
+identity check finds is registered with both answers and counted in its item, except the 544
+number previews of the edge-operand product (item 84), instances of the registered message rule
+that are not listed one by one; native-only changes are stated in their items with both answers.
+The totals are under "Verification" below.
+
 55. **No-trap corpus.** `wasm/feel-wasm/tests/corpus/no-trap.json` is a JSON array of module
     requests, exactly as a host sends them, and the contract test `corpus_requests_never_trap`
     sends each one through `feel_wasm::call`, natively and under Wasmtime. A request passes when
@@ -489,14 +527,13 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     (DMN 1.6 §10.3.2.3.5: valuedt is the number of seconds since the epoch). The inputs that
     trapped are in the no-trap corpus; 34 registered differences, each with both answers, 10 of
     them combinations of the edge-operand product of item 84 (sums, differences and products of
-    exactly -2^63 nanoseconds or months). Basis:
-    no input may panic the engine (CONTRACT §1). API breaks (rheon-feel-temporal):
-    `FeelYearsAndMonthsDuration::from_ym` and `from_m` and `FeelDaysAndTimeDuration::from_n` and
-    `from_sn` return `Option<Self>`; `FeelDaysAndTimeDuration::from_s` takes an `i32`; the
-    `ops::Add` and `ops::Sub` impls of both durations are removed (use `checked_add` and
-    `checked_sub`), `checked_neg` is removed and `ops::Neg` is total; both derive `Default` (zero);
-    `&FeelDate - &FeelDate` returns `Option<FeelYearsAndMonthsDuration>`; `FeelDateTime::nanos_since`
-    is added.
+    exactly -2^63 nanoseconds or months). Basis: no input may panic the engine (CONTRACT §1). API
+    breaks (rheon-feel-temporal): `FeelYearsAndMonthsDuration::from_ym` and `from_m` and
+    `FeelDaysAndTimeDuration::from_n` and `from_sn` return `Option<Self>`;
+    `FeelDaysAndTimeDuration::from_s` takes an `i32`; the `ops::Add` and `ops::Sub` impls of both
+    durations are removed (use `checked_add` and `checked_sub`), `checked_neg` is removed and
+    `ops::Neg` is total; both derive `Default` (zero); `&FeelDate - &FeelDate` returns
+    `Option<FeelYearsAndMonthsDuration>`; `FeelDateTime::nanos_since` is added.
 60. **A years and months literal is invalid when any component does not fit.** The parser
     accepted a literal when one of its components was valid and silently left out a component
     that overflowed: `duration("P768614336404564650Y8M")` was `P768614336404564650Y`,
@@ -594,9 +631,9 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     and a prepared evaluator and a decision table evaluator outside a session. API breaks:
     rheon-feel adds `diagnostics::{Abort, evaluation, one_evaluation, abort, enter_call, Call}`
     and `From<Abort> for DsntkError`, with `Abort` and its variants `#[non_exhaustive]`
-    (`Abort::limit` builds the engine-limit variant); rheon-feel-evaluator removes `reset_call_depth` and
-    `call_depth_exceeded`, adds `Session` and `Outcome`, `evaluate` returns `Outcome<Value>`,
-    `evaluate_context`, `evaluate_context_node`, `evaluate_range_literal` and
+    (`Abort::limit` builds the engine-limit variant); rheon-feel-evaluator removes
+    `reset_call_depth` and `call_depth_exceeded`, adds `Session` and `Outcome`, `evaluate` returns
+    `Outcome<Value>`, `evaluate_context`, `evaluate_context_node`, `evaluate_range_literal` and
     `evaluate_range_literal_node` return `Err` on an abort, and `prepare` and
     `prepare_with_dialect` evaluators turn an abort into a null with its text;
     `evaluate_invocation` joins a running session, and outside one it is an evaluation of its
@@ -653,7 +690,9 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     Arg, compose, MessageArg, Size}`, `values::TypeOf` and `values::null_with_reason` are added,
     with `MessageArg` for `TypeOf` and for the existing `Value`, `FeelType`, `FeelNumber`, `Name`,
     `FeelContext`, `Bip`, `str`, `String` and `serde_json::Value`; `value_null!` caps its message at
-    1,000 characters.
+    1,000 characters and builds it in a closure that it passes to `values::null_with_reason`, so
+    the macro's arguments are evaluated inside that closure and can no longer use `?`, `return` or
+    `break`.
 68. **Values in null reasons are previews.** Every null reason of the evaluator and of rheon-feel
     quotes its values, contexts, names, texts and numbers through `arg`, and the type of a value
     through `TypeOf`: the 199 `invalid_argument_type!` sites pass the value instead of its
@@ -675,8 +714,8 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     of item 67, now with previews and registered here with them (the reasons of a list compared
     with a number in lenient and strict mode and of a missing path entry, and the evaluation of
     1,000 such reasons), and `1e50 / "a"`; the reason of a 5,001-character invalid pattern stays
-    cut and registered with item 67, since the regex library quotes it. Basis: messages name the value
-    by a short preview and its size (owner decision); CONTRACT §3. No API change beyond
+    cut and registered with item 67, since the regex library quotes it. Basis: messages name the
+    value by a short preview and its size (owner decision); CONTRACT §3. No API change beyond
     rheon-feel's `MessageArg::is_short` (with a default) and `MessageArg` for references and
     `FeelString`.
 69. **A syntax error quotes a preview of the input.** The parser's syntax error echoed the whole
@@ -705,12 +744,13 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     zeros>2`). They now quote through `arg` (`invalid 'dialect' "xxx…… (200 characters) (expected
     "expression" or "unaryTests")`, `… was rounded to 2E-6176`); the path of an input value is
     written as it goes, never built as a text, and a long one is a preview with its size in
-    characters in every message; the FEEL-context error quotes its value and `TypeOf`, and every `error.message`, warning and strict-mode text goes
-    through `compose`, so no message of a response exceeds 1,000 characters (CONTRACT §3 states
-    the rule). 11 registered differences: the echoes of a long `dialect` and `contextFormat` (each
-    for evaluate and parse), `op` and a 1,000-digit `tzOffsetMinutes`, the empty-key error under a
-    2,000-character key (evaluate and parse) and the number warning under it, a 5,002-character
-    number and the rounded `1.5e-6176`; the identity check sends these numbers as written. Basis: messages name the value by a short
+    characters in every message; the FEEL-context error quotes its value and `TypeOf`, and every
+    `error.message`, warning and strict-mode text goes through `compose`, so no message of a
+    response exceeds 1,000 characters (CONTRACT §3 states the rule). 11 registered differences: the
+    echoes of a long `dialect` and `contextFormat` (each for evaluate and parse), `op` and a
+    1,000-digit `tzOffsetMinutes`, the empty-key error under a 2,000-character key (evaluate and
+    parse) and the number warning under it, a 5,002-character number and the rounded `1.5e-6176`;
+    the identity check sends these numbers as written. Basis: messages name the value by a short
     preview and its size (owner decision); CONTRACT §3. No API change.
 72. **rheon-feel-regex tells engine limits from invalid patterns.** The regex engines give up on
     some valid patterns: fancy-regex's backtracking budget and stack, the compiled-size limit of
@@ -735,10 +775,9 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     the answer of the pattern without flags, `"x"`. That answer change is registered with item 73,
     which gives it its final form. The built-ins keep their argument checks and messages, and
     every other FEEL answer is unchanged in this commit (the identity check includes the limit
-    inputs). API breaks (rheon-feel-regex):
-    `RegexError`, `Limit`, `replace` and `split` are added, and `regex` and `regex-syntax` become
-    dependencies (both already in the build graph); rheon-feel-evaluator no longer depends on
-    `regex`.
+    inputs). API breaks (rheon-feel-regex): `RegexError`, `Limit`, `replace` and `split` are added,
+    and `regex` and `regex-syntax` become dependencies (both already in the build graph);
+    rheon-feel-evaluator no longer depends on `regex`.
 73. **A regex engine limit aborts the evaluation.** `matches`, `replace` and `split` turned an
     engine limit into the null of an invalid pattern, which B-FEEL then replaced by `false`, `""`
     or `[]`: `matches("aaaa…!", "^(a|a)*\1$")` (40 `a`) was null with `invalid regex pattern`,
@@ -755,9 +794,9 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     functions, with and without flags, in FEEL and in B-FEEL, among them two inputs of the
     no-trap corpus; `replace("x", "k{100000}", "y", "i")`, where only the flagged pattern exceeds
     the limit (item 72), was `"x"`; and `matches` of 300 `(` and then `[`, invalid beyond the
-    nesting limit, was the null of an invalid pattern. Basis: DMN 1.6 §7.3.8 and Table 75 note 2; CONTRACT §3 (a stopped evaluation
-    is reported, never a partial result). API break (rheon-feel-regex): `is_match` and
-    `is_match_with_flags` return `Result<bool, RegexError>`.
+    nesting limit, was the null of an invalid pattern. Basis: DMN 1.6 §7.3.8 and Table 75 note 2;
+    CONTRACT §3 (a stopped evaluation is reported, never a partial result). API break
+    (rheon-feel-regex): `is_match` and `is_match_with_flags` return `Result<bool, RegexError>`.
 74. **Exact fractional seconds.** The time, date and time and days and time duration parsers read
     the fraction digits as a binary double and truncated the product with 10^9, which is one
     nanosecond low for many decimal fractions: of all fractions with 4, 5 and 6 digits, 167 of
@@ -1039,6 +1078,25 @@ functions), 20 ignored. Clippy is clean for the touched crates.
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
 
+Commits 55-84 (2026-11-14), on the tree of commit 84: workspace 8,639 passed, 0 failed, 24
+ignored (CI's skips); clippy without warnings; feel.wasm tests 69 native (8 unit, 61 contract) and
+70 under Wasmtime (8, 62); runtime 33; smoke passes, with its two memory checks growing by 22.1 MiB
+and 26.5 MiB (bound 32 MiB); the stack check passes, and its report reaches at least 0.4.0's
+depth on every host (item 67); the playground builds; the randomized and exhaustive tests at full
+size (`RHEON_FULL_TESTS=1`, release, with the parser corpus, now with `rheon-feel-wasm`) 971 passed.
+DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, every per-test
+result identical to 0.4.0's. Full responses against the 0.4.0 release module, each request sent as
+written: 187,677 requests (the committed sources, each evaluate request also as parse, the ledger,
+and request sets kept outside the repository: the fraction sweep, the duration, message and regex
+probes and the performance workloads), 1,645 registered differences reproduced (counted per change
+in items 59-83), none unregistered; 52 of the requests trap 0.4.0, none traps the build. The
+full-size edge-operand product of item 84 (28,110 requests with its parse twins), which is not an
+identity source, differs in 568 answers: its 24 answer changes that are not message changes are
+among the registered ones, and its other 544 answers differ only in null reasons that quote a number
+in scientific notation, instances of the registered message rule (item 68) that are not listed one
+by one. Speed against 0.4.0 (engine benchmarks, 24 workloads): geomean 1.01x, every result equal,
+from 0.94x to 1.11x.
+
 Commits 39-53 (2026-11-13): workspace 8,488 passed, 0 failed, 24 ignored (CI's skips); clippy
 without warnings; feel.wasm tests 56 native and 57 under Wasmtime; runtime 33; the randomized
 and exhaustive tests at full size (`RHEON_FULL_TESTS=1`, release, with the parser corpus) 867
@@ -1185,7 +1243,8 @@ push; crates.io still records the pre-rewrite hash of 0.2.0 (`3209ccd`, now `a91
 The ten `rheon-*` crates share the workspace version (`[workspace.package] version`,
 rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`, `0.3.0` changed the API of
 `rheon-feel` and `rheon-feel-evaluator`, `0.4.0` changes the API of `rheon-feel`, `rheon-feel-parser`
-and `rheon-feel-evaluator`, see below) and pin each other with `=<version>` in
+and `rheon-feel-evaluator`, `0.5.0` that of `rheon-feel`, `rheon-feel-temporal`, `rheon-feel-regex`,
+`rheon-feel-evaluator`, `rheon-model` and `rheon-model-evaluator`, see below) and pin each other with `=<version>` in
 the root manifest. Every other workspace member is `publish = false`, so one command
 publishes the set in dependency order:
 
@@ -1238,6 +1297,68 @@ The API changes of 0.4.0 (commits 39-54):
   `FilterExpressionEvaluator`, `Dialect` and `ModelEvaluator` are `Send` and `Sync`, and
   `FeelScope` and `ParsingScope` are `Send`, as at 0.3.0; each crate's `send_sync` test checks
   this at compile time.
+
+The API changes of 0.5.0 (commits 59-83; the item of each change is in parentheses):
+
+- Changed:
+  - `rheon-feel-temporal`: `FeelYearsAndMonthsDuration::from_ym` and `from_m` and
+    `FeelDaysAndTimeDuration::from_n` and `from_sn` return `Option<Self>`, and
+    `FeelDaysAndTimeDuration::from_s` takes an `i32` (59). `ops::Neg` of both durations is total,
+    and `&FeelDate - &FeelDate` returns `Option<FeelYearsAndMonthsDuration>` (59).
+    `FeelDaysAndTimeDuration::as_seconds` returns `i64` (was `isize`) (63).
+    `FeelTime::{utc_opt, local_opt, offset_opt, zone_opt}` and `FeelDateTime::{utc, local, offset}`
+    return `None` for nanoseconds of 10^9 or more and for 24:00:00 with a fraction, `utc_opt` turns
+    24:00:00 into midnight, and the time and date and time parsers reject 24:00:00 with a
+    fraction (75).
+  - `rheon-feel`: `value_null!` caps its message at 1,000 characters and builds it in a closure
+    that it passes to `values::null_with_reason`, so its arguments are evaluated inside that
+    closure and can no longer use `?`, `return` or `break` (67). `Diagnostics` has a
+    private `warnings` field, read with `warnings()`, so its struct literals no longer compile
+    outside the crate (77).
+  - `rheon-feel-evaluator`: `evaluate` returns `Outcome<Value>`; `evaluate_context`,
+    `evaluate_context_node`, `evaluate_range_literal` and `evaluate_range_literal_node` return
+    `Err` on an abort; the evaluators of `prepare` and `prepare_with_dialect` turn an abort into a
+    null with its text; `evaluate_invocation` joins a running session, and outside one a stopped
+    invocation is null with the abort's text (was `null(function call depth limit (200)
+    exceeded)`, with the flag left set for the next caller on the thread) (65). The crate no
+    longer depends on `regex` (72).
+  - `rheon-feel-regex`: `is_match` and `is_match_with_flags` return `Result<bool, RegexError>`
+    (73); `regex` and `regex-syntax` become dependencies (72).
+  - `rheon-model`: `parse` rejects a document whose elements nest more than 100 levels deep (79);
+    it no longer rejects item definition cycles, the `<ModelValidatorError>` kind is gone, and
+    the `petgraph` dependency is removed (80).
+  - `rheon-model-evaluator`: `ModelEvaluator::evaluate_invocable` returns `Outcome<Value>` and
+    `evaluate_invocable_with_mode` returns `Outcome<(Value, Diagnostics)>`, and the evaluator of
+    `build_decision_table_evaluator` runs as one evaluation, turning an abort into a null with its
+    text (65). A decision-service function value called after its model was dropped is null with
+    that reason (82). `ModelEvaluator::new` returns `<ItemDefinitionError>` for item definitions
+    that form a cycle (80) and for a type over 100,000 nodes or 256 levels (81).
+- Removed:
+  - `rheon-feel-temporal`: the `ops::Add` and `ops::Sub` impls of both durations (use
+    `checked_add` and `checked_sub`) and their `checked_neg` (59); `FeelDate::add_months(u32)` and
+    `FeelDate::sub_months(u32)` (61); `FeelTime::{utc, local, offset}` (75).
+  - `rheon-feel-evaluator`: `reset_call_depth` and `call_depth_exceeded` (65).
+- Added:
+  - `rheon-feel-temporal`: `Default` (zero) for both durations and `FeelDateTime::nanos_since`
+    (59); `FeelTime::midnight(FeelZone)` (75); `FeelZone::from_designator` (76);
+    `parse_reporting_truncation` on `FeelTime`, `FeelDateTime` and `FeelDaysAndTimeDuration` (77).
+  - `rheon-feel`: `diagnostics::{Abort, evaluation, one_evaluation, abort, enter_call, Call}` and
+    `From<Abort> for DsntkError`, with `Abort` and its variants `#[non_exhaustive]` and
+    `Abort::limit` building the engine-limit variant (65); `message::{arg, Arg, compose,
+    MessageArg, Size}`, `values::TypeOf` with its `MessageArg` impl, `values::null_with_reason`
+    (the cold function behind `value_null!`), and `MessageArg` for
+    `Value`, `FeelType`, `FeelNumber`, `Name`, `FeelContext`, `Bip`, `str`, `String` and
+    `serde_json::Value` (67); `MessageArg::is_short` (with a default) and `MessageArg` for
+    references and `FeelString` (68); `diagnostics::warn`,
+    `values::truncated_fraction_warning` and `values::warn_truncated_fraction` (77).
+  - `rheon-feel-evaluator`: `Session` and `Outcome` (65).
+  - `rheon-feel-regex`: `RegexError`, `Limit`, `replace` and `split` (72).
+- Unpublished members: `dsntk-evaluator` re-exports `Session` and `Outcome`, and its `evaluate`
+  returns `Outcome`; `dsntk-workspace`'s `Workspaces::evaluate` returns `Err` on an abort (65).
+- Kept: `rheon-feel-number`, `rheon-feel-grammar`, `rheon-feel-parser` and `rheon-feel-wasm` have
+  no API change. The `Send` and `Sync` properties that each crate's `send_sync` test checks are
+  those of 0.4.0. The wasm module's ABI and its request and response JSON are unchanged; what
+  changes there are answers, registered with both answers as "Verification" states.
 
 ### The pre-rename procedure (historical)
 

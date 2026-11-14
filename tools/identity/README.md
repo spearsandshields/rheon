@@ -15,7 +15,7 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 | File | What it is |
 |---|---|
 | `run.sh <reference.wasm> <candidate.wasm> [source…] [option…]` | Runs `equal.mjs` with every committed source and ledger; further sources and options are passed on |
-| `equal.mjs` | The comparison (Node, no dependencies); its header lists the options |
+| `equal.mjs` | The comparison (Node 21 or later, no dependencies); its header lists the options |
 | `baseline.json` | `tag` and `sha256` of the previous release's `feel.wasm` |
 | `fetch-baseline.sh` | Downloads that asset with the GitHub CLI into `.tools/baseline/` and verifies the sum; fails closed. A file already there with the right sum is kept |
 | `requests/*.json` | Curated request sets. `temporal.json`: fractional seconds of 1 to 9 digits and beyond in every literal form, exact constructor paths and carries, the range edges and year forms, daylight saving gaps and overlaps, zones and offsets. They hold no expected answers: the previous release is the oracle |
@@ -24,12 +24,12 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 CI runs the first and the last command after `npm run build:wasm` (`.github/workflows/ci.yml`, job
 `wasm`), with `GH_TOKEN` set to the workflow's token for the download.
 
-The committed request sources are `requests/` and `wasm/feel-wasm/tests/corpus/no-trap.json`. A source is a JSON
-file holding one request or an array of requests, exactly as a host sends them, or a directory of
-such files. Each request is sent byte for byte as it is written in its file, and so is the
-`request` of a ledger entry. `run.sh` also sends every `evaluate` request as a `parse` request,
-the same request with `op` set to `"parse"`. Requests that call `now()` or `today()` are left
-out, because their answers depend on the clock.
+The committed request sources are `requests/` and `wasm/feel-wasm/tests/corpus/no-trap.json`. A
+source is a JSON file holding one request or an array of requests, exactly as a host sends them, or
+a directory of such files. Each request is sent byte for byte as it is written in its file, and so
+is the `request` of a ledger entry. `run.sh` also sends every `evaluate` request as a `parse`
+request, the same request with `op` set to `"parse"`. Requests that call `now()` or `today()` are
+left out, because their answers depend on the clock.
 
 JSON is read losslessly: a number keeps its source text in requests, responses and ledger
 entries, so a number beyond the range or precision of a double (`1.5e-6176`, a 1,000-digit

@@ -25,6 +25,6 @@
     "stack": "node scripts/stack-headroom.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=21"
   }
 }

@@ -47,8 +47,8 @@
 // TurboFan, where its native stack runs out, and Wasmtime reaches 98, where the 10 MiB shadow stack
 // runs out before its 4 MiB native stack does. The shadow stack is in linear memory and the same on
 // every host, so the floors guard the native stack, whose use depends on the platform and on the V8
-// and Wasmtime versions. A change that alters the measured
-// depths on purpose updates the floors with them.
+// and Wasmtime versions. A change that alters the measured depths on purpose updates the floors
+// with them.
 //
 // --report checks nothing: it prints the deepest recursion each host reaches (Node main thread, and
 // workers with 2, 3 and 4 MiB stacks, with each compiler; Wasmtime with a wasm stack of 512 KiB, 1,

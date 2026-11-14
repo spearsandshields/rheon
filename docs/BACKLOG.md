@@ -12,6 +12,11 @@ was written.
   but no contract version, so a host cannot recognise a module built for another contract.
 - **Every result is serialised three ways** `[contract]` (2026-10-17): `display`, `feel` and
   `typed`, whether or not the host needs them.
+- **Display renders scalars other than strings to measure them** `[contract]` (2026-11-14). To
+  decide whether a list or context fits one 80-column line, `display` measures it with a writer
+  that stops past the width left; a string stops the measure at once, but another scalar (a range
+  with long string endpoints) is still rendered to text first, at most once per enclosing level
+  within 80 bytes of it (`wasm/feel-wasm/src/display.rs`).
 - **The ABI packs the response into an i64** `[contract]` (2026-10-17). `feel_call` returns
   `(ptr << 32) | len`, which ties the ABI to wasm32 (no native cdylib), and a host sees an error
   response only by parsing it.
@@ -108,6 +113,11 @@ was written.
   through the scope stack (`FeelScope::get_value`).
 - **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),
   `replace` and `split` compile their pattern for each invocation.
+- **`sort` on long lists with few distinct values** `[fork]` (2026-11-14). `sort` merges runs of
+  its own (`feel-evaluator/src/bifs/sorting.rs`), and on long lists with few distinct values it
+  calls the predicate more often than the standard library's sort: 10,000 items of seven distinct
+  values take 1.33 times the calls and 1.23 times the time of 0.4.0 (19.7 to 24.2 ms on the wasm
+  module). A stable partition of runs of equal items would remove the difference.
 
 ## DMN 1.6
 
@@ -199,6 +209,16 @@ back-references via fancy-regex). The unpatched subset stands at 289/298. Remain
   function value holds a weak reference to its model evaluator (so models are freed) and gives
   null once the model is dropped; the invocation should take the model from the call's session
   instead of from the value.
+- **Element nesting bound** `[fork]` (2026-11-14). A model's elements nest at most 100 levels
+  deep (`model/src/element_depth.rs`), because roxmltree's tokenizer recurses once per element:
+  the measured ceiling on a 2 MiB thread of the unoptimized test build is 124 levels (aarch64,
+  rustc 1.95.0; it overflows from 125 on). The bound keeps a margin of about a quarter below it
+  because CI runs the at-bound tests on x86_64 Linux, whose ceiling could not be measured. Large
+  machine-generated schemas want 256; that needs an XML parser that does not recurse per element.
+- **Named types are expanded at each use** `[fork]` (2026-11-14). The size and depth bounds of an
+  item definition type hold per definition, so a type is expanded wherever it is used, and the
+  global type context, cloned for each decision evaluation, grows with the models times the node
+  bound. Sharing named types removes both.
 - **Structured errors** `[fork]` (2026-10-18). Unknown invocables, dangling hrefs and unresolved
   types come back as FEEL null; "empty FEEL type" carries no name.
 - **No decision-table short-circuit or memoisation** `[fork]` (2026-10-18). Every cell of every
