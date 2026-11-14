@@ -443,17 +443,18 @@ fn guards_domain_errors() {
 
 #[test]
 fn guards_zero_division() {
-  // 0/0 is NaN, x/0 is infinite
+  // 0/0 is NaN, x/0 is infinite with the sign of x: a zero has no sign
   assert_eq!("+NaN", dbg(n("0") / n("0")));
   assert_eq!("+NaN", dbg(n("-0") / n("0.000")));
   assert_eq!("+Inf", dbg(n("1") / n("0")));
   assert_eq!("-Inf", dbg(n("-1") / n("0")));
-  assert_eq!("-Inf", dbg(n("1") / n("-0")));
+  assert_eq!("+Inf", dbg(n("1") / n("-0")));
   assert_eq!("+0E-6176", dbg(n("1E-6176") / n("1E+10")));
   // 5E-6177 is a tie at the subnormal rounding position, half-even gives 0
   assert_eq!("+0E-6176", dbg(n("1E-6176") / n("2")));
   assert_eq!("+5E-6176", dbg(n("1E-6175") / n("2")));
-  assert_eq!("-0E+0", dbg(n("-0") / n("7")));
+  assert_eq!("+0E+0", dbg(n("-0") / n("7")));
+  assert_eq!("+0E+0", dbg(n("0") / n("-7")));
   // overflowing quotients keep the sign
   assert_eq!("-Inf", dbg(n("-5769313964999E+5970") / n("8943970099E-4411")));
   assert_eq!("+Inf", dbg(n("-6E+3048") / n("-48031155018013756446E-4780")));
@@ -471,7 +472,7 @@ fn guards_infinite_operands() {
   assert_eq!("+NaN", dbg(inf * FeelNumber::zero()));
   assert_eq!("+Inf", dbg(inf / one));
   assert_eq!("+0E-6176", dbg(one / inf));
-  assert_eq!("-0E-6176", dbg(-one / inf));
+  assert_eq!("+0E-6176", dbg(-one / inf));
   assert_eq!("+NaN", dbg(inf / inf));
   assert_eq!("+NaN", dbg(inf % one));
   assert!(inf.sqrt().is_none());
@@ -534,7 +535,7 @@ fn pow_edge_cases() {
   assert!(n("0").pow(&n("-1")).is_none());
   assert!(n("-0").pow(&n("-3")).is_none());
   assert_eq!("+0E+0", dbg(n("0").pow(&n("0.5")).unwrap()));
-  assert_eq!("-0E+0", dbg(n("-0").pow(&n("3")).unwrap()));
+  assert_eq!("+0E+0", dbg(n("-0").pow(&n("3")).unwrap()));
   assert_eq!("+0E+0", dbg(n("-0").pow(&n("2")).unwrap()));
   assert_eq!("-8", n("-2").pow(&n("3")).unwrap().to_string());
   assert_eq!("-125E-3", dbg(n("-2").pow(&n("-3")).unwrap()));
@@ -637,7 +638,7 @@ fn sqrt_near_half_way() {
   assert_eq!("+1414213562373095048801688724209698E-33", dbg(n("2").sqrt().unwrap()));
   assert_eq!("+3162277660168379331998893544432719E-34", dbg(n("0.1").sqrt().unwrap()));
   assert_eq!("+0E+0", dbg(n("0").sqrt().unwrap()));
-  assert_eq!("-0E-2", dbg(n("-0E-3").sqrt().unwrap()));
+  assert_eq!("+0E-2", dbg(n("-0E-3").sqrt().unwrap()));
 }
 
 /// Scaling by 10^n pads the coefficient to the full 34 digits before overflowing,

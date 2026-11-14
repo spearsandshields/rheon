@@ -419,6 +419,22 @@ fn zero_with_huge_exponent_is_displayed_as_0() {
   assert_eq!(display("0"), "0");
 }
 
+/// DMN 1.6 §10.3.2.3.1: "There is no distinction between -0 and 0." A zero never prints with a
+/// minus sign, in any text form.
+#[test]
+fn a_zero_has_no_sign() {
+  for expression in ["-0", "0 * -5", "0 / -5", "-1 + 1", "round half up(-0.4)", "round down(-0.5)", "floor(-0.0)", "sqrt(-0.0)"] {
+    let r = expr(expression);
+    assert_eq!(r["display"], "0", "{expression}");
+    assert_eq!(r["feel"], "0", "{expression}");
+    assert_eq!(r["typed"]["simple"]["text"], "0", "{expression}");
+  }
+  assert_eq!(display("string(-0)"), "\"0\"");
+  assert_eq!(display("string(-0) = \"0\""), "true");
+  let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","expression":"x","context":{"x":-0}}"#).unwrap());
+  assert_eq!(r["display"], "0");
+}
+
 /// sublist / substring / insert before / remove / list replace / filters: positions are converted
 /// through 64-bit integers and checked with wide arithmetic, so wasm32 gives the same results and
 /// null reasons as 64-bit native builds, and huge lengths can not wrap (they used to give wrong

@@ -1247,6 +1247,22 @@ The totals are under "Verification" below.
     `rheon-feel-parser`, `rheon-feel-evaluator`, `rheon-model` and `rheon-model-evaluator` are
     gone, so a dependency written with `features = ["dashu"]` or `features = ["intel"]` no longer
     resolves; `default-features = false` is harmless.
+96. **A number has no negative zero.** DMN 1.6 §10.3.2.3.1: "There is no distinction between -0
+    and 0." The number core kept the IEEE 754 sign of a zero, so `-0`, `0 * -5`, `0 / -5`,
+    `round half up(-0.4)`, `round down(-0.5)`, `floor(-0.0)`, `sqrt(-0.0)` and `string(-0)`
+    printed `-0` (or `-0.0`, `-0.00`, …), and `string(-0) = "0"` was false. Now the one
+    constructor of `FeelNumber` (`FeelNumber::of`) clears the sign of a zero; the arithmetic on the
+    unpacked value keeps the IEEE signs inside one operation, and every result passes through that
+    constructor, so no zero with a sign is ever stored. The point fix that cleared the sign in
+    `ceiling` without a scale is gone. Test first: `feel-number/tests/minus_zero.rs` (a parsed,
+    negated, multiplied, divided, rounded, square-rooted and raised zero prints `0` and debugs as
+    `+0E…`) and the contract test `a_zero_has_no_sign` (`display`, `feel`, `typed`, `string()`)
+    failed on the parent with `-0`. Identity: 101 registered differences in
+    `registered/no-negative-zero.json`, all on the number oracle's edge vectors: 99 texts of a zero
+    that lose the minus sign, `string(-0) = "0"` (false to true) and `string length(string(-0))`
+    (2 to 1). The oracle's exemptions for a negative zero and for `string(-0)` are deleted. Rust
+    behaviour break: a `FeelNumber` zero has no sign: `"-0".parse()`, `-FeelNumber::zero()` and
+    `0 * -5` give `+0` (Debug `+0E+0`), so `1 / -0` is `+Inf` with the operators of the crate.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -1143,8 +1143,14 @@ impl FeelNumber {
     self.0
   }
 
+  /// The one constructor: every [FeelNumber] is made here. A zero loses its sign (DMN 1.6
+  /// §10.3.2.3.1: "There is no distinction between -0 and 0"); the arithmetic on [V] keeps the
+  /// signs of IEEE 754 internally.
   fn of(v: V, flag: bool) -> Self {
-    Self(v, flag)
+    match v {
+      V::Fin(true, 0, e) => Self(V::Fin(false, 0, e), flag),
+      v => Self(v, flag),
+    }
   }
 
   /// Returns [FeelNumber] value infinite.
@@ -1196,8 +1202,7 @@ impl FeelNumber {
   pub fn ceiling(&self, scale: i32) -> Result<Self> {
     Ok(Self::of(
       if scale == 0 {
-        let rounded = round_integral_v(self.v(), Rnd::Ceiling);
-        if is_zero_v(rounded) { ZERO } else { rounded }
+        round_integral_v(self.v(), Rnd::Ceiling)
       } else {
         if self.check_scale(scale)? {
           self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Ceiling), scale)
