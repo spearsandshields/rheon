@@ -388,3 +388,21 @@ fn _0049() {
     r#"date and time("2020-02-29T10:00:00@Europe/Paris")"#,
   );
 }
+
+#[test]
+fn _0050() {
+  // A date is the date and time at UTC midnight, so a date plus a days and time duration is
+  // date(valuedt⁻¹(valuedt(e1) + valuedtd(e2))): the date of the instant, whatever its time of day.
+  let scope = &scope!();
+  te_date(false, scope, r#"date("2020-01-02") + duration("-PT0.000000001S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") + duration("-P1DT0.5S")"#, 2019, 12, 31);
+  te_date(false, scope, r#"date("2020-01-02") + duration("PT23H59M59.999999999S")"#, 2020, 1, 2);
+  te_date(false, scope, r#"date("2020-01-02") + duration("PT24H")"#, 2020, 1, 3);
+  te_date(false, scope, r#"duration("-PT0.5S") + date("2020-01-02")"#, 2020, 1, 1);
+  te_null(
+    false,
+    scope,
+    r#"date("262142-12-31") + duration("P1D")"#,
+    "invalid result while adding days and time duration to date",
+  );
+}

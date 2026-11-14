@@ -335,3 +335,18 @@ fn _0045() {
     r#"date and time("2020-02-29T10:00:00Z")"#,
   );
 }
+
+#[test]
+fn _0046() {
+  // A date is the date and time at UTC midnight, so a date minus a days and time duration is
+  // date(valuedt⁻¹(valuedt(e1) - valuedtd(e2))): the date of the instant, whatever its time of day.
+  let scope = &scope!();
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT0.5S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT0.000000001S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("P1DT0.5S")"#, 2019, 12, 31);
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT1S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("P1D")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT24H")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("-PT23H59M59.999999999S")"#, 2020, 1, 2);
+  te_date(false, scope, r#"date("2020-01-02") - duration("-P1DT0.5S")"#, 2020, 1, 3);
+}

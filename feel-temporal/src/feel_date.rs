@@ -3,6 +3,7 @@
 use crate::FeelDaysAndTimeDuration;
 use crate::defs::*;
 use crate::errors::*;
+use crate::feel_dt_duration::NANOSECONDS_IN_DAY;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
 use chrono::{DateTime, Datelike, Days, FixedOffset, LocalResult, Months, NaiveDate, TimeZone, Weekday};
 use dsntk_common::DsntkError;
@@ -137,53 +138,17 @@ impl Sub<FeelYearsAndMonthsDuration> for FeelDate {
 
 impl Add<FeelDaysAndTimeDuration> for FeelDate {
   type Output = Option<FeelDate>;
-  /// Adds [FeelDaysAndTimeDuration] to [FeelDate].
+  /// Adds [FeelDaysAndTimeDuration] to [FeelDate] (DMN 1.6 Table 58).
   fn add(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.sub(rhs.abs());
-    }
-    let duration_seconds = rhs.get_seconds();
-    let carry_minutes = duration_seconds / 60;
-    let duration_minutes = rhs.get_minutes() + carry_minutes;
-    let carry_hours = duration_minutes / 60;
-    let duration_hours = rhs.get_hours() + carry_hours;
-    let carry_days = duration_hours / 60;
-    let days = rhs.get_days() + carry_days;
-    if let Some(date) = NaiveDate::from_ymd_opt(self.0, self.1, self.2)
-      && let Some(new_date) = date.checked_add_days(Days::new(days as u64))
-    {
-      return Some(FeelDate(new_date.year(), new_date.month(), new_date.day()));
-    }
-    None
+    self.add_nanos(rhs.as_nanos())
   }
 }
 
 impl Sub<FeelDaysAndTimeDuration> for FeelDate {
   type Output = Option<FeelDate>;
-  /// Subtracts [FeelDaysAndTimeDuration] from [FeelDate].
+  /// Subtracts [FeelDaysAndTimeDuration] from [FeelDate] (DMN 1.6 Table 58).
   fn sub(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.add(rhs.abs());
-    }
-    let duration_seconds = rhs.get_seconds();
-    let carry_minutes = duration_seconds / 60;
-    let remainder_seconds = duration_seconds % 60;
-    let duration_minutes = rhs.get_minutes() + carry_minutes;
-    let carry_hours = duration_minutes / 60;
-    let remainder_minutes = duration_minutes % 60;
-    let duration_hours = rhs.get_hours() + carry_hours;
-    let carry_days = duration_hours / 60;
-    let remainder_hours = duration_hours % 60;
-    let mut days = rhs.get_days() + carry_days;
-    if let Some(date) = NaiveDate::from_ymd_opt(self.0, self.1, self.2) {
-      if remainder_hours > 0 || remainder_minutes > 0 || remainder_seconds > 0 {
-        days += 1;
-      }
-      if let Some(new_date) = date.checked_sub_days(Days::new(days as u64)) {
-        return Some(FeelDate(new_date.year(), new_date.month(), new_date.day()));
-      }
-    }
-    None
+    self.add_nanos((-rhs).as_nanos())
   }
 }
 
@@ -280,6 +245,23 @@ impl FeelDate {
       return Some(Self(updated_date.year(), updated_date.month(), updated_date.day()));
     }
     None
+  }
+
+  /// Returns the date of the instant `nanos` nanoseconds after (or before) this date, or `None`
+  /// when it is out of range. DMN 1.6 Table 58 defines a date plus or minus a days and time
+  /// duration as `date(valuedt⁻¹(valuedt(e1) ± valuedtd(e2)))`, a date being the date and time at
+  /// UTC midnight (§10.3.2.3.5), so the nanoseconds are rounded down to whole days:
+  /// `2020-01-02` minus `PT0.5S` is `2020-01-01`.
+  fn add_nanos(&self, nanos: i64) -> Option<Self> {
+    let days = nanos.div_euclid(NANOSECONDS_IN_DAY);
+    let naive_date = NaiveDate::from_ymd_opt(self.0, self.1, self.2)?;
+    let count = Days::new(days.unsigned_abs());
+    let updated_date = if days < 0 {
+      naive_date.checked_sub_days(count)
+    } else {
+      naive_date.checked_add_days(count)
+    }?;
+    Some(Self(updated_date.year(), updated_date.month(), updated_date.day()))
   }
 
   /// Returns this date moved by `months` months, forward or back, or `None` when the result is

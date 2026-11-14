@@ -11,7 +11,7 @@ use std::{fmt, ops};
 const REGEX_DAYS_AND_TIME: &str = r"^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$";
 
 /// Number of nanoseconds in a day.
-const NANOSECONDS_IN_DAY: i64 = 24 * NANOSECONDS_IN_HOUR;
+pub(crate) const NANOSECONDS_IN_DAY: i64 = 24 * NANOSECONDS_IN_HOUR;
 /// Number of nanoseconds in an hour.
 const NANOSECONDS_IN_HOUR: i64 = 60 * NANOSECONDS_IN_MINUTE;
 /// Number of nanoseconds in a minute.

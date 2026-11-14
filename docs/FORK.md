@@ -524,6 +524,18 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     the edge-operand product of item 84 (the first supported instant minus a duration). API break
     (rheon-feel-temporal): `FeelDate::add_months(u32)` and `FeelDate::sub_months(u32)` are removed;
     the signed month step is internal to the crate.
+62. **Date plus or minus a days and time duration follows Table 58.** DMN 1.6 Table 58 defines it
+    as `date(valuedt⁻¹(valuedt(e1) ± valuedtd(e2)))`, with the date taken as the date and time at
+    UTC midnight (§10.3.2.3.5): the result is the date of that instant, so the signed nanoseconds
+    are rounded down to whole days in one step. Before, whole days were counted from the unsigned
+    components and, going back, one more day was taken only for a remainder of at least one
+    second, so a sub-second remainder was ignored: `date("2020-01-02") - duration("PT0.5S")` was
+    `2020-01-02` and is `2020-01-01` now, `date("2020-01-02") + duration("-PT0.000000001S")` is
+    `2020-01-01` and `date("2020-01-02") - duration("P1DT0.5S")` is `2019-12-31`. Every other
+    result is unchanged. Basis: DMN 1.6 Table 58; owner decision to follow it for the sub-second
+    remainder. 12 registered differences, 9 of them combinations of the edge-operand product of
+    item 84: a date minus one nanosecond is the day before (6), and from the first supported date
+    it is out of range and null (3). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
