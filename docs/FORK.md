@@ -607,6 +607,14 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     `build_decision_table_evaluator` turns an abort into a null with its text; unpublished:
     `dsntk-evaluator` re-exports `Session` and `Outcome`, `Workspaces::evaluate` returns `Err` on
     an abort.
+66. **Display of lists, contexts and types writes as it goes.** The `Display` of a list (and of an
+    expression list), of a context and of a context or function type built the text of every
+    element, joined them into one `String` and then wrote it, and a range or a null with a
+    reason built its parts the same way. A writer that stops early (a bounded message) therefore
+    still paid for the whole text: a 100,000-item list offered all 688,895 bytes to a writer that
+    wanted 200. Each element is now written straight to the formatter, separated by `, ` in one
+    helper, so formatting stops at the first refused write. Every text is byte for byte the same.
+    Basis: messages must be bounded in time and memory, not only in length. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

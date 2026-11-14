@@ -3,6 +3,7 @@
 use crate::context::FeelContext;
 use crate::errors::*;
 use crate::names::Name;
+use crate::strings::write_separated;
 use crate::value_null;
 use crate::values::Value;
 use dsntk_common::{DsntkError, Result};
@@ -82,20 +83,17 @@ impl fmt::Display for FeelType {
       FeelType::Any => write!(f, "{FEEL_TYPE_NAME_ANY}"),
       FeelType::Boolean => write!(f, "{FEEL_TYPE_NAME_BOOLEAN}"),
       FeelType::Context(entries) => {
-        let entries_str = entries
-          .iter()
-          .map(|(entry_name, entry_type)| format!("{entry_name}: {entry_type}"))
-          .collect::<Vec<String>>()
-          .join(", ");
-        write!(f, "context<{entries_str}>",)
+        f.write_str("context<")?;
+        write_separated(f, entries, |f, (entry_name, entry_type)| write!(f, "{entry_name}: {entry_type}"))?;
+        f.write_str(">")
       }
       FeelType::Date => write!(f, "{FEEL_TYPE_NAME_DATE}"),
       FeelType::DateTime => write!(f, "{FEEL_TYPE_NAME_DATE_AND_TIME}"),
       FeelType::DaysAndTimeDuration => write!(f, "{FEEL_TYPE_NAME_DAYS_AND_TIME_DURATION}"),
       FeelType::Function(parameter_types, result_type) => {
-        let parameter_types_str = parameter_types.iter().map(|parameter_type| format!("{parameter_type}")).collect::<Vec<String>>().join(", ");
-        let result_type_str = result_type.to_string();
-        write!(f, "function<{parameter_types_str}>->{result_type_str}")
+        f.write_str("function<")?;
+        write_separated(f, parameter_types, |f, parameter_type| write!(f, "{parameter_type}"))?;
+        write!(f, ">->{result_type}")
       }
       FeelType::List(item_type) => {
         write!(f, "list<{item_type}>")

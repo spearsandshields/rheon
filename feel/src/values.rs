@@ -7,7 +7,7 @@ use crate::errors::*;
 use crate::function::FunctionDefinition;
 use crate::names::Name;
 use crate::ranges::IntervalType;
-use crate::strings::ToFeelString;
+use crate::strings::{ToFeelString, write_separated};
 use crate::types::FeelType;
 use dsntk_common::{Jsonify, Result};
 use rheon_feel_number::FeelNumber;
@@ -285,7 +285,7 @@ impl Display for Value {
       Value::Date(date) => write!(f, "{date}"),
       Value::DateTime(date_time) => write!(f, "{date_time}"),
       Value::DaysAndTimeDuration(dt_duration) => write!(f, "{dt_duration}"),
-      Value::ExpressionList(items) => write!(f, "{}", values_to_string(items)),
+      Value::ExpressionList(items) => write_values(f, items),
       Value::ExternalJavaFunction(class_name, method_signature) => write!(f, "ExternalJavaFunction({class_name}, {method_signature})"),
       Value::ExternalPmmlFunction(iri, model_name) => write!(f, "ExternalPmmlFunction({iri}, {model_name})"),
       Value::FeelType(feel_type) => write!(f, "type({feel_type})"),
@@ -306,24 +306,28 @@ impl Display for Value {
       Value::IntervalEnd(_, _) => write!(f, "IntervalEnd"),
       Value::IntervalStart(_, _) => write!(f, "IntervalStart"),
       Value::Irrelevant => write!(f, "Irrelevant"),
-      Value::List(items) => write!(f, "{}", values_to_string(items)),
+      Value::List(items) => write_values(f, items),
       Value::NamedParameter(_, _) => write!(f, "NamedParameter"),
       Value::NamedParameters(_) => write!(f, "NamedParameters"),
       Value::NegatedCommaList(_) => write!(f, "NegatedCommaList"),
       Value::Number(value) => write!(f, "{value}"),
-      Value::Null(trace) => write!(f, "null{}", trace.as_ref().map_or("".to_string(), |s| format!("({s})"))),
+      Value::Null(None) => f.write_str("null"),
+      Value::Null(Some(reason)) => write!(f, "null({reason})"),
       Value::ParameterName(_) => write!(f, "ParameterName"),
       Value::ParameterTypes(_) => write!(f, "ParameterTypes"),
       Value::PositionalParameters(_) => write!(f, "PositionalParameters"),
       Value::QualifiedNameSegment(_) => write!(f, "QualifiedNameSegment"),
-      Value::Range(start, start_type, end, end_type) => write!(
-        f,
-        "{}{}..{}{}",
-        if start_type.closed() { '[' } else { '(' },
-        if start_type.undefined() { "".to_string() } else { start.to_string() },
-        if end_type.undefined() { "".to_string() } else { end.to_string() },
-        if end_type.closed() { ']' } else { ')' }
-      ),
+      Value::Range(start, start_type, end, end_type) => {
+        f.write_str(if start_type.closed() { "[" } else { "(" })?;
+        if !start_type.undefined() {
+          write!(f, "{start}")?;
+        }
+        f.write_str("..")?;
+        if !end_type.undefined() {
+          write!(f, "{end}")?;
+        }
+        f.write_str(if end_type.closed() { "]" } else { ")" })
+      }
       Value::String(s) => write!(f, "\"{s}\""),
       Value::Time(time) => write!(f, "{time}"),
       Value::UnaryGreater(value) => write!(f, "UnaryGreater({value})"),
@@ -806,7 +810,20 @@ pub type Values = Vec<Value>;
 
 /// Converts a collection of values into string.
 pub fn values_to_string(values: &Values) -> String {
-  format!("[{}]", values.iter().map(|value| value.to_string()).collect::<Vec<String>>().join(", "))
+  struct List<'a>(&'a [Value]);
+  impl Display for List<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+      write_values(f, self.0)
+    }
+  }
+  List(values).to_string()
+}
+
+/// Writes a list of values, `[a, b, c]`, as it goes.
+fn write_values(f: &mut fmt::Formatter<'_>, values: &[Value]) -> fmt::Result {
+  f.write_str("[")?;
+  write_separated(f, values, |f, value| write!(f, "{value}"))?;
+  f.write_str("]")
 }
 
 /// Converts a collection of values into `FEEL` string.
