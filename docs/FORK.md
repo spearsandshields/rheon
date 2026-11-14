@@ -506,6 +506,24 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     literal with `invalid @ literal: …`). Basis: DMN 1.6 §10.3.2.3.8, a years and months duration
     is its years and months, valueymd = 12 × years + months; the literal must not mean a
     different duration. 6 registered differences. No API change.
+61. **Date and date and time arithmetic takes one signed step.** A date or a date and time plus
+    or minus a years and months duration moves the date by the signed number of months in one
+    function, and a date and time plus or minus a days and time duration moves the instant by the
+    signed number of nanoseconds with a checked step. Before, the sign was handled by `+` and `-`
+    calling each other with the absolute value, and subtracting a days and time duration used
+    chrono's `-=`, which panics outside the supported instants:
+    `date and time("-262143-01-01T00:00:00Z") - duration("P1D")` and
+    `date and time("-262143-01-01T00:00:00Z") + duration("-P1D")` trapped the module. They are null
+    now, with the reasons of the same results after the last supported instant. The month step
+    keeps the day of the month and takes the last day of a shorter month, as before: DMN 1.6 §9.4
+    gives these operations the semantics of op:add-yearMonthDuration-to-date and
+    op:subtract-yearMonthDuration-from-date (XML Schema Part 2, Appendix E), while Table 58's
+    formula `date(…, e1.day)` has no value for such a day. Nothing in rheon-feel-temporal calls a
+    chrono operation that can panic. Basis: no input may panic the engine (CONTRACT §1); Table 58,
+    `valuedt⁻¹(valuedt(e1) ± valuedtd(e2))`. 8 registered differences, 5 of them combinations of
+    the edge-operand product of item 84 (the first supported instant minus a duration). API break
+    (rheon-feel-temporal): `FeelDate::add_months(u32)` and `FeelDate::sub_months(u32)` are removed;
+    the signed month step is internal to the crate.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

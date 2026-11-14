@@ -139,23 +139,19 @@ impl PartialOrd for FeelDateTime {
 
 impl Add<FeelYearsAndMonthsDuration> for FeelDateTime {
   type Output = Option<Self>;
-  /// Adds [FeelYearsAndMonthsDuration] to [FeelDateTime].
+  /// Adds [FeelYearsAndMonthsDuration] to [FeelDateTime]: the date moves as a date does, the time
+  /// stays.
   fn add(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.sub(rhs.abs());
-    }
-    if let Some(date) = self.0.add(rhs) { Some(FeelDateTime(date, self.1)) } else { None }
+    Some(FeelDateTime(self.0.add_months(rhs.as_months())?, self.1))
   }
 }
 
 impl Sub<FeelYearsAndMonthsDuration> for FeelDateTime {
   type Output = Option<Self>;
-  /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDateTime].
+  /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDateTime]: the date moves as a date does, the
+  /// time stays.
   fn sub(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.add(rhs.abs());
-    }
-    if let Some(date) = self.0.sub(rhs) { Some(FeelDateTime(date, self.1)) } else { None }
+    Some(FeelDateTime(self.0.add_months((-rhs).as_months())?, self.1))
   }
 }
 
@@ -163,22 +159,7 @@ impl Add<FeelDaysAndTimeDuration> for FeelDateTime {
   type Output = Option<Self>;
   /// Adds [FeelDaysAndTimeDuration] to [FeelDateTime].
   fn add(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.sub(rhs.abs());
-    }
-    let zone = self.1.zone().clone();
-    let date_time = <FeelDateTime as TryInto<DateTime<FixedOffset>>>::try_into(self)
-      .ok()?
-      .checked_add_signed(Duration::nanoseconds(rhs.as_nanos()))?;
-    let date = FeelDate::new(date_time.year(), date_time.month(), date_time.day())?;
-    let time = FeelTime::zone_opt(
-      date_time.hour() as u8,
-      date_time.minute() as u8,
-      date_time.second() as u8,
-      date_time.nanosecond() as u64,
-      zone,
-    )?;
-    Some(FeelDateTime(date, time))
+    self.add_nanos(rhs.as_nanos())
   }
 }
 
@@ -186,21 +167,7 @@ impl Sub<FeelDaysAndTimeDuration> for FeelDateTime {
   type Output = Option<Self>;
   /// Subtracts [FeelDaysAndTimeDuration] from [FeelDateTime].
   fn sub(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.add(rhs.abs());
-    }
-    let zone = self.1.zone().clone();
-    let mut date_time = <FeelDateTime as TryInto<DateTime<FixedOffset>>>::try_into(self).ok()?;
-    date_time -= Duration::nanoseconds(rhs.as_nanos());
-    let date = FeelDate::new(date_time.year(), date_time.month(), date_time.day())?;
-    let time = FeelTime::zone_opt(
-      date_time.hour() as u8,
-      date_time.minute() as u8,
-      date_time.second() as u8,
-      date_time.nanosecond() as u64,
-      zone,
-    )?;
-    Some(FeelDateTime(date, time))
+    self.add_nanos((-rhs).as_nanos())
   }
 }
 
@@ -238,6 +205,23 @@ impl FeelDateTime {
   /// Creates date and time from provided [FeelDate] and [FeelTime] values.
   pub fn new(date: FeelDate, time: FeelTime) -> Self {
     Self(date, time)
+  }
+
+  /// Returns this date and time moved by `nanos` nanoseconds, forward or back, in the same zone:
+  /// `valuedt⁻¹(valuedt(e1) ± valuedtd(e2))` of DMN 1.6 Table 58. `None` when the result is
+  /// outside the supported instants.
+  fn add_nanos(self, nanos: i64) -> Option<Self> {
+    let zone = self.1.zone().clone();
+    let date_time = DateTime::<FixedOffset>::try_from(self).ok()?.checked_add_signed(Duration::nanoseconds(nanos))?;
+    let date = FeelDate::new(date_time.year(), date_time.month(), date_time.day())?;
+    let time = FeelTime::zone_opt(
+      date_time.hour() as u8,
+      date_time.minute() as u8,
+      date_time.second() as u8,
+      date_time.nanosecond() as u64,
+      zone,
+    )?;
+    Some(FeelDateTime(date, time))
   }
 
   /// Returns the number of nanoseconds from `other` to this date and time, both taken as

@@ -297,3 +297,41 @@ fn _0044() {
     "-P106751DT23H47M16.854775807S",
   );
 }
+
+#[test]
+fn _0045() {
+  // A date and time minus a duration before the first supported instant is null.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:00Z") - duration("P1D")"#,
+    "[subtraction] incompatible types: -262143-01-01T00:00:00Z - P1D",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:00Z") - duration("PT0.000000001S")"#,
+    "[subtraction] incompatible types: -262143-01-01T00:00:00Z - PT0.000000001S",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date and time("262142-12-31T23:59:59Z") - duration("-PT1S")"#,
+    "[subtraction] incompatible types: 262142-12-31T23:59:59Z - -PT1S",
+  );
+  te_value(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:01Z") - duration("PT1S")"#,
+    r#"date and time("-262143-01-01T00:00:00Z")"#,
+  );
+  te_value(false, scope, r#"date("2020-03-31") - duration("P1M")"#, r#"date("2020-02-29")"#);
+  te_value(false, scope, r#"date("2020-03-31") - duration("-P11M")"#, r#"date("2021-02-28")"#);
+  te_value(
+    false,
+    scope,
+    r#"date and time("2020-03-31T10:00:00Z") - duration("P1M")"#,
+    r#"date and time("2020-02-29T10:00:00Z")"#,
+  );
+}

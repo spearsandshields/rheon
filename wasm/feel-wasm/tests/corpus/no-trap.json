@@ -89,5 +89,9 @@
   {"op":"evaluate","expression":"duration(\"-PT4611686018.427387904S\") / 0.5"},
   {"op":"evaluate","expression":"(date and time(\"1677-09-21T00:12:43.145224192Z\") - date and time(\"1970-01-01T00:00:00Z\")).days"},
   {"op":"evaluate","expression":"date and time(\"1677-09-21T00:12:43.145224192Z\").value"},
-  {"op":"evaluate","expression":"string(duration(\"-PT9223372036.854775808S\"))"}
+  {"op":"evaluate","expression":"string(duration(\"-PT9223372036.854775808S\"))"},
+  {"op":"evaluate","expression":"date and time(\"-262143-01-01T00:00:00Z\") - duration(\"P1D\")"},
+  {"op":"evaluate","expression":"date and time(\"-262143-01-01T00:00:00Z\") - duration(\"PT0.000000001S\")"},
+  {"op":"evaluate","expression":"date and time(\"-262143-01-01T00:00:00Z\") + duration(\"-P1D\")"},
+  {"op":"evaluate","expression":"date and time(\"262142-12-31T23:59:59Z\") - duration(\"-PT1S\")"}
 ]

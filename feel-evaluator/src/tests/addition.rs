@@ -362,3 +362,29 @@ fn _0048() {
     "[builders::add] invalid argument type, expected years and months duration, actual type is Null",
   );
 }
+
+#[test]
+fn _0049() {
+  // A date and time plus a negative duration before the first supported instant is null.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:00Z") + duration("-P1D")"#,
+    "invalid result while adding days and time duration to date and time",
+  );
+  te_value(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:01Z") + duration("-PT1S")"#,
+    r#"date and time("-262143-01-01T00:00:00Z")"#,
+  );
+  te_value(false, scope, r#"date("2020-01-31") + duration("P1M")"#, r#"date("2020-02-29")"#);
+  te_value(false, scope, r#"date("2020-01-31") + duration("-P11M")"#, r#"date("2019-02-28")"#);
+  te_value(
+    false,
+    scope,
+    r#"date and time("2020-03-31T10:00:00@Europe/Paris") + duration("-P1M")"#,
+    r#"date and time("2020-02-29T10:00:00@Europe/Paris")"#,
+  );
+}

@@ -119,29 +119,19 @@ impl Sub<&FeelDate> for &FeelDate {
 
 impl Add<FeelYearsAndMonthsDuration> for FeelDate {
   type Output = Option<Self>;
-  /// Adds [FeelYearsAndMonthsDuration] to [FeelDate].
+  /// Adds [FeelYearsAndMonthsDuration] to [FeelDate]; the day of the month is kept, or the last
+  /// day of a shorter month is taken.
   fn add(self, other: FeelYearsAndMonthsDuration) -> Self::Output {
-    if other.is_negative() {
-      return self.sub(other.abs());
-    }
-    if let Ok(months) = other.as_months().try_into() {
-      return self.add_months(months);
-    }
-    None
+    self.add_months(other.as_months())
   }
 }
 
 impl Sub<FeelYearsAndMonthsDuration> for FeelDate {
   type Output = Option<Self>;
-  /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDate].
+  /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDate]; the day of the month is kept, or the
+  /// last day of a shorter month is taken.
   fn sub(self, other: FeelYearsAndMonthsDuration) -> Self::Output {
-    if other.is_negative() {
-      return self.add(other.abs());
-    }
-    if let Ok(months) = other.as_months().try_into() {
-      return self.sub_months(months);
-    }
-    None
+    self.add_months((-other).as_months())
   }
 }
 
@@ -292,22 +282,25 @@ impl FeelDate {
     None
   }
 
-  pub fn add_months(&self, months: u32) -> Option<Self> {
-    if let Some(naive_date) = NaiveDate::from_ymd_opt(self.0, self.1, self.2)
-      && let Some(updated_date) = naive_date.checked_add_months(Months::new(months))
-    {
-      return Some(Self(updated_date.year(), updated_date.month(), updated_date.day()));
-    }
-    None
-  }
-
-  pub fn sub_months(&self, months: u32) -> Option<Self> {
-    if let Some(naive_date) = NaiveDate::from_ymd_opt(self.0, self.1, self.2)
-      && let Some(updated_date) = naive_date.checked_sub_months(Months::new(months))
-    {
-      return Some(Self(updated_date.year(), updated_date.month(), updated_date.day()));
-    }
-    None
+  /// Returns this date moved by `months` months, forward or back, or `None` when the result is
+  /// out of range.
+  ///
+  /// DMN 1.6 §9.4 gives a date plus or minus a years and months duration the semantics of
+  /// op:add-yearMonthDuration-to-date and op:subtract-yearMonthDuration-from-date, which keep the
+  /// day of the month and take the last day of the resulting month when it has fewer days (XML
+  /// Schema Part 2, Appendix E): `2020-03-31` minus one month is `2020-02-29`. Table 58 writes the
+  /// step as `date(e1.year +/- e2.years + floor((e1.month +/- e2.months)/12), e1.month +/-
+  /// e2.months - floor((e1.month +/- e2.months)/12) * 12, e1.day)`, which has no value for such a
+  /// day; the month-end date of §9.4 is the result here.
+  pub(crate) fn add_months(&self, months: i64) -> Option<Self> {
+    let naive_date = NaiveDate::from_ymd_opt(self.0, self.1, self.2)?;
+    let count = Months::new(u32::try_from(months.unsigned_abs()).ok()?);
+    let updated_date = if months < 0 {
+      naive_date.checked_sub_months(count)
+    } else {
+      naive_date.checked_add_months(count)
+    }?;
+    Some(Self(updated_date.year(), updated_date.month(), updated_date.day()))
   }
 }
 
@@ -337,18 +330,27 @@ mod tests {
     assert_eq!("100000-01-01", format!("{}", FeelDate(99999, 1, 1).add_months(12).unwrap()));
     assert_eq!("199999-02-01", format!("{}", FeelDate(199999, 1, 1).add_months(1).unwrap()));
     assert_eq!("262142-12-01", format!("{}", FeelDate(262142, 11, 1).add_months(1).unwrap()));
-    assert_eq!("+262142-12-31", NaiveDate::MAX.to_string())
+    assert_eq!("+262142-12-31", NaiveDate::MAX.to_string());
+    assert_eq!("2020-01-31", format!("{}", FeelDate(2020, 1, 31).add_months(0).unwrap()));
+    assert_eq!("2020-02-29", format!("{}", FeelDate(2020, 1, 31).add_months(1).unwrap()));
+    assert_eq!("2021-02-28", format!("{}", FeelDate(2020, 3, 31).add_months(11).unwrap()));
+    assert_eq!(None, FeelDate(262142, 12, 1).add_months(1));
+    assert_eq!(None, FeelDate(2020, 1, 1).add_months(i64::MAX));
   }
 
   #[test]
-  fn test_sub_months() {
-    assert_eq!("-9999-11-01", format!("{}", FeelDate(-9999, 12, 1).sub_months(1).unwrap()));
-    assert_eq!("-99999-02-01", format!("{}", FeelDate(-99999, 3, 1).sub_months(1).unwrap()));
-    assert_eq!("-99999-12-01", format!("{}", FeelDate(-99998, 1, 1).sub_months(1).unwrap()));
-    assert_eq!("-100000-01-01", format!("{}", FeelDate(-100000, 12, 1).sub_months(11).unwrap()));
-    assert_eq!("-199999-11-01", format!("{}", FeelDate(-199999, 12, 1).sub_months(1).unwrap()));
-    assert_eq!("-262143-01-01", format!("{}", FeelDate(-262143, 2, 1).sub_months(1).unwrap()));
-    assert_eq!("-262143-01-01", NaiveDate::MIN.to_string())
+  fn test_add_negative_months() {
+    assert_eq!("-9999-11-01", format!("{}", FeelDate(-9999, 12, 1).add_months(-1).unwrap()));
+    assert_eq!("-99999-02-01", format!("{}", FeelDate(-99999, 3, 1).add_months(-1).unwrap()));
+    assert_eq!("-99999-12-01", format!("{}", FeelDate(-99998, 1, 1).add_months(-1).unwrap()));
+    assert_eq!("-100000-01-01", format!("{}", FeelDate(-100000, 12, 1).add_months(-11).unwrap()));
+    assert_eq!("-199999-11-01", format!("{}", FeelDate(-199999, 12, 1).add_months(-1).unwrap()));
+    assert_eq!("-262143-01-01", format!("{}", FeelDate(-262143, 2, 1).add_months(-1).unwrap()));
+    assert_eq!("-262143-01-01", NaiveDate::MIN.to_string());
+    assert_eq!("2020-02-29", format!("{}", FeelDate(2020, 3, 31).add_months(-1).unwrap()));
+    assert_eq!("2019-02-28", format!("{}", FeelDate(2020, 1, 31).add_months(-11).unwrap()));
+    assert_eq!(None, FeelDate(-262143, 1, 1).add_months(-1));
+    assert_eq!(None, FeelDate(2020, 1, 1).add_months(-i64::MAX));
   }
 
   #[test]
