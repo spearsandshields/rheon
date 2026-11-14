@@ -19,7 +19,6 @@ dashu = ["rheon-feel/dashu", "rheon-feel-parser/dashu"]
 intel = ["rheon-feel/intel", "rheon-feel-parser/intel"]
 
 [dependencies]
-petgraph = { workspace = true }
 roxmltree = { workspace = true }
 dsntk-common = { workspace = true }
 rheon-feel = { workspace = true }

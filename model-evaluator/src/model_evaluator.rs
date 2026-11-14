@@ -57,6 +57,10 @@ impl From<ModelBuilder> for ModelEvaluator {
 
 impl ModelEvaluator {
   /// Creates an instance of [ModelEvaluator] from parsed [Definitions].
+  ///
+  /// The models are built together, so a reference may cross models with one namespace. Item
+  /// definitions that refer to themselves, directly or through others, are an error that names
+  /// the cycle (`<ItemDefinitionError> item definitions form a cycle: tA -> tB -> tA`).
   pub fn new(definitions: &[Definitions]) -> Result<Arc<Self>> {
     let mut model_builder = ModelBuilder::default();
     definitions.iter().for_each(|definitions| model_builder.add_model(definitions));

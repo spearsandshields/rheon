@@ -12,6 +12,7 @@ use walkdir::WalkDir;
 mod compatibility;
 mod exhaustive;
 mod input_data;
+mod item_definition_graph;
 mod limits;
 mod send_sync;
 mod simulation;

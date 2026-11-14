@@ -47,7 +47,6 @@ dashu-int = { version = "0.6.2", default-features = false }
 difference = "2.0.0"
 domrs = "0.0.16"
 markdown = "1.0.0"
-petgraph = "0.8.3"
 proc-macro2 = "1.0.106"
 quote = "1.0.45"
 regex = "1.12.3"

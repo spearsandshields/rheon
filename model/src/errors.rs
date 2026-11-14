@@ -99,14 +99,6 @@ pub fn err_xml_expected_mandatory_text_content(s: &str) -> DsntkError {
   ModelParserError(format!("expected mandatory text content in node '{s}'")).into()
 }
 
-/// Errors related with validating the decision model.
-#[derive(ToErrorMessage)]
-struct ModelValidatorError(String);
-
-pub fn err_item_definitions_cycle() -> DsntkError {
-  ModelValidatorError("cyclic dependency between item definitions".to_string()).into()
-}
-
 pub fn err_no_supported_namespace() -> DsntkError {
   ModelError("no supported namespace found".to_string()).into()
 }

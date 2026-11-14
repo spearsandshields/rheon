@@ -873,6 +873,37 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     bound at 100 with that margin; DMN 1.6 defines no nesting limit, so the bound is an
     implementation limit, reported as an error. API break (rheon-model): `parse` rejects a document
     whose elements nest more than 100 levels deep.
+80. **Item definitions that form a cycle are a build error naming the cycle.** The type, value
+    and context evaluators of item definitions follow their type references at every use,
+    recursively, and the only guard was a cycle validator in `rheon_model::parse` with four
+    defects: it added a second node for a reference placed before its definition, so a cycle of
+    two or more definitions (`tA{x: tB}`, `tB{y: tA}`) was never closed; it had no edges for
+    function items (`tF` with `outputTypeRef="tF"`); it checked one file, while the evaluators
+    resolve over all models of a build (two models with one namespace); and its search recursed,
+    so a long chain of definitions overflowed in the validator itself. Each of these aborted the
+    process with a stack overflow. The validator is removed, and one check runs at the start of
+    the build, before anything follows a reference, over the item definitions of all models: one
+    node per key (the last definition added under it, as in the evaluators), edges from the
+    references the evaluators follow (the type reference, the components' type references at any
+    depth, a function item's parameter and output types; the rule for function items is now one
+    function, `referenced_item_definition`, shared with the type evaluator), and an iterative
+    depth-first search that names the first cycle it closes:
+    `<ItemDefinitionError> item definitions form a cycle: tA -> tB -> tA`, each name quoted by
+    `arg` and the message capped at 1,000 characters, so a ring of 10,000 definitions is named
+    in a bounded message. A reference into an imported model is not followed by the evaluators
+    and has no edge. Old and new (native only; the wasm module builds no models): the cycles above,
+    a 3-cycle through type references, a function taking its own type, a cycle through a nested
+    component, two models with one namespace and a 10,000-definition ring aborted the process and
+    are now that error; `DMN_N_0088` and `1001.dmn` (a self-referencing `iTreeNode`) failed
+    `parse` with `<ModelValidatorError> cyclic dependency between item definitions`, so a
+    workspace skipped only that file, and now parse and fail the build with
+    `item definitions form a cycle: iTreeNode -> iTreeNode`, so their workspace fails to deploy
+    like any other build error. Basis: DMN 1.6 §7.3.3 (a type reference names an item definition
+    or a built-in type; no recursive types are defined, so recursive item definitions stay
+    rejected); the owner rule that robustness comes first. API breaks: (rheon-model) `parse` no
+    longer rejects item definition cycles, the `<ModelValidatorError>` kind is gone and the
+    `petgraph` dependency is removed; (rheon-model-evaluator) `ModelEvaluator::new` returns the
+    new `<ItemDefinitionError>` for a cycle.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

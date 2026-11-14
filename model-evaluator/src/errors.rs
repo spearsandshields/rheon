@@ -1,6 +1,7 @@
 use dsntk_common::{DsntkError, ToErrorMessage};
 use rheon_feel::FeelType;
-use rheon_feel::message::arg;
+use rheon_feel::message::{arg, compose};
+use std::fmt::Display;
 
 /// Errors related to model evaluation.
 #[derive(ToErrorMessage)]
@@ -32,4 +33,13 @@ pub fn err_empty_feel_type() -> DsntkError {
 
 pub fn err_empty_function_body() -> DsntkError {
   ModelEvaluatorError("empty function definition body".into()).into()
+}
+
+/// Errors of the item definitions of the models of a build, found before any of their types is built.
+#[derive(ToErrorMessage)]
+struct ItemDefinitionError(String);
+
+/// Raised when item definitions refer to themselves; `cycle` names them, the first one repeated at the end.
+pub fn err_item_definition_cycle(cycle: impl Display) -> DsntkError {
+  ItemDefinitionError(compose(format_args!("item definitions form a cycle: {cycle}"))).into()
 }
