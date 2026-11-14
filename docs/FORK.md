@@ -793,6 +793,19 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     offset_opt, zone_opt}` and `FeelDateTime::{utc, local, offset}` return `None` for nanoseconds
     of 10^9 or more and for 24:00:00 with a fraction, and `utc_opt` turns 24:00:00 into midnight;
     the time and date and time parsers reject 24:00:00 with a fraction.
+76. **`date and time(date, time, zone)` is built from its parts.** It formatted the date, the time
+    and the zone as a literal and parsed that text again, so a date whose year has fewer than four
+    digits, which `FeelDate` prints as `0999` or `-005` and the literal pattern does not accept,
+    failed as `[core::date and time] invalid timezone 'Z'`. It now reads the zone designator alone
+    with the rules of a literal's zone suffix (`FeelZone::from_designator`: `Z`, an offset within
+    ±14:00, `@` and a zone name the zone database knows; never empty) and builds the date and time
+    from the date and the time of day in that zone. Every input the literal could write gives the
+    same answer, its failures the same `invalid timezone` reason; `date and time(date(999,12,31),
+    time(23,59,0), "Z")` is now `0999-12-31T23:59:00Z`, the value `date and time(d, t)` already
+    gave with a zoned time, and year 0 and the negative years above -1000 likewise, as
+    `date(0,1,1)` gives them. Basis: DMN 1.6 §10.3.2.3.6, "The year must be in the range
+    [-999,999,999..999,999,999]"; §10.3.4.1 Table 73. 4 registered differences (years 999, 0 and
+    -5). API break (rheon-feel-temporal): `FeelZone::from_designator` is added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

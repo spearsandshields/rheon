@@ -410,3 +410,81 @@ fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
   );
   te_string(false, &scope!(), r#"string(date and time("2020-12-31T24:00:00Z"))"#, "2021-01-01T00:00:00Z");
 }
+
+#[test]
+fn date_and_time_from_date_time_and_zone_is_built_from_its_parts() {
+  let scope = &scope!();
+  // DMN 1.6 §10.3.2.3.6: "The year must be in the range [-999,999,999..999,999,999]"
+  te_string(false, scope, r#"string(date and time(date(999,12,31), time(23,59,0), "Z"))"#, "0999-12-31T23:59:00Z");
+  te_bool(
+    false,
+    scope,
+    r#"date and time(date(999,12,31), time(23,59,0), "Z") = date and time(date(999,12,31), time("23:59:00Z"))"#,
+    true,
+  );
+  te_string(
+    false,
+    scope,
+    r#"string(date and time(date(1,1,1), time(10,0,0.5), "+02:00"))"#,
+    "0001-01-01T10:00:00.5+02:00",
+  );
+  te_value(
+    false,
+    scope,
+    r#"date and time(date(0,1,1), time(10,0,0), "Z")"#,
+    r#"date and time(date(0,1,1), time("10:00:00Z"))"#,
+  );
+  te_value(
+    false,
+    scope,
+    r#"date and time(date(-5,1,1), time(10,0,0), "Europe/Paris")"#,
+    r#"date and time(date(-5,1,1), time("10:00:00@Europe/Paris"))"#,
+  );
+}
+
+#[test]
+fn date_and_time_from_date_time_and_zone_takes_the_zone_suffix_rules() {
+  let scope = &scope!();
+  for (zone, expected) in [
+    ("Z", "2020-01-01T10:00:00.5Z"),
+    ("z", "2020-01-01T10:00:00.5Z"),
+    (" Z ", "2020-01-01T10:00:00.5Z"),
+    ("+02:00", "2020-01-01T10:00:00.5+02:00"),
+    ("-05:30", "2020-01-01T10:00:00.5-05:30"),
+    ("+01:00:30", "2020-01-01T10:00:00.5+01:00:30"),
+    ("+14:00", "2020-01-01T10:00:00.5+14:00"),
+    ("Europe/Paris", "2020-01-01T10:00:00.5@Europe/Paris"),
+    ("Etc/UTC", "2020-01-01T10:00:00.5@Etc/UTC"),
+  ] {
+    te_string(false, scope, &format!(r#"string(date and time(date(2020,1,1), time(10,0,0.5), "{zone}"))"#), expected);
+  }
+  for zone in [
+    "+14:01",
+    "+15:00",
+    "Mars/Olympus",
+    "America/Port-au-Prince",
+    "",
+    "@Europe/Paris",
+    "Z@Europe/Paris",
+    "+02:00Z",
+  ] {
+    te_null(
+      false,
+      scope,
+      &format!(r#"date and time(date(2020,1,1), time(10,0,0.5), "{zone}")"#),
+      &format!("[core::date and time] invalid timezone '{}'", zone.trim()),
+    );
+  }
+  te_string(
+    false,
+    scope,
+    r#"string(date and time(date and time("2020-01-01T23:00:00+05:00"), time(10,0,0), "Europe/Paris"))"#,
+    "2020-01-01T10:00:00@Europe/Paris",
+  );
+  te_string(
+    false,
+    scope,
+    r#"string(date and time(date(2020,1,1), time("24:00:00"), "+01:00"))"#,
+    "2020-01-01T00:00:00+01:00",
+  );
+}

@@ -75,6 +75,8 @@ pub static TIME_ZONE_PATTERN: LazyLock<String> = LazyLock::new(|| format!("{ZULU
 pub static RE_DATE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}$")).unwrap());
 /// Regular expression for parsing time.
 pub static RE_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
+/// Regular expression for parsing a time zone designator alone; it is never empty.
+pub static RE_ZONE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^(?:{})$", TIME_ZONE_PATTERN.as_str())).unwrap());
 /// Regular expression for parsing date and time.
 pub static RE_DATE_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}T{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
 

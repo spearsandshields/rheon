@@ -639,10 +639,12 @@ pub fn date_and_time_2(date_value: &Value, time_value: &Value) -> Value {
   }
 }
 
-/// `date and time(date, time, timezone)` (DMN 1.6, DMN16-16): the date (or the date part of a date
-/// and time), a time without a time zone, and a time zone given as "Z", an offset such as "+02:00",
-/// or an IANA zone identifier. The result is what the literal `date and time("<date>T<time><zone>")`
-/// gives, so the parser of date and time strings validates the combination.
+/// `date and time(date, time, timezone)` (DMN 1.6 §10.3.4.1, Table 73): the date (or the date part
+/// of a date and time), a time without a time zone, and a time zone given as "Z", an offset such as
+/// "+02:00", or an IANA zone identifier. The result is built from these parts: the date, and the
+/// time of day in the zone that the designator names by the rules of the zone suffix of a literal.
+/// It is what the literal `date and time("<date>T<time><zone>")` gives, and the same value for a
+/// date whose year no literal can write (from -999 to 999).
 pub fn date_and_time_3(date_value: &Value, time_value: &Value, timezone_value: &Value) -> Value {
   let date = match date_value {
     Value::Date(date) => date.clone(),
@@ -650,7 +652,7 @@ pub fn date_and_time_3(date_value: &Value, time_value: &Value, timezone_value: &
     other => return invalid_argument_type!("date and time", "date and time or date", other),
   };
   let time = match time_value {
-    Value::Time(time) if !time.zone().has_offset() => time.clone(),
+    Value::Time(time) if !time.zone().has_offset() => time,
     Value::Time(_) => return value_null!("[core::date and time] the time must not have a time zone when a timezone is given"),
     other => return invalid_argument_type!("date and time", "time", other),
   };
@@ -658,15 +660,14 @@ pub fn date_and_time_3(date_value: &Value, time_value: &Value, timezone_value: &
     return invalid_argument_type!("date and time", "string", timezone_value);
   };
   let zone = zone.trim();
-  let suffix = if zone.eq_ignore_ascii_case("z") || zone.starts_with('+') || zone.starts_with('-') {
-    zone.to_string()
+  let zone_in_time = if zone.eq_ignore_ascii_case("z") || zone.starts_with('+') || zone.starts_with('-') {
+    FeelZone::from_designator(zone)
   } else {
-    format!("@{zone}")
+    FeelZone::from_designator(&format!("@{zone}"))
   };
-  let text = format!("{date}T{time}{suffix}");
-  match FeelDateTime::try_from(text.as_str()) {
-    Ok(date_time) => Value::DateTime(date_time),
-    Err(_) => value_null!("[core::date and time] invalid timezone '{}'", arg(&zone)),
+  match zone_in_time.and_then(|zone| FeelTime::zone_opt(time.hour(), time.minute(), time.second(), time.nanos(), zone)) {
+    Some(time) => Value::DateTime(FeelDateTime::new(date, time)),
+    None => value_null!("[core::date and time] invalid timezone '{}'", arg(&zone)),
   }
 }
 

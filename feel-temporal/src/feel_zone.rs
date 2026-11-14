@@ -116,6 +116,14 @@ impl FeelZone {
     Some(FeelZone::Local)
   }
 
+  /// The zone written as `designator`: `Z` or `z`, an offset such as `+02:00` or `-05:30:15`, or
+  /// `@` and an IANA zone name, by the rules of the zone suffix of a time literal (an offset within
+  /// ±14:00, a zone name the zone database knows). `None` for any other text, the empty one
+  /// included.
+  pub fn from_designator(designator: &str) -> Option<Self> {
+    Self::from_captures(&RE_ZONE.captures(designator)?)
+  }
+
   /// Returns `true` when this [FeelZone] has defined offset (is not local).
   pub fn has_offset(&self) -> bool {
     *self != FeelZone::Local
@@ -182,6 +190,37 @@ mod tests {
     assert_zone!(None, "00:00:00-14:00:01");
     assert_zone!(Some(FeelZone::Zone("Europe/Warsaw".to_string())), "00:00:00@Europe/Warsaw");
     assert_zone!(None, "00:00:00@abc/xyz");
+  }
+
+  #[test]
+  fn zone_designators() {
+    assert_eq!(Some(FeelZone::Utc), FeelZone::from_designator("Z"));
+    assert_eq!(Some(FeelZone::Utc), FeelZone::from_designator("z"));
+    assert_eq!(Some(FeelZone::Utc), FeelZone::from_designator("-00:00"));
+    assert!(matches!(FeelZone::from_designator("+02:00"), Some(FeelZone::Offset(7_200))));
+    assert!(matches!(FeelZone::from_designator("-05:30"), Some(FeelZone::Offset(-19_800))));
+    assert!(matches!(FeelZone::from_designator("+01:00:30"), Some(FeelZone::Offset(3_630))));
+    assert!(matches!(FeelZone::from_designator("+14:00"), Some(FeelZone::Offset(50_400))));
+    assert_eq!(Some(FeelZone::Zone("Europe/Paris".to_string())), FeelZone::from_designator("@Europe/Paris"));
+    for designator in [
+      "",
+      " Z",
+      "Z ",
+      "@",
+      "+14:01",
+      "-14:00:01",
+      "+15:00",
+      "+2:00",
+      "@Mars/Olympus",
+      "@America/Port-au-Prince",
+      "@@Europe/Paris",
+      "Z@Europe/Paris",
+      "+02:00Z",
+      "Europe/Paris",
+      "10:00:00Z",
+    ] {
+      assert_eq!(None, FeelZone::from_designator(designator), "{designator:?}");
+    }
   }
 
   #[test]
