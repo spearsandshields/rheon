@@ -1665,15 +1665,14 @@ pub fn mode(values: &[Value]) -> Value {
   Value::List(mode.iter().filter_map(|(c, v)| if *c == max { Some(Value::Number(*v)) } else { None }).collect())
 }
 
-/// Returns the remainder of the division of dividend by divisor.
+/// Returns the remainder of the division of dividend by divisor: `dividend -
+/// divisor*floor(dividend/divisor)` over the exact values, rounded once (DMN 1.6 Table 77).
 pub fn modulo(dividend_value: &Value, divisor_value: &Value) -> Value {
   if let Value::Number(dividend) = *dividend_value {
     if let Value::Number(divisor) = *divisor_value {
-      if divisor.abs() == FeelNumber::zero() {
-        value_null!("[core::modulo] division by zero")
-      } else {
-        // in floor function below the scale is zero, so unwrap is safe
-        Value::Number(dividend - divisor * (dividend / divisor).round_to(0, RoundingMode::Floor).unwrap())
+      match dividend.modulo(&divisor) {
+        Some(remainder) => Value::Number(remainder),
+        None => value_null!("[core::modulo] division by zero"),
       }
     } else {
       invalid_argument_type!("modulo", "number", divisor_value)

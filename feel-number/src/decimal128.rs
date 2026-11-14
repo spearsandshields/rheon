@@ -22,7 +22,7 @@ use dsntk_common::{DsntkError, Jsonify, Result};
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::str::FromStr;
 
 /// The backend of the operations with an unbounded exact result.
@@ -259,6 +259,21 @@ impl U256 {
   /// Number of significant bits.
   fn bits(self) -> u32 {
     if self.hi != 0 { 256 - self.hi.leading_zeros() } else { 128 - self.lo.leading_zeros() }
+  }
+
+  /// Remainder of the division by `d`, for `0 < d < 2^127` (bit by bit; the partial remainder
+  /// stays below `2d`, so it fits in `u128`).
+  fn rem_u128(self, d: u128) -> u128 {
+    debug_assert!(d != 0 && d < 1 << 127, "divisor out of range");
+    let mut rem: u128 = 0;
+    for i in (0..self.bits()).rev() {
+      let bit = if i >= 128 { (self.hi >> (i - 128)) & 1 } else { (self.lo >> i) & 1 };
+      rem = (rem << 1) | bit;
+      if rem >= d {
+        rem -= d;
+      }
+    }
+    rem
   }
 
   /// Quotient and remainder of the division by a `u64`.
@@ -658,6 +673,60 @@ fn round_at(v: V, exponent: i32, mode: RoundingMode) -> V {
 /// Rounds the value to an integral value by `mode` (an exponent of 0 or more is left unchanged).
 fn round_integral_v(v: V, mode: RoundingMode) -> V {
   round_at(v, 0, mode)
+}
+
+/// `10^n mod m` for `0 < m < 10^34`, by binary exponentiation with exact products.
+fn pow10_mod(n: u32, m: u128) -> u128 {
+  let (mut result, mut base, mut n) = (1 % m, 10 % m, n);
+  while n > 0 {
+    if n & 1 == 1 {
+      result = U256::mul(result, base).rem_u128(m);
+    }
+    base = U256::mul(base, base).rem_u128(m);
+    n >>= 1;
+  }
+  result
+}
+
+/// `a - b·floor(a/b)` for a finite `a` and a finite, non-zero `b` (DMN 1.6 Table 77), over the
+/// exact values and rounded once to decimal128; NaN for any other operand.
+///
+/// The truncated remainder `R = |a| mod |b|` is exact with at most 34 digits: for `ea >= eb` it
+/// is `(ca · 10^(ea-eb) mod cb) · 10^eb`, the power of ten taken modulo `cb`; for `ea < eb` it is
+/// `(ca mod cb · 10^(eb-ea)) · 10^ea`, which is `|a|` itself when `|b|` is the larger. The result
+/// is `R` with the sign of `b` when the signs agree, and `|b| - R` with the sign of `b` when they
+/// differ and `R` is not zero; that difference is the only rounding.
+fn modulo_v(a: V, b: V) -> V {
+  let (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) = (a, b) else {
+    return V::NaN;
+  };
+  if cb == 0 {
+    return V::NaN;
+  }
+  let (r, e) = if ea >= eb {
+    let d = ea.abs_diff(eb);
+    let r = if digit_count(ca) + d <= 38 {
+      (ca * pow10(d)) % cb
+    } else {
+      U256::mul(ca % cb, pow10_mod(d, cb)).rem_u128(cb)
+    };
+    (r, eb)
+  } else {
+    let d = eb.abs_diff(ea);
+    let r = match POW10.get(d as usize).and_then(|p| cb.checked_mul(*p)) {
+      Some(m) => ca % m,
+      // |b| exceeds every u128 coefficient, so |a| < |b|
+      None => ca,
+    };
+    (r, ea)
+  };
+  if r == 0 || sa == sb {
+    return V::Fin(sb, r, e);
+  }
+  match add_v(V::Fin(false, cb, eb), V::Fin(true, r, e)) {
+    V::Fin(_, c, x) => V::Fin(sb, c, x),
+    other => other,
+  }
 }
 
 /// Compares two values, returns `None` when unordered (NaN involved).
@@ -1074,6 +1143,14 @@ impl FeelNumber {
     if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
+  /// `self - divisor·floor(self/divisor)` (DMN 1.6 Table 77), over the exact values and rounded
+  /// once to 34 digits: zero or a number with the sign of the divisor. `None` when the divisor is
+  /// zero (or an operand is not finite).
+  pub fn modulo(&self, divisor: &FeelNumber) -> Option<Self> {
+    let n = modulo_v(self.v(), divisor.v());
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
+  }
+
   pub fn odd(&self) -> bool {
     if self.is_integer() { !rem_two_is_zero(self.v()) } else { false }
   }
@@ -1114,14 +1191,6 @@ impl FeelNumber {
     } else {
       Err(err_invalid_number_literal(s))
     }
-  }
-
-  /// Calculates the remainder of the division.
-  fn remainder(&self, rhs: V) -> V {
-    let mut n = div_v(self.v(), rhs);
-    n = round_integral_v(n, RoundingMode::Floor);
-    n = mul_v(rhs, n);
-    sub_v(self.v(), n)
   }
 }
 
@@ -1311,19 +1380,6 @@ impl Div<FeelNumber> for FeelNumber {
 impl DivAssign<FeelNumber> for FeelNumber {
   fn div_assign(&mut self, rhs: Self) {
     *self = *self / rhs;
-  }
-}
-
-impl Rem<FeelNumber> for FeelNumber {
-  type Output = Self;
-  fn rem(self, rhs: Self) -> Self::Output {
-    Self::of(self.remainder(rhs.v()))
-  }
-}
-
-impl RemAssign<FeelNumber> for FeelNumber {
-  fn rem_assign(&mut self, rhs: Self) {
-    *self = *self % rhs;
   }
 }
 

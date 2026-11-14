@@ -125,3 +125,28 @@ fn _0021() {
 fn _0022() {
   te_null(false, &scope!(), r#"modulo(d: 12, divisor: 6)"#, r#"parameter 'dividend' not found"#);
 }
+
+#[test]
+fn table_77_examples() {
+  te_number_x(false, &scope!(), r#"modulo(10.1, 4.5)"#, "1.1");
+  te_number_x(false, &scope!(), r#"modulo(-10.1, 4.5)"#, "3.4");
+  te_number_x(false, &scope!(), r#"modulo(10.1, -4.5)"#, "-3.4");
+  te_number_x(false, &scope!(), r#"modulo(-10.1, -4.5)"#, "-1.1");
+}
+
+#[test]
+fn the_remainder_is_exact() {
+  // DMN 1.6 Table 77: modulo(dividend, divisor) = dividend - divisor*floor(dividend/divisor),
+  // over the exact values, rounded once to 34 digits
+  te_number_x(false, &scope!(), r#"modulo(1e40, 3)"#, "1");
+  te_number_x(false, &scope!(), r#"modulo(1e40, 7)"#, "4");
+  te_number_x(false, &scope!(), r#"modulo(1e34, 7)"#, "4");
+  te_number_x(false, &scope!(), r#"modulo(-1e40, 7)"#, "3");
+  te_number_x(false, &scope!(), r#"modulo(5e33, 0.7)"#, "0.6");
+  te_number_x(false, &scope!(), r#"modulo(1, 3e-35)"#, "1E-35");
+  te_number_x(false, &scope!(), r#"modulo(1 - 2e-34, 1/3)"#, "0.3333333333333333333333333333333332");
+  te_number_x(false, &scope!(), r#"modulo(1e6000, 1e-6000)"#, "0");
+  te_number_x(false, &scope!(), r#"modulo(1e6000, -7)"#, "-6");
+  te_number_x(false, &scope!(), r#"modulo(-1e-6176, 1e6000)"#, "1E+6000");
+  te_number_x(false, &scope!(), r#"modulo(1e-6176, -1e-6175)"#, "-9E-6176");
+}

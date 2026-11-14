@@ -1376,6 +1376,31 @@ The totals are under "Verification" below.
     -6145)`). Identity: no difference (no FEEL path passes such a scale). Rust behaviour break:
     `new(n, s)` with `s` beyond the range of the exponent is the rounded value or infinite
     (`new(890, 6177)` is `89E-6176`, `new(1, i32::MAX)` is 0, `new(1, i32::MIN)` is infinite).
+103. **`modulo` is exact.** DMN 1.6 Table 77: "modulo (dividend, divisor) = dividend -
+    divisor*floor (dividend/divisor)", and "In case either dividend or divisor is negative, the
+    result has the same sign of the divisor"; the owner's decision is the formula over the exact
+    values, rounded once. The built-in computed it in 34-digit steps (a division, a floor, a
+    product and a difference, each rounded), so a quotient beyond 34 digits or near an integer
+    lost the remainder: `modulo(1e40, 3)` was 1000000, `modulo(1e40, 7)` 0, `modulo(5e33, 0.7)` 0,
+    `modulo(1 - 2e-34, 1/3)` was -1E-34 (the wrong sign), `modulo(-1E-6176, 1E+6000)` a negative
+    number, and `modulo(1e6000, 1e-6000)` and `modulo(9e6144, 1e-6176)` were null (the quotient
+    overflowed). Now `FeelNumber::modulo` takes the truncated remainder `|a| mod |b|` exactly on
+    the coefficients (with `ea >= eb` the power `10^(ea-eb)` is taken modulo the divisor's
+    coefficient by binary exponentiation with exact 256-bit products, new `U256::rem_u128`; with
+    `ea < eb` it is a `u128` remainder, or `|a|` itself when `|b|` is the larger), keeps it with
+    the divisor's sign when the signs agree, and otherwise subtracts it from `|b|`, the only
+    rounding. `None` means a zero divisor; the built-in keeps its reason `[core::modulo] division
+    by zero`. Test first: `the_remainder_is_exact` of the built-in's tests (with `modulo(1e40, 3)`
+    1000000 on the parent) failed; the Table 77 examples are tests of the built-in and of
+    `FeelNumber::modulo` (`feel-number/tests/modulo.rs`, which replaces the tests of `%`); the
+    contract test that listed `modulo(9e6144, 1e-6176)` and `modulo(5, 1e-6176)` among the nulls
+    of an overflow now asserts 0 for both. Identity: 13 registered differences in
+    `registered/exact-modulo.json`, all on the number oracle's edge vectors; the two requests of
+    the contract test are new edge vectors of its `modulo/huge-quotient` family, so they are in
+    the committed source. The oracle's two `modulo` exemptions are deleted, and its quick run
+    judges every `modulo` result right. Rust API break: `impl Rem` and `impl RemAssign` for
+    `FeelNumber` (`%` was the same 34-digit-step floor modulo) are removed; use
+    `FeelNumber::modulo`, which returns `None` for a zero divisor.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

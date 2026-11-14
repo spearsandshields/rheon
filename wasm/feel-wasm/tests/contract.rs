@@ -375,8 +375,6 @@ fn non_finite_results_are_null_not_panic() {
     "sum([9e6144, 9e6144])",
     "mean(9e6144, 9e6144)",
     "product(1e6000, 1e6000)",
-    "modulo(9e6144, 1e-6176)",
-    "modulo(5, 1e-6176)",
     "abs(-9e6144) * 100",
     "string(9e6144 * 10)",
     "{a: 9e6144 * 10}.a",
@@ -391,6 +389,9 @@ fn non_finite_results_are_null_not_panic() {
     assert_eq!(r["isNull"], true, "{e}: {r}");
   }
   assert_eq!(expr("9e6144 + 9e6144")["nullReason"], "result is not a finite number (decimal overflow)");
+  // modulo is exact, so a quotient beyond the range is no overflow (DMN 1.6 Table 77)
+  assert_eq!(display("modulo(9e6144, 1e-6176)"), "0");
+  assert_eq!(display("modulo(5, 1e-6176)"), "0");
   // a value that already has no digit below the requested scale is returned unchanged, even when
   // decimal128 can not hold it at that scale (fork commit 21)
   assert_eq!(display("decimal(1e33, 1)"), format!("1{}", "0".repeat(33)));

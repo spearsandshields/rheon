@@ -163,6 +163,6 @@ tests in `feel-number`.
 ## Cost
 
 Measured on a MacBook (Apple silicon, Node 26, Python 3.12 with the C `decimal`): 188 families,
-2,535 edge vectors. A quick run is 35,937 requests and takes 6.8 s, the self-test 3 s of it; a full
-run is 2,896,589 requests and takes 5.3 min, with a peak of 1.3 GB. The module answers about
+2,537 edge vectors. A quick run is 35,939 requests and takes 6.8 s, the self-test 3 s of it; a full
+run is 2,896,591 requests and takes 5.3 min, with a peak of 1.3 GB. The module answers about
 130,000 requests a second; the judge's Python is most of the rest.

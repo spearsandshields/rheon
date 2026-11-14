@@ -2152,6 +2152,8 @@
 {"op":"evaluate","expression":"modulo(1, 3e-35)"},
 {"op":"evaluate","expression":"modulo(9.999999999999999999999999999999999E+6144, 7)"},
 {"op":"evaluate","expression":"modulo(-1E+6144, 3)"},
+{"op":"evaluate","expression":"modulo(9e6144, 1e-6176)"},
+{"op":"evaluate","expression":"modulo(5, 1e-6176)"},
 {"op":"evaluate","expression":"modulo(-1e-40, 1)"},
 {"op":"evaluate","expression":"modulo(-1E-6176, 1E+6000)"},
 {"op":"evaluate","expression":"modulo(-1E-6176, 1)"},

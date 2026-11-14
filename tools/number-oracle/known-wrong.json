@@ -1,6 +1,4 @@
 [
-  {"family": "modulo/*", "verdict": "value", "why": "modulo computes a - b*floor(a/b) with every step rounded to 34 digits, so a quotient beyond 34 digits or near an integer loses the remainder: modulo(1e40, 3) is 1000000"},
-  {"family": "modulo/*", "verdict": "null-for-number", "why": "modulo computes a - b*floor(a/b) with every step rounded to 34 digits, so a quotient beyond the range of decimal128 overflows: modulo(1e6000, 1e-6000) is null"},
   {"family": "pow-int/*", "verdict": "value", "why": "a power with an integer exponent is a binary exponentiation with every product rounded to 34 digits, so the error grows with the exponent: 1.05 ** 360 is 1 ulp off, 10 ** -6176 is 0"},
   {"family": "pow-int/domain", "verdict": "number-for-null", "why": "an exponent outside -999,999,999..999,999,999 is evaluated instead of giving null: 1 ** 1e10 is 1"},
   {"family": "pow-frac/domain", "verdict": "number-for-null", "why": "an exponent outside -999,999,999..999,999,999 is evaluated instead of giving null: 1 ** 1000000000.5 is 1"}

@@ -424,7 +424,8 @@ family('modulo/quotient-crosses-integer', [['modulo', ['sub', '1', '2e-34'], ['d
        near_integer_quotient)
 family('modulo/huge-quotient', [['modulo', a, b] for a, b in [('1e40', '3'), ('1e40', '7'), ('1e34', '7'),
                                                               ('5e33', '0.7'), ('1e6000', '1e-6000'), ('1', '3e-35'),
-                                                              (MAX, '7'), ('-1E+6144', '3')]],
+                                                              (MAX, '7'), ('-1E+6144', '3'), ('9e6144', '1e-6176'),
+                                                              ('5', '1e-6176')]],
        lambda rng: ['modulo', dec(rng.randint(0, 1), *in_range(rng, rng.randint(1, 34), rng.randint(34, 6144))),
                     small(rng, 10, 5)])
 family('modulo/underflow', [['modulo', a, b] for a, b in [('-1e-40', '1'), ('-1E-6176', '1E+6000'), ('-1E-6176', '1'),

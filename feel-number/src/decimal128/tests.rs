@@ -452,7 +452,7 @@ fn guards_infinite_operands() {
   assert_eq!("+0E-6176", dbg(one / inf));
   assert_eq!("+0E-6176", dbg(-one / inf));
   assert_eq!("NaN", dbg(inf / inf));
-  assert_eq!("NaN", dbg(inf % one));
+  assert!(inf.modulo(&one).is_none());
   assert!(inf.sqrt().is_none());
   assert!(inf.exp().is_none());
   assert!(inf.ln().is_none());
@@ -702,7 +702,7 @@ fn nan_has_no_sign() {
   assert_eq!("NaN", dbg(n("1") - -nan));
   assert_eq!("NaN", dbg(n("2") * -nan));
   assert_eq!("NaN", dbg(-nan / n("2")));
-  assert_eq!("NaN", dbg(-nan % n("2")));
+  assert!((-nan).modulo(&n("2")).is_none());
   assert_eq!("NaN", dbg((-nan).round_to(2, RoundingMode::HalfEven).unwrap()));
   assert_eq!("NaN", dbg((-nan).trunc()));
   assert_eq!("NaN", dbg((-nan).frac()));
