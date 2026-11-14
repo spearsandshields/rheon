@@ -497,6 +497,15 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     `checked_sub`), `checked_neg` is removed and `ops::Neg` is total; both derive `Default` (zero);
     `&FeelDate - &FeelDate` returns `Option<FeelYearsAndMonthsDuration>`; `FeelDateTime::nanos_since`
     is added.
+60. **A years and months literal is invalid when any component does not fit.** The parser
+    accepted a literal when one of its components was valid and silently left out a component
+    that overflowed: `duration("P768614336404564650Y8M")` was `P768614336404564650Y`,
+    `duration("P99999999999999999999Y3M")` was `P3M` and `duration("P1Y99999999999999999999M")`
+    was `P1Y`. A literal is now valid when it has a component and every component it has fits the
+    duration range, so these are null with `duration: invalid duration literal: '…'` (an `@"…"`
+    literal with `invalid @ literal: …`). Basis: DMN 1.6 §10.3.2.3.8, a years and months duration
+    is its years and months, valueymd = 12 × years + months; the literal must not mean a
+    different duration. 6 registered differences. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

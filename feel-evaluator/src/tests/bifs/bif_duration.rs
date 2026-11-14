@@ -140,3 +140,35 @@ fn _0023() {
 fn _0024() {
   te_null(false, &scope!(), r#"duration(f: "PT24H")"#, r#"parameter 'from' not found"#);
 }
+
+#[test]
+fn _0025() {
+  // A years and months literal is valid only when every component it contains fits.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("P768614336404564650Y8M")"#,
+    "duration: invalid duration literal: 'P768614336404564650Y8M'",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("-P768614336404564650Y8M")"#,
+    "duration: invalid duration literal: '-P768614336404564650Y8M'",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("P99999999999999999999Y3M")"#,
+    "duration: invalid duration literal: 'P99999999999999999999Y3M'",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("P1Y99999999999999999999M")"#,
+    "duration: invalid duration literal: 'P1Y99999999999999999999M'",
+  );
+  te_years_and_months_duration_x(false, scope, r#"duration("P768614336404564650Y7M")"#, "P768614336404564650Y7M");
+  te_years_and_months_duration_x(false, scope, r#"duration("-P768614336404564650Y7M")"#, "-P768614336404564650Y7M");
+}

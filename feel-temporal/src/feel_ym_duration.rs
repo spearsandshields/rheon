@@ -100,38 +100,21 @@ impl TryFrom<&str> for FeelYearsAndMonthsDuration {
   type Error = DsntkError;
   /// Converts a text into [FeelYearsAndMonthsDuration].
   fn try_from(value: &str) -> Result<Self, Self::Error> {
-    if let Some(captures) = RE_YEARS_AND_MONTHS.captures(value) {
-      let mut total_months = 0_i64;
-      let mut contains_years = false;
-      let mut contains_months = false;
-      let mut valid_years = false;
-      let mut valid_months = false;
-      if let Some(years_match) = captures.name("years") {
-        contains_years = true;
-        if let Ok(years) = years_match.as_str().parse::<i64>()
-          && let Some(months) = years.checked_mul(MONTHS_IN_YEAR)
-          && let Some(total) = total_months.checked_add(months)
-        {
-          total_months = total;
-          valid_years = true;
-        }
-      }
-      if let Some(months_match) = captures.name("months") {
-        contains_months = true;
-        if let Ok(months) = months_match.as_str().parse::<i64>()
-          && let Some(total) = total_months.checked_add(months)
-        {
-          total_months = total;
-          valid_months = true;
-        }
-      }
-      if (contains_years && valid_years) || (contains_months && valid_months) {
-        if captures.name("sign").is_some() {
-          total_months = -total_months;
-        }
-        if let Some(duration) = Self::from_m(total_months) {
-          return Ok(duration);
-        }
+    // The literal is valid when it has a component and every component it has fits: a component
+    // that does not fit makes the whole literal invalid, it is never left out.
+    if let Some(captures) = RE_YEARS_AND_MONTHS.captures(value)
+      && (captures.name("years").is_some() || captures.name("months").is_some())
+    {
+      let months_of = |name: &str, months_per_unit: i64| match captures.name(name) {
+        Some(component) => component.as_str().parse::<i64>().ok()?.checked_mul(months_per_unit),
+        None => Some(0),
+      };
+      if let Some(total_months) = months_of("years", MONTHS_IN_YEAR)
+        .zip(months_of("months", 1))
+        .and_then(|(years, months)| years.checked_add(months))
+        && let Some(duration) = Self::from_m(if captures.name("sign").is_some() { -total_months } else { total_months })
+      {
+        return Ok(duration);
       }
     }
     Err(err_invalid_years_and_months_duration_literal(value))
@@ -189,6 +172,11 @@ mod tests {
     invalid("-PM");
     invalid("P1Y3MT1D");
     invalid("-P1Y3MT1D");
+    invalid("P768614336404564650Y8M");
+    invalid("-P768614336404564650Y8M");
+    invalid("P99999999999999999999Y3M");
+    invalid("P1Y99999999999999999999M");
+    invalid("P9223372036854775808M");
   }
 
   #[test]
