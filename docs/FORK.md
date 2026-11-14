@@ -214,7 +214,8 @@ What each commit does:
     core, and the corpus is kept in `tools/feel-corpus/`.
 12. **`NUMBER_BACKEND`.** `rheon_feel_number::NUMBER_BACKEND` is `"dashu"` or
     `"intel"`, selected by the same feature as the backend itself; dsntk-wasm
-    reports it as `numberBackend` in its `info` op.
+    reports it as `numberBackend` in its `info` op. Since item 95 it is always
+    `"dashu"`.
 13. **Intel reference for `tools/`**: the patched `dfp-number-sys` crate the
     `tools/` harnesses build the Intel side with. It was vendored in full
     (17 MB, mostly Intel's C library); it is now `tools/dfp-number-sys.patch`
@@ -1224,6 +1225,28 @@ The totals are under "Verification" below.
     them (`RHEON_PARSER_CORPUS`). The `tools/` ignore list keeps `__pycache__/` only, and the
     root one loses the fetched library's directory. The `intel` feature of the number crate is not
     part of this change. No API change.
+95. **One number backend, no backend features.** DMN 1.6 §10.3.2.3.1 bases FEEL numbers on
+    IEEE 754-2008 decimal128; the repository builds one implementation of it, the pure-Rust core
+    on dashu-float, and the second one, Intel's BID128 library through `dfp-number-sys` behind
+    the `intel` feature, is gone with its binding `feel-number/src/dfp_number.rs` (843 lines).
+    `rheon-feel-number` has no features: the three dashu crates are plain dependencies and
+    `dfp-number-sys` leaves the workspace table and `Cargo.lock`. The `default`, `dashu` and
+    `intel` features that forwarded the choice go from `rheon-feel`, `rheon-feel-temporal`,
+    `rheon-feel-parser` (which keeps `parsing-tables`), `rheon-feel-evaluator`, `rheon-model`,
+    `rheon-model-evaluator` and the unpublished members (`dsntk-evaluator`, `dsntk-workspace`,
+    `dsntk-gendoc`, `dsntk-server` and `dsntk`, the last two keep `tck`), and the workspace table
+    no longer declares them with `default-features = false`. `NUMBER_BACKEND` is the constant
+    `"dashu"`, so `info.numberBackend` is unchanged. The tests that held a second expectation
+    for an Intel build (`feel-number/tests/pow.rs`, TCK 0100 `_0278`) keep the correctly rounded
+    one. CONTRACT.md §3, the README and the engine comparison no longer promise bit-identity
+    with Intel's library: they state the single rounding of §10.3.2.3.1 and point to the number
+    oracle and its list of known deviations; the integer `**` caveat stays. Test first: `cargo
+    check --workspace --all-features` failed on the `compile_error!` that forbade both backends
+    at once; it passes now. Identity: no difference. Rust API break: the Cargo features `intel`
+    and `dashu` (and `default`) of `rheon-feel-number`, `rheon-feel`, `rheon-feel-temporal`,
+    `rheon-feel-parser`, `rheon-feel-evaluator`, `rheon-model` and `rheon-model-evaluator` are
+    gone, so a dependency written with `features = ["dashu"]` or `features = ["intel"]` no longer
+    resolves; `default-features = false` is harmless.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -1240,6 +1263,9 @@ model-evaluator 3651 passed, 18 failed (all TCK 0076, Java external
 functions), 20 ignored. Clippy is clean for the touched crates.
 
 ### Known, intended differences between the dashu core and the Intel backend
+
+History: the Intel backend was removed in item 95; these were the differences while both
+existed.
 
 - `exp`, `ln`, FEEL `log`, `pow` with a non-integer exponent or an exponent
   outside `i32`: the core is correctly rounded, Intel (binary128 inside) is
@@ -1301,7 +1327,7 @@ feel.wasm contract tests 53 under wasmtime; runtime 33; DMN TCK via `scripts/tck
 3,377; tck-addendum 312 of 312 runnable cases (error-result cases are skipped by the runner and
 pinned by Rust tests). Failing tests: `docs/tck-baseline.txt`.
 
-Earlier numbers:
+Earlier numbers (the `intel` and `dashu` features below were removed in item 95):
 
 Default features (`dashu`), at commit 10:
 

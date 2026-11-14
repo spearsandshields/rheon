@@ -11,13 +11,6 @@ homepage = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 
-[features]
-default = ["dashu"]
-# Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
-# Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["rheon-feel/dashu", "rheon-feel-parser/dashu"]
-intel = ["rheon-feel/intel", "rheon-feel-parser/intel"]
-
 [dependencies]
 roxmltree = { workspace = true }
 dsntk-common = { workspace = true }

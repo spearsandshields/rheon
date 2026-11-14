@@ -83,8 +83,8 @@ TIMEOUT = killed at the cap.
 - All panic sites above return `null` with a reason or a syntax error (robustness commit).
 - `for` loops and list literal parsing are linear (`count(for i in 1..1000000 return i)` ≈ 0.11 s
   in wasm, measured 2026-11-13).
-- Numbers come from the dashu-float backend: bit-identical to Intel on exact operations,
-  correctly rounded on `exp`/`ln`/`log`/fractional `pow` (so A5 gives `…46801`).
+- Numbers come from the pure-Rust decimal128 core on dashu-float: correctly rounded on
+  `exp`/`ln`/`log`/fractional `pow` (so A5 gives `…46801`).
 - Verification round of 2026-10-17 fixed four more engine bugs that exist upstream too:
   `round up(0.1, 1)` returned `1` (any scale rounding whose coefficient is ±1); `for i in 1e34..1e34`
   never terminated (step lost to 34-digit rounding); `23:59:59 + PT1S` gave `24:00:00`; `<`/`>` on

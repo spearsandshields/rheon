@@ -1,8 +1,8 @@
-//! # decimal128 core shared by the pure-Rust number backends
+//! # decimal128 core of the FEEL number
 //!
-//! Implementation of the FEEL number type with the semantics of IEEE 754-2008 **decimal128**,
-//! exactly like the Intel-based implementation (`dfp_number.rs`): 34 significant digits,
-//! rounding half-even, exponent (of the coefficient) in range `-6176..=6111`, cohorts preserved.
+//! Implementation of the FEEL number type with the semantics of IEEE 754-2008 **decimal128**
+//! (DMN 1.6 §10.3.2.3.1): 34 significant digits, rounding half-even, exponent (of the
+//! coefficient) in range `-6176..=6111`, cohorts preserved.
 //!
 //! The value is stored in a backend-independent, `Copy` form [V]: sign, `u128` coefficient
 //! (< 10^34) and `i32` exponent, plus infinity and NaN. Everything whose exact result has a
@@ -15,7 +15,7 @@
 //! side becomes a sticky digit and the value is passed **once** through [round_pack], which also
 //! applies the decimal128 exponent range (subnormals, clamping and overflow to infinity).
 //!
-//! The backend is selected by a Cargo feature (`dashu`: `backend_dashu.rs`).
+//! The backend is `backend_dashu.rs`, on dashu-float.
 
 use crate::errors::*;
 use dsntk_common::{DsntkError, Jsonify, Result};
@@ -25,8 +25,7 @@ use std::fmt::{Debug, Display};
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign};
 use std::str::FromStr;
 
-/// The backend selected by the Cargo features.
-#[cfg(feature = "dashu")]
+/// The backend of the operations with an unbounded exact result.
 type B = crate::backend_dashu::Dashu;
 
 /// Minimum scale accepted by the scale-based rounding functions (FEEL: `-6111..=6176`).
@@ -762,10 +761,9 @@ fn div_v(a: V, b: V) -> V {
 
 /// Multiplies the value by 10^n (exact unless out of range).
 ///
-/// Like `dfp_number_sys::bid128_scalbn` (the binding used by the Intel backend),
-/// `n` is first clamped to `-6176..=6144`. This clamping is observable through
-/// `new`, `round` and the scale-based rounding functions (e.g. `ceiling(0.25, 6145)`
-/// is `0.025` on both backends), so it is reproduced here for bit-identical results.
+/// Like `bid128_scalbn` of Intel's BID128 library, `n` is first clamped to
+/// `-6176..=6144`. This clamping is observable through `new`, `round` and the
+/// scale-based rounding functions (e.g. `ceiling(0.25, 6145)` is `0.025`).
 ///
 /// Above the maximum exponent the coefficient is padded with trailing zeros up to the
 /// full 34 digits before the result is declared infinite, exactly like every other

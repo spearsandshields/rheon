@@ -29,7 +29,7 @@ fn test_round_005() {
 
 #[test]
 fn test_round_006() {
-  // quantum 1E+6200 is clamped to 1E+6144 (dfp-number-sys scalbn clamps the exponent)
+  // quantum 1E+6200 is clamped to 1E+6144 (like Intel's bid128_scalbn, the exponent is clamped)
   eqs!("+0E+6111", format!("{:?}", num!(1.5).round(&num!(-6200))));
 }
 

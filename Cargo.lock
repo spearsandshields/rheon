@@ -667,16 +667,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dfp-number-sys"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56728dc0d3c0fc7b4ae2ebf545743158441b8e6f04998f2418391c5d482b54b8"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
 name = "difference"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1943,7 +1933,6 @@ dependencies = [
  "dashu-base",
  "dashu-float",
  "dashu-int",
- "dfp-number-sys",
  "dsntk-common",
  "dsntk-macros",
 ]

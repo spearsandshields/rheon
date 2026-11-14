@@ -19,7 +19,7 @@ fn test_debug_003() {
 
 #[test]
 fn test_debug_004() {
-  // scale clamped to -6176..=6144 like dfp-number-sys bid128_scalbn
+  // scale clamped to -6176..=6144 like Intel's bid128_scalbn
   eqs!("+890E-6176", format!("{:?}", FeelNumber::new(890, 6177)));
   eqs!("+1000000000000000000000000000000000E+6111", format!("{:?}", FeelNumber::new(1, -6177)));
 }

@@ -147,10 +147,9 @@ can still be taken by cherry-pick (`docs/FORK.md` has the procedure).
 [`docs/FORK.md`](docs/FORK.md) lists every engine change with its verification numbers. In
 short, rheon's engine differs from upstream dsntk in:
 
-- a **pure-Rust decimal128 core** (`feel-number`), with the `dashu` backend as default and
-  Intel's BID128 library behind the `intel` feature (needs a C toolchain; not used here);
-  correctly rounded `exp`, `ln`, `log` and fractional `**`, validated against an mpmath oracle
-  (0 wrong results in about 27 M checks);
+- a **pure-Rust decimal128 core** (`feel-number`, on dashu-float; no C library); correctly
+  rounded `exp`, `ln`, `log` and fractional `**`, and every number result judged by the number
+  oracle against DMN 1.6 (`tools/number-oracle/`);
 - **wasm32 support** (Java external functions become a null with a reason; 32-bit conversions);
 - **robustness**: every user-reachable panic found in review is a FEEL null or an error, a call
   depth limit, an iterative AST drop, linear `for` loops and list literals (upstream was quadratic);
@@ -188,12 +187,13 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   1 ulp off for roughly 11–16 % of inputs and occasionally more, so the last digit of such results
   can differ from upstream dsntk; e.g. `12.2384283 ** 4.25` is `41959.85737359436186095331070746801`
   here (the exact value continues …7468005517…, so …801 is the correctly rounded 34-digit
-  result), while Intel gives …800. The exact operations (`+ - * /`, `sqrt`, rounding
-  functions, comparisons, formatting) are bit-identical to Intel.
-- **Integer-exponent `**` is Intel-identical, not correctly rounded.** `x ** n` with an
-  integer `n` uses Intel's binary exponentiation with 34-digit rounding after every
-  multiplication, so the error grows with |n|: `1.1 ** 100000` is 294 ulp from the exact value
-  rounded to 34 digits, `1.1 ** -100000` 853 ulp, `1.0001 ** 1000000` about 89,000 ulp, and
+  result), while Intel gives …800. The number oracle (`tools/number-oracle/`) judges every
+  number result against DMN 1.6; the classes that still deviate are listed in its
+  `known-wrong.json`.
+- **Integer-exponent `**` is not correctly rounded.** `x ** n` with an integer `n` is a binary
+  exponentiation with 34-digit rounding after every multiplication, so the error grows with
+  |n|: `1.1 ** 100000` is 294 ulp from the exact value rounded to 34 digits, `1.1 ** -100000`
+  853 ulp, `1.0001 ** 1000000` about 89,000 ulp, and
   `2 ** -20000` and `0.5 ** 20000` (the same value) differ in their last digits. Small exponents
   on short operands are exact (`3 ** 50`, `2 ** 100`). Only a non-integer exponent takes the
   correctly rounded `exp(y ln x)` path.

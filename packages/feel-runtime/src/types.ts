@@ -89,7 +89,7 @@ export interface InfoResponse {
   engineCommit?: string;
   /** Upstream dsntk-rs commit that fork is rebased on. */
   upstreamCommit?: string;
-  /** Number backend compiled into the engine: "dashu" (pure Rust, correctly rounded) or "intel". */
+  /** Number backend of the engine: always "dashu" (the pure-Rust decimal128 core). */
   numberBackend?: string;
   version?: string;
   error?: FeelError;

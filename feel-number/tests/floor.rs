@@ -34,7 +34,7 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  // the scale passed to scalbn is clamped to -6176..=6144 (dfp-number-sys behaviour)
+  // the scale passed to scalbn is clamped to -6176..=6144 (like Intel's bid128_scalbn)
   eqs!("0.05", num!(0.5).floor(6145).unwrap());
 }
 
