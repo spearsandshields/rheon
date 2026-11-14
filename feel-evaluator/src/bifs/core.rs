@@ -10,6 +10,7 @@ use rheon_feel::diagnostics::{self, Abort};
 use rheon_feel::message::{arg, compose};
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values, warn_truncated_fraction};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
+use rheon_feel_number::RoundingMode;
 use rheon_feel_regex::{Limit, RegexError};
 use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone, MonthOfYear, WeekOfYear};
 use std::borrow::Borrow;
@@ -327,24 +328,9 @@ pub fn before(value1: &Value, value2: &Value) -> Value {
   invalid_argument_type!("before", "scalar or range of scalars", value1)
 }
 
-/// Returns the smallest integer >= argument.
+/// Returns `n` with the given scale and rounding mode ceiling (DMN 1.6 Table 77).
 pub fn ceiling(n: &Value, scale: &Value) -> Value {
-  if let Value::Number(n) = n {
-    if let Value::Number(scale) = scale {
-      if let Ok(scale) = scale.try_into() {
-        match n.ceiling(scale) {
-          Ok(rounded) => Value::Number(rounded),
-          Err(reason) => value_null!("[core::ceiling] {}", reason),
-        }
-      } else {
-        value_null!("[core::ceiling] invalid scale: {}", arg(&scale))
-      }
-    } else {
-      invalid_argument_type!("ceiling", "number", scale)
-    }
-  } else {
-    invalid_argument_type!("ceiling", "number", n)
-  }
+  round_to_scale(n, scale, RoundingMode::Ceiling, "ceiling", "ceiling")
 }
 
 /// Returns `true` when two point are equal or two ranges are equal.
@@ -705,15 +691,14 @@ pub fn day_of_year(value: &Value) -> Value {
   }
 }
 
-/// Returns `number` rounded to given `scale`.
+/// Returns `number` with the given `scale`, rounded half-even (DMN 1.6 Table 77).
 pub fn decimal(number_value: &Value, scale_value: &Value) -> Value {
   if let Value::Number(number) = number_value {
     if let Value::Number(scale) = scale_value {
-      let scale = &scale.trunc();
-      if (-6111..=6176).contains(scale) {
-        Value::Number((*number).round(scale))
-      } else {
-        value_null!("[core::decimal] scale is out of range: {}", arg(&scale))
+      let scale = scale.trunc();
+      match i32::try_from(&scale).map(|s| number.round_to(s, RoundingMode::HalfEven)) {
+        Ok(Ok(rounded)) => Value::Number(rounded),
+        _ => value_null!("[core::decimal] scale is out of range: {}", arg(&scale)),
       }
     } else {
       value_null!("[core::decimal] scale value is not a number: {}", arg(&scale_value))
@@ -1056,24 +1041,9 @@ fn flatten_value(value: &Value, flattened: &mut Vec<Value>) {
   }
 }
 
-/// Returns greatest **integer** <= **value** specified as a parameter.
+/// Returns `n` with the given scale and rounding mode flooring (DMN 1.6 Table 77).
 pub fn floor(n: &Value, scale: &Value) -> Value {
-  if let Value::Number(n) = n {
-    if let Value::Number(scale) = scale {
-      if let Ok(scale) = scale.try_into() {
-        match n.floor(scale) {
-          Ok(rounded) => Value::Number(rounded),
-          Err(reason) => value_null!("[core::floor] {}", reason),
-        }
-      } else {
-        value_null!("[core::floor] invalid scale: {}", arg(&scale))
-      }
-    } else {
-      invalid_argument_type!("floor", "number", scale)
-    }
-  } else {
-    invalid_argument_type!("floor", "number", n)
-  }
+  round_to_scale(n, scale, RoundingMode::Floor, "floor", "floor")
 }
 
 pub fn get_entries(context: &Value) -> Value {
@@ -1703,7 +1673,7 @@ pub fn modulo(dividend_value: &Value, divisor_value: &Value) -> Value {
         value_null!("[core::modulo] division by zero")
       } else {
         // in floor function below the scale is zero, so unwrap is safe
-        Value::Number(dividend - divisor * (dividend / divisor).floor(0).unwrap())
+        Value::Number(dividend - divisor * (dividend / divisor).round_to(0, RoundingMode::Floor).unwrap())
       }
     } else {
       invalid_argument_type!("modulo", "number", divisor_value)
@@ -2143,67 +2113,44 @@ pub fn reverse(list: &Value) -> Value {
   }
 }
 
+/// Returns `n` with the given scale and rounding mode round down (DMN 1.6 Table 77).
 pub fn round_down(n: &Value, scale: &Value) -> Value {
-  let Value::Number(n) = n else {
-    return invalid_argument_type!("round down", "number", n);
-  };
-  let Value::Number(scale) = scale else {
-    return invalid_argument_type!("round down", "number", scale);
-  };
-  let Ok(scale): Result<i32, DsntkError> = scale.try_into() else {
-    return value_null!("[core::round_down] invalid scale: {}", arg(&scale));
-  };
-  match n.round_down(scale) {
-    Ok(rounded) => Value::Number(rounded),
-    Err(reason) => value_null!("[core::round_down] {}", reason),
-  }
+  round_to_scale(n, scale, RoundingMode::Down, "round down", "round_down")
 }
 
+/// Returns `n` with the given scale and rounding mode round half down (DMN 1.6 Table 77).
 pub fn round_half_down(n: &Value, scale: &Value) -> Value {
-  let Value::Number(n) = n else {
-    return invalid_argument_type!("round half down", "number", n);
-  };
-  let Value::Number(scale) = scale else {
-    return invalid_argument_type!("round half down", "number", scale);
-  };
-  let Ok(scale): Result<i32, DsntkError> = scale.try_into() else {
-    return value_null!("[core::round_half_down] invalid scale: {}", arg(&scale));
-  };
-  match n.round_half_down(scale) {
-    Ok(rounded) => Value::Number(rounded),
-    Err(reason) => value_null!("[core::round_half_down] {}", reason),
-  }
+  round_to_scale(n, scale, RoundingMode::HalfDown, "round half down", "round_half_down")
 }
 
+/// Returns `n` with the given scale and rounding mode round half up (DMN 1.6 Table 77).
 pub fn round_half_up(n: &Value, scale: &Value) -> Value {
-  let Value::Number(n) = n else {
-    return invalid_argument_type!("round half up", "number", n);
-  };
-  let Value::Number(scale) = scale else {
-    return invalid_argument_type!("round half up", "number", scale);
-  };
-  let Ok(scale): Result<i32, DsntkError> = scale.try_into() else {
-    return value_null!("[core::round_half_up] invalid scale: {}", arg(&scale));
-  };
-  match n.round_half_up(scale) {
-    Ok(rounded) => Value::Number(rounded),
-    Err(reason) => value_null!("[core::round_half_up] {}", reason),
-  }
+  round_to_scale(n, scale, RoundingMode::HalfUp, "round half up", "round_half_up")
 }
 
+/// Returns `n` with the given scale and rounding mode round up (DMN 1.6 Table 77).
 pub fn round_up(n: &Value, scale: &Value) -> Value {
+  round_to_scale(n, scale, RoundingMode::Up, "round up", "round_up")
+}
+
+/// The rounding built-ins of DMN 1.6 Table 77 with a scale: `n` rounded to `scale` fraction
+/// digits by `mode`. `name` is the built-in's name and `site` its name in the reasons of a null:
+/// an argument that is not a number, a scale that is not an integer in the range of `i32`
+/// (footnote 2: a decimal scale is converted to an integer first), or a scale outside
+/// `-6111..=6176` (footnote 1).
+fn round_to_scale(n: &Value, scale: &Value, mode: RoundingMode, name: &str, site: &str) -> Value {
   let Value::Number(n) = n else {
-    return invalid_argument_type!("round up", "number", n);
+    return invalid_argument_type!(name, "number", n);
   };
   let Value::Number(scale) = scale else {
-    return invalid_argument_type!("round up", "number", scale);
+    return invalid_argument_type!(name, "number", scale);
   };
   let Ok(scale): Result<i32, DsntkError> = scale.try_into() else {
-    return value_null!("[core::round_up] invalid scale: {}", arg(&scale));
+    return value_null!("[core::{}] invalid scale: {}", site, arg(&scale));
   };
-  match n.round_up(scale) {
+  match n.round_to(scale, mode) {
     Ok(rounded) => Value::Number(rounded),
-    Err(reason) => value_null!("[core::round_up] {}", reason),
+    Err(reason) => value_null!("[core::{}] {}", site, reason),
   }
 }
 

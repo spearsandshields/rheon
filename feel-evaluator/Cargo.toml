@@ -16,6 +16,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 dsntk-common = { workspace = true }
 rheon-feel = { workspace = true }
+rheon-feel-number = { workspace = true }
 rheon-feel-parser = { workspace = true }
 rheon-feel-regex = { workspace = true }
 rheon-feel-temporal = { workspace = true }

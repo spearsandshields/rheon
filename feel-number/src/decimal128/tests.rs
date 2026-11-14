@@ -563,29 +563,29 @@ fn pow_edge_cases() {
 #[test]
 fn round_half_down_ties() {
   // to the nearest, a tie toward zero, decided by the dropped digits in one step
-  assert_eq!("+2E+0", dbg(n("2.5").round_half_down(0).unwrap()));
-  assert_eq!("-2E+0", dbg(n("-2.5").round_half_down(0).unwrap()));
-  assert_eq!("+2E+0", dbg(n("2.49").round_half_down(0).unwrap()));
-  assert_eq!("+0E+0", dbg(n("0.5").round_half_down(0).unwrap()));
+  assert_eq!("+2E+0", dbg(n("2.5").round_to(0, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("-2E+0", dbg(n("-2.5").round_to(0, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("+2E+0", dbg(n("2.49").round_to(0, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("+0E+0", dbg(n("0.5").round_to(0, RoundingMode::HalfDown).unwrap()));
   assert_eq!(
     "+1234567890123456789012345678901234E+0",
-    dbg(n("1234567890123456789012345678901234.5").round_half_down(0).unwrap())
+    dbg(n("1234567890123456789012345678901234.5").round_to(0, RoundingMode::HalfDown).unwrap())
   );
-  assert_eq!("+999E+0", dbg(n("999.5").round_half_down(0).unwrap()));
-  assert_eq!("+11E-1", dbg(n("1.15").round_half_down(1).unwrap()));
-  assert_eq!("-11E-1", dbg(n("-1.15").round_half_down(1).unwrap()));
-  assert_eq!("+12E-1", dbg(n("1.25").round_half_down(1).unwrap()));
-  assert_eq!("+55E-1", dbg(n("5.55").round_half_down(1).unwrap()));
+  assert_eq!("+999E+0", dbg(n("999.5").round_to(0, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("+11E-1", dbg(n("1.15").round_to(1, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("-11E-1", dbg(n("-1.15").round_to(1, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("+12E-1", dbg(n("1.25").round_to(1, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("+55E-1", dbg(n("5.55").round_to(1, RoundingMode::HalfDown).unwrap()));
   // above the tie by less than a tenth of the last place kept: up in magnitude
-  assert_eq!("+3E+0", dbg(n("2.51").round_half_down(0).unwrap()));
-  assert_eq!("-3E+0", dbg(n("-2.51").round_half_down(0).unwrap()));
-  assert_eq!("+12E-1", dbg(n("1.151").round_half_down(1).unwrap()));
-  assert_eq!("+56E-1", dbg(n("5.550000000000000000000000000000001").round_half_down(1).unwrap()));
-  assert!(n("1.5").round_half_down(7000).is_err());
+  assert_eq!("+3E+0", dbg(n("2.51").round_to(0, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("-3E+0", dbg(n("-2.51").round_to(0, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("+12E-1", dbg(n("1.151").round_to(1, RoundingMode::HalfDown).unwrap()));
+  assert_eq!("+56E-1", dbg(n("5.550000000000000000000000000000001").round_to(1, RoundingMode::HalfDown).unwrap()));
+  assert!(n("1.5").round_to(7000, RoundingMode::HalfDown).is_err());
   // extreme scales never panic (Intel's `ilogb + scale` overflows in debug builds)
-  assert!(n("0").ceiling(i32::MIN).is_err());
-  assert!(n("1E+6000").floor(i32::MAX).is_err());
-  assert!(n("1").round_up(i32::MIN).is_err());
+  assert!(n("0").round_to(i32::MIN, RoundingMode::Ceiling).is_err());
+  assert!(n("1E+6000").round_to(i32::MAX, RoundingMode::Floor).is_err());
+  assert!(n("1").round_to(i32::MIN, RoundingMode::Up).is_err());
 }
 
 #[test]
@@ -645,17 +645,33 @@ fn scalbn_overflow_pads_to_34_digits() {
 #[test]
 fn scale_rounding_near_overflow_edge_stays_finite() {
   let same = |x: &str, r: Result<FeelNumber>| assert!(r.as_ref().is_ok_and(|r| *r == n(x)), "{x}: {r:?}");
-  same("-99999999999999999999999E+6098", n("-99999999999999999999999E+6098").ceiling(24));
-  same("999999999999999E+6121", n("999999999999999E+6121").floor(9));
-  same("9999999999999999999999999999999E+6091", n("9999999999999999999999999999999E+6091").round_half_down(23));
-  same("99999999999999999999999999999999E+6104", n("99999999999999999999999999999999E+6104").round_half_up(9));
+  same("-99999999999999999999999E+6098", n("-99999999999999999999999E+6098").round_to(24, RoundingMode::Ceiling));
+  same("999999999999999E+6121", n("999999999999999E+6121").round_to(9, RoundingMode::Floor));
+  same(
+    "9999999999999999999999999999999E+6091",
+    n("9999999999999999999999999999999E+6091").round_to(23, RoundingMode::HalfDown),
+  );
+  same(
+    "99999999999999999999999999999999E+6104",
+    n("99999999999999999999999999999999E+6104").round_to(9, RoundingMode::HalfUp),
+  );
   let x = n("999999999999999E+6116");
-  for r in [x.round_up(14), x.round_down(14), x.round_half_up(14), x.round_half_down(14), x.floor(14), x.ceiling(14)] {
+  for r in [
+    x.round_to(14, RoundingMode::Up),
+    x.round_to(14, RoundingMode::Down),
+    x.round_to(14, RoundingMode::HalfUp),
+    x.round_to(14, RoundingMode::HalfDown),
+    x.round_to(14, RoundingMode::Floor),
+    x.round_to(14, RoundingMode::Ceiling),
+  ] {
     same("999999999999999E+6116", r);
   }
-  same("1E+6111", n("9.5E+6110").round_half_up(-6111));
-  same("0", n("4.5E+6110").round_half_up(-6111));
-  same("9999999999999999999999999999999999E+6111", n("9999999999999999999999999999999999E+6111").round_up(-6111));
+  same("1E+6111", n("9.5E+6110").round_to(-6111, RoundingMode::HalfUp));
+  same("0", n("4.5E+6110").round_to(-6111, RoundingMode::HalfUp));
+  same(
+    "9999999999999999999999999999999999E+6111",
+    n("9999999999999999999999999999999999E+6111").round_to(-6111, RoundingMode::Up),
+  );
 }
 
 #[test]
@@ -686,12 +702,12 @@ fn nan_has_no_sign() {
   assert_eq!("NaN", dbg(n("2") * -nan));
   assert_eq!("NaN", dbg(-nan / n("2")));
   assert_eq!("NaN", dbg(-nan % n("2")));
-  assert_eq!("NaN", dbg((-nan).round(&n("2"))));
+  assert_eq!("NaN", dbg((-nan).round_to(2, RoundingMode::HalfEven).unwrap()));
   assert_eq!("NaN", dbg((-nan).trunc()));
   assert_eq!("NaN", dbg((-nan).frac()));
-  assert_eq!("NaN", dbg((-nan).floor(0).unwrap()));
-  assert_eq!("NaN", dbg((-nan).floor(2).unwrap()));
-  assert_eq!("NaN", dbg((-nan).round_half_down(0).unwrap()));
+  assert_eq!("NaN", dbg((-nan).round_to(0, RoundingMode::Floor).unwrap()));
+  assert_eq!("NaN", dbg((-nan).round_to(2, RoundingMode::Floor).unwrap()));
+  assert_eq!("NaN", dbg((-nan).round_to(0, RoundingMode::HalfDown).unwrap()));
   assert!((-nan).exp().is_none());
   assert!((-nan).pow(&n("2")).is_none());
   assert_eq!(FeelNumber::new(0, 0).partial_cmp(&-nan), Some(Ordering::Less));

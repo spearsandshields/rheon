@@ -21,8 +21,8 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
-/// Replaces non-finite numbers (BID128 infinity or NaN, produced e.g. by `9e6144 * 10`,
-/// `1 / 1e-6176` or `decimal(1e33, 1)`) with null: FEEL has no such numbers.
+/// Replaces non-finite numbers (decimal128 infinity or NaN, produced e.g. by `9e6144 * 10` or
+/// `1 / 1e-6176`) with null: FEEL has no such numbers.
 pub(crate) fn finite(value: Value) -> Value {
   match value {
     Value::Number(n) if !n.is_finite() => value_null!("result is not a finite number (decimal overflow)"),

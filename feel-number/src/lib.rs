@@ -8,7 +8,7 @@ mod backend_dashu;
 mod decimal128;
 mod errors;
 
-pub use decimal128::FeelNumber;
+pub use decimal128::{FeelNumber, RoundingMode};
 
 /// Name of the number backend: `"dashu"`, the pure-Rust decimal128 core on dashu-float, the one
 /// backend of this crate. Embedders report it in diagnostics (the wasm module's `info` op).

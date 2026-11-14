@@ -3,7 +3,7 @@
 
 mod common;
 
-use rheon_feel_number::FeelNumber;
+use rheon_feel_number::{FeelNumber, RoundingMode};
 
 fn parsed(s: &str) -> FeelNumber {
   s.parse::<FeelNumber>().unwrap()
@@ -91,11 +91,11 @@ fn test_to_string_arithmetic() {
 
 #[test]
 fn test_to_string_rounding() {
-  eqs!("1", parsed("1").round(&num!(2)));
-  eqs!("0.5", parsed("0.5").round(&num!(3)));
-  eqs!("0", parsed("-0.001").round(&num!(2)));
-  eqs!("1.5", parsed("1.5").ceiling(2).unwrap());
-  eqs!("2", parsed("1.5").ceiling(0).unwrap());
+  eqs!("1", parsed("1").round_to(2, RoundingMode::HalfEven).unwrap());
+  eqs!("0.5", parsed("0.5").round_to(3, RoundingMode::HalfEven).unwrap());
+  eqs!("0", parsed("-0.001").round_to(2, RoundingMode::HalfEven).unwrap());
+  eqs!("1.5", parsed("1.5").round_to(2, RoundingMode::Ceiling).unwrap());
+  eqs!("2", parsed("1.5").round_to(0, RoundingMode::Ceiling).unwrap());
 }
 
 #[test]

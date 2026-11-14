@@ -2,7 +2,7 @@
 /// The type of `$value` is quoted from the value ([TypeOf](rheon_feel::values::TypeOf)), so a
 /// whole type is never built for the message.
 macro_rules! invalid_argument_type {
-  ($function:literal, $expected:expr, $value:expr) => {{
+  ($function:expr, $expected:expr, $value:expr) => {{
     use rheon_feel::message::arg;
     use rheon_feel::value_null;
     use rheon_feel::values::TypeOf;

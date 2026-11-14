@@ -3,7 +3,7 @@
 
 mod common;
 
-use rheon_feel_number::FeelNumber;
+use rheon_feel_number::{FeelNumber, RoundingMode};
 
 fn parsed(s: &str) -> FeelNumber {
   s.parse::<FeelNumber>().unwrap()
@@ -53,12 +53,12 @@ fn test_minus_zero_sqrt() {
 
 #[test]
 fn test_minus_zero_rounding() {
-  assert_zero("+0E+0", parsed("-0.4").round_half_up(0).unwrap());
-  assert_zero("+0E+0", parsed("-0.5").round_down(0).unwrap());
-  assert_zero("+0E+0", parsed("-0.5").ceiling(0).unwrap());
-  assert_zero("+0E+0", parsed("-0.0").floor(0).unwrap());
+  assert_zero("+0E+0", parsed("-0.4").round_to(0, RoundingMode::HalfUp).unwrap());
+  assert_zero("+0E+0", parsed("-0.5").round_to(0, RoundingMode::Down).unwrap());
+  assert_zero("+0E+0", parsed("-0.5").round_to(0, RoundingMode::Ceiling).unwrap());
+  assert_zero("+0E+0", parsed("-0.0").round_to(0, RoundingMode::Floor).unwrap());
   assert_zero("+0E+0", parsed("-0.5").trunc());
-  assert_zero("+0E+0", parsed("0.05").round_half_down(0).unwrap());
+  assert_zero("+0E+0", parsed("0.05").round_to(0, RoundingMode::HalfDown).unwrap());
 }
 
 #[test]

@@ -1911,6 +1911,7 @@ dependencies = [
  "dsntk-macros",
  "reqwest",
  "rheon-feel",
+ "rheon-feel-number",
  "rheon-feel-parser",
  "rheon-feel-regex",
  "rheon-feel-temporal",

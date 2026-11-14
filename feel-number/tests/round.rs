@@ -1,58 +1,58 @@
 mod common;
 
-use rheon_feel_number::FeelNumber;
+use rheon_feel_number::{FeelNumber, RoundingMode};
 
 #[test]
 fn test_round_001() {
-  eqs!("123.46", num!(123.4567).round(&num!(2)));
+  eqs!("123.46", num!(123.4567).round_to(2, RoundingMode::HalfEven).unwrap());
 }
 
 #[test]
 fn test_round_002() {
-  eqs!("123.45", num!(123.4547).round(&num!(2)));
+  eqs!("123.45", num!(123.4547).round_to(2, RoundingMode::HalfEven).unwrap());
 }
 
 #[test]
 fn test_round_003() {
-  eqs!("100", num!(123.4567).round(&num!(-2)));
+  eqs!("100", num!(123.4567).round_to(-2, RoundingMode::HalfEven).unwrap());
 }
 
 #[test]
 fn test_round_004() {
-  eqs!("200", num!(163.4567).round(&num!(-2)));
+  eqs!("200", num!(163.4567).round_to(-2, RoundingMode::HalfEven).unwrap());
 }
 
 #[test]
 fn test_round_005() {
-  eqs!("0", num!(0.0).round(&num!(1)));
+  eqs!("0", num!(0.0).round_to(1, RoundingMode::HalfEven).unwrap());
 }
 
 #[test]
 fn test_round_006() {
   // a scale outside -6111..=6176 has no result
-  assert!(!num!(1.5).round(&num!(-6200)).is_finite());
+  assert!(num!(1.5).round_to(-6200, RoundingMode::HalfEven).is_err());
 }
 
 #[test]
 fn test_scale_rounding_with_unit_coefficient() {
   // Regression: a rounded integral of ±1 was returned unscaled (round_up(0.1, 1) == 1).
-  eqs!("0.1", num!(0.1).round_up(1).unwrap());
-  eqs!("0.1", num!(0.05).round_up(1).unwrap());
-  eqs!("0.01", num!(0.01).round_up(2).unwrap());
-  eqs!("10", num!(10).round_up(-1).unwrap());
-  eqs!("10", num!(1).round_up(-1).unwrap());
-  eqs!("-0.000001", num!(-0.0000001).round_up(6).unwrap());
-  eqs!("0.1", num!(0.19).round_down(1).unwrap());
-  eqs!("0.1", num!(0.05).round_half_up(1).unwrap());
-  eqs!("0.1", num!(0.15).round_half_down(1).unwrap());
-  eqs!("0.1", num!(0.19).floor(1).unwrap());
-  eqs!("-0.000001", num!(-0.0000001).floor(6).unwrap());
-  eqs!("0.1", num!(0.01).ceiling(1).unwrap());
-  assert_eq!(num!(1E+6111), num!(5.5).round_up(-6111).unwrap());
-  assert_eq!(num!(-1E+6111), num!(-1.56).floor(-6111).unwrap());
-  assert_eq!(num!(1E-6144), num!(1E-6144).round_up(6144).unwrap());
-  eqs!("0.2", num!(0.11).round_up(1).unwrap());
-  eqs!("1", num!(0.95).round_up(1).unwrap());
+  eqs!("0.1", num!(0.1).round_to(1, RoundingMode::Up).unwrap());
+  eqs!("0.1", num!(0.05).round_to(1, RoundingMode::Up).unwrap());
+  eqs!("0.01", num!(0.01).round_to(2, RoundingMode::Up).unwrap());
+  eqs!("10", num!(10).round_to(-1, RoundingMode::Up).unwrap());
+  eqs!("10", num!(1).round_to(-1, RoundingMode::Up).unwrap());
+  eqs!("-0.000001", num!(-0.0000001).round_to(6, RoundingMode::Up).unwrap());
+  eqs!("0.1", num!(0.19).round_to(1, RoundingMode::Down).unwrap());
+  eqs!("0.1", num!(0.05).round_to(1, RoundingMode::HalfUp).unwrap());
+  eqs!("0.1", num!(0.15).round_to(1, RoundingMode::HalfDown).unwrap());
+  eqs!("0.1", num!(0.19).round_to(1, RoundingMode::Floor).unwrap());
+  eqs!("-0.000001", num!(-0.0000001).round_to(6, RoundingMode::Floor).unwrap());
+  eqs!("0.1", num!(0.01).round_to(1, RoundingMode::Ceiling).unwrap());
+  assert_eq!(num!(1E+6111), num!(5.5).round_to(-6111, RoundingMode::Up).unwrap());
+  assert_eq!(num!(-1E+6111), num!(-1.56).round_to(-6111, RoundingMode::Floor).unwrap());
+  assert_eq!(num!(1E-6144), num!(1E-6144).round_to(6144, RoundingMode::Up).unwrap());
+  eqs!("0.2", num!(0.11).round_to(1, RoundingMode::Up).unwrap());
+  eqs!("1", num!(0.95).round_to(1, RoundingMode::Up).unwrap());
 }
 
 #[test]
@@ -60,37 +60,34 @@ fn test_scale_up_to_6176_leaves_settled_values_unchanged() {
   // FEEL: the scale of the rounding functions may be any integer in -6111..=6176. A value that
   // has no digit below 10^-scale is returned unchanged, even when the scaled intermediate
   // `n * 10^scale` would not fit in decimal128 (TCK 1141-1144, 017_a).
-  eqs!("5.5", num!(5.5).round_up(6176).unwrap());
-  eqs!("5.5", num!(5.5).round_down(6176).unwrap());
-  eqs!("5.5", num!(5.5).round_half_up(6176).unwrap());
-  eqs!("5.5", num!(5.5).round_half_down(6176).unwrap());
-  eqs!("-5.5", num!(-5.5).round_up(6176).unwrap());
-  eqs!("5.5", num!(5.5).round(&num!(6176)));
-  eqs!("0.3333333333333333333333333333333333", (num!(1) / num!(3)).round_up(6176).unwrap());
-  eqs!("0.3333333333333333333333333333333333", (num!(1) / num!(3)).round(&num!(6176)));
+  eqs!("5.5", num!(5.5).round_to(6176, RoundingMode::Up).unwrap());
+  eqs!("5.5", num!(5.5).round_to(6176, RoundingMode::Down).unwrap());
+  eqs!("5.5", num!(5.5).round_to(6176, RoundingMode::HalfUp).unwrap());
+  eqs!("5.5", num!(5.5).round_to(6176, RoundingMode::HalfDown).unwrap());
+  eqs!("-5.5", num!(-5.5).round_to(6176, RoundingMode::Up).unwrap());
+  eqs!("5.5", num!(5.5).round_to(6176, RoundingMode::HalfEven).unwrap());
+  eqs!("0.3333333333333333333333333333333333", (num!(1) / num!(3)).round_to(6176, RoundingMode::Up).unwrap());
+  eqs!("0.3333333333333333333333333333333333", (num!(1) / num!(3)).round_to(6176, RoundingMode::HalfEven).unwrap());
   // ...but a scale outside the FEEL range is still an error (017_b).
-  assert!(num!(5.5).round_up(6177).is_err());
-  assert!(num!(5.5).round_up(-6112).is_err());
+  assert!(num!(5.5).round_to(6177, RoundingMode::Up).is_err());
+  assert!(num!(5.5).round_to(-6112, RoundingMode::Up).is_err());
   // and values that do have digits below the scale still round
-  eqs!("5.6", num!(5.55).round_up(1).unwrap());
+  eqs!("5.6", num!(5.55).round_to(1, RoundingMode::Up).unwrap());
 }
 
-/// `n` rounded to a multiple of `10^-scale` by one of the modes of DMN 1.6 Table 77, in the order
-/// of [ROUNDED]: `decimal`, `round half up`, `round half down`, `round up`, `round down`,
-/// `ceiling`, `floor`.
-fn rounded(n: FeelNumber, scale: i32, mode: usize) -> Option<FeelNumber> {
-  match mode {
-    0 => Some(n.round(&FeelNumber::from(scale))),
-    1 => n.round_half_up(scale).ok(),
-    2 => n.round_half_down(scale).ok(),
-    3 => n.round_up(scale).ok(),
-    4 => n.round_down(scale).ok(),
-    5 => n.ceiling(scale).ok(),
-    _ => n.floor(scale).ok(),
-  }
-}
+/// The modes of DMN 1.6 Table 77 in the order of the results in [ROUNDED]: `decimal`,
+/// `round half up`, `round half down`, `round up`, `round down`, `ceiling`, `floor`.
+const MODES: [RoundingMode; 7] = [
+  RoundingMode::HalfEven,
+  RoundingMode::HalfUp,
+  RoundingMode::HalfDown,
+  RoundingMode::Up,
+  RoundingMode::Down,
+  RoundingMode::Ceiling,
+  RoundingMode::Floor,
+];
 
-/// `(n, scale, results)`: the seven results of [rounded], or `=` when every mode gives `n`
+/// `(n, scale, results)`: the result of every mode of [MODES], or `=` when every mode gives `n`
 /// itself. Computed with Python's `decimal` (`quantize` to `10^-scale` with the mode's rounding,
 /// in a context wide enough to be exact); a number with no digit below the scale is itself.
 const ROUNDED: &[(&str, i32, &str)] = &[
@@ -458,9 +455,9 @@ fn rounding_to_a_scale_is_one_step() {
   for (n, scale, results) in ROUNDED {
     let expected: Vec<&str> = if *results == "=" { vec![n; 7] } else { results.split(' ').collect() };
     for (mode, expected) in expected.iter().enumerate() {
-      let actual = rounded(n.parse().unwrap(), *scale, mode);
+      let actual = n.parse::<FeelNumber>().unwrap().round_to(*scale, MODES[mode]).ok();
       if actual != Some(expected.parse().unwrap()) {
-        wrong.push(format!("mode {mode} of ({n}, {scale}): {actual:?}, expected {expected}"));
+        wrong.push(format!("{:?} of ({n}, {scale}): {actual:?}, expected {expected}", MODES[mode]));
       }
     }
   }

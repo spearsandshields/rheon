@@ -1348,6 +1348,24 @@ The totals are under "Verification" below.
     behaviour break: the six rounding methods of `FeelNumber` give these values, accept a zero
     and a tiny number at every scale of the range, and `round` with a scale outside it is NaN
     (was a value at the clamped scale).
+101. **The rounding built-ins share `round_to`.** `floor`, `ceiling`, `round up`, `round down`,
+    `round half up` and `round half down` of feel-evaluator went through six copies of the same
+    argument checks, each calling its own method of `FeelNumber`; now one private helper takes
+    the number, the scale, the `RoundingMode` and the built-in's two names and calls
+    `FeelNumber::round_to` (item 100), keeping every reason text byte for byte (`[core::round
+    down] invalid argument type, …`, `[core::round_up] invalid scale: …`, `[core::floor]
+    <FeelNumberError> invalid scale, …`). `decimal` calls `round_to(scale, HalfEven)` after
+    truncating the scale and keeps its reason `scale is out of range`. `round_to` and
+    `RoundingMode` become public with these callers (feel-evaluator now depends on
+    `rheon-feel-number` directly); the seven methods they replace are removed. The helper builds
+    its type reasons with `invalid_argument_type!`, which, like the module form of `value_null!`
+    behind it, takes the function name as any expression, not only as a literal. The tests of
+    `feel-number` and the two rounding benches call `round_to`. Test first: none new; the
+    built-in tests, the rounding table of item 100 and the identity run are the proof.
+    Identity: no difference. Rust API break: `FeelNumber::ceiling`, `floor`, `round_up`,
+    `round_down`, `round_half_up`, `round_half_down` and `round` are removed; use
+    `round_to(scale, RoundingMode::…)`, which returns `Err` only for a scale outside
+    `-6111..=6176` (`round(&scale)` took the scale as a number and gave NaN there).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

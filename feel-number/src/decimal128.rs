@@ -70,7 +70,7 @@ enum V {
 
 /// The rounding modes of the FEEL rounding functions (DMN 1.6 Table 77).
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub(crate) enum RoundingMode {
+pub enum RoundingMode {
   /// To the nearest, a tie to the even neighbour (`decimal`).
   HalfEven,
   /// To the nearest, a tie away from zero (`round half up`).
@@ -1029,16 +1029,11 @@ impl FeelNumber {
   /// scale outside `-6111..=6176` (Table 77, footnote 1: "Scale is in the range
   /// [−6111..6176]"); every number, a zero or a tiny one included, can be rounded at every scale
   /// of that range, and the result always fits.
-  pub(crate) fn round_to(&self, scale: i32, mode: RoundingMode) -> Result<Self> {
+  pub fn round_to(&self, scale: i32, mode: RoundingMode) -> Result<Self> {
     if !(MIN_SCALE..=MAX_SCALE).contains(&scale) {
       return Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale));
     }
     Ok(Self::of(round_at(self.v(), -scale, mode)))
-  }
-
-  /// Returns a nearest integer greater or equal to this [FeelNumber].
-  pub fn ceiling(&self, scale: i32) -> Result<Self> {
-    self.round_to(scale, RoundingMode::Ceiling)
   }
 
   pub fn even(&self) -> bool {
@@ -1054,11 +1049,6 @@ impl FeelNumber {
       V::Fin(s, c, e) => exp_v(s, c, e),
     };
     if is_finite_v(n) { Some(Self::of(n)) } else { None }
-  }
-
-  /// Returns a nearest integer less or equal to this [FeelNumber].
-  pub fn floor(&self, scale: i32) -> Result<Self> {
-    self.round_to(scale, RoundingMode::Floor)
   }
 
   pub fn frac(&self) -> Self {
@@ -1115,29 +1105,6 @@ impl FeelNumber {
   pub fn pow(&self, rhs: &FeelNumber) -> Option<Self> {
     let n = pow_v(self.v(), rhs.v());
     if is_finite_v(n) { Some(Self::of(n)) } else { None }
-  }
-
-  /// Rounds this number half-even to the scale `rhs` (`decimal`); NaN for a scale outside
-  /// `-6111..=6176`.
-  pub fn round(&self, rhs: &FeelNumber) -> Self {
-    let scale = to_signed(rhs.v(), i32::MIN as i128, i32::MAX as i128).unwrap_or(i32::MIN as i128) as i32;
-    self.round_to(scale, RoundingMode::HalfEven).unwrap_or(Self::of(V::NaN))
-  }
-
-  pub fn round_down(&self, scale: i32) -> Result<Self> {
-    self.round_to(scale, RoundingMode::Down)
-  }
-
-  pub fn round_half_down(&self, scale: i32) -> Result<Self> {
-    self.round_to(scale, RoundingMode::HalfDown)
-  }
-
-  pub fn round_half_up(&self, scale: i32) -> Result<Self> {
-    self.round_to(scale, RoundingMode::HalfUp)
-  }
-
-  pub fn round_up(&self, scale: i32) -> Result<Self> {
-    self.round_to(scale, RoundingMode::Up)
   }
 
   pub fn sqrt(&self) -> Option<Self> {

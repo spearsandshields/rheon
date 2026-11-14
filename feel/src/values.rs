@@ -49,7 +49,7 @@ pub use string::FeelString;
 /// ```
 #[macro_export]
 macro_rules! value_null {
-  ($module:expr, $function:literal, $format:literal, $($arguments:tt)*) => {
+  ($module:expr, $function:expr, $format:literal, $($arguments:tt)*) => {
     $crate::values::null_with_reason(|| $crate::message::compose(format_args!("[{}::{}] {}", $module, $function, format_args!($format, $($arguments)*))))
   };
   ($format:literal, $($arguments:tt)*) => {
