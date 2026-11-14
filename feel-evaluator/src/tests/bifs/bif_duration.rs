@@ -179,3 +179,14 @@ fn fractional_seconds_are_exact() {
   te_string(false, &scope!(), r#"string(duration("PT1.99999999999999999S"))"#, "PT1.999999999S");
   te_days_and_time_duration(false, &scope!(), r#"duration("PT999.999999999999S")"#, false, 999, 999_999_999);
 }
+
+#[test]
+fn fraction_digits_beyond_nanoseconds_warn() {
+  te_warnings(
+    r#"duration("PT999.999999999999S")"#,
+    "PT16M39.999999999S",
+    &[&truncation_warning("PT999.999999999999S", "999")],
+  );
+  te_warnings(r#"duration("-P1DT0.0000000001S")"#, "-P1D", &[&truncation_warning("-P1DT0.0000000001S", "1")]);
+  te_warnings(r#"duration("PT1.0000000000S")"#, "PT1S", &[]);
+}

@@ -28,49 +28,10 @@ impl Display for FeelDateTime {
 
 impl TryFrom<&str> for FeelDateTime {
   type Error = DsntkError;
-  /// Converts string into [FeelDateTime].
+  /// Converts string into [FeelDateTime]; fraction digits beyond nanoseconds are truncated (see
+  /// [FeelDateTime::parse_reporting_truncation]).
   fn try_from(s: &str) -> Result<Self, Self::Error> {
-    if let Some(captures) = RE_DATE_AND_TIME.captures(s)
-      && let Some(year_match) = captures.name("year")
-      && let Ok(mut year) = year_match.as_str().parse::<Year>()
-    {
-      if captures.name("sign").is_some() {
-        year = -year;
-      }
-      if let Some(month_match) = captures.name("month")
-        && let Ok(month) = month_match.as_str().parse::<Month>()
-        && let Some(day_match) = captures.name("day")
-        && let Ok(day) = day_match.as_str().parse::<Day>()
-        && let Some(hour_match) = captures.name("hours")
-        && let Ok(mut hour) = hour_match.as_str().parse::<u8>()
-        && let Some(min_match) = captures.name("minutes")
-        && let Ok(min) = min_match.as_str().parse::<u8>()
-        && let Some(sec_match) = captures.name("seconds")
-        && let Ok(sec) = sec_match.as_str().parse::<u8>()
-        && let Some((nanos, _)) = parse_fraction_nanos(fraction_digits(&captures))
-      {
-        let nanos = u64::from(nanos);
-        if let Some(mut date) = FeelDate::new(year, month, day)
-          && let Some(zone) = FeelZone::from_captures(&captures)
-        {
-          if !is_valid_time(hour, min, sec, nanos) {
-            return Err(err_invalid_date_time_literal(s));
-          }
-          if hour == 24 {
-            if let Some(updated_date) = date.add_days(1) {
-              hour = 0;
-              date = updated_date;
-            } else {
-              return Err(err_invalid_date_time_literal(s));
-            }
-          }
-          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone) {
-            return Ok(FeelDateTime(date, time));
-          }
-        }
-      }
-    }
-    Err(err_invalid_date_time_literal(s))
+    Self::parse_reporting_truncation(s).map(|(date_time, _)| date_time)
   }
 }
 
@@ -198,6 +159,58 @@ impl TryFrom<FeelDateTime> for DateTime<FixedOffset> {
 }
 
 impl FeelDateTime {
+  /// Parses a date and time literal, as [TryFrom] does, and also returns the fraction digits
+  /// beyond nanoseconds that were truncated, when one of them is not zero.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelDateTime;
+  /// let (date_time, dropped) = FeelDateTime::parse_reporting_truncation("2018-10-01T12:32:59.123123123123").unwrap();
+  /// assert_eq!(("2018-10-01T12:32:59.123123123", Some("123")), (date_time.to_string().as_str(), dropped));
+  /// ```
+  pub fn parse_reporting_truncation(s: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Some(captures) = RE_DATE_AND_TIME.captures(s)
+      && let Some(year_match) = captures.name("year")
+      && let Ok(mut year) = year_match.as_str().parse::<Year>()
+    {
+      if captures.name("sign").is_some() {
+        year = -year;
+      }
+      if let Some(month_match) = captures.name("month")
+        && let Ok(month) = month_match.as_str().parse::<Month>()
+        && let Some(day_match) = captures.name("day")
+        && let Ok(day) = day_match.as_str().parse::<Day>()
+        && let Some(hour_match) = captures.name("hours")
+        && let Ok(mut hour) = hour_match.as_str().parse::<u8>()
+        && let Some(min_match) = captures.name("minutes")
+        && let Ok(min) = min_match.as_str().parse::<u8>()
+        && let Some(sec_match) = captures.name("seconds")
+        && let Ok(sec) = sec_match.as_str().parse::<u8>()
+        && let Some((nanos, dropped)) = parse_fraction_nanos(fraction_digits(&captures))
+      {
+        let nanos = u64::from(nanos);
+        if let Some(mut date) = FeelDate::new(year, month, day)
+          && let Some(zone) = FeelZone::from_captures(&captures)
+        {
+          if !is_valid_time(hour, min, sec, nanos) {
+            return Err(err_invalid_date_time_literal(s));
+          }
+          if hour == 24 {
+            if let Some(updated_date) = date.add_days(1) {
+              hour = 0;
+              date = updated_date;
+            } else {
+              return Err(err_invalid_date_time_literal(s));
+            }
+          }
+          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone) {
+            return Ok((FeelDateTime(date, time), dropped));
+          }
+        }
+      }
+    }
+    Err(err_invalid_date_time_literal(s))
+  }
+
   /// Creates date and time from provided [FeelDate] and [FeelTime] values.
   pub fn new(date: FeelDate, time: FeelTime) -> Self {
     Self(date, time)

@@ -8,8 +8,9 @@ use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
-use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value};
+use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, truncated_fraction_warning};
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, IntervalType, Name, value_null};
 use rheon_feel_parser::{AstNode, ClosureBuilder};
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
@@ -327,17 +328,20 @@ impl<'b> EvaluatorBuilder<'b> {
   }
 
   /// Returns an evaluator of the temporal expression after `@` (at) literal.
+  /// Builds an `@` literal. Its value is parsed once, here; a literal whose fraction digits
+  /// beyond nanoseconds were truncated warns on each evaluation, since diagnostics are recorded
+  /// while an evaluation runs (a model built once reports in every evaluation).
   fn build_at(&mut self, text: &str) -> Evaluator {
     if let Ok(date) = FeelDate::from_str(text) {
       Box::new(move |_: &FeelScope| Value::Date(date.clone()))
-    } else if let Ok(date_time) = FeelDateTime::try_from(text) {
-      Box::new(move |_: &FeelScope| Value::DateTime(date_time.clone()))
-    } else if let Ok(time) = text.parse::<FeelTime>() {
-      Box::new(move |_: &FeelScope| Value::Time(time.clone()))
+    } else if let Ok((date_time, dropped)) = FeelDateTime::parse_reporting_truncation(text) {
+      truncating_at_literal(Value::DateTime(date_time), text, dropped)
+    } else if let Ok((time, dropped)) = FeelTime::parse_reporting_truncation(text) {
+      truncating_at_literal(Value::Time(time), text, dropped)
     } else if let Ok(ym_duration) = FeelYearsAndMonthsDuration::try_from(text) {
       Box::new(move |_: &FeelScope| Value::YearsAndMonthsDuration(ym_duration.clone()))
-    } else if let Ok(dt_duration) = FeelDaysAndTimeDuration::try_from(text) {
-      Box::new(move |_: &FeelScope| Value::DaysAndTimeDuration(dt_duration.clone()))
+    } else if let Ok((dt_duration, dropped)) = FeelDaysAndTimeDuration::parse_reporting_truncation(text) {
+      truncating_at_literal(Value::DaysAndTimeDuration(dt_duration), text, dropped)
     } else {
       let invalid_at_literal = format!("invalid @ literal: {}", arg(text));
       Box::new(move |_: &FeelScope| value_null!(invalid_at_literal))
@@ -2729,6 +2733,21 @@ fn err_expected_parameter_name(actual: &AstNode) -> String {
 /// Returns an error message when expected only a parameter name.
 fn err_expected_name(actual: &AstNode) -> String {
   format!("expected name node, actual node is: {actual:?}")
+}
+
+/// The evaluator of an `@` literal of `value` with seconds: with no `dropped` digits it gives the
+/// value, otherwise it also records the warning, built once, that `text` lost them.
+fn truncating_at_literal(value: Value, text: &str, dropped: Option<&str>) -> Evaluator {
+  match dropped {
+    None => Box::new(move |_: &FeelScope| value.clone()),
+    Some(dropped) => {
+      let warning = truncated_fraction_warning(text, dropped);
+      Box::new(move |_: &FeelScope| {
+        diagnostics::warn(&warning);
+        value.clone()
+      })
+    }
+  }
 }
 
 /// The `value` property of temporal values (DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table 66, DMN16-11):

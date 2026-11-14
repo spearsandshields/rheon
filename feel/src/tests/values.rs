@@ -658,3 +658,28 @@ fn test_type_of_list_equals_reference_rule() {
   // both outcomes of the rule are frequent among the lists with several items
   assert!(contexts > total / 5 && mixed > total / 5, "{contexts} lists of contexts, {mixed} mixed lists, of {total}");
 }
+
+#[test]
+fn xsd_temporal_texts_warn_when_fraction_digits_are_truncated() {
+  let (values, diagnostics) = crate::diagnostics::collect(|| {
+    [
+      Value::try_from_xsd_time("10:00:00.1234567891").unwrap(),
+      Value::try_from_xsd_date_time("2018-10-01T12:32:59.123123123123").unwrap(),
+      Value::try_from_xsd_duration("PT999.999999999999S").unwrap(),
+      Value::try_from_xsd_time("10:00:00.1234567890").unwrap(),
+    ]
+  });
+  assert_eq!(
+    ["10:00:00.123456789", "2018-10-01T12:32:59.123123123", "PT16M39.999999999S", "10:00:00.123456789"],
+    values.map(|value| value.to_string())
+  );
+  assert_eq!(
+    [
+      "fractional seconds of '10:00:00.1234567891' truncated to nanoseconds; dropped digits: '1'",
+      "fractional seconds of '2018-10-01T12:32:59.123123123123' truncated to nanoseconds; dropped digits: '123'",
+      "fractional seconds of 'PT999.999999999999S' truncated to nanoseconds; dropped digits: '999'",
+    ],
+    diagnostics.warnings()
+  );
+  assert_eq!(0, diagnostics.count);
+}

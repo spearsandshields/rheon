@@ -30,6 +30,75 @@ static RE_DAYS_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_DAY
 pub struct FeelDaysAndTimeDuration(i64);
 
 impl FeelDaysAndTimeDuration {
+  /// Parses a days and time duration literal, as [TryFrom] does, and also returns the fraction
+  /// digits beyond nanoseconds that were truncated, when one of them is not zero.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelDaysAndTimeDuration;
+  /// let (duration, dropped) = FeelDaysAndTimeDuration::parse_reporting_truncation("PT999.999999999999S").unwrap();
+  /// assert_eq!(("PT16M39.999999999S", Some("999")), (duration.to_string().as_str(), dropped));
+  /// ```
+  pub fn parse_reporting_truncation(value: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Some(captures) = RE_DAYS_AND_TIME.captures(value) {
+      let mut is_valid = false;
+      let mut nanoseconds = 0_i64;
+      let mut days_overflow = false;
+      if let Some(days_match) = captures.name("days") {
+        if let Ok(days_u64) = days_match.as_str().parse::<u64>()
+          && let Ok(days) = <u64 as TryInto<i64>>::try_into(days_u64)
+          && let Some(a) = days.checked_mul(NANOSECONDS_IN_DAY)
+        {
+          nanoseconds += a;
+          is_valid = true;
+        } else {
+          days_overflow = true;
+        }
+      }
+      // Every component is added with checked arithmetic: a duration that does not fit into
+      // i64 nanoseconds (about 292 years) is an invalid literal instead of a silently wrapped value.
+      let mut overflow = false;
+      for (name, unit) in [("hours", NANOSECONDS_IN_HOUR), ("minutes", NANOSECONDS_IN_MINUTE), ("seconds", NANOSECONDS_IN_SECOND)] {
+        if let Some(component_match) = captures.name(name) {
+          match component_match
+            .as_str()
+            .parse::<u64>()
+            .ok()
+            .and_then(|n| i64::try_from(n).ok())
+            .and_then(|n| n.checked_mul(unit))
+            .and_then(|n| nanoseconds.checked_add(n))
+          {
+            Some(total) => {
+              nanoseconds = total;
+              is_valid = true;
+            }
+            None => overflow = true,
+          }
+        }
+      }
+      let mut dropped = None;
+      if captures.name("fractional").is_some() {
+        match parse_fraction_nanos(fraction_digits(&captures)).and_then(|(fraction, lost)| Some((nanoseconds.checked_add(i64::from(fraction))?, lost))) {
+          Some((total, lost)) => {
+            nanoseconds = total;
+            dropped = lost;
+            is_valid = true;
+          }
+          None => overflow = true,
+        }
+      }
+      if overflow || days_overflow {
+        is_valid = false;
+      }
+      if captures.name("sign").is_some() {
+        nanoseconds = -nanoseconds;
+      }
+      if is_valid && let Some(duration) = Self::from_n(nanoseconds) {
+        return Ok((duration, dropped));
+      }
+    }
+    Err(err_invalid_date_and_time_duration_literal(value.to_string()))
+  }
+
   /// Creates [FeelDaysAndTimeDuration] from nanoseconds, or `None` when out of range
   /// (`i64::MIN`). Every duration is built here.
   pub fn from_n(nanos: i64) -> Option<Self> {
@@ -152,64 +221,10 @@ impl fmt::Display for FeelDaysAndTimeDuration {
 
 impl TryFrom<&str> for FeelDaysAndTimeDuration {
   type Error = DsntkError;
-  /// Converts a text form of the days and time duration into [FeelDaysAndTimeDuration] struct.
+  /// Converts a text form of the days and time duration into [FeelDaysAndTimeDuration]; fraction
+  /// digits beyond nanoseconds are truncated (see [FeelDaysAndTimeDuration::parse_reporting_truncation]).
   fn try_from(value: &str) -> Result<Self, Self::Error> {
-    if let Some(captures) = RE_DAYS_AND_TIME.captures(value) {
-      let mut is_valid = false;
-      let mut nanoseconds = 0_i64;
-      let mut days_overflow = false;
-      if let Some(days_match) = captures.name("days") {
-        if let Ok(days_u64) = days_match.as_str().parse::<u64>()
-          && let Ok(days) = <u64 as TryInto<i64>>::try_into(days_u64)
-          && let Some(a) = days.checked_mul(NANOSECONDS_IN_DAY)
-        {
-          nanoseconds += a;
-          is_valid = true;
-        } else {
-          days_overflow = true;
-        }
-      }
-      // Every component is added with checked arithmetic: a duration that does not fit into
-      // i64 nanoseconds (about 292 years) is an invalid literal instead of a silently wrapped value.
-      let mut overflow = false;
-      for (name, unit) in [("hours", NANOSECONDS_IN_HOUR), ("minutes", NANOSECONDS_IN_MINUTE), ("seconds", NANOSECONDS_IN_SECOND)] {
-        if let Some(component_match) = captures.name(name) {
-          match component_match
-            .as_str()
-            .parse::<u64>()
-            .ok()
-            .and_then(|n| i64::try_from(n).ok())
-            .and_then(|n| n.checked_mul(unit))
-            .and_then(|n| nanoseconds.checked_add(n))
-          {
-            Some(total) => {
-              nanoseconds = total;
-              is_valid = true;
-            }
-            None => overflow = true,
-          }
-        }
-      }
-      if captures.name("fractional").is_some() {
-        match parse_fraction_nanos(fraction_digits(&captures)).and_then(|(fraction, _)| nanoseconds.checked_add(i64::from(fraction))) {
-          Some(total) => {
-            nanoseconds = total;
-            is_valid = true;
-          }
-          None => overflow = true,
-        }
-      }
-      if overflow || days_overflow {
-        is_valid = false;
-      }
-      if captures.name("sign").is_some() {
-        nanoseconds = -nanoseconds;
-      }
-      if is_valid && let Some(duration) = Self::from_n(nanoseconds) {
-        return Ok(duration);
-      }
-    }
-    Err(err_invalid_date_and_time_duration_literal(value.to_string()))
+    Self::parse_reporting_truncation(value).map(|(duration, _)| duration)
   }
 }
 

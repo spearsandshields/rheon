@@ -9,6 +9,10 @@
 //! `value_null!` is recorded here (per thread). Outside a collection nothing is recorded, so
 //! ordinary evaluations pay one thread-local flag check per error null.
 //!
+//! A collection also keeps warnings ([warn]): what the evaluation did to an input without an
+//! error, such as fractional seconds truncated to nanoseconds. A warning is not an error: it is not
+//! counted, and strict mode does not stop at it.
+//!
 //! An evaluation can also be stopped by an implementation limit ([Abort]), such as the depth of
 //! nested function calls. One evaluation ([evaluation]) owns the abort and the call depth, every
 //! function call reads them ([enter_call]), and nothing of them outlives the evaluation.
@@ -17,17 +21,20 @@ use crate::values::Value;
 use crate::{Evaluator, FeelScope};
 use dsntk_common::{DsntkError, ToErrorMessage};
 use std::cell::{Cell, RefCell};
+use std::thread::LocalKey;
 
-/// At most this many messages are kept; [Diagnostics::count] still counts all errors.
+/// At most this many error messages, and this many warnings, are kept; [Diagnostics::count] still
+/// counts all errors.
 pub const MAX_MESSAGES: usize = 64;
 
 thread_local! {
   static ACTIVE: Cell<bool> = const { Cell::new(false) };
   static COUNT: Cell<usize> = const { Cell::new(0) };
   static MESSAGES: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+  static WARNINGS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
-/// Errors recorded during one evaluation.
+/// Errors and warnings recorded during one evaluation.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Diagnostics {
   /// The number of errors (null values with a reason) created.
@@ -35,12 +42,20 @@ pub struct Diagnostics {
   /// The first [MAX_MESSAGES] error messages, in the order they occurred; consecutive repeats of
   /// the same message (an error passed up through several operators) are kept once.
   pub messages: Vec<String>,
+  /// The first [MAX_MESSAGES] warnings, kept as the messages are.
+  warnings: Vec<String>,
 }
 
 impl Diagnostics {
   /// The first error, if any.
   pub fn first(&self) -> Option<&str> {
     self.messages.first().map(String::as_str)
+  }
+
+  /// The first [MAX_MESSAGES] warnings, in the order they occurred; consecutive repeats of the
+  /// same warning (a literal evaluated in a loop) are kept once.
+  pub fn warnings(&self) -> &[String] {
+    &self.warnings
   }
 }
 
@@ -51,10 +66,22 @@ pub fn record(message: &str) {
     return;
   }
   COUNT.with(|count| count.set(count.get() + 1));
-  MESSAGES.with(|messages| {
-    let mut messages = messages.borrow_mut();
-    if messages.len() < MAX_MESSAGES && messages.last().map(String::as_str) != Some(message) {
-      messages.push(message.to_string());
+  keep(&MESSAGES, message);
+}
+
+/// Records a warning when a collection is active; outside one it has no effect, as [record].
+pub fn warn(message: &str) {
+  if ACTIVE.with(Cell::get) {
+    keep(&WARNINGS, message);
+  }
+}
+
+/// Keeps `message` in `list`: the first [MAX_MESSAGES], a consecutive repeat once.
+fn keep(list: &'static LocalKey<RefCell<Vec<String>>>, message: &str) {
+  list.with(|list| {
+    let mut list = list.borrow_mut();
+    if list.len() < MAX_MESSAGES && list.last().map(String::as_str) != Some(message) {
+      list.push(message.to_string());
     }
   });
 }
@@ -74,6 +101,7 @@ struct Collection {
   was_active: bool,
   saved_count: usize,
   saved_messages: Vec<String>,
+  saved_warnings: Vec<String>,
 }
 
 impl Collection {
@@ -82,6 +110,7 @@ impl Collection {
       was_active: ACTIVE.with(|active| active.replace(true)),
       saved_count: COUNT.with(|count| count.replace(0)),
       saved_messages: MESSAGES.with(|messages| messages.replace(Vec::new())),
+      saved_warnings: WARNINGS.with(|warnings| warnings.replace(Vec::new())),
     }
   }
 
@@ -90,6 +119,7 @@ impl Collection {
     Diagnostics {
       count: COUNT.with(Cell::get),
       messages: MESSAGES.with(|messages| messages.borrow().clone()),
+      warnings: WARNINGS.with(|warnings| warnings.borrow().clone()),
     }
   }
 }
@@ -97,17 +127,23 @@ impl Collection {
 impl Drop for Collection {
   fn drop(&mut self) {
     let count = COUNT.with(Cell::get);
-    let messages = MESSAGES.with(|messages| messages.take());
     ACTIVE.with(|active| active.set(self.was_active));
     COUNT.with(|outer| outer.set(self.saved_count + if self.was_active { count } else { 0 }));
-    MESSAGES.with(|outer| {
-      let mut restored = std::mem::take(&mut self.saved_messages);
-      if self.was_active {
-        restored.extend(messages.into_iter().take(MAX_MESSAGES.saturating_sub(restored.len())));
-      }
-      *outer.borrow_mut() = restored;
-    });
+    restore(&MESSAGES, std::mem::take(&mut self.saved_messages), self.was_active);
+    restore(&WARNINGS, std::mem::take(&mut self.saved_warnings), self.was_active);
   }
+}
+
+/// Puts the enclosing collection's `saved` list back into `list`, followed by as many of the
+/// inner collection's entries as the cap leaves room for when the enclosing one was collecting.
+fn restore(list: &'static LocalKey<RefCell<Vec<String>>>, mut saved: Vec<String>, add_inner: bool) {
+  list.with(|list| {
+    let inner = list.take();
+    if add_inner {
+      saved.extend(inner.into_iter().take(MAX_MESSAGES.saturating_sub(saved.len())));
+    }
+    *list.borrow_mut() = saved;
+  });
 }
 
 /// Why an evaluation stopped before it finished: an implementation limit, never a FEEL value.
@@ -406,6 +442,65 @@ mod tests {
     assert_eq!(((), None), evaluation(|| ()));
     let call = enter_call(1).expect("a new outermost call is entered");
     assert_eq!(Value::Boolean(true), call.finish(Value::Boolean(true)));
+  }
+
+  #[test]
+  fn warnings_are_collected_beside_the_errors() {
+    let ((), diagnostics) = collect(|| warn("w"));
+    assert_eq!(["w".to_string()], diagnostics.warnings());
+    assert_eq!((0, 0, None), (diagnostics.count, diagnostics.messages.len(), diagnostics.first()));
+    let ((), diagnostics) = collect(|| {
+      record("e");
+      warn("w");
+    });
+    assert_eq!((1, vec!["e".to_string()]), (diagnostics.count, diagnostics.messages.clone()));
+    assert_eq!(["w".to_string()], diagnostics.warnings());
+  }
+
+  #[test]
+  fn a_warning_outside_a_collection_has_no_effect() {
+    warn("outside");
+    let ((), diagnostics) = collect(|| ());
+    assert_eq!(Diagnostics::default(), diagnostics);
+  }
+
+  #[test]
+  fn warnings_keep_a_repeat_once_and_at_most_the_cap() {
+    let ((), diagnostics) = collect(|| {
+      warn("a");
+      warn("a");
+      warn("b");
+      warn("a");
+    });
+    assert_eq!(["a", "b", "a"].map(String::from), diagnostics.warnings());
+    let ((), diagnostics) = collect(|| (0..1_000).for_each(|i| warn(&i.to_string())));
+    assert_eq!(MAX_MESSAGES, diagnostics.warnings().len());
+    assert_eq!("63", diagnostics.warnings()[MAX_MESSAGES - 1]);
+  }
+
+  #[test]
+  fn nested_collections_add_up_warnings() {
+    let (inner, outer) = collect(|| {
+      warn("outer");
+      let (_, inner) = collect(|| warn("inner"));
+      inner
+    });
+    assert_eq!(["inner".to_string()], inner.warnings());
+    assert_eq!(["outer", "inner"].map(String::from), outer.warnings());
+  }
+
+  #[test]
+  fn no_warning_outlives_a_collection_that_panics() {
+    let result = std::panic::catch_unwind(|| {
+      collect(|| {
+        warn("before the panic");
+        panic!("evaluation failed");
+      })
+    });
+    assert!(result.is_err());
+    warn("after the panic");
+    let ((), diagnostics) = collect(|| ());
+    assert_eq!(Diagnostics::default(), diagnostics);
   }
 
   #[test]

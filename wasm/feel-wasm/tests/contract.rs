@@ -528,6 +528,28 @@ fn fractional_seconds_are_exact() {
   assert_eq!(display("time(\"10:00:00.99999999999999999\")"), "\"10:00:00.999999999\"");
 }
 
+/// Fraction digits beyond nanoseconds are truncated with a warning that names the literal and the
+/// dropped digits; a warning is no error, so it is not counted and strict mode does not stop.
+#[test]
+fn truncated_fractional_seconds_warn() {
+  let message = "fractional seconds of '10:00:00.1234567891' truncated to nanoseconds; dropped digits: '1'";
+  let response = req(json!({"op": "evaluate", "expression": "time(\"10:00:00.1234567891\")"}));
+  assert_eq!(warnings(&response), [message]);
+  assert_eq!(response["result"]["display"], "\"10:00:00.123456789\"");
+  assert_eq!(response["diagnostics"]["count"], 0);
+  let response = req(json!({"op": "evaluate", "expression": "@\"10:00:00.1234567891\"", "errorMode": "strict"}));
+  assert_eq!(warnings(&response), [message]);
+  let response = req(json!({
+    "op": "evaluate",
+    "expression": "truncated",
+    "contextFormat": "feel",
+    "context": "{truncated: time(\"10:00:00.1234567891\")}",
+  }));
+  assert_eq!(warnings(&response), [message]);
+  let response = req(json!({"op": "evaluate", "expression": "time(\"10:00:00.1234567890\")"}));
+  assert_eq!(warnings(&response), Vec::<&str>::new());
+}
+
 /// 24:00:00 is midnight only with a zero fraction (XML Schema Part 2 §3.2.7).
 #[test]
 fn a_time_of_day_is_below_24_hours() {

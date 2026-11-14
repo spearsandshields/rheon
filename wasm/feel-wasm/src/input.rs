@@ -1,6 +1,7 @@
 //! Conversion of request input (JSON or FEEL context literal) into FEEL values.
 
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::message::{MessageArg, Size, arg};
 use rheon_feel::values::{TypeOf, Value};
 use rheon_feel::{FeelNumber, FeelScope, Name};
@@ -147,16 +148,21 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
   Ok(ctx)
 }
 
-/// Evaluates a FEEL context literal (e.g. `{a: 1, "Grace's age": 40}`) into a FEEL context.
-/// An empty / blank string is an empty context.
-pub fn feel_context(text: &str) -> Result<FeelContext, String> {
+/// Evaluates a FEEL context literal (e.g. `{a: 1, "Grace's age": 40}`) into a FEEL context,
+/// adding the warnings of its evaluation to `warnings`. An empty / blank string is an empty
+/// context.
+pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContext, String> {
   if text.trim().is_empty() {
     return Ok(FeelContext::default());
   }
   let scope = FeelScope::default();
   let node = rheon_feel_parser::parse_context(&scope, text, false).map_err(|e| format!("invalid FEEL context: {e}"))?;
   crate::engine::check_ast_depth(&node).map_err(|e| format!("invalid FEEL context: {e}"))?;
-  match rheon_feel_evaluator::evaluate(&scope, &node).into_result().map_err(|abort| abort.to_string())? {
+  // the context's errors are not counted in the response, only its warnings are reported
+  let (outcome, diagnostics) = diagnostics::collect(|| rheon_feel_evaluator::evaluate(&scope, &node));
+  let value = outcome.into_result().map_err(|abort| abort.to_string())?;
+  warnings.extend_from_slice(diagnostics.warnings());
+  match value {
     Value::Context(ctx) => Ok(ctx),
     Value::Null(Some(reason)) => Err(format!("FEEL context evaluated to null: {reason}")),
     other => Err(format!("FEEL context literal expected, it evaluated to {} ({})", arg(&other), arg(&TypeOf(&other)))),

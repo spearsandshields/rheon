@@ -8,7 +8,7 @@ use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Abort};
 use rheon_feel::message::{arg, compose};
-use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values};
+use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values, warn_truncated_fraction};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_regex::{Limit, RegexError};
 use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone, MonthOfYear, WeekOfYear};
@@ -608,7 +608,8 @@ pub fn date_3(year_value: &Value, month_value: &Value, day_value: &Value) -> Val
 /// Returns date and time created from string.
 pub fn date_and_time_1(value: &Value) -> Value {
   if let Value::String(text) = value {
-    if let Ok(date_time) = FeelDateTime::try_from(text.as_str()) {
+    if let Ok((date_time, dropped)) = FeelDateTime::parse_reporting_truncation(text) {
+      warn_truncated_fraction(text.as_str(), dropped);
       return Value::DateTime(date_time);
     }
     if let Ok(date) = FeelDate::from_str(text) {
@@ -742,7 +743,8 @@ pub fn duration(value: &Value) -> Value {
   if let Value::String(s) = value {
     if let Ok(ym_duration) = FeelYearsAndMonthsDuration::try_from(s.as_str()) {
       Value::YearsAndMonthsDuration(ym_duration)
-    } else if let Ok(dt_duration) = FeelDaysAndTimeDuration::try_from(s.as_str()) {
+    } else if let Ok((dt_duration, dropped)) = FeelDaysAndTimeDuration::parse_reporting_truncation(s) {
+      warn_truncated_fraction(s.as_str(), dropped);
       Value::DaysAndTimeDuration(dt_duration)
     } else {
       value_null!("duration: invalid duration literal: '{}'", arg(&s))
@@ -2774,7 +2776,8 @@ pub fn substring_before(input_string_value: &Value, match_input_string: &Value) 
 pub fn time_1(value: &Value) -> Value {
   match value {
     Value::String(text) => {
-      if let Ok(time) = text.parse::<FeelTime>() {
+      if let Ok((time, dropped)) = FeelTime::parse_reporting_truncation(text) {
+        warn_truncated_fraction(text.as_str(), dropped);
         Value::Time(time)
       } else {
         value_null!(

@@ -69,6 +69,22 @@ pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {
   crate::evaluate(scope, node).into_result().unwrap_or_else(|abort| panic!("evaluation stopped: {abort}"))
 }
 
+/// Asserts that evaluating `text` gives a value whose text is `expected`, with exactly the
+/// warnings `warnings` and no error.
+pub fn te_warnings(text: &str, expected: &str, warnings: &[&str]) {
+  let scope = FeelScope::default();
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
+  let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
+  assert_eq!(expected, value.to_string(), "{text}");
+  assert_eq!(warnings, diagnostics.warnings(), "{text}");
+  assert_eq!(0, diagnostics.count, "{text}");
+}
+
+/// The warning that the seconds of `literal` lost the fraction digits `dropped`.
+pub fn truncation_warning(literal: &str, dropped: &str) -> String {
+  format!("fractional seconds of '{literal}' truncated to nanoseconds; dropped digits: '{dropped}'")
+}
+
 /// Asserts that evaluating `text` in `dialect` stops the evaluation, with `message`.
 pub fn te_aborted(text: &str, dialect: crate::Dialect, message: &str) {
   let scope = FeelScope::default();

@@ -210,7 +210,7 @@ fn context(req: &mut Map<String, Json>, warnings: &mut Vec<String>) -> Result<Fe
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
     ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e)),
     ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
-    (_, Some(Json::String(text))) => feel_context(&text).map_err(|e| Failure(Kind::Context, e)),
+    (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure(Kind::Context, e)),
     (_, Some(_)) => fail(Kind::Context, "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal"),
   }
 }
@@ -369,6 +369,8 @@ fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failur
   {
     return fail(Kind::Evaluation, compose(format_args!("strict error mode: {first}")));
   }
+  // the warnings of the input and the unary tests come first, then those of the evaluation
+  warnings.extend_from_slice(diagnostics.warnings());
   Ok(json!({
     "ok": true,
     "result": result_json(&value),

@@ -3,9 +3,10 @@
 use crate::FunctionBody;
 use crate::bif::Bif;
 use crate::context::FeelContext;
+use crate::diagnostics;
 use crate::errors::*;
 use crate::function::FunctionDefinition;
-use crate::message::{MessageArg, PREVIEW_CHARS, Size};
+use crate::message::{MessageArg, PREVIEW_CHARS, Size, arg, compose};
 use crate::names::Name;
 use crate::ranges::IntervalType;
 use crate::strings::{ToFeelString, write_separated};
@@ -799,30 +800,55 @@ impl Value {
   }
 
   /// Tries to convert `xsd:time` string into valid [Value] representing a time.
-  /// FEEL time format is fully conformant with `xsd:time`.
+  /// FEEL time format is fully conformant with `xsd:time`. Fraction digits beyond nanoseconds
+  /// are truncated with a warning ([warn_truncated_fraction]).
   pub fn try_from_xsd_time(text: &str) -> Result<Self> {
-    if let Ok(feel_time) = FeelTime::from_str(text) {
+    if let Ok((feel_time, dropped)) = FeelTime::parse_reporting_truncation(text) {
+      warn_truncated_fraction(text, dropped);
       return Ok(Value::Time(feel_time));
     }
     Err(err_invalid_xsd_time(text))
   }
 
   /// Tries to convert `xsd:dateTime` string into valid [Value] representing a date and time.
-  /// FEEL date and time format is fully conformant with `xsd:dateTime`.
+  /// FEEL date and time format is fully conformant with `xsd:dateTime`. Fraction digits beyond
+  /// nanoseconds are truncated with a warning ([warn_truncated_fraction]).
   pub fn try_from_xsd_date_time(text: &str) -> Result<Self> {
-    Ok(Value::DateTime(FeelDateTime::try_from(text).map_err(|_| err_invalid_xsd_date_time(text))?))
+    let (date_time, dropped) = FeelDateTime::parse_reporting_truncation(text).map_err(|_| err_invalid_xsd_date_time(text))?;
+    warn_truncated_fraction(text, dropped);
+    Ok(Value::DateTime(date_time))
   }
 
   /// Tries to convert `xsd:duration` string into valid [Value] representing a date and time.
-  /// FEEL durations are conformant with `xsd:duration` but spit into two ranges.
+  /// FEEL durations are conformant with `xsd:duration` but spit into two ranges. Fraction digits
+  /// beyond nanoseconds are truncated with a warning ([warn_truncated_fraction]).
   pub fn try_from_xsd_duration(text: &str) -> Result<Self> {
     if let Ok(ym_duration) = FeelYearsAndMonthsDuration::try_from(text) {
       return Ok(Value::YearsAndMonthsDuration(ym_duration));
     }
-    if let Ok(dt_duration) = FeelDaysAndTimeDuration::try_from(text) {
+    if let Ok((dt_duration, dropped)) = FeelDaysAndTimeDuration::parse_reporting_truncation(text) {
+      warn_truncated_fraction(text, dropped);
       return Ok(Value::DaysAndTimeDuration(dt_duration));
     }
     Err(err_invalid_xsd_duration(text))
+  }
+}
+
+/// The warning that the seconds of `source`, a temporal literal or text (or a number of seconds),
+/// were truncated to nanoseconds and lost the fraction digits `dropped`. DMN 1.6 holds no time
+/// finer than a nanosecond, so the digits are truncated and the evaluation says so.
+pub fn truncated_fraction_warning(source: &(impl MessageArg + ?Sized), dropped: &str) -> String {
+  compose(format_args!(
+    "fractional seconds of '{}' truncated to nanoseconds; dropped digits: '{}'",
+    arg(source),
+    arg(dropped)
+  ))
+}
+
+/// Records [truncated_fraction_warning] in the active collection when digits were `dropped`.
+pub fn warn_truncated_fraction(source: &(impl MessageArg + ?Sized), dropped: Option<&str>) {
+  if let Some(dropped) = dropped {
+    diagnostics::warn(&truncated_fraction_warning(source, dropped));
   }
 }
 

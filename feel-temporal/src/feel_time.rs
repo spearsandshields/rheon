@@ -31,22 +31,10 @@ impl Display for FeelTime {
 
 impl FromStr for FeelTime {
   type Err = DsntkError;
-  /// Converts [String] into [FeelTime].
+  /// Converts [String] into [FeelTime]; fraction digits beyond nanoseconds are truncated (see
+  /// [FeelTime::parse_reporting_truncation]).
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    if let Some(captures) = RE_TIME.captures(s)
-      && let Some(hour_match) = captures.name("hours")
-      && let Ok(hour) = hour_match.as_str().parse::<u8>()
-      && let Some(min_match) = captures.name("minutes")
-      && let Ok(min) = min_match.as_str().parse::<u8>()
-      && let Some(sec_match) = captures.name("seconds")
-      && let Ok(sec) = sec_match.as_str().parse::<u8>()
-      && let Some((nanos, _)) = parse_fraction_nanos(fraction_digits(&captures))
-      && let Some(zone) = FeelZone::from_captures(&captures)
-      && let Some(time) = FeelTime::zone_opt(hour, min, sec, u64::from(nanos), zone)
-    {
-      return Ok(time);
-    }
-    Err(err_invalid_time_literal(s))
+    Self::parse_reporting_truncation(s).map(|(time, _)| time)
   }
 }
 
@@ -176,6 +164,32 @@ impl FeelTime {
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, time_tuple),
     }?;
     date_time_offset_t(time_tuple, offset)
+  }
+
+  /// Parses a time literal, as [FromStr] does, and also returns the fraction digits beyond
+  /// nanoseconds that were truncated, when one of them is not zero.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelTime;
+  /// let (time, dropped) = FeelTime::parse_reporting_truncation("10:00:00.1234567891").unwrap();
+  /// assert_eq!(("10:00:00.123456789", Some("1")), (time.to_string().as_str(), dropped));
+  /// assert_eq!(None, FeelTime::parse_reporting_truncation("10:00:00.1234567890").unwrap().1);
+  /// ```
+  pub fn parse_reporting_truncation(text: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Some(captures) = RE_TIME.captures(text)
+      && let Some(hour_match) = captures.name("hours")
+      && let Ok(hour) = hour_match.as_str().parse::<u8>()
+      && let Some(min_match) = captures.name("minutes")
+      && let Ok(min) = min_match.as_str().parse::<u8>()
+      && let Some(sec_match) = captures.name("seconds")
+      && let Ok(sec) = sec_match.as_str().parse::<u8>()
+      && let Some((nanos, dropped)) = parse_fraction_nanos(fraction_digits(&captures))
+      && let Some(zone) = FeelZone::from_captures(&captures)
+      && let Some(time) = FeelTime::zone_opt(hour, min, sec, u64::from(nanos), zone)
+    {
+      return Ok((time, dropped));
+    }
+    Err(err_invalid_time_literal(text))
   }
 
   /// Creates a time in `zone`, or `None` when the parts are not a time of day. A time of day has

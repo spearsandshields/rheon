@@ -806,6 +806,37 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     `date(0,1,1)` gives them. Basis: DMN 1.6 §10.3.2.3.6, "The year must be in the range
     [-999,999,999..999,999,999]"; §10.3.4.1 Table 73. 4 registered differences (years 999, 0 and
     -5). API break (rheon-feel-temporal): `FeelZone::from_designator` is added.
+77. **Fractional seconds truncated to nanoseconds are reported as warnings.** A time, date and
+    time or days and time duration holds nanoseconds, so the digits beyond the ninth were dropped
+    without a word: `time("10:00:00.1234567891")` is `10:00:00.123456789`. They are still
+    truncated, and the evaluation now says so: the diagnostics collection of `rheon_feel` keeps a
+    list of warnings beside its errors, filled by `diagnostics::warn` while a collection is active,
+    with the same rules as the error messages (a repeat in a row once, at most 64, restored when a
+    collection ends, also on a panic) but neither counted nor read by strict mode, since a
+    truncation is no semantic error (DMN 1.6 §7.3.8 makes semantic errors the reason to report and
+    return null). The three temporal parsers report the digits they dropped
+    (`parse_reporting_truncation`, which `FromStr` and `TryFrom` call), and every producer quotes
+    the literal or text through one message, `fractional seconds of '10:00:00.1234567891' truncated
+    to nanoseconds; dropped digits: '1'`, built with `arg`, so a 100,000-digit fraction gives a
+    message of a few hundred characters: an `@"…"` literal (parsed once when the expression is
+    built, warning on each evaluation), `time`, `date and time` and `duration` of a string, and the
+    `xsd:time`, `xsd:dateTime` and `xsd:duration` conversions of typed input. Only digits that hold
+    a value warn: `10:00:00.1234567890` does not. The wasm module appends the evaluation's warnings
+    to the response's `warnings` after those of the input and the unary tests, including the
+    warnings of a FEEL-format context; `diagnostics.count` and strict mode are unchanged, and an
+    evaluation stopped by a limit still answers its error without warnings. Native callers read
+    them from `Diagnostics::warnings`, also from `ModelEvaluator::evaluate_invocable_with_mode`.
+    CONTRACT §3 lists the warning. Basis: the owner rule that more than nine fraction digits are
+    truncated to nanoseconds with a warning naming the literal and the dropped digits, never
+    rounded or rejected; CONTRACT §3. 23 registered differences (the warnings of literals and texts
+    with more than nine digits, in an expression, a loop and a FEEL-format context), and the 7
+    entries of item 74 with more than nine digits now also hold their warning. API breaks
+    (rheon-feel): `Diagnostics` has a private `warnings` field with the accessor `warnings()`, so
+    its struct literals no longer compile outside the crate; `diagnostics::warn`,
+    `values::truncated_fraction_warning` and `values::warn_truncated_fraction` are added;
+    (rheon-feel-temporal) `FeelTime::parse_reporting_truncation`,
+    `FeelDateTime::parse_reporting_truncation` and `FeelDaysAndTimeDuration::parse_reporting_truncation`
+    are added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

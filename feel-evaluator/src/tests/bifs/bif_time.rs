@@ -383,3 +383,26 @@ fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
   te_string(false, &scope!(), r#"string(time("24:00:00"))"#, "00:00:00");
   te_string(false, &scope!(), r#"string(time("24:00:00.000"))"#, "00:00:00");
 }
+
+#[test]
+fn fraction_digits_beyond_nanoseconds_warn() {
+  te_warnings(r#"time("10:00:00.1234567891")"#, "10:00:00.123456789", &[&truncation_warning("10:00:00.1234567891", "1")]);
+  te_warnings(
+    r#"time("10:00:00.99999999999999999")"#,
+    "10:00:00.999999999",
+    &[&truncation_warning("10:00:00.99999999999999999", "99999999")],
+  );
+  te_warnings(r#"time("10:00:00.1234567890")"#, "10:00:00.123456789", &[]);
+  // a long literal is quoted as a preview with its size, in a bounded message
+  let fraction = format!("1{}", "9".repeat(99_999));
+  let scope = FeelScope::default();
+  let text = format!(r#"time("10:00:00.{fraction}")"#);
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, &text, false).unwrap());
+  let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
+  assert_eq!("10:00:00.199999999", value.to_string());
+  let [warning] = diagnostics.warnings() else {
+    panic!("one warning expected: {:?}", diagnostics.warnings())
+  };
+  assert!(warning.chars().count() <= 1_000, "{warning}");
+  assert!(warning.contains("… (100009 characters)'") && warning.contains("… (99991 characters)'"), "{warning}");
+}

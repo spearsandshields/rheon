@@ -488,3 +488,13 @@ fn date_and_time_from_date_time_and_zone_takes_the_zone_suffix_rules() {
     "2020-01-01T00:00:00+01:00",
   );
 }
+
+#[test]
+fn fraction_digits_beyond_nanoseconds_warn() {
+  te_warnings(
+    r#"date and time("2018-10-01T12:32:59.123123123123")"#,
+    "2018-10-01T12:32:59.123123123",
+    &[&truncation_warning("2018-10-01T12:32:59.123123123123", "123")],
+  );
+  te_warnings(r#"date and time("2018-10-01T12:32:59.1231231230000Z")"#, "2018-10-01T12:32:59.123123123Z", &[]);
+}
