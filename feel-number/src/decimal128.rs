@@ -1135,8 +1135,11 @@ const TWO: V = V::Fin(false, 2, 0);
 const ONE_TENTH: V = V::Fin(false, 1, -1);
 
 /// FEEL number.
+///
+/// The value keeps its cohort, the pair `(p,s)` of DMN 1.6 §10.3.2.3.1 among the "many different
+/// pairs \[that\] have the same value"; no text shows it ([Display] prints the value).
 #[derive(Copy, Clone)]
-pub struct FeelNumber(V, bool);
+pub struct FeelNumber(V);
 
 impl FeelNumber {
   fn v(&self) -> V {
@@ -1146,46 +1149,46 @@ impl FeelNumber {
   /// The one constructor: every [FeelNumber] is made here. A zero loses its sign (DMN 1.6
   /// §10.3.2.3.1: "There is no distinction between -0 and 0"); the arithmetic on [V] keeps the
   /// signs of IEEE 754 internally.
-  fn of(v: V, flag: bool) -> Self {
+  fn of(v: V) -> Self {
     match v {
-      V::Fin(true, 0, e) => Self(V::Fin(false, 0, e), flag),
-      v => Self(v, flag),
+      V::Fin(true, 0, e) => Self(V::Fin(false, 0, e)),
+      v => Self(v),
     }
   }
 
   /// Returns [FeelNumber] value infinite.
   pub fn infinite() -> FeelNumber {
-    Self::of(V::Inf(false), false)
+    Self::of(V::Inf(false))
   }
 
   /// Returns [FeelNumber] value 0 (zero).
   pub fn zero() -> FeelNumber {
-    Self::of(ZERO, false)
+    Self::of(ZERO)
   }
 
   /// Returns [FeelNumber] value 1 (one).
   pub fn one() -> FeelNumber {
-    Self::of(ONE, false)
+    Self::of(ONE)
   }
 
   /// Returns [FeelNumber] value 2 (two).
   pub fn two() -> FeelNumber {
-    Self::of(TWO, false)
+    Self::of(TWO)
   }
 
   /// Returns [FeelNumber] value 1_000_000_000 (billion).
   pub fn billion() -> FeelNumber {
-    Self::of(V::Fin(false, 1_000_000_000, 0), false)
+    Self::of(V::Fin(false, 1_000_000_000, 0))
   }
 
   /// Creates a new [FeelNumber] from integer value and a scale.
   pub fn new(n: i64, s: i32) -> Self {
-    Self::of(scalbn_v(V::Fin(n < 0, n.unsigned_abs() as u128, 0), s.saturating_neg()), false)
+    Self::of(scalbn_v(V::Fin(n < 0, n.unsigned_abs() as u128, 0), s.saturating_neg()))
   }
 
   /// Creates a new [FeelNumber] from [isize].
   fn from_isize(n: isize) -> Self {
-    Self::of(V::Fin(n < 0, n.unsigned_abs() as u128, 0), false)
+    Self::of(V::Fin(n < 0, n.unsigned_abs() as u128, 0))
   }
 
   /// Returns an absolute value of this [FeelNumber].
@@ -1195,23 +1198,20 @@ impl FeelNumber {
       V::Inf(_) => V::Inf(false),
       V::NaN(_) => V::NaN(false),
     };
-    Self::of(v, false)
+    Self::of(v)
   }
 
   /// Returns a nearest integer greater or equal to this [FeelNumber].
   pub fn ceiling(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), Rnd::Ceiling)
+    Ok(Self::of(if scale == 0 {
+      round_integral_v(self.v(), Rnd::Ceiling)
+    } else {
+      if self.check_scale(scale)? {
+        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Ceiling), scale)
       } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Ceiling), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+        self.v()
+      }
+    }))
   }
 
   pub fn even(&self) -> bool {
@@ -1226,28 +1226,25 @@ impl FeelNumber {
       V::Fin(_, 0, _) => ONE,
       V::Fin(s, c, e) => exp_v(s, c, e),
     };
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   /// Returns a nearest integer less or equal to this [FeelNumber].
   pub fn floor(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), Rnd::Floor)
+    Ok(Self::of(if scale == 0 {
+      round_integral_v(self.v(), Rnd::Floor)
+    } else {
+      if self.check_scale(scale)? {
+        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Floor), scale)
       } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Floor), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+        self.v()
+      }
+    }))
   }
 
   pub fn frac(&self) -> Self {
     let v = self.v();
-    Self::of(sub_v(v, round_integral_v(v, Rnd::Zero)), true)
+    Self::of(sub_v(v, round_integral_v(v, Rnd::Zero)))
   }
 
   pub fn is_integer(&self) -> bool {
@@ -1289,7 +1286,7 @@ impl FeelNumber {
       V::Fin(true, _, _) => V::NaN(false),
       V::Fin(false, c, e) => ln_v(c, e),
     };
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn odd(&self) -> bool {
@@ -1298,7 +1295,7 @@ impl FeelNumber {
 
   pub fn pow(&self, rhs: &FeelNumber) -> Option<Self> {
     let n = pow_v(self.v(), rhs.v());
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn round(&self, rhs: &FeelNumber) -> Self {
@@ -1309,75 +1306,63 @@ impl FeelNumber {
     // digits (`decimal(5.5, 6176)`); the value itself is already exact at that scale, so it is
     // returned unchanged instead of NaN.
     if matches!(quantized, V::NaN(_)) && self.settled_at(scale) {
-      return Self::of(self.v(), false);
+      return Self::of(self.v());
     }
-    Self::of(quantized, false)
+    Self::of(quantized)
   }
 
   pub fn round_down(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), Rnd::Zero)
+    Ok(Self::of(if scale == 0 {
+      round_integral_v(self.v(), Rnd::Zero)
+    } else {
+      if self.check_scale(scale)? {
+        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Zero), scale)
       } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Zero), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+        self.v()
+      }
+    }))
   }
 
   pub fn round_half_down(&self, scale: i32) -> Result<Self> {
     let positive = |n| round_integral_v(sub_v(n, ONE_TENTH), Rnd::HalfAway);
     let negative = |n| round_integral_v(add_v(n, ONE_TENTH), Rnd::HalfAway);
     let signed = is_signed_v(self.0);
-    Ok(Self::of(
-      if scale == 0 {
-        let v = self.v();
-        if signed { negative(v) } else { positive(v) }
+    Ok(Self::of(if scale == 0 {
+      let v = self.v();
+      if signed { negative(v) } else { positive(v) }
+    } else {
+      if self.check_scale(scale)? {
+        let scaled = scalbn_v(self.v(), scale);
+        self.unscale(if signed { negative(scaled) } else { positive(scaled) }, scale)
       } else {
-        if self.check_scale(scale)? {
-          let scaled = scalbn_v(self.v(), scale);
-          self.unscale(if signed { negative(scaled) } else { positive(scaled) }, scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+        self.v()
+      }
+    }))
   }
 
   pub fn round_half_up(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), Rnd::HalfAway)
+    Ok(Self::of(if scale == 0 {
+      round_integral_v(self.v(), Rnd::HalfAway)
+    } else {
+      if self.check_scale(scale)? {
+        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::HalfAway), scale)
       } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::HalfAway), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+        self.v()
+      }
+    }))
   }
 
   pub fn round_up(&self, scale: i32) -> Result<Self> {
     let mode = if is_signed_v(self.0) { Rnd::Floor } else { Rnd::Ceiling };
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), mode)
+    Ok(Self::of(if scale == 0 {
+      round_integral_v(self.v(), mode)
+    } else {
+      if self.check_scale(scale)? {
+        self.unscale(round_integral_v(scalbn_v(self.v(), scale), mode), scale)
       } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), mode), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+        self.v()
+      }
+    }))
   }
 
   pub fn sqrt(&self) -> Option<Self> {
@@ -1389,16 +1374,16 @@ impl FeelNumber {
       V::Fin(true, _, _) => V::NaN(false),
       V::Fin(false, c, e) => sqrt_v(c, e),
     };
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn square(&self) -> Option<Self> {
     let n = pow_v(self.v(), TWO);
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn trunc(&self) -> Self {
-    Self::of(round_integral_v(self.v(), Rnd::Zero), false)
+    Self::of(round_integral_v(self.v(), Rnd::Zero))
   }
 
   /// Parses a number like [FromStr::from_str] and also reports whether the value had
@@ -1407,7 +1392,7 @@ impl FeelNumber {
   pub fn from_str_reporting_rounding(s: &str) -> Result<(Self, bool), DsntkError> {
     let (n, inexact) = parse_v(s);
     if is_finite_v(n) {
-      Ok((Self::of(n, false), inexact))
+      Ok((Self::of(n), inexact))
     } else {
       Err(err_invalid_number_literal(s))
     }
@@ -1603,7 +1588,7 @@ impl PartialOrd<isize> for FeelNumber {
 impl Add<FeelNumber> for FeelNumber {
   type Output = Self;
   fn add(self, rhs: Self) -> Self::Output {
-    Self::of(add_v(self.v(), rhs.v()), true)
+    Self::of(add_v(self.v(), rhs.v()))
   }
 }
 
@@ -1616,7 +1601,7 @@ impl AddAssign<FeelNumber> for FeelNumber {
 impl Sub<FeelNumber> for FeelNumber {
   type Output = Self;
   fn sub(self, rhs: Self) -> Self::Output {
-    Self::of(sub_v(self.v(), rhs.v()), true)
+    Self::of(sub_v(self.v(), rhs.v()))
   }
 }
 
@@ -1629,7 +1614,7 @@ impl SubAssign<FeelNumber> for FeelNumber {
 impl Mul<FeelNumber> for FeelNumber {
   type Output = Self;
   fn mul(self, rhs: Self) -> Self::Output {
-    Self::of(mul_v(self.v(), rhs.v()), true)
+    Self::of(mul_v(self.v(), rhs.v()))
   }
 }
 
@@ -1642,7 +1627,7 @@ impl MulAssign<FeelNumber> for FeelNumber {
 impl Div<FeelNumber> for FeelNumber {
   type Output = Self;
   fn div(self, rhs: Self) -> Self::Output {
-    Self::of(div_v(self.v(), rhs.v()), true)
+    Self::of(div_v(self.v(), rhs.v()))
   }
 }
 
@@ -1655,7 +1640,7 @@ impl DivAssign<FeelNumber> for FeelNumber {
 impl Rem<FeelNumber> for FeelNumber {
   type Output = Self;
   fn rem(self, rhs: Self) -> Self::Output {
-    Self::of(self.remainder(rhs.v()), true)
+    Self::of(self.remainder(rhs.v()))
   }
 }
 
@@ -1668,7 +1653,7 @@ impl RemAssign<FeelNumber> for FeelNumber {
 impl Neg for FeelNumber {
   type Output = Self;
   fn neg(self) -> Self::Output {
-    Self::of(negate(self.v()), true)
+    Self::of(negate(self.v()))
   }
 }
 
@@ -1679,60 +1664,44 @@ impl Debug for FeelNumber {
 }
 
 impl Display for FeelNumber {
-  /// Converts [FeelNumber] to human readable string.
+  /// Writes the canonical text of the value: plain digits without an exponent, no trailing zeros
+  /// after the decimal point, and `0` for every zero, whatever the cohort (`1.50` and `1.5E+0`
+  /// are `1.5`, `decimal(1, 2)` is `1`). Width, fill, alignment and the sign flag apply; a
+  /// precision is ignored.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Infinity and NaN: FEEL has no such numbers, but never panic while formatting them
     // (a panic aborts the whole engine on wasm32).
     let (negative, c, exponent) = match self.v() {
       V::NaN(_) => return f.pad("NaN"),
       V::Inf(negative) => return f.pad(if negative { "-Infinity" } else { "Infinity" }),
-      V::Fin(negative, c, e) => (negative, c, e as isize),
+      V::Fin(negative, c, e) => (negative, c, e),
     };
-    // A zero with a huge exponent (e.g. `0 * 1e-6000` or `decimal(0, 6000)`) would otherwise be
-    // printed with thousands of zeros; print it as a plain `0` instead.
-    if c == 0 && !(-34..=0).contains(&exponent) && f.precision().is_none() {
+    if c == 0 {
       return f.pad_integral(true, "", "0");
     }
-    let sb = c.to_string();
-    let decimal_points = exponent.unsigned_abs();
-    let (mut before, mut after) = if exponent < 0 {
-      let digit_count = sb.len();
-      if digit_count <= decimal_points {
-        let before = "0".to_string();
-        let mut after = "0".repeat(decimal_points - digit_count);
-        if self.1 {
-          after.push_str(sb.trim_end_matches('0'));
-        } else {
-          after.push_str(&sb);
-        }
-        (before, after)
-      } else {
-        let before = sb[..digit_count - decimal_points].to_string();
-        let after = if self.1 {
-          sb[digit_count - decimal_points..].trim_end_matches('0').to_string()
-        } else {
-          sb[digit_count - decimal_points..].to_string()
-        };
-        (before, after)
-      }
+    let mut digits = c.to_string();
+    let text = if exponent >= 0 {
+      digits.extend(std::iter::repeat_n('0', exponent as usize));
+      digits
     } else {
-      let mut before = sb;
-      before.push_str(&"0".repeat(decimal_points));
-      let after = "".to_string();
-      (before, after)
-    };
-    if let Some(precision) = f.precision() {
-      if after.len() < precision {
-        after.push_str(&"0".repeat(precision - after.len()));
+      // the trailing zeros of the coefficient that stand after the decimal point
+      let zeros = (digits.len() - digits.trim_end_matches('0').len()).min(exponent.unsigned_abs() as usize);
+      digits.truncate(digits.len() - zeros);
+      let fraction = exponent.unsigned_abs() as usize - zeros;
+      if fraction == 0 {
+        digits
+      } else if digits.len() > fraction {
+        digits.insert(digits.len() - fraction, '.');
+        digits
       } else {
-        after = after[0..precision].to_string();
+        let mut text = String::with_capacity(fraction + 2);
+        text.push_str("0.");
+        text.extend(std::iter::repeat_n('0', fraction - digits.len()));
+        text.push_str(&digits);
+        text
       }
-    }
-    if !after.is_empty() {
-      before.push('.');
-      before.push_str(&after);
-    }
-    f.pad_integral(!negative, "", &before)
+    };
+    f.pad_integral(!negative, "", &text)
   }
 }
 
@@ -1747,7 +1716,7 @@ impl FromStr for FeelNumber {
   type Err = DsntkError;
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     let (n, _) = parse_v(s);
-    if is_finite_v(n) { Ok(Self::of(n, false)) } else { Err(err_invalid_number_literal(s)) }
+    if is_finite_v(n) { Ok(Self::of(n)) } else { Err(err_invalid_number_literal(s)) }
   }
 }
 
@@ -1756,7 +1725,7 @@ macro_rules! from_unsigned {
     $(
       impl From<$t> for FeelNumber {
         fn from(value: $t) -> Self {
-          Self::of(V::Fin(false, value as u128, 0), false)
+          Self::of(V::Fin(false, value as u128, 0))
         }
       }
     )*
@@ -1768,7 +1737,7 @@ macro_rules! from_signed {
     $(
       impl From<$t> for FeelNumber {
         fn from(value: $t) -> Self {
-          Self::of(V::Fin(value < 0, (value as i128).unsigned_abs(), 0), false)
+          Self::of(V::Fin(value < 0, (value as i128).unsigned_abs(), 0))
         }
       }
     )*

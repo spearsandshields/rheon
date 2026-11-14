@@ -48,7 +48,7 @@ fn _0009() {
 
 #[test]
 fn _0010() {
-  te_null(false, &scope!(), r#" 0.0 / "a" "#, r#"[division] incompatible types: 0.0 / "a""#);
+  te_null(false, &scope!(), r#" 0.0 / "a" "#, r#"[division] incompatible types: 0 / "a""#);
 }
 
 #[test]

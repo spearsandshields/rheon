@@ -193,7 +193,7 @@ fn _0035() {
       IntervalType::Opened,
     )),
   );
-  assert_eq!(r#"(1.0..5.0)"#, crate::tests::eval(&scope!(), &node).to_string());
+  assert_eq!(r#"(1..5)"#, crate::tests::eval(&scope!(), &node).to_string());
 }
 
 #[test]

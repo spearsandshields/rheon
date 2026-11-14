@@ -24,7 +24,7 @@ fn test_round_004() {
 
 #[test]
 fn test_round_005() {
-  eqs!("0.0", num!(0.0).round(&num!(1)));
+  eqs!("0", num!(0.0).round(&num!(1)));
 }
 
 #[test]

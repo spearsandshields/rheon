@@ -413,10 +413,40 @@ fn zero_with_huge_exponent_is_displayed_as_0() {
   assert_eq!(display("string(0.1E-6176)"), "\"0\"");
   let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","expression":"x","context":{"x":1e-999999999}}"#).unwrap());
   assert_eq!(r["display"], "0");
-  // ordinary zeros keep dsntk's formatting
-  assert_eq!(display("0.000"), "0.000");
-  assert_eq!(display("0 * 1e-10"), "0.000000000");
+  // every zero prints as 0
+  assert_eq!(display("0.000"), "0");
+  assert_eq!(display("0 * 1e-10"), "0");
   assert_eq!(display("0"), "0");
+}
+
+/// A number has one text in `display`, `feel`, `typed` and `string()`: its value in plain digits,
+/// without trailing zeros after the decimal point (DMN 1.6 §10.3.2.3.1: "many different pairs have
+/// the same value"; Table 73: `string(1.1) = "1.1"`).
+#[test]
+fn a_number_has_one_text() {
+  for (expression, text) in [
+    ("1.50", "1.5"),
+    ("1.0", "1"),
+    ("decimal(1, 2)", "1"),
+    ("decimal(0.5, 3)", "0.5"),
+    ("abs(-1.50)", "1.5"),
+    ("0.25 * 2", "0.5"),
+    ("1.10 - 1.10", "0"),
+    ("number(\"1 000 000.00\", \" \", \".\")", "1000000"),
+    ("abs(exp(1e-34))", "1"),
+    ("1.00E+2", "100"),
+  ] {
+    let r = expr(expression);
+    assert_eq!(r["display"], text, "{expression}");
+    assert_eq!(r["feel"], text, "{expression}");
+    assert_eq!(r["typed"]["simple"]["text"], text, "{expression}");
+  }
+  assert_eq!(display("[1.50, {a: 2.0}]"), "[1.5, {\"a\": 2}]");
+  assert_eq!(display("string(1.10)"), "\"1.1\"");
+  assert_eq!(display("string(1.50) = \"1.5\""), "true");
+  assert_eq!(display("string length(string(1.00))"), "1");
+  let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","expression":"x","context":{"x":1.50}}"#).unwrap());
+  assert_eq!(r["display"], "1.5");
 }
 
 /// DMN 1.6 §10.3.2.3.1: "There is no distinction between -0 and 0." A zero never prints with a

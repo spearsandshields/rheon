@@ -35,7 +35,7 @@ fn _0005() {
 #[test]
 fn _0006() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "feel-decimal-function_006_d9661e1d45", &ctx, r#"0.0"#);
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "feel-decimal-function_006_d9661e1d45", &ctx, r#"0"#);
 }
 
 #[test]

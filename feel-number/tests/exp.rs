@@ -22,8 +22,8 @@ fn n(s: &str) -> FeelNumber {
 
 // The cohort (stored exponent) of exp results follows Intel's binary128 -> decimal128
 // conversion: integers and short dyadic fractions that are exact in binary128 keep
-// the shortest form, everything else has 34 digits. The cohort is visible in FEEL,
-// e.g. string(abs(exp(log(0.5)))).
+// the shortest form, everything else has 34 digits. The cohort shows only in Debug: every
+// text of a number is the canonical text of its value.
 
 #[test]
 fn test_exp_003() {
@@ -36,7 +36,7 @@ fn test_exp_003() {
 fn test_exp_004() {
   // exp(1E-34) is 1 after rounding to 34 digits, but not in binary128 (1 + 2^-112)
   eqs!("+1000000000000000000000000000000000E-33", dbg(n("1E-34").exp().unwrap()));
-  eqs!("1.000000000000000000000000000000000", n("1E-34").exp().unwrap().abs());
+  eqs!("1", n("1E-34").exp().unwrap().abs());
   // exp(5E-35) and exp(1E-40) are exactly 1 in binary128
   eqs!("+1E+0", dbg(n("5E-35").exp().unwrap()));
   eqs!("+1E+0", dbg(n("1E-40").exp().unwrap()));

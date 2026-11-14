@@ -502,7 +502,7 @@ fn guards_infinite_operands() {
   assert_eq!("NaN", (n("0") / n("0")).to_string());
   assert_eq!("0", (n("0") * n("1E-6000")).to_string());
   assert_eq!("0", n("0E+5000").to_string());
-  assert_eq!("0.00", n("0.00").to_string());
+  assert_eq!("0", n("0.00").to_string());
 }
 
 #[test]

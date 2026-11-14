@@ -1,7 +1,4 @@
 [
-  {"family": "*", "verdict": "text", "why": "a number prints the trailing zeros of its scale: 1.50, 0.0, 1.00 for decimal(1, 2)"},
-  {"family": "string/trailing-zeros", "verdict": "value", "why": "string() keeps trailing zeros, so string(1.50) is not equal to \"1.5\" and string length(string(1.00)) is 4"},
-  {"family": "string/length", "verdict": "value", "why": "string() keeps trailing zeros, so the length of its text counts them"},
   {"family": "round-half-down/*", "verdict": "value", "why": "round half down subtracts one tenth of the last place kept and then rounds half up, so a value above the tie by less than that rounds down: round half down(2.56) is 2"},
   {"family": "round-half-down/*", "verdict": "null-for-number", "why": "the rounding functions scale the number to an integer and reject an exponent of that intermediate outside the range of decimal128, so a zero or a tiny number with a scale gives null: round half down(0, 2)"},
   {"family": "round-half-up/*", "verdict": "value", "why": "the scale is clamped when the scaled intermediate leaves the exponent range, so a scale beyond the digits of a subnormal or near the limits rounds at the wrong place: round half up(5E-6176, 6176) is 0"},

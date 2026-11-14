@@ -23,7 +23,7 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  te_string(false, &scope!(), "string({a:  1.0, b: 2.0})", "{a: 1.0, b: 2.0}");
+  te_string(false, &scope!(), "string({a:  1.0, b: 2.0})", "{a: 1, b: 2}");
 }
 
 #[test]

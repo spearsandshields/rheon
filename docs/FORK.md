@@ -1263,6 +1263,37 @@ The totals are under "Verification" below.
     (2 to 1). The oracle's exemptions for a negative zero and for `string(-0)` are deleted. Rust
     behaviour break: a `FeelNumber` zero has no sign: `"-0".parse()`, `-FeelNumber::zero()` and
     `0 * -5` give `+0` (Debug `+0E+0`), so `1 / -0` is `+Inf` with the operators of the crate.
+97. **One canonical text for every number.** DMN 1.6 §10.3.2.3.1 represents a number as a pair
+    `(p,s)` and notes that "many different pairs have the same value. For example, value(1,0) =
+    value(10,1) = value(100,2)"; Table 73 has `string(1.1) = "1.1"`. The owner's decision is
+    canonical values in every text form. It departs from the example texts of Table 40, which
+    writes some results with their scale (`decimal(1, 2)` as `1.00`, `.10 * 30.00` as `3.0000`,
+    `1.0*10**3` as `1000.0`), and keeps their values. A `FeelNumber` carried a flag beside its value: a
+    literal, a JSON number, `decimal`, `abs` and the scale functions printed the trailing zeros of
+    their cohort (`1.50`, `decimal(1, 2)` as `1.00`, `abs(exp(1e-34))` as 34 digits), the
+    arithmetic trimmed them except in a zero (`1.10 - 1.10` printed `0.0`, `0 * 1e-10`
+    `0.000000000`). The flag is gone (`FeelNumber` is the value alone, 32 bytes instead of 48),
+    and `Display` writes one text per value: plain digits without an exponent, no trailing zeros
+    after the decimal point, `0` for every zero. The cohort stays in the value, where only `Debug`
+    shows it, and no rule depends on it. `Display` honours width, fill, alignment and the sign
+    flag and ignores a precision (`{:.2}` truncated the digits instead of rounding them, and no
+    caller used it). `display`, `feel`, `typed`, `string()`, JSON output and the numbers quoted in
+    messages all go through it; CONTRACT §3 states the rule. Test first: the new cases of
+    `feel-number/tests/to_string.rs` and the contract test `a_number_has_one_text` (with the
+    zeros of `zero_with_huge_exponent_is_displayed_as_0`) failed on the parent with the padded
+    texts. Pinned texts updated: `feel-number` (`to_string`, `exp`, `pow`, `round` and the unit
+    tests), feel-evaluator (`string({a: 1.0, b: 2.0})`, a reason quoting `0.0`, the text of an
+    interval `(1.0..5.0)`), model-evaluator (TCK 0014 `rate`, 0058 `1000000.00`, 1100 `0.0`, and
+    three decision tables with `Discount: 0.10`), and the bench copies of the three TCK tests,
+    checked by grep since no gate compiles the benches. The TCK runner compares decimals by value,
+    so no TCK result changes. Identity: 78 registered differences in
+    `registered/canonical-number-text.json`, all on the number oracle's edge vectors: 75 texts
+    that lose their trailing zeros, `string(1.50) = "1.5"` (false to true) and two string lengths;
+    27 entries of `registered/no-negative-zero.json` (item 96), whose new text was a zero with
+    trailing zeros, are amended in place to `0`. The oracle's exemptions for texts with trailing
+    zeros and for the `string()` results that carried them are deleted. Rust API break:
+    `FeelNumber`'s `Display` (and so `to_string()` and `Jsonify`) prints the canonical text and
+    ignores a precision; `FeelNumber` is 32 bytes.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

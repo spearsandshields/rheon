@@ -13,7 +13,7 @@ fn eq(invocable_name: &str, input: &FeelContext, expected: &str) {
 
 #[test]
 fn _0001() {
-  eq("decision_0001", &CTX_1, r#"{Discount: 0.10, Priority: "Normal"}"#);
+  eq("decision_0001", &CTX_1, r#"{Discount: 0.1, Priority: "Normal"}"#);
 }
 
 #[test]
