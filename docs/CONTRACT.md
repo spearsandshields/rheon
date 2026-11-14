@@ -182,7 +182,7 @@ scripts/env.sh           source to set wasmtime as the cargo runner for `cargo t
 scripts/build-wasm.sh    build wasm/feel-wasm → dist/feel.wasm (+ size and interface report)
 scripts/stack-headroom.mjs  check that dist/feel.wasm evaluates constructs nested to the AST depth limit and a nested recursion in Node and Wasmtime (--report: the depths reached)
 wasm/feel-wasm         Rust core implementing §1–3
-wasm/feel-wasm/tests/corpus  no-trap.json: requests that must never trap the module (checked natively and under Wasmtime)
+wasm/feel-wasm/tests/corpus  requests that must never trap the module (checked natively and under Wasmtime): no-trap.json, single requests; edge-operands.json, expression templates over edge operands
 packages/feel-runtime    JS/TS runtime implementing §4
 apps/playground          Vite + Svelte 5 playground using feel-runtime
 package.json             npm workspaces (packages/*, apps/*); scripts: bootstrap, build:wasm, build, dev, preview, test

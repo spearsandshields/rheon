@@ -969,6 +969,37 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     range with long string endpoints) is still rendered to text when it is measured, at most
     once per enclosing level within 80 bytes of it. Basis: CONTRACT §3, the `display` rule;
     the owner rule that robustness comes first. No API change.
+84. **No combination of edge operands traps the module.**
+    `wasm/feel-wasm/tests/corpus/edge-operands.json` is a deterministic product of expression
+    templates over 38 operands at the engine's edges: numbers at the limits of the 64-bit and 32-bit
+    integers and of decimal128 (`1E+6144`, `-9.999999999999999999999999999999999E+6144`, `1E-6176`),
+    both duration kinds at the ends of their range and at one unit, dates and date and times at the
+    ends of the supported range and in a daylight saving gap and overlap, times at the ends of the
+    day, null, `""`, `[]` and `{}`. The contract test `edge_operand_products_never_trap` applies
+    each of the 15 unary templates (the value, `string`, `abs`, negation, the duration and date
+    properties, `.value`, `= itself`, `floor`, `decimal`) to every operand and `+`, `-` and `*` to
+    every ordered pair, 4,902 requests, with the checks of the no-trap corpus (commit 55) after each
+    one; with `RHEON_FULL_TESTS` set (natively only, Wasmtime passes no environment) it adds `/`,
+    `<`, `=`, `modulo`, `max` and `**`, 13,566 requests. It is the seed set of combinations for a
+    later fuzzer, where the no-trap corpus holds single requests. Against the engine before commit
+    59 the test fails natively on its first trapping request, `duration("-PT0.000000001S") + date
+    and time("-262143-01-01T00:00:00Z")` (an `internal` error, ``DateTime - TimeDelta`
+    overflowed``), and aborts the test binary under Wasmtime with that request as the last
+    `no-trap:` line; on this tree it passes in both, and the full product passes under Wasmtime too
+    (checked with the switch forced on). Run time: 0.8 s native debug, 1.0 s under Wasmtime; full
+    size 0.24 s native release, 2.3 s native debug and 2.9 s under Wasmtime. Answers are not
+    asserted, and the product is not a source of the identity check: its full size's 13,528 distinct
+    requests through 0.4.0 and this build differ in 568 answers. The 24 that are not message changes
+    are registered one by one, with both answers, in the ledger of the change that makes them: 7
+    sums, differences and products of exactly -2^63 nanoseconds, which 0.4.0 printed 1 ns off, and 3
+    of exactly -2^63 months, which trapped, are null (item 59); 5 date and times at the first
+    supported instant minus a duration, which trapped, are null (item 61); 6 dates minus one
+    nanosecond are the day before, and 3 at the first supported date are null (item 62, Table 58).
+    The other 544 are null reasons that quote `1E+6144`,
+    `-9.999999999999999999999999999999999E+6144` or `1E-6176` in scientific notation where 0.4.0
+    wrote up to 6,177 plain digits: instances of the registered message rule (item 68, CONTRACT §3),
+    not listed one by one. Basis: no input may panic the engine (CONTRACT §1: on wasm a panic aborts
+    the instance). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
