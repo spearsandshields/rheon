@@ -14,7 +14,7 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 
 | File | What it is |
 |---|---|
-| `run.sh <reference.wasm> <candidate.wasm> [source…] [option…]` | Runs `equal.mjs` with every committed source and ledger; further sources and options are passed on |
+| `run.sh <reference.wasm> <candidate.wasm> [source…] [option…]` | Runs `equal.mjs` with every committed source and ledger and the cache in `.tools/identity-cache/`; further sources and options are passed on |
 | `equal.mjs` | The comparison (Node 21 or later, no dependencies); its header lists the options |
 | `test.mjs` | The tool's own checks (`npm run test:identity`), on `IDENTITY_REFERENCE` (default `.tools/baseline/feel.wasm`) and `IDENTITY_CANDIDATE` (default `dist/feel.wasm`); a missing module fails them |
 | `baseline.json` | `tag` and `sha256` of the previous release's `feel.wasm` |
@@ -55,6 +55,38 @@ integer) is sent, keyed and compared exactly as written. This needs Node 21 or l
 5. A response that is not JSON fails the run.
 6. Exit status: 0 when every response is identical or registered, 1 on any failure, 2 on a usage or
    input error (including a malformed ledger).
+
+## The cache of reference answers
+
+The reference is a fixed module, so its answers to a file do not change until the file does.
+`--cache <dir>` keeps them, one file per source file or ledger file, and `run.sh` passes
+`--cache .tools/identity-cache` (git-ignored, under `.tools/`). The candidate is never cached.
+
+- A cache file is `<dir>/<sha256 of the reference module>/<16 hex digits of the sha256 of the
+  unit's absolute path>-<file name>.jsonl`: a header line, one line per request of the unit (the
+  sha256 of the request text sent, and the answer as the canonical text of the response without
+  the fields of rule 1, or `"trap": true`), and a trailer line with the sha256 of every byte before
+  it.
+- The cached answers are used only when the trailer's digest is right and the header equals the
+  run's: the format, the reference's sha256, the sha256 of the unit file's bytes, the kind of unit
+  (requests or ledger), `--parse-too`, the sha256 of `equal.mjs` and `scripts/feel-abi.mjs`, and
+  Node's version, architecture and `execArgv`; the request hashes must also be the unit's requests
+  in order. Anything else is a miss: the unit is evaluated and its file written again (to a
+  temporary file, then renamed). An existing file that does not match is reported as
+  `cache: <file> rejected (<reason>), evaluating`.
+- A trap depends on the host as well as on the module (stack and memory limits), so every cached
+  trap is evaluated again, on a fresh instance each. If it answers, the file is rejected and the
+  unit evaluated in full. A ledger entry with `"old": {"trap": true}` is therefore proven on every
+  run.
+- A unit with a response that is not JSON is not cached; the run fails as without a cache.
+- There is at most one file per unit path, and a new reference directory removes the directories
+  of other references, so the cache holds no more than one file for each file a run has named
+  with the current reference. It holds no engine state, and deleting it is always safe.
+- The summary line ends with `reference: <n> answers from the cache, <m> evaluated`.
+- `--verify-cache` evaluates the reference in full, compares every answer of a matching cache file
+  with the live one, reports each difference as `CACHE MISMATCH <request>` (exit status 1) and
+  writes the files again. Run it over every request set before a release.
+- CI starts from a fresh checkout and restores no cache, so its run is uncached.
 
 ## Ledger entries
 

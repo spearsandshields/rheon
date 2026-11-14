@@ -1084,6 +1084,35 @@ The totals are under "Verification" below.
     (it passes before the change too: it pins the property that the reference keeps no state
     between requests); the identity tool's checks pass; a `--record` draft of 40 registered
     requests is byte-identical to the one the tool wrote before. No API change.
+88. **The identity check caches the reference's answers.** `equal.mjs --cache <dir>` keeps the
+    answers of the reference to each unit (item 87) in
+    `<dir>/<reference sha256>/<16 hex of the unit path's sha256>-<name>.jsonl`, a header, one line
+    per request (the sha256 of the request text and the canonical answer, or a trap) and a trailer
+    with the sha256 of every byte before it. A file is used only when the digest is right, the
+    header equals the run's (format, reference, unit bytes, unit kind, `--parse-too`, the sha256 of
+    `equal.mjs` and `scripts/feel-abi.mjs`, Node's version, architecture and `execArgv`) and the
+    request hashes are the unit's in order; otherwise the unit is evaluated and the file written
+    again through a rename, and an existing file is reported as rejected with the reason. A trap
+    depends on the host, so every cached trap is evaluated again on a fresh instance, and one that
+    answers rejects the file. A unit with a response that is not JSON is not cached. A new
+    reference directory removes the directories of other references (only directories named by a
+    sha256), so there is at most one file per unit path; deleting the cache is always safe. The
+    candidate is never cached. `--verify-cache` evaluates the reference in full, fails with
+    `CACHE MISMATCH` on any cached answer that differs and rewrites the files. The summary line
+    ends with `reference: <n> answers from the cache, <m> evaluated`. `run.sh` passes `--cache
+    .tools/identity-cache`; CI restores no cache, so its run is uncached. Before the change the
+    four new tests fail with exit 2 (`unknown option --cache`). They check that no cache, a cold
+    cache and a warm cache give the same exit status, the same output apart from those counts and
+    the same `--record` draft, for identical modules, a trapping request, a trap entry, entries
+    with a wrong `old` or `new`, unregistered differences and their draft replayed; that a flipped
+    byte, a cached trap the module answers, another `--parse-too`, an edited source and a file that
+    is not a cache file are rejected and evaluated; that another reference gets its own directory
+    and removes the old one; and that a planted wrong answer with a valid digest misleads a cached
+    run until `--verify-cache` reports it, exits 1 and rewrites the file. Measured on the
+    committed sources (2,627 requests, 30 of them trapping 0.4.0): 8.4 s cold, 7.5 s warm, 8.4 s
+    with `--verify-cache`; the warm run answers 2,701 reference answers from the cache and evaluates
+    the 50 trapping ones again, which take 5.6 s, two memory exhaustions of 0.4.0 most of it. No
+    API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -10,6 +10,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -38,6 +39,9 @@ function equal(...args) {
 
 /** The summary line of a run. */
 const summary = (run) => run.out.trim().split('\n').at(-1);
+
+/** The output of a run without the counts of the reference's answers, which depend on the cache. */
+const withoutCounts = (out) => out.replace(/; reference: \d+ answers from the cache, \d+ evaluated/, '');
 
 /** Asserts a usage or input error whose message contains `message`. */
 function assertInputError(run, message) {
@@ -225,4 +229,119 @@ test('the reference answers each source on its own instance: the order of the so
   const lines = (run) => run.out.split('\n').filter((l) => /^(DIFF|NOT REPRODUCED|MALFORMED) /.test(l)).sort();
   assert.deepEqual(lines(forward), lines(backward));
   assert.equal(summary(forward), summary(backward));
+});
+
+// ------------------------------------------------------------------ the cache of reference answers
+
+/** A new, empty cache directory. */
+const cacheDir = () => path.join(dir, `cache${++fileCount}`);
+
+/** The cache files under a cache directory, with the reference directories they are in. */
+function cacheFiles(cache) {
+  const references = readdirSync(cache);
+  return { references, files: references.flatMap((r) => readdirSync(path.join(cache, r)).map((f) => path.join(cache, r, f))) };
+}
+
+/** Rewrites the lines of a cache file (header, then one line per request) with `edit`, and signs it again. */
+function resign(cacheFile, edit) {
+  const lines = readFileSync(cacheFile, 'utf8').split('\n').slice(0, -2).map((line) => JSON.parse(line));
+  const body = edit(lines).map((line) => `${JSON.stringify(line)}\n`).join('');
+  writeFileSync(cacheFile, `${body}${JSON.stringify({ sha256: createHash('sha256').update(body).digest('hex') })}\n`);
+}
+
+/**
+ * Runs equal.mjs three times, without a cache, with a cold one and with the warm one, and asserts
+ * the same exit status, the same output apart from the reference's counts and the same --record
+ * draft. Returns the three runs.
+ */
+function sameWithCache(args, { record = false } = {}) {
+  const cache = cacheDir();
+  const draft = path.join(dir, `draft${++fileCount}.json`);
+  const runs = [[], ['--cache', cache], ['--cache', cache]].map((extra) => {
+    const run = equal(...args, ...(record ? ['--record', draft, '--why', 'the basis'] : []), ...extra);
+    return { ...run, draft: record ? readFileSync(draft, 'utf8') : null };
+  });
+  for (const run of runs.slice(1)) {
+    assert.equal(run.status, runs[0].status, run.out + run.err);
+    assert.equal(withoutCounts(run.out), withoutCounts(runs[0].out));
+    assert.equal(run.draft, runs[0].draft);
+  }
+  assert.match(summary(runs[0]), /; reference: 0 answers from the cache, \d+ evaluated$/);
+  assert.match(summary(runs[1]), /; reference: 0 answers from the cache, \d+ evaluated$/);
+  return runs;
+}
+
+test('a cached run answers as an uncached one: identical modules, traps, wrong entries', () => {
+  const [, , warm] = sameWithCache([reference, reference, file(plain), '--parse-too']);
+  assert.equal(warm.status, 0);
+  assert.match(summary(warm), /; reference: 11 answers from the cache, 0 evaluated$/);
+  // a cached trap is evaluated again on every run
+  const [, , trap] = sameWithCache([reference, reference, file([trapping, plain[0]])]);
+  assert.equal(trap.status, 0);
+  assert.match(summary(trap), /1 trapping the reference.*; reference: 1 answers from the cache, 1 evaluated$/);
+  const trapEntry = { request: trapping, why: 'test', old: { trap: true }, new: { ok: false } };
+  assert.equal(sameWithCache([reference, reference, '--ledger', file([trapEntry])])[2].status, 1);
+  assert.equal(sameWithCache([reference, reference, '--ledger', file([{ expression: '1 + 1', why: 'test', old: '3', new: '2' }])])[2].status, 1);
+  assert.equal(sameWithCache([reference, reference, '--ledger', file([{ expression: '1 + 1', why: 'test', old: '2', new: '3' }])])[2].status, 1);
+});
+
+test('a cached run answers as an uncached one: differences and --record', (t) => {
+  if (needsDifference(t)) return;
+  const [, , warm] = sameWithCache([reference, candidate, differing], { record: true });
+  assert.equal(warm.status, 1);
+  assert.match(summary(warm), /; reference: [1-9]\d* answers from the cache/);
+  assert.equal(sameWithCache([reference, candidate, differing, '--ledger', recorded])[2].status, 0);
+});
+
+test('a cache file that does not match is rejected and evaluated again', () => {
+  const cache = cacheDir();
+  const source = file(plain.slice(0, 3));
+  const run = (...extra) => equal(reference, reference, source, '--cache', cache, ...extra);
+  const expectRejected = (r, reason, fromCache = 0) => {
+    assert.equal(r.status, 0, r.out + r.err);
+    assert.match(r.out, new RegExp(`^cache: \\S+ rejected \\(${reason}\\), evaluating$`, 'm'));
+    assert.match(summary(r), new RegExp(`; reference: ${fromCache} answers from the cache`));
+  };
+  assert.equal(run().status, 0);
+  const [cacheFile] = cacheFiles(cache).files;
+  // a flipped byte
+  writeFileSync(cacheFile, readFileSync(cacheFile, 'utf8').replace('"display\\":\\"2\\"', '"display\\":\\"3\\"'));
+  expectRejected(run(), 'the digest does not match');
+  assert.match(summary(run()), /; reference: 3 answers from the cache, 0 evaluated$/);
+  // a cached trap that the module answers
+  resign(cacheFile, ([header, first, ...rest]) => [header, { request: first.request, trap: true }, ...rest]);
+  expectRejected(run(), 'a cached trap is answered now');
+  // another --parse-too
+  expectRejected(run('--parse-too'), 'parseToo differs');
+  // an edited source
+  writeFileSync(source, JSON.stringify(plain.slice(0, 4)));
+  expectRejected(run(), 'unit differs');
+  // not a cache file
+  writeFileSync(cacheFile, 'x\n');
+  expectRejected(run(), 'not a cache file');
+  // another reference: its own directory, and the directory of the old one is removed
+  assert.equal(equal(candidate, candidate, source, '--cache', cache).status, 0);
+  const { references } = cacheFiles(cache);
+  assert.deepEqual(references, [createHash('sha256').update(readFileSync(candidate)).digest('hex')]);
+});
+
+test('--verify-cache finds a cached answer that differs from the live one', () => {
+  const cache = cacheDir();
+  const source = file(plain.slice(0, 3));
+  assert.equal(equal(reference, reference, source, '--cache', cache).status, 0);
+  const [cacheFile] = cacheFiles(cache).files;
+  // a wrong answer with a valid digest is used as it is...
+  resign(cacheFile, ([header, first, ...rest]) => [header, { ...first, answer: first.answer.replaceAll('"2', '"3') }, ...rest]);
+  const misled = equal(reference, reference, source, '--cache', cache);
+  assert.equal(misled.status, 1);
+  assert.match(misled.out, /^DIFF /m);
+  // ...until --verify-cache evaluates it, fails and rewrites the file
+  const verified = equal(reference, reference, source, '--cache', cache, '--verify-cache');
+  assert.equal(verified.status, 1, verified.out + verified.err);
+  assert.match(verified.out, /^CACHE MISMATCH /m);
+  assert.match(summary(verified), /; reference: 0 answers from the cache, 3 evaluated, 1 cache mismatches$/);
+  const again = equal(reference, reference, source, '--cache', cache, '--verify-cache');
+  assert.equal(again.status, 0, again.out + again.err);
+  assert.match(summary(again), /, 0 cache mismatches$/);
+  assertInputError(equal(reference, reference, source, '--verify-cache'), '--verify-cache needs --cache');
 });

@@ -44,7 +44,9 @@ jobs:
       - run: npm run bootstrap # wasm target + wasmtime into .tools/ (sha256-checked)
       - run: npm run build:wasm # dist/feel.wasm + interface check against CONTRACT §1
       # every committed request answers exactly as in the previous release (tools/identity/baseline.json,
-      # sha256-checked), except the differences registered in tools/identity/registered/
+      # sha256-checked), except the differences registered in tools/identity/registered/. run.sh caches
+      # the release's answers in .tools/identity-cache/, which no step restores: this run evaluates
+      # them in full on every push.
       - run: bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm
         env:
           GH_TOKEN: ${{ github.token }}

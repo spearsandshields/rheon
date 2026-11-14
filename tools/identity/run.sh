@@ -6,7 +6,9 @@
 #   tools/identity/run.sh <reference.wasm> <candidate.wasm> [source…] [equal.mjs option…]
 #
 # Further sources (request files or directories) and options such as --record are passed on to
-# equal.mjs. Exit status as equal.mjs: 0 identical or registered, 1 a failure, 2 a usage error.
+# equal.mjs. The reference's answers are cached in .tools/identity-cache/ (git-ignored; deleting it is
+# always safe), and --verify-cache checks them against a full evaluation. Exit status as equal.mjs:
+# 0 identical or registered, 1 a failure, 2 a usage error.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
@@ -17,4 +19,4 @@ fi
 reference=$1 candidate=$2
 shift 2
 sources=("$here/requests" "$root/wasm/feel-wasm/tests/corpus/no-trap.json")
-node "$here/equal.mjs" "$reference" "$candidate" --parse-too "${sources[@]}" --ledger "$here/registered" "$@"
+node "$here/equal.mjs" "$reference" "$candidate" --parse-too "${sources[@]}" --ledger "$here/registered" --cache "$root/.tools/identity-cache" "$@"

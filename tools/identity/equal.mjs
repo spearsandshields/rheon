@@ -2,7 +2,7 @@
 // Full-response identity of two feel.wasm modules, with a ledger of registered differences.
 //
 //   node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]…
-//                  [--parse-too] [--record <out.json> --why <basis>]
+//                  [--parse-too] [--record <out.json> --why <basis>] [--cache <dir> [--verify-cache]]
 //
 // A source is a JSON file holding one request or an array of requests, or a directory whose *.json
 // files are such sources. Every request goes through both modules (raw ABI, node:wasi; a fresh
@@ -22,20 +22,28 @@
 // --record writes the unregistered differences of the run to <out.json> as ledger entries in the
 // full-response form, each with the given `why`, as a draft to check against the spec.
 //
+// --cache keeps the reference's answers to each source file and ledger file in <dir> and reuses
+// them while the module, the file, the options and the host are the same (README.md, "The cache
+// of reference answers"). A cached trap is evaluated again on every run. --verify-cache evaluates
+// the reference in full, fails on any cached answer that differs from the live one and rewrites
+// the cache.
+//
 // Exit status: 0 when every response is identical or registered, 1 on a difference, a ledger entry
-// that does not reproduce or a malformed response, 2 on a usage or input error.
-import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
+// that does not reproduce, a malformed response or a cache mismatch, 2 on a usage or input error.
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { MalformedResponse, session } from '../../scripts/feel-abi.mjs';
 
 class InputError extends Error {}
 
 function usage(message) {
-  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--parse-too] [--record <out.json> --why <basis>]`);
+  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--parse-too] [--record <out.json> --why <basis>] [--cache <dir> [--verify-cache]]`);
 }
 
 function parseArgs(argv) {
-  const options = { positional: [], ledgers: [], parseToo: false, record: null, why: null };
+  const options = { positional: [], ledgers: [], parseToo: false, record: null, why: null, cache: null, verifyCache: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => (i + 1 < argv.length ? argv[++i] : usage(`${arg} needs a value`));
@@ -43,12 +51,15 @@ function parseArgs(argv) {
     else if (arg === '--parse-too') options.parseToo = true;
     else if (arg === '--record') options.record = value();
     else if (arg === '--why') options.why = value();
+    else if (arg === '--cache') options.cache = value();
+    else if (arg === '--verify-cache') options.verifyCache = true;
     else if (arg.startsWith('--')) usage(`unknown option ${arg}`);
     else options.positional.push(arg);
   }
   if (options.positional.length < 2) usage('the reference and the candidate module are required');
   if ((options.record === null) !== (options.why === null)) usage('--record and --why go together');
   if (options.why !== null && options.why.trim() === '') usage('--why must state the basis');
+  if (options.verifyCache && options.cache === null) usage('--verify-cache needs --cache');
   return options;
 }
 
@@ -139,11 +150,18 @@ async function jsonFiles(p) {
   return (await readdir(p)).filter((f) => f.endsWith('.json')).sort().map((f) => path.join(p, f));
 }
 
-/** The value of a JSON file and its text without the surrounding whitespace. */
+const sha256 = (...parts) => {
+  const hash = createHash('sha256');
+  for (const part of parts) hash.update(part);
+  return hash.digest('hex');
+};
+
+/** The value of a JSON file, its text without the surrounding whitespace and the sha256 of its bytes. */
 async function readJson(file) {
   try {
-    const text = (await readFile(file, 'utf8')).trim();
-    return { content: parseJson(text), text };
+    const bytes = await readFile(file);
+    const text = bytes.toString('utf8').trim();
+    return { content: parseJson(text), text, sha256: sha256(bytes) };
   } catch (e) {
     throw new InputError(`${file}: ${e.message}`);
   }
@@ -154,10 +172,10 @@ async function loadSources(paths) {
   const units = [];
   for (const p of paths) {
     for (const file of await jsonFiles(p)) {
-      const { content, text } = await readJson(file);
+      const { content, text, sha256 } = await readJson(file);
       const label = path.basename(file, '.json');
       const requests = Array.isArray(content) ? itemTexts(text, 0).map((item, i) => ({ label: `${label}#${i}`, request: content[i], text: item })) : [{ label, request: content, text }];
-      units.push({ file, requests });
+      units.push({ file, sha256, mode: 'requests', requests });
     }
   }
   return units;
@@ -178,11 +196,11 @@ async function loadLedger(paths) {
   const units = [];
   for (const p of paths) {
     for (const file of await jsonFiles(p)) {
-      const { content, text } = await readJson(file);
+      const { content, text, sha256 } = await readJson(file);
       if (!Array.isArray(content)) throw new InputError(`${file}: a ledger is a JSON array of entries`);
       const entryTexts = itemTexts(text, 0);
       const requests = [];
-      units.push({ file, requests });
+      units.push({ file, sha256, mode: 'ledger', requests });
       content.forEach((entry, i) => {
         const where = `${file} entry #${i}`;
         try {
@@ -214,11 +232,12 @@ async function loadLedger(paths) {
   return { entries, units };
 }
 
-/** A compiled module: a function that opens a session on a fresh instance. */
+/** A compiled module: the sha256 of its file, and `open`, which opens a session on a fresh instance. */
 async function load(file) {
   try {
-    const module = await WebAssembly.compile(await readFile(file));
-    return () => session(module);
+    const bytes = await readFile(file);
+    const module = await WebAssembly.compile(bytes);
+    return { sha256: sha256(bytes), open: () => session(module) };
   } catch (e) {
     throw new InputError(`${file}: ${e.message}`);
   }
@@ -277,28 +296,156 @@ const clip = (s) => (s.length > 400 ? `${s.slice(0, 400)}…` : s);
 const short = (value) => clip(value instanceof Answer ? value.text : typeof value === 'string' ? JSON.stringify(value) : canonical(value));
 const labelOf = (label, request) => `${label} ${JSON.stringify(request).slice(0, 90)}`;
 
+/** The answers of a fresh instance to the requests of a unit, in order; a response that is not JSON is its MalformedResponse. */
+async function evaluateUnit(reference, unit) {
+  const answer = await reference.open();
+  const outcomes = [];
+  for (const item of unit.requests) {
+    try {
+      outcomes.push(await answerOf(answer, item));
+    } catch (e) {
+      if (!(e instanceof MalformedResponse)) throw e;
+      outcomes.push(e);
+    }
+  }
+  return outcomes;
+}
+
+const toolFiles = [fileURLToPath(import.meta.url), fileURLToPath(new URL('../../scripts/feel-abi.mjs', import.meta.url))];
+const isReferenceDirectory = (name) => /^[0-9a-f]{64}$/.test(name);
+
+/**
+ * The reference's answers to the units of a run, one file per unit:
+ * <dir>/<reference sha256>/<16 hex of the unit path's sha256>-<unit file name>.jsonl, a header line
+ * (what the answers depend on), one line per request (the sha256 of the request text and the
+ * answer, or a trap) and a trailer line with the sha256 of every byte before it.
+ */
+class Cache {
+  static async open(dir, reference, parseToo) {
+    const root = path.resolve(dir);
+    const own = path.join(root, reference);
+    let created = false;
+    try {
+      await stat(own);
+    } catch {
+      created = true;
+    }
+    await mkdir(own, { recursive: true });
+    // the reference changed: the answers of the others are of no use
+    if (created) for (const name of (await readdir(root)).filter(isReferenceDirectory)) if (name !== reference) await rm(path.join(root, name), { recursive: true, force: true });
+    const tool = sha256(...(await Promise.all(toolFiles.map((f) => readFile(f)))));
+    return new Cache(own, { reference, parseToo, tool, node: process.version, arch: process.arch, execArgv: process.execArgv });
+  }
+
+  constructor(dir, run) {
+    this.dir = dir;
+    this.run = run;
+  }
+
+  file(unit) {
+    const absolute = path.resolve(unit.file);
+    return path.join(this.dir, `${sha256(absolute).slice(0, 16)}-${path.basename(absolute)}.jsonl`);
+  }
+
+  header(unit) {
+    const { reference, parseToo, tool, node, arch, execArgv } = this.run;
+    return { format: 1, reference, unit: unit.sha256, mode: unit.mode, parseToo, tool, node, arch, execArgv, count: unit.requests.length };
+  }
+
+  /** The cached answers of a unit: `{ outcomes }`, `{ rejected: reason }`, or `{}` when there is no file. */
+  async read(unit) {
+    let bytes;
+    try {
+      bytes = await readFile(this.file(unit));
+    } catch {
+      return {};
+    }
+    const trailerAt = bytes.lastIndexOf(10, bytes.length - 2) + 1;
+    let lines, trailer;
+    try {
+      trailer = JSON.parse(bytes.subarray(trailerAt).toString('utf8'));
+      lines = bytes.subarray(0, trailerAt).toString('utf8').split('\n').slice(0, -1).map((line) => JSON.parse(line));
+    } catch {
+      return { rejected: 'not a cache file' };
+    }
+    if (!isObject(trailer) || trailer.sha256 !== sha256(bytes.subarray(0, trailerAt))) return { rejected: 'the digest does not match' };
+    const [header, ...answers] = lines;
+    const expected = this.header(unit);
+    const changed = Object.keys(expected).find((k) => !isObject(header) || canonical(header[k]) !== canonical(expected[k]));
+    if (changed !== undefined) return { rejected: `${changed} differs` };
+    const valid = (line) => isObject(line) && (line.trap === true ? Object.keys(line).length === 2 : typeof line.answer === 'string');
+    if (!answers.every(valid)) return { rejected: 'not a cache file' };
+    if (answers.length !== unit.requests.length || answers.some((line, i) => line.request !== sha256(unit.requests[i].text))) return { rejected: 'the request list differs' };
+    return { outcomes: answers.map((line) => new Answer(line.trap === true ? TRAP : line.answer)) };
+  }
+
+  /** Writes the answers of a unit: a temporary file in the same directory, then a rename. */
+  async write(unit, outcomes) {
+    const lines = [this.header(unit), ...outcomes.map((answer, i) => ({ request: sha256(unit.requests[i].text), ...(answer.text === TRAP ? { trap: true } : { answer: answer.text }) }))];
+    const body = lines.map((line) => `${JSON.stringify(line)}\n`).join('');
+    const file = this.file(unit);
+    const temporary = `${file}.${process.pid}.tmp`;
+    await writeFile(temporary, `${body}${JSON.stringify({ sha256: sha256(body) })}\n`);
+    await rename(temporary, file);
+  }
+}
+
 /**
  * The reference's answers by request key. Each unit (a source file or a ledger file) is answered in
  * order on a fresh instance, so its answers depend on the module and the unit alone; a request's
  * answer is the one of the first unit that lists it. A response that is not JSON is kept as its
- * MalformedResponse.
+ * MalformedResponse, and the unit is then not cached.
+ *
+ * With a cache, a unit's cached answers are used when the file matches; each cached trap is then
+ * evaluated again on a fresh instance, and a cached trap that answers makes the file stale. With
+ * `verify`, every unit is evaluated and its cached answers are compared with the live ones.
  */
-async function referenceAnswers(reference, units) {
+async function referenceAnswers(reference, units, cache, verify, log) {
   const answers = new Map();
+  const counts = { cached: 0, evaluated: 0 };
+  const mismatches = [];
   for (const unit of units) {
-    const answer = await reference();
-    for (const item of unit.requests) {
-      let outcome;
-      try {
-        outcome = await answerOf(answer, item);
-      } catch (e) {
-        if (!(e instanceof MalformedResponse)) throw e;
-        outcome = e;
+    const cached = cache ? await cache.read(unit) : {};
+    let outcomes = cached.outcomes;
+    if (outcomes && !verify) {
+      for (const [i, answer] of outcomes.entries()) {
+        if (answer.text !== TRAP) continue;
+        counts.evaluated++;
+        let live;
+        try {
+          live = await answerOf(await reference.open(), unit.requests[i]);
+        } catch (e) {
+          if (!(e instanceof MalformedResponse)) throw e;
+          live = e;
+        }
+        if (live instanceof MalformedResponse || live.text !== TRAP) {
+          cached.rejected = 'a cached trap is answered now';
+          outcomes = undefined;
+          break;
+        }
       }
-      if (!answers.has(item.key)) answers.set(item.key, outcome);
+      if (outcomes) counts.cached += outcomes.filter((answer) => answer.text !== TRAP).length;
     }
+    if (cached.rejected) log(`cache: ${cache.file(unit)} rejected (${cached.rejected}), evaluating`);
+    if (!outcomes || verify) {
+      const live = await evaluateUnit(reference, unit);
+      counts.evaluated += live.length;
+      if (outcomes) {
+        for (const [i, answer] of outcomes.entries()) {
+          if (live[i] instanceof MalformedResponse || live[i].text !== answer.text) {
+            const { label, request } = unit.requests[i];
+            mismatches.push(`CACHE MISMATCH ${labelOf(label, request)}\n  cached: ${short(answer)}\n  live  : ${live[i] instanceof MalformedResponse ? 'not JSON' : short(live[i])}`);
+          }
+        }
+      }
+      outcomes = live;
+      if (cache && !outcomes.some((outcome) => outcome instanceof MalformedResponse)) await cache.write(unit, outcomes);
+    }
+    unit.requests.forEach((item, i) => {
+      if (!answers.has(item.key)) answers.set(item.key, outcomes[i]);
+    });
   }
-  return answers;
+  return { answers, counts, mismatches };
 }
 
 async function main() {
@@ -333,13 +480,14 @@ async function main() {
   const fromSources = work.size;
   for (const [key, entry] of ledger) if (!work.has(key)) work.set(key, { label: entry.where, request: entry.request, text: entry.text, key });
   // What the reference answers: each source unit with its parse twins, then each ledger unit.
-  const units = [...sourceUnits.map((unit, i) => ({ file: unit.file, requests: [...unit.requests, ...twins[i]].filter(({ request }) => !usesClock(request)) })), ...ledgerUnits];
+  const units = [...sourceUnits.map((unit, i) => ({ ...unit, requests: [...unit.requests, ...twins[i]].filter(({ request }) => !usesClock(request)) })), ...ledgerUnits];
 
   const reference = await load(refPath);
   const candidate = await load(candPath);
-  const refAnswers = await referenceAnswers(reference, units);
-  const cand = await candidate();
-  const failures = [];
+  const cache = options.cache === null ? null : await Cache.open(options.cache, reference.sha256, options.parseToo);
+  const { answers: refAnswers, counts, mismatches } = await referenceAnswers(reference, units, cache, options.verifyCache, console.log);
+  const cand = await candidate.open();
+  const failures = [...mismatches];
   const recorded = [];
   let reproduced = 0;
   let trapped = 0;
@@ -386,7 +534,8 @@ async function main() {
   console.log(
     `${work.size} requests (${fromSources} from sources, ${excluded} left out for now()/today(), ${ledger.size} registered, ${trapped} trapping the reference): ` +
       `${reproduced} registered differences reproduced, ${count('DIFF')} unregistered differences, ` +
-      `${count('NOT REPRODUCED')} registered entries not reproduced, ${count('MALFORMED')} malformed responses`,
+      `${count('NOT REPRODUCED')} registered entries not reproduced, ${count('MALFORMED')} malformed responses; ` +
+      `reference: ${counts.cached} answers from the cache, ${counts.evaluated} evaluated${options.verifyCache ? `, ${count('CACHE MISMATCH')} cache mismatches` : ''}`,
   );
   return failures.length ? 1 : 0;
 }
