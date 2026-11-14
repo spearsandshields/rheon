@@ -101,6 +101,7 @@ Rules:
 | 53 | `6dcbbba` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug |
 | 54 | `ff98977` | feel: strings share their text (`FeelString`) | fork |
 | 55 | | feel-wasm: test that no corpus request traps the module | fork |
+| 56 | | tools: identity check of full responses against the previous release | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -428,6 +429,26 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     builds use much bigger stack frames than the release module and a native stack overflow
     aborts the test binary instead of failing one test. Basis: no input may panic the engine
     (CONTRACT §1: on wasm a panic aborts the instance). No API change.
+
+56. **Identity check against the previous release.** `tools/identity/` holds the check that every
+    full response of a candidate `feel.wasm` equals the previous release's, except the differences
+    registered with their basis. `run.sh <reference.wasm> <candidate.wasm>` sends every committed
+    request source (so far the no-trap corpus of commit 55, each `evaluate` request also as
+    `parse`) through both modules, each request byte for byte as written and every number read
+    losslessly from its source text, and compares the whole responses, without `elapsedMicros`,
+    `engineCommit` and the `version` of `info`; a trap is the response `{"trap": true}`. The
+    ledger `registered/<change>.json` lists, per change that alters answers, each request with its
+    `why` and the `old` and `new` answer, as the result text or the whole response. A difference
+    that is not registered fails the run, and so does a registered entry that does not reproduce
+    on both sides, a request registered twice, or a malformed ledger, so the ledger cannot drift
+    from the code. `--record` drafts the entries of a change from a run. `baseline.json` names the
+    release (`v0.4.0`) and the sha256 of its `feel.wasm` asset, and `fetch-baseline.sh` downloads
+    that asset and fails closed on a different sum. Checked on 0.4.0: the module against itself
+    exits 0; a registered entry with a wrong `new`, and one that does not differ, exit 1; 0.3.0
+    against 0.4.0 exits 1 with its differences listed, and 0 once they are recorded and passed as a
+    ledger; a malformed ledger, a duplicate registration, a mixed or invalid `old`/`new` and a
+    request that calls `now()` exit 2. Basis: answers stay identical to the previous release except
+    the changes registered with both answers. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

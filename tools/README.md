@@ -1,4 +1,10 @@
-# Differential test tools for the number backends
+# Tools
+
+- `identity/`: the identity check of full responses of `feel.wasm` against the previous release,
+  with the ledger of registered differences (see `identity/README.md`).
+- `difftest/` and `evaluator-corpus/`: the differential test tools for the number backends (below).
+
+## Differential test tools for the number backends
 
 Two standalone Cargo projects (each has its own `[workspace]`, so they are not members of the
 dsntk workspace) that compare the `intel` (dfp-number-sys, Intel BID128) and `dashu`
@@ -12,7 +18,7 @@ signature bugs on some targets). `fetch-dfp-number-sys.sh` downloads 0.2.14 from
 path; the run scripts call it unless `DFP_NUMBER_SYS` names another copy, and inject the crate
 with `--config patch.crates-io.dfp-number-sys.path=...`. The oracles need `python3` with `mpmath`.
 
-## `difftest/`: op-by-op fuzz of `FeelNumber`
+### `difftest/`: op-by-op fuzz of `FeelNumber`
 
 `crates/fn-intel` and `crates/fn-dashu` compile `feel-number/src/lib.rs` twice (feature `intel`
 and feature `dashu`) so that one binary holds both backends. For every operation of the
@@ -52,7 +58,7 @@ functions; chains are judged at their first divergent step. A healthy run has no
   integers or short dyadic fractions within a binary128 rounding error of the threshold
   (about 1.5e-5 of exp/ln evaluations).
 
-## `evaluator-corpus/`: FEEL expressions through the evaluator
+### `evaluator-corpus/`: FEEL expressions through the evaluator
 
 `feel-eval` reads JSON lines `{"src","ctx","expr"}`, evaluates each expression with
 `rheon-feel-evaluator` built with the selected backend, and writes `{"display","debug","ns"}`.

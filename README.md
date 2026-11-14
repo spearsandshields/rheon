@@ -79,7 +79,7 @@ The edge-case comparison with other FEEL engines is in
 | `apps/playground` | `@rheon/playground`, the web app |
 | `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to take upstream fixes), `BACKLOG.md`, `ENGINE-COMPARISON.md` |
 | `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `feel-abi.mjs`, `smoke.mjs`, `stack-headroom.mjs`, `third-party-notices.mjs` |
-| `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
+| `tools/` | The identity check of full responses against the previous release (`tools/identity/`), and the dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
 | `Cargo.toml` | One workspace for all of the above; the `wasm` build profile |
 | `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, any WASI runtime) |
 
@@ -122,6 +122,7 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
 | `npm run stack` | `scripts/stack-headroom.mjs`: five constructs nested to the AST depth limit must evaluate on Node's main thread, in a 4 MiB Node worker and in Wasmtime with a 4 MiB wasm stack, and a recursion of 190 calls with a body nested 60 levels in the worker and in Wasmtime; `npm run stack -- --report` prints the depths each host reaches |
+| `bash tools/identity/run.sh <reference.wasm> dist/feel.wasm` | Every committed request through the previous release (`tools/identity/fetch-baseline.sh` puts it in `.tools/baseline/`) and the build; the full responses must be identical except the differences registered in `tools/identity/registered/` (see `tools/identity/README.md`) |
 | `scripts/publish-crates.sh` | Publishes the `rheon-*` crates that crates.io lacks at the workspace version, waiting out the new-crate rate limit (see `docs/FORK.md`, "Publishing") |
 | `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); see `.github/workflows/ci.yml` |
 | `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases). `RHEON_PARSER_CORPUS=<absolute path of tools/evaluator-corpus/corpora>` with `-- --include-ignored` adds the parser's corpus test |
