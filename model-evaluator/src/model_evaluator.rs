@@ -60,7 +60,10 @@ impl ModelEvaluator {
   ///
   /// The models are built together, so a reference may cross models with one namespace. Item
   /// definitions that refer to themselves, directly or through others, are an error that names
-  /// the cycle (`<ItemDefinitionError> item definitions form a cycle: tA -> tB -> tA`).
+  /// the cycle (`<ItemDefinitionError> item definitions form a cycle: tA -> tB -> tA`), and so is
+  /// an item definition whose type has more than 100,000 nodes or nests more than 256 levels deep
+  /// (`item definition 'tA' expands to more than 100000 type nodes`, `item definition 'tA' nests
+  /// types more than 256 levels deep`).
   pub fn new(definitions: &[Definitions]) -> Result<Arc<Self>> {
     let mut model_builder = ModelBuilder::default();
     definitions.iter().for_each(|definitions| model_builder.add_model(definitions));

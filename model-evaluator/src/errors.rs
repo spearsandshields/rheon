@@ -43,3 +43,13 @@ struct ItemDefinitionError(String);
 pub fn err_item_definition_cycle(cycle: impl Display) -> DsntkError {
   ItemDefinitionError(compose(format_args!("item definitions form a cycle: {cycle}"))).into()
 }
+
+/// Raised when the type of an item definition has more nodes than a type may have.
+pub fn err_item_definition_too_large(name: &str, max_nodes: u64) -> DsntkError {
+  ItemDefinitionError(compose(format_args!("item definition '{}' expands to more than {max_nodes} type nodes", arg(name)))).into()
+}
+
+/// Raised when the type of an item definition nests deeper than a type may nest.
+pub fn err_item_definition_too_deep(name: &str, max_depth: u64) -> DsntkError {
+  ItemDefinitionError(compose(format_args!("item definition '{}' nests types more than {max_depth} levels deep", arg(name)))).into()
+}

@@ -904,6 +904,35 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     longer rejects item definition cycles, the `<ModelValidatorError>` kind is gone and the
     `petgraph` dependency is removed; (rheon-model-evaluator) `ModelEvaluator::new` returns the
     new `<ItemDefinitionError>` for a cycle.
+81. **An item definition type beyond the size or depth bound is a build error.** The type
+    evaluator builds a definition's type as a tree and expands a referenced definition at each
+    use, so 30 definitions that each use the next one twice built a type of 2^31 nodes (the
+    process ran out of memory) and a chain of 100,000 definitions, each a context of the next,
+    overflowed the stack while it was built. The graph check of item 80 now also computes, in
+    the order its search finishes the definitions and without building any type, the number of
+    nodes and the depth of each definition's type, by the rules the type evaluator builds by: a
+    built-in type is one node; a context is one node and its entries, a list one node and its
+    item type, a function one node, its parameter types and its result type; a referenced
+    definition counts its whole type at each use; a reference to no definition counts one node.
+    Depth: a built-in type is 1, a context, list or function one more than its deepest part. A
+    type of more than 100,000 nodes is `<ItemDefinitionError> item definition 't16' expands to more
+    than 100000 type nodes`, one nested more than 256 levels deep `item definition 't1' nests
+    types more than 256 levels deep`, naming the first definition finished that exceeds a bound.
+    Tests check that the counts are those of the built types, and that a type of exactly 100,000
+    nodes and one exactly 256 levels deep build, and that an input of each is checked, evaluated
+    and tested with `instance of` on the default 2 MiB thread of the unoptimized test build (the
+    deep one overflows that thread from about 600 levels on, aarch64, rustc 1.95.0). The largest
+    type of the repository and the TCK models has 51 nodes and the deepest 6 levels. Old and new
+    (native only): 17 levels of doubling (a type of 131,071 nodes) built and now give the node
+    error for `t16`, and 30 levels exhausted memory and now give it at once; a chain of 257
+    definitions built and now gives the depth error for `t1`; a chain of 100,000 aborted the
+    process and now gives it for `t99744`. What remains: the bounds hold per definition, so a type
+    is still expanded at each use and the global type context, cloned for each decision
+    evaluation, grows with the models times the node bound; sharing named types is later work.
+    Basis: the owner limits for item definition types (100,000 nodes, 256 levels), each with its
+    stack proof; DMN 1.6 defines no type size limit, so the bounds are implementation limits,
+    reported as build errors. API break (rheon-model-evaluator): `ModelEvaluator::new` returns
+    `<ItemDefinitionError>` for a type over 100,000 nodes or 256 levels.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
