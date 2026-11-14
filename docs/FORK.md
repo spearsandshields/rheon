@@ -1113,6 +1113,26 @@ The totals are under "Verification" below.
     with `--verify-cache`; the warm run answers 2,701 reference answers from the cache and evaluates
     the 50 trapping ones again, which take 5.6 s, two memory exhaustions of 0.4.0 most of it. No
     API change.
+89. **Finding the commit behind an identity difference.** `tools/identity/bisect.sh
+    <reference.wasm> <entries.json>` is the step of `git bisect run`: it builds `dist/feel.wasm` of
+    the checked-out commit and runs `equal.mjs` with the entries (a `--record` draft, or a part of
+    it) as the only ledger and no source, with the reference's answers cached. Every entry
+    reproduced is bad (exit 1), any other outcome good (exit 0); a failed build or an input error
+    of `equal.mjs` skips the commit (125), and a usage error ends the bisect (128). It runs the
+    `equal.mjs` next to it and builds the work tree it runs in, so a copy kept outside the tree
+    bisects commits older than the script; a third argument checks a given module without a
+    build. Before the script exists the new test fails (bash exits 127); it checks that entries
+    recorded from the reference against the candidate are bad with the candidate, good with the
+    reference, skipped with a module that cannot be loaded, and that a usage error exits 128.
+    `tools/identity/README.md` gains "While developing": the committed sources after every build,
+    the larger sets once per group of changes, `--record` then bisect on a failure,
+    `--verify-cache` before a release, with the measured times (against 0.4.0: committed sources
+    8.4 s uncached and 7.5 s cached; with the sets kept outside the repository, 187,677 requests,
+    7.0 min uncached, 6.5 min cached and 7.1 min verifying; 0.4.0's trapping requests, evaluated
+    again on every run, take most of the reference's time). Checked with a real bisect between
+    0.4.0 (good) and the tree before commit 85 (bad), 31 commits, with the entries of
+    `registered/sort-own-order.json` and a copy of the script outside the tree: five steps, each a
+    wasm build, ended at `c6a7a69` (item 64), the change that registered them. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

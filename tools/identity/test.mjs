@@ -345,3 +345,20 @@ test('--verify-cache finds a cached answer that differs from the live one', () =
   assert.match(summary(again), /, 0 cache mismatches$/);
   assertInputError(equal(reference, reference, source, '--verify-cache'), '--verify-cache needs --cache');
 });
+
+// ------------------------------------------------------------------ bisect.sh
+
+test('bisect.sh tells a module that makes the recorded changes from one that does not', (t) => {
+  if (needsDifference(t)) return;
+  const cache = cacheDir();
+  const bisect = (...args) => spawnSync('bash', [path.join(here, 'bisect.sh'), ...args], { encoding: 'utf8', env: { ...process.env, IDENTITY_CACHE: cache } });
+  const bad = bisect(reference, recorded, candidate);
+  assert.equal(bad.status, 1, bad.stdout + bad.stderr);
+  assert.match(bad.stdout, /^bisect: bad, every entry reproduces$/m);
+  const good = bisect(reference, recorded, reference);
+  assert.equal(good.status, 0, good.stdout + good.stderr);
+  assert.match(good.stdout, /^bisect: good, not every entry reproduces$/m);
+  // a module that cannot be loaded is skipped, a usage error ends the bisect
+  assert.equal(bisect(reference, recorded, path.join(dir, 'missing.wasm')).status, 125);
+  assert.equal(bisect(reference).status, 128);
+});

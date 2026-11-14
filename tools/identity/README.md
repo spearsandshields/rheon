@@ -17,6 +17,7 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 | `run.sh <reference.wasm> <candidate.wasm> [source…] [option…]` | Runs `equal.mjs` with every committed source and ledger and the cache in `.tools/identity-cache/`; further sources and options are passed on |
 | `equal.mjs` | The comparison (Node 21 or later, no dependencies); its header lists the options |
 | `test.mjs` | The tool's own checks (`npm run test:identity`), on `IDENTITY_REFERENCE` (default `.tools/baseline/feel.wasm`) and `IDENTITY_CANDIDATE` (default `dist/feel.wasm`); a missing module fails them |
+| `bisect.sh <reference.wasm> <entries.json> [candidate.wasm]` | The step of `git bisect run` that finds the commit behind recorded differences (see "While developing") |
 | `baseline.json` | `tag` and `sha256` of the previous release's `feel.wasm` |
 | `fetch-baseline.sh` | Downloads that asset with the GitHub CLI into `.tools/baseline/` and verifies the sum; fails closed. A file already there with the right sum is kept |
 | `requests/*.json` | Curated request sets. `temporal.json`: fractional seconds of 1 to 9 digits and beyond in every literal form, exact constructor paths and carries, the range edges and year forms, daylight saving gaps and overlaps, zones and offsets. They hold no expected answers: the previous release is the oracle |
@@ -37,6 +38,31 @@ JSON is read losslessly: a number keeps its source text in requests, responses a
 entries, so a number beyond the range or precision of a double (`1.5e-6176`, a 1,000-digit
 integer) is sent, keyed and compared exactly as written. This needs Node 21 or later
 (`JSON.rawJSON` and the source text of a parsed number); an older Node exits with status 2.
+
+## While developing
+
+| When | What | Time |
+|---|---|---|
+| After every build | `run.sh .tools/baseline/feel.wasm dist/feel.wasm`: the committed sources | 8.4 s uncached, 7.5 s cached |
+| Once per group of changes | the same with the larger request sets kept outside the repository as further sources | 7.0 min uncached, 6.5 min cached |
+| On a failure | `--record <entries.json> --why "<basis>"`, then `git bisect start <bad> <good>` and `git bisect run tools/identity/bisect.sh .tools/baseline/feel.wasm <entries.json>` | one wasm build per step |
+| Before a release | every request set with `--verify-cache` | 7.1 min |
+
+Measured on a MacBook (Apple silicon, Node 26) against 0.4.0, with every evaluate request also
+sent as parse: the committed sources are 2,627 requests, and with the sets kept outside the
+repository 187,677. The cache saves little against 0.4.0, because the requests that trap
+0.4.0 are evaluated again on every run (see the cache section) and most of them exhaust the
+module's memory slowly: 30 trapping requests take 5.6 s of the committed run, and 22 of one large
+set take 175 s. Without traps in the reference, a cached run spends its time on the candidate. The
+peak memory of a run over every set is about 3.4 GB uncached and 3.1 GB cached.
+
+`bisect.sh` builds `dist/feel.wasm` of the checked-out commit and passes the entries as the only
+ledger: a commit that answers every entry's `new` is bad (exit 1), any other is good (exit 0), and
+a failed build or an input error skips the commit (exit 125). When the entries come from several
+changes, the bisect ends at the last of them; cut the file to the entries that commit does not
+explain and bisect again. The script uses the `equal.mjs` next to it, so to bisect commits older
+than the script, run a copy of `tools/identity/` and `scripts/feel-abi.mjs` kept outside the work
+tree in the same layout. With a third argument it checks that module instead of building one.
 
 ## Comparison rules
 
