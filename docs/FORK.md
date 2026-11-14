@@ -1441,6 +1441,22 @@ The totals are under "Verification" below.
     cohort of the exact power of the base without its trailing zeros (`10 ** 2` is `+1E+2`, was
     `+100E+0`; `1.50 ** 2` is `+225E-2`, was `+22500E-4`), and `(-1).pow(y)` for a huge `y` has
     the cohort of 1.
+105. **An exponent outside Table 61's range gives null.** DMN 1.6 Table 61: in `e1 ** e2`,
+    "value(e2) is a number in the range [-999,999,999..999,999,999]"; the owner's decision is
+    null outside it. The evaluator computed every power: `1 ** 1e10`, `(-1) ** 1e10`,
+    `1 ** 1000000000` and `1 ** 1000000000.5` were 1, `0.5 ** 1e10` and `0 ** 1000000000` 0, and
+    `2 ** 1e10` null as an overflow. Now `**` checks the exponent first, for every base and every
+    exponent value, integer or not, before the shortcuts `1 ** y` and `x ** 0` of the number
+    core: outside the range it is null with the reason `exponentiation exponent is out of range
+    -999999999..999999999`. `FeelNumber::pow` keeps its signature and has no domain of its own;
+    `0 ** 0` stays 1 and an underflow stays 0 (`10 ** -999999999`). Test first:
+    `an_exponent_outside_the_range_gives_null` failed on the parent with `1 ** 1e10` = 1; the
+    test of `4 ** 1E+40` takes the new reason, and `4 ** 999999999` keeps the overflow reason.
+    Identity: 12 registered differences in `registered/exponent-domain.json` (whole responses),
+    all on the number oracle's edge vectors; the entry `1.000000001 ** 1000000000` of
+    `registered/integer-powers.json` (item 104) is amended in place to the null, its `why`
+    naming both rules. The oracle's last two exemptions are deleted: its list is empty, and its
+    quick run judges every case right. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

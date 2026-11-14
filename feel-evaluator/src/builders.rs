@@ -689,7 +689,11 @@ impl<'b> EvaluatorBuilder<'b> {
       let rhv = rhe(scope);
       if let Value::Number(lh) = lhv {
         if let Value::Number(rh) = rhv {
-          if let Some(result) = lh.pow(&rh) {
+          // DMN 1.6 Table 61: "value(e2) is a number in the range [-999,999,999..999,999,999]",
+          // checked before any power, also where the power would not depend on the exponent
+          if rh.abs() > FeelNumber::from(999_999_999) {
+            value_null!("exponentiation exponent is out of range -999999999..999999999")
+          } else if let Some(result) = lh.pow(&rh) {
             Value::Number(result)
           } else {
             value_null!("exponentiation result is not a finite number")

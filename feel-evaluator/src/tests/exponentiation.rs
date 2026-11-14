@@ -117,6 +117,32 @@ fn test_0023() {
     false,
     &scope!(),
     r#"4 ** 10000000000000000000000000000000000000000"#,
-    r#"exponentiation result is not a finite number"#,
+    r#"exponentiation exponent is out of range -999999999..999999999"#,
   );
+  te_null(false, &scope!(), r#"4 ** 999999999"#, r#"exponentiation result is not a finite number"#);
+}
+
+#[test]
+fn an_exponent_outside_the_range_gives_null() {
+  // DMN 1.6 Table 61: "value(e2) is a number in the range [-999,999,999..999,999,999]", for
+  // every base, also where the power would not depend on the exponent
+  for expression in [
+    "1 ** 1e10",
+    "(-1) ** 1e10",
+    "0.5 ** 1e10",
+    "2 ** 1e10",
+    "1 ** 1000000000",
+    "1 ** -1000000000",
+    "1 ** 1000000000.5",
+    "1 ** 999999999.5",
+    "0 ** 1000000000",
+    "2 ** -1e6144",
+  ] {
+    te_null(false, &scope!(), expression, r#"exponentiation exponent is out of range -999999999..999999999"#);
+  }
+  te_number(false, &scope!(), "1 ** 999999999", 1, 0);
+  te_number(false, &scope!(), "1 ** -999999999", 1, 0);
+  te_number(false, &scope!(), "(-1) ** 999999999", -1, 0);
+  te_number(false, &scope!(), "1 ** 999999998.5", 1, 0);
+  te_number(false, &scope!(), "0 ** 0", 1, 0);
 }
