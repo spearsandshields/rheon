@@ -382,3 +382,20 @@ fn dmn_1_6_date_time_timezone() {
     "[core::date and time] invalid timezone 'Mars/Base'",
   );
 }
+
+#[test]
+fn fractional_seconds_are_exact() {
+  te_string(false, &scope!(), r#"string(date and time("2020-01-01T10:00:00.0157Z"))"#, "2020-01-01T10:00:00.0157Z");
+  te_string(
+    false,
+    &scope!(),
+    r#"string(date and time("2020-01-01T23:59:59.99999999999999999Z"))"#,
+    "2020-01-01T23:59:59.999999999Z",
+  );
+  te_string(
+    false,
+    &scope!(),
+    r#"string(date and time(date(2020,1,1), time(10,0,0.0157), "Z"))"#,
+    "2020-01-01T10:00:00.0157Z",
+  );
+}

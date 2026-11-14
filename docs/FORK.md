@@ -758,6 +758,23 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     nesting limit, was the null of an invalid pattern. Basis: DMN 1.6 §7.3.8 and Table 75 note 2; CONTRACT §3 (a stopped evaluation
     is reported, never a partial result). API break (rheon-feel-regex): `is_match` and
     `is_match_with_flags` return `Result<bool, RegexError>`.
+74. **Exact fractional seconds.** The time, date and time and days and time duration parsers read
+    the fraction digits as a binary double and truncated the product with 10^9, which is one
+    nanosecond low for many decimal fractions: of all fractions with 4, 5 and 6 digits, 167 of
+    10^4, 1,710 of 10^5 and 17,066 of 10^6 (none with 1 to 3 digits), so `time("10:00:00.0157")`
+    was `10:00:00.015699999`, `duration("PT0.000015839S")` was `PT0.000015838S` and
+    `time("10:00:00.0157").value` was `36000.015699999`. A fraction that the double rounds to 1
+    gave 10^9 nanoseconds: `time("10:00:00.99999999999999999")` showed the malformed
+    `10:00:00.`, `…T23:59:59.99999999999999999Z` showed `…T23:59:59.Z` and
+    `duration("PT1.99999999999999999S")` was `PT2S`. The digits are now read as an integer in one
+    function shared by the three parsers: the first nine are the nanoseconds, the digits beyond
+    them are truncated, as before. `date and time(date, time, zone)`, which formats its parts and
+    parses the text again, is exact with it. Tests: every fraction of up to six digits and 100,000
+    of seven to nine digits against the integer of their digits. Basis: DMN 1.6 §10.3.2.3.4,
+    §10.3.2.3.6 and §10.3.2.3.7, a time, a date and time and a days and time duration are values of
+    the XML Schema time, dateTime and dayTimeDuration datatypes, whose seconds are decimals. 1,508
+    registered differences, each the exact digits of a fraction the double got wrong. No API
+    change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

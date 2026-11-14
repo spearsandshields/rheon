@@ -40,14 +40,9 @@ impl FromStr for FeelTime {
       && let Ok(min) = min_match.as_str().parse::<u8>()
       && let Some(sec_match) = captures.name("seconds")
       && let Ok(sec) = sec_match.as_str().parse::<u8>()
+      && let Some((nanos, _)) = parse_fraction_nanos(fraction_digits(&captures))
     {
-      let mut fractional = 0.0;
-      if let Some(frac_match) = captures.name("fractional")
-        && let Ok(frac) = frac_match.as_str().parse::<f64>()
-      {
-        fractional = frac;
-      }
-      let nanos = (fractional * 1e9).trunc() as u64;
+      let nanos = u64::from(nanos);
       if let Some(zone) = FeelZone::from_captures(&captures)
         && is_valid_time(hour, min, sec)
       {

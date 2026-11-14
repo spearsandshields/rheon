@@ -215,6 +215,34 @@ pub fn nanos_to_string(nano: u64) -> String {
   buffer.iter().take(count).collect()
 }
 
+/// The number of fractional-second digits a nanosecond holds.
+const NANOSECOND_DIGITS: usize = 9;
+
+/// Reads the fractional-second digits `digits` (the text after the '.', possibly empty) as an
+/// integer number of nanoseconds, with no binary floating point in between: a time, a date and
+/// time and a days and time duration hold their seconds as an exact decimal (DMN 1.6
+/// §10.3.2.3.4-§10.3.2.3.7, the XML Schema value spaces). Digits beyond the ninth are truncated.
+///
+/// The second element holds the dropped digits when one of them is not zero, that is when a value
+/// was lost; `None` when nothing was dropped or only zeros were. The result is `None` when
+/// `digits` holds a byte that is not an ASCII digit.
+pub(crate) fn parse_fraction_nanos(digits: &str) -> Option<(u32, Option<&str>)> {
+  if !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+    return None;
+  }
+  let (kept, dropped) = digits.split_at(digits.len().min(NANOSECOND_DIGITS));
+  let value = kept.bytes().fold(0_u32, |value, digit| value * 10 + u32::from(digit - b'0'));
+  let nanos = value * 10_u32.pow((NANOSECOND_DIGITS - kept.len()) as u32);
+  let lost = dropped.bytes().any(|digit| digit != b'0');
+  Some((nanos, lost.then_some(dropped)))
+}
+
+/// The digits of the `fractional` group (`.` and digits) of a time pattern match, without the
+/// `.`; empty when the group did not match.
+pub(crate) fn fraction_digits<'t>(captures: &regex::Captures<'t>) -> &'t str {
+  captures.name("fractional").and_then(|fraction| fraction.as_str().get(1..)).unwrap_or_default()
+}
+
 /// Returns `true` when the specified parameters constitute valid time.
 ///
 /// In the `FEEL` language, it is allowed for and hour to have a value of `24`,
@@ -324,6 +352,37 @@ mod tests {
     assert_eq!("12", nanos_to_string(120_000_000));
     assert_eq!("1", nanos_to_string(100_000_000));
     assert_eq!("", nanos_to_string(1_000_000_000));
+  }
+
+  #[test]
+  fn fraction_digits_are_read_as_an_integer() {
+    assert_eq!(Some((0, None)), parse_fraction_nanos(""));
+    assert_eq!(Some((100_000_000, None)), parse_fraction_nanos("1"));
+    assert_eq!(Some((15_700_000, None)), parse_fraction_nanos("0157"));
+    assert_eq!(Some((65_000, None)), parse_fraction_nanos("000065"));
+    assert_eq!(Some((15_839, None)), parse_fraction_nanos("000015839"));
+    assert_eq!(Some((999_999_999, None)), parse_fraction_nanos("999999999"));
+    assert_eq!(Some((1, None)), parse_fraction_nanos("000000001"));
+  }
+
+  #[test]
+  fn fraction_digits_beyond_nanoseconds_are_truncated() {
+    assert_eq!(Some((123_456_789, Some("1"))), parse_fraction_nanos("1234567891"));
+    assert_eq!(Some((999_999_999, Some("99999999"))), parse_fraction_nanos("99999999999999999"));
+    assert_eq!(Some((0, Some("0001"))), parse_fraction_nanos("0000000000001"));
+    // only zeros dropped: no value is lost
+    assert_eq!(Some((123_456_789, None)), parse_fraction_nanos("1234567890"));
+    assert_eq!(Some((123_456_789, None)), parse_fraction_nanos("123456789000000"));
+    let long = format!("1{}", "9".repeat(100_000));
+    assert_eq!(Some((199_999_999, Some(&long[9..]))), parse_fraction_nanos(&long));
+  }
+
+  #[test]
+  fn fraction_digits_are_ascii_digits() {
+    assert_eq!(None, parse_fraction_nanos("12a"));
+    assert_eq!(None, parse_fraction_nanos("."));
+    assert_eq!(None, parse_fraction_nanos("1234567890x"));
+    assert_eq!(None, parse_fraction_nanos("١"));
   }
 
   #[test]

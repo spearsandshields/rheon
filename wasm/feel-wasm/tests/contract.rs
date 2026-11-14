@@ -519,6 +519,15 @@ fn time_offset_beyond_32_bits_is_null() {
   }
 }
 
+/// Fractional seconds are read as an integer of nanoseconds, never through a binary double.
+#[test]
+fn fractional_seconds_are_exact() {
+  assert_eq!(display("time(\"10:00:00.0157\")"), "\"10:00:00.0157\"");
+  assert_eq!(display("@\"2020-01-01T10:00:00.0157Z\""), "\"2020-01-01T10:00:00.0157Z\"");
+  assert_eq!(display("duration(\"PT0.000015839S\")"), "\"PT0.000015839S\"");
+  assert_eq!(display("time(\"10:00:00.99999999999999999\")"), "\"10:00:00.999999999\"");
+}
+
 #[test]
 fn lexer_surrogate_escapes_are_syntax_errors_not_panic() {
   for e in ["\"\\uD800\"", "\"\\uD83D\"", "\"\\uD800x\"", "\"\\uDC00\"", "\"\\uD800\\u0041\""] {

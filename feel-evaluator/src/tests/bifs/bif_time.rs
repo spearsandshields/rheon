@@ -349,3 +349,10 @@ fn _0057() {
     "[core::time] invalid argument type, expected string, date, date and time, time, actual type is boolean",
   );
 }
+
+#[test]
+fn fractional_seconds_are_exact() {
+  te_string(false, &scope!(), r#"string(time("10:00:00.0157"))"#, "10:00:00.0157");
+  te_string(false, &scope!(), r#"string(time("10:00:00.000065"))"#, "10:00:00.000065");
+  te_string(false, &scope!(), r#"string(time("10:00:00.99999999999999999"))"#, "10:00:00.999999999");
+}

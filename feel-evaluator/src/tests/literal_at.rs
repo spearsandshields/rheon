@@ -29,3 +29,11 @@ fn test_0005() {
   let scope = &te_scope(r#"{}"#);
   te_null(false, scope, r#"@"airbus""#, r#"invalid @ literal: airbus"#);
 }
+
+#[test]
+fn fractional_seconds_are_exact() {
+  let scope = &te_scope(r#"{}"#);
+  te_string(false, scope, r#"string(@"10:00:00.0157")"#, "10:00:00.0157");
+  te_string(false, scope, r#"string(@"2020-01-01T10:00:00.0157Z")"#, "2020-01-01T10:00:00.0157Z");
+  te_string(false, scope, r#"string(@"PT0.000015839S")"#, "PT0.000015839S");
+}

@@ -172,3 +172,10 @@ fn _0025() {
   te_years_and_months_duration_x(false, scope, r#"duration("P768614336404564650Y7M")"#, "P768614336404564650Y7M");
   te_years_and_months_duration_x(false, scope, r#"duration("-P768614336404564650Y7M")"#, "-P768614336404564650Y7M");
 }
+
+#[test]
+fn fractional_seconds_are_exact() {
+  te_string(false, &scope!(), r#"string(duration("PT0.000015839S"))"#, "PT0.000015839S");
+  te_string(false, &scope!(), r#"string(duration("PT1.99999999999999999S"))"#, "PT1.999999999S");
+  te_days_and_time_duration(false, &scope!(), r#"duration("PT999.999999999999S")"#, false, 999, 999_999_999);
+}

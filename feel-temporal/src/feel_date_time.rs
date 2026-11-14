@@ -47,13 +47,9 @@ impl TryFrom<&str> for FeelDateTime {
         && let Ok(min) = min_match.as_str().parse::<u8>()
         && let Some(sec_match) = captures.name("seconds")
         && let Ok(sec) = sec_match.as_str().parse::<u8>()
+        && let Some((nanos, _)) = parse_fraction_nanos(fraction_digits(&captures))
       {
-        let fractional = if let Some(frac_match) = captures.name("fractional") {
-          frac_match.as_str().parse::<f64>().unwrap_or(0.0)
-        } else {
-          0.0
-        };
-        let nanos = (fractional * 1e9).trunc() as u64;
+        let nanos = u64::from(nanos);
         if let Some(mut date) = FeelDate::new(year, month, day)
           && let Some(zone) = FeelZone::from_captures(&captures)
         {

@@ -190,10 +190,8 @@ impl TryFrom<&str> for FeelDaysAndTimeDuration {
           }
         }
       }
-      if let Some(fractional_match) = captures.name("fractional")
-        && let Ok(fractional) = fractional_match.as_str().parse::<f64>()
-      {
-        match nanoseconds.checked_add((fractional * NANOSECONDS_IN_SECOND as f64).trunc() as i64) {
+      if captures.name("fractional").is_some() {
+        match parse_fraction_nanos(fraction_digits(&captures)).and_then(|(fraction, _)| nanoseconds.checked_add(i64::from(fraction))) {
           Some(total) => {
             nanoseconds = total;
             is_valid = true;
