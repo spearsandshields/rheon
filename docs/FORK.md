@@ -102,6 +102,7 @@ Rules:
 | 54 | `ff98977` | feel: strings share their text (`FeelString`) | fork |
 | 55 | | feel-wasm: test that no corpus request traps the module | fork |
 | 56 | | tools: identity check of full responses against the previous release | fork |
+| 57 | | ci: check response identity against the previous release | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -449,6 +450,14 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     ledger; a malformed ledger, a duplicate registration, a mixed or invalid `old`/`new` and a
     request that calls `now()` exit 2. Basis: answers stay identical to the previous release except
     the changes registered with both answers. No API change.
+57. **The identity check in CI.** The `wasm` job runs `tools/identity/fetch-baseline.sh` and
+    `tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm` right after
+    `npm run build:wasm`, with `GH_TOKEN` from the workflow's token for the release download. A
+    pull request that changes an answer without registering it fails there. Checked locally with
+    the same commands: a build whose call-depth message differs by one word fails the step with
+    the four requests of the corpus that quote it; the unchanged build passes it; a download with
+    a different sha256 is deleted and fails the step, and so does a failed download. No API
+    change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

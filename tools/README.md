@@ -1,7 +1,8 @@
 # Tools
 
 - `identity/`: the identity check of full responses of `feel.wasm` against the previous release,
-  with the ledger of registered differences (see `identity/README.md`).
+  with the ledger of registered differences (see `identity/README.md`). CI runs it after every
+  wasm build.
 - `difftest/` and `evaluator-corpus/`: the differential test tools for the number backends (below).
 
 ## Differential test tools for the number backends

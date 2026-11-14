@@ -43,6 +43,11 @@ jobs:
       - run: npm ci
       - run: npm run bootstrap # wasm target + wasmtime into .tools/ (sha256-checked)
       - run: npm run build:wasm # dist/feel.wasm + interface check against CONTRACT §1
+      # every committed request answers exactly as in the previous release (tools/identity/baseline.json,
+      # sha256-checked), except the differences registered in tools/identity/registered/
+      - run: bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: npm run test:rust # native contract tests of rheon-feel-wasm
       - run: npm run test:rust:wasm # the same tests under wasmtime
       - run: npm run test:runtime # @rheon/feel-runtime (node --test)

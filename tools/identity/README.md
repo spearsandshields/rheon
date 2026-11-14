@@ -20,6 +20,9 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 | `fetch-baseline.sh` | Downloads that asset with the GitHub CLI into `.tools/baseline/` and verifies the sum; fails closed. A file already there with the right sum is kept |
 | `registered/<change>.json` | The ledger: one file per change that alters answers, written in the commit that makes it |
 
+CI runs the first and the last command after `npm run build:wasm` (`.github/workflows/ci.yml`, job
+`wasm`), with `GH_TOKEN` set to the workflow's token for the download.
+
 The committed request sources are `wasm/feel-wasm/tests/corpus/no-trap.json`. A source is a JSON
 file holding one request or an array of requests, exactly as a host sends them, or a directory of
 such files. Each request is sent byte for byte as it is written in its file, and so is the
