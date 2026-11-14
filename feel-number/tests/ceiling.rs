@@ -34,8 +34,8 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  // the scale passed to scalbn is clamped to -6176..=6144 (like Intel's bid128_scalbn)
-  eqs!("0.025", num!(0.25).ceiling(6145).unwrap());
+  // a number with no digit below the scale is itself, at every scale of -6111..=6176
+  eqs!("0.25", num!(0.25).ceiling(6145).unwrap());
 }
 
 #[test]

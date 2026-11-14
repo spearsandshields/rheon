@@ -8,7 +8,7 @@
 //! (< 10^34) and `i32` exponent, plus infinity and NaN. Everything whose exact result has a
 //! bounded number of digits is computed here, directly on that triple, in `u128` when the
 //! intermediate fits and in a tiny 256-bit integer ([U256]) otherwise: `+ - *`, square root,
-//! rounding to integral, quantize, scaling, comparisons, parsing, formatting, conversions, the
+//! rounding to a scale, scaling, comparisons, parsing, formatting, conversions, the
 //! integer-exponent power. Only the operations with an unbounded exact
 //! result (`/`, `exp`, `ln`, `pow` with a non-integer exponent) are delegated to a [Backend],
 //! which returns a correctly rounded value together with the side the exact value lies on; that
@@ -33,10 +33,6 @@ const MIN_SCALE: i32 = -6111;
 
 /// Maximum scale accepted by the scale-based rounding functions (FEEL: `-6111..=6176`).
 const MAX_SCALE: i32 = 6176;
-
-/// Largest adjusted exponent of the scaled intermediate `n * 10^scale` the rounding
-/// functions work on (the maximum exponent of a decimal128 number).
-const SCALED_EXP_MAX: i64 = 6144;
 
 /// Precision of decimal128 (number of significant digits).
 pub(crate) const PRECISION: usize = 34;
@@ -72,18 +68,22 @@ enum V {
   Fin(bool, u128, i32),
 }
 
-/// Rounding modes used for rounding to integral value.
-#[derive(Copy, Clone)]
-enum Rnd {
-  /// Round half to even.
+/// The rounding modes of the FEEL rounding functions (DMN 1.6 Table 77).
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub(crate) enum RoundingMode {
+  /// To the nearest, a tie to the even neighbour (`decimal`).
   HalfEven,
-  /// Round half away from zero.
-  HalfAway,
-  /// Round toward zero.
-  Zero,
-  /// Round toward positive infinity.
+  /// To the nearest, a tie away from zero (`round half up`).
+  HalfUp,
+  /// To the nearest, a tie toward zero (`round half down`).
+  HalfDown,
+  /// Away from zero (`round up`).
+  Up,
+  /// Toward zero (`round down`).
+  Down,
+  /// Toward positive infinity (`ceiling`).
   Ceiling,
-  /// Round toward negative infinity.
+  /// Toward negative infinity (`floor`).
   Floor,
 }
 
@@ -482,11 +482,6 @@ fn is_zero_v(v: V) -> bool {
   matches!(v, V::Fin(_, 0, _))
 }
 
-/// Sign bit of the value (like `bid128_is_signed`).
-fn is_signed_v(v: V) -> bool {
-  matches!(v, V::Fin(true, _, _) | V::Inf(true))
-}
-
 fn negate(v: V) -> V {
   match v {
     V::NaN => V::NaN,
@@ -628,8 +623,7 @@ fn div_v(a: V, b: V) -> V {
 /// Multiplies the value by 10^n (exact unless out of range).
 ///
 /// Like `bid128_scalbn` of Intel's BID128 library, `n` is first clamped to
-/// `-6176..=6144`. This clamping is observable through `new`, `round` and the
-/// scale-based rounding functions (e.g. `ceiling(0.25, 6145)` is `0.025`).
+/// `-6176..=6144`. This clamping is observable through `new`.
 ///
 /// Above the maximum exponent the coefficient is padded with trailing zeros up to the
 /// full 34 digits before the result is declared infinite, exactly like every other
@@ -651,70 +645,44 @@ fn scalbn_v(v: V, n: i32) -> V {
   }
 }
 
-/// Rounds the value to integral value (exponent >= 0 left unchanged, otherwise exponent 0).
-fn round_integral_v(v: V, mode: Rnd) -> V {
+/// Rounds the value to a multiple of `10^exponent` by `mode`, in one step on the coefficient.
+///
+/// A value with no digit below `10^exponent` (its exponent is at least `exponent`), a zero with
+/// such an exponent included, is returned as it is: rounding cannot change it, and it is never
+/// padded. Otherwise the result is `±q · 10^exponent`, where `q` is the coefficient without its
+/// last `k` digits, incremented when the dropped digits are not all zero and the mode says so.
+/// `q + 1 <= 10^33`, so the result always fits; `exponent` must lie in `EXP_MIN..=EXP_MAX`.
+fn round_at(v: V, exponent: i32, mode: RoundingMode) -> V {
   match v {
-    V::Fin(s, c, e) if e < 0 => {
-      let k = (-e) as u32;
-      let (q, r, divisor) = if k > 38 { (0, c, None) } else { (c / pow10(k), c % pow10(k), Some(pow10(k))) };
-      let up = if r == 0 {
-        false
+    V::Fin(s, c, e) if e < exponent => {
+      let k = exponent.abs_diff(e);
+      // the dropped digits compared with half a unit of the kept position; with more than 38
+      // dropped digits the coefficient (below 10^34) is below half of it
+      let (q, r, half) = if k > 38 {
+        (0, c, Ordering::Less)
       } else {
-        match mode {
-          Rnd::Zero => false,
-          Rnd::Ceiling => !s,
-          Rnd::Floor => s,
-          Rnd::HalfEven | Rnd::HalfAway => {
-            let cmp = match divisor {
-              // r compared to divisor/2 (divisor is a power of ten, so even)
-              Some(d) => r.cmp(&(d / 2)),
-              None => Ordering::Less,
-            };
-            match cmp {
-              Ordering::Greater => true,
-              Ordering::Less => false,
-              Ordering::Equal => matches!(mode, Rnd::HalfAway) || q % 2 == 1,
-            }
-          }
-        }
+        let p = pow10(k);
+        (c / p, c % p, (c % p).cmp(&(p / 2)))
       };
-      V::Fin(s, if up { q + 1 } else { q }, 0)
+      let up = r != 0
+        && match mode {
+          RoundingMode::Up => true,
+          RoundingMode::Down => false,
+          RoundingMode::Ceiling => !s,
+          RoundingMode::Floor => s,
+          RoundingMode::HalfUp => half != Ordering::Less,
+          RoundingMode::HalfDown => half == Ordering::Greater,
+          RoundingMode::HalfEven => half == Ordering::Greater || half == Ordering::Equal && q % 2 == 1,
+        };
+      V::Fin(s, q + u128::from(up), exponent)
     }
     other => other,
   }
 }
 
-/// Quantize: rounds the value (half-even) to have the exponent of `q`.
-fn quantize_v(v: V, q: V) -> V {
-  match (v, q) {
-    (V::NaN, _) | (_, V::NaN) => V::NaN,
-    (V::Inf(s), V::Inf(_)) => V::Inf(s),
-    (V::Inf(_), _) | (_, V::Inf(_)) => V::NaN,
-    (V::Fin(s, c, e), V::Fin(_, _, eq)) => {
-      if e >= eq {
-        let shift = (e - eq) as u32;
-        if c == 0 {
-          return V::Fin(s, 0, eq);
-        }
-        if digit_count(c) + shift > PRECISION as u32 {
-          return V::NaN;
-        }
-        V::Fin(s, c * pow10(shift), eq)
-      } else {
-        // round to integral at the position of the quantum exponent
-        match round_integral_v(V::Fin(s, c, e - eq), Rnd::HalfEven) {
-          V::Fin(s, c, _) => {
-            if digit_count(c) > PRECISION as u32 {
-              V::NaN
-            } else {
-              V::Fin(s, c, eq)
-            }
-          }
-          other => other,
-        }
-      }
-    }
-  }
+/// Rounds the value to an integral value by `mode` (an exponent of 0 or more is left unchanged).
+fn round_integral_v(v: V, mode: RoundingMode) -> V {
+  round_at(v, 0, mode)
 }
 
 /// Compares two values, returns `None` when unordered (NaN involved).
@@ -791,7 +759,7 @@ fn rem_two_is_zero(v: V) -> bool {
 
 /// Converts the value to integer, rounding toward zero (like bid128_to_int*_int).
 fn to_i128_int(v: V) -> Option<i128> {
-  match round_integral_v(v, Rnd::Zero) {
+  match round_integral_v(v, RoundingMode::Down) {
     V::Fin(s, c, e) => {
       if c == 0 {
         return Some(0);
@@ -895,15 +863,6 @@ fn to_intel_string(v: V) -> String {
   }
 }
 
-/// Intel's `bid128_ilogb`.
-fn ilogb_v(v: V) -> i32 {
-  match v {
-    V::Fin(_, 0, _) | V::NaN => i32::MIN,
-    V::Inf(_) => i32::MAX,
-    V::Fin(_, c, e) => digit_count(c) as i32 - 1 + e,
-  }
-}
-
 /// Exponential function of a finite, non-zero value.
 fn exp_v(s: bool, c: u128, e: i32) -> V {
   // e^x overflows decimal128 for x > ~14149.7 and underflows to zero for x < ~-14224
@@ -996,7 +955,6 @@ fn sqrt_v(c: u128, e: i32) -> V {
 const ZERO: V = V::Fin(false, 0, 0);
 const ONE: V = V::Fin(false, 1, 0);
 const TWO: V = V::Fin(false, 2, 0);
-const ONE_TENTH: V = V::Fin(false, 1, -1);
 
 /// FEEL number.
 ///
@@ -1065,17 +1023,22 @@ impl FeelNumber {
     Self::of(v)
   }
 
+  /// Rounds this number to `scale` fraction digits by `mode` ([RoundingMode]), in one step:
+  /// to a multiple of `10^-scale` (DMN 1.6 Table 77: "Return n with given scale and rounding
+  /// mode"). A number with no digit below the scale is returned as it is. The only error is a
+  /// scale outside `-6111..=6176` (Table 77, footnote 1: "Scale is in the range
+  /// [−6111..6176]"); every number, a zero or a tiny one included, can be rounded at every scale
+  /// of that range, and the result always fits.
+  pub(crate) fn round_to(&self, scale: i32, mode: RoundingMode) -> Result<Self> {
+    if !(MIN_SCALE..=MAX_SCALE).contains(&scale) {
+      return Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale));
+    }
+    Ok(Self::of(round_at(self.v(), -scale, mode)))
+  }
+
   /// Returns a nearest integer greater or equal to this [FeelNumber].
   pub fn ceiling(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(if scale == 0 {
-      round_integral_v(self.v(), Rnd::Ceiling)
-    } else {
-      if self.check_scale(scale)? {
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Ceiling), scale)
-      } else {
-        self.v()
-      }
-    }))
+    self.round_to(scale, RoundingMode::Ceiling)
   }
 
   pub fn even(&self) -> bool {
@@ -1095,25 +1058,17 @@ impl FeelNumber {
 
   /// Returns a nearest integer less or equal to this [FeelNumber].
   pub fn floor(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(if scale == 0 {
-      round_integral_v(self.v(), Rnd::Floor)
-    } else {
-      if self.check_scale(scale)? {
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Floor), scale)
-      } else {
-        self.v()
-      }
-    }))
+    self.round_to(scale, RoundingMode::Floor)
   }
 
   pub fn frac(&self) -> Self {
     let v = self.v();
-    Self::of(sub_v(v, round_integral_v(v, Rnd::Zero)))
+    Self::of(sub_v(v, round_integral_v(v, RoundingMode::Down)))
   }
 
   pub fn is_integer(&self) -> bool {
     let v = self.v();
-    eq_v(v, round_integral_v(v, Rnd::Zero))
+    eq_v(v, round_integral_v(v, RoundingMode::Down))
   }
 
   pub fn is_zero(&self) -> bool {
@@ -1123,8 +1078,8 @@ impl FeelNumber {
   /// Returns `true` when this number is finite (not an infinity and not NaN).
   ///
   /// Arithmetic on decimal128 values can overflow to infinity (e.g. `9e6144 * 10`) or produce NaN
-  /// (e.g. a failed quantize in `decimal(1e33, 1)`); FEEL has no such numbers, so evaluators
-  /// turn non-finite results into null.
+  /// by an invalid operation (e.g. `0 / 0`, or an infinity minus itself); FEEL has no such
+  /// numbers, so evaluators turn non-finite results into null.
   pub fn is_finite(&self) -> bool {
     is_finite_v(self.v())
   }
@@ -1162,71 +1117,27 @@ impl FeelNumber {
     if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
+  /// Rounds this number half-even to the scale `rhs` (`decimal`); NaN for a scale outside
+  /// `-6111..=6176`.
   pub fn round(&self, rhs: &FeelNumber) -> Self {
     let scale = to_signed(rhs.v(), i32::MIN as i128, i32::MAX as i128).unwrap_or(i32::MIN as i128) as i32;
-    let quantifier = scalbn_v(ONE, scale.saturating_neg());
-    let quantized = quantize_v(self.v(), quantifier);
-    // A coefficient can not be widened to the requested quantum when that needs more than 34
-    // digits (`decimal(5.5, 6176)`); the value itself is already exact at that scale, so it is
-    // returned unchanged instead of NaN.
-    if matches!(quantized, V::NaN) && self.settled_at(scale) {
-      return Self::of(self.v());
-    }
-    Self::of(quantized)
+    self.round_to(scale, RoundingMode::HalfEven).unwrap_or(Self::of(V::NaN))
   }
 
   pub fn round_down(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(if scale == 0 {
-      round_integral_v(self.v(), Rnd::Zero)
-    } else {
-      if self.check_scale(scale)? {
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Zero), scale)
-      } else {
-        self.v()
-      }
-    }))
+    self.round_to(scale, RoundingMode::Down)
   }
 
   pub fn round_half_down(&self, scale: i32) -> Result<Self> {
-    let positive = |n| round_integral_v(sub_v(n, ONE_TENTH), Rnd::HalfAway);
-    let negative = |n| round_integral_v(add_v(n, ONE_TENTH), Rnd::HalfAway);
-    let signed = is_signed_v(self.0);
-    Ok(Self::of(if scale == 0 {
-      let v = self.v();
-      if signed { negative(v) } else { positive(v) }
-    } else {
-      if self.check_scale(scale)? {
-        let scaled = scalbn_v(self.v(), scale);
-        self.unscale(if signed { negative(scaled) } else { positive(scaled) }, scale)
-      } else {
-        self.v()
-      }
-    }))
+    self.round_to(scale, RoundingMode::HalfDown)
   }
 
   pub fn round_half_up(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(if scale == 0 {
-      round_integral_v(self.v(), Rnd::HalfAway)
-    } else {
-      if self.check_scale(scale)? {
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::HalfAway), scale)
-      } else {
-        self.v()
-      }
-    }))
+    self.round_to(scale, RoundingMode::HalfUp)
   }
 
   pub fn round_up(&self, scale: i32) -> Result<Self> {
-    let mode = if is_signed_v(self.0) { Rnd::Floor } else { Rnd::Ceiling };
-    Ok(Self::of(if scale == 0 {
-      round_integral_v(self.v(), mode)
-    } else {
-      if self.check_scale(scale)? {
-        self.unscale(round_integral_v(scalbn_v(self.v(), scale), mode), scale)
-      } else {
-        self.v()
-      }
-    }))
+    self.round_to(scale, RoundingMode::Up)
   }
 
   pub fn sqrt(&self) -> Option<Self> {
@@ -1247,7 +1158,7 @@ impl FeelNumber {
   }
 
   pub fn trunc(&self) -> Self {
-    Self::of(round_integral_v(self.v(), Rnd::Zero))
+    Self::of(round_integral_v(self.v(), RoundingMode::Down))
   }
 
   /// Parses a number like [FromStr::from_str] and also reports whether the value had
@@ -1265,47 +1176,9 @@ impl FeelNumber {
   /// Calculates the remainder of the division.
   fn remainder(&self, rhs: V) -> V {
     let mut n = div_v(self.v(), rhs);
-    n = round_integral_v(n, Rnd::Floor);
+    n = round_integral_v(n, RoundingMode::Floor);
     n = mul_v(rhs, n);
     sub_v(self.v(), n)
-  }
-
-  /// Checks the scale of a scale-based rounding function (`round up(n, scale)` etc.).
-  ///
-  /// `Err` when `scale` is outside the FEEL range `-6111..=6176`. `Ok(true)` when the rounding
-  /// can be done on the scaled intermediate `n * 10^scale` (its adjusted exponent fits
-  /// decimal128). `Ok(false)` when that intermediate would not fit but `n` has no digit below
-  /// `10^-scale`, so rounding to `scale` leaves it unchanged: `round up(5.5, 6176)` is `5.5`
-  /// (TCK 1141-1144). The remaining case, a value far below `10^-scale` with a negative
-  /// scale (`1E-6176` at scale `-6111`), stays an error.
-  fn check_scale(&self, scale: i32) -> Result<bool> {
-    if !(MIN_SCALE..=MAX_SCALE).contains(&scale) {
-      return Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale));
-    }
-    let scaled_exp = ilogb_v(self.v()) as i64 + scale as i64;
-    if (MIN_SCALE as i64..=SCALED_EXP_MAX).contains(&scaled_exp) {
-      Ok(true)
-    } else if self.settled_at(scale) {
-      Ok(false)
-    } else {
-      Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale))
-    }
-  }
-
-  /// `true` when this finite, non-zero number has no digit below `10^-scale`, i.e. rounding
-  /// it to `scale` fraction digits can not change its value.
-  fn settled_at(&self, scale: i32) -> bool {
-    matches!(self.v(), V::Fin(_, c, e) if c != 0 && i64::from(e) >= -i64::from(scale))
-  }
-
-  /// Undoes the scaling applied before rounding: `n * 10^-scale`.
-  ///
-  /// Zero is returned as a plain zero (no exponent). Every other rounded integral is scaled
-  /// back, also when it is `1` or `-1`: an earlier special case returned `±1` unscaled, so
-  /// `round up(0.1, 1)` was `1` instead of `0.1` and `floor(-1.56, -6111)` was `-1` instead
-  /// of `-1E+6111`.
-  fn unscale(&self, n: V, scale: i32) -> V {
-    if is_zero_v(n) { ZERO } else { scalbn_v(n, scale.saturating_neg()) }
   }
 }
 
@@ -1335,7 +1208,7 @@ fn pow_v(x: V, y: V) -> V {
       _ => ZERO,
     };
   }
-  let y_integer = eq_v(y, round_integral_v(y, Rnd::HalfEven));
+  let y_integer = eq_v(y, round_integral_v(y, RoundingMode::HalfEven));
   let y_odd = y_integer && !rem_two_is_zero(y);
   let y_negative = matches!(y, V::Fin(true, _, _));
   let x_negative = matches!(x, V::Fin(true, _, _) | V::Inf(true));

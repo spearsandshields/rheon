@@ -1317,6 +1317,37 @@ The totals are under "Verification" below.
     cohort cases) and passed on the parent and after the change. Identity: no difference; the
     number oracle's `exp`, `log` and fractional power families have no new wrong answer. No API
     change; `Debug` shows other cohorts for these results.
+100. **Rounding to a scale is one step.** DMN 1.6 Table 77: `floor`, `ceiling`, `round up`,
+    `round down`, `round half up` and `round half down` "Return n with given scale and rounding
+    mode", and footnote 1: "Scale is in the range [−6111..6176]". The number core scaled the
+    number to an integer first (`n * 10^scale`, with the scale clamped to -6176..6144 like Intel's
+    `bid128_scalbn`), rounded that intermediate and scaled it back; `round half down` subtracted
+    one tenth of the last place kept and then rounded half up. So `round half down(2.56)` was 2,
+    `round half down(1.1251, 2)` 1.12 and `round half down(-2.51)` -2; `ceiling(0.25, 6145)` was
+    0.025 and `floor(1e-10, 6150)` 0.0000000000000001 (the clamp); and every number whose
+    intermediate left the exponent range was null with "invalid scale": a zero at any non-zero
+    scale (`round half up(0, 2)`, `floor(0, 1)`, `ceiling(0, -1)`), a tiny number at a coarse
+    scale (`floor(1e-200, -6000)`, `round up(1e-6000, -6000)`). Now one private step,
+    `round_at`, rounds a value to a multiple of `10^exponent` on its coefficient: a value with no
+    digit below that position is itself (never padded), otherwise the dropped digits are compared
+    with half a unit once and the kept coefficient is incremented by the mode; the result always
+    fits. `FeelNumber::round_to(scale, mode)` checks the scale range (the only error) and calls
+    it; the six methods and `round` (`decimal`) delegate to it, and rounding to an integral value
+    is the same step at exponent 0. The modes are one enum, `RoundingMode` (`HalfEven`,
+    `HalfUp`, `HalfDown`, `Up`, `Down`, `Ceiling`, `Floor`), which replaces the private `Rnd`;
+    `check_scale`, `settled_at`, `unscale`, `quantize_v`, `ilogb_v` and the scaled intermediate go.
+    Test first: `rounding_to_a_scale_is_one_step` (`feel-number/tests/round.rs`), a table of 341
+    numbers and scales with the result of every mode computed by Python's `decimal`, failed on
+    the parent with 392 wrong results (the half-down values, the clamped scale and the spurious
+    errors); the unit tests that pinned the old values are updated (`round half down` of 2.51,
+    -2.51, 1.151, a number at scale 6145, a NaN at a scale, the clamped scale of `round`).
+    Identity: 643 registered differences in `registered/rounding-to-a-scale.json`, all on the
+    number oracle's edge vectors of the six functions: 558 nulls that are now numbers, 85 wrong
+    values corrected; `decimal` is unchanged. The oracle's twelve exemptions of the six
+    functions are deleted, and its quick run judges every rounding result right. Rust
+    behaviour break: the six rounding methods of `FeelNumber` give these values, accept a zero
+    and a tiny number at every scale of the range, and `round` with a scale outside it is NaN
+    (was a value at the clamped scale).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -562,8 +562,7 @@ fn pow_edge_cases() {
 
 #[test]
 fn round_half_down_ties() {
-  // dsntk's algorithm (same on every backend): subtract 0.1 (add for negative values)
-  // at the scale position, then round half away from zero; ties go toward zero
+  // to the nearest, a tie toward zero, decided by the dropped digits in one step
   assert_eq!("+2E+0", dbg(n("2.5").round_half_down(0).unwrap()));
   assert_eq!("-2E+0", dbg(n("-2.5").round_half_down(0).unwrap()));
   assert_eq!("+2E+0", dbg(n("2.49").round_half_down(0).unwrap()));
@@ -577,11 +576,11 @@ fn round_half_down_ties() {
   assert_eq!("-11E-1", dbg(n("-1.15").round_half_down(1).unwrap()));
   assert_eq!("+12E-1", dbg(n("1.25").round_half_down(1).unwrap()));
   assert_eq!("+55E-1", dbg(n("5.55").round_half_down(1).unwrap()));
-  // consequences of the 0.1 subtraction (identical on the Intel backend)
-  assert_eq!("+2E+0", dbg(n("2.51").round_half_down(0).unwrap()));
-  assert_eq!("-2E+0", dbg(n("-2.51").round_half_down(0).unwrap()));
-  assert_eq!("+11E-1", dbg(n("1.151").round_half_down(1).unwrap()));
-  assert_eq!("+55E-1", dbg(n("5.5500000000000000000000000000000001").round_half_down(1).unwrap()));
+  // above the tie by less than a tenth of the last place kept: up in magnitude
+  assert_eq!("+3E+0", dbg(n("2.51").round_half_down(0).unwrap()));
+  assert_eq!("-3E+0", dbg(n("-2.51").round_half_down(0).unwrap()));
+  assert_eq!("+12E-1", dbg(n("1.151").round_half_down(1).unwrap()));
+  assert_eq!("+56E-1", dbg(n("5.550000000000000000000000000000001").round_half_down(1).unwrap()));
   assert!(n("1.5").round_half_down(7000).is_err());
   // extreme scales never panic (Intel's `ilogb + scale` overflows in debug builds)
   assert!(n("0").ceiling(i32::MIN).is_err());
@@ -630,8 +629,6 @@ fn scalbn_overflow_pads_to_34_digits() {
   assert_eq!("+999999999999999000000000000000000E+6111", dbg(FeelNumber::new(999999999999999, -6129)));
   assert_eq!("+1000000000000000000000000000000000E+6111", dbg(FeelNumber::new(1, -6144)));
   assert_eq!("+100000000000000000000000000000000E+6111", dbg(FeelNumber::new(1, -6143)));
-  assert_eq!("+9999999999999990000000000000000000E+6102", dbg(n("999999999999999E+6121").floor(9).unwrap()));
-  assert_eq!("+999999999999990000000000000000000E+6102", dbg(n("99999999999999E+6121").floor(9).unwrap()));
   // still infinite when 34 digits are not enough
   assert_eq!("+Inf", dbg(FeelNumber::new(8999999999999999999, -6127)));
   assert_eq!("+8999999999999999999000000000000000E+6111", dbg(FeelNumber::new(8999999999999999999, -6126)));
@@ -643,34 +640,22 @@ fn scalbn_overflow_pads_to_34_digits() {
   assert_eq!("+1000000000000000000000000000000000E+6111", dbg(FeelNumber::new(1, i32::MIN)));
 }
 
-/// Regression rows from the three-way fuzz (intel vs fastnum vs dashu, 200k iterations
-/// per op, mpmath/decimal oracle): scale-based rounding ops on values near the overflow
-/// edge, where Intel's scalbn quirk gives infinity. Expected values are the oracle ones.
+/// Rounding at a scale near the overflow edge: a number with no digit below the scale is itself,
+/// whatever its exponent, and a coarser scale rounds it in one step.
 #[test]
 fn scale_rounding_near_overflow_edge_stays_finite() {
-  assert_eq!("-9999999999999999999999900000000000E+6087", dbg(n("-99999999999999999999999E+6098").ceiling(24).unwrap()));
-  assert_eq!("+9999999999999990000000000000000000E+6102", dbg(n("999999999999999E+6121").floor(9).unwrap()));
-  assert_eq!(
-    "+9999999999999999999999999999999000E+6088",
-    dbg(n("9999999999999999999999999999999E+6091").round_half_down(23).unwrap())
-  );
-  assert_eq!("+9999999999999999999990000000000000E+6089", dbg(n("999999999999999999999E+6102").round_up(22).unwrap()));
-  assert_eq!("-9999999999999999900000000000000000E+6090", dbg(n("-99999999999999999E+6107").round_down(21).unwrap()));
-  assert_eq!("+9999999999999999999000000000000000E+6104", dbg(n("9999999999999999999E+6119").round_half_up(7).unwrap()));
-  // chain steps (the input is an intermediate value in a longer op chain)
-  assert_eq!("+9999999999999990000000000000000000E+6097", dbg(n("99999999999999900000E+6111").ceiling(14).unwrap()));
-  assert_eq!(
-    "+9999999999999999999999999999999900E+6102",
-    dbg(n("99999999999999999999999999999999E+6104").round_half_up(9).unwrap())
-  );
-  // feel-evaluator corpus case: round up(999999999999999E+6116, 14) and its five siblings
+  let same = |x: &str, r: Result<FeelNumber>| assert!(r.as_ref().is_ok_and(|r| *r == n(x)), "{x}: {r:?}");
+  same("-99999999999999999999999E+6098", n("-99999999999999999999999E+6098").ceiling(24));
+  same("999999999999999E+6121", n("999999999999999E+6121").floor(9));
+  same("9999999999999999999999999999999E+6091", n("9999999999999999999999999999999E+6091").round_half_down(23));
+  same("99999999999999999999999999999999E+6104", n("99999999999999999999999999999999E+6104").round_half_up(9));
   let x = n("999999999999999E+6116");
   for r in [x.round_up(14), x.round_down(14), x.round_half_up(14), x.round_half_down(14), x.floor(14), x.ceiling(14)] {
-    assert_eq!("+9999999999999990000000000000000000E+6097", dbg(r.unwrap()));
+    same("999999999999999E+6116", r);
   }
-  // the same values are finite when they come from parsing, so the ops are consistent
-  assert_eq!(n("9999999999999990000000000000000000E+6097"), x.round_up(14).unwrap());
-  assert_eq!(x, x.round_up(14).unwrap());
+  same("1E+6111", n("9.5E+6110").round_half_up(-6111));
+  same("0", n("4.5E+6110").round_half_up(-6111));
+  same("9999999999999999999999999999999999E+6111", n("9999999999999999999999999999999999E+6111").round_up(-6111));
 }
 
 #[test]
@@ -705,7 +690,7 @@ fn nan_has_no_sign() {
   assert_eq!("NaN", dbg((-nan).trunc()));
   assert_eq!("NaN", dbg((-nan).frac()));
   assert_eq!("NaN", dbg((-nan).floor(0).unwrap()));
-  assert!((-nan).floor(2).is_err());
+  assert_eq!("NaN", dbg((-nan).floor(2).unwrap()));
   assert_eq!("NaN", dbg((-nan).round_half_down(0).unwrap()));
   assert!((-nan).exp().is_none());
   assert!((-nan).pow(&n("2")).is_none());
