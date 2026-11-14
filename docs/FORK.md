@@ -1058,6 +1058,17 @@ The totals are under "Verification" below.
     unknown field `rawJSON`; both are input errors now, through one predicate for "a JSON object"
     that the canonical form uses too. A planted defect in the tool (the `old` check skipped, lossy
     JSON, the clock exclusion off) fails the checks. No API change.
+86. **One module session for the Node tools.** `scripts/feel-abi.mjs` holds the raw ABI once:
+    `callText` returns the response text, decoded as strict UTF-8 (bytes that are not UTF-8 throw
+    `MalformedResponse`), `call` parses it, and `session(module)` answers request texts one after
+    another and, after a trap, resolves to `{ trap }` with the error and continues on a fresh
+    instance. The identity check (`tools/identity/equal.mjs`) and the Node host of the stack check
+    (`scripts/stack-headroom.mjs`) used their own copies of that loop; both use the session now.
+    The smoke test's `call` now rejects a response that is not UTF-8 instead of decoding it with
+    replacement characters, and the stack check fails on a response that is not JSON instead of
+    reporting it as a trap. Checked: the identity tool's checks (item 85) pass before and after,
+    the identity run prints the same lines, `npm run smoke` and `npm run stack` pass, and the
+    stack report is the same with the old and the new scripts. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

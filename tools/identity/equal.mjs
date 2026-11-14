@@ -25,8 +25,8 @@
 // Exit status: 0 when every response is identical or registered, 1 on a difference, a ledger entry
 // that does not reproduce or a malformed response, 2 on a usage or input error.
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { WASI } from 'node:wasi';
 import path from 'node:path';
+import { MalformedResponse, session } from '../../scripts/feel-abi.mjs';
 
 class InputError extends Error {}
 
@@ -208,43 +208,19 @@ async function loadLedger(paths) {
   return entries;
 }
 
-const enc = new TextEncoder();
-const dec = new TextDecoder('utf-8', { fatal: true });
-
-class MalformedResponse extends Error {}
-
-/** A module that answers requests; after a trap it continues on a fresh instance. */
+/** A module that answers requests with their parsed responses; after a trap it continues on a fresh instance. */
 async function load(file) {
-  let module;
+  let answer;
   try {
-    module = await WebAssembly.compile(await readFile(file));
+    answer = await session(await WebAssembly.compile(await readFile(file)));
   } catch (e) {
     throw new InputError(`${file}: ${e.message}`);
   }
-  const instantiate = async () => {
-    const wasi = new WASI({ version: 'preview1', args: [], env: {} });
-    const instance = await WebAssembly.instantiate(module, wasi.getImportObject());
-    wasi.initialize(instance);
-    return instance.exports;
-  };
-  let ex = await instantiate();
   return async (text) => {
-    let response;
+    const response = await answer(text);
+    if (typeof response !== 'string') return { trap: true };
     try {
-      const bytes = enc.encode(text);
-      const ptr = ex.feel_alloc(bytes.length);
-      new Uint8Array(ex.memory.buffer, ptr, bytes.length).set(bytes);
-      const packed = BigInt.asUintN(64, ex.feel_call(ptr, bytes.length));
-      const p = Number(packed >> 32n);
-      const n = Number(packed & 0xffffffffn);
-      response = new Uint8Array(ex.memory.buffer, p, n).slice();
-      ex.feel_free(p, n);
-    } catch {
-      ex = await instantiate();
-      return { trap: true };
-    }
-    try {
-      return parseJson(dec.decode(response));
+      return parseJson(response);
     } catch (e) {
       throw new MalformedResponse(e.message);
     }

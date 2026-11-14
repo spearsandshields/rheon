@@ -109,14 +109,10 @@ function outcome(construct, d, response) {
 // Calls into an instance of the module through the raw ABI (CONTRACT §1); after a trap the
 // instance is dead, and the next call gets a fresh one.
 async function nodeHost(module) {
-  let ex = await abi.instantiate(module);
+  const answer = await abi.session(module);
   return async (json) => {
-    try {
-      return abi.call(ex, json);
-    } catch (e) {
-      ex = await abi.instantiate(module);
-      return { trap: `${e.constructor.name}: ${e.message}` };
-    }
+    const response = await answer(json);
+    return typeof response === 'string' ? JSON.parse(response) : { trap: `${response.trap.constructor.name}: ${response.trap.message}` };
   };
 }
 
