@@ -1193,6 +1193,17 @@ The totals are under "Verification" below.
     as before, since the time is the trapping requests of 0.4.0. Checked: one edited request in
     the committed file fails the oracle's run, which passed before the check; the identity tool's
     checks pass. No API change.
+93. **A frozen regex request corpus.** `tools/identity/requests/regex.json` holds every distinct
+    `matches`, `replace` and `split` expression that was harvested from the feel-evaluator unit
+    tests (120) and from the DMN models under `examples/` and `bbt/` (77), one of them with its FEEL
+    context, and 27 more requests on what the regex built-ins must settle under XQuery 1.0 and
+    XPath 2.0 Functions and Operators: unknown, repeated, padded and non-string flags, `q` beside
+    other flags, `x` and `#`, replacement strings with `$0`, `$10`, a lone `$`, `$$`, `${1}`, `\$`,
+    `\\` and `$name`, and patterns that match the empty string in `replace` and `split`
+    (224 requests). They hold no expected answers; the previous release answers them, and they
+    are identical in the build. The harvested corpora they come from are removed with the
+    differential tools (item 94), so the expressions are kept here, frozen. The W3C test suite of
+    the regular expressions is not imported. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
