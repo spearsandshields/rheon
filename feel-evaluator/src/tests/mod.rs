@@ -25,6 +25,7 @@ mod descendant;
 mod disjunction;
 mod division;
 mod empty_input;
+mod evaluation;
 mod every_expression;
 mod exponentiation;
 mod external_functions;
@@ -62,6 +63,11 @@ const SECONDS_IN_DAY: i64 = 86_400;
 const SECONDS_IN_HOUR: i64 = 3_600;
 const SECONDS_IN_MINUTE: i64 = 60;
 
+/// Evaluates `node` in its own session; a stopped evaluation fails the test with its abort.
+pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {
+  crate::evaluate(scope, node).into_result().unwrap_or_else(|abort| panic!("evaluation stopped: {abort}"))
+}
+
 /// Utility function that tests evaluation of boolean value.
 pub fn te_bool(trace: bool, scope: &FeelScope, s: &str, expected: bool) {
   textual_expression(trace, scope, s, Value::Boolean(expected));
@@ -95,7 +101,7 @@ pub fn te_date_time_offset(trace: bool, scope: &FeelScope, s: &str, date: (Year,
 pub fn te_scope(input: &str) -> FeelScope {
   let scope = FeelScope::default();
   match rheon_feel_parser::parse_context(&scope, input, false) {
-    Ok(node) => match crate::evaluate(&scope, &node) {
+    Ok(node) => match eval(&scope, &node) {
       Value::Context(ctx) => ctx.into(),
       other => {
         println!("ERROR (INVALID VALUE TYPE): {other}");
@@ -200,7 +206,7 @@ pub fn te_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
 pub fn te_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
   match rheon_feel_parser::parse_expression(scope, expected, false) {
     Ok(node) => {
-      textual_expression(trace, scope, actual, crate::evaluate(scope, &node));
+      textual_expression(trace, scope, actual, eval(scope, &node));
     }
     Err(reason) => {
       println!("ERROR (REASON): {reason}");
@@ -213,7 +219,7 @@ pub fn te_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str)
 pub fn be_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
   match rheon_feel_parser::parse_boxed_expression(scope, expected, trace) {
     Ok(node) => {
-      boxed_expression(trace, scope, actual, crate::evaluate(scope, &node));
+      boxed_expression(trace, scope, actual, eval(scope, &node));
     }
     Err(reason) => {
       println!("ERROR (REASON): {reason}");
@@ -228,7 +234,7 @@ pub fn be_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str)
 pub fn boxed_expression(trace: bool, scope: &FeelScope, text: &str, expected: Value) {
   match rheon_feel_parser::parse_boxed_expression(scope, text, trace) {
     Ok(node) => {
-      assert_eq!(crate::evaluate(scope, &node), expected);
+      assert_eq!(eval(scope, &node), expected);
     }
     Err(reason) => {
       println!("ERROR: {reason}");
@@ -279,7 +285,7 @@ pub fn satisfies(trace: bool, scope: &FeelScope, input_expression: &str, input_v
   } else {
     AstNode::In(Box::new(input_expression_node), Box::new(input_entry_node))
   };
-  assert_eq!(crate::evaluate(scope, &node), Value::Boolean(expected));
+  assert_eq!(eval(scope, &node), Value::Boolean(expected));
 }
 
 pub fn satisfies_null(trace: bool, scope: &FeelScope, input_expression: &str, input_values: &str, input_entry: &str, expected: &str) {
@@ -293,7 +299,7 @@ pub fn satisfies_null(trace: bool, scope: &FeelScope, input_expression: &str, in
   } else {
     AstNode::In(Box::new(input_expression_node), Box::new(input_entry_node))
   };
-  assert_eq!(crate::evaluate(scope, &node), Value::Null(Some(expected.to_string())));
+  assert_eq!(eval(scope, &node), Value::Null(Some(expected.to_string())));
 }
 
 /// Utility function for testing if parsed `expression` evaluates to [FeelDateTime]

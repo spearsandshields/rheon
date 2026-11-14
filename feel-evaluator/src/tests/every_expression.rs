@@ -30,7 +30,7 @@ fn _0005() {
   let node = AstNode::Every(Box::new(AstNode::Name("n".into())), Box::new(AstNode::Name("n".into())));
   assert_eq!(
     r#"null(expected AST node QuantifiedContexts, actual AST node is Name(Name("n")))"#,
-    crate::evaluate(&scope, &node).to_string()
+    crate::tests::eval(&scope, &node).to_string()
   );
 }
 
@@ -40,7 +40,7 @@ fn _0006() {
   let node = AstNode::Every(Box::new(AstNode::QuantifiedContexts(vec![])), Box::new(AstNode::Name("n".into())));
   assert_eq!(
     r#"null(expected AST node Satisfies, actual AST node is QuantifiedContexts([]))"#,
-    crate::evaluate(&scope, &node).to_string()
+    crate::tests::eval(&scope, &node).to_string()
   );
 }
 

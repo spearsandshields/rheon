@@ -8,7 +8,14 @@
 //! While a caller collects diagnostics ([collect]), every null-with-reason created through
 //! `value_null!` is recorded here (per thread). Outside a collection nothing is recorded, so
 //! ordinary evaluations pay one thread-local flag check per error null.
+//!
+//! An evaluation can also be stopped by an implementation limit ([Abort]), such as the depth of
+//! nested function calls. One evaluation ([evaluation]) owns the abort and the call depth, every
+//! function call reads them ([enter_call]), and nothing of them outlives the evaluation.
 
+use crate::values::Value;
+use crate::{Evaluator, FeelScope};
+use dsntk_common::{DsntkError, ToErrorMessage};
 use std::cell::{Cell, RefCell};
 
 /// At most this many messages are kept; [Diagnostics::count] still counts all errors.
@@ -103,6 +110,210 @@ impl Drop for Collection {
   }
 }
 
+/// Why an evaluation stopped before it finished: an implementation limit, never a FEEL value.
+///
+/// FEEL defines no limits, so a value computed after a limit was hit is not the result of the
+/// expression. The evaluation reports the abort instead of any value (§7.3.8: the evaluation
+/// "MUST report or log diagnostic information").
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Abort {
+  /// More than `limit` nested function invocations.
+  #[non_exhaustive]
+  CallDepth { limit: usize },
+  /// An engine below FEEL gave up; `reason` names the function, the input and the limit.
+  #[non_exhaustive]
+  Limit { reason: Box<str> },
+}
+
+impl Abort {
+  /// An engine limit, described by `reason`.
+  pub fn limit(reason: impl Into<Box<str>>) -> Self {
+    Self::Limit { reason: reason.into() }
+  }
+}
+
+impl std::fmt::Display for Abort {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::CallDepth { limit } => write!(
+        f,
+        "function calls are nested too deeply (more than {limit} levels, e.g. runaway recursion); evaluation stopped"
+      ),
+      Self::Limit { reason } => write!(f, "{reason}; evaluation stopped"),
+    }
+  }
+}
+
+/// An aborted evaluation as an error.
+#[derive(ToErrorMessage)]
+struct EvaluationAborted(String);
+
+impl From<Abort> for DsntkError {
+  fn from(abort: Abort) -> Self {
+    EvaluationAborted(abort.to_string()).into()
+  }
+}
+
+/// The state of the evaluation running on this thread.
+///
+/// One evaluation owns it: it is clear outside an evaluation, and the evaluation that opened it
+/// clears it when it ends, also when it unwinds, so nothing of it outlives the evaluation.
+struct Evaluation {
+  /// Whether [evaluation] opened the running evaluation.
+  explicit: Cell<bool>,
+  /// The number of function calls entered and not yet left. Outside an explicit evaluation, the
+  /// outermost call opens an implicit one.
+  depth: Cell<usize>,
+  /// Why the running evaluation was stopped, the first reason only.
+  abort: RefCell<Option<Abort>>,
+  /// Whether `abort` is set, read by every function call.
+  aborted: Cell<bool>,
+}
+
+impl Evaluation {
+  fn active(&self) -> bool {
+    self.explicit.get() || self.depth.get() > 0
+  }
+
+  fn clear(&self) {
+    self.explicit.set(false);
+    self.depth.set(0);
+    self.aborted.set(false);
+    self.abort.borrow_mut().take();
+  }
+
+  fn stop(&self, reason: Abort) {
+    if !self.aborted.replace(true) {
+      *self.abort.borrow_mut() = Some(reason);
+    }
+  }
+
+  fn abort(&self) -> Option<Abort> {
+    self.abort.borrow().clone()
+  }
+}
+
+thread_local! {
+  static EVALUATION: Evaluation = const {
+    Evaluation {
+      explicit: Cell::new(false),
+      depth: Cell::new(0),
+      abort: RefCell::new(None),
+      aborted: Cell::new(false),
+    }
+  };
+}
+
+/// Runs `f` as one evaluation and returns its result with the abort that stopped it, if any.
+///
+/// Outside an evaluation, `f` starts with a clear state, and the state is cleared again when `f`
+/// returns or unwinds. Inside an evaluation, `f` joins it: an abort in `f` stops the enclosing
+/// evaluation too, and an abort before `f` is returned for `f` as well.
+pub fn evaluation<T>(f: impl FnOnce() -> T) -> (T, Option<Abort>) {
+  let opened = Opened::open();
+  let value = f();
+  let abort = EVALUATION.with(Evaluation::abort);
+  drop(opened);
+  (value, abort)
+}
+
+/// The evaluator that runs each evaluation of `evaluator` as one [evaluation]: inside a running
+/// evaluation it joins it, outside one it is an evaluation of its own. When the evaluation is
+/// stopped, its result is null with the reason of the abort, never a value computed after it.
+pub fn one_evaluation(evaluator: Evaluator) -> Evaluator {
+  Box::new(move |scope: &FeelScope| match evaluation(|| evaluator(scope)) {
+    (value, None) => value,
+    (_, Some(abort)) => crate::value_null!(abort),
+  })
+}
+
+/// Clears the evaluation state when the evaluation that [evaluation] opened ends.
+struct Opened(bool);
+
+impl Opened {
+  fn open() -> Self {
+    EVALUATION.with(|evaluation| {
+      if evaluation.active() {
+        Self(false)
+      } else {
+        evaluation.explicit.set(true);
+        Self(true)
+      }
+    })
+  }
+}
+
+impl Drop for Opened {
+  fn drop(&mut self) {
+    if self.0 {
+      EVALUATION.with(Evaluation::clear);
+    }
+  }
+}
+
+/// Stops the running evaluation for `reason`; the first reason is kept. Outside an evaluation it
+/// has no effect.
+pub fn abort(reason: Abort) {
+  EVALUATION.with(|evaluation| {
+    if evaluation.active() {
+      evaluation.stop(reason);
+    }
+  });
+}
+
+/// Enters a function call when at most `limit` calls are nested in it. `None` refuses the call:
+/// the evaluation was stopped before, or this call exceeds the limit, which stops it with
+/// [Abort::CallDepth]. A refused call's result is never observed, because the abort, not a value,
+/// is the outcome of the evaluation.
+pub fn enter_call(limit: usize) -> Option<Call> {
+  EVALUATION.with(|evaluation| {
+    if evaluation.aborted.get() {
+      return None;
+    }
+    let depth = evaluation.depth.get();
+    if depth >= limit {
+      evaluation.stop(Abort::CallDepth { limit });
+      return None;
+    }
+    let outermost = depth == 0 && !evaluation.explicit.get();
+    evaluation.depth.set(depth + 1);
+    Some(Call { outermost })
+  })
+}
+
+/// A function call entered by [enter_call]; dropping it leaves the call, also when unwinding.
+#[must_use]
+pub struct Call {
+  /// Whether this call opened an implicit evaluation (no evaluation was running).
+  outermost: bool,
+}
+
+impl Call {
+  /// The result of the call. The outermost call of an implicit evaluation never returns a value
+  /// of a stopped evaluation: it returns null with the abort's text instead.
+  pub fn finish(self, value: Value) -> Value {
+    if self.outermost
+      && let Some(abort) = EVALUATION.with(Evaluation::abort)
+    {
+      return crate::value_null!(abort);
+    }
+    value
+  }
+}
+
+impl Drop for Call {
+  fn drop(&mut self) {
+    EVALUATION.with(|evaluation| {
+      if self.outermost {
+        evaluation.clear();
+      } else {
+        evaluation.depth.set(evaluation.depth.get() - 1);
+      }
+    });
+  }
+}
+
 /// Error handling mode of a DMN evaluation (§7.3.8). Lenient is the default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ErrorMode {
@@ -130,6 +341,71 @@ mod tests {
     record("after the panic");
     let (_, diagnostics) = collect(|| ());
     assert_eq!(diagnostics, Diagnostics::default());
+  }
+
+  #[test]
+  fn an_evaluation_that_panics_leaves_no_abort() {
+    let result = std::panic::catch_unwind(|| {
+      evaluation(|| {
+        abort(Abort::limit("first"));
+        panic!("evaluation failed");
+      })
+    });
+    assert!(result.is_err());
+    assert_eq!(((), None), evaluation(|| ()));
+  }
+
+  #[test]
+  fn the_first_abort_reason_wins() {
+    let ((), aborted) = evaluation(|| {
+      abort(Abort::limit("first"));
+      abort(Abort::limit("second"));
+    });
+    assert_eq!(Some(Abort::limit("first")), aborted);
+    assert_eq!("first; evaluation stopped", aborted.unwrap().to_string());
+  }
+
+  #[test]
+  fn an_abort_outside_an_evaluation_has_no_effect() {
+    abort(Abort::limit("outside"));
+    assert_eq!(((), None), evaluation(|| ()));
+    assert!(enter_call(1).is_some());
+  }
+
+  #[test]
+  fn nested_evaluations_share_one_abort() {
+    let (inner, outer) = evaluation(|| evaluation(|| abort(Abort::limit("inner"))).1);
+    assert_eq!(Some(Abort::limit("inner")), inner);
+    assert_eq!(inner, outer);
+    assert_eq!(((), None), evaluation(|| ()));
+  }
+
+  #[test]
+  fn enter_call_refuses_beyond_the_limit() {
+    let ((), aborted) = evaluation(|| {
+      let first = enter_call(2).expect("the first call is entered");
+      let second = enter_call(2).expect("the second call is entered");
+      assert!(enter_call(2).is_none());
+      // the evaluation is stopped: no further call is entered, at any depth
+      drop(second);
+      assert!(enter_call(2).is_none());
+      drop(first);
+      assert!(enter_call(2).is_none());
+    });
+    assert_eq!(Some(Abort::CallDepth { limit: 2 }), aborted);
+    assert!(enter_call(2).is_some());
+  }
+
+  #[test]
+  fn the_outermost_call_of_an_implicit_evaluation_returns_no_partial_value() {
+    let call = enter_call(1).expect("the outermost call is entered");
+    assert!(enter_call(1).is_none());
+    let text = "function calls are nested too deeply (more than 1 levels, e.g. runaway recursion); evaluation stopped";
+    assert_eq!(Value::Null(Some(text.to_string())), call.finish(Value::Boolean(true)));
+    // the implicit evaluation ended with its outermost call
+    assert_eq!(((), None), evaluation(|| ()));
+    let call = enter_call(1).expect("a new outermost call is entered");
+    assert_eq!(Value::Boolean(true), call.finish(Value::Boolean(true)));
   }
 
   #[test]

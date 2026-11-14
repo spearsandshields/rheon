@@ -2,6 +2,7 @@ use crate::model_evaluator::ModelEvaluator;
 use rheon_feel::FeelScope;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
+use rheon_feel_evaluator::Outcome;
 use rheon_model::DmnElement;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -103,9 +104,17 @@ fn build_model_name(model_content: &str) -> String {
   definitions.name().to_string()
 }
 
+/// The text of an evaluation's outcome: its value, or `aborted(<reason>)` when it was stopped.
+fn outcome_text(outcome: Outcome<Value>) -> String {
+  match outcome.into_result() {
+    Ok(value) => value.to_string(),
+    Err(abort) => format!("aborted({abort})"),
+  }
+}
+
 /// Utility function that evaluates a [Decision] specified by name and compares the result.
 fn assert_decision(model_evaluator: &ModelEvaluator, model_namespace: &str, model_name: &str, invocable: &str, input_data: &FeelContext, expected: &str) {
-  let actual = model_evaluator.evaluate_invocable(model_namespace, model_name, invocable, input_data).to_string();
+  let actual = outcome_text(model_evaluator.evaluate_invocable(model_namespace, model_name, invocable, input_data));
   assert_eq!(
     expected, actual,
     "Assertion error, actual value of the decision does not match the expected value:\n  expected: {expected}\n    actual: {actual}\n"
@@ -114,7 +123,7 @@ fn assert_decision(model_evaluator: &ModelEvaluator, model_namespace: &str, mode
 
 /// Utility function that evaluates a [BusinessKnowledgeModel] specified by name and compares the result.
 fn assert_business_knowledge_model(model_evaluator: &ModelEvaluator, model_namespace: &str, model_name: &str, invocable_name: &str, input_data: &FeelContext, expected: &str) {
-  let actual = model_evaluator.evaluate_invocable(model_namespace, model_name, invocable_name, input_data).to_string();
+  let actual = outcome_text(model_evaluator.evaluate_invocable(model_namespace, model_name, invocable_name, input_data));
   assert_eq!(
     expected, actual,
     "Assertion error, actual value of the business knowledge model does not match the expected value:\n  expected: {expected}\n    actual: {actual}\n"
@@ -123,7 +132,7 @@ fn assert_business_knowledge_model(model_evaluator: &ModelEvaluator, model_names
 
 /// Utility function that evaluates a [DecisionService] specified by name and compares the result with expected value.
 fn assert_decision_service(model_evaluator: &ModelEvaluator, model_namespace: &str, model_name: &str, invocable_name: &str, input_data: &FeelContext, expected: &str) {
-  let actual = model_evaluator.evaluate_invocable(model_namespace, model_name, invocable_name, input_data).to_string();
+  let actual = outcome_text(model_evaluator.evaluate_invocable(model_namespace, model_name, invocable_name, input_data));
   assert_eq!(
     expected, actual,
     "Assertion error, actual value of the decision service does not match the expected value:\n  expected: {expected}\n    actual: {actual}\n"

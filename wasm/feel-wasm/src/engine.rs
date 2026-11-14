@@ -7,6 +7,7 @@ use rheon_feel::diagnostics::{self, ErrorMode};
 use rheon_feel::dto::ValueDto;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, Name};
+use rheon_feel_evaluator::Session;
 use rheon_feel_parser::AstNode;
 use serde_json::{Map, Value as Json, json};
 use std::sync::Mutex;
@@ -291,14 +292,6 @@ pub(crate) fn check_ast_depth(node: &AstNode) -> Result<(), String> {
   Ok(())
 }
 
-/// Message of the `evaluation` error reported when the call depth limit was hit.
-pub(crate) fn call_depth_message() -> String {
-  format!(
-    "function calls are nested too deeply (more than {} levels, e.g. runaway recursion); evaluation stopped",
-    rheon_feel_evaluator::MAX_CALL_DEPTH
-  )
-}
-
 /// Warns about unary tests that are boolean expressions using `?` (e.g. `? > 5`): dsntk compares
 /// the input with such a test's boolean result instead of treating it as satisfied when true.
 fn boolean_unary_test_warnings(node: &AstNode, warnings: &mut Vec<String>) {
@@ -359,12 +352,12 @@ fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failur
       AstNode::In(Box::new(AstNode::Name(question_mark())), Box::new(node))
     }
   };
-  rheon_feel_evaluator::reset_call_depth();
   let evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, language);
-  let (value, diagnostics) = diagnostics::collect(|| evaluator(&scope));
-  if rheon_feel_evaluator::call_depth_exceeded() {
-    return fail(Kind::Evaluation, call_depth_message());
-  }
+  // an evaluation stopped by an implementation limit has no result, only the abort
+  let (value, diagnostics) = Session::new()
+    .run(|| diagnostics::collect(|| evaluator(&scope)))
+    .into_result()
+    .or_else(|abort| fail(Kind::Evaluation, abort.to_string()))?;
   // strict mode (DMN 1.6 §7.3.8): the first error stops the evaluation
   if error_mode == ErrorMode::Strict
     && let Some(first) = diagnostics.first()

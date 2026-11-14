@@ -2,6 +2,7 @@
 
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
 use rheon_feel_evaluator::Dialect;
@@ -373,15 +374,21 @@ fn evaluate_parsed_decision_table(scope: &FeelScope, parsed_decision_table: &Par
   }
 }
 
+/// Builds a decision table evaluator whose entries are evaluated in FEEL.
+///
+/// Each run of the evaluator is one evaluation of the whole table: inside a running evaluation it
+/// joins it, outside one it is an evaluation of its own. When a limit stops the evaluation in any
+/// entry, the table's result is null with the reason of the abort, never a hit policy's value.
 pub fn build_decision_table_evaluator(scope: &FeelScope, decision_table: &DecisionTable) -> Result<Evaluator> {
   build_decision_table_evaluator_with_dialect(scope, decision_table, Dialect::Feel)
 }
 
-/// Builds a decision table evaluator whose entries are evaluated in the given dialect (FEEL or B-FEEL).
+/// Builds a decision table evaluator whose entries are evaluated in the given dialect (FEEL or B-FEEL),
+/// run as one evaluation like the evaluators of [build_decision_table_evaluator].
 pub fn build_decision_table_evaluator_with_dialect(scope: &FeelScope, decision_table: &DecisionTable, dialect: Dialect) -> Result<Evaluator> {
   let hit_policy = decision_table.hit_policy();
   let parsed_decision_table = parse_decision_table(scope, decision_table, dialect)?;
-  Ok(Box::new(move |scope: &FeelScope| {
+  Ok(diagnostics::one_evaluation(Box::new(move |scope: &FeelScope| {
     let evaluated_decision_table = evaluate_parsed_decision_table(scope, &parsed_decision_table);
     match hit_policy {
       HitPolicy::Unique => evaluated_decision_table.evaluate_hit_policy_unique(),
@@ -398,7 +405,7 @@ pub fn build_decision_table_evaluator_with_dialect(scope: &FeelScope, decision_t
         BuiltinAggregator::Max => evaluated_decision_table.evaluate_hit_policy_collect_max(),
       },
     }
-  }))
+  })))
 }
 
 #[cfg(test)]
@@ -416,5 +423,41 @@ mod tests {
     let scope = context(r#"{Customer:"Business", Order:-3.23 }"#).into();
     let evaluator = build_decision_table_evaluator(&scope, &decision_table).unwrap();
     assert_eq!(value_number!(10, 2), evaluator(&scope));
+  }
+
+  /// A table with hit policy FIRST whose first rule recurses without end in its input entry.
+  const RUNAWAY_FIRST_RULE: &str = r#"
+| F |               Customer               |          |
+|:-:|:------------------------------------:|:--------:|
+|   |                 `i`                  |   `o`    |
+| 1 | {f: function(n) f(n + 1), r: f(1)}.r | "first"  |
+| 2 |                  -                   | "second" |
+"#;
+
+  #[test]
+  fn a_limit_hit_in_one_cell_stops_the_whole_table() {
+    // the call depth limit needs a big stack in unoptimized builds
+    std::thread::Builder::new()
+      .stack_size(512 * 1024 * 1024)
+      .spawn(|| {
+        let decision_table: DecisionTable = dsntk_recognizer::from_markdown(RUNAWAY_FIRST_RULE, false).unwrap().into();
+        let scope = context(r#"{Customer: "Business"}"#).into();
+        let evaluator = build_decision_table_evaluator(&scope, &decision_table).unwrap();
+        // outside a session the table is one evaluation of its own: the abort, not the second rule's output
+        assert_eq!(
+          "null(function calls are nested too deeply (more than 200 levels, e.g. runaway recursion); evaluation stopped)",
+          evaluator(&scope).to_string()
+        );
+        // inside a session the table joins it, and the session reports the abort
+        let outcome = rheon_feel_evaluator::Session::new().run(|| evaluator(&scope));
+        assert!(matches!(outcome.into_result(), Err(rheon_feel::diagnostics::Abort::CallDepth { limit: 200, .. })));
+        // nothing of the stopped evaluation is left for the next one
+        let decision_table: DecisionTable = dsntk_recognizer::from_unicode(H_000210, false).unwrap().into();
+        let scope = context(r#"{Customer:"Business", Order:-3.23 }"#).into();
+        assert_eq!(value_number!(10, 2), build_decision_table_evaluator(&scope, &decision_table).unwrap()(&scope));
+      })
+      .unwrap()
+      .join()
+      .unwrap();
   }
 }

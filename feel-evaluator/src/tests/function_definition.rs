@@ -9,7 +9,7 @@ fn _0001() {
   );
   assert_eq!(
     r#"null(expected formal parameters, actual value type is boolean)"#,
-    crate::evaluate(&scope!(), &node).to_string()
+    crate::tests::eval(&scope!(), &node).to_string()
   );
 }
 

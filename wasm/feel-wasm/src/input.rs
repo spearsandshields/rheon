@@ -127,12 +127,7 @@ pub fn feel_context(text: &str) -> Result<FeelContext, String> {
   let scope = FeelScope::default();
   let node = rheon_feel_parser::parse_context(&scope, text, false).map_err(|e| format!("invalid FEEL context: {e}"))?;
   crate::engine::check_ast_depth(&node).map_err(|e| format!("invalid FEEL context: {e}"))?;
-  rheon_feel_evaluator::reset_call_depth();
-  let value = rheon_feel_evaluator::evaluate(&scope, &node);
-  if rheon_feel_evaluator::call_depth_exceeded() {
-    return Err(crate::engine::call_depth_message());
-  }
-  match value {
+  match rheon_feel_evaluator::evaluate(&scope, &node).into_result().map_err(|abort| abort.to_string())? {
     Value::Context(ctx) => Ok(ctx),
     Value::Null(Some(reason)) => Err(format!("FEEL context evaluated to null: {reason}")),
     other => Err(format!("FEEL context literal expected, it evaluated to {} ({})", other, other.type_of())),

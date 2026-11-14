@@ -46,11 +46,6 @@ was written.
 - **Decision-table bounds** `[fork]` (2026-10-18). Rules and outputs are indexed by clause position
   with no count check (`model-evaluator/src/decision_table.rs`): a short rule or a zero-output table
   panics.
-- **The call-depth flag is not reset by every entry point** `[fork]` (2026-10-18). The sticky
-  `CALL_DEPTH_EXCEEDED` (`feel-evaluator/src/invocation.rs`) is reset by the wasm layer and by
-  `ModelEvaluator::evaluate_invocable`, not by `rheon_feel_evaluator::evaluate` and the other FEEL
-  entry points: after one runaway, a native caller that evaluates FEEL directly on the same thread
-  gets null from every invocation until it calls `reset_call_depth`.
 - **Nanosecond rule** `[fork]` (2026-10-18). Time/date-time equality drops nanoseconds, ordering
   keeps them, so `=` and `<` can both hold.
 - **Grammar precedence for unary endpoints** `[fork]` (2026-10-17). `> 0.1 + 0.2` parses as
@@ -61,8 +56,9 @@ was written.
   skipped for the user comparator; a non-boolean answer silently means "does not precede" (the
   ordering itself cannot fail on any answer).
 - **Globals in the engine** `[fork]` (2026-10-17). The tz-offset override is process-global, so
-  the wasm layer serialises requests with `ENGINE_LOCK` (`wasm/feel-wasm/src/engine.rs`), and the
-  call depth is thread-local.
+  the wasm layer serialises requests with `ENGINE_LOCK` (`wasm/feel-wasm/src/engine.rs`). The
+  call depth and the abort of an evaluation are thread-local state owned by that evaluation
+  (`rheon_feel::diagnostics`), cleared when it ends.
 
 ## Lexer and evaluation limits (2026-11-13)
 

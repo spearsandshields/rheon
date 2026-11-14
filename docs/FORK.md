@@ -566,6 +566,47 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     19.7 ms → 24.2 ms (1.23x), 1,000 items 0.90x, 20 items 1.00x. Basis: no input may panic the
     engine (CONTRACT §1). 3 registered differences: the trapping input, and two predicates that
     are not strict orders on 200 and 1,000 items, whose permutation differs. No API change.
+65. **One abort channel, owned by one evaluation.** The call-depth limit was a sticky thread-local
+    flag that only the wasm layer reset and read. `ModelEvaluator::evaluate_invocable` reset it
+    and never read it, so a DMN evaluation that hit the limit served its cut-short value as the
+    result (`null(function call depth limit (200) exceeded)`), and `evaluate_context`,
+    `evaluate` and the other FEEL entry points neither reset nor read it: after one runaway
+    request body, every function call of the native server's next body on that worker thread
+    was null. Now `rheon_feel::diagnostics` holds one evaluation state (the call depth and the
+    abort that stopped the evaluation, first reason kept) that is clear outside an evaluation
+    and cleared by RAII when the evaluation ends, also on a panic. Every entry point opens or
+    joins an evaluation (`Session::run` in rheon-feel-evaluator) and reports an abort instead of a
+    value: `evaluate` and `ModelEvaluator::evaluate_invocable` return an `Outcome`,
+    `evaluate_context` and the range-literal entry points return `Err` (`<EvaluationAborted>
+    function calls are nested too deeply (more than 200 levels, e.g. runaway recursion);
+    evaluation stopped`), and the server, the TCK handler and the CLI report it as an error. A
+    prepared evaluator and a decision table evaluator run as one evaluation: inside a session
+    they join it, outside one a stopped evaluation is null with the abort's text, so no partial
+    value reaches an enclosing expression (`{f: function(n) f(n + 1), r: f(1)}.r = null` was
+    `true`) and no hit policy answers after a limit stopped one of the table's entries (a FIRST
+    table whose first rule's input entry recursed without end answered its second rule's
+    output). A refused call returns a bare null that is never observed. Basis: DMN 1.6 §7.3.8
+    (the evaluation reports diagnostic information; a limit is not a FEEL result), CONTRACT §3
+    (a stopped evaluation is reported as an `evaluation` error, never as a partial result), and
+    the rule that no state outlives one request. The wasm responses are identical, the call-depth
+    `evaluation` and `context` errors included; the changed answers are native only: the
+    runaway context body and the next body on the same thread, the DMN invocable, the CLI,
+    and a prepared evaluator and a decision table evaluator outside a session. API breaks:
+    rheon-feel adds `diagnostics::{Abort, evaluation, one_evaluation, abort, enter_call, Call}`
+    and `From<Abort> for DsntkError`, with `Abort` and its variants `#[non_exhaustive]`
+    (`Abort::limit` builds the engine-limit variant); rheon-feel-evaluator removes `reset_call_depth` and
+    `call_depth_exceeded`, adds `Session` and `Outcome`, `evaluate` returns `Outcome<Value>`,
+    `evaluate_context`, `evaluate_context_node`, `evaluate_range_literal` and
+    `evaluate_range_literal_node` return `Err` on an abort, and `prepare` and
+    `prepare_with_dialect` evaluators turn an abort into a null with its text;
+    `evaluate_invocation` joins a running session, and outside one it is an evaluation of its
+    own, whose stop is null with the abort's text (was `null(function call depth limit (200)
+    exceeded)`, with the flag left set for the next caller on the thread);
+    rheon-model-evaluator: `evaluate_invocable` returns `Outcome<Value>` and
+    `evaluate_invocable_with_mode` returns `Outcome<(Value, Diagnostics)>`, and the evaluator of
+    `build_decision_table_evaluator` turns an abort into a null with its text; unpublished:
+    `dsntk-evaluator` re-exports `Session` and `Outcome`, `Workspaces::evaluate` returns `Err` on
+    an abort.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

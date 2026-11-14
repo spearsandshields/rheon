@@ -11,9 +11,10 @@ fn scope_from(ctx: &str) -> Result<FeelScope, String> {
     return Ok(scope);
   }
   let node = rheon_feel_parser::parse_context(&scope, ctx, false).map_err(|e| format!("ctx parse error: {e}"))?;
-  match rheon_feel_evaluator::evaluate(&scope, &node) {
-    Value::Context(c) => Ok(c.into()),
-    other => Err(format!("ctx not a context: {other}")),
+  match rheon_feel_evaluator::evaluate(&scope, &node).into_result() {
+    Ok(Value::Context(c)) => Ok(c.into()),
+    Ok(other) => Err(format!("ctx not a context: {other}")),
+    Err(abort) => Err(format!("ctx evaluation stopped: {abort}")),
   }
 }
 
@@ -24,7 +25,10 @@ fn eval(ctx: &str, expr: &str) -> (String, String) {
   };
   match rheon_feel_parser::parse_textual_expression(&scope, expr, false) {
     Ok(node) => {
-      let v = rheon_feel_evaluator::evaluate(&scope, &node);
+      let v = match rheon_feel_evaluator::evaluate(&scope, &node).into_result() {
+        Ok(v) => v,
+        Err(abort) => return (format!("evaluation stopped: {abort}"), format!("evaluation stopped: {abort:?}")),
+      };
       let disp = catch_unwind(AssertUnwindSafe(|| v.to_string())).unwrap_or_else(|_| "<PANIC in Display>".to_string());
       let dbg = catch_unwind(AssertUnwindSafe(|| format!("{v:?}"))).unwrap_or_else(|_| "<PANIC in Debug>".to_string());
       (disp, dbg)
