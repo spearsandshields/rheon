@@ -73,6 +73,11 @@ pub fn err_xml_parsing_model_failed(s: &str) -> DsntkError {
   ModelParserError(format!("parsing model from XML failed with reason: {s}")).into()
 }
 
+/// Raised when the elements of a model nest deeper than the parser accepts.
+pub fn err_elements_nested_too_deeply(max_depth: usize) -> DsntkError {
+  ModelParserError(format!("elements are nested more than {max_depth} levels deep")).into()
+}
+
 /// Raised when specified node has no child nodes.
 pub fn err_node_has_no_children(s: &str) -> DsntkError {
   ModelParserError(format!("node {s} has no children nodes")).into()

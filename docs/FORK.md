@@ -848,6 +848,31 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     dropped digits is one function for both arities. Basis: the owner rule that a truncation to
     nanoseconds warns, for literals and `time(h, m, s)` alike, and only when a digit other than 0
     is dropped; CONTRACT §3. 2 registered differences. No API change.
+79. **The elements of a model nest at most 100 levels deep.** The XML parser (roxmltree's tokenizer
+    recurses once per element), the schema validation, the model parser and the evaluator builders
+    all follow the element tree recursively, and nothing bounded it: a model with 100,000 nested
+    `itemComponent`s or boxed contexts overflowed the stack inside the XML parser and aborted the
+    process. `rheon_model::parse` now reads the text once, without recursion, before the XML parser
+    runs, the way the tokenizer reads it (start, end and empty-element tags change the depth;
+    comments, CDATA sections, processing instructions, quoted attribute values and text do not;
+    where the tokenizer stops with an error, so does the check), and rejects a document whose
+    elements nest deeper than 100 levels, the root element being level 1, with `<ModelParserError>
+    elements are nested more than 100 levels deep`. Every later recursion over the elements is
+    bounded by it. The bound is the stack proof: a model nested to it is parsed, built and evaluated
+    on a 2 MiB thread of the unoptimized test build (nested boxed lists and boxed contexts; tests at
+    the bound and one past it). The measured ceiling on that thread is 124 levels (aarch64, rustc
+    1.95.0): the XML parser alone overflows it from 125 levels on, and parsing, building and
+    evaluating a model all pass at 124. The bound keeps a margin of about a quarter below that
+    ceiling, rather than the 256 levels asked for or the measured 124, because CI runs the at-bound
+    tests on x86_64 Linux, whose ceiling could not be measured; the deepest model of the repository
+    and the TCK nests 12 levels. Old and new (native only; the wasm module parses no models): a
+    model nested 101 to 124 levels deep parsed and now gives the error; one nested deeper aborted
+    the process and now gives the error; a malformed document nested more than 100 levels deep
+    reports the nesting, not the XML error found later in the text. Basis: the owner rule that
+    robustness comes first (a model file must not abort the host); the owner decision to keep the
+    bound at 100 with that margin; DMN 1.6 defines no nesting limit, so the bound is an
+    implementation limit, reported as an error. API break (rheon-model): `parse` rejects a document
+    whose elements nest more than 100 levels deep.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
