@@ -438,5 +438,14 @@
   {"op":"evaluate","expression":"date and time(date(2020,1,1), time(24,0,0), \"Z\")"},
   {"op":"evaluate","expression":"date and time(date(2020,1,1), time(\"24:00:00\"), \"+01:00\")"},
   {"op":"evaluate","expression":"-(duration(\"P1M\") * -9223372036854775808)"},
-  {"op":"evaluate","expression":"duration(\"PT0.000000001S\") * -9223372036854775807 - duration(\"PT0.000000001S\")"}
+  {"op":"evaluate","expression":"duration(\"PT0.000000001S\") * -9223372036854775807 - duration(\"PT0.000000001S\")"},
+  {"op":"evaluate","expression":"string(time(\"10:00:00-00:30\"))"},
+  {"op":"evaluate","expression":"string(date and time(\"2020-01-01T10:00:00-00:30\"))"},
+  {"op":"evaluate","expression":"string(@\"10:00:00-00:30\")"},
+  {"op":"evaluate","expression":"string(time(10, 0, 0, duration(\"-PT30M\")))"},
+  {"op":"evaluate","expression":"string(time(10, 0, 0, duration(\"-PT30S\")))"},
+  {"op":"evaluate","expression":"string(date and time(date(2020,1,1), time(10,0,0), \"-00:30\"))"},
+  {"op":"evaluate","expression":"time(\"10:00:00-00:30\")"},
+  {"op":"evaluate","expression":"@\"2020-01-01T10:00:00-00:30\""},
+  {"op":"evaluate","expression":"time(\"10:00:00-00:30\").time offset"}
 ]

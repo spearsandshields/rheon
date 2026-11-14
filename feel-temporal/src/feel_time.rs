@@ -6,6 +6,7 @@ use crate::defs::*;
 use crate::errors::*;
 use crate::feel_date_time::FeelDateTime;
 use crate::feel_dt_duration::FeelDaysAndTimeDuration;
+use crate::feel_offset::FeelOffset;
 use chrono::{DateTime, FixedOffset, NaiveTime, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
@@ -53,12 +54,12 @@ impl PartialEq for FeelTime {
     let equal_zones = match (&self.4, &rhs.4) {
       (FeelZone::Utc, FeelZone::Utc) => true,
       (FeelZone::Utc, FeelZone::Zone(zone_name)) | (FeelZone::Zone(zone_name), FeelZone::Utc) => zone_name == ETC_UTC,
-      (FeelZone::Utc, FeelZone::Offset(offset)) | (FeelZone::Offset(offset), FeelZone::Utc) => *offset == 0,
+      (FeelZone::Utc, FeelZone::Offset(offset)) | (FeelZone::Offset(offset), FeelZone::Utc) => *offset == FeelOffset::ZERO,
       (FeelZone::Local, FeelZone::Local) => true,
       (FeelZone::Offset(offset), FeelZone::Zone(zone_name)) | (FeelZone::Zone(zone_name), FeelZone::Offset(offset)) => {
-        (*offset == 0 && zone_name == ETC_UTC)
+        (*offset == FeelOffset::ZERO && zone_name == ETC_UTC)
           || if let Some(zone_offset) = get_zone_offset(zone_name) {
-            *offset == zone_offset
+            offset.seconds() == zone_offset
           } else {
             false
           }
@@ -99,14 +100,14 @@ impl Sub<FeelTime> for FeelTime {
     let me_offset_opt = match &self.4 {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(me_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, me_time_tuple),
     };
     let other_time_tuple = (other.0 as u32, other.1 as u32, other.2 as u32, other.3 as u32);
     let other_offset_opt = match &other.4 {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(other_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, other_time_tuple),
     };
     if let Some((me_offset, other_offset)) = me_offset_opt.zip(other_offset_opt) {
@@ -160,7 +161,7 @@ impl FeelTime {
     let offset = match &self.4 {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, time_tuple),
     }?;
     date_time_offset_t(time_tuple, offset)
@@ -316,7 +317,7 @@ mod tests {
   fn test_eq() {
     assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) == FeelTime(0, 0, 0, 0, FeelZone::Utc)));
     assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime(0, 0, 0, 0, FeelZone::Local)));
-    assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime(0, 0, 0, 0, FeelZone::Offset(18_000))));
+    assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime::offset_opt(0, 0, 0, 0, 18_000).unwrap()));
     assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime(0, 0, 0, 0, FeelZone::Zone("Europe/Warsaw".to_string()))));
   }
 

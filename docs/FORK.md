@@ -1457,6 +1457,27 @@ The totals are under "Verification" below.
     `registered/integer-powers.json` (item 104) is amended in place to the null, its `why`
     naming both rules. The oracle's last two exemptions are deleted: its list is empty, and its
     quick run judges every case right. No API change.
+106. **A time offset prints its sign from its value.** DMN 1.6 §10.3.2.3.4: "A time in the
+    semantic domain is a value of the XML Schema time datatype"; XML Schema Part 2 §3.2.7.3, the
+    lexical representation of a timezone: "'+' indicates a nonnegative duration, '-' indicates a
+    nonpositive duration". The text of an offset took its sign from the whole hours (`offset /
+    3600`), which are 0 below one hour, so `time("10:00:00-00:30")` printed `10:00:00+00:30` and
+    `time(10, 0, 0, duration("-PT30S"))` printed `10:00:00+00:00:30`: a text that names another
+    value. An offset now has one type, `FeelOffset` (new file `feel-temporal/src/feel_offset.rs`):
+    whole seconds within ±14:00, built by one range check, with one printer that writes `-` for a
+    negative count and `+` otherwise (zero is `+00:00`, as before), then `hh:mm` of the
+    magnitude and `:ss` when its seconds are not zero. `FeelZone::Offset` holds it, and `impl
+    From<FeelOffset> for FeelZone` is the one place where the zero offset becomes UTC; offset
+    literals and `TryFrom<i32>` go through it (`TryFrom<i32>` keeps its range in this item).
+    Test first: `an_offset_prints_its_own_sign` (feel-evaluator, `bif_time.rs`) failed on the
+    parent with `10:00:00+00:30`; `feel_offset.rs` has the printer's and the range's unit tests.
+    Identity: 8 registered differences in `registered/offset-sign-from-value.json` (the `string`
+    of a time and of a date and time with an offset below one hour, from a literal, `@`, `time(h,
+    m, s, offset)` and `date and time(date, time, zone)`), with their requests and a control
+    (`time offset`, unchanged) added to `requests/temporal.json`. Rust API break
+    (rheon-feel-temporal): `FeelZone::Offset` holds a `FeelOffset` (was `i32`); `FeelOffset` is
+    added with `ZERO` and `Display`; the `Display` of `FeelZone::Offset` changes for negative
+    offsets below one hour.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

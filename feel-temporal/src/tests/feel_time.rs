@@ -1,5 +1,6 @@
 //! Test cases for `FEEL` time type.
 
+use crate::feel_offset::FeelOffset;
 use crate::{FeelTime, FeelZone};
 
 #[test]
@@ -48,7 +49,7 @@ fn a_time_of_day_is_below_24_hours() {
 
 #[test]
 fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
-  for zone in [FeelZone::Utc, FeelZone::Local, FeelZone::Offset(3_600)] {
+  for zone in [FeelZone::Utc, FeelZone::Local, FeelZone::Offset(FeelOffset::from_seconds(3_600).unwrap())] {
     assert!(FeelTime::zone_opt(24, 0, 0, 1, zone.clone()).is_none());
     assert!(FeelTime::zone_opt(24, 0, 0, 500_000_000, zone.clone()).is_none());
     assert_eq!((0, 0, 0, 0, zone.clone()), FeelTime::zone_opt(24, 0, 0, 0, zone).unwrap().as_tuple());

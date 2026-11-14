@@ -44,7 +44,7 @@ impl PartialEq for FeelDateTime {
     let lhs_offset_opt = match lhs_zone {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(lhs_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, lhs_date_tuple, lhs_time_tuple),
     };
     let rhs_date_tuple = rhs.0.as_tuple();
@@ -52,7 +52,7 @@ impl PartialEq for FeelDateTime {
     let rhs_offset_opt = match rhs_zone {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(rhs_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, rhs_date_tuple, rhs_time_tuple),
     };
     if let Some((lhs_offset, rhs_offset)) = lhs_offset_opt.zip(rhs_offset_opt) {
@@ -146,7 +146,7 @@ impl TryFrom<FeelDateTime> for DateTime<FixedOffset> {
     let me_offset_opt = match (value.1).zone() {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_dt(me_date_tuple, me_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
     };
     if let Some(me_offset) = me_offset_opt
@@ -247,7 +247,7 @@ impl FeelDateTime {
     let me_offset_opt = match me_zone {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_dt(me_date_tuple, me_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
     };
     let other_date_tuple = other.0.as_tuple();
@@ -255,7 +255,7 @@ impl FeelDateTime {
     let other_offset_opt = match other_zone {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_dt(other_date_tuple, other_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, other_date_tuple, other_time_tuple),
     };
     if let Some((me_offset, other_offset)) = me_offset_opt.zip(other_offset_opt) {

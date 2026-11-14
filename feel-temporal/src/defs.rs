@@ -86,7 +86,7 @@ pub fn feel_time_offset(me: &FeelDateTime) -> Option<i32> {
   let me_offset_opt = match me.time().zone() {
     FeelZone::Utc => Some(0),
     FeelZone::Local => None, // in FEEL semantic domain the local offset is treated as none
-    FeelZone::Offset(offset) => Some(*offset),
+    FeelZone::Offset(offset) => Some(offset.seconds()),
     FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
   };
   if let Some(me_offset) = me_offset_opt {
@@ -403,7 +403,7 @@ mod tests {
     assert_eq!(60, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_c)).unwrap());
     let feel_time_d = FeelTime::zone_opt(0, 0, 0, 0, FeelZone::Utc).unwrap();
     assert_eq!(0, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_d)).unwrap());
-    let feel_time_e = FeelTime::zone_opt(0, 0, 0, 0, FeelZone::Offset(15)).unwrap();
+    let feel_time_e = FeelTime::offset_opt(0, 0, 0, 0, 15).unwrap();
     assert_eq!(15, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_e)).unwrap());
     let feel_time_f = FeelTime::zone_opt(0, 0, 0, 0, FeelZone::Zone("Etc/UTC".to_string())).unwrap();
     assert_eq!(0, feel_time_offset(&FeelDateTime::new(feel_date, feel_time_f)).unwrap());

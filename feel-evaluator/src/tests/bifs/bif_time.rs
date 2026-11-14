@@ -373,6 +373,25 @@ fn fractional_seconds_are_exact() {
 }
 
 #[test]
+fn an_offset_prints_its_own_sign() {
+  // XML Schema Part 2 §3.2.7.3: the sign of a timezone is the sign of the offset, also below one hour
+  te_string(false, &scope!(), r#"string(time("10:00:00-00:30"))"#, "10:00:00-00:30");
+  te_string(false, &scope!(), r#"string(@"10:00:00-00:30")"#, "10:00:00-00:30");
+  te_string(false, &scope!(), r#"string(time(10, 0, 0, duration("-PT30M")))"#, "10:00:00-00:30");
+  te_string(false, &scope!(), r#"string(time(10, 0, 0, duration("-PT30S")))"#, "10:00:00-00:00:30");
+  te_string(false, &scope!(), r#"string(time(10, 0, 0, duration("PT30S")))"#, "10:00:00+00:00:30");
+  te_string(false, &scope!(), r#"string(date and time("2020-01-01T10:00:00-00:30"))"#, "2020-01-01T10:00:00-00:30");
+  te_string(
+    false,
+    &scope!(),
+    r#"string(date and time(date(2020,1,1), time(10,0,0), "-00:30"))"#,
+    "2020-01-01T10:00:00-00:30",
+  );
+  te_string(false, &scope!(), r#"string(time("10:00:00-01:30"))"#, "10:00:00-01:30");
+  te_string(false, &scope!(), r#"string(time("10:00:00+00:30"))"#, "10:00:00+00:30");
+}
+
+#[test]
 fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
   te_null(
     false,
