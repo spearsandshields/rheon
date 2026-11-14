@@ -1,7 +1,22 @@
 //! Contract tests (docs/CONTRACT.md §2–3). Run natively (`cargo test -p rheon-feel-wasm`) and under
 //! wasm32-wasip1 via wasmtime (`source scripts/env.sh && cargo test -p rheon-feel-wasm --target wasm32-wasip1`).
+//! The request corpora that must never trap the module are in `corpus/`.
 
 use serde_json::{Value as Json, json};
+
+mod corpus;
+
+/// Runs `body` on a thread with a big stack natively, and directly on wasm32. The nesting and
+/// call-depth limits are sized for the release wasm build in a browser worker; unoptimized native
+/// test builds use much bigger stack frames than that.
+fn with_big_stack(body: fn()) {
+  #[cfg(not(target_arch = "wasm32"))]
+  if let Err(panic) = std::thread::Builder::new().stack_size(512 * 1024 * 1024).spawn(body).unwrap().join() {
+    std::panic::resume_unwind(panic);
+  }
+  #[cfg(target_arch = "wasm32")]
+  body();
+}
 
 /// Sends a raw request text and parses the response.
 fn raw(request: &str) -> Json {
@@ -543,17 +558,7 @@ fn nested_lists_are_typed_in_linear_time() {
 /// the stack (a host-dependent trap on wasm), and runaway recursion stops at a fixed call depth.
 #[test]
 fn nesting_and_recursion_limits() {
-  // The limits are sized for the release wasm build in a browser worker; unoptimized native
-  // test builds use much bigger stack frames than that, so give this test a big stack.
-  #[cfg(not(target_arch = "wasm32"))]
-  std::thread::Builder::new()
-    .stack_size(512 * 1024 * 1024)
-    .spawn(nesting_and_recursion_limits_body)
-    .unwrap()
-    .join()
-    .unwrap();
-  #[cfg(target_arch = "wasm32")]
-  nesting_and_recursion_limits_body();
+  with_big_stack(nesting_and_recursion_limits_body);
 }
 
 fn nesting_and_recursion_limits_body() {

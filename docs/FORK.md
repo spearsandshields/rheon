@@ -100,6 +100,7 @@ Rules:
 | 52 | `cb925d0` | feel-parser: the composite-name search without recursion | fork |
 | 53 | `6dcbbba` | feel-evaluator: a date range ending at the first or last supported date restarts at its start | upstream bug |
 | 54 | `ff98977` | feel: strings share their text (`FeelString`) | fork |
+| 55 | | feel-wasm: test that no corpus request traps the module | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -406,6 +407,27 @@ a 5,000-entry context literal 19.2 ms → 6.2 ms; `count(for i in 1..10000 retur
 1.11 ms; filtering 10,000 contexts 38.3 ms → 11.1 ms. Full responses (result, type, warnings,
 diagnostics, errors) of 1,174 requests (evaluate requests and a parse request made from each)
 equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48, 49 and 53.
+
+55. **No-trap corpus.** `wasm/feel-wasm/tests/corpus/no-trap.json` is a JSON array of module
+    requests, exactly as a host sends them, and the contract test `corpus_requests_never_trap`
+    sends each one through `feel_wasm::call`, natively and under Wasmtime. A request passes when
+    the module answers it with JSON whose `ok` is a boolean and whose error, if any, is not
+    `internal` (a caught panic), and when the next request, a function call (`abs(-1) + 1`),
+    still answers `2`, so no call-depth or abort state lingers. Natively a panic fails the test
+    with the request named; under Wasmtime a trap aborts the test binary, and the request is the
+    last `no-trap:` line on stderr. Values are not asserted here: the corpus is also a request
+    source of the identity check (commit 56), which pins every answer. The 66 initial requests
+    are inputs at the engine's limits that 0.4.0 answers: temporal values at the edges of the
+    supported range with checked operations, month-end arithmetic, regex patterns at the engine
+    limits (catastrophic backtracking, `\w{10000}`, 65 nested groups), expressions at and beyond
+    the 300-level nesting limit (as `evaluate` and `parse`, and as a FEEL context), recursion at
+    and beyond the 200-call limit, and `sort` with consistent predicates on 0 to 10,000 items. An
+    input that traps the module is added here in the commit that fixes it and stays as a
+    regression seed. The test runs on the same 512 MiB native thread as
+    `nesting_and_recursion_limits`, through one shared helper, because unoptimized native test
+    builds use much bigger stack frames than the release module and a native stack overflow
+    aborts the test binary instead of failing one test. Basis: no input may panic the engine
+    (CONTRACT §1: on wasm a panic aborts the instance). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
