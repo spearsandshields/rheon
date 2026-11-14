@@ -58,7 +58,8 @@ was written.
 - **Zoned `now()`** `[fork]` (2026-10-17). `now()` is zone-less, so
   `now() - date and time("…Z")` is null.
 - **`sort` comparator bypasses guards** `[fork]` (2026-10-18). Depth and finiteness guards are
-  skipped for the user comparator; non-boolean result silently means equal.
+  skipped for the user comparator; a non-boolean answer silently means "does not precede" (the
+  ordering itself cannot fail on any answer).
 - **Globals in the engine** `[fork]` (2026-10-17). The tz-offset override is process-global, so
   the wasm layer serialises requests with `ENGINE_LOCK` (`wasm/feel-wasm/src/engine.rs`), and the
   call depth is thread-local.

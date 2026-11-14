@@ -545,6 +545,27 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     reason (CONTRACT §5). Basis: results never depend on where the core runs. 4 registered
     differences (wasm only). API break (rheon-feel-temporal): `FeelDaysAndTimeDuration::as_seconds`
     returns `i64` (was `isize`).
+64. **`sort` cannot panic on any predicate.** `sort` passed the user's `precedes` to the standard
+    library's stable sort, which may panic when the comparison is not a total order (documented
+    since Rust 1.81), and does on 1.95: `sort(for i in 1..33 return modulo(i, 7), function(x, y)
+    modulo(x * 7, 5) < modulo(y * 3, 5))` trapped the module. DMN 1.6 §10.3.4.9 (Table 81) states
+    no condition on `precedes`, so `sort` now owns its ordering (`feel-evaluator/src/bifs/sorting.rs`,
+    no recursion, no `unsafe`, positions instead of moved values): up to 20 items by insertion,
+    with the same calls of `precedes` as before; longer lists in runs (a run in which each item
+    precedes the one before it is reversed, a run in which none does is kept, shorter runs are
+    extended to 20 items by binary insertion), merged level by level, the right item first only
+    when it precedes the left one, with galloping searches once one side wins 7 times in a row.
+    For every predicate the result is a permutation fixed by the list and the answers of
+    `precedes`; for a strict weak order it is the stable sort, so every such result is
+    unchanged. An answer other than `true` still means "does not precede". Calls of `precedes`
+    for 10,000 items against the library sort: pseudo-random 0.82-0.87x, ordered and reversed
+    equal (9,999), a sorted list with a random tail 0.59x, seven distinct values 1.33x. Speed on
+    the wasm module (median of 15 runs, Node, against 0.4.0): `count(sort(for i in 1..10000
+    return modulo(i * 7919, 10007), function(x, y) x < y))` 44.2 ms → 39.3 ms (0.89x the time),
+    the ordered list 1.03x, the reversed list 1.01x, 10,000 items of seven distinct values
+    19.7 ms → 24.2 ms (1.23x), 1,000 items 0.90x, 20 items 1.00x. Basis: no input may panic the
+    engine (CONTRACT §1). 3 registered differences: the trapping input, and two predicates that
+    are not strict orders on 200 and 1,000 items, whose permutation differs. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
