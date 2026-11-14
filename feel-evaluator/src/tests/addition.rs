@@ -338,3 +338,27 @@ fn _0047() {
   te_value(false, &scope!(), r#"{f: function(s) s + "!", s: "ab", r: [f(s), f(s), s]}.r"#, r#"["ab!", "ab!", "ab"]"#);
   te_value(false, &scope!(), r#"for s in ["a", "b"] return s + s + s"#, r#"["aaa", "bbb"]"#);
 }
+
+#[test]
+fn _0048() {
+  // A sum of -2^63 months or nanoseconds is out of the range of a duration.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("P1M") * -9223372036854775807 + duration("-P1M")"#,
+    "years and months duration addition overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("PT0.000000001S") * -9223372036854775807 + duration("-PT0.000000001S")"#,
+    "days and time duration addition overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date("2020-01-01") + duration("P1M") * -9223372036854775808"#,
+    "[builders::add] invalid argument type, expected years and months duration, actual type is Null",
+  );
+}

@@ -136,7 +136,7 @@ fn te_string(trace: bool, scope: &FeelScope, s: &str, expected: &str) {
 
 /// Utility function that tests evaluation of year and months duration.
 pub fn te_years_and_months_duration(trace: bool, scope: &FeelScope, s: &str, years: i64, months: i64) {
-  textual_expression(trace, scope, s, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(years, months)));
+  textual_expression(trace, scope, s, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(years, months).unwrap()));
 }
 
 /// Utility function that tests evaluation of year and months duration.
@@ -151,9 +151,9 @@ pub fn te_days_and_time_duration(trace: bool, scope: &FeelScope, s: &str, neg: b
     scope,
     s,
     Value::DaysAndTimeDuration(if neg {
-      -FeelDaysAndTimeDuration::from_sn(sec, nano)
+      -FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap()
     } else {
-      FeelDaysAndTimeDuration::from_sn(sec, nano)
+      FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap()
     }),
   );
 }

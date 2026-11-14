@@ -2994,21 +2994,24 @@ pub fn week_of_year(value: &Value) -> Value {
 
 /// Returns years and months duration between `from` and `to`.
 pub fn years_and_months_duration(from_value: &Value, to_value: &Value) -> Value {
+  fn between(from: &FeelDate, to: &FeelDate) -> Value {
+    (to - from).map_or_else(|| value_null!("years and months duration: result is out of range"), Value::YearsAndMonthsDuration)
+  }
   if let Value::Date(from) = from_value {
     if let Value::DateTime(to) = to_value {
-      return Value::YearsAndMonthsDuration(&to.date() - from);
+      return between(from, &to.date());
     }
     if let Value::Date(to) = to_value {
-      return Value::YearsAndMonthsDuration(to - from);
+      return between(from, to);
     }
     return invalid_argument_type!("years and months duration", "date, date and time", to_value.type_of());
   }
   if let Value::DateTime(from) = from_value {
     if let Value::DateTime(to) = to_value {
-      return Value::YearsAndMonthsDuration(&to.date() - &from.date());
+      return between(&from.date(), &to.date());
     }
     if let Value::Date(to) = to_value {
-      return Value::YearsAndMonthsDuration(to - &from.date());
+      return between(&from.date(), to);
     }
     return invalid_argument_type!("years and months duration", "date, date and time", to_value.type_of());
   }

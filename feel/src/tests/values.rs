@@ -40,7 +40,7 @@ fn test_debug() {
   let v_function_body = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let v_external = false;
   let v_days_and_time_duration = FeelDaysAndTimeDuration::from_s(100);
-  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2);
+  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap();
   let v_closure = Closure::default();
   let v_closure_ctx = FeelContext::default();
   eq_dbg!(r#"Boolean(false)"#, Value::Boolean(false));
@@ -134,7 +134,7 @@ fn test_display() {
   let v_function_body = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let v_external = false;
   let v_days_and_time_duration = FeelDaysAndTimeDuration::from_s(100);
-  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2);
+  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap();
   let v_closure = Closure::default();
   let v_closure_ctx = FeelContext::default();
   eq_dsp!(r#"false"#, Value::Boolean(false));
@@ -212,7 +212,7 @@ fn test_type_of() {
   let v_function_body = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let v_external = false;
   let v_days_and_time_duration = FeelDaysAndTimeDuration::from_s(100);
-  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2);
+  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap();
   let v_closure = Closure::default();
   let v_closure_ctx = FeelContext::default();
   eq_typ!(FeelType::Boolean, Value::Boolean(false));
@@ -398,7 +398,7 @@ fn test_jsonify() {
     Value::DateTime(FeelDateTime::new(FeelDate::new(2023, 2, 24).unwrap(), FeelTime::utc_opt(18, 35, 12, 598677).unwrap())).jsonify()
   );
   assert_eq!(r#""P10DT13H59M18S""#, Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(914358)).jsonify());
-  assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2)).jsonify());
+  assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap()).jsonify());
   assert_eq!(r#"[]"#, Value::ExpressionList(Values::default()).jsonify());
   assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).jsonify());
   assert_eq!(r#"alpha"#, Value::ContextEntryKey("alpha".into()).jsonify());

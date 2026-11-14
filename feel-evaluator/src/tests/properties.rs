@@ -457,3 +457,27 @@ fn dmn_1_6_value_property() {
   te_null(false, scope, r#"@"2018-01-01T10:00:00".value"#, "value: a local date and time has no UTC form");
   te_number(false, scope, r#"{value: 5}.value"#, 5, 0);
 }
+
+#[test]
+fn _0086() {
+  // The components of every days and time duration exist; a product of -2^63 nanoseconds is null.
+  let scope = &scope!();
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").days"#, 106751, 0);
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").hours"#, 23, 0);
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").minutes"#, 47, 0);
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").seconds"#, 16, 0);
+  te_null(
+    false,
+    scope,
+    r#"(duration("PT0.000000001S") * -9223372036854775808).days"#,
+    "multiplication result is out of range of days and time duration",
+  );
+  te_null(
+    false,
+    scope,
+    r#"(date and time("1677-09-21T00:12:43.145224192Z") - date and time("1970-01-01T00:00:00Z")).days"#,
+    "[subtraction] incompatible types: 1677-09-21T00:12:43.145224192Z - 1970-01-01T00:00:00Z",
+  );
+  // valuedt is the exact number of seconds since the epoch (§10.3.2.3.5), also at -2^63 nanoseconds
+  te_number_x(false, scope, r#"date and time("1677-09-21T00:12:43.145224192Z").value"#, "-9223372036.854775808");
+}

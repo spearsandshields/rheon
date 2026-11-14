@@ -90,3 +90,13 @@ fn _0017() {
 fn _0018() {
   te_null(false, &scope!(), r#" -"a" "#, "unexpected type in arithmetic negation: string")
 }
+
+#[test]
+fn _0019() {
+  // Negation is total: a duration lies in -(2^63 - 1)..=2^63 - 1 months or nanoseconds.
+  let scope = &scope!();
+  te_years_and_months_duration_x(false, scope, r#"-duration("-P9223372036854775807M")"#, "P768614336404564650Y7M");
+  te_years_and_months_duration_x(false, scope, r#"-duration("P9223372036854775807M")"#, "-P768614336404564650Y7M");
+  te_days_and_time_duration_x(false, scope, r#"-duration("-PT9223372036.854775807S")"#, "P106751DT23H47M16.854775807S");
+  te_null(false, scope, r#"-(duration("P1M") * -9223372036854775808)"#, "unexpected type in arithmetic negation: Null");
+}

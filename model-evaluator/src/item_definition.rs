@@ -587,7 +587,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Growth", "Duration"])).unwrap();
     assert_eq!(
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 5)),
+      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 5).unwrap()),
       evaluator.eval(&DefKey::new(NAMESPACE, "tGrowthDuration"), value).unwrap()
     );
   }
@@ -729,8 +729,8 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3)),
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 4)),
+      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap()),
+      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 4).unwrap()),
     ]);
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }

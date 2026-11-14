@@ -146,3 +146,35 @@ fn _0024() {
 fn _0025() {
   te_null(false, &scope!(), r#" "a" * 2 "#, r#"unexpected value type in multiplication: string"#);
 }
+
+#[test]
+fn _0026() {
+  // A duration lies in -(2^63 - 1)..=2^63 - 1 months or nanoseconds, so a product of -2^63 is out of range.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("P1M") * -9223372036854775808"#,
+    "multiplication result is out of range of years and months duration",
+  );
+  te_null(
+    false,
+    scope,
+    r#"-9223372036854775808 * duration("P1M")"#,
+    "multiplication result is out of range of years and months duration",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("PT0.000000001S") * -9223372036854775808"#,
+    "multiplication result is out of range of days and time duration",
+  );
+  te_null(
+    false,
+    scope,
+    r#"-9223372036854775808 * duration("PT0.000000001S")"#,
+    "multiplication result is out of range of days and time duration",
+  );
+  te_years_and_months_duration_x(false, scope, r#"duration("P1M") * -9223372036854775807"#, "-P768614336404564650Y7M");
+  te_days_and_time_duration_x(false, scope, r#"duration("PT0.000000001S") * -9223372036854775807"#, "-P106751DT23H47M16.854775807S");
+}

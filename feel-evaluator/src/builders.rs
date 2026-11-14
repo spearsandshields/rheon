@@ -601,8 +601,10 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("[division] division by zero")
             } else {
               let lv = FeelNumber::from(lh.as_nanos()) / rh;
-              if let Ok(v) = FeelNumber::try_into(lv) {
-                Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_n(v))
+              if let Ok(v) = FeelNumber::try_into(lv)
+                && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+              {
+                Value::DaysAndTimeDuration(duration)
               } else {
                 value_null!("[division] error: {} / {}", lhv, rhv)
               }
@@ -625,8 +627,10 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("[division] division by zero")
             } else {
               let vl = FeelNumber::from(lh.as_months()) / rh;
-              if let Ok(v) = FeelNumber::try_into(vl) {
-                Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(v))
+              if let Ok(v) = FeelNumber::try_into(vl)
+                && let Some(duration) = FeelYearsAndMonthsDuration::from_m(v)
+              {
+                Value::YearsAndMonthsDuration(duration)
               } else {
                 value_null!("[division] error: {} / {}", lhv, rhv)
               }
@@ -1411,16 +1415,20 @@ impl<'b> EvaluatorBuilder<'b> {
           Value::Number(rh) => Value::Number(lh * rh),
           Value::DaysAndTimeDuration(ref rh) => {
             let val = lh * FeelNumber::from(rh.as_nanos());
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_n(v))
+            if let Ok(v) = FeelNumber::try_into(val)
+              && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+            {
+              Value::DaysAndTimeDuration(duration)
             } else {
               value_null!("multiplication result is out of range of days and time duration")
             }
           }
           Value::YearsAndMonthsDuration(ref rh) => {
             let val = lh * FeelNumber::from(rh.as_months());
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(v))
+            if let Ok(v) = FeelNumber::try_into(val)
+              && let Some(duration) = FeelYearsAndMonthsDuration::from_m(v)
+            {
+              Value::YearsAndMonthsDuration(duration)
             } else {
               value_null!("multiplication result is out of range of years and months duration")
             }
@@ -1430,8 +1438,10 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::DaysAndTimeDuration(ref lh) => match rhv {
           Value::Number(rh) => {
             let val = FeelNumber::from(lh.as_nanos()) * rh;
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_n(v))
+            if let Ok(v) = FeelNumber::try_into(val)
+              && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+            {
+              Value::DaysAndTimeDuration(duration)
             } else {
               value_null!("multiplication result is out of range of days and time duration")
             }
@@ -1441,8 +1451,10 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::YearsAndMonthsDuration(ref lh) => match rhv {
           Value::Number(rh) => {
             let val = FeelNumber::from(lh.as_months()) * rh;
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(v))
+            if let Ok(v) = FeelNumber::try_into(val)
+              && let Some(duration) = FeelYearsAndMonthsDuration::from_m(v)
+            {
+              Value::YearsAndMonthsDuration(duration)
             } else {
               value_null!("multiplication result is out of range of years and months duration")
             }
@@ -1473,12 +1485,8 @@ impl<'b> EvaluatorBuilder<'b> {
       let lhv = lhe(scope);
       match lhv {
         Value::Number(lh) => Value::Number(-lh),
-        Value::DaysAndTimeDuration(lh) => lh
-          .checked_neg()
-          .map_or_else(|| value_null!("days and time duration negation overflow"), Value::DaysAndTimeDuration),
-        Value::YearsAndMonthsDuration(lh) => lh
-          .checked_neg()
-          .map_or_else(|| value_null!("years and months duration negation overflow"), Value::YearsAndMonthsDuration),
+        Value::DaysAndTimeDuration(lh) => Value::DaysAndTimeDuration(-lh),
+        Value::YearsAndMonthsDuration(lh) => Value::YearsAndMonthsDuration(-lh),
         other => value_null!("unexpected type in arithmetic negation: {}", other.type_of()),
       }
     })
@@ -1960,7 +1968,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       Bip::Second => Value::Number(date_time.second().into()),
       Bip::TimeOffset => {
         if let Some(offset) = date_time.feel_time_offset() {
-          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset as i64))
+          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset))
         } else {
           value_null!("could not retrieve time offset for date and time")
         }
@@ -1981,7 +1989,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       Bip::Second => Value::Number(time.second().into()),
       Bip::TimeOffset => {
         if let Some(offset) = time.feel_time_offset() {
-          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset as i64))
+          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset))
         } else {
           value_null!("could not retrieve time offset for time")
         }
@@ -2741,8 +2749,8 @@ mod temporal_value {
     let Some(epoch) = FeelDateTime::utc(1970, 1, 1, 0, 0, 0, 0) else {
       return value_null!("value: epoch");
     };
-    match date_time.clone() - epoch {
-      Some(duration) => seconds(duration.as_nanos()),
+    match date_time.nanos_since(&epoch) {
+      Some(nanos) => seconds(nanos),
       None => value_null!("value: date and time out of range"),
     }
   }

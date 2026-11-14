@@ -247,7 +247,7 @@ fn zero() -> Value {
   Value::Number(FeelNumber::zero())
 }
 fn zero_ym_duration() -> Value {
-  Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(0))
+  Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::default())
 }
 fn epoch_date() -> Value {
   FeelDate::new(1970, 1, 1).map(Value::Date).unwrap_or(Value::Null(None))

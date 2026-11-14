@@ -96,8 +96,9 @@ impl Ord for FeelDate {
 }
 
 impl Sub<&FeelDate> for &FeelDate {
-  type Output = FeelYearsAndMonthsDuration;
-  /// Subtracts two [FeelDates](FeelDate), the result is [FeelYearsAndMonthsDuration].
+  type Output = Option<FeelYearsAndMonthsDuration>;
+  /// Subtracts two [FeelDates](FeelDate), the result is [FeelYearsAndMonthsDuration], or `None`
+  /// when it is out of range.
   fn sub(self, other: &FeelDate) -> Self::Output {
     let mut months;
     if self.0 < other.0 {

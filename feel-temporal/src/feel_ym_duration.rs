@@ -17,19 +17,23 @@ static RE_YEARS_AND_MONTHS: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_
 
 /// Years and months duration in FEEL.
 ///
-/// Holds the number of months in the duration.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+/// Holds the number of months in the duration, in `-(2^63 - 1)..=2^63 - 1`: the range is
+/// symmetric, so the absolute value and the negation of every duration are durations too.
+/// `Default` is the zero duration.
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd)]
 pub struct FeelYearsAndMonthsDuration(i64);
 
 impl FeelYearsAndMonthsDuration {
-  /// Created a new years and months duration from given number of `years` and `months`.
-  pub fn from_ym(years: i64, months: i64) -> Self {
-    Self(years * MONTHS_IN_YEAR + months)
+  /// Creates a years and months duration of `years` years and `months` months, or `None` when it
+  /// is out of range.
+  pub fn from_ym(years: i64, months: i64) -> Option<Self> {
+    years.checked_mul(MONTHS_IN_YEAR)?.checked_add(months).and_then(Self::from_m)
   }
 
-  /// Created a new years and months duration from given number of `months`.
-  pub fn from_m(months: i64) -> Self {
-    Self(months)
+  /// Creates a years and months duration of `months` months, or `None` when it is out of range
+  /// (`i64::MIN`). Every duration is built here.
+  pub fn from_m(months: i64) -> Option<Self> {
+    (months != i64::MIN).then_some(Self(months))
   }
 
   /// Returns the number of years in this duration.
@@ -49,45 +53,22 @@ impl FeelYearsAndMonthsDuration {
 
   /// Returns absolute value of the duration.
   pub fn abs(&self) -> Self {
-    FeelYearsAndMonthsDuration(self.0.abs())
+    Self(self.0.abs())
   }
 
   /// Returns `true` when duration is negative.
   pub fn is_negative(&self) -> bool {
     self.0 < 0
   }
-}
 
-impl FeelYearsAndMonthsDuration {
-  /// Returns the sum of durations, or `None` when the result does not fit.
+  /// Returns the sum of durations, or `None` when the result is out of range.
   pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
-    self.0.checked_add(rhs.0).map(Self)
+    self.0.checked_add(rhs.0).and_then(Self::from_m)
   }
 
-  /// Returns the difference of durations, or `None` when the result does not fit.
+  /// Returns the difference of durations, or `None` when the result is out of range.
   pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
-    self.0.checked_sub(rhs.0).map(Self)
-  }
-
-  /// Returns the negated duration, or `None` when the result does not fit.
-  pub fn checked_neg(&self) -> Option<Self> {
-    self.0.checked_neg().map(Self)
-  }
-}
-
-impl ops::Add<FeelYearsAndMonthsDuration> for FeelYearsAndMonthsDuration {
-  type Output = Self;
-  /// Returns the sum of durations.
-  fn add(self, rhs: FeelYearsAndMonthsDuration) -> Self {
-    Self(self.0 + rhs.0)
-  }
-}
-
-impl ops::Sub<FeelYearsAndMonthsDuration> for FeelYearsAndMonthsDuration {
-  type Output = Self;
-  /// Returns the subtraction of durations.
-  fn sub(self, rhs: FeelYearsAndMonthsDuration) -> Self {
-    Self(self.0 - rhs.0)
+    self.0.checked_sub(rhs.0).and_then(Self::from_m)
   }
 }
 
@@ -103,9 +84,9 @@ impl fmt::Display for FeelYearsAndMonthsDuration {
   /// Converts [FeelYearsAndMonthsDuration] into string.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let sign = if self.0 < 0 { "-" } else { "" };
-    let mut month = self.0.abs();
-    let year = month / MONTHS_IN_YEAR;
-    month -= year * MONTHS_IN_YEAR;
+    let mut month = self.0.unsigned_abs();
+    let year = month / MONTHS_IN_YEAR as u64;
+    month -= year * MONTHS_IN_YEAR as u64;
     match (year > 0, month > 0) {
       (false, false) => write!(f, "P0M"),
       (false, true) => write!(f, "{sign}P{month}M"),
@@ -148,7 +129,9 @@ impl TryFrom<&str> for FeelYearsAndMonthsDuration {
         if captures.name("sign").is_some() {
           total_months = -total_months;
         }
-        return Ok(FeelYearsAndMonthsDuration(total_months));
+        if let Some(duration) = Self::from_m(total_months) {
+          return Ok(duration);
+        }
       }
     }
     Err(err_invalid_years_and_months_duration_literal(value))
@@ -174,7 +157,7 @@ mod tests {
 
   /// Utility function for testing equality of textual forms of years and months durations.
   fn equals_str(expected: &str, years: i64, months: i64) {
-    let actual: String = FeelYearsAndMonthsDuration(years * MONTHS_IN_YEAR + months).to_string();
+    let actual: String = FeelYearsAndMonthsDuration::from_ym(years, months).unwrap().to_string();
     assert_eq!(expected, actual);
   }
 
@@ -221,85 +204,85 @@ mod tests {
 
   #[test]
   fn test_eq_should_pass() {
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 0);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 0);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 0).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 0).unwrap();
     assert!((a == b));
-    let a = FeelYearsAndMonthsDuration::from_ym(2, 3);
-    let b = FeelYearsAndMonthsDuration::from_ym(2, 3);
+    let a = FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap();
     assert!((a == b));
-    let a = FeelYearsAndMonthsDuration::from_ym(-3, 4);
-    let b = FeelYearsAndMonthsDuration::from_ym(-3, 4);
+    let a = FeelYearsAndMonthsDuration::from_ym(-3, 4).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(-3, 4).unwrap();
     assert!((a == b));
-    let a = FeelYearsAndMonthsDuration::from_m(0);
-    let b = FeelYearsAndMonthsDuration::from_m(0);
+    let a = FeelYearsAndMonthsDuration::from_m(0).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(0).unwrap();
     assert!((a == b));
-    let a = FeelYearsAndMonthsDuration::from_m(-0);
-    let b = FeelYearsAndMonthsDuration::from_m(0);
+    let a = FeelYearsAndMonthsDuration::from_m(-0).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(0).unwrap();
     assert!((a == b));
-    let a = FeelYearsAndMonthsDuration::from_m(-15);
-    let b = FeelYearsAndMonthsDuration::from_m(-15);
+    let a = FeelYearsAndMonthsDuration::from_m(-15).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(-15).unwrap();
     assert!((a == b));
   }
 
   #[test]
   fn test_ne_should_pass() {
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 0);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 1);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 0).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
     assert!((a != b));
-    let a = FeelYearsAndMonthsDuration::from_m(1);
-    let b = FeelYearsAndMonthsDuration::from_m(0);
+    let a = FeelYearsAndMonthsDuration::from_m(1).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(0).unwrap();
     assert!((a != b));
   }
 
   #[test]
   fn test_lt_should_pass() {
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 0);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 1);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 0).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
     assert!(a < b);
-    let a = FeelYearsAndMonthsDuration::from_m(4);
-    let b = FeelYearsAndMonthsDuration::from_m(5);
+    let a = FeelYearsAndMonthsDuration::from_m(4).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(5).unwrap();
     assert!(a < b);
   }
 
   #[test]
   fn test_le_should_pass() {
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 0);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 1);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 0).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
     assert!(a <= b);
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 1);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 1);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
     assert!(a <= b);
-    let a = FeelYearsAndMonthsDuration::from_m(12);
-    let b = FeelYearsAndMonthsDuration::from_m(18);
+    let a = FeelYearsAndMonthsDuration::from_m(12).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(18).unwrap();
     assert!(a <= b);
-    let a = FeelYearsAndMonthsDuration::from_m(16);
-    let b = FeelYearsAndMonthsDuration::from_m(16);
+    let a = FeelYearsAndMonthsDuration::from_m(16).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(16).unwrap();
     assert!(a <= b);
   }
 
   #[test]
   fn test_gt_should_pass() {
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 1);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 0);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 0).unwrap();
     assert!(a > b);
-    let a = FeelYearsAndMonthsDuration::from_m(5);
-    let b = FeelYearsAndMonthsDuration::from_m(4);
+    let a = FeelYearsAndMonthsDuration::from_m(5).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(4).unwrap();
     assert!(a > b);
   }
 
   #[test]
   fn test_ge_should_pass() {
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 1);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 0);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 0).unwrap();
     assert!(a >= b);
-    let a = FeelYearsAndMonthsDuration::from_ym(0, 1);
-    let b = FeelYearsAndMonthsDuration::from_ym(0, 1);
+    let a = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_ym(0, 1).unwrap();
     assert!(a >= b);
-    let a = FeelYearsAndMonthsDuration::from_m(18);
-    let b = FeelYearsAndMonthsDuration::from_m(12);
+    let a = FeelYearsAndMonthsDuration::from_m(18).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(12).unwrap();
     assert!(a >= b);
-    let a = FeelYearsAndMonthsDuration::from_m(16);
-    let b = FeelYearsAndMonthsDuration::from_m(16);
+    let a = FeelYearsAndMonthsDuration::from_m(16).unwrap();
+    let b = FeelYearsAndMonthsDuration::from_m(16).unwrap();
     assert!(a >= b);
   }
 
@@ -317,5 +300,25 @@ mod tests {
     assert_eq!(2, ym_duration.years());
     assert_eq!(3, ym_duration.months());
     assert_eq!(27, ym_duration.as_months());
+  }
+
+  #[test]
+  fn test_symmetric_range() {
+    let max = FeelYearsAndMonthsDuration::from_m(i64::MAX).unwrap();
+    let min = FeelYearsAndMonthsDuration::from_m(-i64::MAX).unwrap();
+    assert_eq!(None, FeelYearsAndMonthsDuration::from_m(i64::MIN));
+    assert_eq!(None, FeelYearsAndMonthsDuration::from_ym(-768614336404564650, -8));
+    assert_eq!(Some(min.clone()), FeelYearsAndMonthsDuration::from_ym(-768614336404564650, -7));
+    assert_eq!(None, FeelYearsAndMonthsDuration::from_ym(i64::MAX, 0));
+    let one = FeelYearsAndMonthsDuration::from_m(1).unwrap();
+    assert_eq!(None, min.checked_sub(&one));
+    assert_eq!(None, min.checked_add(&-one.clone()));
+    assert_eq!(None, max.checked_add(&one));
+    assert_eq!("P768614336404564650Y7M", max.to_string());
+    assert_eq!("-P768614336404564650Y7M", min.to_string());
+    assert_eq!(max, min.abs());
+    assert_eq!(max, -min.clone());
+    assert_eq!(min, -max.clone());
+    assert_eq!("P0M", FeelYearsAndMonthsDuration::default().to_string());
   }
 }

@@ -267,3 +267,33 @@ fn _0043() {
   te_null(false, scope, r#""a" - 1"#, r#"[subtraction] incompatible types: "a" - 1"#);
   te_null(false, scope, r#"date("2020-01-01") - "x""#, r#"[subtraction] incompatible types: 2020-01-01 - "x""#);
 }
+
+#[test]
+fn _0044() {
+  // A difference of -2^63 months or nanoseconds is out of the range of a duration.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("P1M") * -9223372036854775807 - duration("P1M")"#,
+    "years and months duration subtraction overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("PT0.000000001S") * -9223372036854775807 - duration("PT0.000000001S")"#,
+    "days and time duration subtraction overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date and time("1677-09-21T00:12:43.145224192Z") - date and time("1970-01-01T00:00:00Z")"#,
+    "[subtraction] incompatible types: 1677-09-21T00:12:43.145224192Z - 1970-01-01T00:00:00Z",
+  );
+  te_days_and_time_duration_x(
+    false,
+    scope,
+    r#"date and time("1677-09-21T00:12:43.145224193Z") - date and time("1970-01-01T00:00:00Z")"#,
+    "-P106751DT23H47M16.854775807S",
+  );
+}

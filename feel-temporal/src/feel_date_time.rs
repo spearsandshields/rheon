@@ -206,38 +206,11 @@ impl Sub<FeelDaysAndTimeDuration> for FeelDateTime {
 
 impl Sub<FeelDateTime> for FeelDateTime {
   type Output = Option<FeelDaysAndTimeDuration>;
+  /// Subtracts two [FeelDateTimes](FeelDateTime) taken as instants, the result is
+  /// [FeelDaysAndTimeDuration], or `None` when [FeelDateTime::nanos_since] is `None` or the
+  /// difference is out of the range of a duration.
   fn sub(self, other: FeelDateTime) -> Self::Output {
-    let me_zone = self.1.zone();
-    let other_zone = other.1.zone();
-    if me_zone.has_offset() != other_zone.has_offset() {
-      return None;
-    }
-    let me_date_tuple = self.0.as_tuple();
-    let me_time_tuple = ((self.1).hour() as u32, (self.1).minute() as u32, (self.1).second() as u32, (self.1).nanos() as u32);
-    let me_offset_opt = match me_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_dt(me_date_tuple, me_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
-    };
-    let other_date_tuple = other.0.as_tuple();
-    let other_time_tuple = ((other.1).hour() as u32, (other.1).minute() as u32, (other.1).second() as u32, (other.1).nanos() as u32);
-    let other_offset_opt = match other_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_dt(other_date_tuple, other_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, other_date_tuple, other_time_tuple),
-    };
-    if let Some((me_offset, other_offset)) = me_offset_opt.zip(other_offset_opt) {
-      let me_date_opt = date_time_offset_dt(me_date_tuple, me_time_tuple, me_offset);
-      let other_date_opt = date_time_offset_dt(other_date_tuple, other_time_tuple, other_offset);
-      if let Some((me_date, other_date)) = me_date_opt.zip(other_date_opt)
-        && let Some(nanos) = me_date.sub(other_date).num_nanoseconds()
-      {
-        return Some(FeelDaysAndTimeDuration::from_n(nanos));
-      }
-    }
-    None
+    self.nanos_since(&other).and_then(FeelDaysAndTimeDuration::from_n)
   }
 }
 
@@ -265,6 +238,43 @@ impl FeelDateTime {
   /// Creates date and time from provided [FeelDate] and [FeelTime] values.
   pub fn new(date: FeelDate, time: FeelTime) -> Self {
     Self(date, time)
+  }
+
+  /// Returns the number of nanoseconds from `other` to this date and time, both taken as
+  /// instants, or `None` when only one of them has an offset or a zone, a zone has no offset at
+  /// that date and time, or the number does not fit in an `i64`.
+  pub fn nanos_since(&self, other: &FeelDateTime) -> Option<i64> {
+    let me_zone = self.1.zone();
+    let other_zone = other.1.zone();
+    if me_zone.has_offset() != other_zone.has_offset() {
+      return None;
+    }
+    let me_date_tuple = self.0.as_tuple();
+    let me_time_tuple = ((self.1).hour() as u32, (self.1).minute() as u32, (self.1).second() as u32, (self.1).nanos() as u32);
+    let me_offset_opt = match me_zone {
+      FeelZone::Utc => Some(0),
+      FeelZone::Local => get_local_offset_dt(me_date_tuple, me_time_tuple),
+      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
+    };
+    let other_date_tuple = other.0.as_tuple();
+    let other_time_tuple = ((other.1).hour() as u32, (other.1).minute() as u32, (other.1).second() as u32, (other.1).nanos() as u32);
+    let other_offset_opt = match other_zone {
+      FeelZone::Utc => Some(0),
+      FeelZone::Local => get_local_offset_dt(other_date_tuple, other_time_tuple),
+      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, other_date_tuple, other_time_tuple),
+    };
+    if let Some((me_offset, other_offset)) = me_offset_opt.zip(other_offset_opt) {
+      let me_date_opt = date_time_offset_dt(me_date_tuple, me_time_tuple, me_offset);
+      let other_date_opt = date_time_offset_dt(other_date_tuple, other_time_tuple, other_offset);
+      if let Some((me_date, other_date)) = me_date_opt.zip(other_date_opt)
+        && let Some(nanos) = me_date.signed_duration_since(other_date).num_nanoseconds()
+      {
+        return Some(nanos);
+      }
+    }
+    None
   }
 
   /// Creates UTC date and time from specified date and time values.

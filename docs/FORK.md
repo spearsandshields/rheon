@@ -473,6 +473,30 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     invalid minutes. With the evaluate requests also sent as parse requests and the no-trap corpus,
     the identity check sends 1,008 requests, all answered without a trap and identical between the
     build and 0.4.0. No API change.
+59. **Durations hold a symmetric range.** A years and months duration holds -(2^63 - 1) to
+    2^63 - 1 months, a days and time duration -(2^63 - 1) to 2^63 - 1 nanoseconds. Both types
+    accepted -2^63 before, whose absolute value does not exist in an `i64`: its `Display`, `abs`
+    and components overflowed, which trapped the module (`duration("P1M") *
+    -9223372036854775808`, its `string`, `abs` and negation, a date or date and time plus or minus
+    it, the `.days`, `.hours`, `.minutes`, `.seconds` of the days and time twin), or the saturating
+    absolute value printed it one nanosecond off (`duration("PT0.000000001S") *
+    -9223372036854775808`, a date and time difference of exactly -2^63 ns, sums and quotients that
+    land there). Every constructor from a raw count now checks the range, so `abs` and negation
+    are total, and a product, quotient, sum or difference of -2^63 is null with the reason of
+    every other out-of-range result. The `value` of a date and time is computed from the instant
+    difference in nanoseconds itself, not through a duration, so
+    `date and time("1677-09-21T00:12:43.145224192Z").value` stays the exact `-9223372036.854775808`
+    (DMN 1.6 §10.3.2.3.5: valuedt is the number of seconds since the epoch). The inputs that
+    trapped are in the no-trap corpus; 34 registered differences, each with both answers, 10 of
+    them combinations of the edge-operand product of item 84 (sums, differences and products of
+    exactly -2^63 nanoseconds or months). Basis:
+    no input may panic the engine (CONTRACT §1). API breaks (rheon-feel-temporal):
+    `FeelYearsAndMonthsDuration::from_ym` and `from_m` and `FeelDaysAndTimeDuration::from_n` and
+    `from_sn` return `Option<Self>`; `FeelDaysAndTimeDuration::from_s` takes an `i32`; the
+    `ops::Add` and `ops::Sub` impls of both durations are removed (use `checked_add` and
+    `checked_sub`), `checked_neg` is removed and `ops::Neg` is total; both derive `Default` (zero);
+    `&FeelDate - &FeelDate` returns `Option<FeelYearsAndMonthsDuration>`; `FeelDateTime::nanos_since`
+    is added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

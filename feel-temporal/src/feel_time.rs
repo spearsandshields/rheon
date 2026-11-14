@@ -139,7 +139,7 @@ impl Sub<FeelTime> for FeelTime {
       if let Some((me_date, other_date)) = me_date_opt.zip(other_date_opt)
         && let Some(nanos) = me_date.sub(other_date).num_nanoseconds()
       {
-        return Some(FeelDaysAndTimeDuration::from_n(nanos));
+        return FeelDaysAndTimeDuration::from_n(nanos);
       }
     }
     None
@@ -326,7 +326,7 @@ mod tests {
   fn test_subtract() {
     let t1 = FeelTime(0, 0, 0, 0, FeelZone::Utc);
     let t2 = FeelTime(0, 0, 0, 0, FeelZone::Utc);
-    let d = FeelDaysAndTimeDuration::from_n(0);
+    let d = FeelDaysAndTimeDuration::default();
     assert_eq!(d, (t1 - t2).unwrap());
     let t1 = FeelTime(0, 0, 59, 0, FeelZone::Utc);
     let t2 = FeelTime(0, 0, 39, 0, FeelZone::Utc);

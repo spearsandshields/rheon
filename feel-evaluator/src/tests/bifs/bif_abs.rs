@@ -104,3 +104,17 @@ fn _0015() {
 fn _0016() {
   te_null(false, &scope!(), r#"abs(1,2)"#, r#"expected 1 parameters, actual number of parameters is 2"#);
 }
+
+#[test]
+fn _0017() {
+  // The absolute value of every duration is a duration.
+  let scope = &scope!();
+  te_years_and_months_duration_x(false, scope, r#"abs(duration("-P9223372036854775807M"))"#, "P768614336404564650Y7M");
+  te_days_and_time_duration_x(false, scope, r#"abs(duration("-PT9223372036.854775807S"))"#, "P106751DT23H47M16.854775807S");
+  te_null(
+    false,
+    scope,
+    r#"abs(duration("P1M") * -9223372036854775808)"#,
+    "[core::abs] invalid argument type, expected number, actual type is Null",
+  );
+}

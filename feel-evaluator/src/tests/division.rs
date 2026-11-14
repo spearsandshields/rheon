@@ -125,3 +125,22 @@ fn _0022() {
 fn _0023() {
   te_null(false, &scope!(), r#" "a" / 2.21 "#, r#"[division] incompatible types: "a" / 2.21"#);
 }
+
+#[test]
+fn _0024() {
+  // A quotient of -2^63 months or nanoseconds is out of the range of a duration.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("-P4611686018427387904M") / 0.5"#,
+    "[division] error: -P384307168202282325Y4M / 0.5",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("-PT4611686018.427387904S") / 0.5"#,
+    "[division] error: -P53375DT23H53M38.427387904S / 0.5",
+  );
+  te_years_and_months_duration_x(false, scope, r#"duration("-P4611686018427387903M") / 0.5"#, "-P768614336404564650Y6M");
+}
