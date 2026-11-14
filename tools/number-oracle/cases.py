@@ -6,6 +6,8 @@ in a quick run, 20,000 in a full one. A random case sends its operands through t
 as JSON numbers, which reach the engine from their exact text (CONTRACT §2).
 
   python3 -I cases.py <quick|full> [--seed N]   prints the requests, one per line
+  python3 -I cases.py --edges                   prints the edge vectors as a JSON array: the
+                                                committed source tools/identity/requests/numbers.json
 
 A case is {"family", "edge", "tree", "request"}; judge.py draws the same cases again and evaluates
 each tree with oracle.evaluate.
@@ -286,7 +288,7 @@ for op in ('add', 'sub', 'mul', 'div'):
 family('div/zero-divisor', [['div', a, b] for a, b in [('1', '0'), ('-1', '-0'), ('0', '0'), ('5', '0.00'), (MAX, '0E+6111')]],
        lambda rng: ['div', pool(rng), rng.choice(ZEROS)])
 family('arith/compound', [['div', '1', '3'], ['add', '0.1', '0.2'], ['div', '1E-6176', '10'],
-                          ['mul', '9E+6144', '10'], ['div', '1', '1E-6176'], ['sub', '1.10', '1.10'],
+                          ['mul', '9e6144', '10'], ['div', '1', '1E-6176'], ['sub', '1.10', '1.10'],
                           ['mul', '0', '1E-10'], ['mul', '0', '-5'], ['div', '0', '-5'],
                           ['abs', '-1.50'], ['abs', ['mul', '0.25', '2']]],
        lambda rng: [rng.choice(['add', 'sub', 'mul', 'div']), [rng.choice(['add', 'sub', 'mul', 'div']), small(rng), small(rng)], small(rng)])
@@ -398,7 +400,7 @@ for op in SCALED:
         family(f'{name}/one-argument',
                [[op, n] for n in ['5.5', '-5.5', '1.5', '2.5', '-0.5', '0.5', '1E+40', '1E-40', '-1E-40', '123.456',
                                   '9999999999999999999999999999999999', '0.9999999999999999999999999999999999',
-                                  '-0.4', '-0.0', '0.05', '2.56', '-2.51', MAX, '1E-6176']],
+                                  '-0.4', '-0.0', '0.05', '2.56', '-2.51', '0.55', '1234.5678', MAX, '1E-6176']],
                lambda rng, op=op: [op, pool(rng) if rng.random() < 0.5 else small(rng, 34, 3)])
 
 # modulo
@@ -634,20 +636,40 @@ family('json-number/digits', [['id', x] for x in ['-0', '1.50', '1' * 40, '1.5E-
        lambda rng: ['id', long_number(rng, 6143)], edge_form='context')
 
 
-def cases(size, seed):
-    """Every case, edges first within a family, in family order; a request is sent once."""
+def edge_cases():
+    """The fixed edge vectors of every family, in family order; a request is listed once."""
     seen = set()
-    for name, edges, generate, edge_form, random_form in FAMILIES:
-        vectors = [(tree, edge_form, True) for tree in edges]
-        if generate is not None:
-            rng = random.Random(f'{seed}/{name}')
-            vectors += [(generate(rng), random_form, False) for _ in range(SIZES[size])]
-        for tree, form, edge in vectors:
-            text = request(tree, form)
-            if text in seen:
-                continue
-            seen.add(text)
-            yield {'family': name, 'edge': edge, 'tree': tree, 'request': text}
+    for name, edges, _, edge_form, _ in FAMILIES:
+        for tree in edges:
+            text = request(tree, edge_form)
+            if text not in seen:
+                seen.add(text)
+                yield {'family': name, 'edge': True, 'tree': tree, 'request': text}
+
+
+def cases(size, seed):
+    """Every case: the edge vectors, then the random part of each family in family order. A
+    request is sent once; a random case equal to an edge vector is left out, so an edge vector is
+    always judged as one."""
+    seen = set()
+    for case in edge_cases():
+        seen.add(case['request'])
+        yield case
+    for name, _, generate, _, random_form in FAMILIES:
+        if generate is None:
+            continue
+        rng = random.Random(f'{seed}/{name}')
+        for _ in range(SIZES[size]):
+            tree = generate(rng)
+            text = request(tree, random_form)
+            if text not in seen:
+                seen.add(text)
+                yield {'family': name, 'edge': False, 'tree': tree, 'request': text}
+
+
+def edges_source():
+    """The edge vectors as an identity request source: a JSON array, one request per line."""
+    return '[\n' + ',\n'.join(case['request'] for case in edge_cases()) + '\n]\n'
 
 
 def parse_arguments(argv, usage):
@@ -663,7 +685,10 @@ def parse_arguments(argv, usage):
 
 
 def main(argv):
-    size, seed = parse_arguments(argv, 'cases.py <quick|full> [--seed N]')
+    if argv == ['--edges']:
+        sys.stdout.write(edges_source())
+        return 0
+    size, seed = parse_arguments(argv, 'cases.py <quick|full> [--seed N] | cases.py --edges')
     for case in cases(size, seed):
         sys.stdout.write(case['request'] + '\n')
     return 0

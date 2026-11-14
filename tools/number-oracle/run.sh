@@ -6,8 +6,9 @@
 # PYTHON names the interpreter (default python3); it needs the C decimal module and mpmath 1.3.0
 # (requirements.txt). ORACLE_SEED changes the seed of the random parts (default 1). One Python
 # process writes the requests, one node process answers them, one Python process judges.
-# Exit status: 0 every case right or exempt, 1 a wrong answer or a stale exemption, 2 usage or
-# environment.
+# Exit status: 0 every case right or exempt, 1 a wrong answer, a stale exemption or an edge source
+# that drifted, 2 usage or environment. The committed identity source
+# tools/identity/requests/numbers.json must be the output of cases.py --edges.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$here/../.." && pwd)"
@@ -30,6 +31,12 @@ fi
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 "$python" -I -B "$here/oracle.py" --self-test
+# The edge vectors are also an identity source (tools/identity/requests/numbers.json); the two must not drift.
+if ! "$python" -I -B "$here/cases.py" --edges | cmp -s - "$root/tools/identity/requests/numbers.json"; then
+  echo "number oracle: tools/identity/requests/numbers.json is not the output of cases.py --edges; regenerate it:" >&2
+  echo "  $python -I -B tools/number-oracle/cases.py --edges > tools/identity/requests/numbers.json" >&2
+  exit 1
+fi
 "$python" -I -B "$here/cases.py" "$size" --seed "$seed" > "$work/requests.jsonl"
 set +e
 node --no-warnings "$root/scripts/feel-answers.mjs" "$module" "$work/requests.jsonl" - \

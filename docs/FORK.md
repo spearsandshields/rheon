@@ -1176,6 +1176,23 @@ The totals are under "Verification" below.
     the command passes, 35,924 cases in 6.4 s. The install from PyPI was not run here (no network
     on the development machine); there the environment held the same mpmath 1.3.0 files, checked
     against the wheel's `RECORD`. No API change.
+92. **The number oracle's edge vectors are an identity source.** `cases.py --edges` prints the
+    oracle's fixed edge vectors (2,535 requests in literal form, among them the examples of Table
+    77 and Table 40 and the edge vectors that back each class of `known-wrong.json`) as a JSON array,
+    and `tools/identity/requests/numbers.json` is that output, committed. The oracle's `run.sh`
+    fails (exit 1) when the file is not the generator's output, so a number answer that changes on
+    an edge is a registered difference, and every registered new answer is one the oracle judges.
+    The oracle now sends the edge vectors of every family before the random parts, so a random
+    case can never displace an edge vector of a later family and the vectors that keep an
+    exemption alive are the same in every size. Against 0.4.0 one edge differs, by a rule
+    registered before: the warning on a context number rounded to a subnormal quotes `2E-6176` in
+    scientific notation (the 40-character rule of CONTRACT §3). Its entry is in
+    `registered/number-edges-message-previews.json`; a check outside the repository confirmed that
+    old and new are equal once the message texts are removed. The committed sources grow from
+    2,627 to 7,359 requests (with the parse twins); the run takes 8.4 s uncached and 7.5 s cached,
+    as before, since the time is the trapping requests of 0.4.0. Checked: one edited request in
+    the committed file fails the oracle's run, which passed before the check; the identity tool's
+    checks pass. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

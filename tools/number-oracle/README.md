@@ -110,7 +110,15 @@ of each failing class as complete request lines that can be sent to any host.
 Each family has fixed edge vectors, sent in every run in literal form (every operand written in the
 expression), and a random part from `random.Random(f"{seed}/{family}")`, 200 cases in a quick run
 and 20,000 in a full one, whose operands travel in the request context as JSON numbers. A request
-is sent once, in the family that lists it first.
+is sent once: the edge vectors first, in the family that lists one first, then the random parts
+(a random case equal to an edge vector is left out).
+
+The edge vectors are also a committed source of the identity check:
+`tools/identity/requests/numbers.json` is the output of `python3 -I -B cases.py --edges`, and
+`run.sh` fails when it is not, so the two cannot drift. Every change of an answer on an edge vector
+is therefore registered in `tools/identity/registered/` by the change that makes it, and each
+registered new answer is one the oracle has judged. After a change of `cases.py` the file is
+written again with that command.
 
 - **Operand pool**: 1 to 34 digits, exponents near 0 and over the whole range with weight on its
   ends; zeros of every sign and exponent; cohorts of one value (`1`, `1.0`, `1.00E+2`, `100`); the
@@ -155,6 +163,6 @@ tests in `feel-number`.
 ## Cost
 
 Measured on a MacBook (Apple silicon, Node 26, Python 3.12 with the C `decimal`): 188 families,
-2,522 edge vectors. A quick run is 35,924 requests and takes 6.8 s, the self-test 3 s of it; a full
-run is 2,896,576 requests and takes 5.3 min, with a peak of 1.3 GB. The module answers about
+2,535 edge vectors. A quick run is 35,937 requests and takes 6.8 s, the self-test 3 s of it; a full
+run is 2,896,589 requests and takes 5.3 min, with a peak of 1.3 GB. The module answers about
 130,000 requests a second; the judge's Python is most of the rest.
