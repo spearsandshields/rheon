@@ -9,7 +9,7 @@
 //! bounded number of digits is computed here, directly on that triple, in `u128` when the
 //! intermediate fits and in a tiny 256-bit integer ([U256]) otherwise: `+ - *`, square root,
 //! rounding to integral, quantize, scaling, comparisons, parsing, formatting, conversions, the
-//! integer-exponent power and the cohort rules. Only the operations with an unbounded exact
+//! integer-exponent power. Only the operations with an unbounded exact
 //! result (`/`, `exp`, `ln`, `pow` with a non-integer exponent) are delegated to a [Backend],
 //! which returns a correctly rounded value together with the side the exact value lies on; that
 //! side becomes a sticky digit and the value is passed **once** through [round_pack], which also
@@ -40,10 +40,6 @@ const SCALED_EXP_MAX: i64 = 6144;
 
 /// Precision of decimal128 (number of significant digits).
 pub(crate) const PRECISION: usize = 34;
-
-/// Precision used when the exact cohort of an `exp`/`ln` result has to be decided
-/// (see [binary128_cohort]); the decision needs a few digits more than decimal128.
-const COHORT_PRECISION: usize = 45;
 
 /// Minimum exponent of the coefficient in decimal128.
 const EXP_MIN: i64 = -6176;
@@ -132,13 +128,12 @@ pub(crate) trait Backend {
   /// `a / b` for `a = ca · 10^ea`, `b = cb · 10^eb`, correctly rounded to [PRECISION] digits.
   fn div(ca: u128, ea: i32, cb: u128, eb: i32) -> Wide;
 
-  /// `e^x` for `x = ±c · 10^e` (`neg` is the sign of `x`), correctly rounded to `precision`
-  /// digits. The core calls it with [PRECISION] for the value, and with [COHORT_PRECISION]
-  /// for the digits only (the side is then ignored).
-  fn exp(neg: bool, c: u128, e: i32, precision: usize) -> Wide;
+  /// `e^x` for `x = ±c · 10^e` (`neg` is the sign of `x`), correctly rounded to [PRECISION]
+  /// digits.
+  fn exp(neg: bool, c: u128, e: i32) -> Wide;
 
-  /// `ln(c · 10^e)`, correctly rounded to `precision` digits (used like [Backend::exp]).
-  fn ln(c: u128, e: i32, precision: usize) -> Wide;
+  /// `ln(c · 10^e)`, correctly rounded to [PRECISION] digits.
+  fn ln(c: u128, e: i32) -> Wide;
 
   /// One round of `x^y = exp(t)`, `t = y ln x`, for `x = cx · 10^ex` and `y = ±cy · 10^ey`
   /// (`sy` is the sign of `y`), with `ln`, `*` and `exp` each correctly rounded to `precision`
@@ -176,7 +171,7 @@ pub(crate) fn digit_count(c: u128) -> u32 {
 }
 
 /// Unsigned 256-bit integer: just enough for the exact intermediate values of this module
-/// (sums and products of two 34-digit coefficients, square root radicands, cohort decisions).
+/// (sums and products of two 34-digit coefficients, square root radicands).
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 struct U256 {
   hi: u128,
@@ -246,32 +241,6 @@ impl U256 {
     Some(x)
   }
 
-  /// 10^n, when it fits.
-  fn pow10(n: u32) -> Option<U256> {
-    U256::from_u128(1).checked_mul_pow10(n)
-  }
-
-  fn checked_shl(self, n: u32) -> Option<U256> {
-    if n == 0 {
-      Some(self)
-    } else if n >= 256 {
-      if self.is_zero() { Some(self) } else { None }
-    } else if n >= 128 {
-      if self.hi != 0 || (n > 128 && self.lo >> (256 - n) != 0) {
-        None
-      } else {
-        Some(U256 { hi: self.lo << (n - 128), lo: 0 })
-      }
-    } else if self.hi >> (128 - n) != 0 {
-      None
-    } else {
-      Some(U256 {
-        hi: (self.hi << n) | (self.lo >> (128 - n)),
-        lo: self.lo << n,
-      })
-    }
-  }
-
   fn shr(self, n: u32) -> U256 {
     if n == 0 {
       self
@@ -328,24 +297,6 @@ impl U256 {
       s.push_str(&format!("{chunk:019}"));
     }
     s
-  }
-
-  /// Parses a string of decimal digits; `None` when it is not one or does not fit.
-  fn from_decimal(s: &str) -> Option<U256> {
-    if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) {
-      return None;
-    }
-    let mut x = U256::ZERO;
-    let head = s.len() % 19;
-    let (first, rest) = s.split_at(head);
-    if !first.is_empty() {
-      x = U256::from_u128(first.parse::<u128>().ok()?);
-    }
-    for chunk in rest.as_bytes().chunks(19) {
-      let c: u128 = std::str::from_utf8(chunk).ok()?.parse().ok()?;
-      x = x.checked_mul_u128(pow10(19))?.checked_add(U256::from_u128(c))?;
-    }
-    Some(x)
   }
 }
 
@@ -506,15 +457,6 @@ fn pack(w: Wide) -> (V, bool) {
   }
 }
 
-/// Magnitude digits and exponent of a backend result (for the cohort decision).
-fn wide_digits(w: Wide) -> Option<(String, i64)> {
-  match w {
-    Wide::Rounded(_, c, e, _) => Some((c.to_string(), e)),
-    Wide::Digits(_, digits, e) => Some((digits, e)),
-    _ => None,
-  }
-}
-
 /// Moves the exponent of an exact result as close as possible to the ideal exponent.
 fn ideal(v: V, inexact: bool, ideal: i32) -> V {
   match v {
@@ -534,77 +476,6 @@ fn ideal(v: V, inexact: bool, ideal: i32) -> V {
     }
     other => other,
   }
-}
-
-/// Pads the coefficient of an (inexact) result with zeros up to 34 digits.
-fn full_precision(v: V) -> V {
-  match v {
-    V::Fin(_, c, _) if c != 0 => ideal(v, false, EXP_MIN as i32),
-    other => other,
-  }
-}
-
-/// Chooses the cohort (exponent) of a correctly rounded result of `exp` or `ln`
-/// the way Intel's `bid128_exp` / `bid128_log` do.
-///
-/// Intel evaluates these functions in binary128 and converts the binary result `B`
-/// with `binary128_to_bid128`, which returns:
-/// - an integer `B < 10^34` with exponent 0 (e.g. `2E+0`),
-/// - a dyadic fraction `B = c / 2^a` (`a <= 48`, `c * 5^a < 10^34`) with exponent `-a` (e.g. `5E-1`),
-/// - any other value rounded to the full 34 digits (e.g. `1.000000000000000000000000000000000`).
-///
-/// `v` is the correctly rounded 34-digit result and `wide` recomputes it with
-/// [COHORT_PRECISION] digits (only called when `v` is an integer or a short dyadic fraction).
-/// When the wide value `w` rounds to exactly `v` in binary128 (i.e. `|w - v|` is below half
-/// a binary128 ulp of `v`), Intel's exact cohort is used, otherwise the result is padded to
-/// 34 digits.
-fn binary128_cohort(v: V, wide: impl FnOnce() -> Option<(String, i64)>) -> V {
-  let V::Fin(neg, c, e) = v else { return v };
-  if c == 0 {
-    return v;
-  }
-  // value with trailing zeros removed: c0 * 10^e0
-  let (mut c0, mut e0) = (c, e);
-  while c0 % 10 == 0 {
-    c0 /= 10;
-    e0 += 1;
-  }
-  // (coefficient, exponent) of Intel's exact conversion, binary exponent E (2^E <= |v| < 2^(E+1)),
-  // and the flag telling whether |v| is a power of two
-  let (rc, re, binary_exp, power_of_two) = if e0 >= 0 {
-    if digit_count(c0) as i32 + e0 > PRECISION as i32 {
-      return full_precision(v);
-    }
-    let n = c0 * pow10(e0 as u32);
-    (n, 0, (127 - n.leading_zeros()) as i32, n.is_power_of_two())
-  } else {
-    let a = (-e0) as u32;
-    if a > 48 || c0 % 5_u128.pow(a) != 0 {
-      return full_precision(v);
-    }
-    let odd = c0 / 5_u128.pow(a);
-    (c0, e0, (127 - odd.leading_zeros()) as i32 - a as i32, odd == 1)
-  };
-  let Some((w_digits, ew)) = wide() else { return full_precision(v) };
-  // |w - v| = d * 10^emin with d an integer
-  let emin = ew.min(re as i64);
-  let scaled = |digits: Option<U256>, exp: i64| digits.and_then(|x| x.checked_mul_pow10((exp - emin) as u32));
-  let (Some(wu), Some(vu)) = (scaled(U256::from_decimal(&w_digits), ew), scaled(Some(U256::from_u128(rc)), re as i64)) else {
-    return full_precision(v);
-  };
-  let below = wu < vu;
-  let d = if below { vu.checked_sub(wu) } else { wu.checked_sub(vu) }.unwrap_or(U256::ZERO);
-  // half a binary128 ulp (113-bit significand) is 2^(E-113), or 2^(E-114) just below a power of two
-  let shift = 113 - binary_exp + if power_of_two && below { 1 } else { 0 };
-  // within: d * 10^emin * 2^shift < 1
-  let within = if d.is_zero() {
-    true
-  } else if emin >= 0 {
-    false
-  } else {
-    matches!((d.checked_shl(shift as u32), U256::pow10((-emin) as u32)), (Some(x), Some(limit)) if x < limit)
-  };
-  if within { V::Fin(neg, rc, re) } else { full_precision(v) }
 }
 
 fn is_zero_v(v: V) -> bool {
@@ -1039,19 +910,16 @@ fn exp_v(s: bool, c: u128, e: i32) -> V {
   if c as f64 * 10f64.powi(e) > 14300.0 {
     return if s { V::Fin(false, 0, EXP_MIN as i32) } else { V::Inf(false) };
   }
-  match pack(B::exp(s, c, e, PRECISION)).0 {
-    // underflow, like Intel
+  match pack(B::exp(s, c, e)).0 {
+    // underflow to zero
     V::Fin(_, 0, _) => V::Fin(false, 0, EXP_MIN as i32),
-    // the cohort follows Intel's binary128 -> decimal128 conversion (e.g. exp(1E-40) = 1E+0)
-    v => binary128_cohort(v, || wide_digits(B::exp(s, c, e, COHORT_PRECISION))),
+    v => v,
   }
 }
 
 /// Natural logarithm of a finite, positive value.
 fn ln_v(c: u128, e: i32) -> V {
-  let v = pack(B::ln(c, e, PRECISION)).0;
-  // the cohort follows Intel's binary128 -> decimal128 conversion (e.g. ln(e^2) = 2E+0)
-  binary128_cohort(v, || wide_digits(B::ln(c, e, COHORT_PRECISION)))
+  pack(B::ln(c, e)).0
 }
 
 /// `x^y = exp(y ln x)` for a finite `x > 0` and a finite, non-zero `y` that is either not an
@@ -1509,7 +1377,7 @@ fn pow_v(x: V, y: V) -> V {
     let exp = l_lo_exp.min(0).max(1 - PRECISION as i64) as i32;
     return V::Fin(odd_negative, pow10((-exp) as u32), exp);
   }
-  match full_precision(pow_exp_log(cx, ex, sy, cy, ey)) {
+  match pow_exp_log(cx, ex, sy, cy, ey) {
     // like Intel: zero (underflow) and infinity (overflow) are returned without sign correction
     V::Fin(_, 0, _) => V::Fin(false, 0, EXP_MIN as i32),
     V::Fin(_, c, e) => V::Fin(odd_negative, c, e),

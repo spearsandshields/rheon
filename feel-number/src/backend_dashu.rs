@@ -107,14 +107,14 @@ impl Backend for Dashu {
     wide(ctx(PRECISION).div(&repr_of(false, ca, ea), &repr_of(false, cb, eb)))
   }
 
-  fn exp(neg: bool, c: u128, e: i32, precision: usize) -> Wide {
+  fn exp(neg: bool, c: u128, e: i32) -> Wide {
     let x = repr_of(neg, c, e);
-    wide(with_cache(|cache| ctx(precision).exp(&x, Some(cache))))
+    wide(with_cache(|cache| ctx(PRECISION).exp(&x, Some(cache))))
   }
 
-  fn ln(c: u128, e: i32, precision: usize) -> Wide {
+  fn ln(c: u128, e: i32) -> Wide {
     let x = repr_of(false, c, e);
-    wide(with_cache(|cache| ctx(precision).ln(&x, Some(cache))))
+    wide(with_cache(|cache| ctx(PRECISION).ln(&x, Some(cache))))
   }
 
   fn pow_step(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32, precision: usize) -> PowStep {

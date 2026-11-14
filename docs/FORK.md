@@ -1303,6 +1303,20 @@ The totals are under "Verification" below.
     prints `NaN`. Test first: the unit test `nan_has_no_sign` failed on the parent with `+NaN`;
     the test that pinned the Intel signs is deleted. Identity: no difference (a NaN never reaches
     a response). Rust behaviour break: `Debug` of a NaN `FeelNumber` is `NaN`.
+99. **`exp` and `ln` results need no cohort rule.** The cohort (exponent) of a correctly rounded
+    `exp` or `ln` result followed an emulation of Intel's binary128 to decimal128 conversion
+    (`exp(1E-40)` as `1E+0`, `exp(1E-34)` with 34 digits): the result was evaluated a second time
+    at 45 digits to decide it, and a fractional power was padded to 34 digits. Since item 97 no
+    text shows a cohort, and no rule of the number core depends on it, so the emulation is gone:
+    `binary128_cohort`, `wide_digits`, `full_precision` and the 45-digit precision, the second
+    evaluation of every `exp` and `ln`, the precision argument of the backend's `exp` and `ln`
+    (always 34 digits now), and the three `U256` helpers only the emulation used. A result is
+    the value the backend rounded once. Test first: none can fail, since no response shows a
+    cohort; the tests that pinned the cohorts (`exp_ln_cohorts_follow_intel`,
+    `tests/exp.rs`, `tests/ln.rs`) are value tests now (value and canonical text, at the former
+    cohort cases) and passed on the parent and after the change. Identity: no difference; the
+    number oracle's `exp`, `log` and fractional power families have no new wrong answer. No API
+    change; `Debug` shows other cohorts for these results.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
