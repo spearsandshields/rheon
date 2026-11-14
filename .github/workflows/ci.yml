@@ -48,6 +48,7 @@ jobs:
       - run: bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm
         env:
           GH_TOKEN: ${{ github.token }}
+      - run: npm run test:identity # the identity tool's own checks, on the baseline and the build
       - run: npm run test:rust # native contract tests of rheon-feel-wasm
       - run: npm run test:rust:wasm # the same tests under wasmtime
       - run: npm run test:runtime # @rheon/feel-runtime (node --test)

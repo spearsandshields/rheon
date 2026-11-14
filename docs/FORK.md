@@ -1039,6 +1039,25 @@ The totals are under "Verification" below.
     wrote up to 6,177 plain digits: instances of the registered message rule (item 68, CONTRACT §3),
     not listed one by one. Basis: no input may panic the engine (CONTRACT §1: on wasm a panic aborts
     the instance). No API change.
+85. **Automated checks of the identity tool.** `tools/identity/test.mjs` (`npm run test:identity`,
+    run in CI after the identity step) checks `equal.mjs` on two real modules, the previous release
+    and the build (`IDENTITY_REFERENCE`, `IDENTITY_CANDIDATE`; a missing module fails the tests): a
+    module against itself exits 0 and leaves a `today()` request and its parse twin out; a
+    request that traps both sides is `{"trap": true}` on both and the next request runs on a fresh
+    instance; requests of the committed ledger with a 40-digit integer and `1.5e-6176` added to
+    their context differ between the modules and exit 1, `--record` drafts them with those numbers
+    as written, and the draft passed as a ledger exits 0; the same draft exits 1 when the candidate
+    does not make the change and when the reference does not answer `old`; an entry with a wrong
+    `old` or `new` exits 1; a context number beyond a double is sent as written; two requests that
+    differ only beyond a double's precision are two requests; thirteen kinds of malformed ledger,
+    a request registered twice and six usage errors exit 2 with their message. The checks that need
+    a difference between the modules skip with a message when the two modules answer every request
+    of the committed ledger alike. The checks found one defect: a JSON number where the ledger
+    expects an entry or a response object was taken for an object, so `"old": 2` was accepted as a
+    response that never matched (exit 1 instead of 2) and a number entry was reported as an
+    unknown field `rawJSON`; both are input errors now, through one predicate for "a JSON object"
+    that the canonical form uses too. A planted defect in the tool (the `old` check skipped, lossy
+    JSON, the clock exclusion off) fails the checks. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

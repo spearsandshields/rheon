@@ -58,9 +58,11 @@ const lossless = typeof JSON.rawJSON === 'function' && JSON.parse('1.50', (_, v,
 /** The value of a JSON text, with every number as JSON.rawJSON of its source text. */
 const parseJson = (text) => JSON.parse(text, (_, v, context) => (typeof v === 'number' ? JSON.rawJSON(context.source) : v));
 
+/** Whether a parsed JSON value is an object: not null, an array or a number (JSON.rawJSON). */
+const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) && !JSON.isRawJSON(v);
+
 /** JSON with the keys of every object sorted: the key of a request, and the form responses are compared in. */
-const canonical = (value) =>
-  JSON.stringify(value, (_, v) => (v && typeof v === 'object' && !Array.isArray(v) && !JSON.isRawJSON(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v));
+const canonical = (value) => JSON.stringify(value, (_, v) => (isObject(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v));
 
 const WHITESPACE = new Set([' ', '\t', '\n', '\r']);
 const skipWhitespace = (text, i) => {
@@ -165,7 +167,7 @@ const ENTRY_FIELDS = new Set(['expression', 'request', 'why', 'old', 'new']);
 /** What a ledger entry's `old` or `new` may be: the result text, a whole response, or a trap. */
 function checkOutcome(outcome, field) {
   if (typeof outcome === 'string') return;
-  if (!outcome || typeof outcome !== 'object' || Array.isArray(outcome)) throw new Error(`\`${field}\` must be a string or a response object`);
+  if (!isObject(outcome)) throw new Error(`\`${field}\` must be a string or a response object`);
   if ('trap' in outcome && canonical(outcome) !== '{"trap":true}') throw new Error(`\`${field}\`: a trap is exactly {"trap": true}`);
 }
 
@@ -179,7 +181,7 @@ async function loadLedger(paths) {
       content.forEach((entry, i) => {
         const where = `${file} entry #${i}`;
         try {
-          if (!entry || typeof entry !== 'object' || Array.isArray(entry)) throw new Error('an entry is an object');
+          if (!isObject(entry)) throw new Error('an entry is an object');
           const unknown = Object.keys(entry).filter((k) => !ENTRY_FIELDS.has(k));
           if (unknown.length) throw new Error(`unknown field ${unknown.join(', ')}`);
           if (('expression' in entry) === ('request' in entry)) throw new Error('exactly one of `expression` and `request`');

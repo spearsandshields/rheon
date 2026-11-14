@@ -16,13 +16,15 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 |---|---|
 | `run.sh <reference.wasm> <candidate.wasm> [source…] [option…]` | Runs `equal.mjs` with every committed source and ledger; further sources and options are passed on |
 | `equal.mjs` | The comparison (Node 21 or later, no dependencies); its header lists the options |
+| `test.mjs` | The tool's own checks (`npm run test:identity`), on `IDENTITY_REFERENCE` (default `.tools/baseline/feel.wasm`) and `IDENTITY_CANDIDATE` (default `dist/feel.wasm`); a missing module fails them |
 | `baseline.json` | `tag` and `sha256` of the previous release's `feel.wasm` |
 | `fetch-baseline.sh` | Downloads that asset with the GitHub CLI into `.tools/baseline/` and verifies the sum; fails closed. A file already there with the right sum is kept |
 | `requests/*.json` | Curated request sets. `temporal.json`: fractional seconds of 1 to 9 digits and beyond in every literal form, exact constructor paths and carries, the range edges and year forms, daylight saving gaps and overlaps, zones and offsets. They hold no expected answers: the previous release is the oracle |
 | `registered/<change>.json` | The ledger: one file per change that alters answers, written in the commit that makes it |
 
 CI runs the first and the last command after `npm run build:wasm` (`.github/workflows/ci.yml`, job
-`wasm`), with `GH_TOKEN` set to the workflow's token for the download.
+`wasm`), with `GH_TOKEN` set to the workflow's token for the download, and then `npm run
+test:identity`.
 
 The committed request sources are `requests/` and `wasm/feel-wasm/tests/corpus/no-trap.json`. A
 source is a JSON file holding one request or an array of requests, exactly as a host sends them, or
