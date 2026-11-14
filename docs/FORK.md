@@ -679,6 +679,13 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     by a short preview and its size (owner decision); CONTRACT §3. No API change beyond
     rheon-feel's `MessageArg::is_short` (with a default) and `MessageArg` for references and
     `FeelString`.
+69. **A syntax error quotes a preview of the input.** The parser's syntax error echoed the whole
+    input, so a 40,002-character expression with a trailing operator gave a 40,016-character
+    `syntax` error, for `evaluate` and `parse` alike. `err_syntax_error` and
+    `err_not_a_feel_name` now quote the input through `arg`: whole up to 120 characters, else its
+    first 120 characters, `…` and `(40002 characters)`. Every shorter input keeps its full echo.
+    2 registered differences (the evaluate and the parse request). Basis: messages name the input
+    by a short preview and its size (owner decision); CONTRACT §3. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

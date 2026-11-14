@@ -1,6 +1,7 @@
 //! Implementation of errors for FEEL parser.
 
 use dsntk_common::{DsntkError, ToErrorMessage};
+use rheon_feel::message::arg;
 
 /// Lexer error.
 #[derive(ToErrorMessage)]
@@ -35,10 +36,10 @@ struct ParserError(String);
 
 /// Creates an error when `FEEL` name was expected on input, but something else encountered.
 pub fn err_not_a_feel_name(s: &str) -> DsntkError {
-  ParserError(format!("expected `FEEL` name on input but found `{s}`")).into()
+  ParserError(format!("expected `FEEL` name on input but found `{}`", arg(s))).into()
 }
 
-/// Creates syntax error on specified input.
+/// Creates syntax error on specified input, quoted as a preview when it is long.
 pub fn err_syntax_error(input: &str) -> DsntkError {
-  ParserError(format!("syntax error: {input}")).into()
+  ParserError(format!("syntax error: {}", arg(input))).into()
 }

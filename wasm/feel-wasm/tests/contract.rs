@@ -581,8 +581,8 @@ fn nesting_and_recursion_limits_body() {
   let trailing_operator = format!("1{}+", "+1".repeat(20000));
   for (e, message) in [
     (format!("1{}", "+1".repeat(20000)), too_deep(20001)),
-    // a syntax error is reported before the depth is measured
-    (trailing_operator.clone(), format!("syntax error: {trailing_operator}")),
+    // a syntax error is reported before the depth is measured; it quotes a preview of the input
+    (trailing_operator.clone(), format!("syntax error: {}… (40002 characters)", &trailing_operator[..120])),
     (format!("{}1{}", "[".repeat(5000), "]".repeat(5000)), too_deep(5001)),
     (format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000)), too_deep(6001)),
     (format!("1{}", "+1".repeat(300)), too_deep(301)),
