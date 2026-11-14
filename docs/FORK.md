@@ -933,6 +933,22 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     stack proof; DMN 1.6 defines no type size limit, so the bounds are implementation limits,
     reported as build errors. API break (rheon-model-evaluator): `ModelEvaluator::new` returns
     `<ItemDefinitionError>` for a type over 100,000 nodes or 256 levels.
+82. **Decision-service function values hold a weak model reference.** Each decision service is
+    also a function value, stored in the model evaluator, and its body held an `Arc` of that
+    model evaluator, so every model with a decision service referred to itself and was never
+    freed: a host that reloads models (the server, a workspace) kept every version. The body now
+    holds a `Weak` reference and upgrades it for each call; during an evaluation the caller holds
+    the model, so the upgrade succeeds and every answer is unchanged (TCK and the compatibility
+    tests of 0085-0088, 0092 and 1130). The invariant, in the module and `FunctionBody` docs: a
+    value never holds a strong handle to the state that holds it. Old and new (native only): a
+    model built from `3_0085.dmn` stayed alive after its last `Arc` was dropped and is now freed;
+    a decision service value called after its model was dropped evaluated the service with the
+    leaked model and is now `null(decision service decisionService_001 cannot be called after its
+    model was unloaded)`. The remaining step, the invocation taking the model from the call's
+    session instead of from the value, is later work (BACKLOG). Basis: DMN 1.6 §10.4 ("A
+    decision service is semantically equivalent to a FEEL function"); the owner rule that memory
+    never accumulates beyond a request. API break (behaviour, rheon-model-evaluator): a
+    decision-service function value called after its model was dropped is null with that reason.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -195,8 +195,10 @@ back-references via fancy-regex). The unpatched subset stands at 289/298. Remain
 
 - **Cycle protection** `[fork]` (2026-10-18). Decision→decision and BKM→BKM cycles recurse until the
   stack traps; only item definitions are checked.
-- **Evaluator leak** `[fork]` (2026-10-18). Decision services capture a strong `Arc` to their own
-  evaluator; a host that reloads models never frees them.
+- **Decision service values reach their model through the value** `[fork]`. A decision service's
+  function value holds a weak reference to its model evaluator (so models are freed) and gives
+  null once the model is dropped; the invocation should take the model from the call's session
+  instead of from the value.
 - **Structured errors** `[fork]` (2026-10-18). Unknown invocables, dangling hrefs and unresolved
   types come back as FEEL null; "empty FEEL type" carries no name.
 - **No decision-table short-circuit or memoisation** `[fork]` (2026-10-18). Every cell of every

@@ -1,4 +1,9 @@
 //! # Builder for decision service evaluators
+//!
+//! "A decision service is semantically equivalent to a FEEL function" (DMN 1.6 §10.4), so each
+//! one is also a function value. The model evaluator holds these values, so a value holds only a weak
+//! reference to its model evaluator: a value never holds a strong handle to the state that holds
+//! it, and a model is freed when its last owner drops it. A value called after that is null.
 
 use crate::model_builder::ModelBuilder;
 use crate::model_definitions::{DefDecisionService, DefDefinitions, DefKey};
@@ -7,6 +12,7 @@ use crate::variable::{Variable, result_type};
 use dsntk_common::Result;
 use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
+use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, FeelType, Name, value_null};
 use std::collections::HashMap;
@@ -45,15 +51,20 @@ impl DecisionServiceEvaluator {
     })
   }
 
-  /// Creates function definition evaluators for all decision service evaluators.
+  /// Creates function definition evaluators for all decision service evaluators. Each one holds
+  /// a weak reference to `model_evaluator`, which holds them.
   pub fn build_function_definitions(&self, model_evaluator: &Arc<ModelEvaluator>) {
     if let Ok(mut evaluators) = self.evaluators.write() {
       let identifiers = evaluators.keys().cloned().collect::<Vec<DefKey>>();
       for decision_service_id in identifiers {
-        let evaluator = Arc::clone(model_evaluator);
+        let model = Arc::downgrade(model_evaluator);
         evaluators.entry(decision_service_id.clone()).and_modify(|entry| {
           let output_variable_type = result_type(entry.0.feel_type());
+          let service_name = entry.0.name().clone();
           let body_evaluator = Box::new(move |scope: &FeelScope| {
+            let Some(evaluator) = model.upgrade() else {
+              return value_null!("decision service {} cannot be called after its model was unloaded", arg(&service_name));
+            };
             let global_context = FeelContext::default();
             let input_data = scope.peek().unwrap_or_default();
             let mut output_data = FeelContext::default();
