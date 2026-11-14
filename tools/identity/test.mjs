@@ -213,3 +213,16 @@ test('usage errors', () => {
   assertInputError(equal(reference, reference, path.join(dir, 'missing.json')), 'missing.json: not found');
   assertInputError(equal(reference, path.join(dir, 'missing.wasm'), source), 'missing.wasm');
 });
+
+test('the reference answers each source on its own instance: the order of the sources does not matter', (t) => {
+  if (needsDifference(t)) return;
+  const [first, second] = ledgerRequests(4).reduce((halves, r, i) => (halves[i % 2].push(r), halves), [[], []]);
+  const a = file([...first, plain[0], trapping]);
+  const b = file([plain[0], ...second, trapping, plain[1]]);
+  const forward = equal(reference, candidate, a, b, '--parse-too', '--ledger', recorded);
+  const backward = equal(reference, candidate, b, a, '--parse-too', '--ledger', recorded);
+  assert.equal(forward.status, backward.status);
+  const lines = (run) => run.out.split('\n').filter((l) => /^(DIFF|NOT REPRODUCED|MALFORMED) /.test(l)).sort();
+  assert.deepEqual(lines(forward), lines(backward));
+  assert.equal(summary(forward), summary(backward));
+});

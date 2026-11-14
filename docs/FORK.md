@@ -1069,6 +1069,21 @@ The totals are under "Verification" below.
     reporting it as a trap. Checked: the identity tool's checks (item 85) pass before and after,
     the identity run prints the same lines, `npm run smoke` and `npm run stack` pass, and the
     stack report is the same with the old and the new scripts. No API change.
+87. **The identity check answers the reference per source.** A unit is one source file (its
+    requests, then the parse twins of its `evaluate` requests, without the clock requests) or one
+    ledger file (the `request` of each entry). The reference answers each unit in order on a fresh
+    instance, so its answers to a unit are a function of the module and the unit, which a cache of
+    them needs; a request that several units list takes the answer of the first. The candidate
+    answers the work list on one instance as before, and the work list, the comparison, the
+    output and `--record` are unchanged. Responses are held and compared as their canonical text
+    (sorted keys, every number as written), parsed again only where a result text or a draft
+    needs the object. A request in several units is now evaluated once per unit by the
+    reference: on the committed sources 2,627 requests as before, with 50 module panic messages on
+    stderr instead of 30 and the same stdout; the time is unchanged (8.1 s and 8.2 s). Checked: a
+    new test runs two sources in both orders and gets the same summary and the same failure lines
+    (it passes before the change too: it pins the property that the reference keeps no state
+    between requests); the identity tool's checks pass; a `--record` draft of 40 registered
+    requests is byte-identical to the one the tool wrote before. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

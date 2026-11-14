@@ -149,17 +149,18 @@ async function readJson(file) {
   }
 }
 
+/** The source units, one per file: its requests in order, each with its label and its text. */
 async function loadSources(paths) {
-  const requests = [];
+  const units = [];
   for (const p of paths) {
     for (const file of await jsonFiles(p)) {
       const { content, text } = await readJson(file);
       const label = path.basename(file, '.json');
-      if (!Array.isArray(content)) requests.push({ label, request: content, text });
-      else itemTexts(text, 0).forEach((item, i) => requests.push({ label: `${label}#${i}`, request: content[i], text: item }));
+      const requests = Array.isArray(content) ? itemTexts(text, 0).map((item, i) => ({ label: `${label}#${i}`, request: content[i], text: item })) : [{ label, request: content, text }];
+      units.push({ file, requests });
     }
   }
-  return requests;
+  return units;
 }
 
 const ENTRY_FIELDS = new Set(['expression', 'request', 'why', 'old', 'new']);
@@ -171,13 +172,17 @@ function checkOutcome(outcome, field) {
   if ('trap' in outcome && canonical(outcome) !== '{"trap":true}') throw new Error(`\`${field}\`: a trap is exactly {"trap": true}`);
 }
 
+/** The registered entries by request key, and the ledger units, one per file: its requests in order. */
 async function loadLedger(paths) {
   const entries = new Map();
+  const units = [];
   for (const p of paths) {
     for (const file of await jsonFiles(p)) {
       const { content, text } = await readJson(file);
       if (!Array.isArray(content)) throw new InputError(`${file}: a ledger is a JSON array of entries`);
       const entryTexts = itemTexts(text, 0);
+      const requests = [];
+      units.push({ file, requests });
       content.forEach((entry, i) => {
         const where = `${file} entry #${i}`;
         try {
@@ -202,29 +207,49 @@ async function loadLedger(paths) {
         const earlier = entries.get(key);
         if (earlier) throw new InputError(`${where}: the request is already registered by ${earlier.where}`);
         entries.set(key, { where, request, text: requestText, why: entry.why, old: entry.old, new: entry.new });
+        requests.push({ label: where, request, text: requestText });
       });
     }
   }
-  return entries;
+  return { entries, units };
 }
 
-/** A module that answers requests with their parsed responses; after a trap it continues on a fresh instance. */
+/** A compiled module: a function that opens a session on a fresh instance. */
 async function load(file) {
-  let answer;
   try {
-    answer = await session(await WebAssembly.compile(await readFile(file)));
+    const module = await WebAssembly.compile(await readFile(file));
+    return () => session(module);
   } catch (e) {
     throw new InputError(`${file}: ${e.message}`);
   }
-  return async (text) => {
-    const response = await answer(text);
-    if (typeof response !== 'string') return { trap: true };
-    try {
-      return parseJson(response);
-    } catch (e) {
-      throw new MalformedResponse(e.message);
-    }
-  };
+}
+
+const TRAP = canonical({ trap: true });
+
+/** A stripped response as its canonical text, the form it is compared in; its value is parsed when needed. */
+class Answer {
+  constructor(text) {
+    this.text = text;
+    this.parsed = undefined;
+  }
+
+  get value() {
+    this.parsed ??= parseJson(this.text);
+    return this.parsed;
+  }
+}
+
+/** The answer of a session to one request: a trap, or the stripped response. A response that is not JSON throws MalformedResponse. */
+async function answerOf(answer, { request, text }) {
+  const response = await answer(text);
+  if (typeof response !== 'string') return new Answer(TRAP);
+  let value;
+  try {
+    value = parseJson(response);
+  } catch (e) {
+    throw new MalformedResponse(e.message);
+  }
+  return new Answer(canonical(strip(value, request)));
 }
 
 /** The response without the fields that identify the build rather than the answer. */
@@ -243,73 +268,109 @@ function resultText(response) {
   return result.type === 'string' ? JSON.parse(result.display) : result.display;
 }
 
-const matches = (response, expected) => (typeof expected === 'string' ? resultText(response) === expected : canonical(response) === canonical(expected));
+const matches = (answer, expected) => (typeof expected === 'string' ? resultText(answer.value) === expected : answer.text === canonical(expected));
 
 /** In the result-text form, what besides the text both responses must still agree on. */
 const besidesText = (response) => canonical([response.ok, response.result && response.result.type, response.warnings, response.diagnostics]);
 
-const short = (value) => {
-  const s = typeof value === 'string' ? JSON.stringify(value) : canonical(value);
-  return s.length > 400 ? `${s.slice(0, 400)}…` : s;
-};
+const clip = (s) => (s.length > 400 ? `${s.slice(0, 400)}…` : s);
+const short = (value) => clip(value instanceof Answer ? value.text : typeof value === 'string' ? JSON.stringify(value) : canonical(value));
 const labelOf = (label, request) => `${label} ${JSON.stringify(request).slice(0, 90)}`;
+
+/**
+ * The reference's answers by request key. Each unit (a source file or a ledger file) is answered in
+ * order on a fresh instance, so its answers depend on the module and the unit alone; a request's
+ * answer is the one of the first unit that lists it. A response that is not JSON is kept as its
+ * MalformedResponse.
+ */
+async function referenceAnswers(reference, units) {
+  const answers = new Map();
+  for (const unit of units) {
+    const answer = await reference();
+    for (const item of unit.requests) {
+      let outcome;
+      try {
+        outcome = await answerOf(answer, item);
+      } catch (e) {
+        if (!(e instanceof MalformedResponse)) throw e;
+        outcome = e;
+      }
+      if (!answers.has(item.key)) answers.set(item.key, outcome);
+    }
+  }
+  return answers;
+}
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!lossless) throw new InputError('this Node does not parse JSON losslessly (JSON.rawJSON and the source text of a number, Node 21 or later)');
   const [refPath, candPath, ...sourcePaths] = options.positional;
-  const ledger = await loadLedger(options.ledgers);
-  const sourced = await loadSources(sourcePaths);
-  if (options.parseToo) {
-    for (const { label, request } of [...sourced]) {
-      if (request && request.op === 'evaluate') {
-        const parse = { ...request, op: 'parse' };
-        sourced.push({ label: `${label} (as parse)`, request: parse, text: JSON.stringify(parse) });
-      }
-    }
-  }
+  const { entries: ledger, units: ledgerUnits } = await loadLedger(options.ledgers);
+  const sourceUnits = await loadSources(sourcePaths);
+  // With --parse-too, every evaluate request of a unit is also sent as a parse request, the same
+  // request with `op` set to "parse".
+  const twinsOf = ({ requests }) =>
+    !options.parseToo
+      ? []
+      : requests
+          .filter(({ request }) => request && request.op === 'evaluate')
+          .map(({ label, request }) => {
+            const parse = { ...request, op: 'parse' };
+            return { label: `${label} (as parse)`, request: parse, text: JSON.stringify(parse) };
+          });
+  const twins = sourceUnits.map(twinsOf);
+  const sourced = [...sourceUnits.flatMap((unit) => unit.requests), ...twins.flat()];
+  for (const item of [...sourced, ...ledgerUnits.flatMap((unit) => unit.requests)]) item.key = canonical(item.request);
 
+  // The work list: the requests of every source unit, then their parse twins, then the requests
+  // only the ledger lists; the first occurrence of a request wins.
   const work = new Map();
   let excluded = 0;
-  for (const { label, request, text } of sourced) {
-    if (usesClock(request)) excluded++;
-    else if (!work.has(canonical(request))) work.set(canonical(request), { label, request, text });
+  for (const item of sourced) {
+    if (usesClock(item.request)) excluded++;
+    else if (!work.has(item.key)) work.set(item.key, item);
   }
   const fromSources = work.size;
-  for (const [key, entry] of ledger) if (!work.has(key)) work.set(key, { label: entry.where, request: entry.request, text: entry.text });
+  for (const [key, entry] of ledger) if (!work.has(key)) work.set(key, { label: entry.where, request: entry.request, text: entry.text, key });
+  // What the reference answers: each source unit with its parse twins, then each ledger unit.
+  const units = [...sourceUnits.map((unit, i) => ({ file: unit.file, requests: [...unit.requests, ...twins[i]].filter(({ request }) => !usesClock(request)) })), ...ledgerUnits];
 
-  const ref = await load(refPath);
-  const cand = await load(candPath);
+  const reference = await load(refPath);
+  const candidate = await load(candPath);
+  const refAnswers = await referenceAnswers(reference, units);
+  const cand = await candidate();
   const failures = [];
   const recorded = [];
   let reproduced = 0;
   let trapped = 0;
-  for (const [key, { label, request, text }] of work) {
-    let a, b;
+  for (const [key, item] of work) {
+    const { label, request } = item;
+    const a = refAnswers.get(key);
+    let b;
     try {
-      a = strip(await ref(text), request);
-      b = strip(await cand(text), request);
+      if (a instanceof MalformedResponse) throw a;
+      b = await answerOf(cand, item);
     } catch (e) {
       if (!(e instanceof MalformedResponse)) throw e;
       failures.push(`MALFORMED ${labelOf(label, request)}: the response is not JSON (${e.message})`);
       continue;
     }
-    if (a.trap) trapped++;
+    if (a.text === TRAP) trapped++;
     const entry = ledger.get(key);
     if (entry) {
       const problems = [];
       if (!matches(a, entry.old)) problems.push(`  reference answered ${short(a)}\n  registered old     ${short(entry.old)}`);
       if (!matches(b, entry.new)) problems.push(`  candidate answered ${short(b)}\n  registered new     ${short(entry.new)}`);
-      if (!problems.length && typeof entry.old === 'string' && besidesText(a) !== besidesText(b)) {
+      if (!problems.length && typeof entry.old === 'string' && besidesText(a.value) !== besidesText(b.value)) {
         problems.push(`  the responses differ beyond the result text\n  ref : ${short(a)}\n  cand: ${short(b)}`);
       }
       if (problems.length) failures.push(`NOT REPRODUCED ${entry.where} ${JSON.stringify(request).slice(0, 90)}\n${problems.join('\n')}`);
       else reproduced++;
-    } else if (canonical(a) !== canonical(b)) {
+    } else if (a.text !== b.text) {
       failures.push(`DIFF ${labelOf(label, request)}\n  ref : ${short(a)}\n  cand: ${short(b)}`);
       if (options.record) {
         const isPlain = request && request.op === 'evaluate' && canonical(Object.keys(request).sort()) === '["expression","op"]';
-        recorded.push({ ...(isPlain ? { expression: request.expression } : { request }), why: options.why, old: a, new: b });
+        recorded.push({ ...(isPlain ? { expression: request.expression } : { request }), why: options.why, old: a.value, new: b.value });
       }
     }
   }

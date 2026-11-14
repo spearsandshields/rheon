@@ -42,7 +42,10 @@ integer) is sent, keyed and compared exactly as written. This needs Node 21 or l
 
 1. `elapsedMicros` and `engineCommit` are removed from every response, and `version` from `info`
    responses. A trap of the instance is the response `{"trap": true}`, and the next request runs on
-   a fresh instance.
+   a fresh instance. The reference answers each source file (with the parse twins of its requests)
+   and each ledger file on a fresh instance of its own, so that its answers to a file depend on
+   the module and the file alone; a request that several files list takes the answer of the first.
+   The candidate answers every request once, on one instance.
 2. Every request is compared. A difference that is not registered fails the run.
 3. Every ledger entry is run, whether or not a source lists its request. The reference must answer
    its `old` and the candidate its `new`; an entry that does not reproduce fails the run, so the
