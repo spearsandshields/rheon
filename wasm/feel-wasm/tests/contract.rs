@@ -548,6 +548,8 @@ fn truncated_fractional_seconds_warn() {
   assert_eq!(warnings(&response), [message]);
   let response = req(json!({"op": "evaluate", "expression": "time(\"10:00:00.1234567890\")"}));
   assert_eq!(warnings(&response), Vec::<&str>::new());
+  let response = req(json!({"op": "evaluate", "expression": "time(10, 0, 0.1234567891)"}));
+  assert_eq!(warnings(&response), ["fractional seconds of '0.1234567891' truncated to nanoseconds; dropped digits: '1'"]);
 }
 
 /// 24:00:00 is midnight only with a zero fraction (XML Schema Part 2 §3.2.7).

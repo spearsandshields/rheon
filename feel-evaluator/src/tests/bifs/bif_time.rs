@@ -406,3 +406,30 @@ fn fraction_digits_beyond_nanoseconds_warn() {
   assert!(warning.chars().count() <= 1_000, "{warning}");
   assert!(warning.contains("… (100009 characters)'") && warning.contains("… (99991 characters)'"), "{warning}");
 }
+
+#[test]
+fn seconds_with_more_than_nine_fraction_digits_warn() {
+  te_warnings("time(10, 0, 0.1234567891)", "10:00:00.123456789", &[&truncation_warning("0.1234567891", "1")]);
+  te_warnings(
+    "time(10, 0, 10/3)",
+    "10:00:03.333333333",
+    &[&truncation_warning("3.333333333333333333333333333333333", "333333333333333333333333")],
+  );
+  te_warnings(
+    r#"time(10, 0, 0.1234567891, duration("PT1H"))"#,
+    "10:00:00.123456789+01:00",
+    &[&truncation_warning("0.1234567891", "1")],
+  );
+  te_warnings(r#"time(10, 0, 0.1234567891, null)"#, "10:00:00.123456789", &[&truncation_warning("0.1234567891", "1")]);
+  // nothing is lost
+  te_warnings("time(10, 0, 0.123456789)", "10:00:00.123456789", &[]);
+  te_warnings("time(10, 0, 0.1234567890)", "10:00:00.123456789", &[]);
+  te_warnings("time(10, 0, 59.5)", "10:00:59.5", &[]);
+  // no time, no warning
+  let scope = FeelScope::default();
+  let text = r#"time(10, 0, 0.1234567891, duration("PT19H"))"#;
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
+  let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
+  assert_eq!("null(time: offset is out of range: PT19H)", value.to_string());
+  assert!(diagnostics.warnings().is_empty(), "{:?}", diagnostics.warnings());
+}

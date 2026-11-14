@@ -2793,6 +2793,20 @@ pub fn time_1(value: &Value) -> Value {
   }
 }
 
+/// The nanoseconds of the fraction of `second` (a number of seconds, 0 to 59), truncated, and the
+/// digits beyond them when one of them is not zero: a time holds nanoseconds, so the seconds of
+/// `time(h, m, s)` are truncated as the fraction of a time literal is, and warn the same way.
+fn split_nanoseconds(second: &FeelNumber) -> (FeelNumber, Option<String>) {
+  let nanoseconds = second.frac() * FeelNumber::billion();
+  let beyond = nanoseconds.frac();
+  let dropped = (!beyond.is_zero()).then(|| {
+    // the plain text of a number between 0 and 1 is "0." and its digits
+    let text = beyond.to_string();
+    text.strip_prefix("0.").unwrap_or(&text).trim_end_matches('0').to_string()
+  });
+  (nanoseconds.trunc(), dropped)
+}
+
 pub fn time_3(hour_value: &Value, minute_value: &Value, second_value: &Value) -> Value {
   if let Value::Number(hour) = hour_value {
     if let Value::Number(minute) = minute_value {
@@ -2802,12 +2816,13 @@ pub fn time_3(hour_value: &Value, minute_value: &Value, second_value: &Value) ->
             if (0..60).contains(second) {
               // unwraps below are safe, value ranges are checked above
               let seconds = second.trunc();
-              let nanoseconds = (second.frac() * FeelNumber::billion()).trunc();
+              let (nanoseconds, dropped) = split_nanoseconds(second);
               let h = hour.try_into().unwrap();
               let m = minute.try_into().unwrap();
               let s = seconds.try_into().unwrap();
               let n = nanoseconds.try_into().unwrap();
               let feel_time = FeelTime::local_opt(h, m, s, n).unwrap();
+              warn_truncated_fraction(second, dropped.as_deref());
               Value::Time(feel_time)
             } else {
               value_null!("second must be 0..59, current value is {}", arg(&second))
@@ -2841,23 +2856,26 @@ pub fn time_4(hour_value: &Value, minute_value: &Value, second_value: &Value, of
               let h = hour.try_into().unwrap();
               let m = minute.try_into().unwrap();
               let s = seconds.try_into().unwrap();
-              let n = (second.frac() * FeelNumber::billion()).trunc().try_into().unwrap();
-              match offset_value {
+              let (nanoseconds, dropped) = split_nanoseconds(second);
+              let n = nanoseconds.try_into().unwrap();
+              let time = match offset_value {
                 // the offset is NOT range-checked above: an offset outside the allowed zone range
                 // (e.g. duration("PT19H") or duration("P1D")) gives null instead of a panic
                 Value::DaysAndTimeDuration(offset) => match i32::try_from(offset.as_seconds())
                   .ok()
                   .and_then(|offset_seconds| FeelTime::offset_opt(h, m, s, n, offset_seconds))
                 {
-                  Some(time) => Value::Time(time),
-                  None => value_null!("time: offset is out of range: {}", offset),
+                  Some(time) => time,
+                  None => return value_null!("time: offset is out of range: {}", offset),
                 },
                 Value::Null(_) => match FeelTime::local_opt(h, m, s, n) {
-                  Some(time) => Value::Time(time),
-                  None => value_null!("time: invalid local time"),
+                  Some(time) => time,
+                  None => return value_null!("time: invalid local time"),
                 },
-                _ => value_null!("expected days and time duration or null, current offset type is {}", arg(&TypeOf(offset_value))),
-              }
+                _ => return value_null!("expected days and time duration or null, current offset type is {}", arg(&TypeOf(offset_value))),
+              };
+              warn_truncated_fraction(second, dropped.as_deref());
+              Value::Time(time)
             } else {
               value_null!("core", "time_4", "second must be 0..59, current value is: {}", arg(&second))
             }

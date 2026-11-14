@@ -837,6 +837,17 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     (rheon-feel-temporal) `FeelTime::parse_reporting_truncation`,
     `FeelDateTime::parse_reporting_truncation` and `FeelDaysAndTimeDuration::parse_reporting_truncation`
     are added.
+78. **`time()` seconds with more than nine fraction digits warn.** `time(hour, minute, second[,
+    offset])` takes the nanoseconds of an exact decimal seconds number and truncated the digits
+    beyond the ninth silently, while the same truncation of a literal warns (item 77). It now
+    warns with the same message, naming the seconds number as `arg` quotes it and the digits it
+    lost: `time(10, 0, 0.1234567891)` gives `fractional seconds of '0.1234567891' truncated to
+    nanoseconds; dropped digits: '1'`, and a computed number warns too (`time(10, 0, 10/3)`, 24
+    dropped digits). The value is unchanged; no warning when every dropped digit is 0 or when the
+    call gives no time (an offset out of range). The split of the seconds into nanoseconds and
+    dropped digits is one function for both arities. Basis: the owner rule that a truncation to
+    nanoseconds warns, for literals and `time(h, m, s)` alike, and only when a digit other than 0
+    is dropped; CONTRACT §3. 2 registered differences. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
