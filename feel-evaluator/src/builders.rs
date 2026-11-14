@@ -8,7 +8,8 @@ use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value};
+use rheon_feel::message::arg;
+use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value};
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, IntervalType, Name, value_null};
 use rheon_feel_parser::{AstNode, ClosureBuilder};
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
@@ -53,14 +54,22 @@ pub fn build_evaluator_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluat
 /// Prepares null value with error message for second argument in `between` operator.
 macro_rules! between_null2 {
   ($expected:literal, $actual:expr) => {
-    value_null!("expected {} as a second argument in 'between' operator, actual value type is {}", $expected, $actual)
+    value_null!(
+      "expected {} as a second argument in 'between' operator, actual value type is {}",
+      $expected,
+      arg(&TypeOf($actual))
+    )
   };
 }
 
 /// Prepares null value with error message for third argument in `between` operator.
 macro_rules! between_null3 {
   ($expected:literal, $actual:expr) => {
-    value_null!("expected {} as a third argument in 'between' operator, actual value type is {}", $expected, $actual)
+    value_null!(
+      "expected {} as a third argument in 'between' operator, actual value type is {}",
+      $expected,
+      arg(&TypeOf($actual))
+    )
   };
 }
 
@@ -217,7 +226,13 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::Number(lh) => match rhv {
           Value::Number(rh) => Value::Number(lh + rh),
           value @ Value::Null(_) => value,
-          _ => value_null!("incompatible types in addition: {}({}) + {}({})", lhv, lhv.type_of(), rhv, rhv.type_of()),
+          _ => value_null!(
+            "incompatible types in addition: {}({}) + {}({})",
+            arg(&lhv),
+            arg(&TypeOf(&lhv)),
+            arg(&rhv),
+            arg(&TypeOf(&rhv))
+          ),
         },
         Value::String(lh) => {
           if let Value::String(rh) = rhv {
@@ -241,7 +256,7 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("invalid result while adding years and months duration to date")
             }
           }
-          other => invalid_argument_type!("add", "years and months duration", other.type_of()),
+          other => invalid_argument_type!("add", "years and months duration", other),
         },
         Value::DateTime(lh) => match rhv {
           Value::DaysAndTimeDuration(rh) => {
@@ -258,11 +273,11 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("invalid result while adding years and months duration to date and time")
             }
           }
-          other => invalid_argument_type!("add", "days and time duration, years and months duration", other.type_of()),
+          other => invalid_argument_type!("add", "days and time duration, years and months duration", other),
         },
         Value::Time(lh) => match rhv {
           Value::DaysAndTimeDuration(rh) => Value::Time(lh + rh),
-          other => invalid_argument_type!("add", "days and time duration", other.type_of()),
+          other => invalid_argument_type!("add", "days and time duration", other),
         },
         Value::DaysAndTimeDuration(lh) => match rhv {
           Value::DaysAndTimeDuration(rh) => lh
@@ -283,7 +298,7 @@ impl<'b> EvaluatorBuilder<'b> {
             }
           }
           Value::Time(rh) => Value::Time(rh + lh),
-          other => invalid_argument_type!("add", "days and time duration, date and time", other.type_of()),
+          other => invalid_argument_type!("add", "days and time duration, date and time", other),
         },
         Value::YearsAndMonthsDuration(lh) => match rhv {
           Value::Date(rh) => {
@@ -303,14 +318,10 @@ impl<'b> EvaluatorBuilder<'b> {
           Value::YearsAndMonthsDuration(rh) => lh
             .checked_add(&rh)
             .map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
-          other => invalid_argument_type!("add", "years and months duration, date and time", other.type_of()),
+          other => invalid_argument_type!("add", "years and months duration, date and time", other),
         },
         value @ Value::Null(_) => value,
-        other => invalid_argument_type!(
-          "add",
-          "number, string, date and time, days and time duration, years and months duration, null",
-          other.type_of()
-        ),
+        other => invalid_argument_type!("add", "number, string, date and time, days and time duration, years and months duration, null", other),
       }
     })
   }
@@ -328,7 +339,7 @@ impl<'b> EvaluatorBuilder<'b> {
     } else if let Ok(dt_duration) = FeelDaysAndTimeDuration::try_from(text) {
       Box::new(move |_: &FeelScope| Value::DaysAndTimeDuration(dt_duration.clone()))
     } else {
-      let invalid_at_literal = format!("invalid @ literal: {}", text);
+      let invalid_at_literal = format!("invalid @ literal: {}", arg(text));
       Box::new(move |_: &FeelScope| value_null!(invalid_at_literal))
     }
   }
@@ -347,10 +358,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::Number(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("number", rhv.type_of())
+              between_null3!("number", &rhv)
             }
           } else {
-            between_null2!("number", mhv.type_of())
+            between_null2!("number", &mhv)
           }
         }
         Value::String(lh) => {
@@ -358,10 +369,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::String(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("string", rhv.type_of())
+              between_null3!("string", &rhv)
             }
           } else {
-            between_null2!("string", mhv.type_of())
+            between_null2!("string", &mhv)
           }
         }
         Value::Date(lh) => {
@@ -369,10 +380,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::Date(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("date", rhv.type_of())
+              between_null3!("date", &rhv)
             }
           } else {
-            between_null2!("date", mhv.type_of())
+            between_null2!("date", &mhv)
           }
         }
         Value::Time(lh) => {
@@ -380,10 +391,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::Time(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("time", rhv.type_of())
+              between_null3!("time", &rhv)
             }
           } else {
-            between_null2!("time", mhv.type_of())
+            between_null2!("time", &mhv)
           }
         }
         Value::DateTime(lh) => {
@@ -391,10 +402,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::DateTime(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("date and time", rhv.type_of())
+              between_null3!("date and time", &rhv)
             }
           } else {
-            between_null2!("date and time", mhv.type_of())
+            between_null2!("date and time", &mhv)
           }
         }
         Value::DaysAndTimeDuration(lh) => {
@@ -402,10 +413,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::DaysAndTimeDuration(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("days and time duration", rhv.type_of())
+              between_null3!("days and time duration", &rhv)
             }
           } else {
-            between_null2!("days and time duration", mhv.type_of())
+            between_null2!("days and time duration", &mhv)
           }
         }
         Value::YearsAndMonthsDuration(lh) => {
@@ -413,17 +424,17 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::YearsAndMonthsDuration(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("years and months duration", rhv.type_of())
+              between_null3!("years and months duration", &rhv)
             }
           } else {
-            between_null2!("years and months duration", mhv.type_of())
+            between_null2!("years and months duration", &mhv)
           }
         }
         other => {
           if other.is_null() {
             other
           } else {
-            value_null!("unexpected value type in 'between' operator: {}", other.type_of())
+            value_null!("unexpected value type in 'between' operator: {}", arg(&TypeOf(&other)))
           }
         }
       }
@@ -497,7 +508,7 @@ impl<'b> EvaluatorBuilder<'b> {
             Value::ContextEntry(name, value) => {
               if evaluated_ctx.contains_entry(&name) {
                 // duplicated context entry keys are not allowed
-                break 'entries Some(value_null!("duplicated context entry key: {}", name));
+                break 'entries Some(value_null!("duplicated context entry key: {}", arg(&name)));
               } else {
                 // add newly evaluated entry to evaluated context
                 evaluated_ctx.set_entry(&name, (*value).clone());
@@ -506,7 +517,7 @@ impl<'b> EvaluatorBuilder<'b> {
               }
             }
             value_null @ Value::Null(_) => break 'entries Some(value_null),
-            other => break 'entries Some(value_null!("expected context entry, actual value type is {}", other.type_of())),
+            other => break 'entries Some(value_null!("expected context entry, actual value type is {}", arg(&TypeOf(&other)))),
           }
         }
         None
@@ -525,7 +536,7 @@ impl<'b> EvaluatorBuilder<'b> {
       let rhv = rhe(scope);
       match lhv {
         Value::ContextEntryKey(name) => Value::ContextEntry(name, Box::new(rhv)),
-        _ => value_null!("expected context entry key, actual value type is {}", lhv.type_of()),
+        _ => value_null!("expected context entry key, actual value type is {}", arg(&TypeOf(&lhv))),
       }
     })
   }
@@ -548,7 +559,7 @@ impl<'b> EvaluatorBuilder<'b> {
             entries.insert(name, feel_type.clone());
           }
           null @ Value::Null(_) => return null,
-          other => return value_null!("expected context type entry, actual value type is {}", other.type_of()),
+          other => return value_null!("expected context type entry, actual value type is {}", arg(&TypeOf(&other))),
         }
       }
       Value::FeelType(FeelType::Context(entries))
@@ -593,7 +604,7 @@ impl<'b> EvaluatorBuilder<'b> {
               Value::Number(lh / rh)
             }
           }
-          _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
+          _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
         },
         Value::DaysAndTimeDuration(ref lh) => match rhv {
           Value::Number(rh) => {
@@ -606,7 +617,7 @@ impl<'b> EvaluatorBuilder<'b> {
               {
                 Value::DaysAndTimeDuration(duration)
               } else {
-                value_null!("[division] error: {} / {}", lhv, rhv)
+                value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv))
               }
             }
           }
@@ -619,7 +630,7 @@ impl<'b> EvaluatorBuilder<'b> {
               Value::Number(lvl / rvl)
             }
           }
-          _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
+          _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
         },
         Value::YearsAndMonthsDuration(ref lh) => match rhv {
           Value::Number(rh) => {
@@ -632,7 +643,7 @@ impl<'b> EvaluatorBuilder<'b> {
               {
                 Value::YearsAndMonthsDuration(duration)
               } else {
-                value_null!("[division] error: {} / {}", lhv, rhv)
+                value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv))
               }
             }
           }
@@ -645,9 +656,9 @@ impl<'b> EvaluatorBuilder<'b> {
               Value::Number(lvl / rvl)
             }
           }
-          _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
+          _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
         },
-        _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
+        _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
       }
     })
   }
@@ -804,7 +815,7 @@ impl<'b> EvaluatorBuilder<'b> {
             formal_parameters.push((parameter_name, parameter_type));
           }
           null @ Value::Null(_) => return null,
-          other => return value_null!("expected formal parameter, actual value type is: {}", other.type_of()),
+          other => return value_null!("expected formal parameter, actual value type is: {}", arg(&TypeOf(&other))),
         }
       }
       Value::FormalParameters(formal_parameters)
@@ -839,10 +850,10 @@ impl<'b> EvaluatorBuilder<'b> {
                 let lhe = Arc::new(java_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
               } else {
-                value_null!("invalid Java function mapping, no method signature entry in context {}", java_mapping)
+                value_null!("invalid Java function mapping, no method signature entry in context {}", arg(&java_mapping))
               }
             } else {
-              value_null!("invalid Java function mapping, no class name entry in context {}", java_mapping)
+              value_null!("invalid Java function mapping, no class name entry in context {}", arg(&java_mapping))
             };
           }
           if let Some(Value::Context(pmml_mapping)) = mapping_information.get_entry(&"pmml".into()) {
@@ -854,15 +865,18 @@ impl<'b> EvaluatorBuilder<'b> {
                 let lhe = Arc::new(pmml_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
               } else {
-                value_null!("invalid PMML function mapping, no model name entry in context {}", pmml_mapping)
+                value_null!("invalid PMML function mapping, no model name entry in context {}", arg(&pmml_mapping))
               }
             } else {
-              value_null!("invalid PMML function mapping, no document entry in context {}", pmml_mapping)
+              value_null!("invalid PMML function mapping, no document entry in context {}", arg(&pmml_mapping))
             };
           }
-          value_null!("invalid external function mapping, expected 'java' or 'pmml' entry in context {}", mapping_information)
+          value_null!(
+            "invalid external function mapping, expected 'java' or 'pmml' entry in context {}",
+            arg(&mapping_information)
+          )
         }
-        other => value_null!("invalid external function mapping, expected context, actual value is {}", other),
+        other => value_null!("invalid external function mapping, expected context, actual value is {}", arg(&other)),
       }
     })
   }
@@ -891,7 +905,7 @@ impl<'b> EvaluatorBuilder<'b> {
           }
         }
         null @ Value::Null(_) => null,
-        other => value_null!("expected formal parameters, actual value type is {}", other.type_of()),
+        other => value_null!("expected formal parameters, actual value type is {}", arg(&TypeOf(&other))),
       }
     })
   }
@@ -905,7 +919,7 @@ impl<'b> EvaluatorBuilder<'b> {
       if let Some(result) = eval_ternary_equality(&lhv, &rhv) {
         Value::Boolean(result)
       } else {
-        value_null!("equal err '{}' =?= '{}'", lhv, rhv)
+        value_null!("equal err '{}' =?= '{}'", arg(&lhv), arg(&rhv))
       }
     })
   }
@@ -1195,7 +1209,7 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::UnaryGreater(inner) => eval_in_unary_greater(&lhv, inner.borrow()),
         Value::UnaryGreaterOrEqual(inner) => eval_in_unary_greater_or_equal(&lhv, inner.borrow()),
         Value::Irrelevant => VALUE_TRUE,
-        _ => value_null!("unexpected argument type in 'in' operator: {}", rhv.type_of()),
+        _ => value_null!("unexpected argument type in 'in' operator: {}", arg(&TypeOf(&rhv))),
       }
     })
   }
@@ -1290,7 +1304,7 @@ impl<'b> EvaluatorBuilder<'b> {
             FeelType::Any => VALUE_TRUE,
             expected => Value::Boolean(value.type_of() == expected),
           },
-          other => value_null!("invalid value in 'instance of' operator: {}", other),
+          other => value_null!("invalid value in 'instance of' operator: {}", arg(&other)),
         }
       } else {
         Value::Boolean(lhv.type_of() == rhv.type_of())
@@ -1433,7 +1447,7 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("multiplication result is out of range of years and months duration")
             }
           }
-          _ => value_null!("[multiplication] incompatible types: {} * {}", lhv, rhv),
+          _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
         },
         Value::DaysAndTimeDuration(ref lh) => match rhv {
           Value::Number(rh) => {
@@ -1446,7 +1460,7 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("multiplication result is out of range of days and time duration")
             }
           }
-          _ => value_null!("[multiplication] incompatible types: {} * {}", lhv, rhv),
+          _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
         },
         Value::YearsAndMonthsDuration(ref lh) => match rhv {
           Value::Number(rh) => {
@@ -1459,10 +1473,10 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("multiplication result is out of range of years and months duration")
             }
           }
-          _ => value_null!("[multiplication] incompatible types: {} * {}", lhv, rhv),
+          _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
         },
         value @ Value::Null(_) => value,
-        other => value_null!("unexpected value type in multiplication: {}", other.type_of()),
+        other => value_null!("unexpected value type in multiplication: {}", arg(&TypeOf(&other))),
       }
     })
   }
@@ -1474,7 +1488,7 @@ impl<'b> EvaluatorBuilder<'b> {
       } else if let Ok(bif) = Bif::from_str(&name.to_string()) {
         Value::BuiltInFunction(bif)
       } else {
-        value_null!("context has no value for key '{}'", name)
+        value_null!("context has no value for key '{}'", arg(&name))
       }
     })
   }
@@ -1487,7 +1501,7 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::Number(lh) => Value::Number(-lh),
         Value::DaysAndTimeDuration(lh) => Value::DaysAndTimeDuration(-lh),
         Value::YearsAndMonthsDuration(lh) => Value::YearsAndMonthsDuration(-lh),
-        other => value_null!("unexpected type in arithmetic negation: {}", other.type_of()),
+        other => value_null!("unexpected type in arithmetic negation: {}", arg(&TypeOf(&other))),
       }
     })
   }
@@ -1522,7 +1536,7 @@ impl<'b> EvaluatorBuilder<'b> {
     if let Ok(num) = text.parse::<FeelNumber>() {
       Box::new(move |_: &FeelScope| Value::Number(num))
     } else {
-      Box::new(move |_: &FeelScope| value_null!("failed to convert text '{}' into number", text))
+      Box::new(move |_: &FeelScope| value_null!("failed to convert text '{}' into number", arg(&text)))
     }
   }
 
@@ -1665,7 +1679,7 @@ impl<'b> EvaluatorBuilder<'b> {
         collect(&context, &name, &mut result);
         Value::List(result)
       }
-      other => value_null!("descendant expression: expected context, actual type is {}", other.type_of()),
+      other => value_null!("descendant expression: expected context, actual type is {}", arg(&TypeOf(&other))),
     })
   }
 
@@ -1692,7 +1706,7 @@ impl<'b> EvaluatorBuilder<'b> {
           if let Some(value) = context.get_entry(&name) {
             value.clone()
           } else {
-            value_null!("build_path: no entry {} in context: {}", name, context)
+            value_null!("build_path: no entry {} in context: {}", arg(&name), arg(&context))
           }
         }
         Value::List(items) => {
@@ -1872,7 +1886,7 @@ impl<'b> EvaluatorBuilder<'b> {
       }
       // the operands as evaluated above: evaluating them again would repeat their diagnostics
       // and take exponential time in a chain of failing subtractions
-      value_null!("[subtraction] incompatible types: {} - {}", lhv, rhv)
+      value_null!("[subtraction] incompatible types: {} - {}", arg(&lhv), arg(&rhv))
     })
   }
 
@@ -1950,7 +1964,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
         }
       }
       Bip::Value => temporal_value::of_date(&date),
-      other => value_null!("no such property in date: {}", other),
+      other => value_null!("no such property in date: {}", arg(&other)),
     },
     Value::DateTime(date_time) => match property {
       Bip::Year => Value::Number(date_time.year().into()),
@@ -1981,7 +1995,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
         }
       }
       Bip::Value => temporal_value::of_date_time(&date_time),
-      other => value_null!("no such property in date and time: {}", other),
+      other => value_null!("no such property in date and time: {}", arg(&other)),
     },
     Value::Time(time) => match property {
       Bip::Hour => Value::Number(time.hour().into()),
@@ -2002,7 +2016,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
         }
       }
       Bip::Value => temporal_value::of_time(&time),
-      other => value_null!("no such property in time: {}", other),
+      other => value_null!("no such property in time: {}", arg(&other)),
     },
     Value::DaysAndTimeDuration(dt_duration) => match property {
       Bip::Days => Value::Number(dt_duration.get_days().into()),
@@ -2010,57 +2024,57 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       Bip::Minutes => Value::Number(dt_duration.get_minutes().into()),
       Bip::Seconds => Value::Number(dt_duration.get_seconds().into()),
       Bip::Value => temporal_value::of_dt_duration(&dt_duration),
-      other => value_null!("no such property in days and time duration: {}", other),
+      other => value_null!("no such property in days and time duration: {}", arg(&other)),
     },
     Value::YearsAndMonthsDuration(ym_duration) => match property {
       Bip::Years => Value::Number(ym_duration.years().into()),
       Bip::Months => Value::Number(ym_duration.months().into()),
       Bip::Value => Value::Number(ym_duration.as_months().into()),
-      other => value_null!("no such property in years and months duration: {}", other),
+      other => value_null!("no such property in years and months duration: {}", arg(&other)),
     },
     Value::Range(rs, cs, re, ce) => match property {
       Bip::Start => *rs,
       Bip::StartIncluded => Value::Boolean(cs.closed()),
       Bip::End => *re,
       Bip::EndIncluded => Value::Boolean(ce.closed()),
-      other => value_null!("no such property in range: {}", other),
+      other => value_null!("no such property in range: {}", arg(&other)),
     },
     Value::UnaryEqual(value) => match property {
       Bip::Start => set_transparency(*value, transparent),
       Bip::End => set_transparency(*value, transparent),
       Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(true), transparent),
-      other => set_transparency(value_null!("no such property in unary equal: {}", other), transparent),
+      other => set_transparency(value_null!("no such property in unary equal: {}", arg(&other)), transparent),
     },
     Value::UnaryNotEqual(value) => match property {
       Bip::Start => set_transparency(*value, transparent),
       Bip::End => set_transparency(*value, transparent),
       Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(true), transparent),
-      other => set_transparency(value_null!("no such property in unary not equal: {}", other), transparent),
+      other => set_transparency(value_null!("no such property in unary not equal: {}", arg(&other)), transparent),
     },
     Value::UnaryLess(value) => match property {
       Bip::End => set_transparency(*value, transparent),
       Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(false), transparent),
-      other => set_transparency(value_null!("no such property in unary less: {}", other), transparent),
+      other => set_transparency(value_null!("no such property in unary less: {}", arg(&other)), transparent),
     },
     Value::UnaryLessOrEqual(value) => match property {
       Bip::End => set_transparency(*value, transparent),
       Bip::StartIncluded => set_transparency(Value::Boolean(false), transparent),
       Bip::EndIncluded => set_transparency(Value::Boolean(true), transparent),
-      other => set_transparency(value_null!("no such property in unary less or equal: {}", other), transparent),
+      other => set_transparency(value_null!("no such property in unary less or equal: {}", arg(&other)), transparent),
     },
     Value::UnaryGreater(value) => match property {
       Bip::Start => set_transparency(*value, transparent),
       Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(false), transparent),
-      other => set_transparency(value_null!("no such property in unary greater: {}", other), transparent),
+      other => set_transparency(value_null!("no such property in unary greater: {}", arg(&other)), transparent),
     },
     Value::UnaryGreaterOrEqual(value) => match property {
       Bip::Start => set_transparency(*value, transparent),
       Bip::StartIncluded => set_transparency(Value::Boolean(true), transparent),
       Bip::EndIncluded => set_transparency(Value::Boolean(false), transparent),
-      other => set_transparency(value_null!("no such property in unary greater or equal: {}", other), transparent),
+      other => set_transparency(value_null!("no such property in unary greater or equal: {}", arg(&other)), transparent),
     },
     v @ Value::Null(_) => v,
-    other => value_null!("unexpected type: {}, for property: {}", other.type_of(), property),
+    other => value_null!("unexpected type: {}, for property: {}", arg(&TypeOf(&other)), arg(&property)),
   }
 }
 
@@ -2276,7 +2290,7 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_TRUE;
         }
       }
-      other => return value_null!("unexpected type in list: {}", other.type_of()),
+      other => return value_null!("unexpected type in list: {}", arg(&TypeOf(other))),
     }
   }
   if !unary_not_equal.is_empty() && unary_not_equal.iter().all(|value| *value) {
@@ -2344,7 +2358,7 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_FALSE;
         }
       }
-      other => return value_null!("unexpected type in negated list: {}", other.type_of()),
+      other => return value_null!("unexpected type in negated list: {}", arg(&TypeOf(other))),
     }
   }
   if !unary_not_equal.is_empty() && unary_not_equal.iter().all(|value| *value) {

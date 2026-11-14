@@ -2,7 +2,7 @@
 
 use crate::context::FeelContext;
 use crate::errors::*;
-use crate::message::{MessageArg, Size};
+use crate::message::{MessageArg, Size, arg};
 use crate::names::Name;
 use crate::strings::write_separated;
 use crate::value_null;
@@ -122,7 +122,7 @@ pub(crate) fn write_function_type<T: fmt::Display>(f: &mut fmt::Formatter<'_>, p
 
 impl MessageArg for FeelType {
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{self}")
+    fmt::Display::fmt(self, f)
   }
 
   fn size(&self) -> Option<Size> {
@@ -130,6 +130,11 @@ impl MessageArg for FeelType {
       FeelType::Context(entries) => Some(Size::Entries(entries.len())),
       _ => None,
     }
+  }
+
+  /// The name of a type of no other types is short.
+  fn is_short(&self) -> bool {
+    !matches!(self, FeelType::Context(_) | FeelType::Function(_, _) | FeelType::List(_) | FeelType::Range(_))
   }
 }
 
@@ -189,7 +194,7 @@ impl FeelType {
     if actual_value.is_conformant(self) {
       self.get_value_checked(actual_value).unwrap()
     } else {
-      value_null!("type '{}' is not conformant with value '{}'", self.to_string(), actual_value)
+      value_null!("type '{}' is not conformant with value '{}'", arg(self), arg(actual_value))
     }
   }
 
@@ -275,7 +280,7 @@ impl FeelType {
       }
       _ => {}
     }
-    Err(err_invalid_value_for_retrieving_using_feel_type(&self.to_string(), &value.to_string()))
+    Err(err_invalid_value_for_retrieving_using_feel_type(self, value))
   }
 
   /// Returns `true` when this type is a simple FEEL type.

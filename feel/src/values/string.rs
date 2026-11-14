@@ -1,5 +1,6 @@
 //! # FEEL string values
 
+use crate::message::{MessageArg, Size};
 use crate::values::Value;
 use std::borrow::Borrow;
 use std::fmt;
@@ -40,6 +41,20 @@ impl FeelString {
     text.push_str(&self.0);
     text.push_str(rhs);
     Self(Arc::new(text))
+  }
+}
+
+impl MessageArg for FeelString {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self)
+  }
+
+  fn size(&self) -> Option<Size> {
+    self.as_str().size()
+  }
+
+  fn is_short(&self) -> bool {
+    self.as_str().is_short()
   }
 }
 

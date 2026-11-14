@@ -2,6 +2,7 @@
 
 use crate::iterations::lost_context;
 use rheon_feel::context::FeelContext;
+use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
 use std::sync::LazyLock;
@@ -160,7 +161,7 @@ impl FilterExpressionEvaluator {
                     if let Ok(u_index) = u64::try_from(index) {
                       u_index
                     } else {
-                      return value_null!("index is out of range 1..2⁶⁴: {}", index.to_string());
+                      return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
                     }
                   };
                   if n > 0 && n <= list_size as u64 {
@@ -175,7 +176,7 @@ impl FilterExpressionEvaluator {
                     if let Ok(u_index) = u64::try_from(index.abs()) {
                       u_index
                     } else {
-                      return value_null!("index is out of range 1..2⁶⁴: {}", index.to_string());
+                      return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
                     }
                   };
                   if n > 0 && n <= list_size as u64 {
@@ -191,7 +192,7 @@ impl FilterExpressionEvaluator {
                 value_null!()
               }
             } else {
-              value_null!("index in filter must be an integer value, actual value is {}", index)
+              value_null!("index in filter must be an integer value, actual value is {}", arg(&index))
             }
           }
           _ => Value::List(values.into_iter().zip(matched).filter_map(|(value, matched)| matched.then_some(value)).collect()),

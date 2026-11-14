@@ -62,7 +62,8 @@ fn _0012() {
     false,
     &scope!(),
     r#" @"P10D" / 0.00000000000000000000000000000000000000000000000001 "#,
-    r#"[division] error: P10D / 0.00000000000000000000000000000000000000000000000001"#,
+    // a number longer than 40 characters is quoted in scientific notation
+    r#"[division] error: P10D / 1E-50"#,
   );
 }
 
@@ -92,7 +93,8 @@ fn _0017() {
     false,
     &scope!(),
     r#" @"P10Y" / 0.00000000000000000000000000000000000000000000000001 "#,
-    r#"[division] error: P10Y / 0.00000000000000000000000000000000000000000000000001"#,
+    // a number longer than 40 characters is quoted in scientific notation
+    r#"[division] error: P10Y / 1E-50"#,
   );
 }
 

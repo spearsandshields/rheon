@@ -654,6 +654,31 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     with `MessageArg` for `TypeOf` and for the existing `Value`, `FeelType`, `FeelNumber`, `Name`,
     `FeelContext`, `Bip`, `str`, `String` and `serde_json::Value`; `value_null!` caps its message at
     1,000 characters.
+68. **Values in null reasons are previews.** Every null reason of the evaluator and of rheon-feel
+    quotes its values, contexts, names, texts and numbers through `arg`, and the type of a value
+    through `TypeOf`: the 199 `invalid_argument_type!` sites pass the value instead of its
+    `type_of()`, and so do the other type messages (operators, `between`, `string join`,
+    `sublist`, `time`, the iteration and range errors). A message therefore never builds the
+    type of a whole context: `abs(c)` for a 10,000-entry context allocated the 10,000-entry type
+    (about 1.1 MB) for its reason and now allocates at most 64 KiB more than reading `c`. The
+    reason of `(for i in 1..1000 return i) = 1` is `equal err '[1, 2, 3, …, 32, … (1000 items)'
+    =?= '1'` (the first 120 characters of the list, then its size), a missing entry of a long
+    context quotes the context's preview with `… (1 entry)`, and a number whose plain text is
+    longer than 40 characters is in scientific notation in every reason, as CONTRACT §3 already
+    said for `sublist` and `substring`: `1e50 / "a"` gives `[division] incompatible types: 1E+50
+    / "a"` (and two pinned tests, a duration divided by 1e-50, now read `… / 1E-50`). A short
+    argument (a number, a boolean, a temporal value, a string of at most 118 bytes) is written
+    straight, with no preview to watch it, and a long one streams its first 120 characters, so
+    quoting allocates nothing. Speed against 0.4.0: the suite geomean 1.00x; 1,000 reasons that
+    each quote two values and their types 0.93x (each operand now passes the renderer), 1,000
+    reasons quoting a list or a context 1.06x and 1.16x. 5 registered differences: four answers
+    of item 67, now with previews and registered here with them (the reasons of a list compared
+    with a number in lenient and strict mode and of a missing path entry, and the evaluation of
+    1,000 such reasons), and `1e50 / "a"`; the reason of a 5,001-character invalid pattern stays
+    cut and registered with item 67, since the regex library quotes it. Basis: messages name the value
+    by a short preview and its size (owner decision); CONTRACT §3. No API change beyond
+    rheon-feel's `MessageArg::is_short` (with a default) and `MessageArg` for references and
+    `FeelString`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

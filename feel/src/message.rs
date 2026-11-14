@@ -17,7 +17,7 @@
 use std::fmt::{self, Display, Write};
 
 /// Characters of an argument quoted whole; a longer one is quoted as a preview of this length.
-const PREVIEW_CHARS: usize = 120;
+pub(crate) const PREVIEW_CHARS: usize = 120;
 
 /// Characters of a message at most, the `…` of a cut included.
 const MAX_CHARS: usize = 1_000;
@@ -53,6 +53,12 @@ pub trait MessageArg {
   fn size(&self) -> Option<Size> {
     None
   }
+
+  /// Whether the text is known to be at most 120 characters without writing it (a number, a
+  /// short string): such an argument is written straight, with no preview to watch it.
+  fn is_short(&self) -> bool {
+    false
+  }
 }
 
 /// An argument quoted in a message (see [arg]).
@@ -65,14 +71,21 @@ pub fn arg<T: MessageArg + ?Sized>(value: &T) -> Arg<'_, T> {
 
 impl<T: MessageArg + ?Sized> Display for Arg<'_, T> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let mut preview = Preview::default();
-    let whole = write!(preview, "{}", Whole(self.0)).is_ok();
-    f.write_str(&preview.text)?;
-    if !whole {
-      f.write_str("…")?;
-      if let Some(size) = self.0.size() {
-        write!(f, " ({size})")?;
-      }
+    if self.0.is_short() {
+      return self.0.write_message(f);
+    }
+    // the preview is the start of the text either way, so it is written as it comes
+    let mut preview = Preview { f, chars: 0, full: false };
+    if write!(preview, "{}", Whole(self.0)).is_ok() {
+      return Ok(());
+    }
+    if !preview.full {
+      // the formatter refused the text
+      return Err(fmt::Error);
+    }
+    f.write_str("…")?;
+    if let Some(size) = self.0.size() {
+      write!(f, " ({size})")?;
     }
     Ok(())
   }
@@ -87,23 +100,34 @@ impl<T: MessageArg + ?Sized> Display for Whole<'_, T> {
   }
 }
 
-/// Keeps the first [PREVIEW_CHARS] characters and refuses the next one.
-#[derive(Default)]
-struct Preview {
-  text: String,
+/// Passes the first [PREVIEW_CHARS] characters on and refuses the next one.
+struct Preview<'a, 'b> {
+  f: &'a mut fmt::Formatter<'b>,
   chars: usize,
+  /// Whether a character beyond the preview was refused.
+  full: bool,
 }
 
-impl Write for Preview {
+impl Write for Preview<'_, '_> {
   fn write_str(&mut self, s: &str) -> fmt::Result {
-    for c in s.chars() {
-      if self.chars == PREVIEW_CHARS {
-        return Err(fmt::Error);
-      }
-      self.text.push(c);
-      self.chars += 1;
+    let left = PREVIEW_CHARS - self.chars;
+    // a text of at most `left` bytes has at most `left` characters
+    if s.len() <= left {
+      self.chars += s.chars().count();
+      return self.f.write_str(s);
     }
-    Ok(())
+    match s.char_indices().nth(left) {
+      None => {
+        self.chars += s.chars().count();
+        self.f.write_str(s)
+      }
+      Some((end, _)) => {
+        self.chars = PREVIEW_CHARS;
+        self.f.write_str(&s[..end])?;
+        self.full = true;
+        Err(fmt::Error)
+      }
+    }
   }
 }
 
@@ -163,6 +187,20 @@ impl Write for Capped {
   }
 }
 
+impl<T: MessageArg + ?Sized> MessageArg for &T {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    (**self).write_message(f)
+  }
+
+  fn size(&self) -> Option<Size> {
+    (**self).size()
+  }
+
+  fn is_short(&self) -> bool {
+    (**self).is_short()
+  }
+}
+
 impl MessageArg for str {
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str(self)
@@ -170,6 +208,10 @@ impl MessageArg for str {
 
   fn size(&self) -> Option<Size> {
     Some(Size::Characters(self.chars().count()))
+  }
+
+  fn is_short(&self) -> bool {
+    self.len() <= PREVIEW_CHARS
   }
 }
 
@@ -181,11 +223,15 @@ impl MessageArg for String {
   fn size(&self) -> Option<Size> {
     self.as_str().size()
   }
+
+  fn is_short(&self) -> bool {
+    self.as_str().is_short()
+  }
 }
 
 impl MessageArg for serde_json::Value {
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{self}")
+    fmt::Display::fmt(self, f)
   }
 
   fn size(&self) -> Option<Size> {

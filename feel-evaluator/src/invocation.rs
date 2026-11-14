@@ -11,6 +11,7 @@ use crate::evaluator_pmml::evaluate_external_pmml_function;
 use rheon_feel::bif::Bif;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
+use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, FeelType, FunctionBody, FunctionDefinition, Name, QualifiedName, value_null};
 use std::sync::Arc;
@@ -60,7 +61,7 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
       };
       result.into_coerced(&function.result_type)
     }
-    other => value_null!("expected built-in function name or function definition, actual is {}", other),
+    other => value_null!("expected built-in function name or function definition, actual is {}", arg(&other)),
   }
 }
 
@@ -78,7 +79,7 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
       let mut values = vec![value_null!(); parameters.len()];
       for (name, value) in arguments {
         let Some(index) = parameters.iter().position(|(parameter_name, _)| *parameter_name == name) else {
-          return Err(format!("function has no parameter named '{name}'"));
+          return Err(format!("function has no parameter named '{}'", arg(&name)));
         };
         values[index] = value;
       }
@@ -91,7 +92,7 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
     .map(|(value, (name, parameter_type))| {
       value
         .try_into_coerced(parameter_type)
-        .ok_or_else(|| format!("argument for parameter '{name}' does not conform to type {parameter_type}"))
+        .ok_or_else(|| format!("argument for parameter '{}' does not conform to type {}", arg(name), arg(parameter_type)))
     })
     .collect()
 }
@@ -140,7 +141,7 @@ fn apply_external(scope: &FeelScope, body: &FunctionBody, arguments: &[Value]) -
   match &body.evaluate(scope) {
     Value::ExternalJavaFunction(class_name, method_signature) => evaluate_external_java_function(class_name, method_signature, arguments),
     Value::ExternalPmmlFunction(document, model_name) => evaluate_external_pmml_function(document, model_name, arguments),
-    other => value_null!("expected JAVA or PMML mapping, actual value is {}", other),
+    other => value_null!("expected JAVA or PMML mapping, actual value is {}", arg(&other)),
   }
 }
 

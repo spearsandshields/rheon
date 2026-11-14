@@ -5,7 +5,7 @@ use crate::bif::Bif;
 use crate::context::FeelContext;
 use crate::errors::*;
 use crate::function::FunctionDefinition;
-use crate::message::{MessageArg, Size};
+use crate::message::{MessageArg, PREVIEW_CHARS, Size};
 use crate::names::Name;
 use crate::ranges::IntervalType;
 use crate::strings::{ToFeelString, write_separated};
@@ -488,12 +488,12 @@ impl Value {
   /// Returns the type of this [Value].
   pub fn type_of(&self) -> FeelType {
     // an unlimited budget is never used up
-    self.type_of_within(&mut Budget::unlimited()).unwrap_or(FeelType::Any)
+    self.type_of_within(&mut Unlimited).unwrap_or(FeelType::Any)
   }
 
   /// The type of this value, or `None` when it would hold more type nodes than `budget` has
   /// left: the body of [type_of](Self::type_of), which passes an unlimited budget.
-  pub(crate) fn type_of_within(&self, budget: &mut Budget) -> Option<FeelType> {
+  fn type_of_within(&self, budget: &mut impl Budget) -> Option<FeelType> {
     budget.take(1)?;
     Some(match self {
       Value::Boolean(_) => FeelType::Boolean,
@@ -568,7 +568,7 @@ impl Value {
   /// to a context type when every entry of the target type has an entry here whose type conforms
   /// to the target entry's type (extra entries are allowed); to nothing else
   /// ([FeelType::is_conformant]). The type of `null` conforms to every type.
-  fn type_is_conformant_within(&self, target_type: &FeelType, budget: &mut Budget) -> Option<bool> {
+  fn type_is_conformant_within(&self, target_type: &FeelType, budget: &mut impl Budget) -> Option<bool> {
     match self {
       Value::Null(_) => Some(true),
       Value::Context(ctx) => match target_type {
@@ -833,7 +833,7 @@ pub type Values = Vec<Value>;
 /// every other item conforms to it, `Any` otherwise. The first item's type is built once
 /// (building it twice made the cost exponential in the nesting depth of lists); the other items
 /// are only checked against it, without building their context types.
-fn list_item_type(values: &[Value], budget: &mut Budget) -> Option<FeelType> {
+fn list_item_type(values: &[Value], budget: &mut impl Budget) -> Option<FeelType> {
   let Some((first, rest)) = values.split_first() else {
     budget.take(1)?;
     return Some(FeelType::Null);
@@ -848,46 +848,61 @@ fn list_item_type(values: &[Value], budget: &mut Budget) -> Option<FeelType> {
   Some(item_type)
 }
 
-/// The number of type nodes a type may still build; unlimited for [Value::type_of].
-pub(crate) struct Budget {
-  left: Option<usize>,
+/// The number of type nodes a type may still build: [Unlimited] for [Value::type_of], [Nodes]
+/// for a message.
+trait Budget {
+  /// Takes `nodes` type nodes; `None` when fewer are left.
+  fn take(&mut self, nodes: usize) -> Option<()>;
+
+  /// A copy of `feel_type` when its nodes are left.
+  fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType>;
+
+  /// The nodes left, for [restore](Self::restore).
+  fn mark(&self) -> usize;
+
+  /// Gives back the nodes taken since `mark`, of a type that was dropped.
+  fn restore(&mut self, mark: usize);
 }
 
-impl Budget {
-  /// No limit.
-  pub(crate) fn unlimited() -> Self {
-    Self { left: None }
-  }
+/// No limit: every check is a constant, so [Value::type_of] pays nothing for the budget.
+struct Unlimited;
 
-  /// At most `nodes` type nodes.
-  pub(crate) fn nodes(nodes: usize) -> Self {
-    Self { left: Some(nodes) }
-  }
-
-  /// Takes `nodes` type nodes; `None` when fewer are left.
-  fn take(&mut self, nodes: usize) -> Option<()> {
-    if let Some(left) = &mut self.left {
-      *left = left.checked_sub(nodes)?;
-    }
+impl Budget for Unlimited {
+  fn take(&mut self, _: usize) -> Option<()> {
     Some(())
   }
 
-  /// A copy of `feel_type` when its nodes are left.
   fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType> {
-    if self.left.is_some() {
-      self.take(type_nodes(feel_type))?;
-    }
     Some(feel_type.clone())
   }
 
-  /// The nodes left, for [restore](Self::restore).
-  fn mark(&self) -> Option<usize> {
-    self.left
+  fn mark(&self) -> usize {
+    0
   }
 
-  /// Gives back the nodes taken since `mark`, of a type that was dropped.
-  fn restore(&mut self, mark: Option<usize>) {
-    self.left = mark;
+  fn restore(&mut self, _: usize) {}
+}
+
+/// At most this many type nodes.
+struct Nodes(usize);
+
+impl Budget for Nodes {
+  fn take(&mut self, nodes: usize) -> Option<()> {
+    self.0 = self.0.checked_sub(nodes)?;
+    Some(())
+  }
+
+  fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType> {
+    self.take(type_nodes(feel_type))?;
+    Some(feel_type.clone())
+  }
+
+  fn mark(&self) -> usize {
+    self.0
+  }
+
+  fn restore(&mut self, mark: usize) {
+    self.0 = mark;
   }
 }
 
@@ -917,23 +932,21 @@ impl Display for TypeOf<'_> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self.0 {
       Value::Context(context) => write_context_type(f, context.iter().map(|(name, value)| (name, TypeOf(value)))),
-      Value::List(values) => match list_item_type(values, &mut Budget::nodes(TYPE_NODE_BUDGET)) {
+      Value::List(values) => match list_item_type(values, &mut Nodes(TYPE_NODE_BUDGET)) {
         Some(item_type) => write_list_type(f, item_type),
         None => write_list_type(f, "…"),
       },
       Value::FunctionDefinition(function) => write_function_type(f, function.parameters.iter().map(|(_, feel_type)| feel_type), &function.result_type),
-      Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => {
-        write!(f, "{feel_type}")
-      }
-      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::Transparent(value) => write!(f, "{}", TypeOf(value)),
-      other => write!(f, "{}", other.type_of()),
+      Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => fmt::Display::fmt(feel_type, f),
+      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::Transparent(value) => fmt::Display::fmt(&TypeOf(value), f),
+      other => fmt::Display::fmt(&other.type_of(), f),
     }
   }
 }
 
 impl MessageArg for TypeOf<'_> {
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{self}")
+    fmt::Display::fmt(self, f)
   }
 
   /// The size of the type itself: the entries of a context type.
@@ -945,13 +958,18 @@ impl MessageArg for TypeOf<'_> {
       _ => None,
     }
   }
+
+  /// The type of a value that holds no other values is a short name.
+  fn is_short(&self) -> bool {
+    matches!(self.0, Value::String(_)) || self.0.is_short_scalar()
+  }
 }
 
 impl MessageArg for Value {
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Value::Number(number) => number.write_message(f),
-      other => write!(f, "{other}"),
+      other => fmt::Display::fmt(other, f),
     }
   }
 
@@ -963,20 +981,76 @@ impl MessageArg for Value {
       _ => None,
     }
   }
+
+  /// Numbers, booleans, temporal values, a null without a reason and a string of at most 118
+  /// bytes (with its quotes) are short.
+  fn is_short(&self) -> bool {
+    match self {
+      Value::String(text) => text.len() + 2 <= PREVIEW_CHARS,
+      other => other.is_short_scalar(),
+    }
+  }
 }
 
 /// Characters of the plain text of a number quoted in a message at most; a longer one is
 /// quoted in scientific notation.
 const MAX_PLAIN_NUMBER_CHARS: usize = 40;
 
+/// A text of at most [MAX_PLAIN_NUMBER_CHARS] bytes, written without allocating; a longer one is refused.
+struct ShortText {
+  bytes: [u8; MAX_PLAIN_NUMBER_CHARS],
+  len: usize,
+}
+
+impl ShortText {
+  fn as_str(&self) -> &str {
+    // only whole `str`s are written into `bytes`
+    std::str::from_utf8(&self.bytes[..self.len]).unwrap_or_default()
+  }
+}
+
+impl fmt::Write for ShortText {
+  fn write_str(&mut self, s: &str) -> fmt::Result {
+    let end = self.len + s.len();
+    if end > MAX_PLAIN_NUMBER_CHARS {
+      return Err(fmt::Error);
+    }
+    self.bytes[self.len..end].copy_from_slice(s.as_bytes());
+    self.len = end;
+    Ok(())
+  }
+}
+
+impl Value {
+  /// Whether this is a number, a boolean, a temporal value or a null without a reason: a value
+  /// whose text and type name are a few dozen characters at most.
+  fn is_short_scalar(&self) -> bool {
+    matches!(
+      self,
+      Value::Number(_)
+        | Value::Boolean(_)
+        | Value::Null(None)
+        | Value::Date(_)
+        | Value::Time(_)
+        | Value::DateTime(_)
+        | Value::DaysAndTimeDuration(_)
+        | Value::YearsAndMonthsDuration(_)
+    )
+  }
+}
+
 impl MessageArg for FeelNumber {
   /// The plain text, or scientific notation when that is longer than 40 characters (`9e6144`
   /// prints as 6145 digits), so that a message stays readable.
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let plain = self.to_string();
-    if plain.len() <= MAX_PLAIN_NUMBER_CHARS {
-      return f.write_str(&plain);
+    let mut short = ShortText {
+      bytes: [0; MAX_PLAIN_NUMBER_CHARS],
+      len: 0,
+    };
+    if fmt::Write::write_fmt(&mut short, format_args!("{self}")).is_ok() {
+      return f.write_str(short.as_str());
     }
+    let plain = self.to_string();
     let (sign, unsigned) = match plain.strip_prefix('-') {
       Some(rest) => ("-", rest),
       None => ("", plain.as_str()),
@@ -994,6 +1068,11 @@ impl MessageArg for FeelNumber {
     } else {
       write!(f, "{sign}{head}.{tail}E{exponent:+}")
     }
+  }
+
+  /// The text after the 40-character rule is at most a few dozen characters.
+  fn is_short(&self) -> bool {
+    true
   }
 }
 

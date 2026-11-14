@@ -81,7 +81,7 @@ impl Bip {
 
 impl MessageArg for Bip {
   fn write_message(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{self}")
+    std::fmt::Display::fmt(self, f)
   }
 
   fn size(&self) -> Option<Size> {

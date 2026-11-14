@@ -87,6 +87,10 @@ impl MessageArg for Name {
   fn size(&self) -> Option<Size> {
     self.0.size()
   }
+
+  fn is_short(&self) -> bool {
+    self.0.is_short()
+  }
 }
 
 impl Jsonify for Name {

@@ -104,3 +104,18 @@ fn a_message_quoting_the_type_of_a_wide_context_allocates_little() {
   assert!(message.ends_with("… (10000 entries)'"), "{message}");
   assert!(bytes <= 4 * 1024, "{bytes} bytes allocated");
 }
+
+#[test]
+fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
+  let mut input = rheon_feel::context::FeelContext::default();
+  input.set_entry(&rheon_feel::Name::from("c"), Value::Context(wide_context(10_000)));
+  let scope = FeelScope::from(input);
+  let evaluate = |text: &str| {
+    let evaluator = prepare(&parse_expression(&scope, text, false).expect("the expression parses"));
+    bytes_allocated_by(|| evaluator(&scope))
+  };
+  let (_, read) = evaluate("c");
+  let (value, invoked) = evaluate("abs(c)");
+  assert!(matches!(&value, Value::Null(Some(reason)) if reason.ends_with("… (10000 entries)")), "{value}");
+  assert!(invoked <= read + 64 * 1024, "abs(c) allocated {invoked} bytes, c {read}");
+}

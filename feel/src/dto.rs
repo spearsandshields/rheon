@@ -2,6 +2,7 @@
 
 use crate::context::FeelContext;
 use crate::errors::*;
+use crate::message::arg;
 use crate::values::Value;
 use crate::{Name, value_null};
 use dsntk_common::DsntkError;
@@ -202,7 +203,7 @@ impl TryFrom<&SimpleDto> for Value {
           XSD_TIME => Ok(Value::try_from_xsd_time(text)?),
           XSD_DATE_TIME => Ok(Value::try_from_xsd_date_time(text)?),
           XSD_DURATION => Ok(Value::try_from_xsd_duration(text)?),
-          _ => Err(err_invalid_attribute(&format!("invalid type '{typ}'"))),
+          _ => Err(err_invalid_attribute(&format!("invalid type '{}'", arg(typ)))),
         }
       } else {
         Err(err_missing_attribute("simple value must have 'text' attribute"))

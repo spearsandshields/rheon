@@ -47,7 +47,7 @@ impl From<FeelContext> for Value {
 
 impl MessageArg for FeelContext {
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{self}")
+    fmt::Display::fmt(self, f)
   }
 
   fn size(&self) -> Option<Size> {

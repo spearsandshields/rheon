@@ -3,7 +3,8 @@
 use crate::errors::*;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::{Value, Values};
+use rheon_feel::message::arg;
+use rheon_feel::values::{TypeOf, Value, Values};
 use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, value_null};
 use rheon_feel_temporal::FeelDate;
 use std::ops::ControlFlow;
@@ -276,7 +277,7 @@ impl FeelIterator {
             Ok(())
           }
         }
-        other => Err(err_invalid_interval_end(FEEL_TYPE_NAME_NUMBER, &other.type_of().to_string())),
+        other => Err(err_invalid_interval_end(FEEL_TYPE_NAME_NUMBER, arg(&TypeOf(&other)))),
       },
       Value::Date(start) => match end {
         Value::Date(end) => {
@@ -287,9 +288,9 @@ impl FeelIterator {
             Ok(())
           }
         }
-        other => Err(err_invalid_interval_end(FEEL_TYPE_NAME_DATE, &other.type_of().to_string())),
+        other => Err(err_invalid_interval_end(FEEL_TYPE_NAME_DATE, arg(&TypeOf(&other)))),
       },
-      other => Err(err_invalid_interval_start(&other.type_of().to_string())),
+      other => Err(err_invalid_interval_start(arg(&TypeOf(&other)))),
     }
   }
 
@@ -297,9 +298,9 @@ impl FeelIterator {
     match start {
       Value::IntervalStart(start, IntervalType::Closed) => match end {
         Value::IntervalEnd(end, IntervalType::Closed) => self.add_interval(variable, *start, *end, true),
-        other => Err(err_invalid_range_end(&other.to_string())),
+        other => Err(err_invalid_range_end(arg(&other))),
       },
-      other => Err(err_invalid_range_start(&other.to_string())),
+      other => Err(err_invalid_range_start(arg(&other))),
     }
   }
 
@@ -395,7 +396,7 @@ fn evaluate_in_iteration_context(
 /// or `every` expression or a filter pushed for it (see [evaluate_in_iteration_context]):
 /// `context` names that context. No correct result can be given then.
 pub(super) fn lost_context(context: &str) -> Value {
-  value_null!("internal error: the evaluation removed the {}", context)
+  value_null!("internal error: the evaluation removed the {}", arg(&context))
 }
 
 /// Evaluates a `some` expression (`decisive` is `true`) or an `every` expression (`decisive` is
