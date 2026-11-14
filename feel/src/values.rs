@@ -12,7 +12,7 @@ use crate::strings::{ToFeelString, write_separated};
 use crate::types::{FeelType, write_context_type, write_function_type, write_list_type};
 use dsntk_common::{Jsonify, Result};
 use rheon_feel_number::FeelNumber;
-use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -717,7 +717,7 @@ impl Value {
     match self {
       // from date to date and time: UTC midnight (DMN 1.6 §10.3.2.9.4 and §10.3.2.3.5)
       Value::Date(date) if *target_type == FeelType::DateTime => {
-        return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0))));
+        return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc))));
       }
       // from singleton list
       Value::List(items) => {
@@ -729,7 +729,7 @@ impl Value {
           if let Value::Date(date) = &value
             && *target_type == FeelType::DateTime
           {
-            return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0))));
+            return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc))));
           }
         }
       }

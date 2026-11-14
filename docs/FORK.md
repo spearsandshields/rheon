@@ -775,6 +775,24 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     the XML Schema time, dateTime and dayTimeDuration datatypes, whose seconds are decimals. 1,508
     registered differences, each the exact digits of a fraction the double got wrong. No API
     change.
+75. **Every time of day is below 24:00:00.** The time constructors checked the hour, minute and
+    second but not the nanoseconds, and 24:00:00 was accepted with any fraction:
+    `time("24:00:00.5")` and `@"24:00:00.5"` were `00:00:00.5`, `date and time("2020-01-01T24:00:00.5Z")`
+    was `2020-01-02T00:00:00.5Z`, and `FeelTime::local_opt(10, 0, 0, 1_000_000_000)` built a time
+    whose text was `10:00:00.`. A time of day now has an hour below 24, a minute and a second below
+    60 and nanoseconds below 10^9, or is 24:00:00 with a zero fraction, which is midnight; one
+    constructor checks it and every other one goes through it, `utc_opt` included, which kept an
+    hour of 24 as it was. So these three are null with the reasons of other invalid literals,
+    while `24:00:00`, `24:00:00.000` and `2020-12-31T24:00:00Z` (2021-01-01T00:00:00Z) are
+    unchanged. The clock time of `now()` folds a leap second, which chrono gives as nanoseconds
+    from 10^9 on, into the last nanosecond of the second before. Basis: XML Schema Part 2 §3.2.7,
+    "'24' is permitted if the minutes and seconds represented are zero"; DMN 1.6 §10.3.2.3.4, a
+    time is a value of the XML Schema time datatype. 3 registered differences. API breaks
+    (rheon-feel-temporal): the unchecked `FeelTime::utc`, `FeelTime::local` and `FeelTime::offset`
+    are removed and `FeelTime::midnight(FeelZone)` is added; `FeelTime::{utc_opt, local_opt,
+    offset_opt, zone_opt}` and `FeelDateTime::{utc, local, offset}` return `None` for nanoseconds
+    of 10^9 or more and for 24:00:00 with a fraction, and `utc_opt` turns 24:00:00 into midnight;
+    the time and date and time parsers reject 24:00:00 with a fraction.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

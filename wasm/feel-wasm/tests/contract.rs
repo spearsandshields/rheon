@@ -528,6 +528,16 @@ fn fractional_seconds_are_exact() {
   assert_eq!(display("time(\"10:00:00.99999999999999999\")"), "\"10:00:00.999999999\"");
 }
 
+/// 24:00:00 is midnight only with a zero fraction (XML Schema Part 2 §3.2.7).
+#[test]
+fn a_time_of_day_is_below_24_hours() {
+  for e in ["time(\"24:00:00.5\")", "@\"24:00:00.5\"", "date and time(\"2020-01-01T24:00:00.5Z\")"] {
+    assert_eq!(expr(e)["isNull"], true, "{e}");
+  }
+  assert_eq!(display("time(\"24:00:00\")"), "\"00:00:00\"");
+  assert_eq!(display("date and time(\"2020-12-31T24:00:00.000Z\")"), "\"2021-01-01T00:00:00Z\"");
+}
+
 #[test]
 fn lexer_surrogate_escapes_are_syntax_errors_not_panic() {
   for e in ["\"\\uD800\"", "\"\\uD83D\"", "\"\\uD800x\"", "\"\\uDC00\"", "\"\\uD800\\u0041\""] {

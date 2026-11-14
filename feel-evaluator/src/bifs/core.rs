@@ -11,7 +11,7 @@ use rheon_feel::message::{arg, compose};
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_regex::{Limit, RegexError};
-use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, MonthOfYear, WeekOfYear};
+use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone, MonthOfYear, WeekOfYear};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::str::FromStr;
@@ -612,7 +612,7 @@ pub fn date_and_time_1(value: &Value) -> Value {
       return Value::DateTime(date_time);
     }
     if let Ok(date) = FeelDate::from_str(text) {
-      return Value::DateTime(FeelDateTime::new(date, FeelTime::local(0, 0, 0, 0)));
+      return Value::DateTime(FeelDateTime::new(date, FeelTime::midnight(FeelZone::Local)));
     }
     value_null!("[core::date and time] invalid date or date and time '{}'", arg(&text))
   } else {
@@ -2782,7 +2782,7 @@ pub fn time_1(value: &Value) -> Value {
         )
       }
     }
-    Value::Date(_) => Value::Time(FeelTime::utc(0, 0, 0, 0)),
+    Value::Date(_) => Value::Time(FeelTime::midnight(FeelZone::Utc)),
     Value::DateTime(date_time) => Value::Time(date_time.time()),
     Value::Time(time) => Value::Time(time.clone()),
     other => invalid_argument_type!("time", "string, date, date and time, time", other),

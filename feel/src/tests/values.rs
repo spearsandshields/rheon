@@ -392,7 +392,7 @@ fn test_jsonify() {
   assert_eq!(r#"1.23"#, Value::Number(FeelNumber::new(123, 2)).jsonify());
   assert_eq!(r#""beta""#, Value::String("beta".into()).jsonify());
   assert_eq!(r#""2023-02-24""#, Value::Date(FeelDate::new(2023, 2, 24).unwrap()).jsonify());
-  assert_eq!(r#""18:35:12.000598677Z""#, Value::Time(FeelTime::utc(18, 35, 12, 598677)).jsonify());
+  assert_eq!(r#""18:35:12.000598677Z""#, Value::Time(FeelTime::utc_opt(18, 35, 12, 598677).unwrap()).jsonify());
   assert_eq!(
     r#""2023-02-24T18:35:12.000598677Z""#,
     Value::DateTime(FeelDateTime::new(FeelDate::new(2023, 2, 24).unwrap(), FeelTime::utc_opt(18, 35, 12, 598677).unwrap())).jsonify()

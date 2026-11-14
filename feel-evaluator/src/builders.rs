@@ -12,7 +12,7 @@ use rheon_feel::message::arg;
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value};
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, IntervalType, Name, value_null};
 use rheon_feel_parser::{AstNode, ClosureBuilder};
-use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::Write;
@@ -1809,14 +1809,14 @@ impl<'b> EvaluatorBuilder<'b> {
         }
         Value::Date(lh) => match &rhv {
           Value::Date(rh) => {
-            let l = FeelDateTime::new(lh.clone(), FeelTime::utc(0, 0, 0, 0));
-            let r = FeelDateTime::new(rh.clone(), FeelTime::utc(0, 0, 0, 0));
+            let l = FeelDateTime::new(lh.clone(), FeelTime::midnight(FeelZone::Utc));
+            let r = FeelDateTime::new(rh.clone(), FeelTime::midnight(FeelZone::Utc));
             if let Some(result) = l - r {
               return Value::DaysAndTimeDuration(result);
             }
           }
           Value::DateTime(rh) => {
-            let l = FeelDateTime::new(lh.clone(), FeelTime::utc(0, 0, 0, 0));
+            let l = FeelDateTime::new(lh.clone(), FeelTime::midnight(FeelZone::Utc));
             if let Some(result) = l - rh.clone() {
               return Value::DaysAndTimeDuration(result);
             }
@@ -1846,7 +1846,7 @@ impl<'b> EvaluatorBuilder<'b> {
         },
         Value::DateTime(lh) => match &rhv {
           Value::Date(rh) => {
-            let r = FeelDateTime::new(rh.clone(), FeelTime::utc(0, 0, 0, 0));
+            let r = FeelDateTime::new(rh.clone(), FeelTime::midnight(FeelZone::Utc));
             if let Some(result) = lh.clone() - r {
               return Value::DaysAndTimeDuration(result);
             }
@@ -2736,7 +2736,7 @@ fn err_expected_name(actual: &AstNode) -> String {
 mod temporal_value {
   use rheon_feel::values::Value;
   use rheon_feel::{FeelNumber, value_null};
-  use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime};
+  use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelZone};
 
   const NANOS_IN_SECOND: i64 = 1_000_000_000;
   const SECONDS_IN_DAY: i64 = 86_400;
@@ -2771,7 +2771,7 @@ mod temporal_value {
 
   /// A date is taken as the date and time at UTC midnight (§10.3.2.3.5).
   pub fn of_date(date: &FeelDate) -> Value {
-    of_date_time(&FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0)))
+    of_date_time(&FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc)))
   }
 
   /// `valuet`: seconds since midnight in [0..86400). A time with an offset is taken in its UTC

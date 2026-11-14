@@ -37,3 +37,11 @@ fn fractional_seconds_are_exact() {
   te_string(false, scope, r#"string(@"2020-01-01T10:00:00.0157Z")"#, "2020-01-01T10:00:00.0157Z");
   te_string(false, scope, r#"string(@"PT0.000015839S")"#, "PT0.000015839S");
 }
+
+#[test]
+fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
+  let scope = &te_scope(r#"{}"#);
+  te_null(false, scope, r#"@"24:00:00.5""#, r#"invalid @ literal: 24:00:00.5"#);
+  te_null(false, scope, r#"@"2020-01-01T24:00:00.5Z""#, r#"invalid @ literal: 2020-01-01T24:00:00.5Z"#);
+  te_string(false, scope, r#"string(@"2020-12-31T24:00:00Z")"#, "2021-01-01T00:00:00Z");
+}

@@ -6,7 +6,7 @@ use crate::defs::*;
 use crate::errors::*;
 use crate::feel_date_time::FeelDateTime;
 use crate::feel_dt_duration::FeelDaysAndTimeDuration;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, NaiveTime, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
 use std::fmt;
@@ -35,23 +35,16 @@ impl FromStr for FeelTime {
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     if let Some(captures) = RE_TIME.captures(s)
       && let Some(hour_match) = captures.name("hours")
-      && let Ok(mut hour) = hour_match.as_str().parse::<u8>()
+      && let Ok(hour) = hour_match.as_str().parse::<u8>()
       && let Some(min_match) = captures.name("minutes")
       && let Ok(min) = min_match.as_str().parse::<u8>()
       && let Some(sec_match) = captures.name("seconds")
       && let Ok(sec) = sec_match.as_str().parse::<u8>()
       && let Some((nanos, _)) = parse_fraction_nanos(fraction_digits(&captures))
+      && let Some(zone) = FeelZone::from_captures(&captures)
+      && let Some(time) = FeelTime::zone_opt(hour, min, sec, u64::from(nanos), zone)
     {
-      let nanos = u64::from(nanos);
-      if let Some(zone) = FeelZone::from_captures(&captures)
-        && is_valid_time(hour, min, sec)
-      {
-        if hour == 24 {
-          hour = 0;
-        }
-        let time = FeelTime(hour, min, sec, nanos, zone);
-        return Ok(time);
-      }
+      return Ok(time);
     }
     Err(err_invalid_time_literal(s))
   }
@@ -185,51 +178,47 @@ impl FeelTime {
     date_time_offset_t(time_tuple, offset)
   }
 
-  /// Creates UTC time from specified time values.
-  pub fn utc(hour: u8, minute: u8, second: u8, nanos: u64) -> Self {
-    Self(hour, minute, second, nanos, FeelZone::Utc)
+  /// Creates a time in `zone`, or `None` when the parts are not a time of day. A time of day has
+  /// an hour below 24, a minute and a second below 60 and nanoseconds below 10^9, or is 24:00:00
+  /// with a zero fraction, which is midnight (XML Schema Part 2 §3.2.7: "'24' is permitted if the
+  /// minutes and seconds represented are zero"; DMN 1.6 §10.3.2.3.4: a time is a value of the XML
+  /// Schema time datatype). Every time is built here or is midnight, so every time is valid.
+  pub fn zone_opt(hour: u8, minute: u8, second: u8, nanos: u64, zone: FeelZone) -> Option<Self> {
+    is_valid_time(hour, minute, second, nanos).then_some(Self(if hour == 24 { 0 } else { hour }, minute, second, nanos, zone))
   }
 
+  /// Creates a UTC time (see [FeelTime::zone_opt]).
   pub fn utc_opt(hour: u8, minute: u8, second: u8, nanos: u64) -> Option<Self> {
-    if is_valid_time(hour, minute, second) {
-      Some(Self(hour, minute, second, nanos, FeelZone::Utc))
-    } else {
-      None
-    }
+    Self::zone_opt(hour, minute, second, nanos, FeelZone::Utc)
   }
 
-  /// Creates local time from specified time values.
-  pub fn local(hour: u8, minute: u8, second: u8, nanos: u64) -> Self {
-    Self(hour, minute, second, nanos, FeelZone::Local)
+  /// Creates a local time (see [FeelTime::zone_opt]).
+  pub fn local_opt(hour: u8, minute: u8, second: u8, nanos: u64) -> Option<Self> {
+    Self::zone_opt(hour, minute, second, nanos, FeelZone::Local)
   }
 
-  pub fn local_opt(hour: u8, minute: u8, second: u8, nano: u64) -> Option<Self> {
-    if is_valid_time(hour, minute, second) {
-      Some(Self(if hour == 24 { 0 } else { hour }, minute, second, nano, FeelZone::Local))
-    } else {
-      None
-    }
+  /// Creates a time with an offset of `offset` seconds (see [FeelTime::zone_opt]), or `None` when
+  /// the offset is not a valid zone offset either.
+  pub fn offset_opt(hour: u8, minute: u8, second: u8, nanos: u64, offset: i32) -> Option<Self> {
+    Self::zone_opt(hour, minute, second, nanos, FeelZone::try_from(offset).ok()?)
   }
 
-  /// Creates a time from specified time and offset values.
-  pub fn offset(hour: u8, minute: u8, second: u8, nanos: u64, offset: i32) -> Self {
-    Self(hour, minute, second, nanos, FeelZone::Offset(offset))
+  /// Midnight, 00:00:00, in `zone`.
+  pub fn midnight(zone: FeelZone) -> Self {
+    Self(0, 0, 0, 0, zone)
   }
 
-  pub fn offset_opt(hour: u8, minute: u8, second: u8, nano: u64, offset: i32) -> Option<Self> {
-    if is_valid_time(hour, minute, second)
-      && let Ok(zone) = FeelZone::try_from(offset)
-    {
-      return Some(Self(if hour == 24 { 0 } else { hour }, minute, second, nano, zone));
-    }
-    None
-  }
-
-  pub fn zone_opt(hour: u8, minute: u8, second: u8, nano: u64, zone: FeelZone) -> Option<Self> {
-    if is_valid_time(hour, minute, second) {
-      return Some(Self(if hour == 24 { 0 } else { hour }, minute, second, nano, zone));
-    }
-    None
+  /// The time of day `time` of a clock, in `zone`. chrono represents a leap second as nanoseconds
+  /// from 10^9 on; the XML Schema value space has no leap second, so it is kept as the last
+  /// nanosecond of the second before.
+  pub(crate) fn of_clock(time: NaiveTime, zone: FeelZone) -> Self {
+    Self(
+      time.hour() as u8,
+      time.minute() as u8,
+      time.second() as u8,
+      u64::from(time.nanosecond().min(999_999_999)),
+      zone,
+    )
   }
 
   pub fn hour(&self) -> u8 {

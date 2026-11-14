@@ -182,12 +182,12 @@ fn _0031() {
 
 #[test]
 fn _0032() {
-  te_time(false, &scope!(), r#" @"12:34:56" - (-@"P1DT2H") "#, FeelTime::local(14, 34, 56, 0));
+  te_time(false, &scope!(), r#" @"12:34:56" - (-@"P1DT2H") "#, FeelTime::local_opt(14, 34, 56, 0).unwrap());
 }
 
 #[test]
 fn _0033() {
-  te_time(false, &scope!(), r#" @"12:34:56" - @"PT14H" "#, FeelTime::local(22, 34, 56, 0));
+  te_time(false, &scope!(), r#" @"12:34:56" - @"PT14H" "#, FeelTime::local_opt(22, 34, 56, 0).unwrap());
 }
 
 #[test]
@@ -245,10 +245,10 @@ fn _0041() {
 #[test]
 fn _0042() {
   // Time minus duration wraps around midnight, nanoseconds included.
-  te_time(false, &scope!(), r#" @"00:00:00" - @"PT1S" "#, FeelTime::local(23, 59, 59, 0));
+  te_time(false, &scope!(), r#" @"00:00:00" - @"PT1S" "#, FeelTime::local_opt(23, 59, 59, 0).unwrap());
   te_be_value(false, &scope!(), r#" string(@"00:00:00" - @"PT0.000000001S") "#, r#""23:59:59.999999999""#);
   te_be_value(false, &scope!(), r#" string(@"10:00:01.25" - @"PT0.75S") "#, r#""10:00:00.5""#);
-  te_time(false, &scope!(), r#" @"01:00:00Z" - @"PT2H" "#, FeelTime::utc(23, 0, 0, 0));
+  te_time(false, &scope!(), r#" @"01:00:00Z" - @"PT2H" "#, FeelTime::utc_opt(23, 0, 0, 0).unwrap());
 }
 
 #[test]

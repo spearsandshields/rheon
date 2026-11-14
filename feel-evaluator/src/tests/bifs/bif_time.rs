@@ -3,17 +3,22 @@ use rheon_feel::scope;
 
 #[test]
 fn _0001() {
-  te_time(false, &scope!(), r#"time(11,59,45,null)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(false, &scope!(), r#"time(11,59,45,null)"#, FeelTime::local_opt(11, 59, 45, 0).unwrap());
 }
 
 #[test]
 fn _0002() {
-  te_time(false, &scope!(), r#"time(hour: 11, minute: 59, second: 45, offset: null)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(
+    false,
+    &scope!(),
+    r#"time(hour: 11, minute: 59, second: 45, offset: null)"#,
+    FeelTime::local_opt(11, 59, 45, 0).unwrap(),
+  );
 }
 
 #[test]
 fn _0003() {
-  te_time(false, &scope!(), r#"time(hour: 11, minute: 59, second: 45)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(false, &scope!(), r#"time(hour: 11, minute: 59, second: 45)"#, FeelTime::local_opt(11, 59, 45, 0).unwrap());
 }
 
 #[test]
@@ -46,82 +51,92 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_time(false, &scope!(), r#"time("23:59:00")"#, FeelTime::local(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"time("23:59:00")"#, FeelTime::local_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0008() {
-  te_time(false, &scope!(), r#"time("23:59:59")"#, FeelTime::local(23, 59, 59, 0));
+  te_time(false, &scope!(), r#"time("23:59:59")"#, FeelTime::local_opt(23, 59, 59, 0).unwrap());
 }
 
 #[test]
 fn _0009() {
-  te_time(false, &scope!(), r#"time("24:00:00")"#, FeelTime::local(0, 0, 0, 0));
+  te_time(false, &scope!(), r#"time("24:00:00")"#, FeelTime::local_opt(0, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0010() {
-  te_time(false, &scope!(), r#"  time  (  "23:59:00"         )   "#, FeelTime::local(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"  time  (  "23:59:00"         )   "#, FeelTime::local_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0011() {
-  te_time(false, &scope!(), r#"time("23:59:00Z")"#, FeelTime::utc(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"time("23:59:00Z")"#, FeelTime::utc_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0012() {
-  te_time(false, &scope!(), r#"time("23:59:00z")"#, FeelTime::utc(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"time("23:59:00z")"#, FeelTime::utc_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0013() {
-  te_time(false, &scope!(), r#"time("11:22:33-00:00")"#, FeelTime::utc(11, 22, 33, 0));
+  te_time(false, &scope!(), r#"time("11:22:33-00:00")"#, FeelTime::utc_opt(11, 22, 33, 0).unwrap());
 }
 
 #[test]
 fn _0014() {
-  te_time(false, &scope!(), r#"time(from: "11:22:33-00:00")"#, FeelTime::utc(11, 22, 33, 0));
+  te_time(false, &scope!(), r#"time(from: "11:22:33-00:00")"#, FeelTime::utc_opt(11, 22, 33, 0).unwrap());
 }
 
 #[test]
 fn _0015() {
-  te_time(false, &scope!(), r#"time("11:22:33+00:00")"#, FeelTime::utc(11, 22, 33, 0));
+  te_time(false, &scope!(), r#"time("11:22:33+00:00")"#, FeelTime::utc_opt(11, 22, 33, 0).unwrap());
 }
 
 #[test]
 fn _0016() {
-  te_time(false, &scope!(), r#"time(time("11:00:00"))"#, FeelTime::local(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(time("11:00:00"))"#, FeelTime::local_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0017() {
-  te_time(false, &scope!(), r#"time(from: time("11:00:00"))"#, FeelTime::local(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(from: time("11:00:00"))"#, FeelTime::local_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0018() {
-  te_time(false, &scope!(), r#"time(date and time("2019-12-06T18:34:12"))"#, FeelTime::local(18, 34, 12, 0));
+  te_time(
+    false,
+    &scope!(),
+    r#"time(date and time("2019-12-06T18:34:12"))"#,
+    FeelTime::local_opt(18, 34, 12, 0).unwrap(),
+  );
 }
 
 #[test]
 fn _0019() {
-  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00Z"))"#, FeelTime::utc(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00Z"))"#, FeelTime::utc_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0020() {
-  te_time(false, &scope!(), r#"time(from: date and time("2019-12-06T11:00:00Z"))"#, FeelTime::utc(11, 0, 0, 0));
+  te_time(
+    false,
+    &scope!(),
+    r#"time(from: date and time("2019-12-06T11:00:00Z"))"#,
+    FeelTime::utc_opt(11, 0, 0, 0).unwrap(),
+  );
 }
 
 #[test]
 fn _0021() {
-  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00z"))"#, FeelTime::utc(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00z"))"#, FeelTime::utc_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0022() {
-  te_time(false, &scope!(), r#"time(date("2019-12-06"))"#, FeelTime::utc(0, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(date("2019-12-06"))"#, FeelTime::utc_opt(0, 0, 0, 0).unwrap());
 }
 
 #[test]
@@ -216,7 +231,7 @@ fn _0037() {
 
 #[test]
 fn _0038() {
-  te_time(false, &scope!(), r#"time(11,59,45)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(false, &scope!(), r#"time(11,59,45)"#, FeelTime::local_opt(11, 59, 45, 0).unwrap());
 }
 
 #[test]
@@ -355,4 +370,16 @@ fn fractional_seconds_are_exact() {
   te_string(false, &scope!(), r#"string(time("10:00:00.0157"))"#, "10:00:00.0157");
   te_string(false, &scope!(), r#"string(time("10:00:00.000065"))"#, "10:00:00.000065");
   te_string(false, &scope!(), r#"string(time("10:00:00.99999999999999999"))"#, "10:00:00.999999999");
+}
+
+#[test]
+fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
+  te_null(
+    false,
+    &scope!(),
+    r#"time("24:00:00.5")"#,
+    "time: invalid time literal '24:00:00.5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+  );
+  te_string(false, &scope!(), r#"string(time("24:00:00"))"#, "00:00:00");
+  te_string(false, &scope!(), r#"string(time("24:00:00.000"))"#, "00:00:00");
 }

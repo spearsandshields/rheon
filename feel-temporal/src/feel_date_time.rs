@@ -53,7 +53,7 @@ impl TryFrom<&str> for FeelDateTime {
         if let Some(mut date) = FeelDate::new(year, month, day)
           && let Some(zone) = FeelZone::from_captures(&captures)
         {
-          if !is_valid_time(hour, min, sec) {
+          if !is_valid_time(hour, min, sec, nanos) {
             return Err(err_invalid_date_time_literal(s));
           }
           if hour == 24 {
@@ -283,7 +283,7 @@ impl FeelDateTime {
     let now = crate::defs::local_now();
     Self(
       FeelDate::new(now.year(), now.month(), now.day()).unwrap(), // Unwrap is ok here, date can not be invalid.
-      FeelTime::local(now.hour() as u8, now.minute() as u8, now.second() as u8, now.nanosecond() as u64),
+      FeelTime::of_clock(now.time(), FeelZone::Local),
     )
   }
 

@@ -243,12 +243,11 @@ pub(crate) fn fraction_digits<'t>(captures: &regex::Captures<'t>) -> &'t str {
   captures.name("fractional").and_then(|fraction| fraction.as_str().get(1..)).unwrap_or_default()
 }
 
-/// Returns `true` when the specified parameters constitute valid time.
-///
-/// In the `FEEL` language, it is allowed for and hour to have a value of `24`,
-/// but only when minutes and seconds are zero.
-pub fn is_valid_time(hour: u8, minute: u8, second: u8) -> bool {
-  (hour < 24 && minute < 60 && second < 60) || (hour == 24 && minute == 0 && second == 0)
+/// Returns `true` when the parts are a time of day: an hour below 24, a minute and a second below
+/// 60 and nanoseconds below 10^9, or 24:00:00 with a zero fraction (XML Schema Part 2 §3.2.7:
+/// "'24' is permitted if the minutes and seconds represented are zero").
+pub fn is_valid_time(hour: u8, minute: u8, second: u8, nanos: u64) -> bool {
+  (hour < 24 && minute < 60 && second < 60 && nanos < 1_000_000_000) || (hour == 24 && minute == 0 && second == 0 && nanos == 0)
 }
 
 /// Returns month of year based on specified month number.
@@ -394,11 +393,11 @@ mod tests {
   #[test]
   fn test_feel_time_offset() {
     let feel_date = FeelDate::new(2023, 2, 8).unwrap();
-    let feel_time_a = FeelTime::utc(0, 0, 0, 0);
+    let feel_time_a = FeelTime::midnight(FeelZone::Utc);
     assert_eq!(0, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_a)).unwrap());
-    let feel_time_b = FeelTime::local(0, 0, 0, 0);
+    let feel_time_b = FeelTime::midnight(FeelZone::Local);
     assert_eq!(None, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_b)));
-    let feel_time_c = FeelTime::offset(0, 0, 0, 0, 60);
+    let feel_time_c = FeelTime::offset_opt(0, 0, 0, 0, 60).unwrap();
     assert_eq!(60, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_c)).unwrap());
     let feel_time_d = FeelTime::zone_opt(0, 0, 0, 0, FeelZone::Utc).unwrap();
     assert_eq!(0, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_d)).unwrap());

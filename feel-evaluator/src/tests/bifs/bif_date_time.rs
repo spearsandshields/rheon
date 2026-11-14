@@ -399,3 +399,14 @@ fn fractional_seconds_are_exact() {
     "2020-01-01T10:00:00.0157Z",
   );
 }
+
+#[test]
+fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
+  te_null(
+    false,
+    &scope!(),
+    r#"date and time("2020-01-01T24:00:00.5Z")"#,
+    "[core::date and time] invalid date or date and time '2020-01-01T24:00:00.5Z'",
+  );
+  te_string(false, &scope!(), r#"string(date and time("2020-12-31T24:00:00Z"))"#, "2021-01-01T00:00:00Z");
+}
