@@ -423,7 +423,7 @@ fn pack_rounds_once() {
     pack(Wide::Digits(false, "1".repeat(40), 6100)),
     (V::Fin(false, 1111111111111111111111111111111111, 6106), true)
   );
-  assert_eq!(pack(Wide::NaN), (V::NaN(false), false));
+  assert_eq!(pack(Wide::NaN), (V::NaN, false));
   assert_eq!(
     pack(Wide::Digits(false, "123456789012345678901234567890123450".into(), -40)),
     (V::Fin(false, 1234567890123456789012345678901234, -38), true)
@@ -444,8 +444,8 @@ fn guards_domain_errors() {
 #[test]
 fn guards_zero_division() {
   // 0/0 is NaN, x/0 is infinite with the sign of x: a zero has no sign
-  assert_eq!("+NaN", dbg(n("0") / n("0")));
-  assert_eq!("+NaN", dbg(n("-0") / n("0.000")));
+  assert_eq!("NaN", dbg(n("0") / n("0")));
+  assert_eq!("NaN", dbg(n("-0") / n("0.000")));
   assert_eq!("+Inf", dbg(n("1") / n("0")));
   assert_eq!("-Inf", dbg(n("-1") / n("0")));
   assert_eq!("+Inf", dbg(n("1") / n("-0")));
@@ -467,14 +467,14 @@ fn guards_infinite_operands() {
   assert_eq!("+Inf", dbg(inf + one));
   assert_eq!("+Inf", dbg(inf - one));
   assert_eq!("-Inf", dbg(one - inf));
-  assert_eq!("+NaN", dbg(inf - inf));
+  assert_eq!("NaN", dbg(inf - inf));
   assert_eq!("+Inf", dbg(inf * one));
-  assert_eq!("+NaN", dbg(inf * FeelNumber::zero()));
+  assert_eq!("NaN", dbg(inf * FeelNumber::zero()));
   assert_eq!("+Inf", dbg(inf / one));
   assert_eq!("+0E-6176", dbg(one / inf));
   assert_eq!("+0E-6176", dbg(-one / inf));
-  assert_eq!("+NaN", dbg(inf / inf));
-  assert_eq!("+NaN", dbg(inf % one));
+  assert_eq!("NaN", dbg(inf / inf));
+  assert_eq!("NaN", dbg(inf % one));
   assert!(inf.sqrt().is_none());
   assert!(inf.exp().is_none());
   assert!(inf.ln().is_none());
@@ -711,34 +711,29 @@ fn exp_ln_cohorts_follow_intel() {
 }
 
 #[test]
-fn nan_sign_follows_intel() {
+fn nan_has_no_sign() {
+  // FEEL has no NaN (DMN 1.6 §10.3.2.3.1, null instead); the core's NaN only marks an invalid
+  // operation until the evaluator turns it into null, so it carries no sign
   let nan = n("0") / n("0");
-  assert_eq!("+NaN", dbg(nan));
-  assert_eq!("-NaN", dbg(-nan));
-  assert_eq!("+NaN", dbg(-(-nan)));
-  assert_eq!("+NaN", dbg((-nan).abs()));
-  // a NaN operand is propagated with its sign, the first one wins
-  assert_eq!("-NaN", dbg(-nan + n("1")));
-  assert_eq!("-NaN", dbg(n("1") + -nan));
-  assert_eq!("-NaN", dbg(n("1") - -nan));
-  assert_eq!("-NaN", dbg(-nan - nan));
-  assert_eq!("+NaN", dbg(nan - -nan));
-  assert_eq!("-NaN", dbg(n("2") * -nan));
-  assert_eq!("-NaN", dbg(-nan / n("2")));
-  assert_eq!("-NaN", dbg(n("2") / -nan));
-  assert_eq!("-NaN", dbg(-nan % n("2")));
-  assert_eq!("-NaN", dbg((-nan).round(&n("2"))));
-  assert_eq!("-NaN", dbg((-nan).trunc()));
-  assert_eq!("-NaN", dbg((-nan).frac()));
-  assert_eq!("-NaN", dbg((-nan).floor(0).unwrap()));
+  assert_eq!("NaN", dbg(nan));
+  assert_eq!("NaN", dbg(-nan));
+  assert_eq!("NaN", dbg((-nan).abs()));
+  assert_eq!("NaN", dbg(-nan + n("1")));
+  assert_eq!("NaN", dbg(n("1") - -nan));
+  assert_eq!("NaN", dbg(n("2") * -nan));
+  assert_eq!("NaN", dbg(-nan / n("2")));
+  assert_eq!("NaN", dbg(-nan % n("2")));
+  assert_eq!("NaN", dbg((-nan).round(&n("2"))));
+  assert_eq!("NaN", dbg((-nan).trunc()));
+  assert_eq!("NaN", dbg((-nan).frac()));
+  assert_eq!("NaN", dbg((-nan).floor(0).unwrap()));
   assert!((-nan).floor(2).is_err());
-  assert_eq!("-NaN", dbg((-nan).round_half_down(0).unwrap()));
+  assert_eq!("NaN", dbg((-nan).round_half_down(0).unwrap()));
   assert!((-nan).exp().is_none());
+  assert!((-nan).pow(&n("2")).is_none());
   assert_eq!(FeelNumber::new(0, 0).partial_cmp(&-nan), Some(Ordering::Less));
-  // invalid operations give +NaN whatever the operands' signs
-  assert_eq!("+NaN", dbg(-FeelNumber::infinite() + FeelNumber::infinite()));
-  assert_eq!("+NaN", dbg(n("-0") / n("-0")));
-  assert_eq!("+NaN", dbg(-FeelNumber::infinite() * n("0")));
+  assert_eq!("NaN", dbg(-FeelNumber::infinite() + FeelNumber::infinite()));
+  assert_eq!("NaN", dbg(-FeelNumber::infinite() * n("0")));
   assert_eq!("NaN", (-nan).to_string());
   assert!(!(-nan).is_finite());
 }

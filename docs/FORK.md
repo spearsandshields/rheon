@@ -1294,6 +1294,15 @@ The totals are under "Verification" below.
     zeros and for the `string()` results that carried them are deleted. Rust API break:
     `FeelNumber`'s `Display` (and so `to_string()` and `Jsonify`) prints the canonical text and
     ignores a precision; `FeelNumber` is 32 bytes.
+98. **NaN carries no sign.** FEEL has no NaN (DMN 1.6 §10.3.2.3.1: "There is no value for
+    notANumber, positiveInfinity, or negativeInfinity. Use null instead."); the number core's NaN
+    only marks an invalid operation until the evaluators turn it into null. It carried a sign
+    that followed Intel's library (flipped by negation, cleared by `abs`, kept when propagated,
+    and the subtraction did not invert it), visible only in `Debug` (`+NaN`, `-NaN`). The sign is
+    gone with its special cases in negation, subtraction, `abs` and the power function; `Debug`
+    prints `NaN`. Test first: the unit test `nan_has_no_sign` failed on the parent with `+NaN`;
+    the test that pinned the Intel signs is deleted. Identity: no difference (a NaN never reaches
+    a response). Rust behaviour break: `Debug` of a NaN `FeelNumber` is `NaN`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
