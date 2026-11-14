@@ -300,3 +300,28 @@ fn the_reason_of_a_long_invalid_pattern_holds_at_most_1000_characters() {
   assert!(reason.starts_with("<FeelRegexError> invalid regex pattern: '(aaa"), "{reason}");
   assert!(reason.ends_with('…'), "{reason}");
 }
+
+#[test]
+fn an_engine_limit_stops_the_evaluation() {
+  let input = format!("{}!", "a".repeat(40));
+  let backtracking = r"matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped";
+  crate::tests::te_aborted(&format!(r#"matches("{input}", "^(a|a)*\\1$")"#), crate::Dialect::Feel, backtracking);
+  crate::tests::te_aborted(&format!(r#"matches("{input}", "^(a|a)*\\1$", "i")"#), crate::Dialect::Feel, backtracking);
+  crate::tests::te_aborted(
+    r#"matches("a", "\\w{10000}")"#,
+    crate::Dialect::Feel,
+    r"matches: the pattern '\w{10000}' exceeds the regex engine's compiled size limit; evaluation stopped",
+  );
+  let nested = crate::tests::nested_groups(100);
+  crate::tests::te_aborted(
+    &format!(r#"matches("a", "{nested}")"#),
+    crate::Dialect::Feel,
+    &format!(
+      "matches: the pattern '{}… (201 characters)' exceeds the regex engine's nesting limit; evaluation stopped",
+      &nested[..120]
+    ),
+  );
+  // a pattern within the limits matches, and an invalid pattern is null with its reason
+  te_bool(false, &scope!(), &format!(r#"matches("a", "{}")"#, crate::tests::nested_groups(60)), true);
+  te_null(false, &scope!(), r#"matches("a", "[a-z")"#, "<FeelRegexError> invalid regex pattern: '[a-z'");
+}

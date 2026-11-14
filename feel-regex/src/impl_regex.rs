@@ -5,14 +5,16 @@ use fancy_regex::Regex;
 use regex_syntax::ast;
 use std::sync::LazyLock;
 
-pub fn is_match(input: &str, pattern: &str) -> dsntk_common::Result<bool> {
-  search(input, &fix_pattern(pattern, false, false)).map_err(|_| err_invalid_pattern(pattern))
+/// Whether `input` matches `pattern` (XQuery F&O 3.1 `fn:matches`, back-references included).
+pub fn is_match(input: &str, pattern: &str) -> Result<bool, RegexError> {
+  search(input, &fix_pattern(pattern, false, false), pattern)
 }
 
-pub fn is_match_with_flags(input: &str, pattern: &str, flags: &str) -> dsntk_common::Result<bool> {
+/// Whether `input` matches `pattern` with `flags` (`s`, `m`, `i`, `x` and `q`).
+pub fn is_match_with_flags(input: &str, pattern: &str, flags: &str) -> Result<bool, RegexError> {
   let flags = flags.trim();
   if flags.is_empty() {
-    return Err(err_empty_flags());
+    return Err(RegexError::Invalid(err_empty_flags()));
   }
   let mut regex_flags = String::new();
   let mut whitespaces = false;
@@ -25,30 +27,30 @@ pub fn is_match_with_flags(input: &str, pattern: &str, flags: &str) -> dsntk_com
         regex_flags.push(ch);
       }
       'q' => themselves = true,
-      _ => return Err(err_invalid_flag(ch)),
+      _ => return Err(RegexError::Invalid(err_invalid_flag(ch))),
     }
   }
   if !regex_flags.is_empty() {
     regex_flags = format!("(?{})", regex_flags);
   }
   let pattern = format!("{}{}", regex_flags, fix_pattern(pattern, whitespaces, themselves));
-  search(input, &pattern).map_err(|_| err_invalid_pattern(&pattern))
+  search(input, &pattern, &pattern)
 }
 
 /// Whether `input` matches the backtracking engine's `pattern` (back-references and look-around
-/// included), or which limit the engine hit, or that the pattern is invalid.
-fn search(input: &str, pattern: &str) -> Result<bool, RegexError> {
+/// included), or which limit the engine hit, or that the pattern is invalid (quoting `quoted`).
+fn search(input: &str, pattern: &str, quoted: &str) -> Result<bool, RegexError> {
   let classify = |error: fancy_regex::Error| match error {
     fancy_regex::Error::ParseError(_, fancy_regex::ParseError::RecursionExceeded) => RegexError::LimitExceeded(Limit::Nesting),
     fancy_regex::Error::CompileError(error) => match *error {
       fancy_regex::CompileError::InnerError(error) if error.size_limit().is_some() => RegexError::LimitExceeded(Limit::CompiledSize),
       fancy_regex::CompileError::InnerError(error) if error.syntax_error().is_some_and(is_nest_limit) => RegexError::LimitExceeded(Limit::Nesting),
-      _ => RegexError::Invalid(err_invalid_pattern(pattern)),
+      _ => RegexError::Invalid(err_invalid_pattern(quoted)),
     },
     fancy_regex::Error::RuntimeError(fancy_regex::RuntimeError::StackOverflow) => RegexError::LimitExceeded(Limit::BacktrackingStack),
     // a search that fails at run time always ran out of its backtracking budget
     fancy_regex::Error::RuntimeError(_) => RegexError::LimitExceeded(Limit::Backtracking),
-    _ => RegexError::Invalid(err_invalid_pattern(pattern)),
+    _ => RegexError::Invalid(err_invalid_pattern(quoted)),
   };
   Regex::new(pattern).map_err(classify)?.is_match(&fix_input(input)).map_err(classify)
 }
@@ -176,33 +178,4 @@ fn collapse_whitespace_in_property_names(pattern: &str) -> String {
     }
   }
   output
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  fn nested(levels: usize) -> String {
-    format!("{}a{}", "(".repeat(levels), ")".repeat(levels))
-  }
-
-  #[test]
-  fn the_backtracking_engine_reports_its_limits() {
-    let input = format!("{}!", "a".repeat(40));
-    assert_eq!(Err(RegexError::LimitExceeded(Limit::Backtracking)), search(&input, r"^(a|a)*\1$"));
-    assert_eq!(Err(RegexError::LimitExceeded(Limit::CompiledSize)), search("a", r"\w{10000}"));
-    assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), search("a", &nested(100)));
-    assert_eq!(Ok(true), search("a", &nested(60)));
-    // the parser stops at its nesting limit, before the unclosed class
-    assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), search("a", &format!("{}[", "(".repeat(300))));
-  }
-
-  #[test]
-  fn invalid_patterns_stay_invalid() {
-    for pattern in [r"(.)\3", "[a-z", r"(asd)[\1]"] {
-      assert_eq!(Err(RegexError::Invalid(err_invalid_pattern(pattern))), search("a", pattern));
-      assert_eq!(Err(err_invalid_pattern(pattern)), is_match("a", pattern));
-    }
-    assert_eq!(Err(err_invalid_pattern(r"\p{ IsBasicLatin}+")), is_match("a", r"\p{ IsBasicLatin}+"));
-  }
 }

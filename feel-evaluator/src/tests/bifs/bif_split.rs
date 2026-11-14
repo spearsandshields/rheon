@@ -60,3 +60,21 @@ fn _0011() {
 fn _0012() {
   te_null(false, &scope!(), r#"split("John Doe","[a-z")"#, r#"split: invalid delimiter"#);
 }
+
+#[test]
+fn an_engine_limit_stops_the_evaluation() {
+  crate::tests::te_aborted(
+    r#"split("a", "\\w{10000}")"#,
+    crate::Dialect::Feel,
+    r"split: the pattern '\w{10000}' exceeds the regex engine's compiled size limit; evaluation stopped",
+  );
+  let nested = crate::tests::nested_groups(300);
+  crate::tests::te_aborted(
+    &format!(r#"split("a", "{nested}")"#),
+    crate::Dialect::Feel,
+    &format!(
+      "split: the pattern '{}… (601 characters)' exceeds the regex engine's nesting limit; evaluation stopped",
+      &nested[..120]
+    ),
+  );
+}

@@ -739,6 +739,25 @@ equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48,
     `RegexError`, `Limit`, `replace` and `split` are added, and `regex` and `regex-syntax` become
     dependencies (both already in the build graph); rheon-feel-evaluator no longer depends on
     `regex`.
+73. **A regex engine limit aborts the evaluation.** `matches`, `replace` and `split` turned an
+    engine limit into the null of an invalid pattern, which B-FEEL then replaced by `false`, `""`
+    or `[]`: `matches("aaaa…!", "^(a|a)*\1$")` (40 `a`) was null with `invalid regex pattern`,
+    the same `or true` in B-FEEL was `true`, `split("a", "\w{10000}")` in B-FEEL was `[]`, and a
+    DMN decision silently did not match. An implementation limit is not an XQuery F&O error, so
+    DMN 1.6 Table 75 note 2's null does not apply, and chapter 11's defaults replace FEEL nulls,
+    which an abort is not. A `LimitExceeded` from rheon-feel-regex now stops the evaluation
+    through the abort channel (item 65) with `<function>: the pattern '<preview>' exceeds the
+    regex engine's <limit>; evaluation stopped`; an invalid pattern keeps its null and text. The
+    wasm answer is an `evaluation` error, a `context` error inside a FEEL-format context, and DMN
+    reports the abort (`Outcome`, the server's `errors`). The backtracking limit of item 22
+    therefore ends the evaluation as an error. CONTRACT §2 and §3 list the new cause. 18
+    registered differences: the compiled-size, nesting and backtracking limits of the three
+    functions, with and without flags, in FEEL and in B-FEEL, among them two inputs of the
+    no-trap corpus; `replace("x", "k{100000}", "y", "i")`, where only the flagged pattern exceeds
+    the limit (item 72), was `"x"`; and `matches` of 300 `(` and then `[`, invalid beyond the
+    nesting limit, was the null of an invalid pattern. Basis: DMN 1.6 §7.3.8 and Table 75 note 2; CONTRACT §3 (a stopped evaluation
+    is reported, never a partial result). API break (rheon-feel-regex): `is_match` and
+    `is_match_with_flags` return `Result<bool, RegexError>`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

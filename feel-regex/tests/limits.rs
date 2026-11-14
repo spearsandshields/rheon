@@ -2,7 +2,7 @@
 //! stays an invalid pattern, with its text unchanged.
 
 use dsntk_common::DsntkError;
-use rheon_feel_regex::{Limit, RegexError, replace, split};
+use rheon_feel_regex::{Limit, RegexError, is_match, is_match_with_flags, replace, split};
 
 fn nested(levels: usize) -> String {
   format!("{}a{}", "(".repeat(levels), ")".repeat(levels))
@@ -10,6 +10,17 @@ fn nested(levels: usize) -> String {
 
 fn invalid(pattern: &str) -> RegexError {
   RegexError::Invalid(DsntkError::new("FeelRegexError", &format!("invalid regex pattern: '{pattern}'")))
+}
+
+#[test]
+fn matches_reports_the_engine_limits() {
+  let input = format!("{}!", "a".repeat(40));
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::Backtracking)), is_match(&input, r"^(a|a)*\1$"));
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::Backtracking)), is_match_with_flags(&input, r"^(a|a)*\1$", "i"));
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::CompiledSize)), is_match("a", r"\w{10000}"));
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), is_match("a", &nested(100)));
+  // 60 levels are within the limit of the backtracking engine's parser
+  assert_eq!(Ok(true), is_match("a", &nested(60)));
 }
 
 #[test]
@@ -35,6 +46,8 @@ fn replace_reports_the_engine_limits() {
 #[test]
 fn a_pattern_is_invalid_only_when_the_engine_reads_it_within_its_limits() {
   let pattern = format!("{}[", "(".repeat(300));
+  // the backtracking engine's parser stops at its nesting limit, before the unclosed class
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::Nesting)), is_match("a", &pattern));
   // the automata engine's parser reads the whole pattern before it checks the nesting
   assert_eq!(Err(invalid(&pattern)), split("a", &pattern));
   assert_eq!(Err(invalid(&pattern)), replace("a", &pattern, "b", None));
@@ -46,6 +59,10 @@ fn invalid_patterns_stay_invalid() {
     assert_eq!(Err(invalid(pattern)), split("a", pattern));
     assert_eq!(Err(invalid(pattern)), replace("a", pattern, "b", None));
   }
+  for pattern in [r"(.)\3", "[a-z", r"(asd)[\1]", r"\p{ IsBasicLatin}+"] {
+    assert_eq!(Err(invalid(pattern)), is_match("a", pattern));
+  }
+  assert_eq!(Err(invalid("(?i)[a-z")), is_match_with_flags("a", "[a-z", "i"));
 }
 
 #[test]

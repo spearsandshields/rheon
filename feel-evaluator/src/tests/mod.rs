@@ -69,6 +69,23 @@ pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {
   crate::evaluate(scope, node).into_result().unwrap_or_else(|abort| panic!("evaluation stopped: {abort}"))
 }
 
+/// Asserts that evaluating `text` in `dialect` stops the evaluation, with `message`.
+pub fn te_aborted(text: &str, dialect: crate::Dialect, message: &str) {
+  let scope = FeelScope::default();
+  let evaluator = crate::prepare_with_dialect(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap(), dialect);
+  let outcome = crate::Session::new().run(|| evaluator(&scope)).into_result();
+  assert_eq!(
+    Err(message.to_string()),
+    outcome.map(|value| value.to_string()).map_err(|abort| abort.to_string()),
+    "{text}"
+  );
+}
+
+/// A pattern of `levels` nested groups around `a`.
+pub fn nested_groups(levels: usize) -> String {
+  format!("{}a{}", "(".repeat(levels), ")".repeat(levels))
+}
+
 /// Utility function that tests evaluation of boolean value.
 pub fn te_bool(trace: bool, scope: &FeelScope, s: &str, expected: bool) {
   textual_expression(trace, scope, s, Value::Boolean(expected));

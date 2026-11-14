@@ -1171,9 +1171,27 @@ fn full_feel_scale_range_and_regex_back_references() {
   );
   assert_eq!(display(r#"matches("aA", "(a)\\1", "i")"#), "true");
   assert_eq!(display(r#"matches("ab", "(a)\\1")"#), "false");
-  // a pathological pattern hits fancy-regex's backtracking limit and is reported, not hung
-  let r = expr(r#"matches("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!", "^(a+)+\\1$")"#);
-  assert!(r["isNull"] == true || r["display"] == "false", "{r}");
+  // a pattern the backtracking engine gives up on stops the evaluation: the limit is not a FEEL result
+  let pattern = format!("{}!", "a".repeat(40));
+  let limit = r"matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped";
+  let e = format!(r#"matches("{pattern}", "^(a|a)*\\1$")"#);
+  assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", limit);
+  assert_error(
+    &req(json!({"op": "evaluate", "expression": format!("{e} or true"), "language": "b-feel"})),
+    "evaluation",
+    limit,
+  );
+  let context = format!(r#"{{x: {e}}}"#);
+  assert_error(
+    &req(json!({"op": "evaluate", "expression": "x", "contextFormat": "feel", "context": context})),
+    "context",
+    limit,
+  );
+  // a pattern within the budget answers
+  assert_eq!(
+    display(r#"matches("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!", "^(a+)+\\1$")"#),
+    "false"
+  );
 }
 
 /// Sends a request and returns the whole response (asserting success).

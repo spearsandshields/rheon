@@ -240,3 +240,19 @@ fn _0043() {
 fn _0044() {
   te_null(false, &scope!(), r#"replace("abc1","[a-z","A")"#, r#"replace: invalid pattern"#);
 }
+
+#[test]
+fn an_engine_limit_stops_the_evaluation() {
+  let compiled_size = r"replace: the pattern '\w{10000}' exceeds the regex engine's compiled size limit; evaluation stopped";
+  crate::tests::te_aborted(r#"replace("a", "\\w{10000}", "b")"#, crate::Dialect::Feel, compiled_size);
+  crate::tests::te_aborted(r#"replace("a", "\\w{10000}", "b", "i")"#, crate::Dialect::Feel, compiled_size);
+  let nested = crate::tests::nested_groups(300);
+  crate::tests::te_aborted(
+    &format!(r#"replace("a", "{nested}", "b")"#),
+    crate::Dialect::Feel,
+    &format!(
+      "replace: the pattern '{}… (601 characters)' exceeds the regex engine's nesting limit; evaluation stopped",
+      &nested[..120]
+    ),
+  );
+}

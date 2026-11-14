@@ -6,9 +6,11 @@ use crate::macros::invalid_argument_type;
 use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
-use rheon_feel::message::arg;
+use rheon_feel::diagnostics::{self, Abort};
+use rheon_feel::message::{arg, compose};
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
+use rheon_feel_regex::{Limit, RegexError};
 use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, MonthOfYear, WeekOfYear};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
@@ -1398,7 +1400,8 @@ pub fn matches_2(input: &Value, pattern: &Value) -> Value {
   // Match input against the pattern.
   match rheon_feel_regex::is_match(input, pattern) {
     Ok(value) => Value::Boolean(value),
-    Err(reason) => value_null!("{}", reason),
+    Err(RegexError::Invalid(reason)) => value_null!("{}", reason),
+    Err(RegexError::LimitExceeded(limit)) => regex_limit("matches", pattern, limit),
   }
 }
 
@@ -1419,8 +1422,18 @@ pub fn matches_3(input: &Value, pattern: &Value, flags: &Value) -> Value {
   // Match input against the pattern with flags.
   match rheon_feel_regex::is_match_with_flags(input, pattern, flags) {
     Ok(value) => Value::Boolean(value),
-    Err(reason) => value_null!("{}", reason),
+    Err(RegexError::Invalid(reason)) => value_null!("{}", reason),
+    Err(RegexError::LimitExceeded(limit)) => regex_limit("matches", pattern, limit),
   }
+}
+
+/// Stops the evaluation when a regex engine gives up on a valid pattern: an implementation limit
+/// is not an F&O error, so it has no FEEL result (DMN 1.6, Table 75 note 2 covers only those);
+/// the evaluation reports the abort instead (§7.3.8). The null returned is never observed.
+fn regex_limit(function: &str, pattern: &str, limit: Limit) -> Value {
+  let reason = compose(format_args!("{function}: the pattern '{}' exceeds the regex engine's {limit}", arg(pattern)));
+  diagnostics::abort(Abort::limit(reason));
+  Value::Null(None)
 }
 
 /// Returns the maximum value in the collection of comparable values.
@@ -2113,7 +2126,8 @@ pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replace
   };
   match rheon_feel_regex::replace(input_string, pattern_string, replacement_string, flags) {
     Ok(result) => Value::String(result.into()),
-    Err(_) => value_null!("replace: invalid pattern"),
+    Err(RegexError::Invalid(_)) => value_null!("replace: invalid pattern"),
+    Err(RegexError::LimitExceeded(limit)) => regex_limit("replace", pattern_string, limit),
   }
 }
 
@@ -2221,7 +2235,8 @@ pub fn split(input_string_value: &Value, delimiter_string_value: &Value) -> Valu
   };
   match rheon_feel_regex::split(input_string, delimiter_string) {
     Ok(parts) => Value::List(parts.into_iter().map(|part| Value::String(part.into())).collect()),
-    Err(_) => value_null!("split: invalid delimiter"),
+    Err(RegexError::Invalid(_)) => value_null!("split: invalid delimiter"),
+    Err(RegexError::LimitExceeded(limit)) => regex_limit("split", delimiter_string, limit),
   }
 }
 
