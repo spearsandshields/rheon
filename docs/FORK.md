@@ -2000,6 +2000,37 @@ The totals are under "Verification" below.
     hold. API breaks (rheon-feel-regex): `is_match` takes the flags (`""` for none) and
     `is_match_with_flags` is removed; `replace` takes `flags: &str` instead of `Option<&str>`;
     `RegexError::Invalid` is renamed `InvalidPattern`, and `RegexError::InvalidArgument` is added.
+131. **A replacement string follows the F&O rules.** XQuery 1.0 and XPath 2.0 F&O §7.6.3, where
+    S is the number of parenthesized sub-expressions and "N is the decimal number formed by taking
+    all the digits that consecutively follow the $ character": N=0 is the whole match, 1<=N<=S
+    the group (empty when it did not match), "If S<N<=9, then the variable is replaced by the
+    zero-length string", and "Otherwise (if N>S and N>9), the last digit of N is taken to be a
+    literal character ... and the rules are reapplied"; "A literal "$" symbol must be written as
+    "\$"", "A literal "\" symbol must be written as "\\"", and FORX0004 (a null in FEEL) is raised
+    for a `$` "that is not immediately followed by a digit 0-9 and not immediately preceded by a
+    "\"", and for a `\` "that is not part of a "\\" pair, unless it is immediately followed by a
+    "$" character". `replace` rewrote `$N` to the engine's `${N}` with a process-wide compiled
+    regex and handed the rest to the engine's own syntax: `$0` named no group (`[$0x]` gave
+    `[]`), `$10` with one group named group 10, `$`, `$$` and `$a` were accepted (`$$` as one
+    `$`), `${1}` was the engine's named-group form, and `\$` and `\\` stayed two characters.
+    Now a private `Replacement` (feel-regex, `replacement.rs`) reads the string once, after the
+    pattern is compiled so that S is known, into literal text and group numbers, and is the
+    engine's replacer for every match; an invalid string is null whether or not the pattern
+    matches, with `invalid replacement string: a '$' that is not escaped must be followed by a
+    digit` or `... a '\' must be followed by '\' or '$'`. The string is read from left to right,
+    so in `\\$1` the pair comes first and `$1` is a group, and `\\$` ends in a lone `$`. The
+    group digits are read with saturating arithmetic, so a long run of digits cannot overflow.
+    With `q`, the F&O 3.1 extension of item 130, "the replacement string is used as is" (§5.6.4).
+    The process-wide `REPLACEMENT_GROUP` is deleted. The forms of the TCK (`[1=$1][2=$2]`,
+    `a$1$1`, `$1c$2`, `($1) $2-$3`, `[$0]`) keep their answers; TCK 1109 passes 28 of 28. Test
+    first: the replacement tests of `bif_replace.rs` failed on the parent (`replace("abc","b","$")`
+    was `"a$c"`, `replace("abc","b","\\$")` was `"a\$c"`, `replace("abc","b","[$0x]")` was
+    `"a[]c"`). 15 registered differences (`registered/regex-replacement.json`), among them
+    `replace("abcde","(a)(b)(c)(d)(e)","$23")`, the clause's own example, which was `""` and is
+    `"b3"`; the entry `replace("abc","b","$1","q")` of item 130 is amended in place from `"ac"`
+    to `"a$1c"`; `requests/regex.json` gains the 9 requests of the new tests that it did not hold.
+    API break (behaviour, rheon-feel-regex): `replace` reads the replacement by these rules and
+    returns `RegexError::InvalidArgument` for an invalid one.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

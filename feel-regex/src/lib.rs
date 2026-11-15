@@ -4,6 +4,7 @@
 mod errors;
 mod flags;
 mod impl_regex;
+mod replacement;
 mod unicode_blocks;
 mod utils;
 

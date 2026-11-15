@@ -44,6 +44,12 @@ impl Flags {
     Ok(options)
   }
 
+  /// Whether every character of the pattern represents itself (`q`), and so does every
+  /// character of a replacement string.
+  pub fn literal(&self) -> bool {
+    self.literal
+  }
+
   /// The pattern as an engine reads it, the options it supports as a leading `(?ims)` group.
   ///
   /// With `q` (F&O 3.1 §5.6.2) "all characters in the regular expression are treated as

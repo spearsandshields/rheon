@@ -1,9 +1,9 @@
 use crate::errors::{Limit, RegexError, err_invalid_pattern};
 use crate::flags::Flags;
+use crate::replacement::Replacement;
 use crate::unicode_blocks::replace_block_names;
 use fancy_regex::Regex;
 use regex_syntax::ast;
-use std::sync::LazyLock;
 
 /// Whether `input` matches `pattern` with `flags` (XQuery 1.0 and XPath 2.0 F&O §7.6.2
 /// `fn:matches`, back-references included); `""` is no flags.
@@ -52,16 +52,13 @@ fn compile(source: &str, quoted: &str) -> Result<regex::Regex, RegexError> {
   })
 }
 
-/// Numbered groups of a replacement in braces, `$1` as `${1}`: the engine reads the longest
-/// name after `$`, so `$1a` would name the group `1a`.
-static REPLACEMENT_GROUP: LazyLock<regex::Regex> = LazyLock::new(|| regex::Regex::new("\\$([1-9][0-9]*)").expect("a valid pattern"));
-
 /// Replaces every match of `pattern` with `flags` in `input` with `replacement` (F&O §7.6.3
-/// `fn:replace`; `$1` names a group); `""` is no flags.
+/// `fn:replace`); `""` is no flags.
 pub fn replace(input: &str, pattern: &str, replacement: &str, flags: &str) -> Result<String, RegexError> {
-  let source = Flags::parse(flags)?.source(pattern, str::to_string);
-  let replacement = REPLACEMENT_GROUP.replace_all(replacement, "$${${1}}");
-  Ok(compile(&source, pattern)?.replace_all(input, replacement.as_ref()).into_owned())
+  let flags = Flags::parse(flags)?;
+  let regex = compile(&flags.source(pattern, str::to_string), pattern)?;
+  let replacement = Replacement::parse(replacement, regex.captures_len() - 1, flags.literal())?;
+  Ok(regex.replace_all(input, &replacement).into_owned())
 }
 
 /// Splits `input` at every match of `delimiter`.

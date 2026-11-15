@@ -300,3 +300,57 @@ fn x_removes_the_whitespace_outside_character_classes() {
 fn an_invalid_pattern_with_flags_is_null() {
   te_null(false, &scope!(), r#"replace("a","[a-z","b","i")"#, "replace: invalid pattern");
 }
+
+#[test]
+fn a_group_reference_takes_the_digits_that_name_a_group() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.3: N is the number of all the digits after `$`
+  te_string(false, &scope!(), r#"replace("abc","b","[$0x]")"#, "a[bx]c");
+  te_string(false, &scope!(), r#"replace("abc","(b)","[$1]")"#, "a[b]c");
+  // a group beyond the pattern's groups and below 10 is empty
+  te_string(false, &scope!(), r#"replace("abc","(b)","[$2]")"#, "a[]c");
+  te_string(false, &scope!(), r#"replace("abc","b","[$01]")"#, "a[]c");
+  // beyond both, the last digit is a literal and the rule applies again
+  te_string(false, &scope!(), r#"replace("abc","(b)","$10")"#, "ab0c");
+  te_string(false, &scope!(), r#"replace("abcde","(a)(b)(c)(d)(e)","$23")"#, "b3");
+  te_string(
+    false,
+    &scope!(),
+    r#"replace("abc","(b)","$123456789012345678901234567890")"#,
+    "ab23456789012345678901234567890c",
+  );
+  te_string(
+    false,
+    &scope!(),
+    r#"replace("abcdefghijkl","(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)","$12$1$0")"#,
+    "laabcdefghijkl",
+  );
+}
+
+#[test]
+fn a_backslash_escapes_only_a_dollar_or_a_backslash() {
+  te_string(false, &scope!(), r#"replace("abc","b","\\$")"#, "a$c");
+  te_string(false, &scope!(), r#"replace("abc","b","\\\\")"#, r"a\c");
+  te_string(false, &scope!(), r#"replace("abc","(b)","\\\\$1")"#, r"a\bc");
+  te_string(false, &scope!(), r#"replace("abc","(b)","\\$1")"#, "a$1c");
+}
+
+#[test]
+fn an_invalid_replacement_string_is_null() {
+  let dollar = "<FeelRegexError> invalid replacement string: a '$' that is not escaped must be followed by a digit";
+  te_null(false, &scope!(), r#"replace("abc","b","$")"#, dollar);
+  te_null(false, &scope!(), r#"replace("abc","b","$$")"#, dollar);
+  te_null(false, &scope!(), r#"replace("abc","(b)","${1}")"#, dollar);
+  te_null(false, &scope!(), r#"replace("abc","b","$a")"#, dollar);
+  let backslash = r"<FeelRegexError> invalid replacement string: a '\' must be followed by '\' or '$'";
+  te_null(false, &scope!(), r#"replace("abc","b","\\x")"#, backslash);
+  te_null(false, &scope!(), r#"replace("abc","b","x\\")"#, backslash);
+  // also where no match uses it
+  te_null(false, &scope!(), r#"replace("abc","z","$")"#, dollar);
+}
+
+#[test]
+fn q_uses_the_replacement_string_as_is() {
+  // XPath and XQuery F&O 3.1 §5.6.4: "If the q flag is present, the replacement string is used as is"
+  te_string(false, &scope!(), r#"replace("abc","b","$1","q")"#, "a$1c");
+  te_string(false, &scope!(), r#"replace("abc","b","\\x$","q")"#, r"a\x$c");
+}

@@ -245,5 +245,14 @@
 {"op":"evaluate","expression":"replace(\"a b\",\" \",\"-\",\"qx\")"},
 {"op":"evaluate","expression":"replace(\"a b\",\"a [ ] b\",\"-\",\"x\")"},
 {"op":"evaluate","expression":"replace(\"ab\",\"a b\",\"-\",\"x\")"},
-{"op":"evaluate","expression":"replace(\"a\",\"[a-z\",\"b\",\"i\")"}
+{"op":"evaluate","expression":"replace(\"a\",\"[a-z\",\"b\",\"i\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"(b)\",\"[$1]\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"(b)\",\"[$2]\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"b\",\"[$01]\")"},
+{"op":"evaluate","expression":"replace(\"abcde\",\"(a)(b)(c)(d)(e)\",\"$23\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"(b)\",\"\\\\\\\\$1\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"(b)\",\"\\\\$1\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"b\",\"x\\\\\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"z\",\"$\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"b\",\"\\\\x$\",\"q\")"}
 ]
