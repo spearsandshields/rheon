@@ -1319,7 +1319,12 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
       let mut elements = vec![];
       for item in items {
         let arguments = Arguments::Positional(vec![item.clone(), new_item.clone()]);
-        match invoke(&FeelScope::default(), position_or_match.clone(), arguments, Dialect::Feel) {
+        let matched = invoke(&FeelScope::default(), position_or_match.clone(), arguments, Dialect::Feel);
+        // the answer of a call in a stopped evaluation is not read; the null is never observed
+        if diagnostics::stopped() {
+          return Value::Null(None);
+        }
+        match matched {
           Value::Boolean(true) => elements.push(new_item.clone()),
           Value::Boolean(false) => elements.push(item),
           _ => return value_null!("list replace: matching function must return boolean value"),
@@ -2156,8 +2161,12 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   if let Value::List(items) = list {
     if let Value::FunctionDefinition(function) = ordering_function {
       if function.parameters.len() == 2 {
-        // an answer other than `true` (false, null, any other value) means "does not precede"
+        // an answer other than `true` (false, null, any other value) means "does not precede";
+        // once the evaluation was stopped the ordering ends, and its null is never observed
         let order = super::sorting::order_by(items.len(), |a, b| {
+          if diagnostics::stopped() {
+            return None;
+          }
           let arguments = Arguments::Positional(vec![items[a].clone(), items[b].clone()]);
           Some(matches!(
             invoke(&FeelScope::default(), ordering_function.clone(), arguments, Dialect::Feel),

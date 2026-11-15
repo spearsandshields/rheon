@@ -2,6 +2,7 @@
 
 use crate::iterations::lost_context;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
@@ -20,6 +21,13 @@ fn outcome(predicate: Value) -> Result<bool, Value> {
   }
 }
 
+/// The null that ends the filter when the evaluation was stopped ([diagnostics::stopped]), read
+/// before each item and before the filter expression is evaluated once more for an index: the
+/// abort, not a value, is the outcome of the evaluation.
+fn stopped() -> Result<(), Value> {
+  if diagnostics::stopped() { Err(Value::Null(None)) } else { Ok(()) }
+}
+
 /// The context that [lost_context] names when the predicate removed the item contexts from the
 /// scope: it popped more contexts than it pushed, or it replaced the special context
 /// `{item: value}` with a context that has no entry `item` (no FEEL predicate does either). The
@@ -33,6 +41,7 @@ fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) ->
   let name_item: &Name = &ITEM;
   let mut matched = Vec::with_capacity(values.len());
   for value in values {
+    stopped()?;
     let depth = scope.depth();
     let has_item_entry = if let Value::Context(local_context) = value {
       scope.push(local_context.clone());
@@ -61,6 +70,7 @@ fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator)
   let mut special_context = FeelContext::default();
   let mut matched = Vec::with_capacity(values.len());
   for slot in values.iter_mut() {
+    stopped()?;
     let depth = scope.depth();
     let predicate = match std::mem::replace(slot, Value::Null(None)) {
       Value::Context(local_context) if local_context.contains_entry(name_item) => {
@@ -145,7 +155,7 @@ impl FilterExpressionEvaluator {
           ItemContexts::Copied => matched_copied(scope, &values, evaluator),
           ItemContexts::Moved => matched_moved(scope, &mut values, evaluator),
         };
-        let matched = match matched {
+        let matched = match matched.and_then(|matched| stopped().map(|()| matched)) {
           Ok(matched) => matched,
           Err(null) => return null,
         };

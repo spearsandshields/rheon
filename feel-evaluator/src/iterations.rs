@@ -8,6 +8,7 @@
 use crate::errors::*;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::{TypeOf, Value};
 use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, value_null};
@@ -203,7 +204,8 @@ impl Iteration {
   /// and no recursion is involved. When a sequence ends, its variable is unbound, so that a domain
   /// sees the variables before it only; `hidden` (the `partial` of a `for`) is unbound as well
   /// while a domain is evaluated. `Break` ends the walk with its value: the null of a domain that
-  /// fails, or the value `visit` breaks with.
+  /// fails, the value `visit` breaks with, or a null when the evaluation was stopped
+  /// ([diagnostics::stopped]), which the walk reads before each further item.
   fn walk(&self, scope: &FeelScope, expression: &str, hidden: Option<&Name>, mut visit: impl FnMut(&mut FeelContext) -> ControlFlow<Value>) -> ControlFlow<Value> {
     let Some((_, first)) = self.variables.first() else {
       return ControlFlow::Continue(());
@@ -215,6 +217,9 @@ impl Iteration {
       Err(reason) => return ControlFlow::Break(value_null!(reason)),
     }
     while let Some(depth) = levels.len().checked_sub(1) {
+      if diagnostics::stopped() {
+        return ControlFlow::Break(Value::Null(None));
+      }
       let name = &self.variables[depth].0;
       let Some(value) = levels[depth].next_item() else {
         levels.pop();

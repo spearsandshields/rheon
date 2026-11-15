@@ -692,6 +692,17 @@ fn nesting_and_recursion_limits_body() {
   }
   let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "{f: function(n) f(n + 1), r: f(1)}"}));
   assert_error(&response, "context", call_depth);
+  // a loop stops at the abort: it neither runs on through its items nor holds a result for each
+  for e in [
+    "{f: function(n) f(n + 1), r: for i in 1..10000000 return f(i)}.r",
+    "{f: function(n) f(n + 1), r: for i in 1..100, j in 1..100000 return f(j)}.r",
+    "{f: function(n) f(n + 1), l: [1, 2, 3], r: every i in l, j in l, k in l satisfies f(k) = null}.r",
+    "{f: function(n) f(n + 1), r: (for i in 1..1000 return i)[f(item) = null]}.r",
+    "{f: function(n) f(n + 1), r: sort([3, 1, 2], function(x, y) f(x) = null)}.r",
+    "{f: function(n) f(n + 1), r: list replace([1, 2, 3], function(item, newItem) f(item), 0)}.r",
+  ] {
+    assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", call_depth);
+  }
   // the limit does not leak into the next request
   assert_eq!(display(&rec(150)), "150");
   // a JSON context nested deeper than the request parser allows is a context error

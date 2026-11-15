@@ -65,21 +65,24 @@ measured on; the times below are of Node 26.
 
 | When | What | Time |
 |---|---|---|
-| After every build (the fix and group tiers) | `npm run identity`: the committed sources | 2.7 s uncached, 1.4 s cached |
-| Once per group of changes, on demand | `npm run identity:large`: the same with the larger request sets kept outside the repository (`IDENTITY_LARGE_SETS`) | 38 s uncached, 27 s cached |
+| After every build (the fix and group tiers) | `npm run identity`: the committed sources | 4.7 s uncached, 3.2 s cached |
+| Once per group of changes, on demand | `npm run identity:large`: the same with the larger request sets kept outside the repository (`IDENTITY_LARGE_SETS`) | 38 s uncached, 18 s cached |
 | On a failure | `--record <entries.json> --why "<basis>"`, then `git bisect start <bad> <good>` and `git bisect run tools/identity/bisect.sh .tools/baseline/feel.wasm <entries.json>` | one wasm build per step |
-| Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 8.6 min (measured without `--verify-cache`) and 39 s |
+| Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 7.8 min (measured without `--verify-cache`) and 39 s |
 
 Measured on a MacBook (Apple M2, Node 26) against 0.5.0, with every evaluate request also sent as
-parse: the committed sources are 7,710 requests, with the two sets kept outside the repository
-7,905 (the 36 of `release/requests/` and their parse twins left out), and with `--release` 7,766. No committed request traps 0.5.0. Five requests of the
-large sets trap it (two of them after 1.2 s each, three at once); the 17 of
+parse: the committed sources are 7,730 requests, with the two sets kept outside the repository
+7,925 (the 36 of `release/requests/` and their parse twins left out), and with `--release` 7,786.
+Two committed requests trap 0.5.0, after 0.4 s each: the loops of
+`registered/abort-stops-loops.json`, which ran on after an abort until they exhausted its memory.
+Five requests of the large sets trap it (two of them after 1.2 s each, three at once); the 17 of
 `memory-exhausting.json` exhaust its memory slowly on both sides, 427 s of the release run, and
-the 12 of `values-deep.json` take 44 s on each side; a cached trap is evaluated again on every
-run (see the cache section), so the cache cannot save that time. The peak memory is 2.2 GB for
-the large sets and 3.5 GB for the release sources (4.1 GB with `--verify-cache`, measured before
+the 12 of `values-deep.json` take 44 s on each side. A cached trap is evaluated again on every run
+(see the cache section), so the cache cannot save that time. The peak memory is 2.5 GB for the
+large sets and 3.9 GB for the release sources (4.1 GB with `--verify-cache`, measured before
 `values-deep.json` was added). The uncached time of the large sets and the time of
-`--large --verify-cache` are of the runs before `values.json` and `values-deep.json` were added.
+`--large --verify-cache` are of the runs before `values.json`, `values-deep.json` and the
+requests of `abort-stops-loops.json` were added.
 
 `bisect.sh` builds `dist/feel.wasm` of the checked-out commit and passes the entries as the only
 ledger: a commit that answers every entry's `new` is bad (exit 1), any other is good (exit 0), and

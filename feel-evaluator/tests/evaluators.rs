@@ -159,3 +159,63 @@ fn nested_sessions_share_one_abort() {
     assert_eq!(Ok(true), Session::new().run(|| true).into_result());
   });
 }
+
+/// The abort of evaluating `text` in a session and the number of errors recorded, those recorded
+/// after the abort included.
+fn abort_and_errors(text: &str) -> (Option<rheon_feel::diagnostics::Abort>, usize) {
+  let scope = scope!();
+  let evaluator = prepare(&rheon_feel_parser::parse_expression(&scope, text, false).unwrap());
+  let (outcome, diagnostics) = rheon_feel::diagnostics::collect(|| Session::new().run(|| evaluator(&scope)).into_result());
+  (outcome.err(), diagnostics.count)
+}
+
+/// A loop over many items stops at the item whose call is refused: it records no more errors than
+/// the same loop over the items before that one and that one.
+fn a_loop_stops_at_the_abort(many: &str, few: &str) {
+  let (abort, errors) = abort_and_errors(many);
+  assert!(matches!(abort, Some(rheon_feel::diagnostics::Abort::CallDepth { limit: 200, .. })), "{many}: {abort:?}");
+  assert_eq!(abort_and_errors(few), (abort, errors), "{many}");
+}
+
+#[test]
+fn an_abort_stops_every_loop() {
+  with_big_stack(|| {
+    let runaway = "f: function(n) f(n + 1)";
+    for (many, few) in [
+      // for, and a domain evaluated for each item of the variable before it
+      ("for i in 1..1000 return [f(i), 1 + null]", "for i in 1..1 return [f(i), 1 + null]"),
+      ("for i in 1..1000, j in [f(i), 1 + null] return j", "for i in 1..1, j in [f(i), 1 + null] return j"),
+      // every and some, whose bodies call no built-in (a call after the abort is refused, and its
+      // null would end them)
+      (
+        "every i in (for k in 1..1000 return k) satisfies f(i) = null and 1 + null = null",
+        "every i in [1] satisfies f(i) = null and 1 + null = null",
+      ),
+      (
+        "some i in (for k in 1..1000 return k) satisfies f(i) = 0 or 1 + null = 0",
+        "some i in [1] satisfies f(i) = 0 or 1 + null = 0",
+      ),
+      // a filter over numbers and over contexts
+      ("(for i in 1..1000 return i)[count([f(item), 1 + null]) > 5]", "[1][count([f(item), 1 + null]) > 5]"),
+      ("(for i in 1..1000 return {a: i})[count([f(a), 1 + null]) > 5]", "[{a: 1}][count([f(a), 1 + null]) > 5]"),
+      // sort, whose ordering ends at the comparison after the abort
+      (
+        "sort(for i in 1..1000 return i, function(x, y) count([f(x), 1 + null]) > 5)",
+        "sort([1, 2], function(x, y) count([f(x), 1 + null]) > 5)",
+      ),
+    ] {
+      a_loop_stops_at_the_abort(&format!("{{{runaway}, r: {many}}}.r"), &format!("{{{runaway}, r: {few}}}.r"));
+    }
+  });
+}
+
+#[test]
+fn list_replace_reads_no_answer_after_an_abort() {
+  with_big_stack(|| {
+    // the refused call's null is not read as an answer that is not a boolean: the only error is
+    // the abort's, as for the runaway call alone
+    let replaced = abort_and_errors("{f: function(n) f(n + 1), r: list replace([1, 2, 3], function(item, newItem) f(item), 0)}.r");
+    assert!(matches!(replaced.0, Some(rheon_feel::diagnostics::Abort::CallDepth { limit: 200, .. })), "{replaced:?}");
+    assert_eq!(abort_and_errors("{f: function(n) f(n + 1), r: f(1)}.r"), replaced);
+  });
+}

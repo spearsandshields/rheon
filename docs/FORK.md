@@ -2318,6 +2318,40 @@ their items with both answers. The totals are under "Verification" below.
     cache worked as specified. The test now asserts the exact counts: every answer of the cold
     run comes from the cache except the traps, which are evaluated again. With the ledger empty
     the test is skipped as before. No API change.
+146. **An abort stops every loop.** An evaluation stopped by a limit (the call depth, a regex
+    engine limit) refused every further call, but a loop went on through its items: a `for` over
+    10,000,000 items held a null for each and exhausted the module's memory (a trap where the
+    evaluation error was due), an `every` over 10,000,000,000 combinations ran for minutes, and
+    the work after the abort also recorded errors no one reads. `rheon_feel::diagnostics::stopped()` (new, public; its callers are in
+    rheon-feel-evaluator) tells whether the running evaluation was stopped, from the same state
+    the call guard reads, and is `false` outside an evaluation. The walk of `for`, `some` and
+    `every` (`Iteration::walk`, also the boxed forms) reads it before each further item, a filter
+    before each item and before it evaluates its expression once more for an index, `sort`
+    before each comparison (its ordering then ends, item 144) and `list replace` after each call
+    of its function; each then ends with a null, which is never observed, because the abort is
+    the outcome. An evaluation that ends answers as before. Two answers change, registered in
+    `tools/identity/registered/abort-stops-loops.json` with their requests in
+    `wasm/feel-wasm/tests/corpus/no-trap.json`: `for i in 1..10000000 return f(i)` and
+    `for i in 1..100, j in 1..100000 return f(j)` with a runaway `f` trapped 0.5.0 after 0.4 s
+    and are now the call-depth `evaluation` error (DMN 1.6 §7.3.8: the evaluation "MUST report or
+    log diagnostic information"; CONTRACT §2). The corpus also gains the same loops, filters, `sort`
+    and `list replace` over 100,000 items, which 0.5.0 already answered with that error, and the
+    contract test asserts the error for each kind of loop. Natively, `diagnostics::collect` around
+    an aborted evaluation now sees the errors recorded up to the abort only: in the tests, a loop
+    over 1,000 items records as many as the same loop over its first item (2 against 1,001 for
+    `for i in 1..1000 return [f(i), 1 + null]`), and `list replace` no longer records "matching
+    function must return boolean value" for the refused call. Measured (wasm, Node 26): the
+    traced `for i in 1..1000000 return f(i)` 107.5 ms on 0.5.0 and 0.4 ms now (a second call on
+    one instance); `every i in l, j in l satisfies f(j) = null` over two lists of 100,000 items
+    397 s on 0.5.0 and 20 ms now (most of it building the list); `sort` and `list replace` over
+    100,000 items 37 ms and 40 ms on 0.5.0, 11 ms each now. The speed suite against 0.5.0 in two
+    alternating rounds: geomean 1.005x and 1.003x over 39 workloads, 1.001x and 1.002x over the 86
+    parse workloads, no workload below 0.97x in both rounds (`loop-count-10k` 1.012x and 1.003x,
+    `list-filter-count` 1.009x and 0.995x, `sort-10k` 1.004x and 1.006x, `list-replace-10k`
+    1.006x and 1.001x, `fib15` 1.051x and 1.002x). Allocations, reallocations and peak live bytes
+    per call are those of 0.5.0 for every workload (native counting harness); the stack report
+    and the string doubling's peak memory (n = 17 to 26) are identical. Rust API: the added
+    function `rheon_feel::diagnostics::stopped`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

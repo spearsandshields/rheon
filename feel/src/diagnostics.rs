@@ -228,7 +228,7 @@ struct Evaluation {
   depth: Cell<usize>,
   /// Why the running evaluation was stopped, the first reason only.
   abort: RefCell<Option<Abort>>,
-  /// Whether `abort` is set, read by every function call.
+  /// Whether `abort` is set, read by every function call and by every loop before each item.
   aborted: Cell<bool>,
 }
 
@@ -242,6 +242,10 @@ impl Evaluation {
     self.depth.set(0);
     self.aborted.set(false);
     self.abort.borrow_mut().take();
+  }
+
+  fn stopped(&self) -> bool {
+    self.aborted.get()
   }
 
   fn stop(&self, reason: Abort) {
@@ -323,13 +327,20 @@ pub fn abort(reason: Abort) {
   });
 }
 
+/// Whether the running evaluation was stopped ([abort]). A loop reads it before each further item
+/// and ends; what the loop returns then is never observed, because the abort, not a value, is the
+/// outcome of the evaluation. Outside an evaluation it is `false`.
+pub fn stopped() -> bool {
+  EVALUATION.with(Evaluation::stopped)
+}
+
 /// Enters a function call when at most `limit` calls are nested in it. `None` refuses the call:
 /// the evaluation was stopped before, or this call exceeds the limit, which stops it with
 /// [Abort::CallDepth]. A refused call's result is never observed, because the abort, not a value,
 /// is the outcome of the evaluation.
 pub fn enter_call(limit: usize) -> Option<Call> {
   EVALUATION.with(|evaluation| {
-    if evaluation.aborted.get() {
+    if evaluation.stopped() {
       return None;
     }
     let depth = evaluation.depth.get();
