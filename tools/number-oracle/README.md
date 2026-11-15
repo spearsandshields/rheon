@@ -18,8 +18,8 @@ python3 -m venv .tools/py
 PYTHON=.tools/py/bin/python bash tools/number-oracle/run.sh quick
 ```
 
-CI runs the same quick run after the identity check (`.github/workflows/ci.yml`, job `wasm`), in a
-virtual environment of the runner's `python3`. `ORACLE_SEED` (digits, default 1) changes the
+The group tier (`scripts/tier.mjs`, and so CI) runs the quick run after the identity check, the
+release tier the full run; CI uses a virtual environment of the runner's `python3`. `ORACLE_SEED` (digits, default 1) changes the
 random parts. Exit status: 0 every case right or
 exempt, 1 a wrong answer or a stale exemption, 2 usage, environment or input.
 

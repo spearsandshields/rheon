@@ -30,9 +30,10 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 | `release/requests/*.json` | Requests whose answer costs the previous release seconds each, read only by `run.sh --release` and left out of every other source, so that a run after every build does not pay for them. `memory-exhausting.json`: lists and contexts that a loop doubles 30 times, read whole, compared, searched, rendered and walked, and a list and a context nested 100,000 levels deep by a loop; each exhausts the memory of the 0.5.0 module (1.2 to 1.7 s each, the two deep ones 158 s and 35 s, 216 s in all on the reference) |
 | `release/registered/<change>.json` | The ledger of the release tier: the entries whose request is in `release/requests/`, written in the commit that changes the answer |
 
-CI runs the first and the last command after `npm run build:wasm` (`.github/workflows/ci.yml`, job
-`wasm`), with `GH_TOKEN` set to the workflow's token for the download, and then `npm run
-test:identity`.
+The test tiers run the check after the wasm build (`scripts/tier.mjs`, README "Test tiers"): the
+fix and group tiers on the committed sources, the release tier also with `--release` and
+`--large`; the group tier also runs `npm run test:identity`. CI runs the group tier with
+`GH_TOKEN` set to the workflow's token for the download.
 
 The committed request sources are `requests/` and `wasm/feel-wasm/tests/corpus/no-trap.json`, and
 `release/requests/` with `--release`. A request of `release/requests/` is left out of every other

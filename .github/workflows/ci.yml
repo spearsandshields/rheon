@@ -1,4 +1,5 @@
-# rheon CI: the engine's own test suites, the wasm module and the JS side.
+# rheon CI: the group tier of the tests (engine, wasm module, JS side, official TCK) on every pull
+# request and push to main, then the playground deploy.
 # (The build-*.yml workflows next to this file are upstream dsntk's release-binary builds.)
 name: ci
 
@@ -13,31 +14,19 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
-  engine:
-    name: engine tests (native)
+  # The group tier (scripts/tier.mjs, README "Test tiers"): fmt, check, the workspace tests and the
+  # Rust copies of the TCK tests, clippy, feel.wasm with its identity check, the tools' own tests,
+  # the number oracle's quick run, the contract tests, smoke, stack, the playground and the
+  # official TCK at its pinned commits. Its table of steps and times ends the log. On CI the times
+  # are reported without a budget until five runs give one (1.5 times the slowest, and this
+  # timeout twice that).
+  group:
+    name: group tier
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable # rust-toolchain.toml pins the actual version and its components
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --all --check
-      # Skipped: `external_functions` (feel-evaluator) and `dmn_3_0076` (model-evaluator) call a
-      # Java external-function service, which rheon does not support; `compare_the_number_of_models`
-      # (dsntk-examples) walks a DMN TCK checkout at ../tck that CI does not have; the dsntk-server
-      # `utils::tests::getting_*` tests assert that the checkout directory is named `dsntk`.
-      - run: cargo test --workspace --no-fail-fast -- --skip external_functions --skip dmn_3_0076 --skip compare_the_number_of_models --skip utils::tests::getting_
-      # the API documentation of the published crates, with every rustdoc warning (a broken
-      # intra-doc link among them) an error
-      - run: cargo doc --no-deps -p rheon-feel-number -p rheon-feel-temporal -p rheon-feel -p rheon-feel-regex -p rheon-feel-grammar -p rheon-feel-parser -p rheon-feel-evaluator -p rheon-model -p rheon-model-evaluator -p rheon-feel-wasm
-        env:
-          RUSTDOCFLAGS: -D warnings
-
-  wasm:
-    name: feel.wasm + runtime + playground
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-wasip1
       - uses: Swatinem/rust-cache@v2
@@ -47,27 +36,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run bootstrap # wasm target + wasmtime into .tools/ (sha256-checked)
-      - run: npm run build:wasm # dist/feel.wasm + interface check against CONTRACT §1
-      # every committed request answers exactly as in the previous release (tools/identity/baseline.json,
-      # sha256-checked), except the differences registered in tools/identity/registered/. run.sh caches
-      # the release's answers in .tools/identity-cache/, which no step restores: this run evaluates
-      # them in full on every push.
-      - run: bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm
+      # the number oracle's Python: the runner's own python3 in a virtual environment with mpmath,
+      # pinned by hash
+      - run: python3 -m venv .tools/py && .tools/py/bin/pip install --require-hashes -r tools/number-oracle/requirements.txt
+      # The identity check downloads the previous release's feel.wasm (sha256-checked) with the
+      # workflow's token; no step restores its cache, so the reference is evaluated in full.
+      - run: npm run tier:group
         env:
           GH_TOKEN: ${{ github.token }}
-      - run: npm run test:identity # the identity tool's own checks, on the baseline and the build
-      # every number result of the build judged against its truth under DMN 1.6 (tools/number-oracle):
-      # the runner's own python3 in a virtual environment with mpmath, pinned by hash
-      - run: python3 -m venv .tools/py && .tools/py/bin/pip install --require-hashes -r tools/number-oracle/requirements.txt
-      - run: bash tools/number-oracle/run.sh quick
-        env:
           PYTHON: .tools/py/bin/python
-      - run: npm run test:rust # native contract tests of rheon-feel-wasm
-      - run: npm run test:rust:wasm # the same tests under wasmtime
-      - run: npm run test:runtime # @rheon/feel-runtime (node --test)
-      - run: npm run smoke # dist/feel.wasm under node:wasi
-      - run: npm run stack # stack headroom of dist/feel.wasm: Node main thread and worker, Wasmtime with a 4 MiB wasm stack
-      - run: npm run build:playground # svelte-check + vite build + third-party notices
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tier-logs
+          path: .tools/tier/group
+        if: always()
       - uses: actions/upload-artifact@v7
         with:
           name: feel.wasm
@@ -78,12 +60,12 @@ jobs:
           path: apps/playground/dist
 
   # The playground is the public demo: https://spearsandshields.github.io/rheon/ (GitHub Pages, source
-  # "GitHub Actions" in the repository settings). Deployed from main only, after the wasm job.
+  # "GitHub Actions" in the repository settings). Deployed from main only, after the group tier.
   pages:
     name: deploy playground to GitHub Pages
     # Push runs are main-only by the trigger above, so excluding pull requests is the whole gate.
     if: github.event_name != 'pull_request'
-    needs: wasm
+    needs: group
     runs-on: ubuntu-latest
     permissions:
       pages: write

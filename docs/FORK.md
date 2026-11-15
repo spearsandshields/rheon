@@ -2234,6 +2234,21 @@ their items with both answers. The totals are under "Verification" below.
     `scripts/cargo-target-dir.sh` instead of assuming `./target`, and `RHEON_WASM_TARGET_DIR` gives
     the tiers' wasm steps a target directory of their own. The fix tier of this change: 3.0 s of
     run time, 25.9 s of builds. No API change.
+140. **CI runs the group tier on pull requests, and the release tier before a release.** The two
+    jobs `engine` and `wasm` of `ci.yml` become one job `group` that sets up the toolchain, Node
+    24, the wasm tools and the oracle's Python environment and runs `npm run tier:group`, then
+    uploads the tier's logs, `feel.wasm` and the playground; the Pages deploy needs it. The group
+    tier adds clippy with warnings denied, the tools' own tests and the official TCK at its pinned
+    commits to what CI ran. `release.yml` gains a job `tier` that runs `npm run tier:release --
+    --without-large-sets --without-speed-suite` on a tag and on a manual dispatch, and the
+    publishing job needs it, so a failing tier builds and publishes nothing; the large request sets
+    and the speed suite stay outside the repository, so that run lists them as NOT RUN and a
+    release is fully checked only by the release tier on the reference machine. `cargo doc` of the
+    published crates (item 133) moves from every push to the release tier. On CI the tiers report
+    their times without a budget until five runs give one (1.5 times the slowest, the job timeout
+    twice that); until then the jobs time out at 60 and 120 minutes. The documents that named the
+    CI jobs name the tiers. The workflows were not run here: they are seen on the first push. No
+    API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
