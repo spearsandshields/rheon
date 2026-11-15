@@ -457,9 +457,13 @@ test('a cached run answers as an uncached one: identical modules, traps, wrong e
 
 test('a cached run answers as an uncached one: differences and --record', (t) => {
   if (needsDifference(t)) return;
-  const [, , warm] = sameWithCache([reference, candidate, differing], { record: true });
+  const [, cold, warm] = sameWithCache([reference, candidate, differing], { record: true });
   assert.equal(warm.status, 1);
-  assert.match(summary(warm), /; reference: [1-9]\d* answers from the cache/);
+  // every answer of the cold run comes from the cache, except a trap, which is evaluated again
+  const count = (run, pattern) => Number(summary(run).match(pattern)[1]);
+  const traps = count(cold, /(\d+) trapping the reference/);
+  const cached = count(cold, /; reference: 0 answers from the cache, (\d+) evaluated$/) - traps;
+  assert.match(summary(warm), new RegExp(`; reference: ${cached} answers from the cache, ${traps} evaluated$`));
   assert.equal(sameWithCache([reference, candidate, differing, '--ledger', recorded])[2].status, 0);
 });
 

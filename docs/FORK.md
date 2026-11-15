@@ -2310,6 +2310,14 @@ their items with both answers. The totals are under "Verification" below.
     the runs and at a call during the merges, for 2 to 5,000 items, and checks that the predicate
     was called exactly that many times; on the parent it does not compile, because the predicate
     cannot stop there. Identity step; no API change (the function is private to the crate).
+145. **The identity tool's cache test holds when the recorded differences trap the reference.**
+    `npm run test:identity` checks that a run with a warm cache answers as one without, on
+    requests of the committed ledger that the two modules answer differently. It asserted that
+    some of those answers came from the cache, but a trap is never cached (it is evaluated again
+    on every run), so a ledger whose entries all trap the reference failed the test although the
+    cache worked as specified. The test now asserts the exact counts: every answer of the cold
+    run comes from the cache except the traps, which are evaluated again. With the ledger empty
+    the test is skipped as before. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
