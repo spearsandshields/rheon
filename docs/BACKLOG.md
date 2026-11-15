@@ -221,7 +221,7 @@ back-references via fancy-regex). The unpatched subset stands at 289/298. Remain
 ## Build and release
 
 - **The DMN TCK is not run by CI.** `scripts/tck.sh` runs it locally (the runner, the patches and
-  a TCK checkout of about 430 MB).
+  a TCK checkout of about 430 MB, each at the commit `scripts/tck-pins.txt` pins).
 - **Builds on different hosts are not bit-identical.** The npm 0.2.0 `feel.wasm` and the release
   asset, both built from the same commit with the same rustc on macOS and on CI's Linux, differ
   by 310 bytes (string-constant order in the data section, a few bytes of code); behaviour is the

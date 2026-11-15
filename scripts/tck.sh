@@ -1,42 +1,58 @@
 #!/usr/bin/env bash
 # On-demand DMN TCK run: the official TCK (github.com/dmn-tck/tck) plus rheon's own tests in
 # tck-addendum/ (DMN 1.6 features the TCK does not cover yet), against the dsntk server of this
-# repository, with DecisionToolkit's runner. Not part of CI (see docs/FORK.md, "TCK").
+# repository, with DecisionToolkit's runner.
 #
 #   scripts/tck.sh                 # patched official TCK + addendum
 #   scripts/tck.sh --unpatched     # without dsntk-tck-patches
 #   scripts/tck.sh --addendum-only # only tck-addendum/
-#   scripts/tck.sh --refresh       # git pull the cached clones first
 #   scripts/tck.sh --only 1157     # only test folders whose name contains 1157 (repeatable)
 #
-# Clones live in .tck/ (gitignored). Results: .tck/out/results.csv and a summary on stdout.
+# The TCK, the patches and the runner are fetched at the commits in scripts/tck-pins.txt into
+# .tck/ (gitignored); a clone already at its pinned commit is used offline. Results:
+# .tck/out/tck_results.csv and a summary on stdout. Exit status (scripts/tck-summary.mjs): 0 when
+# every test that ran has its result in docs/tck-baseline.txt, 1 on a newly failing or newly
+# passing test or an empty result, 2 on a usage or setup error. With --only or --addendum-only, a
+# baseline test that did not run is not compared.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
 CACHE=$ROOT/.tck
 PORT=${TCK_PORT:-22022}
-PATCHED=1 OFFICIAL=1 REFRESH=0 ONLY=()
+PATCHED=1 OFFICIAL=1 ONLY=()
 while [ $# -gt 0 ]; do case $1 in
-  --unpatched) PATCHED=0 ;; --addendum-only) OFFICIAL=0 ;; --refresh) REFRESH=1 ;;
-  --only) ONLY+=("$2"); shift ;;
+  --unpatched) PATCHED=0 ;; --addendum-only) OFFICIAL=0 ;;
+  --only) [ $# -ge 2 ] || { echo "--only needs a folder name" >&2; exit 2; }; ONLY+=("$2"); shift ;;
   *) echo "unknown option $1" >&2; exit 2 ;; esac; shift; done
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-4}
 mkdir -p "$CACHE"
 
-clone() { # url dir
-  if [ ! -d "$CACHE/$2/.git" ]; then git clone -q --depth 1 "$1" "$CACHE/$2";
-  elif [ $REFRESH = 1 ]; then git -C "$CACHE/$2" pull -q --ff-only; fi
+# fetch <dir>: the clone .tck/<dir> at the commit scripts/tck-pins.txt pins it to
+fetch() {
+  local line url pin dir="$CACHE/$1"
+  line=$(grep -E "^$1 " "$ROOT/scripts/tck-pins.txt") || { echo "scripts/tck-pins.txt pins no $1" >&2; exit 2; }
+  read -r _ url pin <<< "$line"
+  if [ "$(git -C "$dir" rev-parse HEAD 2>/dev/null)" != "$pin" ]; then
+    echo "== fetching $1 at $pin"
+    [ -d "$dir/.git" ] || git init -q "$dir"
+    git -C "$dir" fetch -q --depth 1 "$url" "$pin"
+    git -C "$dir" checkout -q --force --detach FETCH_HEAD
+    git -C "$dir" clean -q -fdx
+  fi
+  [ "$(git -C "$dir" rev-parse HEAD)" = "$pin" ] || { echo "$dir is not at $pin" >&2; exit 2; }
 }
-[ $OFFICIAL = 1 ] && clone https://github.com/dmn-tck/tck.git tck
-[ $OFFICIAL = 1 ] && [ $PATCHED = 1 ] && clone https://github.com/DecisionToolkit/dsntk-tck-patches.git tck-patches
-clone https://github.com/DecisionToolkit/dsntk-test-runner.git runner
+[ $OFFICIAL = 1 ] && fetch tck
+[ $OFFICIAL = 1 ] && [ $PATCHED = 1 ] && fetch tck-patches
+fetch runner
 
 # the runner's report formatter underflows on long paths ("capacity overflow"); make it saturate
 grep -q 'GUTTER - 21 - ' "$CACHE/runner/src/"*.rs 2>/dev/null &&
   sed -i.bak -E 's/GUTTER - 21 - ([a-z_.()]+)/GUTTER.saturating_sub(21).saturating_sub(\1)/g' "$CACHE/runner/src/"*.rs
 echo "== building the runner and the server (release)"
-(cd "$CACHE/runner" && cargo build -q --release)
+# the runner is its own workspace, built into its own target directory
+(cd "$CACHE/runner" && cargo build -q --release --target-dir "$CACHE/runner/target")
 cargo build -q --release --features tck -p dsntk
+TARGET=$(cargo metadata --format-version 1 --no-deps | node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => console.log(JSON.parse(s).target_directory))')
 
 # one test tree: official compliance levels (optionally patched) + the addendum
 RUN=$CACHE/run
@@ -66,10 +82,13 @@ tck_report_file: $CACHE/out/tck_results.csv
 stop_on_failure: false
 YML
 
-./target/release/dsntk srv -H 127.0.0.1 -P "$PORT" -D "$RUN/TestCases" > "$CACHE/out/server.log" 2>&1 &
+"$TARGET/release/dsntk" srv -H 127.0.0.1 -P "$PORT" -D "$RUN/TestCases" > "$CACHE/out/server.log" 2>&1 &
 SRV=$!
 trap 'kill $SRV 2>/dev/null || true' EXIT
 for _ in $(seq 1 120); do curl -s -o /dev/null "http://127.0.0.1:$PORT/" && break; sleep 1; done
 echo "== running"
+rm -f "$CACHE/out/tck_results.csv"
 (cd "$CACHE/out" && "$CACHE/runner/target/release/dsntk-test-runner" config.yml > runner.log 2>&1) || true
-node "$ROOT/scripts/tck-summary.mjs" "$CACHE/out/tck_results.csv"
+PARTIAL=()
+{ [ $OFFICIAL = 0 ] || [ ${#ONLY[@]} -gt 0 ]; } && PARTIAL=(--partial)
+node "$ROOT/scripts/tck-summary.mjs" "$CACHE/out/tck_results.csv" ${PARTIAL[@]+"${PARTIAL[@]}"}

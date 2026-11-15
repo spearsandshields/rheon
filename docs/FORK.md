@@ -2198,6 +2198,22 @@ their items with both answers. The totals are under "Verification" below.
     release that directory is emptied with `registered/`. `run.sh --release` against 0.5.0: 7,534
     requests, the 17 trap both modules, 0 differences, 427 s, peak 3.7 GB; the run without it is
     unchanged (7,502 requests, 0 left out). No API change.
+138. **The TCK run uses pinned inputs and fails on a changed result.** `scripts/tck.sh` cloned the
+    official TCK, DecisionToolkit's patches and its runner at the head of their default branches,
+    and printed the comparison with `docs/tck-baseline.txt` but always exited 0, so it could not
+    serve as a gate and its inputs could move under it. Now `scripts/tck-pins.txt` names the
+    commit of each (tck `5cd912f`, dsntk-tck-patches `8dfc54e`, dsntk-test-runner `3276110`, the
+    inputs of the recorded baseline); a clone already at its pin is used offline, any other is
+    fetched at the pin, and `--refresh` is gone (moving a pin is a commit with the baseline it
+    gives). `scripts/tck-summary.mjs` sets the exit status: 1 for a newly failing or newly passing
+    test, a baseline test with no row, or a result file without rows, 2 for a usage error; with
+    `--only` or `--addendum-only` the script passes `--partial`, which compares only the tests that
+    ran. `--baseline <file>` names another baseline, and its checks are
+    `npm run test:tck-summary` (7 tests, failing on the previous summary, which took no options
+    and exited 0). The runner is built into its own target directory and the server is found
+    through `cargo metadata`, so the run works with any `CARGO_TARGET_DIR`. Run here: official
+    3,392 of 3,407, addendum 312 of 312, 0 newly failing, 0 newly passing, 0 not run, exit 0, 86 s
+    with the server's release build. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
