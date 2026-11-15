@@ -1332,3 +1332,12 @@ fn zoned_date_time_display() {
   assert_eq!(display(r#"@"2007-12-03T10:15:30+01:00""#), r#""2007-12-03T10:15:30+01:00""#);
   assert_eq!(display(r#"@"2007-12-03T10:15:30""#), r#""2007-12-03T10:15:30""#);
 }
+
+#[test]
+fn zoned_date_time_display_keeps_the_seconds_of_the_offset() {
+  // the offset of the zone at that date and time, as the zone database resolves it: local mean
+  // time before the standard zones has seconds
+  assert_eq!(display(r#"@"1900-01-01T12:00:00@Europe/Paris""#), r#""1900-01-01T12:00:00+00:09:21[Europe/Paris]""#);
+  assert_eq!(display(r#"@"1880-01-01T12:00:00@America/New_York""#), r#""1880-01-01T12:00:00-04:56:02[America/New_York]""#);
+  assert_eq!(display(r#"@"2020-01-01T12:00:00@Asia/Kolkata""#), r#""2020-01-01T12:00:00+05:30[Asia/Kolkata]""#);
+}

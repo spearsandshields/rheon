@@ -471,5 +471,10 @@
   {"op":"evaluate","expression":"string(time(\"10:00:00-00:00:30\"))"},
   {"op":"evaluate","expression":"@\"10:00:00+05:30:15\""},
   {"op":"evaluate","expression":"@\"2020-01-01T10:00:00+01:00:00\""},
-  {"op":"evaluate","expression":"time(\"10:00:00+00:00:00\")"}
+  {"op":"evaluate","expression":"time(\"10:00:00+00:00:00\")"},
+  {"op":"evaluate","expression":"date and time(\"1900-01-01T12:00:00@Europe/Paris\")"},
+  {"op":"evaluate","expression":"date and time(\"1880-01-01T12:00:00@America/New_York\")"},
+  {"op":"evaluate","expression":"@\"1900-01-01T12:00:00@Europe/Paris\""},
+  {"op":"evaluate","expression":"date and time(\"2020-01-01T12:00:00@Asia/Kolkata\")"},
+  {"op":"evaluate","expression":"date and time(\"1900-01-01T12:00:00@Europe/Paris\").time offset"}
 ]

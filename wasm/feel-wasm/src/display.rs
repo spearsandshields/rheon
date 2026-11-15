@@ -16,6 +16,7 @@
 //! memory of a display is its output, whatever the depth of the value.
 
 use rheon_feel::values::Value;
+use rheon_feel_temporal::{FeelDateTime, FeelOffset};
 use std::io;
 
 /// Lines longer than this are expanded.
@@ -140,15 +141,19 @@ fn write_scalar(value: &Value, sink: &mut impl Sink) -> Result<(), Full> {
 }
 
 /// `<date>T<time><±hh:mm>[<zone>]` for a date and time with an IANA zone (DMN 1.6 Table 48), or
-/// `None` for any other date and time (written in FEEL form, which already is ISO 8601).
-fn zoned_date_time(date_time: &rheon_feel_temporal::FeelDateTime) -> Option<String> {
+/// `None` for any other date and time (written in FEEL form, which already is ISO 8601). The
+/// offset is the zone's at that date and time, written by the one offset printer, with `:ss` when
+/// it has seconds (local mean time before the standard zones, `+00:09:21` in Paris before 1911).
+fn zoned_date_time(date_time: &FeelDateTime) -> Option<String> {
   let zone = date_time.feel_time_zone()?;
   let offset = date_time.feel_time_offset()?;
   let text = date_time.to_string();
-  let local = text.split('@').next()?;
-  let sign = if offset < 0 { '-' } else { '+' };
-  let minutes = offset.unsigned_abs() / 60;
-  Some(format!("{local}{sign}{:02}:{:02}[{zone}]", minutes / 60, minutes % 60))
+  let mut out = String::from(text.split('@').next()?);
+  FeelOffset::write_seconds(&mut out, offset).ok()?;
+  out.push('[');
+  out.push_str(&zone);
+  out.push(']');
+  Some(out)
 }
 
 fn render(value: &Value, indent: usize, out: &mut String) {

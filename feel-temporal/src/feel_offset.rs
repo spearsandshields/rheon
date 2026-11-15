@@ -43,7 +43,7 @@ impl FeelOffset {
   /// the seconds when they are not zero (`-00:30`, `+05:30:15`). It takes a plain count of seconds,
   /// so it also writes an offset that the zone database resolves, which may have seconds and may
   /// lie beyond ±14:00 (local mean time before the standard zones).
-  fn write_seconds(out: &mut impl fmt::Write, seconds: i32) -> fmt::Result {
+  pub fn write_seconds(out: &mut impl fmt::Write, seconds: i32) -> fmt::Result {
     let sign = if seconds < 0 { '-' } else { '+' };
     let magnitude = seconds.unsigned_abs();
     let (hours, minutes, seconds) = (magnitude / 3_600, magnitude % 3_600 / 60, magnitude % 60);

@@ -1538,6 +1538,27 @@ The totals are under "Verification" below.
     (whole responses), four on requests of `requests/temporal.json`; the other four are added
     to it. Rust behaviour break (rheon-feel-temporal): `FeelTime`, `FeelDateTime` and
     `FeelZone::from_designator` reject an offset written with seconds.
+110. **The offset of a zoned date and time is displayed with its seconds.** DMN 1.6 Table 48: a
+    date and time with an IANA zone maps to an ISO 8601 text "suffixed by the IANA timezone id in
+    rectangular brackets, e.g. 2007-12-03T10:15:30+01:00[Europe/Paris]". The wasm `display` built
+    that offset with its own sign and minute arithmetic and dropped its seconds, so
+    `@"1900-01-01T12:00:00@Europe/Paris"` showed `+00:09[Europe/Paris]` for the zone's +00:09:21
+    (local mean time before the standard zones): the text of another instant. Now
+    `zoned_date_time` (`wasm/feel-wasm/src/display.rs`) writes the offset the zone database
+    resolves with `FeelOffset::write_seconds`, the one offset printer (item 106), which takes a
+    plain count of seconds, since such an offset can have seconds and can lie beyond ±14:00; its
+    own arithmetic is deleted. The seconds depart on purpose from the form Table 48 asks for:
+    ISO 8601 writes an offset with hours and minutes only, as XML Schema Part 2 §3.2.7.3 does
+    ("The lexical representation of a timezone is a string of the form: (('+' | '-') hh ':' mm)
+    | 'Z'", the clause item 109 applies to literals); `±hh:mm:ss` keeps the instant, as
+    java.time's zoned text does, where whole minutes would name another one. CONTRACT §3 states
+    it. Test first:
+    `zoned_date_time_display_keeps_the_seconds_of_the_offset` (`wasm/feel-wasm/tests/contract.rs`)
+    failed on the parent with `+00:09[Europe/Paris]`. Identity: 3 registered differences in
+    `registered/zoned-display-offset-seconds.json` (Paris 1900 as `date and time()` and `@`, New
+    York 1880 `-04:56:02`), with their requests and two controls (Kolkata `+05:30`, the `time
+    offset` of Paris 1900) added to `requests/temporal.json`. Rust API (rheon-feel-temporal):
+    `FeelOffset::write_seconds` added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
