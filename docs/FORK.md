@@ -1713,6 +1713,18 @@ The totals are under "Verification" below.
     bench) take the new texts. Identity: 15 registered differences in
     `registered/stddev-fewer-than-two-numbers.json` (lenient, strict and B-FEEL), all requests of
     `requests/nulls.json`, four of them added in this commit. No API change.
+119. **A decision table without a matching rule is a defined null.** DMN 1.6 §10.3.2.10: "A
+    decision table may have no rule hit for a set of input values. In this case, the result is
+    given by the default output value, or null if no default output value is specified." The
+    decision table evaluator (model-evaluator, `decision_table.rs`) gave that null with the
+    counted reason `no rules matched, no output value defined`, so
+    `evaluate_invocable_with_mode(…, ErrorMode::Strict)` turned it into the strict null. Now the
+    reason is a note (item 117): the value keeps its text, the count is 0, and strict mode
+    returns the same value. Test first: `no_matching_rule_is_a_null_with_a_note`
+    (model-evaluator, `no_default_output_values.rs`) failed on the parent with a count of 1.
+    Identity: no difference (the wasm module evaluates no decision tables). Rust behaviour break
+    (rheon-model-evaluator): `evaluate_invocable_with_mode` counts no error for a decision table
+    without a matching rule, and in strict mode returns its value.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

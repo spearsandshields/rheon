@@ -101,7 +101,7 @@ impl EvaluatedDecisionTable {
 
   fn evaluate_default_output_value(&self) -> Value {
     match self.default_output_values.len() {
-      0 => value_null!("no rules matched, no output value defined"),
+      0 => value_null!(note: "no rules matched, no output value defined"),
       1 => self.default_output_values[0].clone(),
       _ => {
         let mut result: FeelContext = Default::default();
