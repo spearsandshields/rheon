@@ -641,13 +641,9 @@ impl<'b> EvaluatorBuilder<'b> {
             if rh.is_zero() {
               value_null!("[division] division by zero")
             } else {
-              let vl = FeelNumber::from(lh.as_months()) / rh;
-              if let Ok(v) = FeelNumber::try_into(vl)
-                && let Some(duration) = FeelYearsAndMonthsDuration::from_m(v)
-              {
-                Value::YearsAndMonthsDuration(duration)
-              } else {
-                value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv))
+              match temporal_value::ym_duration(FeelNumber::from(lh.as_months()) / rh, &lhv, '/', &rhv) {
+                Some(duration) => Value::YearsAndMonthsDuration(duration),
+                None => value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv)),
               }
             }
           }
@@ -1445,16 +1441,7 @@ impl<'b> EvaluatorBuilder<'b> {
               value_null!("multiplication result is out of range of days and time duration")
             }
           }
-          Value::YearsAndMonthsDuration(ref rh) => {
-            let val = lh * FeelNumber::from(rh.as_months());
-            if let Ok(v) = FeelNumber::try_into(val)
-              && let Some(duration) = FeelYearsAndMonthsDuration::from_m(v)
-            {
-              Value::YearsAndMonthsDuration(duration)
-            } else {
-              value_null!("multiplication result is out of range of years and months duration")
-            }
-          }
+          Value::YearsAndMonthsDuration(ref rh) => ym_product(temporal_value::ym_duration(lh * FeelNumber::from(rh.as_months()), &lhv, '*', &rhv)),
           _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
         },
         Value::DaysAndTimeDuration(ref lh) => match rhv {
@@ -1471,16 +1458,7 @@ impl<'b> EvaluatorBuilder<'b> {
           _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
         },
         Value::YearsAndMonthsDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            let val = FeelNumber::from(lh.as_months()) * rh;
-            if let Ok(v) = FeelNumber::try_into(val)
-              && let Some(duration) = FeelYearsAndMonthsDuration::from_m(v)
-            {
-              Value::YearsAndMonthsDuration(duration)
-            } else {
-              value_null!("multiplication result is out of range of years and months duration")
-            }
-          }
+          Value::Number(rh) => ym_product(temporal_value::ym_duration(FeelNumber::from(lh.as_months()) * rh, &lhv, '*', &rhv)),
           _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
         },
         value @ Value::Null(_) => value,
@@ -2739,6 +2717,15 @@ fn err_expected_name(actual: &AstNode) -> String {
   format!("expected name node, actual node is: {actual:?}")
 }
 
+/// The value of a years and months duration times a number: the duration [temporal_value::ym_duration]
+/// gives, or null beyond the range.
+fn ym_product(duration: Option<FeelYearsAndMonthsDuration>) -> Value {
+  match duration {
+    Some(duration) => Value::YearsAndMonthsDuration(duration),
+    None => value_null!("multiplication result is out of range of years and months duration"),
+  }
+}
+
 /// The evaluator of an `@` literal of `value` with seconds: with no `dropped` digits it gives the
 /// value, otherwise it also records the warning, built once, that `text` lost them.
 fn truncating_at_literal(value: Value, text: &str, dropped: Option<&str>) -> Evaluator {
@@ -2758,9 +2745,11 @@ fn truncating_at_literal(value: Value, text: &str, dropped: Option<&str>) -> Eva
 /// 66), `valuet`, `valuedt`, `valuedtd` and `valueymd` of the spec, and the `second` and `seconds`
 /// properties, decimals in the interval [0..60) (Table 67).
 mod temporal_value {
+  use rheon_feel::diagnostics;
+  use rheon_feel::message::{arg, compose};
   use rheon_feel::values::Value;
   use rheon_feel::{FeelNumber, value_null};
-  use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelZone};
+  use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 
   const NANOS_IN_SECOND: i64 = 1_000_000_000;
   const SECONDS_IN_DAY: i64 = 86_400;
@@ -2771,6 +2760,31 @@ mod temporal_value {
     let fraction = nanos.rem_euclid(NANOS_IN_SECOND);
     let n = FeelNumber::from(whole);
     Value::Number(if fraction == 0 { n } else { n + FeelNumber::new(fraction, 9) })
+  }
+
+  /// `valueymd⁻¹` (DMN 1.6 §10.3.2.3.8): the years and months duration of `months`, the product
+  /// or the quotient of Table 60 as FEEL computes it, `None` beyond the range of a duration. A
+  /// fraction of a month is truncated toward zero, as the DMN TCK expects, and the evaluation
+  /// warns that the operation `left operator right` dropped it.
+  pub fn ym_duration(months: FeelNumber, left: &Value, operator: char, right: &Value) -> Option<FeelYearsAndMonthsDuration> {
+    let duration = i64::try_from(&months).ok().and_then(FeelYearsAndMonthsDuration::from_m)?;
+    if !months.is_integer() {
+      warn_dropped_months(months.frac(), left, operator, right);
+    }
+    Some(duration)
+  }
+
+  /// Records the warning that the operation `left operator right` dropped the fraction of a month
+  /// `dropped`; a warning is the rare path, kept out of the arithmetic.
+  #[cold]
+  #[inline(never)]
+  fn warn_dropped_months(dropped: FeelNumber, left: &Value, operator: char, right: &Value) {
+    diagnostics::warn(&compose(format_args!(
+      "fractional months of '{} {operator} {}' truncated to whole months; dropped fraction: '{}'",
+      arg(left),
+      arg(right),
+      arg(&dropped)
+    )));
   }
 
   /// The second of a minute with its fraction, from the whole seconds and the nanoseconds:

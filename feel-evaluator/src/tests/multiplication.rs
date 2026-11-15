@@ -178,3 +178,31 @@ fn _0026() {
   te_years_and_months_duration_x(false, scope, r#"duration("P1M") * -9223372036854775807"#, "-P768614336404564650Y7M");
   te_days_and_time_duration_x(false, scope, r#"duration("PT0.000000001S") * -9223372036854775807"#, "-P106751DT23H47M16.854775807S");
 }
+
+/// The warning that the product or quotient `operation` of a years and months duration lost the
+/// fraction of a month `dropped`.
+pub(super) fn months_warning(operation: &str, dropped: &str) -> String {
+  format!("fractional months of '{operation}' truncated to whole months; dropped fraction: '{dropped}'")
+}
+
+/// DMN 1.6 Table 60: a years and months duration times a number is
+/// `valueymd⁻¹(valueymd(e1) * value(e2))`, and `valueymd⁻¹` (§10.3.2.3.8) maps a number of
+/// months to a duration. A product with a fraction of a month is truncated toward zero, as the
+/// DMN TCK expects (`-2.5 * @"P1Y11M"` is `-P4Y9M`), and the evaluation warns that the fraction
+/// was dropped; a whole number of months does not warn.
+#[test]
+fn a_years_and_months_product_warns_when_it_drops_a_fraction_of_a_month() {
+  te_warnings(r#"-2.5 * @"P1Y11M""#, "-P4Y9M", &[&months_warning("-2.5 * P1Y11M", "-0.5")]);
+  te_warnings(r#"@"P1Y11M" * -2.5"#, "-P4Y9M", &[&months_warning("P1Y11M * -2.5", "-0.5")]);
+  te_warnings(r#"duration("P1M") * 1.5"#, "P1M", &[&months_warning("P1M * 1.5", "0.5")]);
+  te_warnings(r#"1.5 * duration("P1M")"#, "P1M", &[&months_warning("1.5 * P1M", "0.5")]);
+  te_warnings(r#"duration("P1M") * 0.1"#, "P0M", &[&months_warning("P1M * 0.1", "0.1")]);
+  // whole numbers of months
+  te_warnings(r#"duration("P1Y") * 0.5"#, "P6M", &[]);
+  te_warnings(r#"0.25 * duration("P1Y")"#, "P3M", &[]);
+  te_warnings(r#"duration("P2M") * 1.5"#, "P3M", &[]);
+  te_warnings(r#"duration("-P2M") * 1.5"#, "-P3M", &[]);
+  te_warnings(r#"duration("P1M") * 0"#, "P0M", &[]);
+  // a days and time duration keeps its truncation of a fraction of a nanosecond
+  te_warnings(r#"duration("PT0.000000001S") * 1.5"#, "PT0.000000001S", &[]);
+}

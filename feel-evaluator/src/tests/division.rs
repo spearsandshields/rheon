@@ -146,3 +146,19 @@ fn _0024() {
   );
   te_years_and_months_duration_x(false, scope, r#"duration("-P4611686018427387903M") / 0.5"#, "-P768614336404564650Y6M");
 }
+
+/// DMN 1.6 Table 60: a years and months duration divided by a non-zero number is
+/// `valueymd⁻¹(valueymd(e1) / value(e2))`. A quotient with a fraction of a month is truncated
+/// toward zero, as the DMN TCK expects (`@"P10Y11M" / 2.5` is `P4Y4M`), and the evaluation warns
+/// that the fraction was dropped; a whole number of months does not warn.
+#[test]
+fn a_years_and_months_quotient_warns_when_it_drops_a_fraction_of_a_month() {
+  use super::multiplication::months_warning;
+  te_warnings(r#"@"P10Y11M" / 2.5"#, "P4Y4M", &[&months_warning("P10Y11M / 2.5", "0.4")]);
+  te_warnings(r#"@"P10Y11M" / -2.5"#, "-P4Y4M", &[&months_warning("P10Y11M / -2.5", "-0.4")]);
+  te_warnings(r#"duration("P1Y") / 5"#, "P2M", &[&months_warning("P1Y / 5", "0.4")]);
+  // whole numbers of months
+  te_warnings(r#"duration("P1Y") / 4"#, "P3M", &[]);
+  te_warnings(r#"duration("P1Y") / 0.5"#, "P2Y", &[]);
+  te_warnings(r#"duration("-P1Y") / 3"#, "-P4M", &[]);
+}

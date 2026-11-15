@@ -1625,6 +1625,29 @@ The totals are under "Verification" below.
     `+01:00`, `Etc/GMT-1` and an unknown zone name), failed on the parent with 36000.5 for the
     unknown zone. Identity: no difference; four controls (a local, a UTC, a zoned and an offset
     time with a fraction) are added to `requests/temporal.json`. No API change.
+115. **A years and months duration that drops a fraction of a month warns.** DMN 1.6 Table 60:
+    a years and months duration times a number is `valueymd⁻¹(valueymd(e1) * value(e2))`, and
+    divided by a number "If value(e2)=0, the result is null. Else the result is
+    valueymd⁻¹(valueymd(e1) / value(e2))"; §10.3.2.3.8: "The value of a years and months duration
+    can be expressed as a number of months", and the text is silent on a product or a quotient
+    with a fraction of a month. The DMN TCK (compliance-level-3, 0100-arithmetic) expects it
+    truncated toward zero: `@"P10Y11M" / 2.5` is `P4Y4M`, `@"P10Y11M" / -2.5` is `-P4Y4M` and
+    `-2.5 * @"P1Y11M"` is `-P4Y9M`. The answers keep that truncation, as 0.4.0 gave
+    them, and by the owner's decision the evaluation now says what it dropped: the three
+    years and months duration sites of `build_mul` and `build_div` (feel-evaluator,
+    `builders.rs`) call `temporal_value::ym_duration`, the one conversion of a number of months
+    to a duration, which truncates and records the warning `fractional months of 'P10Y11M / 2.5'
+    truncated to whole months; dropped fraction: '0.4'` through the warning channel of the
+    truncated fractional seconds. A whole number of months, as FEEL computes it in 34 digits
+    (`duration("P1Y") * (1/3)` is `P4M`), does not warn. A warning is no error: `diagnostics`
+    and strict mode are unchanged. CONTRACT §3 lists the warning. Test first:
+    `a_years_and_months_product_warns_when_it_drops_a_fraction_of_a_month`
+    (`multiplication.rs`) and `a_years_and_months_quotient_warns_when_it_drops_a_fraction_of_a_month`
+    (`division.rs`) failed on the parent with no warning. Identity: 13 registered differences in
+    `registered/whole-months-truncation-warnings.json` (whole responses: the same result with
+    the new warning), with their requests and fourteen controls (whole results, zero, a product
+    out of range, a division by zero, days and time durations) added to `requests/temporal.json`.
+    No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
