@@ -21,4 +21,5 @@ pub const DMN_0407: &str = include_str!("0407.dmn");
 pub const DMN_0408: &str = include_str!("0408.dmn");
 pub const DMN_0501: &str = include_str!("0501.dmn");
 pub const DMN_0601: &str = include_str!("0601.dmn");
+pub const DMN_0701: &str = include_str!("0701.dmn");
 pub const DMN_1001: &str = include_str!("1001.dmn");

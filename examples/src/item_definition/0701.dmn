@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<definitions namespace="https://dsntk.io/"
+             name="_0701"
+             id="_0701_allowed_values_of_a_reference"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/">
+
+    <description>
+        Item definition that references another item definition and restricts its values.
+    </description>
+
+    <itemDefinition name="tBase">
+        <typeRef>number</typeRef>
+    </itemDefinition>
+
+    <itemDefinition name="tSmall">
+        <typeRef>tBase</typeRef>
+        <allowedValues>
+            <text>[0..10]</text>
+        </allowedValues>
+    </itemDefinition>
+
+</definitions>

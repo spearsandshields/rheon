@@ -47,7 +47,7 @@ pub fn build_item_definition_evaluator(item_definition: &DefItemDefinition) -> R
   // build item definition evaluator
   match item_definition.item_definition_type()? {
     ItemDefinitionType::SimpleType(feel_type) => build_simple_type_evaluator(feel_type, av_evaluator),
-    ItemDefinitionType::ReferencedType(namespace, type_ref) => build_referenced_type_evaluator(DefKey::new(&namespace, &type_ref)),
+    ItemDefinitionType::ReferencedType(namespace, type_ref) => build_referenced_type_evaluator(DefKey::new(&namespace, &type_ref), av_evaluator),
     ItemDefinitionType::ComponentType => build_component_type_evaluator(item_definition),
     ItemDefinitionType::CollectionOfSimpleType(feel_type) => build_collection_of_simple_type_evaluator(feel_type, av_evaluator),
     ItemDefinitionType::CollectionOfReferencedType(namespace, type_ref) => build_collection_of_referenced_type_evaluator(DefKey::new(&namespace, &type_ref), av_evaluator),
@@ -182,9 +182,14 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
   }
 }
 
-fn build_referenced_type_evaluator(def_key: DefKey) -> Result<ItemDefinitionEvaluatorFn> {
+fn build_referenced_type_evaluator(def_key: DefKey, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
   Ok(Box::new(move |value: &Value, evaluators: &ItemDefinitionEvaluator| {
-    evaluators.eval(&def_key, value).unwrap_or_else(|| value_null!("no evaluator"))
+    match evaluators.eval(&def_key, value) {
+      // a value the referenced definition rejects keeps its reason, as a simple type passes a null
+      Some(null @ Value::Null(_)) => null,
+      Some(value) => check_allowed_values(value, av_evaluator.as_ref()),
+      None => value_null!("no evaluator"),
+    }
   }))
 }
 
@@ -674,5 +679,21 @@ mod tests {
       assert_eq!(Value::List(vec![]), evaluator(&Value::List(vec![]), &evaluators), "{feel_type:?}");
     }
     assert!(super::build_collection_of_simple_type_evaluator(FeelType::Context(Default::default()), None).is_err());
+  }
+
+  /// DMN 1.6 §7.3.3: "An ItemDefinition element may restrict the values that are allowed from
+  /// typeRef, using the allowedValues attribute", also when the typeRef names another item
+  /// definition. A value the referenced definition rejects keeps that definition's reason.
+  #[test]
+  fn an_item_definition_that_references_another_keeps_its_allowed_values() {
+    let evaluator = build_evaluator(DMN_0701);
+    let def_key = DefKey::new(NAMESPACE, "tSmall");
+    assert_eq!(
+      Some(Value::Null(Some("value '11' is not allowed".to_string()))),
+      evaluator.eval(&def_key, &value_number!(11))
+    );
+    assert_eq!(Some(value_number!(5)), evaluator.eval(&def_key, &value_number!(5)));
+    let base_reason = "expected type 'number', actual type is 'string' in value '\"x\"'";
+    assert_eq!(Some(Value::Null(Some(base_reason.to_string()))), evaluator.eval(&def_key, &Value::String("x".into())));
   }
 }

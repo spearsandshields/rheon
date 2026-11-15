@@ -1873,6 +1873,20 @@ The totals are under "Verification" below.
     `a_collection_of_a_simple_type_names_what_it_expected` (`item_definition.rs`), which passes on
     the parent as well. The compatibility tests of the model evaluator pass unchanged. Identity:
     no difference (the wasm module has no item definitions). No API change.
+126. **An item definition that references another keeps its allowed values.** DMN 1.6 §7.3.3:
+    "An ItemDefinition element may restrict the values that are allowed from typeRef, using the
+    allowedValues attribute. allowedValues is an instance of UnaryTests that constrains the
+    domain of the typeRef." The evaluator of an item definition whose typeRef names another item
+    definition (model-evaluator, `item_definition.rs`) built its allowed values and dropped them,
+    so `tSmall` (typeRef `tBase`, a number, allowedValues `[0..10]`) took 11. Now the value the
+    referenced definition gives is tested against the allowed values; a null it gives keeps its
+    reason, as the simple types pass a null through. Test first:
+    `an_item_definition_that_references_another_keeps_its_allowed_values` (`item_definition.rs`,
+    the new example model `item_definition/0701.dmn`) failed on the parent with 11 for 11. TCK
+    0109, 0110, 0113 and 0119 are unchanged. Identity: no difference (the wasm module has no
+    item definitions). Rust behaviour break (rheon-model-evaluator): an input whose item
+    definition references another with allowed values is null with `value '…' is not allowed`
+    when the value is outside them.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
