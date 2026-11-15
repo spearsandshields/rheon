@@ -1374,6 +1374,22 @@ fn if_takes_the_else_branch_unless_the_condition_is_true() {
 }
 
 #[test]
+fn not_equal_reports_like_equal() {
+  // §10.3.2.15: FEEL(e1 != e2) is FEEL(not(e1 = e2)), so operands that = cannot compare are the
+  // same error for !=
+  let message = "equal err '\"a\"' =?= '1'";
+  let lenient = ok(json!({"op": "evaluate", "expression": "\"a\" != 1"}));
+  assert_eq!(lenient["result"]["nullReason"], message, "{lenient}");
+  assert_eq!(lenient["diagnostics"]["count"], 1, "{lenient}");
+  let strict = req(json!({"op": "evaluate", "expression": "\"a\" != 1", "errorMode": "strict"}));
+  assert_eq!(strict["ok"], false, "{strict}");
+  assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
+  let b_feel = ok(json!({"op": "evaluate", "expression": "\"a\" != 1", "language": "b-feel"}));
+  assert_eq!(b_feel["result"]["display"], "true", "{b_feel}");
+  assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+}
+
+#[test]
 fn zoned_date_time_display() {
   // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets
   assert_eq!(display(r#"@"2007-12-03T10:15:30@Europe/Paris""#), r#""2007-12-03T10:15:30+01:00[Europe/Paris]""#);

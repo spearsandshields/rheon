@@ -1761,6 +1761,20 @@ The totals are under "Verification" below.
     `if N then 1 else 2` with `N = 9` (`if_expression.rs`) is now 2. Identity: 8 registered
     differences in `registered/if-else-unless-true.json` (the four conditions, lenient and
     strict), all requests of `requests/nulls.json`. No API change.
+122. **`!=` reports like `=`.** DMN 1.6 §10.3.2.15: "By definition, FEEL(e1 != e2) is FEEL(not(e
+    1= e2))". `=` on operands it cannot compare (`"a" = 1`) gives null with the counted reason
+    `equal err '"a"' =?= '1'`, but `!=` (feel-evaluator, `build_nq`) gave a bare null with no
+    reason, so strict mode stopped on `"a" = 1` and not on `"a" != 1`. Now one private function,
+    `equal`, holds the body of `=`; `!=` negates its boolean and passes its null on, with the
+    same reason, the same count and the same strict failure. In B-FEEL `"a" != 1` is still
+    `true`, and the error behind it is listed, as for `=`. Test first:
+    `not_equal_on_kinds_that_equal_cannot_compare_reports_like_equal` (feel-evaluator,
+    `comparison_ne.rs`, every pair of kinds whose `=` the equality tests pin as `equal err`) and
+    `not_equal_reports_like_equal` (`wasm/feel-wasm/tests/contract.rs`, lenient, strict and
+    B-FEEL) failed on the parent with the bare null. The BACKLOG entry on `!=` is removed.
+    Identity: 5 registered differences in `registered/not-equal-reports-like-equal.json`
+    (lenient, strict, B-FEEL, B-FEEL strict, and a date against a number), all requests of
+    `requests/nulls.json`. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

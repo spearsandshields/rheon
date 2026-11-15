@@ -917,15 +917,7 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_eq(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      if let Some(result) = eval_ternary_equality(&lhv, &rhv) {
-        Value::Boolean(result)
-      } else {
-        value_null!("equal err '{}' =?= '{}'", arg(&lhv), arg(&rhv))
-      }
-    })
+    Box::new(move |scope: &FeelScope| equal(&lhe(scope), &rhe(scope)))
   }
 
   fn build_evaluated_expression(&mut self, lhs: &'b AstNode) -> Evaluator {
@@ -1527,17 +1519,14 @@ impl<'b> EvaluatorBuilder<'b> {
     }
   }
 
+  /// Returns an evaluator for `!=`: DMN 1.6 §10.3.2.15, "By definition, FEEL(e1 != e2) is
+  /// FEEL(not(e 1= e2))", so the operands that `=` cannot compare give its null and its error.
   fn build_nq(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      if let Some(result) = eval_ternary_equality(&lhv, &rhv) {
-        Value::Boolean(!result)
-      } else {
-        value_null!()
-      }
+    Box::new(move |scope: &FeelScope| match equal(&lhe(scope), &rhe(scope)) {
+      Value::Boolean(result) => Value::Boolean(!result),
+      null => null,
     })
   }
 
@@ -1929,6 +1918,16 @@ impl<'b> EvaluatorBuilder<'b> {
       Value::Transparent(value) => *value,
       other => Value::UnaryGreaterOrEqual(other.into()),
     })
+  }
+}
+
+/// FEEL `lhs = rhs` (DMN 1.6 Table 53, Table 54): a boolean, or null with an error when the operands
+/// cannot be compared.
+fn equal(lhs: &Value, rhs: &Value) -> Value {
+  if let Some(result) = eval_ternary_equality(lhs, rhs) {
+    Value::Boolean(result)
+  } else {
+    value_null!("equal err '{}' =?= '{}'", arg(lhs), arg(rhs))
   }
 }
 

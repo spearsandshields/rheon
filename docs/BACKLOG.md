@@ -151,8 +151,6 @@ Open in 1.6:
     times and durations.
   - *Context equality depends on key order*: it returns null at the first pair it can not
     compare, even when a later pair differs. List equality treats such a pair as unequal.
-  - *`!=` on values of different kinds* returns a null without a reason, so it records no
-    diagnostic: strict mode stops on `"a" = 1` but not on `"a" != 1`.
   - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
     OR (comparison_in.rs asserts AND). The spec also reads differently for `null <= null` (spec:
     `<` or `=`, so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and
