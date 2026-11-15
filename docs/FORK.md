@@ -179,6 +179,7 @@ Rules:
 | 131 | `38c6bf4` | regex: a replacement string follows the F&O rules | upstream bug |
 | 132 | `a4d650d` | regex: replace and split reject a pattern that matches the zero-length string | upstream bug |
 | 133 | `0590e61` | ci: document the published crates with warnings denied | fork |
+| 134 | `f5c2713` | ci: run on Node 24 | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
