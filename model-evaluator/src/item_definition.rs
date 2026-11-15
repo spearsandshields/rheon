@@ -70,18 +70,33 @@ fn build_allowed_values_evaluator(item_definition: &DefItemDefinition) -> Result
   Ok(av_evaluator)
 }
 
+/// Whether a value satisfies the unary tests of the allowed values.
+fn is_allowed(value: &Value, evaluator: &Evaluator) -> bool {
+  let scope = FeelScope::default();
+  scope.set_value(&"?".into(), value.clone());
+  evaluator(&scope).is_true()
+}
+
 fn check_allowed_values(value: Value, av_evaluator: Option<&Evaluator>) -> Value {
-  if let Some(evaluator) = av_evaluator {
-    let scope = FeelScope::default();
-    scope.set_value(&"?".into(), value.clone());
-    if evaluator(&scope).is_true() {
-      value
-    } else {
-      value_null!("value '{}' is not allowed", arg(&value))
-    }
-  } else {
-    value
+  match av_evaluator {
+    Some(evaluator) if !is_allowed(&value, evaluator) => value_null!("value '{}' is not allowed", arg(&value)),
+    _ => value,
   }
+}
+
+/// The allowed values of a collection, projected onto its elements (DMN 1.6 §7.3.3): the list
+/// when each tested element satisfies them, otherwise a null that names the first one that
+/// does not. `tested` takes the index of an element and the element.
+fn check_each_allowed_value(values: Values, av_evaluator: Option<&Evaluator>, tested: impl Fn(usize, &Value) -> bool) -> Value {
+  match av_evaluator.and_then(|evaluator| values.iter().enumerate().find(|(index, value)| tested(*index, value) && !is_allowed(value, evaluator))) {
+    Some((_, value)) => value_null!("value '{}' is not allowed", arg(value)),
+    None => Value::List(values),
+  }
+}
+
+/// Every element of a collection is tested against its allowed values.
+fn every_element(_: usize, _: &Value) -> bool {
+  true
 }
 
 fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
@@ -240,7 +255,7 @@ fn build_collection_of_simple_type_evaluator(feel_type: FeelType, av_evaluator: 
     if !values.iter().all(is_element) {
       return value_null!("item definition evaluator (CollectionOfSimpleType): expected {}", element_type);
     }
-    check_allowed_values(Value::List(values.clone()), av_evaluator.as_ref())
+    check_each_allowed_value(values.clone(), av_evaluator.as_ref(), every_element)
   }))
 }
 
@@ -255,7 +270,10 @@ fn build_collection_of_referenced_type_evaluator(def_key: DefKey, av_evaluator: 
           return value_null!("no evaluator defined for type reference '{}'", def_key);
         }
       }
-      check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
+      // an element the referenced definition rejects (a null made of a value that is not null)
+      // keeps its reason, as a referenced type does; every other element, a null one included,
+      // is tested
+      check_each_allowed_value(evaluated_values, av_evaluator.as_ref(), |index, value| !value.is_null() || values[index].is_null())
     } else {
       value_null!("expected list, actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value))
     }
@@ -286,7 +304,7 @@ fn build_collection_of_component_type_evaluator(item_definition: &DefItemDefinit
           return value_null!("expected context, actual type is '{}' in value '{}'", arg(&TypeOf(item_value)), arg(&item_value));
         }
       }
-      check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
+      check_each_allowed_value(evaluated_values, av_evaluator.as_ref(), every_element)
     } else {
       value_null!("expected list, actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value))
     }
@@ -695,5 +713,36 @@ mod tests {
     assert_eq!(Some(value_number!(5)), evaluator.eval(&def_key, &value_number!(5)));
     let base_reason = "expected type 'number', actual type is 'string' in value '\"x\"'";
     assert_eq!(Some(Value::Null(Some(base_reason.to_string()))), evaluator.eval(&def_key, &Value::String("x".into())));
+  }
+
+  /// DMN 1.6 §7.3.3: "In cases where the isCollection attribute of an ItemDefinition is true,
+  /// each element of the collection must satisfy the UnaryTests of the allowedValues, i.e. the
+  /// allowedValues are projected onto the collection elements", for a collection of a simple
+  /// type, of a referenced type and of a type with components.
+  #[test]
+  fn allowed_values_are_tested_against_each_element_of_a_collection() {
+    let evaluator = build_evaluator(DMN_0702);
+    let eval = |type_ref: &str, value: &str| {
+      let context = rheon_feel_evaluator::evaluate_context(&Default::default(), &format!("{{value: {value}}}")).unwrap();
+      let value = context.get_entry(&Name::from("value")).unwrap();
+      evaluator.eval(&DefKey::new(NAMESPACE, type_ref), value).unwrap().to_string()
+    };
+    assert_eq!(r#"["A"]"#, eval("tCodes", r#"["A"]"#));
+    assert_eq!(r#"["A", "B", "A"]"#, eval("tCodes", r#"["A", "B", "A"]"#));
+    assert_eq!(r#"null(value '"C"' is not allowed)"#, eval("tCodes", r#"["A", "C"]"#));
+    assert_eq!("[]", eval("tCodes", "[]"));
+    assert_eq!(r#"["A"]"#, eval("tLetters", r#"["A"]"#));
+    assert_eq!(r#"null(value '"C"' is not allowed)"#, eval("tLetters", r#"["A", "C"]"#));
+    assert_eq!("[]", eval("tLetters", "[]"));
+    // an element the referenced definition rejects keeps its reason
+    assert_eq!(
+      r#"["A", null(expected type 'string', actual type is 'number' in value '1')]"#,
+      eval("tLetters", r#"["A", 1]"#)
+    );
+    // a null element is tested like any other element
+    assert_eq!("null(value 'null' is not allowed)", eval("tLetters", r#"["A", null]"#));
+    assert_eq!(r#"[{code: "A"}]"#, eval("tEntries", r#"[{code: "A"}]"#));
+    assert_eq!(r#"null(value '{code: "C"}' is not allowed)"#, eval("tEntries", r#"[{code: "A"}, {code: "C"}]"#));
+    assert_eq!("[]", eval("tEntries", "[]"));
   }
 }

@@ -1887,6 +1887,26 @@ The totals are under "Verification" below.
     item definitions). Rust behaviour break (rheon-model-evaluator): an input whose item
     definition references another with allowed values is null with `value '…' is not allowed`
     when the value is outside them.
+127. **Allowed values are tested against each element of a collection.** DMN 1.6 §7.3.3: "In
+    cases where the isCollection attribute of an ItemDefinition is true, each element of the
+    collection must satisfy the UnaryTests of the allowedValues, i.e. the allowedValues are
+    projected onto the collection elements"; Table 26: "In case of a collection, it is projected
+    on the collection elements." The three collection evaluators (model-evaluator,
+    `item_definition.rs`: of a simple type, of a referenced type, of a type with components)
+    tested the whole list, so a collection of strings with allowedValues `"A", "B"` rejected
+    `["A"]` and `[]` with `value '["A"]' is not allowed`. Now `check_each_allowed_value` tests
+    each element and names the first one that fails (`["A", "C"]` is null with `value '"C"' is
+    not allowed`); `[]` is `[]`. An element that the referenced definition of a collection
+    rejects (a value that is not null, made null) stays in the list with its null and reason, as
+    item 126 does for a single value; every other element is tested, a null element included, so
+    `["A", null]` is null with `value 'null' is not allowed`, as it is for a collection of a
+    simple type (there with `expected string`). Test first:
+    `allowed_values_are_tested_against_each_element_of_a_collection` (`item_definition.rs`, the
+    new example model `item_definition/0702.dmn`) failed on the parent with `value '["A"]' is
+    not allowed`. TCK 0109, 0110, 0113 and 0119 are unchanged. Identity: no difference (the wasm
+    module has no item definitions). Rust behaviour break (rheon-model-evaluator): an input
+    typed by a collection with allowed values takes a list whose elements each satisfy them,
+    including the empty list, and a rejected list names its first failing element.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<definitions namespace="https://dsntk.io/"
+             name="_0702"
+             id="_0702_allowed_values_of_collections"
+             xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/">
+
+    <description>
+        Collections restricted by allowed values: of a simple type, of a referenced type and of
+        a type with components.
+    </description>
+
+    <itemDefinition name="tCodes" isCollection="true">
+        <typeRef>string</typeRef>
+        <allowedValues>
+            <text>"A", "B"</text>
+        </allowedValues>
+    </itemDefinition>
+
+    <itemDefinition name="tLetter">
+        <typeRef>string</typeRef>
+    </itemDefinition>
+
+    <itemDefinition name="tLetters" isCollection="true">
+        <typeRef>tLetter</typeRef>
+        <allowedValues>
+            <text>"A", "B"</text>
+        </allowedValues>
+    </itemDefinition>
+
+    <itemDefinition name="tEntries" isCollection="true">
+        <itemComponent name="code">
+            <typeRef>string</typeRef>
+        </itemComponent>
+        <allowedValues>
+            <text>{code: "A"}, {code: "B"}</text>
+        </allowedValues>
+    </itemDefinition>
+
+</definitions>
