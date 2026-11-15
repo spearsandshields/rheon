@@ -2127,6 +2127,17 @@ their items with both answers. The totals are under "Verification" below.
     too. The step was checked against a tree whose rheon-feel-number docs still quoted DMN 1.6's
     "pairs [that] have the same value" with bare brackets (item 97 escapes them): it failed there
     with `unresolved link to 'that'` (exit 101), and it passes here. No API change.
+134. **CI runs on Node 24.** The identity check answers every registered request with the
+    previous release's module. One of them,
+    `{big: for i in 1..100000 return i, r: for j in 1..1000 return big = j}.r`, makes the 0.4.0
+    module exhaust its memory while it builds its null reasons (item 68 bounds them). Node 24 and
+    Node 26 report that as a trap of the module, which the ledger registers. Node 22.23 crashes
+    itself with a segmentation fault instead (6 of 6 runs on macOS arm64, and on the ubuntu
+    runner), so the check ended with status 139. The `ci` and `release` workflows now set up
+    Node 24, and `tools/identity/README.md` states the requirement. A request that exhausts the
+    memory of this module (a list doubled 30 times) ends as a trap on Node 22 as well. For
+    hosts: a 0.4.0 module on Node 22 can take the whole process down on such a request, not only
+    its worker. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

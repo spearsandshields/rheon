@@ -39,6 +39,12 @@ entries, so a number beyond the range or precision of a double (`1.5e-6176`, a 1
 integer) is sent, keyed and compared exactly as written. This needs Node 21 or later
 (`JSON.rawJSON` and the source text of a parsed number); an older Node exits with status 2.
 
+Run it with Node 24 or later when the reference is 0.4.0. One registered request,
+`{big: for i in 1..100000 return i, r: for j in 1..1000 return big = j}.r`, makes the 0.4.0 module
+exhaust its memory. Node 24 and Node 26 report that as a trap of the module; Node 22.23 crashes
+itself with a segmentation fault (6 of 6 runs, macOS arm64 and the ubuntu runner), so the run ends
+with status 139 before it compares anything. CI therefore runs on Node 24.
+
 ## While developing
 
 | When | What | Time |

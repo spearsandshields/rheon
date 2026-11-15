@@ -24,7 +24,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24 # the identity check runs the previous release, which can crash Node 22 itself (tools/identity/README.md)
           cache: npm
       - run: npm ci
       - run: npm run bootstrap
