@@ -130,6 +130,55 @@ Rules:
 | 82 | `b25e023` | model-evaluator: decision-service function values hold a weak model reference | upstream bug |
 | 83 | `078c1cd` | feel-wasm: display measures the inline width before rendering | fork |
 | 84 | `3577ebe` | feel-wasm: no combination of edge operands traps the module | fork |
+| 85 | `c4efc4f` | tools: automated checks of the identity tool | fork |
+| 86 | `5247f8b` | scripts: one module session for the Node tools | fork |
+| 87 | `4c63a17` | tools: the identity check answers the reference per source | fork |
+| 88 | `5aeaa6c` | tools: cache the reference answers of the identity check | fork |
+| 89 | `52f3aae` | tools: find the commit behind an identity difference | fork |
+| 90 | `75f0541` | tools: a number oracle that judges every number result | fork |
+| 91 | `0c50018` | ci: run the number oracle | fork |
+| 92 | `063a27d` | tools: the number oracle's edge cases are an identity source | fork |
+| 93 | `3ba44fd` | tools: frozen regex request corpus | fork |
+| 94 | `397762a` | tools: remove the Intel differential tools | fork |
+| 95 | `1d2087d` | feel-number: one number backend, no backend features | fork |
+| 96 | `1526888` | feel-number: a number has no negative zero | upstream bug |
+| 97 | `8fbf3e6` | feel-number: one canonical text for every number | fork |
+| 98 | `a0a3bee` | feel-number: NaN carries no sign | fork |
+| 99 | `c5bcbba` | feel-number: exp and ln results need no cohort rule | fork |
+| 100 | `63e021c` | feel-number: round_to rounds to a scale in one step | upstream bug |
+| 101 | `cb193b6` | feel-evaluator: the rounding built-ins share round_to | fork |
+| 102 | `01bde71` | feel-number: new() scales without a clamp | upstream bug |
+| 103 | `913b90a` | feel-number: exact modulo | upstream bug |
+| 104 | `321f364` | feel-number: integer powers are correctly rounded | upstream bug |
+| 105 | `c118fec` | feel-evaluator: an exponent outside Table 61's range gives null | upstream bug |
+| 106 | `5083e22` | feel-temporal: a time offset prints its sign from its value | upstream bug |
+| 107 | `55541f6` | feel-evaluator: time() takes every offset within ±14:00 and none with a fraction of a second | upstream bug |
+| 108 | `e2ed204` | feel-temporal: the minutes of an offset literal are below 60 | upstream bug |
+| 109 | `1ad19fc` | feel-temporal: an offset literal has no seconds | DMN 1.6 |
+| 110 | `59fbd66` | feel-wasm: the offset of a zoned date and time is displayed with its seconds | fork |
+| 111 | `43648ef` | feel-evaluator: second and seconds are exact decimals | upstream bug |
+| 112 | `37c8fc2` | feel-temporal: the years and months of a duration are magnitudes | upstream bug |
+| 113 | `4efa7f0` | feel-temporal: years and months duration(from, to) has one rule for both signs | upstream bug |
+| 114 | `20efaa2` | feel-evaluator: the value of a time in a zone without a known offset is null | upstream bug |
+| 115 | `4cda64c` | feel-evaluator: a years and months duration that drops a fraction of a month warns | fork |
+| 116 | `1a77981` | feel-evaluator: pin the nulls that are no errors | DMN 1.6 |
+| 117 | `384fc80` | feel: a missing context entry is a defined null with a note | DMN 1.6 |
+| 118 | `26f2cdb` | feel-evaluator: stddev of fewer than two numbers is a defined null | DMN 1.6 |
+| 119 | `1279ceb` | model-evaluator: a decision table without a matching rule is a defined null | DMN 1.6 |
+| 120 | `70f3936` | model-evaluator: a missing input variable is a defined null whatever its type | DMN 1.6 |
+| 121 | `5ed694d` | feel-evaluator: if takes the else branch unless the condition is true | upstream bug |
+| 122 | `0cae1b8` | feel-evaluator: != reports like = | upstream bug |
+| 123 | `0a1d4c5` | feel-evaluator: a null operand of an arithmetic operator is an error | upstream bug |
+| 124 | `3adac0a` | feel-evaluator: a unary comparison compares with the value of its path endpoint | upstream bug |
+| 125 | `4da3dcf` | model-evaluator: one collection evaluator for every simple type | fork |
+| 126 | `c9202e8` | model-evaluator: an item definition that references another keeps its allowed values | upstream bug |
+| 127 | `3069fdb` | model-evaluator: allowed values are tested against each element of a collection | upstream bug |
+| 128 | `08f630e` | feel-evaluator: an iteration context sees the variables bound before it | upstream bug |
+| 129 | `f846d99` | feel-evaluator: a repeated iteration variable gives null | DMN 1.6 |
+| 130 | `7377b32` | regex: matches and replace read their flags by one rule | upstream bug |
+| 131 | `38c6bf4` | regex: a replacement string follows the F&O rules | upstream bug |
+| 132 | `a4d650d` | regex: replace and split reject a pattern that matches the zero-length string | upstream bug |
+| 133 | `0590e61` | ci: document the published crates with warnings denied | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -1043,6 +1092,19 @@ The totals are under "Verification" below.
     wrote up to 6,177 plain digits: instances of the registered message rule (item 68, CONTRACT §3),
     not listed one by one. Basis: no input may panic the engine (CONTRACT §1: on wasm a panic aborts
     the instance). No API change.
+
+Commits 85-133 make answers follow DMN 1.6 where 0.4.0 gave a wrong one without a report: numbers
+(one backend, one canonical text, exact rounding, modulo and integer powers), time offsets and the
+temporal properties, the nulls that the specification defines, `if`, `!=`, the null operands of
+arithmetic, unary comparisons with a path endpoint, allowed values of item definitions, iteration
+contexts, and the flags, replacement strings and zero-length patterns of the regex built-ins. Tools
+come first: the identity check answers and caches the reference per source, a number oracle judges
+every number result against exact arithmetic, and frozen request corpora pin the number edges and
+the regex built-ins; the last commit makes CI document the published crates with rustdoc's warnings
+denied. Each change of a wasm answer against 0.4.0 that the identity check finds is registered with
+both answers and counted in its item; changes that only DMN or the Rust API show are stated in
+their items with both answers. The totals are under "Verification" below.
+
 85. **Automated checks of the identity tool.** `tools/identity/test.mjs` (`npm run test:identity`,
     run in CI after the identity step) checks `equal.mjs` on two real modules, the previous release
     and the build (`IDENTITY_REFERENCE`, `IDENTITY_CANDIDATE`; a missing module fails the tests): a
@@ -2107,24 +2169,53 @@ existed.
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
 
-Commits 55-84 (2026-11-14), on the tree of commit 84: workspace 8,639 passed, 0 failed, 24
-ignored (CI's skips); clippy without warnings; feel.wasm tests 69 native (8 unit, 61 contract) and
-70 under Wasmtime (8, 62); runtime 33; smoke passes, with its two memory checks growing by 22.1 MiB
-and 26.5 MiB (bound 32 MiB); the stack check passes, and its report reaches at least 0.4.0's
-depth on every host (item 67); the playground builds; the randomized and exhaustive tests at full
-size (`RHEON_FULL_TESTS=1`, release, with the parser corpus, now with `rheon-feel-wasm`) 971 passed.
-DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, every per-test
-result identical to 0.4.0's. Full responses against the 0.4.0 release module, each request sent as
+Commits 85-133 (2026-11-15), on the tree of commit 133: workspace 8,724 passed, 0 failed, 24
+ignored (CI's skips), the same with `RHEON_FULL_TESTS=1`, and the README's full-size run
+(`RHEON_FULL_TESTS=1`, release, the four crates) 989 passed; clippy on the workspace without
+warnings; the API documentation of the ten published crates builds with rustdoc's warnings denied
+(item 133); feel.wasm tests 79 native (8 unit, 71 contract) and 80 under Wasmtime; runtime 33;
+smoke passes, with its two memory checks growing by 16.6 MiB and 26.5 MiB (bound 32 MiB); the stack
+check passes, and its report's recursion depth is at least that of the start of these commits on
+every host: Node's main thread 22 with Liftoff and 24 with TurboFan (start 18 and 14, 0.4.0 17 and
+14), workers of 2, 3 and 4 MiB 46, 75 and 104 with Liftoff (40, 64, 89) and 51, 83 and 114 with
+TurboFan (31, 50, 69), Wasmtime with 512 KiB, 1, 2, 4 and 16 MiB 10, 26, 57, 120 and 289 (10, 25,
+57, 98, 98); the playground builds. The number oracle (item 90) judges every case right with no
+exemption: 35,939 cases quick and 2,896,591 at full size, in 188 families. DMN TCK via
+`scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, every per-test result identical
+to 0.4.0's. Full responses against the 0.4.0 release module, each request sent as written: 194,079
+requests (the committed sources, each evaluate request also as parse, the ledger, and the request
+sets kept outside the repository), 2,789 registered differences reproduced (1,144 of them from
+commits 85-133, counted per change in their items), none unregistered, and every cached reference
+answer equal to a live one (`--verify-cache`). 52 of the requests trap 0.4.0: 30 of them answer now
+and are registered; the other 22 trap the build as well, as they did at the start of these commits:
+loops that double a shared list 30 times (`for i in 1..30 return ... [partial[-1], partial[-1]]`),
+which exhaust the module's memory. Against the module of commit 129 the same requests differ only
+in the 51 registered answers of items 130-132. Speed against 0.4.0 (engine benchmarks, 24
+workloads): geomean 1.02x, every result equal, from 0.92x (`fib15`, 572 to 619 µs) to 1.10x
+(`loop-count-1k`); against the start of these commits 1.03x, from 0.98x to 1.08x; 11 regex
+workloads against 0.4.0: geomean 1.03x, from 1.00x to 1.23x, every result equal except the one
+whose replacement string the F&O rules read differently. The publish dry run needs the crates.io
+index and was not run.
+
+Commits 55-84 (2026-11-14), on the tree of commit 84: workspace 8,639 passed, 0 failed, 24 ignored
+(CI's skips); clippy without warnings; feel.wasm tests 69 native (8 unit, 61 contract) and 70 under
+Wasmtime (8, 62); runtime 33; smoke passes, with its two memory checks growing by 22.1 MiB and 26.5
+MiB (bound 32 MiB); the stack check passes, and its report reaches at least 0.4.0's depth on every
+host (item 67); the playground builds; the randomized and exhaustive tests at full size
+(`RHEON_FULL_TESTS=1`, release, with the parser corpus, now with `rheon-feel-wasm`) 971 passed. DMN
+TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, every per-test result
+identical to 0.4.0's. Full responses against the 0.4.0 release module, each request sent as
 written: 187,677 requests (the committed sources, each evaluate request also as parse, the ledger,
 and request sets kept outside the repository: the fraction sweep, the duration, message and regex
 probes and the performance workloads), 1,645 registered differences reproduced (counted per change
-in items 59-83), none unregistered; 52 of the requests trap 0.4.0, none traps the build. The
-full-size edge-operand product of item 84 (28,110 requests with its parse twins), which is not an
-identity source, differs in 568 answers: its 24 answer changes that are not message changes are
-among the registered ones, and its other 544 answers differ only in null reasons that quote a number
-in scientific notation, instances of the registered message rule (item 68) that are not listed one
-by one. Speed against 0.4.0 (engine benchmarks, 24 workloads): geomean 1.01x, every result equal,
-from 0.94x to 1.11x.
+in items 59-83), none unregistered; 52 of the requests trap 0.4.0: 30 of them answer in the build,
+and the other 22, loops that double a shared list 30 times, exhaust the module's memory there as
+well. The full-size edge-operand product of item 84 (28,110 requests with its parse twins), which
+is not an identity source, differs in 568 answers: its 24 answer changes that are not message
+changes are among the registered ones, and its other 544 answers differ only in null reasons that
+quote a number in scientific notation, instances of the registered message rule (item 68) that are
+not listed one by one. Speed against 0.4.0 (engine benchmarks, 24 workloads): geomean 1.01x, every
+result equal, from 0.94x to 1.11x.
 
 Commits 39-53 (2026-11-13): workspace 8,488 passed, 0 failed, 24 ignored (CI's skips); clippy
 without warnings; feel.wasm tests 56 native and 57 under Wasmtime; runtime 33; the randomized
@@ -2390,6 +2481,64 @@ The API changes of 0.5.0 (commits 59-83; the item of each change is in parenthes
   no API change. The `Send` and `Sync` properties that each crate's `send_sync` test checks are
   those of 0.4.0. The wasm module's ABI and its request and response JSON are unchanged; what
   changes there are answers, registered with both answers as "Verification" states.
+
+The API changes of commits 85-133 (the item of each change is in parentheses):
+
+- Changed:
+  - Every crate that forwarded a number backend: the Cargo features `intel` and `dashu` (and
+    `default`) of `rheon-feel-number`, `rheon-feel`, `rheon-feel-temporal`, `rheon-feel-parser`,
+    `rheon-feel-evaluator`, `rheon-model` and `rheon-model-evaluator` are gone, so a dependency
+    written with `features = ["dashu"]` or `features = ["intel"]` no longer resolves;
+    `default-features = false` is harmless (95).
+  - `rheon-feel-number`: `FeelNumber`'s `Display` (and so `to_string()` and `Jsonify`) prints the
+    canonical text and ignores a precision, and `FeelNumber` is 32 bytes (97). Behaviour: a zero
+    has no sign (96); `Debug` of a NaN is `NaN` (98); `new(n, s)` with `s` beyond the exponent's
+    range is the rounded value or infinite (102); `pow` with an integer
+    exponent is correctly rounded, and `Debug` of an integer power shows the cohort of the exact
+    power (104).
+  - `rheon-feel-temporal`: `FeelZone::Offset` holds a `FeelOffset` (was `i32`), and its `Display`
+    changes for negative offsets below one hour (106); `FeelTime::offset_opt` and
+    `FeelDateTime::offset` accept offsets within ±14:00 (were -11:59..+12:00) (107);
+    `FeelYearsAndMonthsDuration::years` and `months` return `u64` magnitudes (were signed `i64`)
+    (112). Behaviour: `FeelTime`, `FeelDateTime` and `FeelZone::from_designator` reject an offset
+    with minutes of 60 or more (108) or written with seconds (109); `&FeelDate - &FeelDate` gives
+    new results for negative spans inside one year (113).
+  - `rheon-feel`: the module form of `value_null!` takes the function name as any expression,
+    not only as a literal (101); `diagnostics::record` and `values::null_with_reason` take a
+    `Severity` first, and `Diagnostics::count` and `messages` leave out notes (117).
+  - `rheon-feel-regex`: `is_match` takes the flags (`""` for none) and `replace` takes
+    `flags: &str` instead of `Option<&str>`; `RegexError::Invalid` is renamed `InvalidPattern`
+    (130). Behaviour: invalid flags (130), an invalid replacement string (131) and a pattern of
+    `replace` or `split` that matches the zero-length string (132) are
+    `RegexError::InvalidArgument`; `split` of `""` has no item (132).
+  - `rheon-model-evaluator`, behaviour: `evaluate_invocable_with_mode` counts no error for a
+    decision table without a matching rule (119) or a missing input variable of an
+    item-definition type (120), and in strict mode returns their value; an input whose item
+    definition references another with allowed values is checked against them (126), and an
+    input typed by a collection with allowed values is checked per element (127).
+- Removed:
+  - `rheon-feel-number`: `FeelNumber::ceiling`, `floor`, `round_up`, `round_down`,
+    `round_half_up`, `round_half_down` and `round` (use `round_to`) (101); `impl Rem` and
+    `impl RemAssign` for `FeelNumber` (use `FeelNumber::modulo`) (103).
+  - `rheon-feel-temporal`: `TryFrom<i32> for FeelZone` (`From<FeelOffset>` replaces it) (107).
+  - `rheon-feel`: `Value::Transparent` (124).
+  - `rheon-feel-evaluator`: `ForExpressionEvaluator`, `SomeExpressionEvaluator` and
+    `EveryExpressionEvaluator` (128).
+  - `rheon-feel-regex`: `is_match_with_flags` (130).
+- Added:
+  - `rheon-feel-number`: `FeelNumber::round_to` and `RoundingMode` (100, public with their callers
+    in 101), `FeelNumber::modulo` (103).
+  - `rheon-feel-temporal`: `FeelOffset` with `ZERO` and `Display` (106), `FeelOffset::from_duration`
+    and `From<FeelOffset> for FeelZone` (107), `FeelOffset::write_seconds` (110);
+    `FeelDaysAndTimeDuration::get_nanoseconds` and `FeelDateTime::nanos` (111).
+  - `rheon-feel`: `diagnostics::Severity` and the `note:` forms of `value_null!` (117).
+  - `rheon-feel-evaluator`: `Iteration` (`boxed`, `collect`, `some`, `every`), `Sequence` (`of`,
+    `empty`, `interval`) and `Domain` (128).
+  - `rheon-feel-regex`: `RegexError::InvalidArgument` (130).
+- Kept: `rheon-feel-grammar` and `rheon-feel-wasm` have no API change, and `rheon-feel-parser`
+  and `rheon-model` change only by the removed features (95). The wasm module's ABI and its
+  request and response JSON are unchanged; what changes there are answers, registered with both
+  answers as "Verification" states.
 
 ### The pre-rename procedure (historical)
 
