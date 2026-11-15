@@ -37,5 +37,15 @@ fn _0004() {
 #[test]
 fn _0005() {
   let scope = &te_scope(r#"{N:9}"#);
-  te_null(false, scope, r#"if N then 1 else 2"#, r#"condition in 'if' expression is not a boolean value"#);
+  te_number(false, scope, r#"if N then 1 else 2"#, 2, 0);
+}
+
+#[test]
+fn a_condition_that_is_not_true_takes_the_else_branch() {
+  // DMN 1.6 Table 50: "if FEEL(e1) is true then FEEL(e2) else FEEL(e3)"; "A conditional if a
+  // then b else c is equal to b if a is true, and equal to c otherwise."
+  for condition in ["9", r#""x""#, "[true]", "{}", "null", "false"] {
+    te_errors(&format!("if {condition} then 1 else 2"), "2", &[]);
+  }
+  te_errors("if true then 1 else 2", "1", &[]);
 }

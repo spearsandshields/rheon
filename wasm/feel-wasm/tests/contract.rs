@@ -1365,6 +1365,15 @@ fn a_missing_context_entry_is_no_error() {
 }
 
 #[test]
+fn if_takes_the_else_branch_unless_the_condition_is_true() {
+  // Table 50: "A conditional if a then b else c is equal to b if a is true, and equal to c
+  // otherwise", so a condition that is no boolean is no error
+  for condition in ["9", "\"x\"", "[true]", "{}", "null"] {
+    assert_no_error(&format!("if {condition} then 1 else 2"), "2");
+  }
+}
+
+#[test]
 fn zoned_date_time_display() {
   // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets
   assert_eq!(display(r#"@"2007-12-03T10:15:30@Europe/Paris""#), r#""2007-12-03T10:15:30+01:00[Europe/Paris]""#);

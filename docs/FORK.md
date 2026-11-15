@@ -1745,6 +1745,22 @@ The totals are under "Verification" below.
     for a missing input variable of an item-definition type, nor for such an input decision of
     a decision service that the context does not supply, and in strict mode no longer fails
     on it.
+121. **`if` takes the else branch unless the condition is true.** DMN 1.6 Table 50 rule 45:
+    `if e1 then e2 else e3` is "if FEEL(e1) is true then FEEL(e2) else FEEL(e3)", and "A
+    conditional if a then b else c is equal to b if a is true, and equal to c otherwise." The
+    `if` evaluator (feel-evaluator, `build_if`) took the else branch for `false` and null only,
+    and gave a condition of another kind the counted error `condition in 'if' expression is not
+    a boolean value`, so `if 9 then 1 else 2` was null and failed strict mode. Now every
+    condition that is not `true` takes the else branch, with no error: `if 9 then 1 else 2`,
+    `if "x" then 1 else 2`, `if [true] then 1 else 2` and `if {} then 1 else 2` are 2. The boxed
+    conditional is unchanged: DMN 1.6 §10.2.1.8 says its "if" part "MUST resolve to a boolean",
+    and TCK 1150 expects null for one that does not. Test first:
+    `a_condition_that_is_not_true_takes_the_else_branch` (feel-evaluator, `if_expression.rs`)
+    and `if_takes_the_else_branch_unless_the_condition_is_true`
+    (`wasm/feel-wasm/tests/contract.rs`) failed on the parent with the null; the pin of
+    `if N then 1 else 2` with `N = 9` (`if_expression.rs`) is now 2. Identity: 8 registered
+    differences in `registered/if-else-unless-true.json` (the four conditions, lenient and
+    strict), all requests of `requests/nulls.json`. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

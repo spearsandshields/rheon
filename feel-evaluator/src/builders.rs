@@ -1168,14 +1168,15 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
+  /// Returns an evaluator for `if`: DMN 1.6 Table 50, "if FEEL(e1) is true then FEEL(e2) else
+  /// FEEL(e3)", so every condition that is not `true` takes the else branch.
   fn build_if(&mut self, lhs: &'b AstNode, mhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let mhe = self.build(mhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| match lhe(scope) {
       Value::Boolean(true) => mhe(scope),
-      Value::Boolean(false) | Value::Null(_) => rhe(scope),
-      _ => value_null!("condition in 'if' expression is not a boolean value"),
+      _ => rhe(scope),
     })
   }
 
