@@ -1434,6 +1434,17 @@ fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
 }
 
 #[test]
+fn a_unary_comparison_compares_with_the_value_of_its_path_endpoint() {
+  // §10.3.2.7: "Endpoints can be expressions"; `< d.year` compares with the year of d
+  let context = "{d: date(\"2020-06-15\"), r: [1..10]}";
+  for (expression, input) in [("< d.year", 2000), ("= d.year", 2020), ("> r.start", 20)] {
+    let response = ok(json!({"op": "evaluate", "dialect": "unaryTests", "expression": expression, "input": input, "contextFormat": "feel", "context": context}));
+    assert_eq!(response["result"]["display"], "true", "{response}");
+    assert_eq!(response["diagnostics"]["count"], 0, "{response}");
+  }
+}
+
+#[test]
 fn zoned_date_time_display() {
   // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets
   assert_eq!(display(r#"@"2007-12-03T10:15:30@Europe/Paris""#), r#""2007-12-03T10:15:30+01:00[Europe/Paris]""#);

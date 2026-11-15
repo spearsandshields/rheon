@@ -338,7 +338,7 @@ fn _0065() {
 
 #[test]
 fn _0066() {
-  te_number(false, &scope!(), r#" >1.start "#, 1, 0);
+  te_number(false, &scope!(), r#" (>1).start "#, 1, 0);
 }
 
 #[test]
@@ -353,77 +353,77 @@ fn _0068() {
 
 #[test]
 fn _0069() {
-  te_null(false, &scope!(), r#" >1.end "#, "no such property in unary greater: end");
+  te_null(false, &scope!(), r#" (>1).end "#, "no such property in unary greater: end");
 }
 
 #[test]
 fn _0070() {
-  te_bool(false, &scope!(), r#" >1.start included "#, false);
+  te_bool(false, &scope!(), r#" (>1).start included "#, false);
 }
 
 #[test]
 fn _0071() {
-  te_bool(false, &scope!(), r#" >1.end included "#, false);
+  te_bool(false, &scope!(), r#" (>1).end included "#, false);
 }
 
 #[test]
 fn _0072() {
-  te_number(true, &scope!(), r#" >=1.start "#, 1, 0);
+  te_number(true, &scope!(), r#" (>=1).start "#, 1, 0);
 }
 
 #[test]
 fn _0073() {
-  te_null(false, &scope!(), r#" >=1.end "#, "no such property in unary greater or equal: end");
+  te_null(false, &scope!(), r#" (>=1).end "#, "no such property in unary greater or equal: end");
 }
 
 #[test]
 fn _0074() {
-  te_bool(false, &scope!(), r#" >=1.start included "#, true);
+  te_bool(false, &scope!(), r#" (>=1).start included "#, true);
 }
 
 #[test]
 fn _0075() {
-  te_bool(false, &scope!(), r#" >=1.end included "#, false);
+  te_bool(false, &scope!(), r#" (>=1).end included "#, false);
 }
 
 #[test]
 fn _0076() {
-  te_null(false, &scope!(), r#" <1.start "#, "no such property in unary less: start");
+  te_null(false, &scope!(), r#" (<1).start "#, "no such property in unary less: start");
 }
 
 #[test]
 fn _0077() {
-  te_number(false, &scope!(), r#" <1.end "#, 1, 0);
+  te_number(false, &scope!(), r#" (<1).end "#, 1, 0);
 }
 
 #[test]
 fn _0078() {
-  te_bool(false, &scope!(), r#" <1.start included "#, false);
+  te_bool(false, &scope!(), r#" (<1).start included "#, false);
 }
 
 #[test]
 fn _0079() {
-  te_bool(false, &scope!(), r#" <1.end included "#, false);
+  te_bool(false, &scope!(), r#" (<1).end included "#, false);
 }
 
 #[test]
 fn _0080() {
-  te_null(false, &scope!(), r#" <=1.start "#, "no such property in unary less or equal: start");
+  te_null(false, &scope!(), r#" (<=1).start "#, "no such property in unary less or equal: start");
 }
 
 #[test]
 fn _0081() {
-  te_number(false, &scope!(), r#" <=1.end "#, 1, 0);
+  te_number(false, &scope!(), r#" (<=1).end "#, 1, 0);
 }
 
 #[test]
 fn _0082() {
-  te_bool(false, &scope!(), r#" <=1.start included "#, false);
+  te_bool(false, &scope!(), r#" (<=1).start included "#, false);
 }
 
 #[test]
 fn _0083() {
-  te_bool(false, &scope!(), r#" <=1.end included "#, true);
+  te_bool(false, &scope!(), r#" (<=1).end included "#, true);
 }
 
 #[test]
@@ -518,4 +518,20 @@ fn years_and_months_are_magnitudes() {
   te_number(false, scope, r#"duration("-P14M").months"#, 2, 0);
   te_number(false, scope, r#"duration("-P1Y2M").value"#, -14, 0);
   te_number(false, scope, r#"(date("2020-01-01") - date("2021-03-01")).days"#, 425, 0);
+}
+
+#[test]
+fn a_unary_comparison_compares_with_the_value_of_its_path_endpoint() {
+  // DMN 1.6 §10.3.2.7: a range is "a comparison operator and a single endpoint", and "Endpoints
+  // can be expressions (grammar rule 16)", so `< d.year` compares with the year of `d`
+  let scope = &te_scope(r#"{d: date("2020-06-15"), r: [1..10]}"#);
+  satisfies(false, scope, "2000", "", "< d.year", true);
+  satisfies(false, scope, "2020", "", "<= d.year", true);
+  satisfies(false, scope, "2020", "", "= d.year", true);
+  satisfies(false, scope, "2020", "", "!= d.year", false);
+  satisfies(false, scope, "2021", "", ">= d.year", true);
+  satisfies(false, scope, "20", "", "> r.start", true);
+  satisfies(false, scope, "5", "", "> r.start, < r.end", true);
+  te_errors(r#"{d: date("2020-06-15")}.d.year"#, "2020", &[]);
+  te_errors(r#"(< {d: date("2020-06-15")}.d.year) = (< 2020)"#, "true", &[]);
 }

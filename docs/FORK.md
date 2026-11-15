@@ -1838,6 +1838,31 @@ The totals are under "Verification" below.
     date, a date and time or a time plus one) and the entry `({a: {b: 1}}.a.c) + 1` of
     `registered/missing-context-entry.json` are amended in place (the product's or the note's null
     and the operator's error). No API change.
+124. **A unary comparison compares with the value of its path endpoint.** DMN 1.6 §10.3.2.7: a
+    range is "a comparison operator and a single endpoint (grammar rule 7.a.)", and "Endpoints
+    can be expressions (grammar rule 16)"; the grammar parses `< x.p` as the unary comparison of
+    the path `x.p`. The path evaluator (feel-evaluator, `build_path`) looked at its parent node:
+    under a unary comparison it wrapped a left value that is neither a context nor a list in the
+    unary value first, read the property from that, and returned it as `Value::Transparent`,
+    which the unary builders unwrapped. So `< x.p` was `(< x).p`: `< d.year` with `d` a date was
+    null with `no such property in unary less: year`, and `> r.start` with `r` a range was `r`
+    itself, so unary tests such as `< applicant.dob.year` never matched. Now a path is
+    evaluated the same way wherever it stands, and the unary builders wrap whatever their
+    endpoint gives: `< d.year` is `UnaryLess(2020)`, and in unary tests 2000 satisfies it, 20
+    satisfies `> r.start`. A path whose property does not exist is a null endpoint, as `< null`
+    is. A property of the unary value itself is read with parentheses, `(< 10).end`, the form
+    TCK 0074 uses. The builder no longer keeps a stack of parent nodes, which had no other
+    reader, and its lifetime parameter goes with it. Test first:
+    `a_unary_comparison_compares_with_the_value_of_its_path_endpoint` (feel-evaluator,
+    `properties.rs`, and `wasm/feel-wasm/tests/contract.rs` in the unary-tests dialect) failed
+    on the parent with `false`. The 16 property tests of `>1.start` and the like
+    (`properties.rs`) take the parenthesised form `(>1).start`, which keeps their answers; the
+    three `Value::Transparent` assertions (feel, `tests/values.rs`) are gone. CONTRACT §2 says
+    that path endpoints need no parentheses. Identity: 14 registered differences in
+    `registered/unary-comparison-path-endpoints.json`, all requests of the new committed source
+    `requests/unary-tests.json` (20 requests: path endpoints in unary tests and as expressions,
+    and the parenthesised forms, which do not change). Rust API break (rheon-feel):
+    `Value::Transparent` is removed.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

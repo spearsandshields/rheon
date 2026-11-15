@@ -288,9 +288,6 @@ pub enum Value {
     Box<Value>,
   ),
 
-  /// Value that is "bubbled-up" without any processing.
-  Transparent(Box<Value>),
-
   /// Value for storing years and months duration.
   YearsAndMonthsDuration(FeelYearsAndMonthsDuration),
 }
@@ -364,7 +361,6 @@ impl Display for Value {
       Value::UnaryLessOrEqual(value) => write!(f, "UnaryLessOrEqual({value})"),
       Value::UnaryEqual(value) => write!(f, "UnaryEqual({value})"),
       Value::UnaryNotEqual(value) => write!(f, "UnaryNotEqual({value})"),
-      Value::Transparent(value) => write!(f, "Transparent({value})"),
       Value::YearsAndMonthsDuration(ym_duration) => write!(f, "{ym_duration}"),
     }
   }
@@ -572,7 +568,6 @@ impl Value {
       Value::UnaryLessOrEqual(_) => FeelType::Boolean,
       Value::UnaryEqual(_) => FeelType::Boolean,
       Value::UnaryNotEqual(_) => FeelType::Boolean,
-      Value::Transparent(value) => value.type_of_within(budget)?,
       Value::YearsAndMonthsDuration(_) => FeelType::YearsAndMonthsDuration,
     })
   }
@@ -979,7 +974,7 @@ impl Display for TypeOf<'_> {
       },
       Value::FunctionDefinition(function) => write_function_type(f, function.parameters.iter().map(|(_, feel_type)| feel_type), &function.result_type),
       Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => fmt::Display::fmt(feel_type, f),
-      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::Transparent(value) => fmt::Display::fmt(&TypeOf(value), f),
+      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => fmt::Display::fmt(&TypeOf(value), f),
       other => fmt::Display::fmt(&other.type_of(), f),
     }
   }
@@ -995,7 +990,7 @@ impl MessageArg for TypeOf<'_> {
     match self.0 {
       Value::Context(context) => Some(Size::Entries(context.len())),
       Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => feel_type.size(),
-      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::Transparent(value) => TypeOf(value).size(),
+      Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => TypeOf(value).size(),
       _ => None,
     }
   }
