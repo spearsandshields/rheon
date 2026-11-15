@@ -150,7 +150,8 @@ impl FilterExpressionEvaluator {
 
   pub fn evaluate(&self, scope: &FeelScope, value: Value, evaluator: &Evaluator) -> Value {
     match value {
-      Value::List(mut values) => {
+      Value::List(values) => {
+        let mut values = values.into_vec();
         let matched = match self.mode {
           ItemContexts::Copied => matched_copied(scope, &values, evaluator),
           ItemContexts::Moved => matched_moved(scope, &mut values, evaluator),
@@ -212,7 +213,7 @@ impl FilterExpressionEvaluator {
       // conversion to singleton list, DMN 1.6 §10.3.2.9.4, DMN16-94), so `item` and the context
       // entries of a singleton context are in scope like for a list element.
       Value::Null(_) => value_null!(),
-      v => self.evaluate(scope, Value::List(vec![v]), evaluator),
+      v => self.evaluate(scope, Value::List(vec![v].into()), evaluator),
     }
   }
 }

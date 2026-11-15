@@ -69,7 +69,7 @@ fn _0009() {
     scope.pop();
     Value::Boolean(false)
   });
-  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)]))));
+  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)].into()))));
   let evaluator = crate::Iteration::for_feel(vec![("i".into(), booleans)]);
   let depth = scope.depth();
   assert_eq!(

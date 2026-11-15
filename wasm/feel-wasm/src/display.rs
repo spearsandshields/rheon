@@ -213,7 +213,7 @@ mod tests {
   }
 
   fn list(items: Vec<Value>) -> Value {
-    Value::List(items)
+    Value::List(items.into())
   }
 
   fn context(entries: &[(&str, Value)]) -> Value {

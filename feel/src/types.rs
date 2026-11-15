@@ -250,7 +250,7 @@ impl FeelType {
           for item in items {
             result.push(items_type.get_value_checked(item)?);
           }
-          return Ok(Value::List(result));
+          return Ok(Value::List(result.into()));
         }
       }
       FeelType::Number => {

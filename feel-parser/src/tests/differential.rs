@@ -316,7 +316,7 @@ fn scopes() -> Vec<Vec<FeelContext>> {
       ("number", number(7)),
       ("or", number(8)),
       ("?", number(9)),
-      ("list", Value::List(vec![Value::Context(ctx(&[("a", number(1))]))])),
+      ("list", Value::List(vec![Value::Context(ctx(&[("a", number(1))]))].into())),
       ("t", Value::FeelType(FeelType::Context(BTreeMap::from([(Name::from("b"), FeelType::Number)])))),
     ])],
     vec![
@@ -1085,7 +1085,7 @@ fn first_word_bounds_equal_reference() {
   let top = ctx(&keys.iter().map(|k| (k.as_str(), number(1))).collect::<Vec<_>>());
   let nested = ctx(&[
     ("n", Value::Context(ctx(&[("p q", number(1)), ("p", number(2)), ("q r s", number(3))]))),
-    ("items", Value::List(vec![Value::Context(ctx(&[("u v", number(1)), ("u", number(2))]))])),
+    ("items", Value::List(vec![Value::Context(ctx(&[("u v", number(1)), ("u", number(2))]))].into())),
     ("d", Value::Context(ctx(&[("a", Value::Context(ctx(&[("b", number(1))])))]))),
   ]);
   let inputs = [
@@ -1117,7 +1117,7 @@ fn first_word_bounds_equal_reference() {
 /// The input contexts are indexed only when a name is looked up beyond their own keys.
 #[test]
 fn input_contexts_are_indexed_on_first_use() {
-  let items = Value::List(vec![Value::Context(ctx(&[("amount", number(1))])); 3]);
+  let items = Value::List(vec![Value::Context(ctx(&[("amount", number(1))])); 3].into());
   let frames = [ctx(&[("a", Value::Context(ctx(&[("b", number(1))]))), ("c", number(2)), ("items", items)])];
   for (input, builds) in [
     ("1 + 2", None),

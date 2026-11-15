@@ -135,15 +135,18 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
       for _ in 0..rng.below(3) {
         items.push(Value::Context(if rng.chance(70) { first.clone() } else { context(rng, depth + 1) }));
       }
-      Value::List(items)
+      Value::List(items.into())
     }
-    9 => Value::List(match rng.below(5) {
-      0 => vec![],
-      1 => vec![Value::Null(None), Value::Context(context(rng, depth + 1))],
-      2 => vec![Value::Context(context(rng, depth + 1)), Value::Null(None)],
-      3 => vec![number(1), Value::Context(context(rng, depth + 1))],
-      _ => vec![Value::List(vec![Value::Context(context(rng, depth + 1))])],
-    }),
+    9 => Value::List(
+      match rng.below(5) {
+        0 => vec![],
+        1 => vec![Value::Null(None), Value::Context(context(rng, depth + 1))],
+        2 => vec![Value::Context(context(rng, depth + 1)), Value::Null(None)],
+        3 => vec![number(1), Value::Context(context(rng, depth + 1))],
+        _ => vec![Value::List(vec![Value::Context(context(rng, depth + 1))].into())],
+      }
+      .into(),
+    ),
     10 => {
       // contexts with the same keys, values of different types: not conformant
       let key = Name::from(*rng.pick(KEYS));
@@ -151,7 +154,7 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
       a.set_entry(&key, number(1));
       let mut b = FeelContext::default();
       b.set_entry(&key, if rng.chance(50) { Value::String("s".into()) } else { Value::Null(None) });
-      Value::List(vec![Value::Context(a), Value::Context(b)])
+      Value::List(vec![Value::Context(a), Value::Context(b)].into())
     }
     11 => Value::FeelType(context_type(rng, depth)),
     12 => Value::FeelType(FeelType::List(Box::new(context_type(rng, depth)))),
@@ -572,10 +575,10 @@ fn list_item_context_types() {
     (vec![one("a"), number(1)], false),
     (vec![number(1), one("a")], false),
     (vec![Value::Null(None), one("a")], false),
-    (vec![Value::List(vec![one("a")])], false),
+    (vec![Value::List(vec![one("a")].into())], false),
     (vec![], false),
   ] {
-    let list = Value::List(list);
+    let list = Value::List(list.into());
     let expected = match list.type_of() {
       FeelType::List(item_type) if matches!(*item_type, FeelType::Context(_)) => Some(*item_type),
       _ => None,

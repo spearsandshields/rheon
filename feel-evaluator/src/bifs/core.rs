@@ -8,7 +8,7 @@ use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Abort};
 use rheon_feel::message::{arg, compose};
-use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values, warn_truncated_fraction};
+use rheon_feel::values::{FeelList, TypeOf, VALUE_FALSE, VALUE_TRUE, Value, warn_truncated_fraction};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_number::RoundingMode;
 use rheon_feel_regex::RegexError;
@@ -430,7 +430,7 @@ pub fn concatenate(values: &[Value]) -> Value {
       return invalid_argument_type!("concatenate", "list", value);
     }
   }
-  Value::List(concatenated)
+  Value::List(concatenated.into())
 }
 
 /// Returns `true` when the input string contains the match.
@@ -719,7 +719,7 @@ pub fn distinct_values(value: &Value) -> Value {
         result.push(item.clone())
       }
     }
-    Value::List(result)
+    Value::List(result.into())
   } else {
     invalid_argument_type!("distinct values", "list", value)
   }
@@ -1024,7 +1024,7 @@ pub fn flatten(value: &Value) -> Value {
   if let Value::List(_) = value {
     let mut flattened = vec![];
     flatten_value(value, &mut flattened);
-    Value::List(flattened)
+    Value::List(flattened.into())
   } else {
     invalid_argument_type!("flatten", "list", value)
   }
@@ -1059,7 +1059,7 @@ pub fn get_entries(context: &Value) -> Value {
       key_value_pair.set_entry(&name_value, (**value).clone());
       entries.push(Value::Context(key_value_pair));
     });
-    Value::List(entries)
+    Value::List(entries.into())
   } else {
     invalid_argument_type!("get entries", "context", context)
   }
@@ -1161,7 +1161,7 @@ pub fn index_of(list: &Value, element: &Value) -> Value {
         indexes.push(Value::Number((i + 1).into()));
       }
     }
-    Value::List(indexes)
+    Value::List(indexes.into())
   } else {
     invalid_argument_type!("index of", "list", list)
   }
@@ -1170,9 +1170,10 @@ pub fn index_of(list: &Value, element: &Value) -> Value {
 /// `insert after(list, position, newItem)` (DMN 1.7 beta 1, DMN17-100): a new list with
 /// `newItem` inserted after the item at `position` (1-based; negative positions count from the end).
 pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value) -> Value {
-  if let Value::List(mut items) = list.clone()
+  if let Value::List(items) = list
     && let Value::Number(position) = position_value
   {
+    let mut items = items.to_vec();
     // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
     let position = &position.trunc();
     // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
@@ -1182,7 +1183,7 @@ pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value
       && i <= items.len() as u64
     {
       items.insert(i as usize, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
     if position.is_negative()
       && let Ok(i) = u64::try_from(position.abs())
@@ -1190,7 +1191,7 @@ pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value
       && i <= items.len() as u64
     {
       items.insert(items.len() - i as usize + 1, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
   }
   value_null!("index is out of range")
@@ -1199,9 +1200,10 @@ pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value
 /// `insert before(list, position, newItem)`: a new list with `newItem` inserted before the item
 /// at `position` (1-based; negative positions count from the end).
 pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Value) -> Value {
-  if let Value::List(mut items) = list.clone()
+  if let Value::List(items) = list
     && let Value::Number(position) = position_value
   {
+    let mut items = items.to_vec();
     // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
     let position = &position.trunc();
     // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
@@ -1211,14 +1213,14 @@ pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Valu
       && i <= items.len() as u64
     {
       items.insert(i as usize - 1, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
     if position.is_negative()
       && let Ok(i) = u64::try_from(position.abs())
       && i <= items.len() as u64
     {
       items.insert(items.len() - i as usize, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
   }
   value_null!("index is out of range")
@@ -1279,7 +1281,7 @@ pub fn list_contains(list: &Value, element: &Value) -> Value {
 
 pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -> Value {
   let mut items = match list {
-    Value::List(items) => items.clone(),
+    Value::List(items) => items.to_vec(),
     Value::Null(_) => return invalid_argument_type!("list replace", "list", list),
     other => vec![other.clone()],
   };
@@ -1292,7 +1294,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
             if index.unsigned_abs() <= len as u64 {
               let index = index as usize;
               items[index - 1] = new_item.clone();
-              Value::List(items)
+              Value::List(items.into())
             } else {
               value_null!("position exceeds list bounds")
             }
@@ -1301,7 +1303,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
             let index = index.unsigned_abs();
             if index <= len as u64 {
               items[len - index as usize] = new_item.clone();
-              Value::List(items)
+              Value::List(items.into())
             } else {
               value_null!("position exceeds list bounds")
             }
@@ -1330,7 +1332,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
           _ => return value_null!("list replace: matching function must return boolean value"),
         }
       }
-      Value::List(elements)
+      Value::List(elements.into())
     }
     _ => value_null!("position must be number or function"),
   }
@@ -1629,7 +1631,7 @@ pub fn min(values: &[Value]) -> Value {
 /// Returns the mode of numbers.
 pub fn mode(values: &[Value]) -> Value {
   if values.is_empty() {
-    return Value::List(Values::default());
+    return Value::List(FeelList::new());
   }
   // make sure all values are numbers and prepare the list of them
   let mut list = vec![];
@@ -2059,9 +2061,10 @@ pub fn range(value: &Value) -> Value {
 
 /// ???
 pub fn remove(list: &Value, position_value: &Value) -> Value {
-  if let Value::List(mut items) = list.clone()
+  if let Value::List(items) = list
     && let Value::Number(position_number) = position_value
   {
+    let mut items = items.to_vec();
     // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
     let position_number = &position_number.trunc();
     if position_number.is_positive()
@@ -2070,14 +2073,14 @@ pub fn remove(list: &Value, position_value: &Value) -> Value {
       && index < items.len() as u64
     {
       items.remove(index as usize);
-      return Value::List(items);
+      return Value::List(items.into());
     }
     if position_number.is_negative()
       && let Ok(index) = u64::try_from(position_number.abs())
       && index <= items.len() as u64
     {
       items.remove(items.len() - index as usize);
-      return Value::List(items);
+      return Value::List(items.into());
     }
   }
   value_null!("probably index is out of range")
@@ -2108,9 +2111,10 @@ pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replace
 }
 
 pub fn reverse(list: &Value) -> Value {
-  if let Value::List(mut items) = list.clone() {
+  if let Value::List(items) = list {
+    let mut items = items.to_vec();
     items.reverse();
-    Value::List(items)
+    Value::List(items.into())
   } else {
     invalid_argument_type!("reverse", "list", list)
   }
@@ -2537,7 +2541,7 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
         if let Ok(position) = u64::try_from(position_number) {
           let index = position as i128 - 1;
           if index >= 0 && index < len {
-            Value::List(items[index as usize..].to_vec())
+            Value::List(items[index as usize..].to_vec().into())
           } else {
             value_null!("sublist: position is out of range, len = {}, position = {}", items.len(), position)
           }
@@ -2547,7 +2551,7 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
       } else if position_number.is_negative() {
         if let Ok(position) = u64::try_from(position_number.abs()) {
           if (position as i128) <= len {
-            Value::List(items[items.len() - position as usize..].to_vec())
+            Value::List(items[items.len() - position as usize..].to_vec().into())
           } else {
             value_null!("sublist: position is out of range, len = {}, position = -{}", items.len(), position)
           }
@@ -2590,7 +2594,7 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
           };
           let last = first + length as i128;
           if first >= 0 && first < len && last <= len {
-            Value::List(items[first as usize..last as usize].to_vec())
+            Value::List(items[first as usize..last as usize].to_vec().into())
           } else {
             value_null!("sublist: invalid range, len = {}, start position = {}, end position = {}", items.len(), first + 1, last + 1)
           }
@@ -2880,7 +2884,7 @@ pub fn intersection(lists: &[Value]) -> Value {
       result.push(item.clone());
     }
   }
-  Value::List(result)
+  Value::List(result.into())
 }
 
 /// `trim(string)` (DMN 1.7 beta 1, DMN17-96): the string without leading and trailing white space,
@@ -2913,7 +2917,7 @@ pub fn union(lists: &[Value]) -> Value {
       return invalid_argument_type!("union", "list", list);
     }
   }
-  Value::List(result)
+  Value::List(result.into())
 }
 
 /// Returns upper-cased string.

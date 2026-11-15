@@ -96,7 +96,7 @@ impl EvaluatedDecisionTable {
     for evaluated_rule in evaluated_rules {
       values.push(self.get_result(evaluated_rule));
     }
-    Value::List(values)
+    Value::List(values.into())
   }
 
   fn evaluate_default_output_value(&self) -> Value {

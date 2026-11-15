@@ -10,7 +10,7 @@ use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
-use rheon_feel::values::{TypeOf, Value};
+use rheon_feel::values::{FeelList, TypeOf, Value};
 use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, value_null};
 use rheon_feel_temporal::FeelDate;
 use std::ops::ControlFlow;
@@ -30,7 +30,7 @@ impl Sequence {
   /// The items of a list; a value that is not a list is the only item.
   pub fn of(value: Value) -> Self {
     let values = match value {
-      Value::List(values) => values,
+      Value::List(values) => values.into_vec(),
       single => vec![single],
     };
     Self(Items::List(values.into_iter()))
@@ -249,7 +249,7 @@ impl Iteration {
     const EXPRESSION: &str = "iteration context of a `for` expression";
     // the implicit `partial` variable holds the results of all previous iterations
     let partial = Name::from("partial");
-    let mut results = vec![];
+    let mut results = FeelList::new();
     let walked = self.walk(scope, EXPRESSION, Some(&partial), |ctx| {
       // Move the results into the iteration context and back out afterwards instead of cloning
       // the whole list on every iteration, which made `for` quadratic.

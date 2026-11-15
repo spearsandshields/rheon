@@ -298,7 +298,7 @@ pub fn build_list_evaluator(scope: &FeelScope, list: &List, model_builder: &Mode
     for item_evaluator in &item_evaluators {
       results.push(item_evaluator(scope));
     }
-    Value::List(results)
+    Value::List(results.into())
   });
   Ok((build_coerced_result_evaluator(list_evaluator, list, list.namespace(), model_builder), Closure::default()))
 }
@@ -325,7 +325,7 @@ pub fn build_relation_evaluator(scope: &FeelScope, relation: &Relation, model_bu
       }
       results.push(Value::Context(evaluated_context));
     }
-    Value::List(results)
+    Value::List(results.into())
   });
   Ok((
     build_coerced_result_evaluator(relation_evaluator, relation, relation.namespace(), model_builder),

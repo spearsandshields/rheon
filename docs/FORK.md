@@ -2379,6 +2379,23 @@ their items with both answers. The totals are under "Verification" below.
     placeholder, as they did by hand. When the item context no longer has `item` the filter gives
     the lost-context null as before. Identity step: no answer changes. Rust API (`rheon-feel`):
     `FeelContext::get_entry_mut` is removed; `FeelContext::assign_entry` returns `Option<Value>`.
+150. **A list value is a type of its own.** `Value::List` held a `Vec<Value>`, so every holder of a
+    list could change its items in place, and how a list stores its items was part of the API. It
+    now holds `FeelList` (`rheon_feel::values::FeelList`), which reads its items as a slice
+    (`Deref<Target = [Value]>`), changes only through its own `push`, and gives its
+    items up with `into_vec`; it is built from a `Vec<Value>` without a copy (`From`), from an
+    iterator (`FromIterator`), iterates by value and by reference, compares its items and prints as
+    the slice of items in its debug form, so `Value::List` debug-prints as before. There is no
+    `&mut` access to the items. The built-ins that edit a list (`insert before`, `insert after`,
+    `remove`, `reverse`, `list replace`) take a copy of the items with `to_vec`, as they cloned the
+    list before, and build the new list from it; `for` keeps its results as a `FeelList`; a filter
+    and a loop over a list take its items out with `into_vec`, as they moved the `Vec` out before.
+    Identity step: no answer changes. Rust API (`rheon-feel`): `Value::List` holds `FeelList`
+    instead of `Vec<Value>` (build one with `vec.into()` or `FeelList::from(vec)`, read it as a
+    slice, edit it through `into_vec`); `FeelList` is added; `values_to_string`,
+    `values_to_feel_string` and `values_to_jsonify` take `&[Value]` instead of `&Vec<Value>` (a
+    `&Vec<Value>` argument compiles as before). `Values` stays `Vec<Value>`, the type of the other
+    variants that hold several values.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

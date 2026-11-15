@@ -1356,7 +1356,7 @@ impl EvaluatorBuilder {
       for evaluator in &evaluators {
         values.push(evaluator(scope))
       }
-      Value::List(values)
+      Value::List(values.into())
     })
   }
 
@@ -1610,7 +1610,7 @@ impl EvaluatorBuilder {
       Value::Context(context) => {
         let mut result = vec![];
         collect(&context, &name, &mut result);
-        Value::List(result)
+        Value::List(result.into())
       }
       other => value_null!("descendant expression: expected context, actual type is {}", arg(&TypeOf(&other))),
     })
@@ -1646,7 +1646,7 @@ impl EvaluatorBuilder {
               result.push(get_property_from_value(item, &name));
             }
           }
-          Value::List(result)
+          Value::List(result.into())
         }
         other => get_property_from_value(other, &name),
       }

@@ -116,7 +116,7 @@ fn collection_of_simple_type_context_evaluator(feel_type: FeelType) -> Result<It
   ) {
     Ok(Box::new(move |name: &Name, ctx: &mut FeelContext, _: &ItemDefinitionContextEvaluator| {
       let list_type = FeelType::List(Box::new(feel_type.clone()));
-      let list = Value::List(vec![Value::FeelType(feel_type.clone())]);
+      let list = Value::List(vec![Value::FeelType(feel_type.clone())].into());
       ctx.set_entry(name, list);
       list_type
     }))
@@ -130,7 +130,7 @@ fn collection_of_referenced_type_context_evaluator(def_key: DefKey) -> Result<It
     let mut evaluated_ctx = FeelContext::default();
     let feel_type = evaluator.eval(&def_key, name, &mut evaluated_ctx);
     let list_type = FeelType::List(Box::new(feel_type.clone()));
-    let list = Value::List(vec![Value::FeelType(feel_type)]);
+    let list = Value::List(vec![Value::FeelType(feel_type)].into());
     ctx.set_entry(name, list);
     list_type
   }))
@@ -149,7 +149,7 @@ fn collection_of_component_type_context_evaluator(item_definition: &DefItemDefin
       entries.insert(component_name.clone(), feel_type);
     }
     let list_type = FeelType::List(Box::new(FeelType::Context(entries)));
-    let list = Value::List(vec![Value::Context(evaluated_ctx)]);
+    let list = Value::List(vec![Value::Context(evaluated_ctx)].into());
     ctx.set_entry(name, list);
     list_type
   }))
@@ -299,7 +299,7 @@ mod tests {
     let expected_type = FeelType::List(Box::new(FeelType::String));
     let mut expected_context = FeelContext::default();
     let variable_name: Name = "Items".into();
-    expected_context.set_entry(&variable_name, Value::List(vec![Value::FeelType(FeelType::String)]));
+    expected_context.set_entry(&variable_name, Value::List(vec![Value::FeelType(FeelType::String)].into()));
     let actual_type = evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), &variable_name, &mut ctx);
     assert_eq!(expected_type, actual_type);
     assert_eq!(expected_context, ctx);

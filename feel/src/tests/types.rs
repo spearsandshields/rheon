@@ -391,8 +391,8 @@ fn test_type_get_conformant_value() {
   // years and months duration
   let v_years_and_months_duration = Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap());
   // list
-  let v_list_a = Value::List(vec![v_boolean_true.clone(), v_boolean_false.clone()]);
-  let v_list_b = Value::List(vec![v_number_1.clone(), v_number_2.clone()]);
+  let v_list_a = Value::List(vec![v_boolean_true.clone(), v_boolean_false.clone()].into());
+  let v_list_b = Value::List(vec![v_number_1.clone(), v_number_2.clone()].into());
   // contexts
   let mut ctx_a = FeelContext::default();
   ctx_a.set_entry(&NAME_A, v_number_1.clone());

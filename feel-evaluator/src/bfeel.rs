@@ -55,7 +55,7 @@ pub fn bif_default(bif: &Bif) -> Option<Value> {
     Time => epoch_time(),
     Duration | YearsAndMonthsDuration => zero_ym_duration(),
     Append | Concatenate | DistinctValues | Flatten | GetEntries | IndexOf | InsertAfter | InsertBefore | Intersection | ListReplace | Mode | Remove | Reverse | Sort | Split
-    | Sublist | Union => Value::List(vec![]),
+    | Sublist | Union => Value::List(vec![].into()),
     Range => empty_range(),
     Context | ContextMerge | ContextPut | GetValue | Max | Min => return None,
   })
@@ -69,8 +69,8 @@ pub fn positional_arguments(bif: &Bif, args: Vec<Value>) -> Vec<Value> {
   }
   let numbers = |items: &[Value]| items.iter().filter(|v| matches!(v, Value::Number(_))).cloned().collect::<Vec<Value>>();
   match args.as_slice() {
-    [Value::List(items)] => vec![Value::List(numbers(items))],
-    _ => vec![Value::List(numbers(&args))],
+    [Value::List(items)] => vec![Value::List(numbers(items).into())],
+    _ => vec![Value::List(numbers(&args).into())],
   }
 }
 

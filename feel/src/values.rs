@@ -21,8 +21,10 @@ use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::Arc;
 
+mod list;
 mod string;
 
+pub use list::FeelList;
 pub use string::FeelString;
 
 /// Creates `Value::Null` with optional tracing message: the reason of an error null, or with
@@ -204,7 +206,7 @@ pub enum Value {
   Irrelevant,
 
   /// Value representing a list of values.
-  List(Values),
+  List(FeelList),
 
   /// Value representing a collection of named parameters.
   NamedParameters(BTreeMap<Name, (Value, usize)>),
@@ -738,7 +740,7 @@ impl Value {
         if let FeelType::List(list_type) = target_type
           && value.is_conformant(list_type)
         {
-          return Some(Value::List(vec![value.clone()]));
+          return Some(Value::List(vec![value.clone()].into()));
         }
       }
     }
@@ -1000,7 +1002,8 @@ impl MessageArg for Value {
 
   fn size(&self) -> Option<Size> {
     match self {
-      Value::List(items) | Value::ExpressionList(items) => Some(Size::Items(items.len())),
+      Value::List(items) => Some(Size::Items(items.len())),
+      Value::ExpressionList(items) => Some(Size::Items(items.len())),
       Value::Context(context) => context.size(),
       Value::String(text) => text.as_str().size(),
       _ => None,
@@ -1102,7 +1105,7 @@ impl MessageArg for FeelNumber {
 }
 
 /// Converts a collection of values into string.
-pub fn values_to_string(values: &Values) -> String {
+pub fn values_to_string(values: &[Value]) -> String {
   struct List<'a>(&'a [Value]);
   impl Display for List<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1120,11 +1123,11 @@ fn write_values(f: &mut fmt::Formatter<'_>, values: &[Value]) -> fmt::Result {
 }
 
 /// Converts a collection of values into `FEEL` string.
-pub fn values_to_feel_string(values: &Values) -> String {
+pub fn values_to_feel_string(values: &[Value]) -> String {
   format!("[{}]", values.iter().map(|value| value.to_feel_string()).collect::<Vec<String>>().join(", "))
 }
 
 /// Converts a collection of values into `JSON` string.
-pub fn values_to_jsonify(values: &Values) -> String {
+pub fn values_to_jsonify(values: &[Value]) -> String {
   format!("[{}]", values.iter().map(|value| value.jsonify()).collect::<Vec<String>>().join(", "))
 }

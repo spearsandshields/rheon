@@ -248,7 +248,7 @@ fn _0024() {
     false,
     &scope!(),
     r#"for i in 1..3 return [1,2]["x"]"#,
-    Value::List(vec![filter_null.clone(), filter_null.clone(), filter_null]),
+    Value::List(vec![filter_null.clone(), filter_null.clone(), filter_null].into()),
   );
   te_null(false, &scope!(), r#"{r: for i in 1..3 return [1,2]["x"], s: i}.s"#, "context has no value for key 'i'");
   te_number(false, &scope!(), r#"count({r: for i in 1..3 return [1,2]["x"]}.r)"#, 3, 0);
@@ -336,7 +336,7 @@ fn _0027() {
     scope.pop();
     Value::Boolean(true)
   });
-  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)]))));
+  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)].into()))));
   let evaluator = crate::Iteration::for_feel(vec![("i".into(), booleans)]);
   let depth = scope.depth();
   assert_eq!(
@@ -350,7 +350,7 @@ fn _0027() {
 fn _0028() {
   // A domain that removes the iteration context from the scope gives the same null.
   let scope = &te_scope("{}");
-  let numbers: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![rheon_feel::value_number!(1), rheon_feel::value_number!(2)]))));
+  let numbers: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![rheon_feel::value_number!(1), rheon_feel::value_number!(2)].into()))));
   let popping: crate::Domain = Box::new(|scope: &FeelScope| {
     scope.pop();
     Ok(crate::Sequence::empty())

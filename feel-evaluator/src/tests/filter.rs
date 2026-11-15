@@ -628,7 +628,7 @@ fn _0078() {
   });
   let lost = Value::Null(Some("internal error: the evaluation removed the item context of a filter".to_string()));
   for (item, special_context) in [("{item: 1, a: 2}", false), ("{a: 2}", true), ("3", true)] {
-    let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item, false).unwrap())(scope)]);
+    let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item, false).unwrap())(scope)].into());
     let depth = scope.depth();
     assert_eq!(lost, crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list.clone(), &popping), "{item}");
     assert_eq!(depth, scope.depth(), "{item}");

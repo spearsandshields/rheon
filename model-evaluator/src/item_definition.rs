@@ -90,7 +90,7 @@ fn check_allowed_values(value: Value, av_evaluator: Option<&Evaluator>) -> Value
 fn check_each_allowed_value(values: Values, av_evaluator: Option<&Evaluator>, tested: impl Fn(usize, &Value) -> bool) -> Value {
   match av_evaluator.and_then(|evaluator| values.iter().enumerate().find(|(index, value)| tested(*index, value) && !is_allowed(value, evaluator))) {
     Some((_, value)) => value_null!("value '{}' is not allowed", arg(value)),
-    None => Value::List(values),
+    None => Value::List(values.into()),
   }
 }
 
@@ -255,7 +255,7 @@ fn build_collection_of_simple_type_evaluator(feel_type: FeelType, av_evaluator: 
     if !values.iter().all(is_element) {
       return value_null!("item definition evaluator (CollectionOfSimpleType): expected {}", element_type);
     }
-    check_each_allowed_value(values.clone(), av_evaluator.as_ref(), every_element)
+    check_each_allowed_value(values.to_vec(), av_evaluator.as_ref(), every_element)
   }))
 }
 
@@ -528,12 +528,15 @@ mod tests {
     let context_str = r#"{ Items : ["Mercury", "Venus", "Earth", "Mars"] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      Value::String("Mercury".into()),
-      Value::String("Venus".into()),
-      Value::String("Earth".into()),
-      Value::String("Mars".into()),
-    ]);
+    let expected = Value::List(
+      vec![
+        Value::String("Mercury".into()),
+        Value::String("Venus".into()),
+        Value::String("Earth".into()),
+        Value::String("Mars".into()),
+      ]
+      .into(),
+    );
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -543,13 +546,16 @@ mod tests {
     let context_str = r#"{ Items : [9000.00, 10000.00, 11000.00, 12000.00, 13000.00] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      value_number!(9_000),
-      value_number!(10_000),
-      value_number!(11_000),
-      value_number!(12_000),
-      value_number!(13_000),
-    ]);
+    let expected = Value::List(
+      vec![
+        value_number!(9_000),
+        value_number!(10_000),
+        value_number!(11_000),
+        value_number!(12_000),
+        value_number!(13_000),
+      ]
+      .into(),
+    );
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -559,13 +565,16 @@ mod tests {
     let context_str = r#"{ Items : [true, false, false, true, true] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      Value::Boolean(true),
-      Value::Boolean(false),
-      Value::Boolean(false),
-      Value::Boolean(true),
-      Value::Boolean(true),
-    ]);
+    let expected = Value::List(
+      vec![
+        Value::Boolean(true),
+        Value::Boolean(false),
+        Value::Boolean(false),
+        Value::Boolean(true),
+        Value::Boolean(true),
+      ]
+      .into(),
+    );
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -575,11 +584,14 @@ mod tests {
     let context_str = r#"{ Items : [date("2021-10-10"), date("2021-10-11"), date("2021-10-12")] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      Value::Date(FeelDate::new(2021, 10, 10).unwrap()),
-      Value::Date(FeelDate::new(2021, 10, 11).unwrap()),
-      Value::Date(FeelDate::new(2021, 10, 12).unwrap()),
-    ]);
+    let expected = Value::List(
+      vec![
+        Value::Date(FeelDate::new(2021, 10, 10).unwrap()),
+        Value::Date(FeelDate::new(2021, 10, 11).unwrap()),
+        Value::Date(FeelDate::new(2021, 10, 12).unwrap()),
+      ]
+      .into(),
+    );
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -589,11 +601,14 @@ mod tests {
     let context_str = r#"{ Items : [time("12:21:35"), time("12:21:36"), time("12:21:37")] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      Value::Time(FeelTime::local_opt(12, 21, 35, 0).unwrap()),
-      Value::Time(FeelTime::local_opt(12, 21, 36, 0).unwrap()),
-      Value::Time(FeelTime::local_opt(12, 21, 37, 0).unwrap()),
-    ]);
+    let expected = Value::List(
+      vec![
+        Value::Time(FeelTime::local_opt(12, 21, 35, 0).unwrap()),
+        Value::Time(FeelTime::local_opt(12, 21, 36, 0).unwrap()),
+        Value::Time(FeelTime::local_opt(12, 21, 37, 0).unwrap()),
+      ]
+      .into(),
+    );
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -603,10 +618,13 @@ mod tests {
     let context_str = r#"{ Items : [date and time("2021-10-10T21:23:18"), date and time("2021-10-11T12:18:59")] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      Value::DateTime(FeelDateTime::new(FeelDate::new(2021, 10, 10).unwrap(), FeelTime::local_opt(21, 23, 18, 0).unwrap())),
-      Value::DateTime(FeelDateTime::new(FeelDate::new(2021, 10, 11).unwrap(), FeelTime::local_opt(12, 18, 59, 0).unwrap())),
-    ]);
+    let expected = Value::List(
+      vec![
+        Value::DateTime(FeelDateTime::new(FeelDate::new(2021, 10, 10).unwrap(), FeelTime::local_opt(21, 23, 18, 0).unwrap())),
+        Value::DateTime(FeelDateTime::new(FeelDate::new(2021, 10, 11).unwrap(), FeelTime::local_opt(12, 18, 59, 0).unwrap())),
+      ]
+      .into(),
+    );
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -616,7 +634,7 @@ mod tests {
     let context_str = r#"{ Items : [duration("P2DT3H")] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(183600))]);
+    let expected = Value::List(vec![Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(183600))].into());
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -626,10 +644,13 @@ mod tests {
     let context_str = r#"{ Items : [duration("P2Y3M"), duration("P2Y4M")] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap()),
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 4).unwrap()),
-    ]);
+    let expected = Value::List(
+      vec![
+        Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap()),
+        Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 4).unwrap()),
+      ]
+      .into(),
+    );
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -639,7 +660,7 @@ mod tests {
     let context_str = r#"{ Items : ["Mercury", "Venus", "Earth"] }"#;
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
-    let expected = Value::List(vec![Value::String("Mercury".into()), Value::String("Venus".into()), Value::String("Earth".into())]);
+    let expected = Value::List(vec![Value::String("Mercury".into()), Value::String("Venus".into()), Value::String("Earth".into())].into());
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
 
@@ -661,7 +682,7 @@ mod tests {
     ctx_3.set_entry(&"number".into(), value_number!(3));
     ctx_3.set_entry(&"name".into(), Value::String("Three".into()));
     ctx_3.set_entry(&"manager".into(), Value::String("Bob".into()));
-    let expected = Value::List(vec![Value::Context(ctx_1), Value::Context(ctx_2), Value::Context(ctx_3)]);
+    let expected = Value::List(vec![Value::Context(ctx_1), Value::Context(ctx_2), Value::Context(ctx_3)].into());
     assert_eq!(Some(expected), evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value));
   }
 
@@ -688,13 +709,13 @@ mod tests {
     for (feel_type, not_a_list, element) in cases {
       let evaluator = super::build_collection_of_simple_type_evaluator(feel_type.clone(), None).unwrap();
       assert_eq!(expected(not_a_list), evaluator(&value_number!(1), &evaluators), "{feel_type:?}");
-      let list = Value::List(vec![Value::Context(FeelContext::default())]);
+      let list = Value::List(vec![Value::Context(FeelContext::default())].into());
       let result = evaluator(&list, &evaluators);
       match element {
         Some(element) => assert_eq!(expected(element), result, "{feel_type:?}"),
         None => assert_eq!(list, result, "{feel_type:?}"),
       }
-      assert_eq!(Value::List(vec![]), evaluator(&Value::List(vec![]), &evaluators), "{feel_type:?}");
+      assert_eq!(Value::List(vec![].into()), evaluator(&Value::List(vec![].into()), &evaluators), "{feel_type:?}");
     }
     assert!(super::build_collection_of_simple_type_evaluator(FeelType::Context(Default::default()), None).is_err());
   }

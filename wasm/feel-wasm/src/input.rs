@@ -118,7 +118,7 @@ pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> R
       for (i, item) in items.into_iter().enumerate() {
         values.push(json_into_value(item, &Path::Index(path, i), warnings)?);
       }
-      Value::List(values)
+      Value::List(values.into())
     }
     Json::Object(map) => Value::Context(json_object_into_context(map, path, warnings)?),
   })

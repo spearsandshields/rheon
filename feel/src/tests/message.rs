@@ -46,7 +46,7 @@ fn a_longer_argument_is_a_preview_with_its_size() {
   assert_eq!(format!("{LIST_PREVIEW}… (1000 items)"), arg(&numbers(1000)).to_string());
   assert_eq!(
     format!("[\"{}… (1 item)", "x".repeat(118)),
-    arg(&Value::List(vec![Value::String("x".repeat(500).into())])).to_string()
+    arg(&Value::List(vec![Value::String("x".repeat(500).into())].into())).to_string()
   );
   let text = Value::String("x".repeat(5000).into());
   assert_eq!(format!("\"{}… (5000 characters)", "x".repeat(119)), arg(&text).to_string());
@@ -131,11 +131,11 @@ fn the_type_of_a_value_is_quoted_from_the_value() {
     a(),
     Value::Boolean(true),
     Value::Null(None),
-    Value::List(vec![]),
-    Value::List(vec![value_number!(1), a()]),
-    Value::List(vec![Value::Null(None), value_number!(1)]),
-    Value::List(vec![value_number!(1), Value::Null(None)]),
-    Value::List(vec![numbers(1)]),
+    Value::List(vec![].into()),
+    Value::List(vec![value_number!(1), a()].into()),
+    Value::List(vec![Value::Null(None), value_number!(1)].into()),
+    Value::List(vec![value_number!(1), Value::Null(None)].into()),
+    Value::List(vec![numbers(1)].into()),
     Value::Context(context([("a".to_string(), numbers(2))])),
     Value::Context(nested),
     function(vec![FeelType::Number, FeelType::List(Box::new(FeelType::String))], FeelType::Boolean),
@@ -160,7 +160,7 @@ fn the_type_of_a_value_is_quoted_from_the_value() {
 #[test]
 fn the_type_of_a_list_whose_first_item_has_a_huge_type_is_not_built() {
   let huge = Value::Context(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
-  let list = Value::List(vec![huge, value_number!(1)]);
+  let list = Value::List(vec![huge, value_number!(1)].into());
   assert_eq!("list<…>", arg(&TypeOf(&list)).to_string());
   assert_eq!("list<Any>", list.type_of().to_string());
 }

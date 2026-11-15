@@ -254,6 +254,6 @@ impl TryFrom<&ListDto> for Value {
     for item in &value.items {
       values.push(Value::try_from(item)?);
     }
-    Ok(Value::List(values))
+    Ok(Value::List(values.into()))
   }
 }

@@ -125,7 +125,7 @@ fn _0002() {
     ),
     (
       vec![
-        State::List("x", Value::List(vec![Value::String("a".into()), Value::String("b".into())])),
+        State::List("x", Value::List(vec![Value::String("a".into()), Value::String("b".into())].into())),
         State::List("y", numbers(&[1, 2, 3])),
       ],
       r#"[{x: "a", y: 1}, {x: "a", y: 2}, {x: "a", y: 3}, {x: "b", y: 1}, {x: "b", y: 2}, {x: "b", y: 3}]"#,
@@ -205,7 +205,7 @@ fn _0019() {
     (vec![State::List("x", numbers(&[7]))], "[{x: 7}]"),
     (vec![State::List("x", numbers(&[1, 2, 3]))], "[{x: 1}, {x: 2}, {x: 3}]"),
     (
-      vec![State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[]), numbers(&[3])]))],
+      vec![State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[]), numbers(&[3])].into()))],
       "[{x: [1, 2]}, {x: []}, {x: [3]}]",
     ),
     (vec![State::List("x", Value::String("single".into()))], r#"[{x: "single"}]"#),
@@ -221,18 +221,21 @@ fn _0020() {
   check(vec![
     (
       vec![
-        State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[]), numbers(&[3])])),
+        State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[]), numbers(&[3])].into())),
         State::Variable("y", "x"),
       ],
       "[{x: [1, 2], y: 1}, {x: [1, 2], y: 2}, {x: [3], y: 3}]",
     ),
     (
-      vec![State::List("x", Value::List(vec![numbers(&[1, 2]), number("3")])), State::Variable("y", "x")],
+      vec![State::List("x", Value::List(vec![numbers(&[1, 2]), number("3")].into())), State::Variable("y", "x")],
       "[{x: [1, 2], y: 1}, {x: [1, 2], y: 2}, {x: 3, y: 3}]",
     ),
     (
       vec![
-        State::List("x", Value::List(vec![Value::List(vec![numbers(&[1]), numbers(&[2, 3])]), Value::List(vec![numbers(&[4])])])),
+        State::List(
+          "x",
+          Value::List(vec![Value::List(vec![numbers(&[1]), numbers(&[2, 3])].into()), Value::List(vec![numbers(&[4])].into())].into()),
+        ),
         State::Variable("y", "x"),
         State::Variable("z", "y"),
       ],
@@ -240,13 +243,16 @@ fn _0020() {
     ),
     (
       vec![
-        State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[3])])),
+        State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[3])].into())),
         State::Variable("y", "x"),
         State::List("j", numbers(&[7, 8])),
       ],
       "[{j: 7, x: [1, 2], y: 1}, {j: 8, x: [1, 2], y: 1}, {j: 7, x: [1, 2], y: 2}, {j: 8, x: [1, 2], y: 2}, {j: 7, x: [3], y: 3}, {j: 8, x: [3], y: 3}]",
     ),
-    (vec![State::List("x", Value::List(vec![numbers(&[]), numbers(&[])])), State::Variable("y", "x")], "[]"),
+    (
+      vec![State::List("x", Value::List(vec![numbers(&[]), numbers(&[])].into())), State::Variable("y", "x")],
+      "[]",
+    ),
   ]);
 }
 
@@ -317,7 +323,7 @@ fn _0022() {
     ),
     (
       vec![
-        State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[3])])),
+        State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[3])].into())),
         State::Variable("y", "x"),
         State::List("j", numbers(&[7, 8])),
       ],
