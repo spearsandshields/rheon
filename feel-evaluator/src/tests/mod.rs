@@ -54,6 +54,7 @@ mod properties;
 mod range;
 mod satisfies;
 mod send_sync;
+mod shared_values;
 mod some_expression;
 mod subtraction;
 mod types;

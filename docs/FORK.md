@@ -2528,6 +2528,29 @@ their items with both answers. The totals are under "Verification" below.
     Rust API (`rheon-feel`): `FeelList`'s `IntoIterator` by value yields the added
     `rheon_feel::values::ListItems` instead of `std::vec::IntoIter<Value>`; `FeelList` and
     `ListItems` are `Send + Sync`.
+155. **Equality compares each pair of shared lists once.** FEEL equality (`=`, `!=`, `in`, and the
+    list built-ins that compare items) walked both values along every path, so after item 154 a
+    value that holds the same list on many paths took time exponential in its size: `x = x` for
+    a list doubled 30 times through `partial` took 10.9 s, 2^29 comparisons of its first item,
+    and doubled 60 times it would not end. The walk (`feel-evaluator/src/equality.rs`, moved out
+    of `builders.rs` unchanged otherwise) now remembers, for one comparison, the answer for each
+    pair of lists it compared where either list shares its items (`FeelList::is_shared`), keyed
+    by the addresses of their items (`FeelList::address`), and answers such a pair again from
+    memory. The memory is created when the first shared pair is met and dropped with the
+    comparison; it is never iterated. It is exact: a pair is reached again only through two paths
+    that meet in a list held twice, which is shared, and the borrowed values keep every address
+    in use for the whole comparison; the two values compared are never looked up, and a list
+    that holds its items alone costs one read of its reference count. There is no shortcut for a
+    list compared with itself, because equality is not reflexive (a list of functions is not
+    equal to itself). Tests first, in `feel-evaluator/src/tests/shared_values.rs`: lists doubled
+    60 times compared with themselves, with a list doubled alike, and with one that differs in
+    its last item, and lists of functions doubled 60 times (false, as before) answer at once,
+    while on the parent the test was still running when it was stopped after 180 s; and equality
+    on 200 random sets of values that share their lists answers as on the same values with
+    nothing shared. Identity step: no answer changes. On this module the requests of
+    `release/registered/shared-lists.json` with `=`, `distinct values`, `index of` and `union`
+    take 7 to 9 ms (5.1 to 14.4 s before); `instance of` still takes 21.8 s. Rust API
+    (`rheon-feel`): the added `FeelList::address` and `FeelList::is_shared`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

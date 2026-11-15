@@ -62,6 +62,24 @@ impl FeelList {
     self.items.map(Arc::unwrap_or_clone).unwrap_or_default()
   }
 
+  /// The address of the items of this list, `None` for the empty list.
+  ///
+  /// It identifies the items for as long as this list is borrowed: no other items are stored
+  /// there meanwhile. A walk over a value can remember the items it visited by their address, so
+  /// that items reached on several paths are visited once ([FeelList::is_shared]).
+  pub fn address(&self) -> Option<usize> {
+    self.items.as_ref().map(|items| Arc::as_ptr(items).addr())
+  }
+
+  /// Whether another list holds the items of this list too.
+  ///
+  /// Items held by one list alone are reached on one path only from a value that holds the
+  /// list, unless the list itself is reached on several paths; a walk that remembers the shared
+  /// items it visited therefore visits every item once.
+  pub fn is_shared(&self) -> bool {
+    self.items.as_ref().is_some_and(|items| Arc::strong_count(items) > 1)
+  }
+
   /// The nesting depth of this list: one more than that of its deepest item.
   pub(crate) fn nesting_depth(&self) -> u32 {
     self.item_depth.saturating_add(1)

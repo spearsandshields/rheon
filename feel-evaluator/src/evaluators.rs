@@ -44,7 +44,7 @@ pub fn evaluate_max(values: Vec<Value>) -> Value {
 
 /// Compares two values and returns `true` when the two `FEEL` values are equal.
 pub fn evaluate_equals(left: &Value, right: &Value) -> bool {
-  crate::builders::eval_ternary_equality(left, right).unwrap_or(false)
+  crate::equality::eval_ternary_equality(left, right).unwrap_or(false)
 }
 
 /// Evaluates the invocation of a function with named arguments, `function(n1: v1, ...)` (DMN 1.6, Table 64):
