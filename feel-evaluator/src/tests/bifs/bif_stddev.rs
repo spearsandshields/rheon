@@ -38,12 +38,7 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(
-    false,
-    &scope!(),
-    r#"stddev(true)"#,
-    r#"[positional::stddev] invalid argument type, expected list, actual type is boolean"#,
-  );
+  te_null(false, &scope!(), r#"stddev(true)"#, r#"stddev: expected number, actual type is boolean with value true"#);
 }
 
 #[test]
@@ -79,4 +74,21 @@ fn _0012() {
 #[test]
 fn _0013() {
   te_null(false, &scope!(), r#"stddev([exp(7075),-exp(7074)])"#, r#"stddev: result is not a finite number"#);
+}
+
+/// DMN 1.6 §10.3.4.4, stddev: "If the list is empty or if the list contains only one element, the
+/// function returns null", with `stddev( [ 47 ] ) = null` and `stddev( 47 ) = null`: a null the
+/// specification defines, so no error; the reason stays as a note. An item that is no number is
+/// outside the domain ("list is a list of number"), an error, also in a list of fewer than two.
+#[test]
+fn stddev_of_fewer_than_two_numbers_is_a_null_with_a_note() {
+  let note = "null(stddev: minimum two input arguments expected)";
+  te_errors("stddev([47])", note, &[]);
+  te_errors("stddev([])", note, &[]);
+  te_errors("stddev(47)", note, &[]);
+  te_errors("stddev(list: [47])", note, &[]);
+  let not_a_number = r#"stddev: expected number, actual type is string with value "a""#;
+  te_errors(r#"stddev(["a"])"#, &format!("null({not_a_number})"), &[not_a_number]);
+  let not_a_number = "stddev: expected number, actual type is boolean with value true";
+  te_errors("stddev(true)", &format!("null({not_a_number})"), &[not_a_number]);
 }

@@ -51,11 +51,14 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  // recursion through boxed invocations only stops at the call depth limit, and the limit is per evaluation
+  // recursion through boxed invocations stops the evaluation at the call depth limit, and the limit is per evaluation
   std::thread::Builder::new()
     .stack_size(512 * 1024 * 1024)
     .spawn(|| {
-      decision("runaway recursion", "null(function call depth limit (200) exceeded)");
+      decision(
+        "runaway recursion",
+        "aborted(function calls are nested too deeply (more than 200 levels, e.g. runaway recursion); evaluation stopped)",
+      );
       decision("built in function", "1");
       decision("missing named argument", r#""none""#);
     })

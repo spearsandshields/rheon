@@ -14,12 +14,7 @@ edition = { workspace = true }
 publish = false
 
 [features]
-default = ["dashu"]
 tck = ["dsntk-server/tck"]
-# Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
-# Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["dsntk-evaluator/dashu", "rheon-feel/dashu", "rheon-feel-parser/dashu", "dsntk-gendoc/dashu", "rheon-model/dashu", "dsntk-server/dashu", "dsntk-workspace/dashu"]
-intel = ["dsntk-evaluator/intel", "rheon-feel/intel", "rheon-feel-parser/intel", "dsntk-gendoc/intel", "rheon-model/intel", "dsntk-server/intel", "dsntk-workspace/intel"]
 
 [dependencies]
 actix-web = { workspace = true }

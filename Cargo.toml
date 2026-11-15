@@ -40,17 +40,16 @@ chrono = "0.4.44"
 chrono-tz = "0.10.4"
 convert_case = "0.11.0"
 clap = { version = "4.6.1", features = ["cargo"] }
-dfp-number-sys = "0.2.14"
 dashu-base = { version = "0.6.1", default-features = false }
 dashu-float = { version = "0.6.2", default-features = false }
 dashu-int = { version = "0.6.2", default-features = false }
 difference = "2.0.0"
 domrs = "0.0.16"
 markdown = "1.0.0"
-petgraph = "0.8.3"
 proc-macro2 = "1.0.106"
 quote = "1.0.45"
 regex = "1.12.3"
+regex-syntax = "0.8.10"
 fancy-regex = { version = "0.19.2", default-features = false, features = ["std", "unicode", "perf"] }
 reqwest = { version = "0.13.3", features = ["blocking", "json", "rustls"] }
 roxmltree = "0.21.1"
@@ -63,22 +62,22 @@ url = "2.5.8"
 urlencoding = "2.1.3"
 walkdir = "2.5.0"
 dsntk-common = "=0.3.0"
-dsntk-evaluator = { path = "evaluator", default-features = false }
+dsntk-evaluator = { path = "evaluator" }
 dsntk-examples = { path = "examples" }
-rheon-feel = { path = "feel", version = "=0.4.0", default-features = false }
-rheon-feel-evaluator = { path = "feel-evaluator", version = "=0.4.0", default-features = false }
+rheon-feel = { path = "feel", version = "=0.4.0" }
+rheon-feel-evaluator = { path = "feel-evaluator", version = "=0.4.0" }
 rheon-feel-grammar = { path = "feel-grammar", version = "=0.4.0" }
-rheon-feel-number = { path = "feel-number", version = "=0.4.0", default-features = false }
-rheon-feel-parser = { path = "feel-parser", version = "=0.4.0", default-features = false }
+rheon-feel-number = { path = "feel-number", version = "=0.4.0" }
+rheon-feel-parser = { path = "feel-parser", version = "=0.4.0" }
 rheon-feel-regex = { path = "feel-regex", version = "=0.4.0" }
-rheon-feel-temporal = { path = "feel-temporal", version = "=0.4.0", default-features = false }
-dsntk-gendoc = { path = "gendoc", default-features = false }
+rheon-feel-temporal = { path = "feel-temporal", version = "=0.4.0" }
+dsntk-gendoc = { path = "gendoc" }
 dsntk-macros = "=0.3.0"
-rheon-model = { path = "model", version = "=0.4.0", default-features = false }
-rheon-model-evaluator = { path = "model-evaluator", version = "=0.4.0", default-features = false }
+rheon-model = { path = "model", version = "=0.4.0" }
+rheon-model-evaluator = { path = "model-evaluator", version = "=0.4.0" }
 dsntk-recognizer = "=0.3.0"
-dsntk-server = { path = "server", default-features = false }
-dsntk-workspace = { path = "workspace", default-features = false }
+dsntk-server = { path = "server" }
+dsntk-workspace = { path = "workspace" }
 
 # rheon: the upstream dsntk-rs commit this repository's dsntk crates are based on. Reported by
 # the wasm module's `info` op as `upstreamCommit`, next to the repository HEAD (`engineCommit`).

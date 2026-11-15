@@ -153,7 +153,12 @@ fn _0030() {
 
 #[test]
 fn _0031() {
-  te_string(false, &scope!(), "replace(\"abc\",\"[A-Z]\",\"#\",\"all unknown but i\")", "###");
+  te_null(
+    false,
+    &scope!(),
+    "replace(\"abc\",\"[A-Z]\",\"#\",\"all unknown but i\")",
+    "<FeelRegexError> invalid regex flag: 'a'",
+  );
 }
 
 #[test]
@@ -239,4 +244,129 @@ fn _0043() {
 #[test]
 fn _0044() {
   te_null(false, &scope!(), r#"replace("abc1","[a-z","A")"#, r#"replace: invalid pattern"#);
+}
+
+#[test]
+fn an_engine_limit_stops_the_evaluation() {
+  let compiled_size = r"replace: the pattern '\w{10000}' exceeds the regex engine's compiled size limit; evaluation stopped";
+  crate::tests::te_aborted(r#"replace("a", "\\w{10000}", "b")"#, crate::Dialect::Feel, compiled_size);
+  crate::tests::te_aborted(r#"replace("a", "\\w{10000}", "b", "i")"#, crate::Dialect::Feel, compiled_size);
+  let nested = crate::tests::nested_groups(300);
+  crate::tests::te_aborted(
+    &format!(r#"replace("a", "{nested}", "b")"#),
+    crate::Dialect::Feel,
+    &format!(
+      "replace: the pattern '{}… (601 characters)' exceeds the regex engine's nesting limit; evaluation stopped",
+      &nested[..120]
+    ),
+  );
+}
+
+#[test]
+fn every_character_of_the_flags_is_a_flag() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.3: the flags are interpreted as for `fn:matches`
+  te_null(false, &scope!(), r#"replace("abc","b","x"," i")"#, "<FeelRegexError> invalid regex flag: ' '");
+  te_null(false, &scope!(), r#"replace("abc","b","x","?")"#, "<FeelRegexError> invalid regex flag: '?'");
+  te_string(false, &scope!(), r#"replace("abc","B","x","ii")"#, "axc");
+}
+
+#[test]
+fn flags_that_are_no_string_are_null() {
+  te_null(false, &scope!(), r#"replace("abc","b","x",1)"#, "replace: flags must be a string");
+  te_null(false, &scope!(), r#"replace("abc","b","x",["i"])"#, "replace: flags must be a string");
+  // null flags are no flags
+  te_string(false, &scope!(), r#"replace("abc","b","x",null)"#, "axc");
+}
+
+#[test]
+fn q_takes_every_character_of_the_pattern_as_itself() {
+  te_string(false, &scope!(), r#"replace("a1d","d","!","q")"#, "a1!");
+  te_string(false, &scope!(), r#"replace("abc","b","x","q")"#, "axc");
+  te_string(false, &scope!(), r#"replace("a.c abc",".c","X","q")"#, "aX abc");
+  te_string(false, &scope!(), r#"replace("A.B",".","!","qi")"#, "A!B");
+  // with `m`, `s` or `x` beside it, `q` still applies and they have no effect
+  te_string(false, &scope!(), r#"replace("a.b",".","!","qs")"#, "a!b");
+  te_string(false, &scope!(), r#"replace("a b"," ","-","qx")"#, "a-b");
+}
+
+#[test]
+fn x_removes_the_whitespace_outside_character_classes() {
+  te_string(false, &scope!(), r##"replace("a#b","#","-","x")"##, "a-b");
+  te_string(false, &scope!(), r#"replace("a b","a [ ] b","-","x")"#, "-");
+  te_string(false, &scope!(), r#"replace("ab","a b","-","x")"#, "-");
+}
+
+#[test]
+fn an_invalid_pattern_with_flags_is_null() {
+  te_null(false, &scope!(), r#"replace("a","[a-z","b","i")"#, "replace: invalid pattern");
+}
+
+#[test]
+fn a_group_reference_takes_the_digits_that_name_a_group() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.3: N is the number of all the digits after `$`
+  te_string(false, &scope!(), r#"replace("abc","b","[$0x]")"#, "a[bx]c");
+  te_string(false, &scope!(), r#"replace("abc","(b)","[$1]")"#, "a[b]c");
+  // a group beyond the pattern's groups and below 10 is empty
+  te_string(false, &scope!(), r#"replace("abc","(b)","[$2]")"#, "a[]c");
+  te_string(false, &scope!(), r#"replace("abc","b","[$01]")"#, "a[]c");
+  // beyond both, the last digit is a literal and the rule applies again
+  te_string(false, &scope!(), r#"replace("abc","(b)","$10")"#, "ab0c");
+  te_string(false, &scope!(), r#"replace("abcde","(a)(b)(c)(d)(e)","$23")"#, "b3");
+  te_string(
+    false,
+    &scope!(),
+    r#"replace("abc","(b)","$123456789012345678901234567890")"#,
+    "ab23456789012345678901234567890c",
+  );
+  te_string(
+    false,
+    &scope!(),
+    r#"replace("abcdefghijkl","(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)","$12$1$0")"#,
+    "laabcdefghijkl",
+  );
+}
+
+#[test]
+fn a_backslash_escapes_only_a_dollar_or_a_backslash() {
+  te_string(false, &scope!(), r#"replace("abc","b","\\$")"#, "a$c");
+  te_string(false, &scope!(), r#"replace("abc","b","\\\\")"#, r"a\c");
+  te_string(false, &scope!(), r#"replace("abc","(b)","\\\\$1")"#, r"a\bc");
+  te_string(false, &scope!(), r#"replace("abc","(b)","\\$1")"#, "a$1c");
+}
+
+#[test]
+fn an_invalid_replacement_string_is_null() {
+  let dollar = "<FeelRegexError> invalid replacement string: a '$' that is not escaped must be followed by a digit";
+  te_null(false, &scope!(), r#"replace("abc","b","$")"#, dollar);
+  te_null(false, &scope!(), r#"replace("abc","b","$$")"#, dollar);
+  te_null(false, &scope!(), r#"replace("abc","(b)","${1}")"#, dollar);
+  te_null(false, &scope!(), r#"replace("abc","b","$a")"#, dollar);
+  let backslash = r"<FeelRegexError> invalid replacement string: a '\' must be followed by '\' or '$'";
+  te_null(false, &scope!(), r#"replace("abc","b","\\x")"#, backslash);
+  te_null(false, &scope!(), r#"replace("abc","b","x\\")"#, backslash);
+  // also where no match uses it
+  te_null(false, &scope!(), r#"replace("abc","z","$")"#, dollar);
+}
+
+#[test]
+fn q_uses_the_replacement_string_as_is() {
+  // XPath and XQuery F&O 3.1 §5.6.4: "If the q flag is present, the replacement string is used as is"
+  te_string(false, &scope!(), r#"replace("abc","b","$1","q")"#, "a$1c");
+  te_string(false, &scope!(), r#"replace("abc","b","\\x$","q")"#, r"a\x$c");
+}
+
+#[test]
+fn a_pattern_that_matches_the_zero_length_string_is_null() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.3: FORX0003 "if the pattern matches a zero-length string,
+  // that is, if the expression fn:matches("", $pattern, $flags) returns true"
+  let reason = "<FeelRegexError> the pattern matches the zero-length string";
+  te_null(false, &scope!(), r#"replace("abc","x*","-")"#, reason);
+  te_null(false, &scope!(), r#"replace("abc","","-")"#, reason);
+  te_null(false, &scope!(), r#"replace("abc","^","-")"#, reason);
+  te_null(false, &scope!(), r#"replace("abracadabra",".*?","$1")"#, reason);
+  te_null(false, &scope!(), r#"replace("abc","x *","-","x")"#, reason);
+  te_null(false, &scope!(), r#"replace("","a?","-")"#, reason);
+  // "It is not an error, however, if a captured substring is zero-length."
+  te_string(false, &scope!(), r#"replace("abc","b(x*)","[$1]")"#, "a[]c");
+  te_string(false, &scope!(), r#"replace("","a","-")"#, "");
 }

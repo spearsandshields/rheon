@@ -336,12 +336,72 @@ fn _0027() {
     scope.pop();
     Value::Boolean(true)
   });
-  let mut evaluator = crate::ForExpressionEvaluator::for_feel();
-  evaluator.add_list("i".into(), Value::List(vec![Value::Boolean(true), Value::Boolean(false)]));
+  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)]))));
+  let evaluator = crate::Iteration::for_feel(vec![("i".into(), booleans)]);
   let depth = scope.depth();
   assert_eq!(
     Value::Null(Some("internal error: the evaluation removed the iteration context of a `for` expression".to_string())),
-    evaluator.evaluate(scope, &popping)
+    evaluator.collect(scope, &popping)
   );
   assert_eq!(depth, scope.depth());
+}
+
+#[test]
+fn _0028() {
+  // A domain that removes the iteration context from the scope gives the same null.
+  let scope = &te_scope("{}");
+  let numbers: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![rheon_feel::value_number!(1), rheon_feel::value_number!(2)]))));
+  let popping: crate::Domain = Box::new(|scope: &FeelScope| {
+    scope.pop();
+    Ok(crate::Sequence::empty())
+  });
+  let evaluator = crate::Iteration::for_feel(vec![("i".into(), numbers), ("j".into(), popping)]);
+  let body: rheon_feel::Evaluator = Box::new(|_: &FeelScope| Value::Boolean(true));
+  let depth = scope.depth();
+  assert_eq!(
+    Value::Null(Some("internal error: the evaluation removed the iteration context of a `for` expression".to_string())),
+    evaluator.collect(scope, &body)
+  );
+  assert_eq!(depth, scope.depth());
+}
+
+/// DMN 1.6 §10.3.2.14 lists `x..x+10` among the "Examples of valid iteration contexts", and an
+/// iteration binds "the element to the corresponding variable": a context is evaluated with the
+/// variables before it bound, once in every iteration of them, and a context without elements
+/// contributes no iteration (TCK 0084, "for loop with second iterator depending on first
+/// iterator").
+#[test]
+fn an_iteration_context_sees_the_variables_bound_before_it() {
+  te_errors("for x in [[1,2],[3,4]], y in x return y", "[1, 2, 3, 4]", &[]);
+  te_errors("for x in [[1,2],[],[3]], y in x return y", "[1, 2, 3]", &[]);
+  te_errors("for x in [[],[1]], y in x return y", "[1]", &[]);
+  te_errors("for i in 1..3, j in 1..i return j", "[1, 1, 2, 1, 2, 3]", &[]);
+  te_errors("for i in 3..1, j in i..1 return j", "[3, 2, 1, 2, 1, 1]", &[]);
+  te_errors("for x in [{items:[1,2]},{items:[3]}], y in x.items return y", "[1, 2, 3]", &[]);
+  te_errors("for x in [1, 2], y in [x, x * 10] return y", "[1, 10, 2, 20]", &[]);
+  te_errors("for x in [[[1],[2,3]],[[4]]], y in x, z in y return z", "[1, 2, 3, 4]", &[]);
+}
+
+/// A later iteration context is evaluated in every iteration of the earlier ones, so its errors
+/// are counted once per iteration (a repeated message is listed once), and not at all after an
+/// empty one.
+#[test]
+fn a_later_iteration_context_is_evaluated_in_every_iteration_of_the_earlier_ones() {
+  let (value, diagnostics) = te_collect("for x in [1,2], y in [1/0] return x");
+  assert_eq!("[1, 2]", value.to_string());
+  assert_eq!(2, diagnostics.count);
+  assert_eq!(["[division] division by zero"], diagnostics.messages.as_slice());
+  te_errors("for x in [], y in [1/0] return y", "[]", &[]);
+  te_errors(r#"for x in [], y in 1.."a" return y"#, "[]", &[]);
+}
+
+/// A variable named twice in the iteration contexts gives null: the later binding would hide the
+/// earlier one, and keeping either one silently gives an answer the expression did not ask for.
+#[test]
+fn a_repeated_iteration_variable_gives_null() {
+  let reason = "duplicate iteration variable 'i'";
+  te_errors("for i in [1,2], i in [3] return i", &format!("null({reason})"), &[reason]);
+  te_errors("for i in 1..2, j in [3], i in [4] return i", &format!("null({reason})"), &[reason]);
+  te_errors("some i in [1], i in [2] satisfies i = 2", &format!("null({reason})"), &[reason]);
+  te_errors("every i in [1], i in [2] satisfies i = 1", &format!("null({reason})"), &[reason]);
 }

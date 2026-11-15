@@ -1,44 +1,82 @@
-use crate::errors::{err_empty_flags, err_invalid_flag, err_invalid_pattern};
+use crate::errors::{Limit, RegexError, err_invalid_pattern, err_zero_length_match};
+use crate::flags::Flags;
+use crate::replacement::Replacement;
 use crate::unicode_blocks::replace_block_names;
-use crate::utils::is_special_character;
 use fancy_regex::Regex;
+use regex_syntax::ast;
 
-pub fn is_match(input: &str, pattern: &str) -> dsntk_common::Result<bool> {
-  let Ok(re) = Regex::new(&fix_pattern(pattern, false, false)) else {
-    return Err(err_invalid_pattern(pattern));
-  };
-  // A runtime failure (the backtracking limit for patterns with back-references or
-  // look-around) is reported like an invalid pattern.
-  re.is_match(&fix_input(input)).map_err(|_| err_invalid_pattern(pattern))
+/// Whether `input` matches `pattern` with `flags` (XQuery 1.0 and XPath 2.0 F&O §7.6.2
+/// `fn:matches`, back-references included); `""` is no flags.
+pub fn is_match(input: &str, pattern: &str, flags: &str) -> Result<bool, RegexError> {
+  let source = Flags::parse(flags)?.source(pattern, translate);
+  search(input, &source, pattern)
 }
 
-pub fn is_match_with_flags(input: &str, pattern: &str, flags: &str) -> dsntk_common::Result<bool> {
-  let flags = flags.trim();
-  if flags.is_empty() {
-    return Err(err_empty_flags());
-  }
-  let mut regex_flags = String::new();
-  let mut whitespaces = false;
-  let mut themselves = false;
-  for ch in flags.chars() {
-    match ch {
-      'i' | 'm' | 's' => regex_flags.push(ch),
-      'x' => {
-        whitespaces = true;
-        regex_flags.push(ch);
-      }
-      'q' => themselves = true,
-      _ => return Err(err_invalid_flag(ch)),
-    }
-  }
-  if !regex_flags.is_empty() {
-    regex_flags = format!("(?{})", regex_flags);
-  }
-  let pattern = format!("{}{}", regex_flags, fix_pattern(pattern, whitespaces, themselves));
-  let Ok(re) = Regex::new(&pattern) else {
-    return Err(err_invalid_pattern(&pattern));
+/// Whether `input` matches the backtracking engine's `source` (back-references and look-around
+/// included), or which limit the engine hit, or that the pattern is invalid (quoting `quoted`, the
+/// pattern as the caller wrote it).
+fn search(input: &str, source: &str, quoted: &str) -> Result<bool, RegexError> {
+  let classify = |error: fancy_regex::Error| match error {
+    fancy_regex::Error::ParseError(_, fancy_regex::ParseError::RecursionExceeded) => RegexError::LimitExceeded(Limit::Nesting),
+    fancy_regex::Error::CompileError(error) => match *error {
+      fancy_regex::CompileError::InnerError(error) if error.size_limit().is_some() => RegexError::LimitExceeded(Limit::CompiledSize),
+      fancy_regex::CompileError::InnerError(error) if error.syntax_error().is_some_and(is_nest_limit) => RegexError::LimitExceeded(Limit::Nesting),
+      _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
+    },
+    fancy_regex::Error::RuntimeError(fancy_regex::RuntimeError::StackOverflow) => RegexError::LimitExceeded(Limit::BacktrackingStack),
+    // a search that fails at run time always ran out of its backtracking budget
+    fancy_regex::Error::RuntimeError(_) => RegexError::LimitExceeded(Limit::Backtracking),
+    _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
   };
-  re.is_match(&fix_input(input)).map_err(|_| err_invalid_pattern(&pattern))
+  Regex::new(source).map_err(classify)?.is_match(&fix_input(input)).map_err(classify)
+}
+
+/// Whether a pattern nests groups deeper than the parser's limit.
+fn is_nest_limit(error: &regex_syntax::Error) -> bool {
+  matches!(error, regex_syntax::Error::Parse(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)))
+}
+
+/// The engine source `source` of a `replace` or `split` pattern compiled by the automata engine
+/// (no back-references), or which limit it hit, or that the pattern is invalid (quoting `quoted`,
+/// the pattern as the caller wrote it), or that it matches the zero-length string. F&O §7.6.3 and
+/// §7.6.4 raise FORX0003 "if the pattern matches a zero-length string, that is, if the expression
+/// fn:matches("", $pattern, $flags) returns true", whatever the input.
+fn compile(source: &str, quoted: &str) -> Result<regex::Regex, RegexError> {
+  let regex = regex::Regex::new(source).map_err(|error| match error {
+    regex::Error::CompiledTooBig(_) => RegexError::LimitExceeded(Limit::CompiledSize),
+    // the error names no kind; the parser with the engine's defaults tells a nesting limit apart,
+    // and it runs only on this error path
+    regex::Error::Syntax(_) => match ast::parse::Parser::new().parse(source) {
+      Err(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)) => RegexError::LimitExceeded(Limit::Nesting),
+      _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
+    },
+    _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
+  })?;
+  if regex.is_match("") {
+    return Err(RegexError::InvalidArgument(err_zero_length_match()));
+  }
+  Ok(regex)
+}
+
+/// Replaces every match of `pattern` with `flags` in `input` with `replacement` (F&O §7.6.3
+/// `fn:replace`); `""` is no flags.
+pub fn replace(input: &str, pattern: &str, replacement: &str, flags: &str) -> Result<String, RegexError> {
+  let flags = Flags::parse(flags)?;
+  let regex = compile(&flags.source(pattern, str::to_string), pattern)?;
+  let replacement = Replacement::parse(replacement, regex.captures_len() - 1, flags.literal())?;
+  Ok(regex.replace_all(input, &replacement).into_owned())
+}
+
+/// Splits `input` at every match of `delimiter` (F&O §7.6.4 `fn:tokenize` without flags). "If
+/// $input is the empty sequence, or if $input is the zero-length string, the result is the empty
+/// sequence"; otherwise a separator at the start or the end of the input, and two adjacent
+/// separators, give a zero-length string.
+pub fn split(input: &str, delimiter: &str) -> Result<Vec<String>, RegexError> {
+  let regex = compile(delimiter, delimiter)?;
+  if input.is_empty() {
+    return Ok(Vec::new());
+  }
+  Ok(regex.split(input).map(String::from).collect())
 }
 
 // Nasty tricks on input.
@@ -46,51 +84,8 @@ fn fix_input(s: &str) -> String {
   s.replace("\r\n", "\n").replace('\r', "\n")
 }
 
-// Nasty tricks on pattern.
-fn fix_pattern(pattern: &str, whitespaces: bool, themselves: bool) -> String {
-  let mut pattern = replace_block_names(pattern, whitespaces);
-  pattern = pattern.replace("-[", "--[");
-  if whitespaces {
-    pattern = pattern.replace("\\ ", "\\").replace("[ ]", "[\\ ]");
-    // With the `x` flag whitespace is insignificant also inside `\p{...}` / `\P{...}`
-    // (`\p{ IsLatin }`); the regex parser does not strip it there, so it is removed here.
-    pattern = collapse_whitespace_in_property_names(&pattern);
-  }
-  if themselves {
-    pattern = pattern
-      .chars()
-      .map(|ch| if is_special_character(ch) { format!(r#"\{}"#, ch) } else { format!("{}", ch) })
-      .collect();
-  }
-  pattern
-}
-
-/// Removes whitespace inside Unicode property escapes `\p{...}` and `\P{...}`.
-fn collapse_whitespace_in_property_names(pattern: &str) -> String {
-  let mut output = String::with_capacity(pattern.len());
-  let mut chars = pattern.chars().peekable();
-  let mut escaped = false;
-  while let Some(ch) = chars.next() {
-    if escaped {
-      escaped = false;
-      output.push(ch);
-      if (ch == 'p' || ch == 'P') && chars.peek() == Some(&'{') {
-        // copy `{...}` without whitespace
-        for inner in chars.by_ref() {
-          if !inner.is_whitespace() {
-            output.push(inner);
-          }
-          if inner == '}' {
-            break;
-          }
-        }
-      }
-    } else if ch == '\\' {
-      escaped = true;
-      output.push(ch);
-    } else {
-      output.push(ch);
-    }
-  }
-  output
+/// A pattern in the syntax of the backtracking engine: the XSD block names (`\p{IsBasicLatin}`)
+/// become their ranges, and a class subtraction (`[a-z-[aeiou]]`) becomes the engine's `--[`.
+fn translate(pattern: &str) -> String {
+  replace_block_names(pattern).replace("-[", "--[")
 }

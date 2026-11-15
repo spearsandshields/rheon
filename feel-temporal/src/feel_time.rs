@@ -6,7 +6,8 @@ use crate::defs::*;
 use crate::errors::*;
 use crate::feel_date_time::FeelDateTime;
 use crate::feel_dt_duration::FeelDaysAndTimeDuration;
-use chrono::{DateTime, FixedOffset};
+use crate::feel_offset::FeelOffset;
+use chrono::{DateTime, FixedOffset, NaiveTime, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
 use std::fmt;
@@ -31,34 +32,10 @@ impl Display for FeelTime {
 
 impl FromStr for FeelTime {
   type Err = DsntkError;
-  /// Converts [String] into [FeelTime].
+  /// Converts [String] into [FeelTime]; fraction digits beyond nanoseconds are truncated (see
+  /// [FeelTime::parse_reporting_truncation]).
   fn from_str(s: &str) -> Result<Self, Self::Err> {
-    if let Some(captures) = RE_TIME.captures(s)
-      && let Some(hour_match) = captures.name("hours")
-      && let Ok(mut hour) = hour_match.as_str().parse::<u8>()
-      && let Some(min_match) = captures.name("minutes")
-      && let Ok(min) = min_match.as_str().parse::<u8>()
-      && let Some(sec_match) = captures.name("seconds")
-      && let Ok(sec) = sec_match.as_str().parse::<u8>()
-    {
-      let mut fractional = 0.0;
-      if let Some(frac_match) = captures.name("fractional")
-        && let Ok(frac) = frac_match.as_str().parse::<f64>()
-      {
-        fractional = frac;
-      }
-      let nanos = (fractional * 1e9).trunc() as u64;
-      if let Some(zone) = FeelZone::from_captures(&captures)
-        && is_valid_time(hour, min, sec)
-      {
-        if hour == 24 {
-          hour = 0;
-        }
-        let time = FeelTime(hour, min, sec, nanos, zone);
-        return Ok(time);
-      }
-    }
-    Err(err_invalid_time_literal(s))
+    Self::parse_reporting_truncation(s).map(|(time, _)| time)
   }
 }
 
@@ -77,12 +54,12 @@ impl PartialEq for FeelTime {
     let equal_zones = match (&self.4, &rhs.4) {
       (FeelZone::Utc, FeelZone::Utc) => true,
       (FeelZone::Utc, FeelZone::Zone(zone_name)) | (FeelZone::Zone(zone_name), FeelZone::Utc) => zone_name == ETC_UTC,
-      (FeelZone::Utc, FeelZone::Offset(offset)) | (FeelZone::Offset(offset), FeelZone::Utc) => *offset == 0,
+      (FeelZone::Utc, FeelZone::Offset(offset)) | (FeelZone::Offset(offset), FeelZone::Utc) => *offset == FeelOffset::ZERO,
       (FeelZone::Local, FeelZone::Local) => true,
       (FeelZone::Offset(offset), FeelZone::Zone(zone_name)) | (FeelZone::Zone(zone_name), FeelZone::Offset(offset)) => {
-        (*offset == 0 && zone_name == ETC_UTC)
+        (*offset == FeelOffset::ZERO && zone_name == ETC_UTC)
           || if let Some(zone_offset) = get_zone_offset(zone_name) {
-            *offset == zone_offset
+            offset.seconds() == zone_offset
           } else {
             false
           }
@@ -123,14 +100,14 @@ impl Sub<FeelTime> for FeelTime {
     let me_offset_opt = match &self.4 {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(me_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, me_time_tuple),
     };
     let other_time_tuple = (other.0 as u32, other.1 as u32, other.2 as u32, other.3 as u32);
     let other_offset_opt = match &other.4 {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(other_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, other_time_tuple),
     };
     if let Some((me_offset, other_offset)) = me_offset_opt.zip(other_offset_opt) {
@@ -139,7 +116,7 @@ impl Sub<FeelTime> for FeelTime {
       if let Some((me_date, other_date)) = me_date_opt.zip(other_date_opt)
         && let Some(nanos) = me_date.sub(other_date).num_nanoseconds()
       {
-        return Some(FeelDaysAndTimeDuration::from_n(nanos));
+        return FeelDaysAndTimeDuration::from_n(nanos);
       }
     }
     None
@@ -184,57 +161,79 @@ impl FeelTime {
     let offset = match &self.4 {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, time_tuple),
     }?;
     date_time_offset_t(time_tuple, offset)
   }
 
-  /// Creates UTC time from specified time values.
-  pub fn utc(hour: u8, minute: u8, second: u8, nanos: u64) -> Self {
-    Self(hour, minute, second, nanos, FeelZone::Utc)
-  }
-
-  pub fn utc_opt(hour: u8, minute: u8, second: u8, nanos: u64) -> Option<Self> {
-    if is_valid_time(hour, minute, second) {
-      Some(Self(hour, minute, second, nanos, FeelZone::Utc))
-    } else {
-      None
-    }
-  }
-
-  /// Creates local time from specified time values.
-  pub fn local(hour: u8, minute: u8, second: u8, nanos: u64) -> Self {
-    Self(hour, minute, second, nanos, FeelZone::Local)
-  }
-
-  pub fn local_opt(hour: u8, minute: u8, second: u8, nano: u64) -> Option<Self> {
-    if is_valid_time(hour, minute, second) {
-      Some(Self(if hour == 24 { 0 } else { hour }, minute, second, nano, FeelZone::Local))
-    } else {
-      None
-    }
-  }
-
-  /// Creates a time from specified time and offset values.
-  pub fn offset(hour: u8, minute: u8, second: u8, nanos: u64, offset: i32) -> Self {
-    Self(hour, minute, second, nanos, FeelZone::Offset(offset))
-  }
-
-  pub fn offset_opt(hour: u8, minute: u8, second: u8, nano: u64, offset: i32) -> Option<Self> {
-    if is_valid_time(hour, minute, second)
-      && let Ok(zone) = FeelZone::try_from(offset)
+  /// Parses a time literal, as [FromStr] does, and also returns the fraction digits beyond
+  /// nanoseconds that were truncated, when one of them is not zero.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelTime;
+  /// let (time, dropped) = FeelTime::parse_reporting_truncation("10:00:00.1234567891").unwrap();
+  /// assert_eq!(("10:00:00.123456789", Some("1")), (time.to_string().as_str(), dropped));
+  /// assert_eq!(None, FeelTime::parse_reporting_truncation("10:00:00.1234567890").unwrap().1);
+  /// ```
+  pub fn parse_reporting_truncation(text: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Some(captures) = RE_TIME.captures(text)
+      && let Some(hour_match) = captures.name("hours")
+      && let Ok(hour) = hour_match.as_str().parse::<u8>()
+      && let Some(min_match) = captures.name("minutes")
+      && let Ok(min) = min_match.as_str().parse::<u8>()
+      && let Some(sec_match) = captures.name("seconds")
+      && let Ok(sec) = sec_match.as_str().parse::<u8>()
+      && let Some((nanos, dropped)) = parse_fraction_nanos(fraction_digits(&captures))
+      && let Some(zone) = FeelZone::from_captures(&captures)
+      && let Some(time) = FeelTime::zone_opt(hour, min, sec, u64::from(nanos), zone)
     {
-      return Some(Self(if hour == 24 { 0 } else { hour }, minute, second, nano, zone));
+      return Ok((time, dropped));
     }
-    None
+    Err(err_invalid_time_literal(text))
   }
 
-  pub fn zone_opt(hour: u8, minute: u8, second: u8, nano: u64, zone: FeelZone) -> Option<Self> {
-    if is_valid_time(hour, minute, second) {
-      return Some(Self(if hour == 24 { 0 } else { hour }, minute, second, nano, zone));
-    }
-    None
+  /// Creates a time in `zone`, or `None` when the parts are not a time of day. A time of day has
+  /// an hour below 24, a minute and a second below 60 and nanoseconds below 10^9, or is 24:00:00
+  /// with a zero fraction, which is midnight (XML Schema Part 2 §3.2.7: "'24' is permitted if the
+  /// minutes and seconds represented are zero"; DMN 1.6 §10.3.2.3.4: a time is a value of the XML
+  /// Schema time datatype). Every time is built here or is midnight, so every time is valid.
+  pub fn zone_opt(hour: u8, minute: u8, second: u8, nanos: u64, zone: FeelZone) -> Option<Self> {
+    is_valid_time(hour, minute, second, nanos).then_some(Self(if hour == 24 { 0 } else { hour }, minute, second, nanos, zone))
+  }
+
+  /// Creates a UTC time (see [FeelTime::zone_opt]).
+  pub fn utc_opt(hour: u8, minute: u8, second: u8, nanos: u64) -> Option<Self> {
+    Self::zone_opt(hour, minute, second, nanos, FeelZone::Utc)
+  }
+
+  /// Creates a local time (see [FeelTime::zone_opt]).
+  pub fn local_opt(hour: u8, minute: u8, second: u8, nanos: u64) -> Option<Self> {
+    Self::zone_opt(hour, minute, second, nanos, FeelZone::Local)
+  }
+
+  /// Creates a time with an offset of `offset` seconds (see [FeelTime::zone_opt]), or `None` when
+  /// the offset is beyond ±14:00 either; the zero offset is UTC.
+  pub fn offset_opt(hour: u8, minute: u8, second: u8, nanos: u64, offset: i32) -> Option<Self> {
+    Self::zone_opt(hour, minute, second, nanos, FeelZone::from(FeelOffset::from_seconds(offset)?))
+  }
+
+  /// Midnight, 00:00:00, in `zone`.
+  pub fn midnight(zone: FeelZone) -> Self {
+    Self(0, 0, 0, 0, zone)
+  }
+
+  /// The time of day `time` of a clock, in `zone`. chrono represents a leap second as nanoseconds
+  /// from 10^9 on; the XML Schema value space has no leap second, so it is kept as the last
+  /// nanosecond of the second before.
+  pub(crate) fn of_clock(time: NaiveTime, zone: FeelZone) -> Self {
+    Self(
+      time.hour() as u8,
+      time.minute() as u8,
+      time.second() as u8,
+      u64::from(time.nanosecond().min(999_999_999)),
+      zone,
+    )
   }
 
   pub fn hour(&self) -> u8 {
@@ -318,7 +317,7 @@ mod tests {
   fn test_eq() {
     assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) == FeelTime(0, 0, 0, 0, FeelZone::Utc)));
     assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime(0, 0, 0, 0, FeelZone::Local)));
-    assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime(0, 0, 0, 0, FeelZone::Offset(18_000))));
+    assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime::offset_opt(0, 0, 0, 0, 18_000).unwrap()));
     assert!((FeelTime(0, 0, 0, 0, FeelZone::Utc) != FeelTime(0, 0, 0, 0, FeelZone::Zone("Europe/Warsaw".to_string()))));
   }
 
@@ -326,7 +325,7 @@ mod tests {
   fn test_subtract() {
     let t1 = FeelTime(0, 0, 0, 0, FeelZone::Utc);
     let t2 = FeelTime(0, 0, 0, 0, FeelZone::Utc);
-    let d = FeelDaysAndTimeDuration::from_n(0);
+    let d = FeelDaysAndTimeDuration::default();
     assert_eq!(d, (t1 - t2).unwrap());
     let t1 = FeelTime(0, 0, 59, 0, FeelZone::Utc);
     let t2 = FeelTime(0, 0, 39, 0, FeelZone::Utc);

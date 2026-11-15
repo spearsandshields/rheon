@@ -92,3 +92,13 @@ fn _11_9_to_11_11_arithmetic() {
   bf("1 + 2", "3", Some("3"));
   bf(r#""a" + "b""#, r#""ab""#, Some(r#""ab""#));
 }
+
+#[test]
+fn a_regex_engine_limit_is_not_a_default() {
+  // B-FEEL replaces nulls by defaults (chapter 11); an engine limit is not a null
+  crate::tests::te_aborted(
+    &format!(r#"matches("{}!", "^(a|a)*\\1$") or true"#, "a".repeat(40)),
+    Dialect::BFeel,
+    r"matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped",
+  );
+}

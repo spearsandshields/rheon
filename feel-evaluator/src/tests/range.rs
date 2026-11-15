@@ -193,7 +193,7 @@ fn _0035() {
       IntervalType::Opened,
     )),
   );
-  assert_eq!(r#"(1.0..5.0)"#, crate::evaluate(&scope!(), &node).to_string());
+  assert_eq!(r#"(1..5)"#, crate::tests::eval(&scope!(), &node).to_string());
 }
 
 #[test]
@@ -208,7 +208,7 @@ fn _0036() {
       IntervalType::Opened,
     )),
   );
-  assert_eq!(r#"null(expected interval start)"#, crate::evaluate(&scope!(), &node).to_string());
+  assert_eq!(r#"null(expected interval start)"#, crate::tests::eval(&scope!(), &node).to_string());
 }
 
 #[test]
@@ -223,5 +223,5 @@ fn _0037() {
       IntervalType::Opened,
     )),
   );
-  assert_eq!(r#"null(expected interval end)"#, crate::evaluate(&scope!(), &node).to_string());
+  assert_eq!(r#"null(expected interval end)"#, crate::tests::eval(&scope!(), &node).to_string());
 }

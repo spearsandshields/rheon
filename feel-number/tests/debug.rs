@@ -19,7 +19,9 @@ fn test_debug_003() {
 
 #[test]
 fn test_debug_004() {
-  // scale clamped to -6176..=6144 like dfp-number-sys bid128_scalbn
-  eqs!("+890E-6176", format!("{:?}", FeelNumber::new(890, 6177)));
-  eqs!("+1000000000000000000000000000000000E+6111", format!("{:?}", FeelNumber::new(1, -6177)));
+  // n · 10^-s rounded once to decimal128, whatever the scale: 890E-6177 is 89E-6176 exactly,
+  // 1E+6177 overflows
+  eqs!("+89E-6176", format!("{:?}", FeelNumber::new(890, 6177)));
+  eqs!("+8E-6176", format!("{:?}", FeelNumber::new(75, 6177)));
+  eqs!("+Inf", format!("{:?}", FeelNumber::new(1, -6177)));
 }

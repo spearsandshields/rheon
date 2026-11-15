@@ -49,8 +49,9 @@ const TIME_PATTERN: &str = r"(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<secon
 const ZULU_PATTERN: &str = r"(?P<zulu>[zZ])";
 /// Regular expression pattern for parsing time zones given as zone name.
 const ZONE_PATTERN: &str = r"@(?P<zone>[a-zA-Z_/]+)";
-/// Regular expression pattern for parsing time zones given as offset.
-const OFFSET_PATTERN: &str = r"(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})(:(?P<offSeconds>[0-9]{2}))?";
+/// Regular expression pattern for parsing time zones given as offset: `±hh:mm`, the lexical
+/// representation of a timezone (XML Schema Part 2 §3.2.7.3: "(('+' | '-') hh ':' mm) | 'Z'").
+const OFFSET_PATTERN: &str = r"(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
 
 pub const ETC_UTC: &str = "Etc/UTC";
 
@@ -75,6 +76,8 @@ pub static TIME_ZONE_PATTERN: LazyLock<String> = LazyLock::new(|| format!("{ZULU
 pub static RE_DATE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}$")).unwrap());
 /// Regular expression for parsing time.
 pub static RE_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
+/// Regular expression for parsing a time zone designator alone; it is never empty.
+pub static RE_ZONE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^(?:{})$", TIME_ZONE_PATTERN.as_str())).unwrap());
 /// Regular expression for parsing date and time.
 pub static RE_DATE_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}T{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
 
@@ -84,7 +87,7 @@ pub fn feel_time_offset(me: &FeelDateTime) -> Option<i32> {
   let me_offset_opt = match me.time().zone() {
     FeelZone::Utc => Some(0),
     FeelZone::Local => None, // in FEEL semantic domain the local offset is treated as none
-    FeelZone::Offset(offset) => Some(*offset),
+    FeelZone::Offset(offset) => Some(offset.seconds()),
     FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
   };
   if let Some(me_offset) = me_offset_opt {
@@ -215,12 +218,39 @@ pub fn nanos_to_string(nano: u64) -> String {
   buffer.iter().take(count).collect()
 }
 
-/// Returns `true` when the specified parameters constitute valid time.
+/// The number of fractional-second digits a nanosecond holds.
+const NANOSECOND_DIGITS: usize = 9;
+
+/// Reads the fractional-second digits `digits` (the text after the '.', possibly empty) as an
+/// integer number of nanoseconds, with no binary floating point in between: a time, a date and
+/// time and a days and time duration hold their seconds as an exact decimal (DMN 1.6
+/// §10.3.2.3.4-§10.3.2.3.7, the XML Schema value spaces). Digits beyond the ninth are truncated.
 ///
-/// In the `FEEL` language, it is allowed for and hour to have a value of `24`,
-/// but only when minutes and seconds are zero.
-pub fn is_valid_time(hour: u8, minute: u8, second: u8) -> bool {
-  (hour < 24 && minute < 60 && second < 60) || (hour == 24 && minute == 0 && second == 0)
+/// The second element holds the dropped digits when one of them is not zero, that is when a value
+/// was lost; `None` when nothing was dropped or only zeros were. The result is `None` when
+/// `digits` holds a byte that is not an ASCII digit.
+pub(crate) fn parse_fraction_nanos(digits: &str) -> Option<(u32, Option<&str>)> {
+  if !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+    return None;
+  }
+  let (kept, dropped) = digits.split_at(digits.len().min(NANOSECOND_DIGITS));
+  let value = kept.bytes().fold(0_u32, |value, digit| value * 10 + u32::from(digit - b'0'));
+  let nanos = value * 10_u32.pow((NANOSECOND_DIGITS - kept.len()) as u32);
+  let lost = dropped.bytes().any(|digit| digit != b'0');
+  Some((nanos, lost.then_some(dropped)))
+}
+
+/// The digits of the `fractional` group (`.` and digits) of a time pattern match, without the
+/// `.`; empty when the group did not match.
+pub(crate) fn fraction_digits<'t>(captures: &regex::Captures<'t>) -> &'t str {
+  captures.name("fractional").and_then(|fraction| fraction.as_str().get(1..)).unwrap_or_default()
+}
+
+/// Returns `true` when the parts are a time of day: an hour below 24, a minute and a second below
+/// 60 and nanoseconds below 10^9, or 24:00:00 with a zero fraction (XML Schema Part 2 §3.2.7:
+/// "'24' is permitted if the minutes and seconds represented are zero").
+pub fn is_valid_time(hour: u8, minute: u8, second: u8, nanos: u64) -> bool {
+  (hour < 24 && minute < 60 && second < 60 && nanos < 1_000_000_000) || (hour == 24 && minute == 0 && second == 0 && nanos == 0)
 }
 
 /// Returns month of year based on specified month number.
@@ -327,6 +357,37 @@ mod tests {
   }
 
   #[test]
+  fn fraction_digits_are_read_as_an_integer() {
+    assert_eq!(Some((0, None)), parse_fraction_nanos(""));
+    assert_eq!(Some((100_000_000, None)), parse_fraction_nanos("1"));
+    assert_eq!(Some((15_700_000, None)), parse_fraction_nanos("0157"));
+    assert_eq!(Some((65_000, None)), parse_fraction_nanos("000065"));
+    assert_eq!(Some((15_839, None)), parse_fraction_nanos("000015839"));
+    assert_eq!(Some((999_999_999, None)), parse_fraction_nanos("999999999"));
+    assert_eq!(Some((1, None)), parse_fraction_nanos("000000001"));
+  }
+
+  #[test]
+  fn fraction_digits_beyond_nanoseconds_are_truncated() {
+    assert_eq!(Some((123_456_789, Some("1"))), parse_fraction_nanos("1234567891"));
+    assert_eq!(Some((999_999_999, Some("99999999"))), parse_fraction_nanos("99999999999999999"));
+    assert_eq!(Some((0, Some("0001"))), parse_fraction_nanos("0000000000001"));
+    // only zeros dropped: no value is lost
+    assert_eq!(Some((123_456_789, None)), parse_fraction_nanos("1234567890"));
+    assert_eq!(Some((123_456_789, None)), parse_fraction_nanos("123456789000000"));
+    let long = format!("1{}", "9".repeat(100_000));
+    assert_eq!(Some((199_999_999, Some(&long[9..]))), parse_fraction_nanos(&long));
+  }
+
+  #[test]
+  fn fraction_digits_are_ascii_digits() {
+    assert_eq!(None, parse_fraction_nanos("12a"));
+    assert_eq!(None, parse_fraction_nanos("."));
+    assert_eq!(None, parse_fraction_nanos("1234567890x"));
+    assert_eq!(None, parse_fraction_nanos("١"));
+  }
+
+  #[test]
   fn test_date_time_offset_dt() {
     assert!(date_time_offset_dt((2023, 2, 8), (10, 11, 12, 0), 86_401).is_none());
     assert!(date_time_offset_dt((2023, 2, 8), (10, 11, 12, 0), -86_401).is_none());
@@ -335,15 +396,15 @@ mod tests {
   #[test]
   fn test_feel_time_offset() {
     let feel_date = FeelDate::new(2023, 2, 8).unwrap();
-    let feel_time_a = FeelTime::utc(0, 0, 0, 0);
+    let feel_time_a = FeelTime::midnight(FeelZone::Utc);
     assert_eq!(0, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_a)).unwrap());
-    let feel_time_b = FeelTime::local(0, 0, 0, 0);
+    let feel_time_b = FeelTime::midnight(FeelZone::Local);
     assert_eq!(None, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_b)));
-    let feel_time_c = FeelTime::offset(0, 0, 0, 0, 60);
+    let feel_time_c = FeelTime::offset_opt(0, 0, 0, 0, 60).unwrap();
     assert_eq!(60, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_c)).unwrap());
     let feel_time_d = FeelTime::zone_opt(0, 0, 0, 0, FeelZone::Utc).unwrap();
     assert_eq!(0, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_d)).unwrap());
-    let feel_time_e = FeelTime::zone_opt(0, 0, 0, 0, FeelZone::Offset(15)).unwrap();
+    let feel_time_e = FeelTime::offset_opt(0, 0, 0, 0, 15).unwrap();
     assert_eq!(15, feel_time_offset(&FeelDateTime::new(feel_date.clone(), feel_time_e)).unwrap());
     let feel_time_f = FeelTime::zone_opt(0, 0, 0, 0, FeelZone::Zone("Etc/UTC".to_string())).unwrap();
     assert_eq!(0, feel_time_offset(&FeelDateTime::new(feel_date, feel_time_f)).unwrap());

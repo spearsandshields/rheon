@@ -53,7 +53,7 @@ pub fn prepare_test_cases(input: &str) -> Result<Vec<(FeelContext, Value)>> {
             if nodes.len() == 2 {
               match rheon_feel_evaluator::evaluate_context_node(&scope, &nodes[0]) {
                 Ok(input_data) => {
-                  let expected_result = rheon_feel_evaluator::evaluate(&scope, &nodes[1]);
+                  let expected_result = rheon_feel_evaluator::evaluate(&scope, &nodes[1]).into_result()?;
                   test_cases.push((input_data, expected_result));
                 }
                 Err(reason) => return Err(reason),

@@ -12,19 +12,20 @@
 //! which side of the rounded value the exact result lies, which is what [Wide::Rounded]
 //! carries to the core for its single final rounding.
 //!
+//! An integer power is exact (`UBig::pow`), and its reciprocal one correctly rounded division.
 //! dashu's own `sqrt`, `powf` and `powi` are not used: `FBig::sqrt` rounds up when the
 //! integer root's remainder equals the root, `powf` mis-certifies near ties and never
 //! terminates on exact ties, and `powi` has the same problem for 32..64-bit exponents.
 //! The core computes `sqrt` exactly and drives `pow` through [Backend::pow_step].
 
-use crate::decimal128::{Backend, POW_T_OVERFLOW, POW_T_UNDERFLOW, PRECISION, PowStep, Wide, digit_count};
+use crate::decimal128::{Backend, POW_EXACT_MAX_BITS, POW_T_OVERFLOW, POW_T_UNDERFLOW, PRECISION, PowStep, Wide, digit_count};
 use dashu_base::Approximation::{Exact, Inexact};
 use dashu_base::Sign;
 use dashu_float::round::Rounded;
 use dashu_float::round::Rounding;
 use dashu_float::round::mode::HalfEven;
 use dashu_float::{ConstCache, Context, FBig, FpError, FpResult, Repr};
-use dashu_int::IBig;
+use dashu_int::{IBig, UBig};
 use std::cell::RefCell;
 use std::cmp::Ordering;
 
@@ -107,14 +108,27 @@ impl Backend for Dashu {
     wide(ctx(PRECISION).div(&repr_of(false, ca, ea), &repr_of(false, cb, eb)))
   }
 
-  fn exp(neg: bool, c: u128, e: i32, precision: usize) -> Wide {
+  fn exp(neg: bool, c: u128, e: i32) -> Wide {
     let x = repr_of(neg, c, e);
-    wide(with_cache(|cache| ctx(precision).exp(&x, Some(cache))))
+    wide(with_cache(|cache| ctx(PRECISION).exp(&x, Some(cache))))
   }
 
-  fn ln(c: u128, e: i32, precision: usize) -> Wide {
+  fn ln(c: u128, e: i32) -> Wide {
     let x = repr_of(false, c, e);
-    wide(with_cache(|cache| ctx(precision).ln(&x, Some(cache))))
+    wide(with_cache(|cache| ctx(PRECISION).ln(&x, Some(cache))))
+  }
+
+  fn int_pow(c: u128, n: u64, reciprocal: bool) -> Option<Wide> {
+    let bits = u64::from(128 - c.leading_zeros());
+    if bits.checked_mul(n)? > POW_EXACT_MAX_BITS {
+      return None;
+    }
+    let power = UBig::from(c).pow(n as usize);
+    Some(if reciprocal {
+      wide(ctx(PRECISION).div(&Repr::new(IBig::ONE, 0), &Repr::new(IBig::from(power), 0)))
+    } else {
+      Wide::Digits(false, power.to_string(), 0)
+    })
   }
 
   fn pow_step(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32, precision: usize) -> PowStep {

@@ -55,3 +55,9 @@ fn _0008() {
 fn _0009() {
   te_null(false, &scope!(), r#"sum(l: [1,2,3])"#, r#"parameter 'list' not found"#);
 }
+
+/// DMN 1.6 §10.3.4.4: `sum([]) = null`, a null the specification defines, so no error.
+#[test]
+fn the_sum_of_an_empty_list_is_a_null_without_an_error() {
+  te_errors("sum([])", "null", &[]);
+}

@@ -1,7 +1,9 @@
 //! Conversion of request input (JSON or FEEL context literal) into FEEL values.
 
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::Value;
+use rheon_feel::diagnostics;
+use rheon_feel::message::{MessageArg, Size, arg};
+use rheon_feel::values::{TypeOf, Value};
 use rheon_feel::{FeelNumber, FeelScope, Name};
 use serde_json::{Map, Value as Json};
 use std::fmt;
@@ -59,6 +61,33 @@ impl fmt::Display for Path<'_> {
   }
 }
 
+impl Path<'_> {
+  /// The number of characters of the path's text, counted as it is written, without building it.
+  fn chars(&self) -> usize {
+    struct Count(usize);
+    impl fmt::Write for Count {
+      fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.0 += s.chars().count();
+        Ok(())
+      }
+    }
+    let mut count = Count(0);
+    // counting never refuses a write
+    let _ = fmt::write(&mut count, format_args!("{self}"));
+    count.0
+  }
+}
+
+impl MessageArg for Path<'_> {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fmt::Display::fmt(self, f)
+  }
+
+  fn size(&self) -> Option<Size> {
+    Some(Size::Characters(self.chars()))
+  }
+}
+
 /// Converts a JSON value into a FEEL value, taking it (strings are moved, not copied).
 ///
 /// Numbers are parsed from their exact JSON source text (serde_json `arbitrary_precision`),
@@ -71,14 +100,15 @@ pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> R
     Json::String(s) => Value::String(s.into()),
     Json::Number(n) => {
       let text = n.as_str();
-      let (number, rounded) = FeelNumber::from_str_reporting_rounding(text).map_err(|e| format!("{path}: invalid number '{text}': {e}"))?;
+      let (number, rounded) = FeelNumber::from_str_reporting_rounding(text).map_err(|e| format!("{}: invalid number '{}': {e}", arg(path), arg(text)))?;
       if rounded {
+        let (place, quoted) = (arg(path), arg(text));
         warnings.push(if number.is_zero() {
-          format!("{path}: number {text} is too small for a 34-digit decimal (exponent below -6176) and became 0")
+          format!("{place}: number {quoted} is too small for a 34-digit decimal (exponent below -6176) and became 0")
         } else if significant_digits(text) > MAX_DIGITS {
-          format!("{path}: number {text} has more than {MAX_DIGITS} significant digits and was rounded to {number}")
+          format!("{place}: number {quoted} has more than {MAX_DIGITS} significant digits and was rounded to {}", arg(&number))
         } else {
-          format!("{path}: number {text} is too small for a 34-digit decimal and was rounded to {number}")
+          format!("{place}: number {quoted} is too small for a 34-digit decimal and was rounded to {}", arg(&number))
         });
       }
       Value::Number(number)
@@ -108,8 +138,8 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
       (Name::from(key.as_str()), Some(key))
     };
     if name.is_empty() {
-      let path = path.to_string();
-      return Err(format!("{}: empty context key", if path.is_empty() { "context" } else { &path }));
+      let context = Path::Root("context");
+      return Err(format!("{}: empty context key", arg(if path.chars() == 0 { &context } else { path })));
     }
     let key = untrimmed_key.as_deref().unwrap_or(name.as_str());
     let value = json_into_value(value, &Path::Key(path, key), warnings)?;
@@ -118,24 +148,24 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
   Ok(ctx)
 }
 
-/// Evaluates a FEEL context literal (e.g. `{a: 1, "Grace's age": 40}`) into a FEEL context.
-/// An empty / blank string is an empty context.
-pub fn feel_context(text: &str) -> Result<FeelContext, String> {
+/// Evaluates a FEEL context literal (e.g. `{a: 1, "Grace's age": 40}`) into a FEEL context,
+/// adding the warnings of its evaluation to `warnings`. An empty / blank string is an empty
+/// context.
+pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContext, String> {
   if text.trim().is_empty() {
     return Ok(FeelContext::default());
   }
   let scope = FeelScope::default();
   let node = rheon_feel_parser::parse_context(&scope, text, false).map_err(|e| format!("invalid FEEL context: {e}"))?;
   crate::engine::check_ast_depth(&node).map_err(|e| format!("invalid FEEL context: {e}"))?;
-  rheon_feel_evaluator::reset_call_depth();
-  let value = rheon_feel_evaluator::evaluate(&scope, &node);
-  if rheon_feel_evaluator::call_depth_exceeded() {
-    return Err(crate::engine::call_depth_message());
-  }
+  // the context's errors are not counted in the response, only its warnings are reported
+  let (outcome, diagnostics) = diagnostics::collect(|| rheon_feel_evaluator::evaluate(&scope, &node));
+  let value = outcome.into_result().map_err(|abort| abort.to_string())?;
+  warnings.extend_from_slice(diagnostics.warnings());
   match value {
     Value::Context(ctx) => Ok(ctx),
     Value::Null(Some(reason)) => Err(format!("FEEL context evaluated to null: {reason}")),
-    other => Err(format!("FEEL context literal expected, it evaluated to {} ({})", other, other.type_of())),
+    other => Err(format!("FEEL context literal expected, it evaluated to {} ({})", arg(&other), arg(&TypeOf(&other)))),
   }
 }
 

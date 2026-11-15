@@ -4,7 +4,8 @@ use crate::errors::*;
 use crate::model_definitions::{DefDefinitions, DefItemDefinition, DefKey};
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::{Value, Values};
+use rheon_feel::message::arg;
+use rheon_feel::values::{TypeOf, Value, Values};
 use rheon_feel::{Evaluator, FeelScope, FeelType, Name, value_null};
 use rheon_feel_parser::AstNode;
 use rheon_model::ItemDefinitionType;
@@ -46,7 +47,7 @@ pub fn build_item_definition_evaluator(item_definition: &DefItemDefinition) -> R
   // build item definition evaluator
   match item_definition.item_definition_type()? {
     ItemDefinitionType::SimpleType(feel_type) => build_simple_type_evaluator(feel_type, av_evaluator),
-    ItemDefinitionType::ReferencedType(namespace, type_ref) => build_referenced_type_evaluator(DefKey::new(&namespace, &type_ref)),
+    ItemDefinitionType::ReferencedType(namespace, type_ref) => build_referenced_type_evaluator(DefKey::new(&namespace, &type_ref), av_evaluator),
     ItemDefinitionType::ComponentType => build_component_type_evaluator(item_definition),
     ItemDefinitionType::CollectionOfSimpleType(feel_type) => build_collection_of_simple_type_evaluator(feel_type, av_evaluator),
     ItemDefinitionType::CollectionOfReferencedType(namespace, type_ref) => build_collection_of_referenced_type_evaluator(DefKey::new(&namespace, &type_ref), av_evaluator),
@@ -69,18 +70,33 @@ fn build_allowed_values_evaluator(item_definition: &DefItemDefinition) -> Result
   Ok(av_evaluator)
 }
 
+/// Whether a value satisfies the unary tests of the allowed values.
+fn is_allowed(value: &Value, evaluator: &Evaluator) -> bool {
+  let scope = FeelScope::default();
+  scope.set_value(&"?".into(), value.clone());
+  evaluator(&scope).is_true()
+}
+
 fn check_allowed_values(value: Value, av_evaluator: Option<&Evaluator>) -> Value {
-  if let Some(evaluator) = av_evaluator {
-    let scope = FeelScope::default();
-    scope.set_value(&"?".into(), value.clone());
-    if evaluator(&scope).is_true() {
-      value
-    } else {
-      value_null!("value '{}' is not allowed", value)
-    }
-  } else {
-    value
+  match av_evaluator {
+    Some(evaluator) if !is_allowed(&value, evaluator) => value_null!("value '{}' is not allowed", arg(&value)),
+    _ => value,
   }
+}
+
+/// The allowed values of a collection, projected onto its elements (DMN 1.6 §7.3.3): the list
+/// when each tested element satisfies them, otherwise a null that names the first one that
+/// does not. `tested` takes the index of an element and the element.
+fn check_each_allowed_value(values: Values, av_evaluator: Option<&Evaluator>, tested: impl Fn(usize, &Value) -> bool) -> Value {
+  match av_evaluator.and_then(|evaluator| values.iter().enumerate().find(|(index, value)| tested(*index, value) && !is_allowed(value, evaluator))) {
+    Some((_, value)) => value_null!("value '{}' is not allowed", arg(value)),
+    None => Value::List(values),
+  }
+}
+
+/// Every element of a collection is tested against its allowed values.
+fn every_element(_: usize, _: &Value) -> bool {
+  true
 }
 
 fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
@@ -91,7 +107,7 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
   fn build_null_evaluator(av_evaluator: Option<Evaluator>) -> ItemDefinitionEvaluatorFn {
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::Null(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
-      _ => value_null!("expected type 'Null', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!("expected type 'Null', actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value)),
     })
   }
 
@@ -99,7 +115,7 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::String(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'string', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!("expected type 'string', actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value)),
     })
   }
 
@@ -107,7 +123,7 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::Number(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'number', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!("expected type 'number', actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value)),
     })
   }
 
@@ -115,7 +131,7 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::Boolean(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'boolean', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!("expected type 'boolean', actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value)),
     })
   }
 
@@ -123,7 +139,7 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::Date(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'date', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!("expected type 'date', actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value)),
     })
   }
 
@@ -131,7 +147,7 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::Time(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'time', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!("expected type 'time', actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value)),
     })
   }
 
@@ -139,7 +155,7 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::DateTime(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'date and time', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!("expected type 'date and time', actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value)),
     })
   }
 
@@ -147,7 +163,11 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::DaysAndTimeDuration(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'days and time duration', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!(
+        "expected type 'days and time duration', actual type is '{}' in value '{}'",
+        arg(&TypeOf(value)),
+        arg(&value)
+      ),
     })
   }
 
@@ -155,7 +175,11 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
     Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| match value {
       Value::YearsAndMonthsDuration(_) => check_allowed_values(value.to_owned(), av_evaluator.as_ref()),
       null @ Value::Null(_) => null.clone(),
-      _ => value_null!("expected type 'years and months duration', actual type is '{}' in value '{}'", value.type_of(), value),
+      _ => value_null!(
+        "expected type 'years and months duration', actual type is '{}' in value '{}'",
+        arg(&TypeOf(value)),
+        arg(&value)
+      ),
     })
   }
   match feel_type {
@@ -173,9 +197,14 @@ fn build_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluat
   }
 }
 
-fn build_referenced_type_evaluator(def_key: DefKey) -> Result<ItemDefinitionEvaluatorFn> {
+fn build_referenced_type_evaluator(def_key: DefKey, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
   Ok(Box::new(move |value: &Value, evaluators: &ItemDefinitionEvaluator| {
-    evaluators.eval(&def_key, value).unwrap_or_else(|| value_null!("no evaluator"))
+    match evaluators.eval(&def_key, value) {
+      // a value the referenced definition rejects keeps its reason, as a simple type passes a null
+      Some(null @ Value::Null(_)) => null,
+      Some(value) => check_allowed_values(value, av_evaluator.as_ref()),
+      None => value_null!("no evaluator"),
+    }
   }))
 }
 
@@ -192,202 +221,42 @@ fn build_component_type_evaluator(item_definition: &DefItemDefinition) -> Result
         if let Some(component_value) = ctx.get_entry(component_name) {
           evaluated_ctx.set_entry(component_name, component_evaluator(component_value, evaluators));
         } else {
-          return value_null!("item definition evaluator (Component): name not found: {} in context: {}", component_name, ctx);
+          return value_null!("item definition evaluator (Component): name not found: {} in context: {}", arg(&component_name), arg(&ctx));
         }
       }
       check_allowed_values(Value::Context(evaluated_ctx), av_evaluator.as_ref())
     } else {
-      value_null!("item definition evaluator (Component): expected context value, actual value is: {}", value)
+      value_null!("item definition evaluator (Component): expected context value, actual value is: {}", arg(&value))
     }
   }))
 }
 
 fn build_collection_of_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-  fn build_any_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        check_allowed_values(Value::List(values.clone()), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_null_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Null(_) = item_value {
-            evaluated_values.push(item_value.clone());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected null");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected null")
-      }
-    }))
-  }
-
-  fn build_string_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::String(_) = item_value {
-            evaluated_values.push(item_value.clone());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected string");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_number_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Number(_) = item_value {
-            evaluated_values.push(item_value.clone());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected number");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_boolean_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Boolean(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected boolean");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_date_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Date(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected date");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_time_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Time(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected time");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_date_and_time_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::DateTime(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected date and time");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_days_and_time_duration_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::DaysAndTimeDuration(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected days and time duration");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_months_and_years_duration_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::YearsAndMonthsDuration(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected months and years duration");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-  // build evaluator based on FEEL type
-  match feel_type {
-    FeelType::Any => build_any_evaluator(av_evaluator),
-    FeelType::Null => build_null_evaluator(av_evaluator),
-    FeelType::String => build_string_evaluator(av_evaluator),
-    FeelType::Number => build_number_evaluator(av_evaluator),
-    FeelType::Boolean => build_boolean_evaluator(av_evaluator),
-    FeelType::Date => build_date_evaluator(av_evaluator),
-    FeelType::Time => build_time_evaluator(av_evaluator),
-    FeelType::DateTime => build_date_and_time_evaluator(av_evaluator),
-    FeelType::DaysAndTimeDuration => build_days_and_time_duration_evaluator(av_evaluator),
-    FeelType::YearsAndMonthsDuration => build_months_and_years_duration_evaluator(av_evaluator),
-    _ => Err(err_unsupported_feel_type(feel_type, "b")),
-  }
+  // the test of each element and the name of the element type in the message
+  let (is_element, element_type): (fn(&Value) -> bool, &'static str) = match feel_type {
+    FeelType::Any => (|_| true, "Any"),
+    FeelType::Null => (|value| matches!(value, Value::Null(_)), "null"),
+    FeelType::String => (|value| matches!(value, Value::String(_)), "string"),
+    FeelType::Number => (|value| matches!(value, Value::Number(_)), "number"),
+    FeelType::Boolean => (|value| matches!(value, Value::Boolean(_)), "boolean"),
+    FeelType::Date => (|value| matches!(value, Value::Date(_)), "date"),
+    FeelType::Time => (|value| matches!(value, Value::Time(_)), "time"),
+    FeelType::DateTime => (|value| matches!(value, Value::DateTime(_)), "date and time"),
+    FeelType::DaysAndTimeDuration => (|value| matches!(value, Value::DaysAndTimeDuration(_)), "days and time duration"),
+    FeelType::YearsAndMonthsDuration => (|value| matches!(value, Value::YearsAndMonthsDuration(_)), "months and years duration"),
+    _ => return Err(err_unsupported_feel_type(feel_type, "b")),
+  };
+  // a value that is no list is reported as a list expected, except by a collection of nulls
+  let expected_list = if element_type == "null" { "null" } else { "list" };
+  Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
+    let Value::List(values) = value else {
+      return value_null!("item definition evaluator (CollectionOfSimpleType): expected {}", expected_list);
+    };
+    if !values.iter().all(is_element) {
+      return value_null!("item definition evaluator (CollectionOfSimpleType): expected {}", element_type);
+    }
+    check_each_allowed_value(values.clone(), av_evaluator.as_ref(), every_element)
+  }))
 }
 
 fn build_collection_of_referenced_type_evaluator(def_key: DefKey, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
@@ -401,9 +270,12 @@ fn build_collection_of_referenced_type_evaluator(def_key: DefKey, av_evaluator: 
           return value_null!("no evaluator defined for type reference '{}'", def_key);
         }
       }
-      check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
+      // an element the referenced definition rejects (a null made of a value that is not null)
+      // keeps its reason, as a referenced type does; every other element, a null one included,
+      // is tested
+      check_each_allowed_value(evaluated_values, av_evaluator.as_ref(), |index, value| !value.is_null() || values[index].is_null())
     } else {
-      value_null!("expected list, actual type is '{}' in value '{}'", value.type_of(), value)
+      value_null!("expected list, actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value))
     }
   }))
 }
@@ -424,17 +296,17 @@ fn build_collection_of_component_type_evaluator(item_definition: &DefItemDefinit
             if let Some(component_value) = ctx.get_entry(component_name) {
               evaluated_ctx.set_entry(component_name, component_evaluator(component_value, evaluators));
             } else {
-              return value_null!("name '{}' not found in context '{}'", component_name, ctx);
+              return value_null!("name '{}' not found in context '{}'", arg(&component_name), arg(&ctx));
             }
           }
           evaluated_values.push(Value::Context(evaluated_ctx))
         } else {
-          return value_null!("expected context, actual type is '{}' in value '{}'", item_value.type_of(), item_value);
+          return value_null!("expected context, actual type is '{}' in value '{}'", arg(&TypeOf(item_value)), arg(&item_value));
         }
       }
-      check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
+      check_each_allowed_value(evaluated_values, av_evaluator.as_ref(), every_element)
     } else {
-      value_null!("expected list, actual type is '{}' in value '{}'", value.type_of(), value)
+      value_null!("expected list, actual type is '{}' in value '{}'", arg(&TypeOf(value)), arg(&value))
     }
   }))
 }
@@ -483,6 +355,32 @@ mod tests {
     assert_eq!(
       value_null!("expected type 'string', actual type is 'number' in value '12000'"),
       evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), value).unwrap()
+    );
+  }
+
+  #[test]
+  fn a_long_value_of_the_wrong_type_is_quoted_as_a_preview() {
+    let evaluator = build_evaluator(DMN_0101);
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), "{ Customer Name : for i in 1..1000 return i }").unwrap();
+    let value = context.get_entry(&Name::new(&["Customer", "Name"])).unwrap();
+    let list = "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, ";
+    let expected = format!("expected type 'string', actual type is 'list<number>' in value '{list}… (1000 items)'");
+    assert_eq!(Value::Null(Some(expected)), evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), value).unwrap());
+  }
+
+  #[test]
+  fn a_wide_context_of_the_wrong_type_is_quoted_as_a_preview() {
+    let evaluator = build_evaluator(DMN_0101);
+    let mut wide = FeelContext::default();
+    for i in 0..10_000 {
+      wide.set_entry(&Name::from(format!("entry{i}")), value_number!(i));
+    }
+    let actual_type = "context<entry0: number, entry1: number, entry10: number, entry100: number, entry1000: number, entry1001: number, entry10";
+    let actual_value = "{entry0: 0, entry1: 1, entry10: 10, entry100: 100, entry1000: 1000, entry1001: 1001, entry1002: 1002, entry1003: 1003, e";
+    let expected = format!("expected type 'string', actual type is '{actual_type}… (10000 entries)' in value '{actual_value}… (10000 entries)'");
+    assert_eq!(
+      Value::Null(Some(expected)),
+      evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), &Value::Context(wide)).unwrap()
     );
   }
 
@@ -587,7 +485,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Growth", "Duration"])).unwrap();
     assert_eq!(
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 5)),
+      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 5).unwrap()),
       evaluator.eval(&DefKey::new(NAMESPACE, "tGrowthDuration"), value).unwrap()
     );
   }
@@ -729,8 +627,8 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     let value = context.get_entry(&Name::new(&["Items"])).unwrap();
     let expected = Value::List(vec![
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3)),
-      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 4)),
+      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap()),
+      Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 4).unwrap()),
     ]);
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value).unwrap());
   }
@@ -765,5 +663,86 @@ mod tests {
     ctx_3.set_entry(&"manager".into(), Value::String("Bob".into()));
     let expected = Value::List(vec![Value::Context(ctx_1), Value::Context(ctx_2), Value::Context(ctx_3)]);
     assert_eq!(Some(expected), evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value));
+  }
+
+  /// A collection of a simple type names what it expected: a list for a value that is no list
+  /// (the collection of nulls says null), and the element type for an element of another type;
+  /// `Any` takes every element.
+  #[test]
+  fn a_collection_of_a_simple_type_names_what_it_expected() {
+    use rheon_feel::FeelType;
+    let evaluators = ItemDefinitionEvaluator::default();
+    let expected = |text: &str| Value::Null(Some(format!("item definition evaluator (CollectionOfSimpleType): expected {text}")));
+    let cases = [
+      (FeelType::Any, "list", None),
+      (FeelType::Null, "null", Some("null")),
+      (FeelType::String, "list", Some("string")),
+      (FeelType::Number, "list", Some("number")),
+      (FeelType::Boolean, "list", Some("boolean")),
+      (FeelType::Date, "list", Some("date")),
+      (FeelType::Time, "list", Some("time")),
+      (FeelType::DateTime, "list", Some("date and time")),
+      (FeelType::DaysAndTimeDuration, "list", Some("days and time duration")),
+      (FeelType::YearsAndMonthsDuration, "list", Some("months and years duration")),
+    ];
+    for (feel_type, not_a_list, element) in cases {
+      let evaluator = super::build_collection_of_simple_type_evaluator(feel_type.clone(), None).unwrap();
+      assert_eq!(expected(not_a_list), evaluator(&value_number!(1), &evaluators), "{feel_type:?}");
+      let list = Value::List(vec![Value::Context(FeelContext::default())]);
+      let result = evaluator(&list, &evaluators);
+      match element {
+        Some(element) => assert_eq!(expected(element), result, "{feel_type:?}"),
+        None => assert_eq!(list, result, "{feel_type:?}"),
+      }
+      assert_eq!(Value::List(vec![]), evaluator(&Value::List(vec![]), &evaluators), "{feel_type:?}");
+    }
+    assert!(super::build_collection_of_simple_type_evaluator(FeelType::Context(Default::default()), None).is_err());
+  }
+
+  /// DMN 1.6 §7.3.3: "An ItemDefinition element may restrict the values that are allowed from
+  /// typeRef, using the allowedValues attribute", also when the typeRef names another item
+  /// definition. A value the referenced definition rejects keeps that definition's reason.
+  #[test]
+  fn an_item_definition_that_references_another_keeps_its_allowed_values() {
+    let evaluator = build_evaluator(DMN_0701);
+    let def_key = DefKey::new(NAMESPACE, "tSmall");
+    assert_eq!(
+      Some(Value::Null(Some("value '11' is not allowed".to_string()))),
+      evaluator.eval(&def_key, &value_number!(11))
+    );
+    assert_eq!(Some(value_number!(5)), evaluator.eval(&def_key, &value_number!(5)));
+    let base_reason = "expected type 'number', actual type is 'string' in value '\"x\"'";
+    assert_eq!(Some(Value::Null(Some(base_reason.to_string()))), evaluator.eval(&def_key, &Value::String("x".into())));
+  }
+
+  /// DMN 1.6 §7.3.3: "In cases where the isCollection attribute of an ItemDefinition is true,
+  /// each element of the collection must satisfy the UnaryTests of the allowedValues, i.e. the
+  /// allowedValues are projected onto the collection elements", for a collection of a simple
+  /// type, of a referenced type and of a type with components.
+  #[test]
+  fn allowed_values_are_tested_against_each_element_of_a_collection() {
+    let evaluator = build_evaluator(DMN_0702);
+    let eval = |type_ref: &str, value: &str| {
+      let context = rheon_feel_evaluator::evaluate_context(&Default::default(), &format!("{{value: {value}}}")).unwrap();
+      let value = context.get_entry(&Name::from("value")).unwrap();
+      evaluator.eval(&DefKey::new(NAMESPACE, type_ref), value).unwrap().to_string()
+    };
+    assert_eq!(r#"["A"]"#, eval("tCodes", r#"["A"]"#));
+    assert_eq!(r#"["A", "B", "A"]"#, eval("tCodes", r#"["A", "B", "A"]"#));
+    assert_eq!(r#"null(value '"C"' is not allowed)"#, eval("tCodes", r#"["A", "C"]"#));
+    assert_eq!("[]", eval("tCodes", "[]"));
+    assert_eq!(r#"["A"]"#, eval("tLetters", r#"["A"]"#));
+    assert_eq!(r#"null(value '"C"' is not allowed)"#, eval("tLetters", r#"["A", "C"]"#));
+    assert_eq!("[]", eval("tLetters", "[]"));
+    // an element the referenced definition rejects keeps its reason
+    assert_eq!(
+      r#"["A", null(expected type 'string', actual type is 'number' in value '1')]"#,
+      eval("tLetters", r#"["A", 1]"#)
+    );
+    // a null element is tested like any other element
+    assert_eq!("null(value 'null' is not allowed)", eval("tLetters", r#"["A", null]"#));
+    assert_eq!(r#"[{code: "A"}]"#, eval("tEntries", r#"[{code: "A"}]"#));
+    assert_eq!(r#"null(value '{code: "C"}' is not allowed)"#, eval("tEntries", r#"[{code: "A"}, {code: "C"}]"#));
+    assert_eq!("[]", eval("tEntries", "[]"));
   }
 }

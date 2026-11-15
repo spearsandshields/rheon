@@ -2,7 +2,9 @@
 
 use crate::context::FeelContext;
 use crate::errors::*;
+use crate::message::{MessageArg, Size, arg};
 use crate::names::Name;
+use crate::strings::write_separated;
 use crate::value_null;
 use crate::values::Value;
 use dsntk_common::{DsntkError, Result};
@@ -81,25 +83,12 @@ impl fmt::Display for FeelType {
     match self {
       FeelType::Any => write!(f, "{FEEL_TYPE_NAME_ANY}"),
       FeelType::Boolean => write!(f, "{FEEL_TYPE_NAME_BOOLEAN}"),
-      FeelType::Context(entries) => {
-        let entries_str = entries
-          .iter()
-          .map(|(entry_name, entry_type)| format!("{entry_name}: {entry_type}"))
-          .collect::<Vec<String>>()
-          .join(", ");
-        write!(f, "context<{entries_str}>",)
-      }
+      FeelType::Context(entries) => write_context_type(f, entries),
       FeelType::Date => write!(f, "{FEEL_TYPE_NAME_DATE}"),
       FeelType::DateTime => write!(f, "{FEEL_TYPE_NAME_DATE_AND_TIME}"),
       FeelType::DaysAndTimeDuration => write!(f, "{FEEL_TYPE_NAME_DAYS_AND_TIME_DURATION}"),
-      FeelType::Function(parameter_types, result_type) => {
-        let parameter_types_str = parameter_types.iter().map(|parameter_type| format!("{parameter_type}")).collect::<Vec<String>>().join(", ");
-        let result_type_str = result_type.to_string();
-        write!(f, "function<{parameter_types_str}>->{result_type_str}")
-      }
-      FeelType::List(item_type) => {
-        write!(f, "list<{item_type}>")
-      }
+      FeelType::Function(parameter_types, result_type) => write_function_type(f, parameter_types, result_type),
+      FeelType::List(item_type) => write_list_type(f, item_type),
       FeelType::Null => write!(f, "{FEEL_TYPE_NAME_NULL}"),
       FeelType::Number => write!(f, "{FEEL_TYPE_NAME_NUMBER}"),
       FeelType::Range(range_type) => {
@@ -109,6 +98,43 @@ impl fmt::Display for FeelType {
       FeelType::Time => write!(f, "{FEEL_TYPE_NAME_TIME}"),
       FeelType::YearsAndMonthsDuration => write!(f, "{FEEL_TYPE_NAME_YEARS_AND_MONTHS_DURATION}"),
     }
+  }
+}
+
+/// Writes a context type, `context<a: number, b: string>`, from its entries' names and types.
+pub(crate) fn write_context_type<N: fmt::Display, T: fmt::Display>(f: &mut fmt::Formatter<'_>, entries: impl IntoIterator<Item = (N, T)>) -> fmt::Result {
+  f.write_str("context<")?;
+  write_separated(f, entries, |f, (entry_name, entry_type)| write!(f, "{entry_name}: {entry_type}"))?;
+  f.write_str(">")
+}
+
+/// Writes a list type, `list<number>`, from its item type.
+pub(crate) fn write_list_type(f: &mut fmt::Formatter<'_>, item_type: impl fmt::Display) -> fmt::Result {
+  write!(f, "list<{item_type}>")
+}
+
+/// Writes a function type, `function<number, string>->boolean`, from its parameter and result types.
+pub(crate) fn write_function_type<T: fmt::Display>(f: &mut fmt::Formatter<'_>, parameter_types: impl IntoIterator<Item = T>, result_type: impl fmt::Display) -> fmt::Result {
+  f.write_str("function<")?;
+  write_separated(f, parameter_types, |f, parameter_type| write!(f, "{parameter_type}"))?;
+  write!(f, ">->{result_type}")
+}
+
+impl MessageArg for FeelType {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fmt::Display::fmt(self, f)
+  }
+
+  fn size(&self) -> Option<Size> {
+    match self {
+      FeelType::Context(entries) => Some(Size::Entries(entries.len())),
+      _ => None,
+    }
+  }
+
+  /// The name of a type of no other types is short.
+  fn is_short(&self) -> bool {
+    !matches!(self, FeelType::Context(_) | FeelType::Function(_, _) | FeelType::List(_) | FeelType::Range(_))
   }
 }
 
@@ -168,7 +194,7 @@ impl FeelType {
     if actual_value.is_conformant(self) {
       self.get_value_checked(actual_value).unwrap()
     } else {
-      value_null!("type '{}' is not conformant with value '{}'", self.to_string(), actual_value)
+      value_null!("type '{}' is not conformant with value '{}'", arg(self), arg(actual_value))
     }
   }
 
@@ -254,7 +280,7 @@ impl FeelType {
       }
       _ => {}
     }
-    Err(err_invalid_value_for_retrieving_using_feel_type(&self.to_string(), &value.to_string()))
+    Err(err_invalid_value_for_retrieving_using_feel_type(self, value))
   }
 
   /// Returns `true` when this type is a simple FEEL type.

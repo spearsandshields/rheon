@@ -73,7 +73,7 @@ fn test_0014() {
 
 #[test]
 fn test_0015() {
-  te_number_x(false, &scope!(), "3 ** (4 ** 5)", "3.733918487410200435329597541848665E+488");
+  te_number_x(false, &scope!(), "3 ** (4 ** 5)", "3.733918487410200435329597541848666E+488");
 }
 
 #[test]
@@ -117,6 +117,40 @@ fn test_0023() {
     false,
     &scope!(),
     r#"4 ** 10000000000000000000000000000000000000000"#,
-    r#"exponentiation result is not a finite number"#,
+    r#"exponentiation exponent is out of range -999999999..999999999"#,
   );
+  te_null(false, &scope!(), r#"4 ** 999999999"#, r#"exponentiation result is not a finite number"#);
+}
+
+#[test]
+fn an_exponent_outside_the_range_gives_null() {
+  // DMN 1.6 Table 61: "value(e2) is a number in the range [-999,999,999..999,999,999]", for
+  // every base, also where the power would not depend on the exponent
+  for expression in [
+    "1 ** 1e10",
+    "(-1) ** 1e10",
+    "0.5 ** 1e10",
+    "2 ** 1e10",
+    "1 ** 1000000000",
+    "1 ** -1000000000",
+    "1 ** 1000000000.5",
+    "1 ** 999999999.5",
+    "0 ** 1000000000",
+    "2 ** -1e6144",
+  ] {
+    te_null(false, &scope!(), expression, r#"exponentiation exponent is out of range -999999999..999999999"#);
+  }
+  te_number(false, &scope!(), "1 ** 999999999", 1, 0);
+  te_number(false, &scope!(), "1 ** -999999999", 1, 0);
+  te_number(false, &scope!(), "(-1) ** 999999999", -1, 0);
+  te_number(false, &scope!(), "1 ** 999999998.5", 1, 0);
+  te_number(false, &scope!(), "0 ** 0", 1, 0);
+}
+
+#[test]
+fn a_null_operand_of_an_exponentiation_is_an_error() {
+  // DMN 1.6 Table 61: the input domain is "type(e1) is number. value(e2) is a number"; the official
+  // TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_exponent_lhs_null_exp_rhs_number and the others)
+  te_null_operands("exponentiation", "**");
 }

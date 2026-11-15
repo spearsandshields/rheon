@@ -11,19 +11,12 @@ homepage = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
 
-[features]
-default = ["dashu"]
-# Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
-# Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["rheon-feel/dashu", "rheon-feel-parser/dashu", "rheon-feel-temporal/dashu"]
-intel = ["rheon-feel/intel", "rheon-feel-parser/intel", "rheon-feel-temporal/intel"]
-
 [dependencies]
-regex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 dsntk-common = { workspace = true }
 rheon-feel = { workspace = true }
+rheon-feel-number = { workspace = true }
 rheon-feel-parser = { workspace = true }
 rheon-feel-regex = { workspace = true }
 rheon-feel-temporal = { workspace = true }

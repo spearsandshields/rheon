@@ -137,3 +137,12 @@ fn test_0023() {
   let scope = &te_scope("{}");
   te_bool(false, scope, "((1 < 2) or (3 > 1)) or false", true);
 }
+
+/// DMN 1.6 Table 51: `or` is a total function, "the input can be true, false, or otherwise", and
+/// the table gives null for an operand that is no boolean unless the other operand decides
+/// (`true or x` is true); a null the specification defines is no error.
+#[test]
+fn a_disjunction_with_a_non_boolean_operand_is_a_null_without_an_error() {
+  te_errors(r#"false or "x""#, "null", &[]);
+  te_errors("1 or 1", "null", &[]);
+}

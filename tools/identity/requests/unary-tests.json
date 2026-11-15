@@ -1,0 +1,22 @@
+[
+  {"op":"evaluate","dialect":"unaryTests","expression":"< d.year","input":2000,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"<= d.year","input":2020,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"= d.year","input":2020,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"!= d.year","input":2020,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":">= d.year","input":2021,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"> d.year","input":2021,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"> r.start","input":20,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"< r.end","input":5,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"> r.start, < r.end","input":5,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"d.year","input":2020,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"< d.month","input":3,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","dialect":"unaryTests","expression":"< d.x","input":1,"contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"< d.year","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"> r.start","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"(< d.year)","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"(> r).start","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"(< 1).end","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"(>= 1).start included","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"< 1.start","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"},
+  {"op":"evaluate","expression":"> d.year.x","contextFormat":"feel","context":"{d: date(\"2020-06-15\"), r: [1..10]}"}
+]

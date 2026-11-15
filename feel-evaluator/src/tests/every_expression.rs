@@ -30,7 +30,7 @@ fn _0005() {
   let node = AstNode::Every(Box::new(AstNode::Name("n".into())), Box::new(AstNode::Name("n".into())));
   assert_eq!(
     r#"null(expected AST node QuantifiedContexts, actual AST node is Name(Name("n")))"#,
-    crate::evaluate(&scope, &node).to_string()
+    crate::tests::eval(&scope, &node).to_string()
   );
 }
 
@@ -39,8 +39,8 @@ fn _0006() {
   let scope = FeelScope::default();
   let node = AstNode::Every(Box::new(AstNode::QuantifiedContexts(vec![])), Box::new(AstNode::Name("n".into())));
   assert_eq!(
-    r#"null(expected AST node Satisfies, actual AST node is QuantifiedContexts([]))"#,
-    crate::evaluate(&scope, &node).to_string()
+    r#"null(expected AST node Satisfies, actual AST node is Name(Name("n")))"#,
+    crate::tests::eval(&scope, &node).to_string()
   );
 }
 
@@ -69,12 +69,21 @@ fn _0009() {
     scope.pop();
     Value::Boolean(true)
   });
-  let mut evaluator = crate::EveryExpressionEvaluator::for_feel();
-  evaluator.add_list("i".into(), Value::List(vec![Value::Boolean(true), Value::Boolean(false)]));
+  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)]))));
+  let evaluator = crate::Iteration::for_feel(vec![("i".into(), booleans)]);
   let depth = scope.depth();
   assert_eq!(
     Value::Null(Some("internal error: the evaluation removed the iteration context of a `every` expression".to_string())),
-    evaluator.evaluate(scope, &popping)
+    evaluator.every(scope, &popping)
   );
   assert_eq!(depth, scope.depth());
+}
+
+/// DMN 1.6 §10.3.2.15 defines the iteration of `every` as that of `for`: a context is evaluated
+/// with the variables before it bound, and a context without elements contributes no iteration.
+#[test]
+fn a_quantified_context_sees_the_variables_bound_before_it() {
+  te_errors("every x in [[1,2],[3]], y in x satisfies y > 0", "true", &[]);
+  te_errors("every x in [[1,2],[-3]], y in x satisfies y > 0", "false", &[]);
+  te_errors("every x in [[],[1]], y in x satisfies y > 0", "true", &[]);
 }

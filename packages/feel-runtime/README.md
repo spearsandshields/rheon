@@ -84,7 +84,7 @@ feel.call('{"op":"info"}'); // a string is sent verbatim
 - For `evaluate` requests, `env.tzOffsetMinutes` is applied when the request has no offset of its own. It defaults to the host offset; set it to `null` to disable.
 - A trap returns `{ ok: false, error: { kind: 'crash' } }` and the instance is re-created synchronously, with the module reused.
 - **Trusted input only.** There is no timeout in-thread: a runaway expression blocks the calling thread (in a server, the event loop) until it finishes. Use `FeelEngine` for untrusted or long-running input.
-- **Stack.** On Node's main thread (about 1 MiB of stack) a recursion of 190 calls traps once its body is nested more than 14 to 17 levels; in a worker with Node's default 4 MiB stack the body can be nested 64 levels (CONTRACT §1). Run deeply nested input in a worker.
+- **Stack.** On Node's main thread (about 1 MiB of stack) a recursion of 190 calls traps once its body is nested more than 14 to 18 levels; in a worker with Node's default 4 MiB stack the body can be nested 69 levels (CONTRACT §1). Run deeply nested input in a worker.
 - `env.recycleMemoryBytes` (default 256 MiB): the instance is re-created after a call that left its memory larger (wasm memory never shrinks).
 
 ## Known limits (from the core)

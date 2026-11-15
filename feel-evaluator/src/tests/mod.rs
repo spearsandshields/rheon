@@ -25,6 +25,7 @@ mod descendant;
 mod disjunction;
 mod division;
 mod empty_input;
+mod evaluation;
 mod every_expression;
 mod exponentiation;
 mod external_functions;
@@ -48,6 +49,7 @@ mod nested_lists;
 mod out_operator;
 mod parentheses;
 mod path;
+mod previews;
 mod properties;
 mod range;
 mod satisfies;
@@ -61,6 +63,92 @@ mod various;
 const SECONDS_IN_DAY: i64 = 86_400;
 const SECONDS_IN_HOUR: i64 = 3_600;
 const SECONDS_IN_MINUTE: i64 = 60;
+
+/// Evaluates `node` in its own session; a stopped evaluation fails the test with its abort.
+pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {
+  crate::evaluate(scope, node).into_result().unwrap_or_else(|abort| panic!("evaluation stopped: {abort}"))
+}
+
+/// Evaluates `text` in an empty scope while collecting its diagnostics.
+fn te_collect(text: &str) -> (Value, rheon_feel::diagnostics::Diagnostics) {
+  let scope = FeelScope::default();
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
+  rheon_feel::diagnostics::collect(|| evaluator(&scope))
+}
+
+/// Asserts that evaluating `text` gives a value whose text is `expected`, with exactly the
+/// warnings `warnings` and no error.
+pub fn te_warnings(text: &str, expected: &str, warnings: &[&str]) {
+  let (value, diagnostics) = te_collect(text);
+  assert_eq!(expected, value.to_string(), "{text}");
+  assert_eq!(warnings, diagnostics.warnings(), "{text}");
+  assert_eq!(0, diagnostics.count, "{text}");
+}
+
+/// Asserts that evaluating `text` gives a value whose text is `expected`, with exactly the
+/// errors `errors` counted and listed (DMN 1.6 §7.3.8): a null that the specification defines
+/// for its input is no error.
+pub fn te_errors(text: &str, expected: &str, errors: &[&str]) {
+  let (value, diagnostics) = te_collect(text);
+  assert_eq!(expected, value.to_string(), "{text}");
+  assert_eq!(errors, diagnostics.messages, "{text}");
+  assert_eq!(errors.len(), diagnostics.count, "{text}");
+}
+
+/// Asserts that a null on either side of the binary arithmetic operator `symbol`, beside a value of
+/// every kind, is an error (DMN 1.6, before Table 57 and before Table 59: "if input values are not
+/// of the listed types, the result is null"; the official TCK expects an error result for every
+/// such operation, compliance-level-3/0100-arithmetic): the value is null, its reason
+/// `[<name>] incompatible types: <operation>` is counted once, and a failing operand counts its own
+/// error before it.
+pub fn te_null_operands(name: &str, symbol: &str) {
+  for (value, shown) in [
+    ("1", "1"),
+    (r#""a""#, r#""a""#),
+    (r#"@"2020-01-01""#, "2020-01-01"),
+    (r#"@"2020-01-01T10:00:00""#, "2020-01-01T10:00:00"),
+    (r#"@"10:00:00""#, "10:00:00"),
+    (r#"@"P1D""#, "P1D"),
+    (r#"@"P1Y""#, "P1Y"),
+    ("true", "true"),
+    ("[1]", "[1]"),
+    ("{a: 1}", "{a: 1}"),
+    ("[1..2]", "[1..2]"),
+    ("null", "null"),
+  ] {
+    let reason = format!("[{name}] incompatible types: {shown} {symbol} null");
+    te_errors(&format!("{value} {symbol} null"), &format!("null({reason})"), &[&reason]);
+    let reason = format!("[{name}] incompatible types: null {symbol} {shown}");
+    te_errors(&format!("null {symbol} {value}"), &format!("null({reason})"), &[&reason]);
+  }
+  let division_by_zero = "[division] division by zero";
+  let reason = format!(r#"[{name}] incompatible types: "a" {symbol} null({division_by_zero})"#);
+  te_errors(&format!(r#""a" {symbol} (1/0)"#), &format!("null({reason})"), &[division_by_zero, &reason]);
+  let reason = format!(r#"[{name}] incompatible types: null({division_by_zero}) {symbol} "a""#);
+  te_errors(&format!(r#"(1/0) {symbol} "a""#), &format!("null({reason})"), &[division_by_zero, &reason]);
+}
+
+/// The warning that the seconds of `literal` lost the fraction digits `dropped`.
+pub fn truncation_warning(literal: &str, dropped: &str) -> String {
+  format!("fractional seconds of '{literal}' truncated to nanoseconds; dropped digits: '{dropped}'")
+}
+
+/// Asserts that evaluating `text` in `dialect` stops the evaluation, with `message`.
+pub fn te_aborted(text: &str, dialect: crate::Dialect, message: &str) {
+  let scope = FeelScope::default();
+  let evaluator = crate::prepare_with_dialect(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap(), dialect);
+  let outcome = crate::Session::new().run(|| evaluator(&scope)).into_result();
+  assert_eq!(
+    Err(message.to_string()),
+    outcome.map(|value| value.to_string()).map_err(|abort| abort.to_string()),
+    "{text}"
+  );
+}
+
+/// A pattern of `levels` nested groups around `a`.
+pub fn nested_groups(levels: usize) -> String {
+  format!("{}a{}", "(".repeat(levels), ")".repeat(levels))
+}
 
 /// Utility function that tests evaluation of boolean value.
 pub fn te_bool(trace: bool, scope: &FeelScope, s: &str, expected: bool) {
@@ -95,7 +183,7 @@ pub fn te_date_time_offset(trace: bool, scope: &FeelScope, s: &str, date: (Year,
 pub fn te_scope(input: &str) -> FeelScope {
   let scope = FeelScope::default();
   match rheon_feel_parser::parse_context(&scope, input, false) {
-    Ok(node) => match crate::evaluate(&scope, &node) {
+    Ok(node) => match eval(&scope, &node) {
       Value::Context(ctx) => ctx.into(),
       other => {
         println!("ERROR (INVALID VALUE TYPE): {other}");
@@ -136,7 +224,7 @@ fn te_string(trace: bool, scope: &FeelScope, s: &str, expected: &str) {
 
 /// Utility function that tests evaluation of year and months duration.
 pub fn te_years_and_months_duration(trace: bool, scope: &FeelScope, s: &str, years: i64, months: i64) {
-  textual_expression(trace, scope, s, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(years, months)));
+  textual_expression(trace, scope, s, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(years, months).unwrap()));
 }
 
 /// Utility function that tests evaluation of year and months duration.
@@ -151,9 +239,9 @@ pub fn te_days_and_time_duration(trace: bool, scope: &FeelScope, s: &str, neg: b
     scope,
     s,
     Value::DaysAndTimeDuration(if neg {
-      -FeelDaysAndTimeDuration::from_sn(sec, nano)
+      -FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap()
     } else {
-      FeelDaysAndTimeDuration::from_sn(sec, nano)
+      FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap()
     }),
   );
 }
@@ -200,7 +288,7 @@ pub fn te_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
 pub fn te_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
   match rheon_feel_parser::parse_expression(scope, expected, false) {
     Ok(node) => {
-      textual_expression(trace, scope, actual, crate::evaluate(scope, &node));
+      textual_expression(trace, scope, actual, eval(scope, &node));
     }
     Err(reason) => {
       println!("ERROR (REASON): {reason}");
@@ -213,7 +301,7 @@ pub fn te_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str)
 pub fn be_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
   match rheon_feel_parser::parse_boxed_expression(scope, expected, trace) {
     Ok(node) => {
-      boxed_expression(trace, scope, actual, crate::evaluate(scope, &node));
+      boxed_expression(trace, scope, actual, eval(scope, &node));
     }
     Err(reason) => {
       println!("ERROR (REASON): {reason}");
@@ -228,7 +316,7 @@ pub fn be_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str)
 pub fn boxed_expression(trace: bool, scope: &FeelScope, text: &str, expected: Value) {
   match rheon_feel_parser::parse_boxed_expression(scope, text, trace) {
     Ok(node) => {
-      assert_eq!(crate::evaluate(scope, &node), expected);
+      assert_eq!(eval(scope, &node), expected);
     }
     Err(reason) => {
       println!("ERROR: {reason}");
@@ -279,7 +367,7 @@ pub fn satisfies(trace: bool, scope: &FeelScope, input_expression: &str, input_v
   } else {
     AstNode::In(Box::new(input_expression_node), Box::new(input_entry_node))
   };
-  assert_eq!(crate::evaluate(scope, &node), Value::Boolean(expected));
+  assert_eq!(eval(scope, &node), Value::Boolean(expected));
 }
 
 pub fn satisfies_null(trace: bool, scope: &FeelScope, input_expression: &str, input_values: &str, input_entry: &str, expected: &str) {
@@ -293,7 +381,7 @@ pub fn satisfies_null(trace: bool, scope: &FeelScope, input_expression: &str, in
   } else {
     AstNode::In(Box::new(input_expression_node), Box::new(input_entry_node))
   };
-  assert_eq!(crate::evaluate(scope, &node), Value::Null(Some(expected.to_string())));
+  assert_eq!(eval(scope, &node), Value::Null(Some(expected.to_string())));
 }
 
 /// Utility function for testing if parsed `expression` evaluates to [FeelDateTime]

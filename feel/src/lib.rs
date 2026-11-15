@@ -13,6 +13,7 @@ pub mod dto;
 mod errors;
 mod evaluator;
 mod function;
+pub mod message;
 mod names;
 mod qualified_names;
 mod scope;

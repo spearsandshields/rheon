@@ -112,14 +112,7 @@ fn _0012(b: &mut Bencher) {
 #[bench]
 fn _0013(b: &mut Bencher) {
   let invocable_name = "dateTime_003";
-  assert_decision(
-    &MODEL_EVALUATOR,
-    &MODEL_NAMESPACE,
-    &MODEL_NAME,
-    invocable_name,
-    &CTX,
-    r#""2018-12-10T10:30:00.0001+05:00:01""#,
-  );
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
@@ -140,7 +133,7 @@ fn _0015(b: &mut Bencher) {
 #[bench]
 fn _0016(b: &mut Bencher) {
   let invocable_name = "time_002";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#""10:30:00.0001+05:00:01""#);
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 

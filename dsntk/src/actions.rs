@@ -5,7 +5,9 @@ use crate::errors::{err_create_directory, err_save_file};
 use antex::{ColorMode, StyledText, Text};
 use clap::{Arg, ArgAction, ArgMatches, Command, arg, command, crate_version};
 use dsntk_common::{Jsonify, Result};
+use dsntk_evaluator::Session;
 use rheon_feel::FeelScope;
+use rheon_feel::diagnostics::Abort;
 use rheon_feel::values::Value;
 use rheon_model::{DecisionTable, DmnElement, NamedElement};
 use std::fs;
@@ -813,9 +815,10 @@ fn evaluate_feel_expression(ctx_file_name: &str, feel_file_name: &str) {
     Ok(textual_expression) => match fs::read_to_string(ctx_file_name) {
       Ok(context_definition) => match dsntk_evaluator::evaluate_context(&FeelScope::default(), &context_definition) {
         Ok(ctx) => match rheon_feel_parser::parse_expression(&ctx.clone().into(), &textual_expression, false) {
-          Ok(ast_root_node) => {
-            println!("{}", dsntk_evaluator::evaluate(&ctx.into(), &ast_root_node));
-          }
+          Ok(ast_root_node) => match dsntk_evaluator::evaluate(&ctx.into(), &ast_root_node).into_result() {
+            Ok(value) => println!("{value}"),
+            Err(abort) => eprintln!("evaluating expression failed with reason: {abort}"),
+          },
           Err(reason) => eprintln!("parsing expression failed with reason: {reason}"),
         },
         Err(reason) => eprintln!("evaluating context failed with reason: {reason}"),
@@ -838,7 +841,7 @@ fn test_feel_expression(test_file_name: &str, feel_file_name: &str, summary_only
             let scope = input_data.clone().into();
             match rheon_feel_parser::parse_expression(&scope, &feel_file_content, false) {
               Ok(node) => {
-                let actual = dsntk_evaluator::evaluate(&scope, &node);
+                let actual = dsntk_evaluator::evaluate(&scope, &node).into_result();
                 display_test_case_result(&actual, expected, &test_no, &mut passed, &mut failed, summary_only, cm);
               }
               Err(reason) => eprintln!("parsing expression failed with reason: {reason}"),
@@ -918,8 +921,10 @@ fn evaluate_decision_table(input_file_name: &str, dectab_file_name: &str, dectab
       return;
     }
   };
-  let result = evaluator(&scope);
-  println!("{}", result.jsonify());
+  match Session::new().run(|| evaluator(&scope)).into_result() {
+    Ok(result) => println!("{}", result.jsonify()),
+    Err(abort) => eprintln!("evaluating decision table failed with reason: {abort}"),
+  }
 }
 
 /// Tests decision table loaded from file.
@@ -967,7 +972,7 @@ fn test_decision_table(test_file_name: &str, dectab_file_name: &str, dectab_file
         return;
       }
     };
-    let actual = evaluator(&scope);
+    let actual = Session::new().run(|| evaluator(&scope)).into_result();
     display_test_case_result(&actual, expected, &test_no, &mut passed, &mut failed, summary_only, cm);
   }
   display_test_summary(passed, failed, summary_only, cm);
@@ -1018,10 +1023,10 @@ fn evaluate_dmn_model(input_file_name: &str, dmn_file_name: &str, invocable_name
             let model_namespace = definitions.namespace().to_string();
             let model_name = definitions.name().to_string();
             match dsntk_evaluator::ModelEvaluator::new(&[definitions]) {
-              Ok(model_evaluator) => {
-                let result = model_evaluator.evaluate_invocable(&model_namespace, &model_name, invocable_name, &input_data);
-                println!("{}", result.jsonify())
-              }
+              Ok(model_evaluator) => match model_evaluator.evaluate_invocable(&model_namespace, &model_name, invocable_name, &input_data).into_result() {
+                Ok(result) => println!("{}", result.jsonify()),
+                Err(abort) => eprintln!("evaluating invocable failed with reason: {abort}"),
+              },
               Err(reason) => eprintln!("building model evaluator failed with reason: {reason}"),
             }
           }
@@ -1077,7 +1082,7 @@ fn test_dmn_model(test_file_name: &str, dmn_file_name: &str, invocable_name: &st
   let mut passed = 0_usize;
   let mut failed = 0_usize;
   for (test_no, (input_data, expected)) in test_cases.iter().enumerate() {
-    let actual = model_evaluator.evaluate_invocable(&model_namespace, &model_name, invocable_name, input_data);
+    let actual = model_evaluator.evaluate_invocable(&model_namespace, &model_name, invocable_name, input_data).into_result();
     display_test_case_result(&actual, expected, &test_no, &mut passed, &mut failed, summary_only, cm);
   }
   display_test_summary(passed, failed, summary_only, cm);
@@ -1142,8 +1147,17 @@ fn save_builtin_examples(root_dir: &str) {
 }
 
 /// Utility function for displaying test case result.
-fn display_test_case_result(actual: &Value, expected: &Value, test_no: &usize, passed: &mut usize, failed: &mut usize, summary_only: bool, cm: ColorMode) {
-  if dsntk_evaluator::evaluate_equals(actual, expected) {
+/// A stopped evaluation (an abort) fails the test case, whatever is expected.
+fn display_test_case_result(
+  actual: &std::result::Result<Value, Abort>,
+  expected: &Value,
+  test_no: &usize,
+  passed: &mut usize,
+  failed: &mut usize,
+  summary_only: bool,
+  cm: ColorMode,
+) {
+  if actual.as_ref().is_ok_and(|actual| dsntk_evaluator::evaluate_equals(actual, expected)) {
     *passed += 1;
     if !summary_only {
       println!("{}", Text::new(cm).s("test ").s(test_no + 1).s(" ... ").green().s("ok").reset());
@@ -1153,6 +1167,10 @@ fn display_test_case_result(actual: &Value, expected: &Value, test_no: &usize, p
     if !summary_only {
       println!("{}", Text::new(cm).s("test ").s(test_no + 1).s(" ... ").red().s("FAILED").reset());
       println!("{}", Text::new(cm).s("    expected: ").green().s(expected).reset());
+      let actual = match actual {
+        Ok(value) => value.to_string(),
+        Err(abort) => format!("evaluation stopped: {abort}"),
+      };
       println!("{}", Text::new(cm).s("      actual: ").red().s(actual).reset());
     }
   }

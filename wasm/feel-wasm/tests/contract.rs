@@ -1,7 +1,22 @@
 //! Contract tests (docs/CONTRACT.md §2–3). Run natively (`cargo test -p rheon-feel-wasm`) and under
 //! wasm32-wasip1 via wasmtime (`source scripts/env.sh && cargo test -p rheon-feel-wasm --target wasm32-wasip1`).
+//! The request corpora that must never trap the module are in `corpus/`.
 
 use serde_json::{Value as Json, json};
+
+mod corpus;
+
+/// Runs `body` on a thread with a big stack natively, and directly on wasm32. The nesting and
+/// call-depth limits are sized for the release wasm build in a browser worker; unoptimized native
+/// test builds use much bigger stack frames than that.
+fn with_big_stack(body: fn()) {
+  #[cfg(not(target_arch = "wasm32"))]
+  if let Err(panic) = std::thread::Builder::new().stack_size(512 * 1024 * 1024).spawn(body).unwrap().join() {
+    std::panic::resume_unwind(panic);
+  }
+  #[cfg(target_arch = "wasm32")]
+  body();
+}
 
 /// Sends a raw request text and parses the response.
 fn raw(request: &str) -> Json {
@@ -360,8 +375,6 @@ fn non_finite_results_are_null_not_panic() {
     "sum([9e6144, 9e6144])",
     "mean(9e6144, 9e6144)",
     "product(1e6000, 1e6000)",
-    "modulo(9e6144, 1e-6176)",
-    "modulo(5, 1e-6176)",
     "abs(-9e6144) * 100",
     "string(9e6144 * 10)",
     "{a: 9e6144 * 10}.a",
@@ -376,6 +389,9 @@ fn non_finite_results_are_null_not_panic() {
     assert_eq!(r["isNull"], true, "{e}: {r}");
   }
   assert_eq!(expr("9e6144 + 9e6144")["nullReason"], "result is not a finite number (decimal overflow)");
+  // modulo is exact, so a quotient beyond the range is no overflow (DMN 1.6 Table 77)
+  assert_eq!(display("modulo(9e6144, 1e-6176)"), "0");
+  assert_eq!(display("modulo(5, 1e-6176)"), "0");
   // a value that already has no digit below the requested scale is returned unchanged, even when
   // decimal128 can not hold it at that scale (fork commit 21)
   assert_eq!(display("decimal(1e33, 1)"), format!("1{}", "0".repeat(33)));
@@ -398,10 +414,56 @@ fn zero_with_huge_exponent_is_displayed_as_0() {
   assert_eq!(display("string(0.1E-6176)"), "\"0\"");
   let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","expression":"x","context":{"x":1e-999999999}}"#).unwrap());
   assert_eq!(r["display"], "0");
-  // ordinary zeros keep dsntk's formatting
-  assert_eq!(display("0.000"), "0.000");
-  assert_eq!(display("0 * 1e-10"), "0.000000000");
+  // every zero prints as 0
+  assert_eq!(display("0.000"), "0");
+  assert_eq!(display("0 * 1e-10"), "0");
   assert_eq!(display("0"), "0");
+}
+
+/// A number has one text in `display`, `feel`, `typed` and `string()`: its value in plain digits,
+/// without trailing zeros after the decimal point (DMN 1.6 §10.3.2.3.1: "many different pairs have
+/// the same value"; Table 73: `string(1.1) = "1.1"`).
+#[test]
+fn a_number_has_one_text() {
+  for (expression, text) in [
+    ("1.50", "1.5"),
+    ("1.0", "1"),
+    ("decimal(1, 2)", "1"),
+    ("decimal(0.5, 3)", "0.5"),
+    ("abs(-1.50)", "1.5"),
+    ("0.25 * 2", "0.5"),
+    ("1.10 - 1.10", "0"),
+    ("number(\"1 000 000.00\", \" \", \".\")", "1000000"),
+    ("abs(exp(1e-34))", "1"),
+    ("1.00E+2", "100"),
+  ] {
+    let r = expr(expression);
+    assert_eq!(r["display"], text, "{expression}");
+    assert_eq!(r["feel"], text, "{expression}");
+    assert_eq!(r["typed"]["simple"]["text"], text, "{expression}");
+  }
+  assert_eq!(display("[1.50, {a: 2.0}]"), "[1.5, {\"a\": 2}]");
+  assert_eq!(display("string(1.10)"), "\"1.1\"");
+  assert_eq!(display("string(1.50) = \"1.5\""), "true");
+  assert_eq!(display("string length(string(1.00))"), "1");
+  let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","expression":"x","context":{"x":1.50}}"#).unwrap());
+  assert_eq!(r["display"], "1.5");
+}
+
+/// DMN 1.6 §10.3.2.3.1: "There is no distinction between -0 and 0." A zero never prints with a
+/// minus sign, in any text form.
+#[test]
+fn a_zero_has_no_sign() {
+  for expression in ["-0", "0 * -5", "0 / -5", "-1 + 1", "round half up(-0.4)", "round down(-0.5)", "floor(-0.0)", "sqrt(-0.0)"] {
+    let r = expr(expression);
+    assert_eq!(r["display"], "0", "{expression}");
+    assert_eq!(r["feel"], "0", "{expression}");
+    assert_eq!(r["typed"]["simple"]["text"], "0", "{expression}");
+  }
+  assert_eq!(display("string(-0)"), "\"0\"");
+  assert_eq!(display("string(-0) = \"0\""), "true");
+  let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","expression":"x","context":{"x":-0}}"#).unwrap());
+  assert_eq!(r["display"], "0");
 }
 
 /// sublist / substring / insert before / remove / list replace / filters: positions are converted
@@ -489,6 +551,64 @@ fn time_offset_out_of_range_is_null_not_panic() {
   assert_eq!(display("string(time(1, 2, 3, duration(\"PT2H\")))"), "\"01:02:03+02:00\"");
 }
 
+/// The whole seconds of a duration are a 64-bit number on every target, so an offset of 2^32
+/// seconds or more is out of range on wasm32 as natively, not taken modulo 2^32.
+#[test]
+fn time_offset_beyond_32_bits_is_null() {
+  for (e, reason) in [
+    ("time(10, 0, 0, duration(\"PT4294967296S\"))", "time: offset is out of range: P49710DT6H28M16S"),
+    ("time(10, 0, 0, duration(\"PT4294971296S\"))", "time: offset is out of range: P49710DT7H34M56S"),
+    ("time(10, 0, 0, duration(\"-PT4294967296S\"))", "time: offset is out of range: -P49710DT6H28M16S"),
+  ] {
+    let r = expr(e);
+    assert_eq!(r["isNull"], true, "{e}: {r}");
+    assert_eq!(r["nullReason"], reason, "{e}: {r}");
+  }
+}
+
+/// Fractional seconds are read as an integer of nanoseconds, never through a binary double.
+#[test]
+fn fractional_seconds_are_exact() {
+  assert_eq!(display("time(\"10:00:00.0157\")"), "\"10:00:00.0157\"");
+  assert_eq!(display("@\"2020-01-01T10:00:00.0157Z\""), "\"2020-01-01T10:00:00.0157Z\"");
+  assert_eq!(display("duration(\"PT0.000015839S\")"), "\"PT0.000015839S\"");
+  assert_eq!(display("time(\"10:00:00.99999999999999999\")"), "\"10:00:00.999999999\"");
+}
+
+/// Fraction digits beyond nanoseconds are truncated with a warning that names the literal and the
+/// dropped digits; a warning is no error, so it is not counted and strict mode does not stop.
+#[test]
+fn truncated_fractional_seconds_warn() {
+  let message = "fractional seconds of '10:00:00.1234567891' truncated to nanoseconds; dropped digits: '1'";
+  let response = req(json!({"op": "evaluate", "expression": "time(\"10:00:00.1234567891\")"}));
+  assert_eq!(warnings(&response), [message]);
+  assert_eq!(response["result"]["display"], "\"10:00:00.123456789\"");
+  assert_eq!(response["diagnostics"]["count"], 0);
+  let response = req(json!({"op": "evaluate", "expression": "@\"10:00:00.1234567891\"", "errorMode": "strict"}));
+  assert_eq!(warnings(&response), [message]);
+  let response = req(json!({
+    "op": "evaluate",
+    "expression": "truncated",
+    "contextFormat": "feel",
+    "context": "{truncated: time(\"10:00:00.1234567891\")}",
+  }));
+  assert_eq!(warnings(&response), [message]);
+  let response = req(json!({"op": "evaluate", "expression": "time(\"10:00:00.1234567890\")"}));
+  assert_eq!(warnings(&response), Vec::<&str>::new());
+  let response = req(json!({"op": "evaluate", "expression": "time(10, 0, 0.1234567891)"}));
+  assert_eq!(warnings(&response), ["fractional seconds of '0.1234567891' truncated to nanoseconds; dropped digits: '1'"]);
+}
+
+/// 24:00:00 is midnight only with a zero fraction (XML Schema Part 2 §3.2.7).
+#[test]
+fn a_time_of_day_is_below_24_hours() {
+  for e in ["time(\"24:00:00.5\")", "@\"24:00:00.5\"", "date and time(\"2020-01-01T24:00:00.5Z\")"] {
+    assert_eq!(expr(e)["isNull"], true, "{e}");
+  }
+  assert_eq!(display("time(\"24:00:00\")"), "\"00:00:00\"");
+  assert_eq!(display("date and time(\"2020-12-31T24:00:00.000Z\")"), "\"2021-01-01T00:00:00Z\"");
+}
+
 #[test]
 fn lexer_surrogate_escapes_are_syntax_errors_not_panic() {
   for e in ["\"\\uD800\"", "\"\\uD83D\"", "\"\\uD800x\"", "\"\\uDC00\"", "\"\\uD800\\u0041\""] {
@@ -543,17 +663,7 @@ fn nested_lists_are_typed_in_linear_time() {
 /// the stack (a host-dependent trap on wasm), and runaway recursion stops at a fixed call depth.
 #[test]
 fn nesting_and_recursion_limits() {
-  // The limits are sized for the release wasm build in a browser worker; unoptimized native
-  // test builds use much bigger stack frames than that, so give this test a big stack.
-  #[cfg(not(target_arch = "wasm32"))]
-  std::thread::Builder::new()
-    .stack_size(512 * 1024 * 1024)
-    .spawn(nesting_and_recursion_limits_body)
-    .unwrap()
-    .join()
-    .unwrap();
-  #[cfg(target_arch = "wasm32")]
-  nesting_and_recursion_limits_body();
+  with_big_stack(nesting_and_recursion_limits_body);
 }
 
 fn nesting_and_recursion_limits_body() {
@@ -561,8 +671,8 @@ fn nesting_and_recursion_limits_body() {
   let trailing_operator = format!("1{}+", "+1".repeat(20000));
   for (e, message) in [
     (format!("1{}", "+1".repeat(20000)), too_deep(20001)),
-    // a syntax error is reported before the depth is measured
-    (trailing_operator.clone(), format!("syntax error: {trailing_operator}")),
+    // a syntax error is reported before the depth is measured; it quotes a preview of the input
+    (trailing_operator.clone(), format!("syntax error: {}… (40002 characters)", &trailing_operator[..120])),
     (format!("{}1{}", "[".repeat(5000), "]".repeat(5000)), too_deep(5001)),
     (format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000)), too_deep(6001)),
     (format!("1{}", "+1".repeat(300)), too_deep(301)),
@@ -626,11 +736,9 @@ fn input_messages_name_the_place_of_the_value() {
       r#"{"op": "evaluate", "expression": "?", "dialect": "unaryTests", "input": [1e-7000, {"k": 1e-6177}]}"#
     ))
   );
+  // a number longer than 40 characters is quoted in scientific notation
   assert_eq!(
-    vec![format!(
-      "a[0]: number 1.5e-6176 is too small for a 34-digit decimal and was rounded to 0.{}2",
-      "0".repeat(6175)
-    )],
+    vec!["a[0]: number 1.5e-6176 is too small for a 34-digit decimal and was rounded to 2E-6176"],
     warnings(&raw(r#"{"op": "evaluate", "expression": "x", "context": {"a": [1.5e-6176]}}"#))
   );
   // the context's warnings come before the input's
@@ -701,6 +809,84 @@ fn context_keys_are_trimmed_but_inner_whitespace_is_kept() {
 fn unknown_names_are_null() {
   let r = expr("unknown variable + 1");
   assert_eq!(r["isNull"], true, "{r}");
+}
+
+/// Every message of a response: the error, the null reason, the diagnostics and the warnings.
+fn messages(response: &Json) -> Vec<String> {
+  let mut messages = vec![];
+  for text in [&response["error"]["message"], &response["result"]["nullReason"]] {
+    if let Some(text) = text.as_str() {
+      messages.push(text.to_string());
+    }
+  }
+  for list in [&response["diagnostics"]["messages"], &response["warnings"]] {
+    for item in list.as_array().into_iter().flatten() {
+      messages.push(item.as_str().or_else(|| item["message"].as_str()).unwrap().to_string());
+    }
+  }
+  messages
+}
+
+#[test]
+fn request_echoes_are_previews_and_every_message_is_capped() {
+  let check = |request: Json, kind: &str, message: String| {
+    let response = req(request);
+    assert_error(&response, kind, &message);
+    assert!(messages(&response).iter().all(|m| m.chars().count() <= 1000), "{response}");
+  };
+  let x = "x".repeat(200);
+  check(
+    json!({"op": "evaluate", "expression": "41 + 1", "dialect": x}),
+    "request",
+    format!("invalid 'dialect' \"{}… (200 characters) (expected \"expression\" or \"unaryTests\")", "x".repeat(119)),
+  );
+  check(
+    json!({"op": "y".repeat(300)}),
+    "request",
+    format!("unknown op '{}… (300 characters)' (expected 'evaluate', 'parse' or 'info')", "y".repeat(120)),
+  );
+  check(
+    json!({"op": "evaluate", "expression": "1", "contextFormat": (1..=300).collect::<Vec<_>>()}),
+    "request",
+    format!(
+      "invalid 'contextFormat' [{}… (300 items) (expected \"json\" or \"feel\")",
+      &(1..=300).map(|i| i.to_string()).collect::<Vec<_>>().join(",")[..119]
+    ),
+  );
+  let digits = "7".repeat(1000);
+  let request = format!(r#"{{"op": "evaluate", "expression": "1", "tzOffsetMinutes": {digits}}}"#);
+  let response = raw(&request);
+  assert_error(
+    &response,
+    "request",
+    &format!("'tzOffsetMinutes' must be an integer in -1080..=1080, got {}… (1000 characters)", &digits[..120]),
+  );
+  let key = "k".repeat(2000);
+  let response = req(json!({"op": "evaluate", "expression": "1", "context": {key.clone(): {" ": 1}}}));
+  assert_error(&response, "context", &format!("{}… (2000 characters): empty context key", &key[..120]));
+  // every message quotes a path the same way: a preview and its size
+  let response = raw(&format!(r#"{{"op": "evaluate", "expression": "1", "context": {{"{key}": {{"a": 1e-7000}}}}}}"#));
+  assert_eq!(
+    vec![format!(
+      "{}… (2002 characters): number 1e-7000 is too small for a 34-digit decimal (exponent below -6176) and became 0",
+      &key[..120]
+    )],
+    warnings(&response)
+  );
+  // a long number text is a preview, the rounded number is in scientific notation
+  let long = format!("1.{}", "2".repeat(5000));
+  let response = raw(&format!(r#"{{"op": "evaluate", "expression": "x", "context": {{"x": {long}}}}}"#));
+  assert_eq!(
+    vec![format!(
+      "x: number {}… (5002 characters) has more than 34 significant digits and was rounded to 1.222222222222222222222222222222222",
+      &long[..120]
+    )],
+    warnings(&response)
+  );
+  // a strict-mode error quotes the first reason, which quotes a preview
+  let response = req(json!({"op": "evaluate", "expression": "(for i in 1..1000 return i) = 2", "errorMode": "strict"}));
+  assert!(messages(&response).iter().all(|m| m.chars().count() <= 1000), "{response}");
+  assert!(error_of(&response).1.ends_with("… (1000 items)' =?= '2'"), "{response}");
 }
 
 #[test]
@@ -1075,9 +1261,27 @@ fn full_feel_scale_range_and_regex_back_references() {
   );
   assert_eq!(display(r#"matches("aA", "(a)\\1", "i")"#), "true");
   assert_eq!(display(r#"matches("ab", "(a)\\1")"#), "false");
-  // a pathological pattern hits fancy-regex's backtracking limit and is reported, not hung
-  let r = expr(r#"matches("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!", "^(a+)+\\1$")"#);
-  assert!(r["isNull"] == true || r["display"] == "false", "{r}");
+  // a pattern the backtracking engine gives up on stops the evaluation: the limit is not a FEEL result
+  let pattern = format!("{}!", "a".repeat(40));
+  let limit = r"matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped";
+  let e = format!(r#"matches("{pattern}", "^(a|a)*\\1$")"#);
+  assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", limit);
+  assert_error(
+    &req(json!({"op": "evaluate", "expression": format!("{e} or true"), "language": "b-feel"})),
+    "evaluation",
+    limit,
+  );
+  let context = format!(r#"{{x: {e}}}"#);
+  assert_error(
+    &req(json!({"op": "evaluate", "expression": "x", "contextFormat": "feel", "context": context})),
+    "context",
+    limit,
+  );
+  // a pattern within the budget answers
+  assert_eq!(
+    display(r#"matches("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!", "^(a+)+\\1$")"#),
+    "false"
+  );
 }
 
 /// Sends a request and returns the whole response (asserting success).
@@ -1119,6 +1323,127 @@ fn error_modes() {
   assert_eq!(error_kind(&response), "request", "{response}");
 }
 
+/// Asserts that `expression` answers `display` with no error counted, and that strict mode answers
+/// the same result: a null the specification defines for its input is no error (DMN 1.6 §7.3.8).
+#[track_caller]
+fn assert_no_error(expression: &str, display: &str) {
+  let lenient = ok(json!({"op": "evaluate", "expression": expression}));
+  assert_eq!(lenient["result"]["display"], display, "{lenient}");
+  assert_eq!(lenient["diagnostics"]["count"], 0, "{lenient}");
+  let strict = ok(json!({"op": "evaluate", "expression": expression, "errorMode": "strict"}));
+  assert_eq!(strict["result"], lenient["result"], "{strict}");
+}
+
+#[test]
+fn defined_nulls_are_no_errors() {
+  // Table 51: and, or with an operand that is no boolean; §10.3.4.4: sum and mean of []; Table 82:
+  // get value of a missing key, which a path over a list selects per item
+  for expression in ["true and 1", "1 and true", "false or \"x\"", "1 or 1", "sum([])", "mean([])", "get value({a: 1}, \"b\")"] {
+    assert_no_error(expression, "null");
+  }
+  assert_no_error("[{a: 1}].b", "[null]");
+}
+
+#[test]
+fn stddev_of_fewer_than_two_numbers_is_no_error() {
+  // §10.3.4.4: stddev( [ 47 ] ) = null and stddev( 47 ) = null
+  for expression in ["stddev([47])", "stddev([])", "stddev(47)"] {
+    assert_no_error(expression, "null");
+  }
+  let response = ok(json!({"op": "evaluate", "expression": "stddev([47])", "errorMode": "strict"}));
+  assert_eq!(response["result"]["nullReason"], "stddev: minimum two input arguments expected", "{response}");
+}
+
+#[test]
+fn a_missing_context_entry_is_no_error() {
+  // §10.3.2.6: m.key1 is get value(m, "key1"), which Table 82 defines as null for a missing key;
+  // the null keeps its reason as a note, which is not counted and does not fail strict mode
+  assert_no_error("{a: 1}.b", "null");
+  let response = ok(json!({"op": "evaluate", "expression": "{a: 1}.b", "errorMode": "strict"}));
+  assert_eq!(response["result"]["nullReason"], "build_path: no entry b in context: {a: 1}", "{response}");
+  assert_eq!(response["diagnostics"]["messages"], json!([]), "{response}");
+}
+
+#[test]
+fn if_takes_the_else_branch_unless_the_condition_is_true() {
+  // Table 50: "A conditional if a then b else c is equal to b if a is true, and equal to c
+  // otherwise", so a condition that is no boolean is no error
+  for condition in ["9", "\"x\"", "[true]", "{}", "null"] {
+    assert_no_error(&format!("if {condition} then 1 else 2"), "2");
+  }
+}
+
+#[test]
+fn not_equal_reports_like_equal() {
+  // §10.3.2.15: FEEL(e1 != e2) is FEEL(not(e1 = e2)), so operands that = cannot compare are the
+  // same error for !=
+  let message = "equal err '\"a\"' =?= '1'";
+  let lenient = ok(json!({"op": "evaluate", "expression": "\"a\" != 1"}));
+  assert_eq!(lenient["result"]["nullReason"], message, "{lenient}");
+  assert_eq!(lenient["diagnostics"]["count"], 1, "{lenient}");
+  let strict = req(json!({"op": "evaluate", "expression": "\"a\" != 1", "errorMode": "strict"}));
+  assert_eq!(strict["ok"], false, "{strict}");
+  assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
+  let b_feel = ok(json!({"op": "evaluate", "expression": "\"a\" != 1", "language": "b-feel"}));
+  assert_eq!(b_feel["result"]["display"], "true", "{b_feel}");
+  assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+}
+
+#[test]
+fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
+  // before Table 57 and Table 59: "if input values are not of the listed types, the result is
+  // null", and the official TCK expects an error result for a null operand of every arithmetic
+  // operator, on either side (compliance-level-3/0100-arithmetic): the value is null, the error
+  // is counted, and strict mode stops at it
+  for (expression, message) in [
+    ("1 + null", "[addition] incompatible types: 1 + null"),
+    ("null + 1", "[addition] incompatible types: null + 1"),
+    ("\"a\" + null", "[addition] incompatible types: \"a\" + null"),
+    ("1 - null", "[subtraction] incompatible types: 1 - null"),
+    ("null - 1", "[subtraction] incompatible types: null - 1"),
+    ("1 * null", "[multiplication] incompatible types: 1 * null"),
+    ("null * 1", "[multiplication] incompatible types: null * 1"),
+    ("1 / null", "[division] incompatible types: 1 / null"),
+    ("null / 1", "[division] incompatible types: null / 1"),
+    ("2 ** null", "[exponentiation] incompatible types: 2 ** null"),
+    ("null ** 2", "[exponentiation] incompatible types: null ** 2"),
+    ("-null", "[negation] incompatible types: -null"),
+  ] {
+    let lenient = ok(json!({"op": "evaluate", "expression": expression}));
+    assert_eq!(lenient["result"]["display"], "null", "{lenient}");
+    assert_eq!(lenient["result"]["nullReason"], message, "{lenient}");
+    assert_eq!(lenient["diagnostics"]["count"], 1, "{lenient}");
+    assert_eq!(lenient["diagnostics"]["messages"], json!([message]), "{lenient}");
+    let strict = req(json!({"op": "evaluate", "expression": expression, "errorMode": "strict"}));
+    assert_eq!(strict["ok"], false, "{strict}");
+    assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
+  }
+  // B-FEEL (§11.9-§11.11) converts the null operand and gives a value; the FEEL error behind it
+  // stays listed
+  for (expression, display, message) in [
+    ("1 + null", "1", "[addition] incompatible types: 1 + null"),
+    ("null - 6", "-6", "[subtraction] incompatible types: null - 6"),
+    ("null * 2", "0", "[multiplication] incompatible types: null * 2"),
+    ("null / 22", "0", "[division] incompatible types: null / 22"),
+    ("2 ** null", "1", "[exponentiation] incompatible types: 2 ** null"),
+  ] {
+    let b_feel = ok(json!({"op": "evaluate", "expression": expression, "language": "b-feel"}));
+    assert_eq!(b_feel["result"]["display"], display, "{b_feel}");
+    assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+  }
+}
+
+#[test]
+fn a_unary_comparison_compares_with_the_value_of_its_path_endpoint() {
+  // §10.3.2.7: "Endpoints can be expressions"; `< d.year` compares with the year of d
+  let context = "{d: date(\"2020-06-15\"), r: [1..10]}";
+  for (expression, input) in [("< d.year", 2000), ("= d.year", 2020), ("> r.start", 20)] {
+    let response = ok(json!({"op": "evaluate", "dialect": "unaryTests", "expression": expression, "input": input, "contextFormat": "feel", "context": context}));
+    assert_eq!(response["result"]["display"], "true", "{response}");
+    assert_eq!(response["diagnostics"]["count"], 0, "{response}");
+  }
+}
+
 #[test]
 fn zoned_date_time_display() {
   // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets
@@ -1127,4 +1452,13 @@ fn zoned_date_time_display() {
   // offsets and local values are unchanged
   assert_eq!(display(r#"@"2007-12-03T10:15:30+01:00""#), r#""2007-12-03T10:15:30+01:00""#);
   assert_eq!(display(r#"@"2007-12-03T10:15:30""#), r#""2007-12-03T10:15:30""#);
+}
+
+#[test]
+fn zoned_date_time_display_keeps_the_seconds_of_the_offset() {
+  // the offset of the zone at that date and time, as the zone database resolves it: local mean
+  // time before the standard zones has seconds
+  assert_eq!(display(r#"@"1900-01-01T12:00:00@Europe/Paris""#), r#""1900-01-01T12:00:00+00:09:21[Europe/Paris]""#);
+  assert_eq!(display(r#"@"1880-01-01T12:00:00@America/New_York""#), r#""1880-01-01T12:00:00-04:56:02[America/New_York]""#);
+  assert_eq!(display(r#"@"2020-01-01T12:00:00@Asia/Kolkata""#), r#""2020-01-01T12:00:00+05:30[Asia/Kolkata]""#);
 }

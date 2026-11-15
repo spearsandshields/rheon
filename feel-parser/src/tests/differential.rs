@@ -11,8 +11,8 @@
 //!   [ALPHABET_2]), in [scopes], with every start rule; also after the heads of iteration contexts.
 //! - random texts: random FEEL texts of every construct ([Feel]), with random input contexts (from
 //!   [super::names_index]): 1,000 (20,000).
-//! - corpus: the expressions of the evaluator corpus, run only when `RHEON_PARSER_CORPUS` is the
-//!   absolute path of a directory of `*.jsonl` files (`tools/evaluator-corpus/corpora`; the test
+//! - corpus: the expressions of the FEEL corpus, run only when `RHEON_PARSER_CORPUS` is the
+//!   absolute path of a directory of `*.jsonl` files (`tools/feel-corpus`; the test
 //!   is ignored by default: `-- --include-ignored`).
 //! - edited and cut texts: random edits and every prefix of random texts and corpus texts (cut-off
 //!   inputs, syntax errors): 60 (3,000).
@@ -769,8 +769,8 @@ fn keys_of_context_literal(text: &str) -> FeelContext {
   }
 }
 
-/// The expressions and context literals of the evaluator corpus: the `*.jsonl` files of the
-/// directory `RHEON_PARSER_CORPUS` (an absolute path, such as that of `tools/evaluator-corpus/corpora`).
+/// The expressions and context literals of the FEEL corpus: the `*.jsonl` files of the
+/// directory `RHEON_PARSER_CORPUS` (an absolute path, such as that of `tools/feel-corpus`).
 fn corpus() -> Vec<(String, String)> {
   let Some(dir) = std::env::var_os("RHEON_PARSER_CORPUS") else {
     return vec![];
@@ -815,7 +815,7 @@ fn corpus() -> Vec<(String, String)> {
 #[ignore]
 fn corpus_equals_reference() {
   let corpus = corpus();
-  assert!(!corpus.is_empty(), "set RHEON_PARSER_CORPUS to the absolute path of tools/evaluator-corpus/corpora");
+  assert!(!corpus.is_empty(), "set RHEON_PARSER_CORPUS to the absolute path of tools/feel-corpus");
   let mut rng = Rng(0x1234_5678_9ABC_DEF1);
   let rich = context(&mut rng, 0);
   let mut stats = Stats::default();

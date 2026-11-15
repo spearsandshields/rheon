@@ -9,7 +9,7 @@ fn _0001() {
   );
   assert_eq!(
     r#"null(expected formal parameters, actual value type is boolean)"#,
-    crate::evaluate(&scope!(), &node).to_string()
+    crate::tests::eval(&scope!(), &node).to_string()
   );
 }
 
@@ -24,5 +24,10 @@ fn _0002() {
   // that changing it is deliberate.
   let expression = "{k: function(y) y + a, f: function(a) k, r: f(100)(1), s: k(1)}";
   te_number(false, &scope!(), &format!("{expression}.r"), 101, 0);
-  te_null(false, &scope!(), &format!("{expression}.s"), "context has no value for key 'a'");
+  te_null(
+    false,
+    &scope!(),
+    &format!("{expression}.s"),
+    "[addition] incompatible types: 1 + null(context has no value for key 'a')",
+  );
 }

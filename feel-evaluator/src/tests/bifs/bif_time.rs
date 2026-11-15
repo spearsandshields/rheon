@@ -3,17 +3,22 @@ use rheon_feel::scope;
 
 #[test]
 fn _0001() {
-  te_time(false, &scope!(), r#"time(11,59,45,null)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(false, &scope!(), r#"time(11,59,45,null)"#, FeelTime::local_opt(11, 59, 45, 0).unwrap());
 }
 
 #[test]
 fn _0002() {
-  te_time(false, &scope!(), r#"time(hour: 11, minute: 59, second: 45, offset: null)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(
+    false,
+    &scope!(),
+    r#"time(hour: 11, minute: 59, second: 45, offset: null)"#,
+    FeelTime::local_opt(11, 59, 45, 0).unwrap(),
+  );
 }
 
 #[test]
 fn _0003() {
-  te_time(false, &scope!(), r#"time(hour: 11, minute: 59, second: 45)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(false, &scope!(), r#"time(hour: 11, minute: 59, second: 45)"#, FeelTime::local_opt(11, 59, 45, 0).unwrap());
 }
 
 #[test]
@@ -46,82 +51,92 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_time(false, &scope!(), r#"time("23:59:00")"#, FeelTime::local(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"time("23:59:00")"#, FeelTime::local_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0008() {
-  te_time(false, &scope!(), r#"time("23:59:59")"#, FeelTime::local(23, 59, 59, 0));
+  te_time(false, &scope!(), r#"time("23:59:59")"#, FeelTime::local_opt(23, 59, 59, 0).unwrap());
 }
 
 #[test]
 fn _0009() {
-  te_time(false, &scope!(), r#"time("24:00:00")"#, FeelTime::local(0, 0, 0, 0));
+  te_time(false, &scope!(), r#"time("24:00:00")"#, FeelTime::local_opt(0, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0010() {
-  te_time(false, &scope!(), r#"  time  (  "23:59:00"         )   "#, FeelTime::local(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"  time  (  "23:59:00"         )   "#, FeelTime::local_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0011() {
-  te_time(false, &scope!(), r#"time("23:59:00Z")"#, FeelTime::utc(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"time("23:59:00Z")"#, FeelTime::utc_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0012() {
-  te_time(false, &scope!(), r#"time("23:59:00z")"#, FeelTime::utc(23, 59, 0, 0));
+  te_time(false, &scope!(), r#"time("23:59:00z")"#, FeelTime::utc_opt(23, 59, 0, 0).unwrap());
 }
 
 #[test]
 fn _0013() {
-  te_time(false, &scope!(), r#"time("11:22:33-00:00")"#, FeelTime::utc(11, 22, 33, 0));
+  te_time(false, &scope!(), r#"time("11:22:33-00:00")"#, FeelTime::utc_opt(11, 22, 33, 0).unwrap());
 }
 
 #[test]
 fn _0014() {
-  te_time(false, &scope!(), r#"time(from: "11:22:33-00:00")"#, FeelTime::utc(11, 22, 33, 0));
+  te_time(false, &scope!(), r#"time(from: "11:22:33-00:00")"#, FeelTime::utc_opt(11, 22, 33, 0).unwrap());
 }
 
 #[test]
 fn _0015() {
-  te_time(false, &scope!(), r#"time("11:22:33+00:00")"#, FeelTime::utc(11, 22, 33, 0));
+  te_time(false, &scope!(), r#"time("11:22:33+00:00")"#, FeelTime::utc_opt(11, 22, 33, 0).unwrap());
 }
 
 #[test]
 fn _0016() {
-  te_time(false, &scope!(), r#"time(time("11:00:00"))"#, FeelTime::local(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(time("11:00:00"))"#, FeelTime::local_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0017() {
-  te_time(false, &scope!(), r#"time(from: time("11:00:00"))"#, FeelTime::local(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(from: time("11:00:00"))"#, FeelTime::local_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0018() {
-  te_time(false, &scope!(), r#"time(date and time("2019-12-06T18:34:12"))"#, FeelTime::local(18, 34, 12, 0));
+  te_time(
+    false,
+    &scope!(),
+    r#"time(date and time("2019-12-06T18:34:12"))"#,
+    FeelTime::local_opt(18, 34, 12, 0).unwrap(),
+  );
 }
 
 #[test]
 fn _0019() {
-  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00Z"))"#, FeelTime::utc(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00Z"))"#, FeelTime::utc_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0020() {
-  te_time(false, &scope!(), r#"time(from: date and time("2019-12-06T11:00:00Z"))"#, FeelTime::utc(11, 0, 0, 0));
+  te_time(
+    false,
+    &scope!(),
+    r#"time(from: date and time("2019-12-06T11:00:00Z"))"#,
+    FeelTime::utc_opt(11, 0, 0, 0).unwrap(),
+  );
 }
 
 #[test]
 fn _0021() {
-  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00z"))"#, FeelTime::utc(11, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(date and time("2019-12-06T11:00:00z"))"#, FeelTime::utc_opt(11, 0, 0, 0).unwrap());
 }
 
 #[test]
 fn _0022() {
-  te_time(false, &scope!(), r#"time(date("2019-12-06"))"#, FeelTime::utc(0, 0, 0, 0));
+  te_time(false, &scope!(), r#"time(date("2019-12-06"))"#, FeelTime::utc_opt(0, 0, 0, 0).unwrap());
 }
 
 #[test]
@@ -216,7 +231,7 @@ fn _0037() {
 
 #[test]
 fn _0038() {
-  te_time(false, &scope!(), r#"time(11,59,45)"#, FeelTime::local(11, 59, 45, 0));
+  te_time(false, &scope!(), r#"time(11,59,45)"#, FeelTime::local_opt(11, 59, 45, 0).unwrap());
 }
 
 #[test]
@@ -348,4 +363,159 @@ fn _0057() {
     r#"time(true)"#,
     "[core::time] invalid argument type, expected string, date, date and time, time, actual type is boolean",
   );
+}
+
+#[test]
+fn fractional_seconds_are_exact() {
+  te_string(false, &scope!(), r#"string(time("10:00:00.0157"))"#, "10:00:00.0157");
+  te_string(false, &scope!(), r#"string(time("10:00:00.000065"))"#, "10:00:00.000065");
+  te_string(false, &scope!(), r#"string(time("10:00:00.99999999999999999"))"#, "10:00:00.999999999");
+}
+
+#[test]
+fn an_offset_is_a_whole_number_of_seconds_within_14_hours() {
+  // DMN 1.6 Table 67, time offset: "in the interval [duration("-PT14H")..duration("PT14H")]"
+  for (offset, text) in [
+    ("PT13H", "10:00:00+13:00"),
+    ("PT14H", "10:00:00+14:00"),
+    ("-PT12H", "10:00:00-12:00"),
+    ("-PT14H", "10:00:00-14:00"),
+    ("PT12H30M", "10:00:00+12:30"),
+    ("-PT13H59M59S", "10:00:00-13:59:59"),
+    ("PT2H45M55S", "10:00:00+02:45:55"),
+    ("PT0S", "10:00:00Z"),
+  ] {
+    te_string(false, &scope!(), &format!(r#"string(time(10, 0, 0, duration("{offset}")))"#), text);
+  }
+  // beyond the interval, or a fraction of a second, which no time offset has
+  for offset in [
+    "PT14H1S",
+    "-PT14H1S",
+    "PT19H",
+    "P1D",
+    "PT0.5S",
+    "-PT0.5S",
+    "PT1H0.5S",
+    "PT14H0.000000001S",
+    "PT0.000000001S",
+  ] {
+    te_null(
+      false,
+      &scope!(),
+      &format!(r#"time(10, 0, 0, duration("{offset}"))"#),
+      &format!("time: offset is out of range: {offset}"),
+    );
+  }
+}
+
+#[test]
+fn the_minutes_of_an_offset_literal_are_below_60() {
+  for literal in ["10:00:00+05:99", "10:00:00+13:60", "10:00:00-00:60"] {
+    te_null(
+      false,
+      &scope!(),
+      &format!(r#"time("{literal}")"#),
+      &format!("time: invalid time literal '{literal}', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"),
+    );
+  }
+  te_string(false, &scope!(), r#"string(time("10:00:00+05:59"))"#, "10:00:00+05:59");
+}
+
+#[test]
+fn an_offset_literal_has_no_seconds() {
+  for literal in ["10:00:00+05:30:15", "10:00:00-00:00:30", "10:00:00+01:00:00"] {
+    te_null(
+      false,
+      &scope!(),
+      &format!(r#"time("{literal}")"#),
+      &format!("time: invalid time literal '{literal}', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"),
+    );
+  }
+  te_null(
+    false,
+    &scope!(),
+    r#"date and time(date(2020,1,1), time(10,0,0.5), "+01:00:30")"#,
+    "[core::date and time] invalid timezone '+01:00:30'",
+  );
+}
+
+#[test]
+fn an_offset_prints_its_own_sign() {
+  // XML Schema Part 2 §3.2.7.3: the sign of a timezone is the sign of the offset, also below one hour
+  te_string(false, &scope!(), r#"string(time("10:00:00-00:30"))"#, "10:00:00-00:30");
+  te_string(false, &scope!(), r#"string(@"10:00:00-00:30")"#, "10:00:00-00:30");
+  te_string(false, &scope!(), r#"string(time(10, 0, 0, duration("-PT30M")))"#, "10:00:00-00:30");
+  te_string(false, &scope!(), r#"string(time(10, 0, 0, duration("-PT30S")))"#, "10:00:00-00:00:30");
+  te_string(false, &scope!(), r#"string(time(10, 0, 0, duration("PT30S")))"#, "10:00:00+00:00:30");
+  te_string(false, &scope!(), r#"string(date and time("2020-01-01T10:00:00-00:30"))"#, "2020-01-01T10:00:00-00:30");
+  te_string(
+    false,
+    &scope!(),
+    r#"string(date and time(date(2020,1,1), time(10,0,0), "-00:30"))"#,
+    "2020-01-01T10:00:00-00:30",
+  );
+  te_string(false, &scope!(), r#"string(time("10:00:00-01:30"))"#, "10:00:00-01:30");
+  te_string(false, &scope!(), r#"string(time("10:00:00+00:30"))"#, "10:00:00+00:30");
+}
+
+#[test]
+fn midnight_may_be_written_24_00_00_with_a_zero_fraction_only() {
+  te_null(
+    false,
+    &scope!(),
+    r#"time("24:00:00.5")"#,
+    "time: invalid time literal '24:00:00.5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+  );
+  te_string(false, &scope!(), r#"string(time("24:00:00"))"#, "00:00:00");
+  te_string(false, &scope!(), r#"string(time("24:00:00.000"))"#, "00:00:00");
+}
+
+#[test]
+fn fraction_digits_beyond_nanoseconds_warn() {
+  te_warnings(r#"time("10:00:00.1234567891")"#, "10:00:00.123456789", &[&truncation_warning("10:00:00.1234567891", "1")]);
+  te_warnings(
+    r#"time("10:00:00.99999999999999999")"#,
+    "10:00:00.999999999",
+    &[&truncation_warning("10:00:00.99999999999999999", "99999999")],
+  );
+  te_warnings(r#"time("10:00:00.1234567890")"#, "10:00:00.123456789", &[]);
+  // a long literal is quoted as a preview with its size, in a bounded message
+  let fraction = format!("1{}", "9".repeat(99_999));
+  let scope = FeelScope::default();
+  let text = format!(r#"time("10:00:00.{fraction}")"#);
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, &text, false).unwrap());
+  let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
+  assert_eq!("10:00:00.199999999", value.to_string());
+  let [warning] = diagnostics.warnings() else {
+    panic!("one warning expected: {:?}", diagnostics.warnings())
+  };
+  assert!(warning.chars().count() <= 1_000, "{warning}");
+  assert!(warning.contains("… (100009 characters)'") && warning.contains("… (99991 characters)'"), "{warning}");
+}
+
+#[test]
+fn seconds_with_more_than_nine_fraction_digits_warn() {
+  te_warnings("time(10, 0, 0.1234567891)", "10:00:00.123456789", &[&truncation_warning("0.1234567891", "1")]);
+  te_warnings(
+    "time(10, 0, 10/3)",
+    "10:00:03.333333333",
+    &[&truncation_warning("3.333333333333333333333333333333333", "333333333333333333333333")],
+  );
+  te_warnings(
+    r#"time(10, 0, 0.1234567891, duration("PT1H"))"#,
+    "10:00:00.123456789+01:00",
+    &[&truncation_warning("0.1234567891", "1")],
+  );
+  te_warnings(r#"time(10, 0, 0.1234567891, null)"#, "10:00:00.123456789", &[&truncation_warning("0.1234567891", "1")]);
+  // nothing is lost
+  te_warnings("time(10, 0, 0.123456789)", "10:00:00.123456789", &[]);
+  te_warnings("time(10, 0, 0.1234567890)", "10:00:00.123456789", &[]);
+  te_warnings("time(10, 0, 59.5)", "10:00:59.5", &[]);
+  // no time, no warning
+  let scope = FeelScope::default();
+  let text = r#"time(10, 0, 0.1234567891, duration("PT19H"))"#;
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
+  let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
+  assert_eq!("null(time: offset is out of range: PT19H)", value.to_string());
+  assert!(diagnostics.warnings().is_empty(), "{:?}", diagnostics.warnings());
 }

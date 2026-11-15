@@ -1,8 +1,10 @@
 mod bif;
 mod bip;
 mod context;
+mod display;
 mod dto;
 mod function;
+mod message;
 mod names;
 mod qualified_names;
 mod scope;

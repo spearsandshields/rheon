@@ -11,59 +11,139 @@ use std::{fmt, ops};
 const REGEX_DAYS_AND_TIME: &str = r"^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$";
 
 /// Number of nanoseconds in a day.
-const NANOSECONDS_IN_DAY: i64 = 24 * NANOSECONDS_IN_HOUR;
+pub(crate) const NANOSECONDS_IN_DAY: i64 = 24 * NANOSECONDS_IN_HOUR;
 /// Number of nanoseconds in an hour.
 const NANOSECONDS_IN_HOUR: i64 = 60 * NANOSECONDS_IN_MINUTE;
 /// Number of nanoseconds in a minute.
 const NANOSECONDS_IN_MINUTE: i64 = 60 * NANOSECONDS_IN_SECOND;
 /// Number of nanoseconds in a second.
-const NANOSECONDS_IN_SECOND: i64 = 1_000_000_000;
+pub(crate) const NANOSECONDS_IN_SECOND: i64 = 1_000_000_000;
 
 static RE_DAYS_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_DAYS_AND_TIME).unwrap());
 
 /// FEEL days and time duration.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+///
+/// Holds the number of nanoseconds in the duration, in `-(2^63 - 1)..=2^63 - 1`: the range is
+/// symmetric, so the absolute value, the negation and the components of every duration exist.
+/// `Default` is the zero duration.
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd)]
 pub struct FeelDaysAndTimeDuration(i64);
 
 impl FeelDaysAndTimeDuration {
-  /// Creates [FeelDaysAndTimeDuration] from nanoseconds.
-  pub fn from_n(nanos: i64) -> Self {
-    Self(nanos)
+  /// Parses a days and time duration literal, as [TryFrom] does, and also returns the fraction
+  /// digits beyond nanoseconds that were truncated, when one of them is not zero.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelDaysAndTimeDuration;
+  /// let (duration, dropped) = FeelDaysAndTimeDuration::parse_reporting_truncation("PT999.999999999999S").unwrap();
+  /// assert_eq!(("PT16M39.999999999S", Some("999")), (duration.to_string().as_str(), dropped));
+  /// ```
+  pub fn parse_reporting_truncation(value: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Some(captures) = RE_DAYS_AND_TIME.captures(value) {
+      let mut is_valid = false;
+      let mut nanoseconds = 0_i64;
+      let mut days_overflow = false;
+      if let Some(days_match) = captures.name("days") {
+        if let Ok(days_u64) = days_match.as_str().parse::<u64>()
+          && let Ok(days) = <u64 as TryInto<i64>>::try_into(days_u64)
+          && let Some(a) = days.checked_mul(NANOSECONDS_IN_DAY)
+        {
+          nanoseconds += a;
+          is_valid = true;
+        } else {
+          days_overflow = true;
+        }
+      }
+      // Every component is added with checked arithmetic: a duration that does not fit into
+      // i64 nanoseconds (about 292 years) is an invalid literal instead of a silently wrapped value.
+      let mut overflow = false;
+      for (name, unit) in [("hours", NANOSECONDS_IN_HOUR), ("minutes", NANOSECONDS_IN_MINUTE), ("seconds", NANOSECONDS_IN_SECOND)] {
+        if let Some(component_match) = captures.name(name) {
+          match component_match
+            .as_str()
+            .parse::<u64>()
+            .ok()
+            .and_then(|n| i64::try_from(n).ok())
+            .and_then(|n| n.checked_mul(unit))
+            .and_then(|n| nanoseconds.checked_add(n))
+          {
+            Some(total) => {
+              nanoseconds = total;
+              is_valid = true;
+            }
+            None => overflow = true,
+          }
+        }
+      }
+      let mut dropped = None;
+      if captures.name("fractional").is_some() {
+        match parse_fraction_nanos(fraction_digits(&captures)).and_then(|(fraction, lost)| Some((nanoseconds.checked_add(i64::from(fraction))?, lost))) {
+          Some((total, lost)) => {
+            nanoseconds = total;
+            dropped = lost;
+            is_valid = true;
+          }
+          None => overflow = true,
+        }
+      }
+      if overflow || days_overflow {
+        is_valid = false;
+      }
+      if captures.name("sign").is_some() {
+        nanoseconds = -nanoseconds;
+      }
+      if is_valid && let Some(duration) = Self::from_n(nanoseconds) {
+        return Ok((duration, dropped));
+      }
+    }
+    Err(err_invalid_date_and_time_duration_literal(value.to_string()))
   }
 
-  /// Creates [FeelDaysAndTimeDuration] from seconds.
-  pub fn from_s(seconds: i64) -> Self {
-    Self(seconds * NANOSECONDS_IN_SECOND)
+  /// Creates [FeelDaysAndTimeDuration] from nanoseconds, or `None` when out of range
+  /// (`i64::MIN`). Every duration is built here.
+  pub fn from_n(nanos: i64) -> Option<Self> {
+    (nanos != i64::MIN).then_some(Self(nanos))
   }
 
-  /// Creates [FeelDaysAndTimeDuration] from seconds and nanoseconds.
-  pub fn from_sn(seconds: i64, nanos: i64) -> Self {
-    Self(seconds * NANOSECONDS_IN_SECOND + nanos)
+  /// Creates [FeelDaysAndTimeDuration] from seconds; every `i32` number of seconds is in range.
+  pub fn from_s(seconds: i32) -> Self {
+    Self(i64::from(seconds) * NANOSECONDS_IN_SECOND)
+  }
+
+  /// Creates [FeelDaysAndTimeDuration] from seconds and nanoseconds, or `None` when out of range.
+  pub fn from_sn(seconds: i64, nanos: i64) -> Option<Self> {
+    seconds.checked_mul(NANOSECONDS_IN_SECOND)?.checked_add(nanos).and_then(Self::from_n)
   }
 
   /// Returns the number of days in this duration.
   pub fn get_days(&self) -> usize {
-    (self.0.abs() / NANOSECONDS_IN_DAY) as usize
+    (self.0.unsigned_abs() / NANOSECONDS_IN_DAY as u64) as usize
   }
 
   /// Returns the number of hours in this duration.
   pub fn get_hours(&self) -> usize {
-    ((self.0.abs() % NANOSECONDS_IN_DAY) / NANOSECONDS_IN_HOUR) as usize
+    ((self.0.unsigned_abs() % NANOSECONDS_IN_DAY as u64) / NANOSECONDS_IN_HOUR as u64) as usize
   }
 
   /// Returns the number of minutes in this duration.
   pub fn get_minutes(&self) -> usize {
-    ((self.0.abs() % NANOSECONDS_IN_DAY % NANOSECONDS_IN_HOUR) / NANOSECONDS_IN_MINUTE) as usize
+    ((self.0.unsigned_abs() % NANOSECONDS_IN_HOUR as u64) / NANOSECONDS_IN_MINUTE as u64) as usize
   }
 
   /// Returns the number of seconds in this duration.
   pub fn get_seconds(&self) -> usize {
-    ((self.0.abs() % NANOSECONDS_IN_DAY % NANOSECONDS_IN_HOUR % NANOSECONDS_IN_MINUTE) / NANOSECONDS_IN_SECOND) as usize
+    ((self.0.unsigned_abs() % NANOSECONDS_IN_MINUTE as u64) / NANOSECONDS_IN_SECOND as u64) as usize
   }
 
-  /// Returns the seconds component of this duration with sign.
-  pub fn as_seconds(&self) -> isize {
-    (self.0 / NANOSECONDS_IN_SECOND) as isize
+  /// Returns the nanoseconds of the seconds component of this duration, below one second.
+  pub fn get_nanoseconds(&self) -> u64 {
+    self.0.unsigned_abs() % NANOSECONDS_IN_SECOND as u64
+  }
+
+  /// Returns the whole seconds of this duration with sign, truncated toward zero; a 64-bit
+  /// number on every target.
+  pub fn as_seconds(&self) -> i64 {
+    self.0 / NANOSECONDS_IN_SECOND
   }
 
   /// Returns the this duration as nanoseconds.
@@ -73,43 +153,22 @@ impl FeelDaysAndTimeDuration {
 
   /// Returns absolute value of the duration.
   pub fn abs(&self) -> Self {
-    Self(self.0.saturating_abs())
+    Self(self.0.abs())
   }
 
-  /// Returns the sum of durations, or `None` when the result does not fit.
+  /// Returns the sum of durations, or `None` when the result is out of range.
   pub fn checked_add(&self, rhs: &Self) -> Option<Self> {
-    self.0.checked_add(rhs.0).map(Self)
+    self.0.checked_add(rhs.0).and_then(Self::from_n)
   }
 
-  /// Returns the difference of durations, or `None` when the result does not fit.
+  /// Returns the difference of durations, or `None` when the result is out of range.
   pub fn checked_sub(&self, rhs: &Self) -> Option<Self> {
-    self.0.checked_sub(rhs.0).map(Self)
-  }
-
-  /// Returns the negated duration, or `None` when the result does not fit.
-  pub fn checked_neg(&self) -> Option<Self> {
-    self.0.checked_neg().map(Self)
+    self.0.checked_sub(rhs.0).and_then(Self::from_n)
   }
 
   /// Returns `true` when the duration is negative.
   pub fn is_negative(&self) -> bool {
     self.0 < 0
-  }
-}
-
-impl ops::Add<FeelDaysAndTimeDuration> for FeelDaysAndTimeDuration {
-  type Output = Self;
-  /// Returns the sum of durations.
-  fn add(self, rhs: FeelDaysAndTimeDuration) -> Self {
-    Self(self.0 + rhs.0)
-  }
-}
-
-impl ops::Sub<FeelDaysAndTimeDuration> for FeelDaysAndTimeDuration {
-  type Output = Self;
-  /// Returns the subtraction of durations.
-  fn sub(self, rhs: FeelDaysAndTimeDuration) -> Self {
-    Self(self.0 - rhs.0)
   }
 }
 
@@ -125,16 +184,9 @@ impl fmt::Display for FeelDaysAndTimeDuration {
   /// Converts [FeelDaysAndTimeDuration] into string.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let sign = if self.0 < 0 { "-" } else { "" };
-    let mut nanoseconds = self.0.saturating_abs();
-    let day = nanoseconds / NANOSECONDS_IN_DAY;
-    nanoseconds -= day * NANOSECONDS_IN_DAY;
-    let hour = nanoseconds / NANOSECONDS_IN_HOUR;
-    nanoseconds -= hour * NANOSECONDS_IN_HOUR;
-    let minute = nanoseconds / NANOSECONDS_IN_MINUTE;
-    nanoseconds -= minute * NANOSECONDS_IN_MINUTE;
-    let seconds = nanoseconds / NANOSECONDS_IN_SECOND;
-    nanoseconds -= seconds * NANOSECONDS_IN_SECOND;
-    let nanoseconds_str = nanos_to_string(nanoseconds as u64);
+    let (day, hour, minute, seconds) = (self.get_days(), self.get_hours(), self.get_minutes(), self.get_seconds());
+    let nanoseconds = self.get_nanoseconds();
+    let nanoseconds_str = nanos_to_string(nanoseconds);
     match (day > 0, hour > 0, minute > 0, seconds > 0, nanoseconds > 0) {
       (false, false, false, false, false) => write!(f, "PT0S"),
       (false, false, false, true, false) => write!(f, "{sign}PT{seconds}S"),
@@ -174,66 +226,10 @@ impl fmt::Display for FeelDaysAndTimeDuration {
 
 impl TryFrom<&str> for FeelDaysAndTimeDuration {
   type Error = DsntkError;
-  /// Converts a text form of the days and time duration into [FeelDaysAndTimeDuration] struct.
+  /// Converts a text form of the days and time duration into [FeelDaysAndTimeDuration]; fraction
+  /// digits beyond nanoseconds are truncated (see [FeelDaysAndTimeDuration::parse_reporting_truncation]).
   fn try_from(value: &str) -> Result<Self, Self::Error> {
-    if let Some(captures) = RE_DAYS_AND_TIME.captures(value) {
-      let mut is_valid = false;
-      let mut nanoseconds = 0_i64;
-      let mut days_overflow = false;
-      if let Some(days_match) = captures.name("days") {
-        if let Ok(days_u64) = days_match.as_str().parse::<u64>()
-          && let Ok(days) = <u64 as TryInto<i64>>::try_into(days_u64)
-          && let Some(a) = days.checked_mul(NANOSECONDS_IN_DAY)
-        {
-          nanoseconds += a;
-          is_valid = true;
-        } else {
-          days_overflow = true;
-        }
-      }
-      // Every component is added with checked arithmetic: a duration that does not fit into
-      // i64 nanoseconds (about 292 years) is an invalid literal instead of a silently wrapped value.
-      let mut overflow = false;
-      for (name, unit) in [("hours", NANOSECONDS_IN_HOUR), ("minutes", NANOSECONDS_IN_MINUTE), ("seconds", NANOSECONDS_IN_SECOND)] {
-        if let Some(component_match) = captures.name(name) {
-          match component_match
-            .as_str()
-            .parse::<u64>()
-            .ok()
-            .and_then(|n| i64::try_from(n).ok())
-            .and_then(|n| n.checked_mul(unit))
-            .and_then(|n| nanoseconds.checked_add(n))
-          {
-            Some(total) => {
-              nanoseconds = total;
-              is_valid = true;
-            }
-            None => overflow = true,
-          }
-        }
-      }
-      if let Some(fractional_match) = captures.name("fractional")
-        && let Ok(fractional) = fractional_match.as_str().parse::<f64>()
-      {
-        match nanoseconds.checked_add((fractional * NANOSECONDS_IN_SECOND as f64).trunc() as i64) {
-          Some(total) => {
-            nanoseconds = total;
-            is_valid = true;
-          }
-          None => overflow = true,
-        }
-      }
-      if overflow || days_overflow {
-        is_valid = false;
-      }
-      if captures.name("sign").is_some() {
-        nanoseconds = -nanoseconds;
-      }
-      if is_valid {
-        return Ok(FeelDaysAndTimeDuration(nanoseconds));
-      }
-    }
-    Err(err_invalid_date_and_time_duration_literal(value.to_string()))
+    Self::parse_reporting_truncation(value).map(|(duration, _)| duration)
   }
 }
 
@@ -245,9 +241,9 @@ mod tests {
   /// Utility function for testing days and time durations equality.
   fn equals(neg: bool, sec: i64, nano: i64, text: &str) {
     let expected = if neg {
-      -FeelDaysAndTimeDuration::from_sn(sec, nano)
+      -FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap()
     } else {
-      FeelDaysAndTimeDuration::from_sn(sec, nano)
+      FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap()
     };
     let actual = FeelDaysAndTimeDuration::try_from(text).unwrap();
     assert_eq!(expected, actual);
@@ -262,9 +258,9 @@ mod tests {
   /// Utility function for testing equality of textual forms of days and time durations.
   fn equals_str(expected: &str, neg: bool, sec: i64, nano: i64) {
     let actual: String = if neg {
-      (-FeelDaysAndTimeDuration::from_sn(sec, nano)).to_string()
+      (-FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap()).to_string()
     } else {
-      FeelDaysAndTimeDuration::from_sn(sec, nano).to_string()
+      FeelDaysAndTimeDuration::from_sn(sec, nano).unwrap().to_string()
     };
     assert_eq!(expected, actual);
   }
@@ -409,25 +405,39 @@ mod tests {
   fn test_eq_should_pass() {
     assert_eq!(
       Some(Ordering::Equal),
-      FeelDaysAndTimeDuration::from_sn(0, 0).partial_cmp(&FeelDaysAndTimeDuration::from_sn(0, 0))
+      FeelDaysAndTimeDuration::from_sn(0, 0)
+        .unwrap()
+        .partial_cmp(&FeelDaysAndTimeDuration::from_sn(0, 0).unwrap())
     );
     assert_eq!(
       Some(Ordering::Equal),
-      FeelDaysAndTimeDuration::from_sn(0, 10).partial_cmp(&FeelDaysAndTimeDuration::from_sn(0, 10))
+      FeelDaysAndTimeDuration::from_sn(0, 10)
+        .unwrap()
+        .partial_cmp(&FeelDaysAndTimeDuration::from_sn(0, 10).unwrap())
     );
     assert_eq!(
       Some(Ordering::Equal),
-      FeelDaysAndTimeDuration::from_sn(0, 999_999_999).partial_cmp(&FeelDaysAndTimeDuration::from_sn(0, 999_999_999))
+      FeelDaysAndTimeDuration::from_sn(0, 999_999_999)
+        .unwrap()
+        .partial_cmp(&FeelDaysAndTimeDuration::from_sn(0, 999_999_999).unwrap())
     );
     assert_eq!(
       Some(Ordering::Equal),
-      FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999).partial_cmp(&FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999))
+      FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999)
+        .unwrap()
+        .partial_cmp(&FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999).unwrap())
     );
-    assert_eq!(FeelDaysAndTimeDuration::from_n(0), FeelDaysAndTimeDuration::from_n(0));
-    assert_eq!(FeelDaysAndTimeDuration::from_n(0), FeelDaysAndTimeDuration::from_n(-0));
-    assert_eq!(FeelDaysAndTimeDuration::from_sn(0, 10), FeelDaysAndTimeDuration::from_sn(0, 10));
-    assert_eq!(FeelDaysAndTimeDuration::from_sn(0, 999_999_999), FeelDaysAndTimeDuration::from_sn(0, 999_999_999));
-    assert_eq!(FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999), FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999));
+    assert_eq!(FeelDaysAndTimeDuration::from_n(0).unwrap(), FeelDaysAndTimeDuration::from_n(0).unwrap());
+    assert_eq!(FeelDaysAndTimeDuration::from_n(0).unwrap(), FeelDaysAndTimeDuration::from_n(-0).unwrap());
+    assert_eq!(FeelDaysAndTimeDuration::from_sn(0, 10).unwrap(), FeelDaysAndTimeDuration::from_sn(0, 10).unwrap());
+    assert_eq!(
+      FeelDaysAndTimeDuration::from_sn(0, 999_999_999).unwrap(),
+      FeelDaysAndTimeDuration::from_sn(0, 999_999_999).unwrap()
+    );
+    assert_eq!(
+      FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999).unwrap(),
+      FeelDaysAndTimeDuration::from_sn(86_400, 999_999_999).unwrap()
+    );
   }
 
   #[test]
@@ -435,22 +445,24 @@ mod tests {
     assert_eq!(Some(Ordering::Less), FeelDaysAndTimeDuration::from_s(10).partial_cmp(&FeelDaysAndTimeDuration::from_s(11)));
     assert_eq!(
       Some(Ordering::Less),
-      FeelDaysAndTimeDuration::from_sn(10, 1).partial_cmp(&FeelDaysAndTimeDuration::from_sn(10, 2))
+      FeelDaysAndTimeDuration::from_sn(10, 1)
+        .unwrap()
+        .partial_cmp(&FeelDaysAndTimeDuration::from_sn(10, 2).unwrap())
     );
     assert!(FeelDaysAndTimeDuration::from_s(10) < FeelDaysAndTimeDuration::from_s(11));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 1) < FeelDaysAndTimeDuration::from_sn(10, 2));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 1).unwrap() < FeelDaysAndTimeDuration::from_sn(10, 2).unwrap());
     assert!(FeelDaysAndTimeDuration::from_s(11) >= FeelDaysAndTimeDuration::from_s(10));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 2) >= FeelDaysAndTimeDuration::from_sn(10, 1));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 2).unwrap() >= FeelDaysAndTimeDuration::from_sn(10, 1).unwrap());
   }
 
   #[test]
   fn test_le_should_pass() {
     assert!(FeelDaysAndTimeDuration::from_s(10) <= FeelDaysAndTimeDuration::from_s(11));
     assert!(FeelDaysAndTimeDuration::from_s(10) <= FeelDaysAndTimeDuration::from_s(10));
-    assert!(FeelDaysAndTimeDuration::from_s(10) <= FeelDaysAndTimeDuration::from_sn(10, 1));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 1) <= FeelDaysAndTimeDuration::from_sn(10, 1));
+    assert!(FeelDaysAndTimeDuration::from_s(10) <= FeelDaysAndTimeDuration::from_sn(10, 1).unwrap());
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 1).unwrap() <= FeelDaysAndTimeDuration::from_sn(10, 1).unwrap());
     assert!(FeelDaysAndTimeDuration::from_s(11) > FeelDaysAndTimeDuration::from_s(10));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 2) > FeelDaysAndTimeDuration::from_sn(10, 1));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 2).unwrap() > FeelDaysAndTimeDuration::from_sn(10, 1).unwrap());
   }
 
   #[test]
@@ -461,22 +473,22 @@ mod tests {
     );
     assert_eq!(
       Some(Ordering::Greater),
-      FeelDaysAndTimeDuration::from_sn(10, 1).partial_cmp(&FeelDaysAndTimeDuration::from_s(10))
+      FeelDaysAndTimeDuration::from_sn(10, 1).unwrap().partial_cmp(&FeelDaysAndTimeDuration::from_s(10))
     );
     assert!(FeelDaysAndTimeDuration::from_s(11) > FeelDaysAndTimeDuration::from_s(10));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 1) > FeelDaysAndTimeDuration::from_s(10));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 1).unwrap() > FeelDaysAndTimeDuration::from_s(10));
     assert!(FeelDaysAndTimeDuration::from_s(10) <= FeelDaysAndTimeDuration::from_s(11));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 1) <= FeelDaysAndTimeDuration::from_sn(10, 2));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 1).unwrap() <= FeelDaysAndTimeDuration::from_sn(10, 2).unwrap());
   }
 
   #[test]
   fn test_ge_should_pass() {
     assert!(FeelDaysAndTimeDuration::from_s(11) >= FeelDaysAndTimeDuration::from_s(10));
     assert!(FeelDaysAndTimeDuration::from_s(10) >= FeelDaysAndTimeDuration::from_s(10));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 1) >= FeelDaysAndTimeDuration::from_s(10));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 1) >= FeelDaysAndTimeDuration::from_sn(10, 1));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 1).unwrap() >= FeelDaysAndTimeDuration::from_s(10));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 1).unwrap() >= FeelDaysAndTimeDuration::from_sn(10, 1).unwrap());
     assert!(FeelDaysAndTimeDuration::from_s(10) < FeelDaysAndTimeDuration::from_s(11));
-    assert!(FeelDaysAndTimeDuration::from_sn(10, 1) < FeelDaysAndTimeDuration::from_sn(10, 2));
+    assert!(FeelDaysAndTimeDuration::from_sn(10, 1).unwrap() < FeelDaysAndTimeDuration::from_sn(10, 2).unwrap());
   }
 
   #[test]
@@ -484,15 +496,15 @@ mod tests {
     let a = FeelDaysAndTimeDuration::from_s(11);
     let b = FeelDaysAndTimeDuration::from_s(83);
     let c = FeelDaysAndTimeDuration::from_s(94);
-    assert_eq!(c, a + b);
-    let a = FeelDaysAndTimeDuration::from_sn(11, 2_837);
-    let b = FeelDaysAndTimeDuration::from_sn(83, 23);
-    let c = FeelDaysAndTimeDuration::from_sn(94, 2_860);
-    assert_eq!(c, a + b);
-    let a = FeelDaysAndTimeDuration::from_sn(1, 999_999_999);
-    let b = FeelDaysAndTimeDuration::from_sn(1, 2);
-    let c = FeelDaysAndTimeDuration::from_sn(3, 1);
-    assert_eq!(c, a + b);
+    assert_eq!(Some(c), a.checked_add(&b));
+    let a = FeelDaysAndTimeDuration::from_sn(11, 2_837).unwrap();
+    let b = FeelDaysAndTimeDuration::from_sn(83, 23).unwrap();
+    let c = FeelDaysAndTimeDuration::from_sn(94, 2_860).unwrap();
+    assert_eq!(Some(c), a.checked_add(&b));
+    let a = FeelDaysAndTimeDuration::from_sn(1, 999_999_999).unwrap();
+    let b = FeelDaysAndTimeDuration::from_sn(1, 2).unwrap();
+    let c = FeelDaysAndTimeDuration::from_sn(3, 1).unwrap();
+    assert_eq!(Some(c), a.checked_add(&b));
   }
 
   #[test]
@@ -500,15 +512,15 @@ mod tests {
     let a = FeelDaysAndTimeDuration::from_s(12);
     let b = FeelDaysAndTimeDuration::from_s(2);
     let c = FeelDaysAndTimeDuration::from_s(10);
-    assert_eq!(c, a - b);
-    let a = FeelDaysAndTimeDuration::from_sn(99, 999_999_999);
-    let b = FeelDaysAndTimeDuration::from_sn(77, 888_888_888);
-    let c = FeelDaysAndTimeDuration::from_sn(22, 111_111_111);
-    assert_eq!(c, a - b);
-    let a = FeelDaysAndTimeDuration::from_sn(1, 1);
-    let b = FeelDaysAndTimeDuration::from_n(2);
-    let c = FeelDaysAndTimeDuration::from_n(999_999_999);
-    assert_eq!(c, a - b);
+    assert_eq!(Some(c), a.checked_sub(&b));
+    let a = FeelDaysAndTimeDuration::from_sn(99, 999_999_999).unwrap();
+    let b = FeelDaysAndTimeDuration::from_sn(77, 888_888_888).unwrap();
+    let c = FeelDaysAndTimeDuration::from_sn(22, 111_111_111).unwrap();
+    assert_eq!(Some(c), a.checked_sub(&b));
+    let a = FeelDaysAndTimeDuration::from_sn(1, 1).unwrap();
+    let b = FeelDaysAndTimeDuration::from_n(2).unwrap();
+    let c = FeelDaysAndTimeDuration::from_n(999_999_999).unwrap();
+    assert_eq!(Some(c), a.checked_sub(&b));
   }
 
   #[test]
@@ -521,6 +533,8 @@ mod tests {
     assert_eq!(7_200, dt_duration_c.as_seconds());
     let dt_duration_d = FeelDaysAndTimeDuration::try_from("-PT2H").unwrap();
     assert_eq!(-7_200, dt_duration_d.as_seconds());
+    assert_eq!(4_294_967_296, FeelDaysAndTimeDuration::try_from("PT4294967296S").unwrap().as_seconds());
+    assert_eq!(-9_223_372_036, FeelDaysAndTimeDuration::from_n(-i64::MAX).unwrap().as_seconds());
   }
 
   #[test]
@@ -556,5 +570,27 @@ mod tests {
   fn test_large_days() {
     //TODO Maybe it is possible NOT TO convert the number of days into nanoseconds?
     FeelDaysAndTimeDuration::try_from("P3000000000000000000D").unwrap();
+  }
+
+  #[test]
+  fn test_symmetric_range() {
+    let max = FeelDaysAndTimeDuration::from_n(i64::MAX).unwrap();
+    let min = FeelDaysAndTimeDuration::from_n(-i64::MAX).unwrap();
+    assert_eq!(None, FeelDaysAndTimeDuration::from_n(i64::MIN));
+    assert_eq!(None, FeelDaysAndTimeDuration::from_sn(-9_223_372_036, -854_775_808));
+    assert_eq!(Some(min.clone()), FeelDaysAndTimeDuration::from_sn(-9_223_372_036, -854_775_807));
+    assert_eq!(None, FeelDaysAndTimeDuration::from_sn(i64::MAX, 0));
+    let one = FeelDaysAndTimeDuration::from_n(1).unwrap();
+    assert_eq!(None, min.checked_sub(&one));
+    assert_eq!(None, min.checked_add(&-one.clone()));
+    assert_eq!(None, max.checked_add(&one));
+    assert_eq!("P106751DT23H47M16.854775807S", max.to_string());
+    assert_eq!("-P106751DT23H47M16.854775807S", min.to_string());
+    assert_eq!((106_751, 23, 47, 16), (min.get_days(), min.get_hours(), min.get_minutes(), min.get_seconds()));
+    assert_eq!(max, min.abs());
+    assert_eq!(max, -min.clone());
+    assert_eq!(min, -max.clone());
+    assert_eq!("PT0S", FeelDaysAndTimeDuration::default().to_string());
+    assert_eq!("-P24855DT3H14M8S", FeelDaysAndTimeDuration::from_s(i32::MIN).to_string());
   }
 }

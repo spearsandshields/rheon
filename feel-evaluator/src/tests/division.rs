@@ -48,7 +48,7 @@ fn _0009() {
 
 #[test]
 fn _0010() {
-  te_null(false, &scope!(), r#" 0.0 / "a" "#, r#"[division] incompatible types: 0.0 / "a""#);
+  te_null(false, &scope!(), r#" 0.0 / "a" "#, r#"[division] incompatible types: 0 / "a""#);
 }
 
 #[test]
@@ -62,7 +62,8 @@ fn _0012() {
     false,
     &scope!(),
     r#" @"P10D" / 0.00000000000000000000000000000000000000000000000001 "#,
-    r#"[division] error: P10D / 0.00000000000000000000000000000000000000000000000001"#,
+    // a number longer than 40 characters is quoted in scientific notation
+    r#"[division] error: P10D / 1E-50"#,
   );
 }
 
@@ -92,7 +93,8 @@ fn _0017() {
     false,
     &scope!(),
     r#" @"P10Y" / 0.00000000000000000000000000000000000000000000000001 "#,
-    r#"[division] error: P10Y / 0.00000000000000000000000000000000000000000000000001"#,
+    // a number longer than 40 characters is quoted in scientific notation
+    r#"[division] error: P10Y / 1E-50"#,
   );
 }
 
@@ -124,4 +126,47 @@ fn _0022() {
 #[test]
 fn _0023() {
   te_null(false, &scope!(), r#" "a" / 2.21 "#, r#"[division] incompatible types: "a" / 2.21"#);
+}
+
+#[test]
+fn _0024() {
+  // A quotient of -2^63 months or nanoseconds is out of the range of a duration.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("-P4611686018427387904M") / 0.5"#,
+    "[division] error: -P384307168202282325Y4M / 0.5",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("-PT4611686018.427387904S") / 0.5"#,
+    "[division] error: -P53375DT23H53M38.427387904S / 0.5",
+  );
+  te_years_and_months_duration_x(false, scope, r#"duration("-P4611686018427387903M") / 0.5"#, "-P768614336404564650Y6M");
+}
+
+/// DMN 1.6 Table 60: a years and months duration divided by a non-zero number is
+/// `valueymd⁻¹(valueymd(e1) / value(e2))`. A quotient with a fraction of a month is truncated
+/// toward zero, as the DMN TCK expects (`@"P10Y11M" / 2.5` is `P4Y4M`), and the evaluation warns
+/// that the fraction was dropped; a whole number of months does not warn.
+#[test]
+fn a_years_and_months_quotient_warns_when_it_drops_a_fraction_of_a_month() {
+  use super::multiplication::months_warning;
+  te_warnings(r#"@"P10Y11M" / 2.5"#, "P4Y4M", &[&months_warning("P10Y11M / 2.5", "0.4")]);
+  te_warnings(r#"@"P10Y11M" / -2.5"#, "-P4Y4M", &[&months_warning("P10Y11M / -2.5", "-0.4")]);
+  te_warnings(r#"duration("P1Y") / 5"#, "P2M", &[&months_warning("P1Y / 5", "0.4")]);
+  // whole numbers of months
+  te_warnings(r#"duration("P1Y") / 4"#, "P3M", &[]);
+  te_warnings(r#"duration("P1Y") / 0.5"#, "P2Y", &[]);
+  te_warnings(r#"duration("-P1Y") / 3"#, "-P4M", &[]);
+}
+
+#[test]
+fn a_null_operand_of_a_division_is_an_error() {
+  // DMN 1.6, before Table 59: "if input values are not of the listed types, the result is null";
+  // the official TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_divide_lhs_null_by_rhs_number and the others)
+  te_null_operands("division", "/");
 }

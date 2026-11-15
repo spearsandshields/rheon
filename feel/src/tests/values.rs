@@ -40,7 +40,7 @@ fn test_debug() {
   let v_function_body = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let v_external = false;
   let v_days_and_time_duration = FeelDaysAndTimeDuration::from_s(100);
-  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2);
+  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap();
   let v_closure = Closure::default();
   let v_closure_ctx = FeelContext::default();
   eq_dbg!(r#"Boolean(false)"#, Value::Boolean(false));
@@ -114,8 +114,7 @@ fn test_debug() {
   eq_dbg!(r#"UnaryLess(Number(+1E+0))"#, Value::UnaryLess(b_number.clone()));
   eq_dbg!(r#"UnaryLessOrEqual(Number(+1E+0))"#, Value::UnaryLessOrEqual(b_number.clone()));
   eq_dbg!(r#"UnaryEqual(Number(+1E+0))"#, Value::UnaryEqual(b_number.clone()));
-  eq_dbg!(r#"UnaryNotEqual(Number(+1E+0))"#, Value::UnaryNotEqual(b_number.clone()));
-  eq_dbg!(r#"Transparent(Number(+1E+0))"#, Value::Transparent(b_number));
+  eq_dbg!(r#"UnaryNotEqual(Number(+1E+0))"#, Value::UnaryNotEqual(b_number));
   eq_dbg!(
     r#"YearsAndMonthsDuration(FeelYearsAndMonthsDuration(38))"#,
     Value::YearsAndMonthsDuration(v_years_and_months_duration)
@@ -134,7 +133,7 @@ fn test_display() {
   let v_function_body = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let v_external = false;
   let v_days_and_time_duration = FeelDaysAndTimeDuration::from_s(100);
-  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2);
+  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap();
   let v_closure = Closure::default();
   let v_closure_ctx = FeelContext::default();
   eq_dsp!(r#"false"#, Value::Boolean(false));
@@ -193,8 +192,7 @@ fn test_display() {
   eq_dsp!(r#"UnaryLess(1)"#, Value::UnaryLess(b_number.clone()));
   eq_dsp!(r#"UnaryLessOrEqual(1)"#, Value::UnaryLessOrEqual(b_number.clone()));
   eq_dsp!(r#"UnaryEqual(1)"#, Value::UnaryEqual(b_number.clone()));
-  eq_dsp!(r#"UnaryNotEqual(1)"#, Value::UnaryNotEqual(b_number.clone()));
-  eq_dsp!(r#"Transparent(1)"#, Value::Transparent(b_number));
+  eq_dsp!(r#"UnaryNotEqual(1)"#, Value::UnaryNotEqual(b_number));
   eq_dsp!(r#"P3Y2M"#, Value::YearsAndMonthsDuration(v_years_and_months_duration));
 }
 
@@ -212,7 +210,7 @@ fn test_type_of() {
   let v_function_body = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let v_external = false;
   let v_days_and_time_duration = FeelDaysAndTimeDuration::from_s(100);
-  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2);
+  let v_years_and_months_duration = FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap();
   let v_closure = Closure::default();
   let v_closure_ctx = FeelContext::default();
   eq_typ!(FeelType::Boolean, Value::Boolean(false));
@@ -274,8 +272,7 @@ fn test_type_of() {
   eq_typ!(FeelType::Boolean, Value::UnaryLess(b_number.clone()));
   eq_typ!(FeelType::Boolean, Value::UnaryLessOrEqual(b_number.clone()));
   eq_typ!(FeelType::Boolean, Value::UnaryEqual(b_number.clone()));
-  eq_typ!(FeelType::Boolean, Value::UnaryNotEqual(b_number.clone()));
-  eq_typ!(FeelType::Number, Value::Transparent(b_number));
+  eq_typ!(FeelType::Boolean, Value::UnaryNotEqual(b_number));
   eq_typ!(FeelType::YearsAndMonthsDuration, Value::YearsAndMonthsDuration(v_years_and_months_duration));
 }
 
@@ -392,13 +389,13 @@ fn test_jsonify() {
   assert_eq!(r#"1.23"#, Value::Number(FeelNumber::new(123, 2)).jsonify());
   assert_eq!(r#""beta""#, Value::String("beta".into()).jsonify());
   assert_eq!(r#""2023-02-24""#, Value::Date(FeelDate::new(2023, 2, 24).unwrap()).jsonify());
-  assert_eq!(r#""18:35:12.000598677Z""#, Value::Time(FeelTime::utc(18, 35, 12, 598677)).jsonify());
+  assert_eq!(r#""18:35:12.000598677Z""#, Value::Time(FeelTime::utc_opt(18, 35, 12, 598677).unwrap()).jsonify());
   assert_eq!(
     r#""2023-02-24T18:35:12.000598677Z""#,
     Value::DateTime(FeelDateTime::new(FeelDate::new(2023, 2, 24).unwrap(), FeelTime::utc_opt(18, 35, 12, 598677).unwrap())).jsonify()
   );
   assert_eq!(r#""P10DT13H59M18S""#, Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(914358)).jsonify());
-  assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2)).jsonify());
+  assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap()).jsonify());
   assert_eq!(r#"[]"#, Value::ExpressionList(Values::default()).jsonify());
   assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).jsonify());
   assert_eq!(r#"alpha"#, Value::ContextEntryKey("alpha".into()).jsonify());
@@ -657,4 +654,29 @@ fn test_type_of_list_equals_reference_rule() {
   }
   // both outcomes of the rule are frequent among the lists with several items
   assert!(contexts > total / 5 && mixed > total / 5, "{contexts} lists of contexts, {mixed} mixed lists, of {total}");
+}
+
+#[test]
+fn xsd_temporal_texts_warn_when_fraction_digits_are_truncated() {
+  let (values, diagnostics) = crate::diagnostics::collect(|| {
+    [
+      Value::try_from_xsd_time("10:00:00.1234567891").unwrap(),
+      Value::try_from_xsd_date_time("2018-10-01T12:32:59.123123123123").unwrap(),
+      Value::try_from_xsd_duration("PT999.999999999999S").unwrap(),
+      Value::try_from_xsd_time("10:00:00.1234567890").unwrap(),
+    ]
+  });
+  assert_eq!(
+    ["10:00:00.123456789", "2018-10-01T12:32:59.123123123", "PT16M39.999999999S", "10:00:00.123456789"],
+    values.map(|value| value.to_string())
+  );
+  assert_eq!(
+    [
+      "fractional seconds of '10:00:00.1234567891' truncated to nanoseconds; dropped digits: '1'",
+      "fractional seconds of '2018-10-01T12:32:59.123123123123' truncated to nanoseconds; dropped digits: '123'",
+      "fractional seconds of 'PT999.999999999999S' truncated to nanoseconds; dropped digits: '999'",
+    ],
+    diagnostics.warnings()
+  );
+  assert_eq!(0, diagnostics.count);
 }

@@ -36,13 +36,9 @@ impl ItemDefinitionTypeEvaluator {
 
   /// Returns FEEL type for specified type reference.
   pub fn information_item_type(&self, namespace: &str, type_ref: &str) -> Option<FeelType> {
-    if type_ref == FEEL_TYPE_NAME_ANY {
-      return Some(FeelType::Any);
-    }
-    if let Some(simple_type_ref) = type_ref_to_feel_type(type_ref) {
-      Some(simple_type_ref.clone())
-    } else {
-      self.eval(&DefKey::new(namespace, type_ref))
+    match referenced_item_definition(namespace, type_ref) {
+      Some(def_key) => self.eval(&def_key),
+      None => type_ref_to_feel_type(type_ref).map(|simple_type_ref| simple_type_ref.clone()),
     }
   }
 
@@ -61,6 +57,31 @@ impl ItemDefinitionTypeEvaluator {
   fn eval(&self, def_key: &DefKey) -> Option<FeelType> {
     if let Some(evaluator) = self.evaluators.get(def_key) { evaluator(self) } else { None }
   }
+}
+
+/// The item definition a type reference names, or `None` when it names a built-in type.
+///
+/// A type reference that is not the name of a built-in type names the item definition of that
+/// name in the namespace of the model that holds the reference; there is no such definition when
+/// none has that name (an imported, prefixed name included).
+pub fn referenced_item_definition(namespace: &str, type_ref: &str) -> Option<DefKey> {
+  type_ref_to_feel_type(type_ref).is_none().then(|| DefKey::new(namespace, type_ref))
+}
+
+/// The type references of a function item definition: those of its parameters, and that of its
+/// output, `Any` when it has none.
+pub fn function_type_refs(item_definition: &DefItemDefinition) -> (Vec<String>, String) {
+  let mut output_type_ref = FEEL_TYPE_NAME_ANY.to_string();
+  let mut parameters_type_ref = vec![];
+  if let Some(function_item) = item_definition.function_item() {
+    if let Some(type_ref) = function_item.output_type_ref() {
+      type_ref.clone_into(&mut output_type_ref);
+    }
+    for parameter_information_item in function_item.parameters() {
+      parameters_type_ref.push(parameter_information_item.type_ref().to_string());
+    }
+  }
+  (parameters_type_ref, output_type_ref)
 }
 
 pub fn build_item_definition_type_evaluator(item_definition: &DefItemDefinition) -> Result<ItemDefinitionTypeEvaluatorFn> {
@@ -155,16 +176,7 @@ fn collection_of_component_type(item_definition: &DefItemDefinition) -> Result<I
 
 fn function_type(item_definition: &DefItemDefinition) -> Result<ItemDefinitionTypeEvaluatorFn> {
   let namespace = item_definition.namespace().to_string();
-  let mut output_type_ref = FEEL_TYPE_NAME_ANY.to_string();
-  let mut parameters_type_ref = vec![];
-  if let Some(function_item) = item_definition.function_item() {
-    if let Some(type_ref) = function_item.output_type_ref() {
-      type_ref.clone_into(&mut output_type_ref);
-    }
-    for parameter_information_item in function_item.parameters() {
-      parameters_type_ref.push(parameter_information_item.type_ref().to_string());
-    }
-  }
+  let (parameters_type_ref, output_type_ref) = function_type_refs(item_definition);
   Ok(Box::new(move |evaluator: &ItemDefinitionTypeEvaluator| {
     let output_type = evaluator.information_item_type(&namespace, &output_type_ref).unwrap_or(FeelType::Any);
     let parameter_types = parameters_type_ref

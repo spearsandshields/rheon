@@ -667,16 +667,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dfp-number-sys"
-version = "0.2.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56728dc0d3c0fc7b4ae2ebf545743158441b8e6f04998f2418391c5d482b54b8"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
 name = "difference"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -879,12 +869,6 @@ name = "find-msvc-tools"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
-
-[[package]]
-name = "fixedbitset"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
 
 [[package]]
 name = "flate2"
@@ -1623,18 +1607,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b4f627cb1b25917193a259e49bdad08f671f8d9708acfd5fe0a8c1455d87220"
 
 [[package]]
-name = "petgraph"
-version = "0.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8701b58ea97060d5e5b155d383a69952a60943f0e6dfe30b04c287beb0b27455"
-dependencies = [
- "fixedbitset",
- "hashbrown 0.15.5",
- "indexmap",
- "serde",
-]
-
-[[package]]
 name = "phf"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1937,9 +1909,9 @@ version = "0.4.0"
 dependencies = [
  "dsntk-common",
  "dsntk-macros",
- "regex",
  "reqwest",
  "rheon-feel",
+ "rheon-feel-number",
  "rheon-feel-parser",
  "rheon-feel-regex",
  "rheon-feel-temporal",
@@ -1962,7 +1934,6 @@ dependencies = [
  "dashu-base",
  "dashu-float",
  "dashu-int",
- "dfp-number-sys",
  "dsntk-common",
  "dsntk-macros",
 ]
@@ -1986,6 +1957,8 @@ dependencies = [
  "dsntk-common",
  "dsntk-macros",
  "fancy-regex",
+ "regex",
+ "regex-syntax",
 ]
 
 [[package]]
@@ -2022,7 +1995,6 @@ dependencies = [
  "dsntk-examples",
  "dsntk-macros",
  "dsntk-recognizer",
- "petgraph",
  "rheon-feel",
  "rheon-feel-parser",
  "roxmltree",

@@ -417,6 +417,6 @@ fn _0070() {
   let node = AstNode::InstanceOf(Box::new(AstNode::Irrelevant), Box::new(AstNode::FeelType(FeelType::Number)));
   assert_eq!(
     r#"null(invalid value in 'instance of' operator: Irrelevant)"#,
-    crate::evaluate(&scope!(), &node).to_string()
+    crate::tests::eval(&scope!(), &node).to_string()
   );
 }

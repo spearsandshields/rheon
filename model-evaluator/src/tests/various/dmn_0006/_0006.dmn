@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             namespace="https://dsntk.io/regex-limits"
+             name="regex limits"
+             id="_regex_limits">
+    <description>
+        A regular expression that exceeds a limit of the regex engine stops the evaluation: the
+        limit is not a FEEL result (DMN 1.6, 7.3.8).
+    </description>
+
+    <inputData name="text" id="_text">
+        <variable name="text" typeRef="string"/>
+    </inputData>
+
+    <decision name="match" id="_match">
+        <variable name="match" typeRef="boolean"/>
+        <informationRequirement>
+            <requiredInput href="#_text"/>
+        </informationRequirement>
+        <literalExpression>
+            <text>matches(text, "^(a|a)*\1$")</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="back reference" id="_back_reference">
+        <variable name="back reference" typeRef="boolean"/>
+        <literalExpression>
+            <text>matches("aa", "(a)\1")</text>
+        </literalExpression>
+    </decision>
+</definitions>

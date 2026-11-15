@@ -266,7 +266,7 @@ fn _0046() {
 
 #[test]
 fn _0047() {
-  te_time(false, &scope!(), r#" @"10:11:12Z"[-1] "#, FeelTime::utc(10, 11, 12, 0));
+  te_time(false, &scope!(), r#" @"10:11:12Z"[-1] "#, FeelTime::utc_opt(10, 11, 12, 0).unwrap());
 }
 
 #[test]

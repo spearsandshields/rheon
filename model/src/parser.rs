@@ -1,15 +1,21 @@
 //! # XML parser for DMN model
 
+use crate::element_depth::check_element_depth;
 use crate::errors::*;
 use crate::model::*;
-use crate::validators::{validate_model, validate_schema};
+use crate::validators::validate_schema;
 use crate::xml_utils::*;
 use dsntk_common::{HRef, Result, Uri, gen_id, to_uri};
 use rheon_feel::{FEEL_TYPE_NAME_ANY, Name};
 use roxmltree::{Node, NodeType};
 
 /// Parses the XML input document containing DMN model into [Definitions].
+///
+/// A document whose elements nest more than 100 levels deep (the root element is level 1)
+/// is rejected before it is parsed.
 pub fn parse(input: &str) -> Result<Definitions> {
+  // bound the nesting of elements before anything recurses over them
+  check_element_depth(input)?;
   // parse document
   match roxmltree::Document::parse(input) {
     Ok(document) => {
@@ -18,9 +24,7 @@ pub fn parse(input: &str) -> Result<Definitions> {
       // initialize the model parser
       let mut model_parser = ModelParser::new();
       // parse the model into definitions
-      let definitions = model_parser.parse_definitions(&node)?;
-      // validate the final model against several rules defined in specification
-      validate_model(definitions)
+      model_parser.parse_definitions(&node)
     }
     Err(reason) => Err(err_xml_parsing_model_failed(&reason.to_string())),
   }

@@ -79,7 +79,7 @@ The edge-case comparison with other FEEL engines is in
 | `apps/playground` | `@rheon/playground`, the web app |
 | `docs/` | `CONTRACT.md` (ABI and JSON contract), `FORK.md` (every engine change against upstream, verification numbers, how to take upstream fixes), `BACKLOG.md`, `ENGINE-COMPARISON.md` |
 | `scripts/` | `bootstrap.sh`, `env.sh`, `build-wasm.sh`, `feel-abi.mjs`, `smoke.mjs`, `stack-headroom.mjs`, `third-party-notices.mjs` |
-| `tools/` | dsntk-side harnesses: the differential number fuzzer and the FEEL corpus runner (see `tools/README.md`) |
+| `tools/` | The identity check of full responses against the previous release (`tools/identity/`), the number oracle (`tools/number-oracle/`) and the frozen FEEL corpus of the parser's corpus test (`tools/feel-corpus/`; see `tools/README.md`) |
 | `Cargo.toml` | One workspace for all of the above; the `wasm` build profile |
 | `dist/feel.wasm` | Build output of the core, shared by every host (browser, Node, any WASI runtime) |
 
@@ -122,9 +122,13 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
 | `npm run stack` | `scripts/stack-headroom.mjs`: five constructs nested to the AST depth limit must evaluate on Node's main thread, in a 4 MiB Node worker and in Wasmtime with a 4 MiB wasm stack, and a recursion of 190 calls with a body nested 60 levels in the worker and in Wasmtime; `npm run stack -- --report` prints the depths each host reaches |
+| `bash tools/identity/run.sh <reference.wasm> dist/feel.wasm` | Every committed request through the previous release (`tools/identity/fetch-baseline.sh` puts it in `.tools/baseline/`) and the build; the full responses must be identical except the differences registered in `tools/identity/registered/` (see `tools/identity/README.md`) |
+| `npm run test:identity` | `tools/identity/test.mjs` (`node --test`): the identity check's own behaviour on the previous release and the build (identical runs, unregistered and unreproduced differences, malformed ledgers, traps, `--record`, numbers kept as written) |
+| `bash tools/number-oracle/run.sh [quick\|full]` | Every number result of `dist/feel.wasm` judged against its truth under DMN 1.6, computed in Python with `decimal`, exact rationals and mpmath (`PYTHON` names an interpreter with the C `decimal` module and mpmath 1.3.0, see `tools/number-oracle/README.md`); the known wrong classes are listed in `known-wrong.json`, and a listed class that no longer fails fails the run. CI runs the quick size |
 | `scripts/publish-crates.sh` | Publishes the `rheon-*` crates that crates.io lacks at the workspace version, waiting out the new-crate rate limit (see `docs/FORK.md`, "Publishing") |
 | `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); see `.github/workflows/ci.yml` |
-| `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases). `RHEON_PARSER_CORPUS=<absolute path of tools/evaluator-corpus/corpora>` with `-- --include-ignored` adds the parser's corpus test |
+| `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps -p rheon-feel-number …` | The API documentation of the ten published crates (the `-p` list is in `.github/workflows/ci.yml`), with every rustdoc warning, such as an intra-doc link that resolves to nothing, an error |
+| `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser -p rheon-feel-wasm` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases; for `rheon-feel-wasm`, the edge-operand product with all its binary templates). `RHEON_PARSER_CORPUS=<absolute path of tools/feel-corpus>` with `-- --include-ignored` adds the parser's corpus test |
 
 The production build in `apps/playground/dist/` uses a relative base (`./`), so you can host it on
 any static file server and under any sub-path. `feel.wasm` is a hashed asset in `assets/`. Serve
@@ -144,10 +148,9 @@ can still be taken by cherry-pick (`docs/FORK.md` has the procedure).
 [`docs/FORK.md`](docs/FORK.md) lists every engine change with its verification numbers. In
 short, rheon's engine differs from upstream dsntk in:
 
-- a **pure-Rust decimal128 core** (`feel-number`), with the `dashu` backend as default and
-  Intel's BID128 library behind the `intel` feature (needs a C toolchain; not used here);
-  correctly rounded `exp`, `ln`, `log` and fractional `**`, validated against an mpmath oracle
-  (0 wrong results in about 27 M checks);
+- a **pure-Rust decimal128 core** (`feel-number`, on dashu-float; no C library); correctly
+  rounded `exp`, `ln`, `log` and fractional `**`, and every number result judged by the number
+  oracle against DMN 1.6 (`tools/number-oracle/`);
 - **wasm32 support** (Java external functions become a null with a reason; 32-bit conversions);
 - **robustness**: every user-reachable panic found in review is a FEEL null or an error, a call
   depth limit, an iterative AST drop, linear `for` loops and list literals (upstream was quadratic);
@@ -180,20 +183,21 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
 
 - **Java external functions are not supported.** They need a JVM, and on wasm32 they evaluate to
   null with a reason.
-- **Rounding of `exp`, `ln`, `log` and fractional `**`.** These are correctly rounded to 34
+- **Rounding of `exp`, `ln`, `log` and `**`.** These are correctly rounded to 34
   digits (the exact result, rounded once, half-even). Upstream dsntk with the Intel library is
   1 ulp off for roughly 11–16 % of inputs and occasionally more, so the last digit of such results
   can differ from upstream dsntk; e.g. `12.2384283 ** 4.25` is `41959.85737359436186095331070746801`
   here (the exact value continues …7468005517…, so …801 is the correctly rounded 34-digit
-  result), while Intel gives …800. The exact operations (`+ - * /`, `sqrt`, rounding
-  functions, comparisons, formatting) are bit-identical to Intel.
-- **Integer-exponent `**` is Intel-identical, not correctly rounded.** `x ** n` with an
-  integer `n` uses Intel's binary exponentiation with 34-digit rounding after every
-  multiplication, so the error grows with |n|: `1.1 ** 100000` is 294 ulp from the exact value
-  rounded to 34 digits, `1.1 ** -100000` 853 ulp, `1.0001 ** 1000000` about 89,000 ulp, and
-  `2 ** -20000` and `0.5 ** 20000` (the same value) differ in their last digits. Small exponents
-  on short operands are exact (`3 ** 50`, `2 ** 100`). Only a non-integer exponent takes the
-  correctly rounded `exp(y ln x)` path.
+  result), while Intel gives …800. The number oracle (`tools/number-oracle/`) judges every
+  number result against DMN 1.6; the classes that still deviate are listed in its
+  `known-wrong.json`.
+- **Integer-exponent `**`.** `x ** n` with an integer `n` is the exact power rounded once while
+  it has at most about 4,900 digits (its reciprocal one correctly rounded division), and the
+  correctly rounded `exp(y ln x)` beyond: `1.05 ** 360` is
+  `42476396.40868002039560415895318542`, and `2 ** -20000 = 0.5 ** 20000`. Upstream dsntk
+  multiplies with a rounding after every product, so its last digits differ, by 294 ulp for
+  `1.1 ** 100000` and about 89,000 ulp for `1.0001 ** 1000000`. A large exponent beyond the
+  exact power costs about 0.4 ms per evaluation.
 - **Size.** `feel.wasm` is about 3.6 MiB raw (3.8 MB), about 995 KiB gzip and 650 KiB brotli
   (`npm run build:wasm` prints the exact figures). The `wasm` profile builds at opt-level 3; at
   opt-level z the same code is about 3.0 MiB raw and 540 KiB brotli and runs at about half the
@@ -214,9 +218,9 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   an `evaluation` error (CONTRACT §2). Both are sized for a browser worker's stack. A recursion
   whose function body is itself deeply nested can still exhaust the stack below 200 calls;
   that is reported as `crash` and the worker is replaced. Measured (`npm run stack -- --report`):
-  190 nested calls run with a body nested 64 levels in a 4 MiB Node worker and in Wasmtime with a
-  4 MiB wasm stack, 14 to 17 levels on Node's main thread, 8 levels with Wasmtime's default
-  512 KiB wasm stack (CONTRACT §1).
+  190 nested calls run with a body nested 69 levels (TurboFan; 89 with Liftoff) in a 4 MiB Node
+  worker and 98 levels in Wasmtime with a 4 MiB wasm stack, 14 to 18 levels on Node's main thread,
+  10 levels with Wasmtime's default 512 KiB wasm stack (CONTRACT §1).
 - **Memory.** Linear memory is capped at 512 MiB, so a runaway allocation traps early (`crash`).
   A list element costs about 130 B while the list grows (a 64-byte value plus the spare
   capacity of the list; `count(for i in 1..1000000 return i)` grows memory by 128 MiB) and a

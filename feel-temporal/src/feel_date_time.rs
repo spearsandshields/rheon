@@ -28,53 +28,10 @@ impl Display for FeelDateTime {
 
 impl TryFrom<&str> for FeelDateTime {
   type Error = DsntkError;
-  /// Converts string into [FeelDateTime].
+  /// Converts string into [FeelDateTime]; fraction digits beyond nanoseconds are truncated (see
+  /// [FeelDateTime::parse_reporting_truncation]).
   fn try_from(s: &str) -> Result<Self, Self::Error> {
-    if let Some(captures) = RE_DATE_AND_TIME.captures(s)
-      && let Some(year_match) = captures.name("year")
-      && let Ok(mut year) = year_match.as_str().parse::<Year>()
-    {
-      if captures.name("sign").is_some() {
-        year = -year;
-      }
-      if let Some(month_match) = captures.name("month")
-        && let Ok(month) = month_match.as_str().parse::<Month>()
-        && let Some(day_match) = captures.name("day")
-        && let Ok(day) = day_match.as_str().parse::<Day>()
-        && let Some(hour_match) = captures.name("hours")
-        && let Ok(mut hour) = hour_match.as_str().parse::<u8>()
-        && let Some(min_match) = captures.name("minutes")
-        && let Ok(min) = min_match.as_str().parse::<u8>()
-        && let Some(sec_match) = captures.name("seconds")
-        && let Ok(sec) = sec_match.as_str().parse::<u8>()
-      {
-        let fractional = if let Some(frac_match) = captures.name("fractional") {
-          frac_match.as_str().parse::<f64>().unwrap_or(0.0)
-        } else {
-          0.0
-        };
-        let nanos = (fractional * 1e9).trunc() as u64;
-        if let Some(mut date) = FeelDate::new(year, month, day)
-          && let Some(zone) = FeelZone::from_captures(&captures)
-        {
-          if !is_valid_time(hour, min, sec) {
-            return Err(err_invalid_date_time_literal(s));
-          }
-          if hour == 24 {
-            if let Some(updated_date) = date.add_days(1) {
-              hour = 0;
-              date = updated_date;
-            } else {
-              return Err(err_invalid_date_time_literal(s));
-            }
-          }
-          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone) {
-            return Ok(FeelDateTime(date, time));
-          }
-        }
-      }
-    }
-    Err(err_invalid_date_time_literal(s))
+    Self::parse_reporting_truncation(s).map(|(date_time, _)| date_time)
   }
 }
 
@@ -87,7 +44,7 @@ impl PartialEq for FeelDateTime {
     let lhs_offset_opt = match lhs_zone {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(lhs_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, lhs_date_tuple, lhs_time_tuple),
     };
     let rhs_date_tuple = rhs.0.as_tuple();
@@ -95,7 +52,7 @@ impl PartialEq for FeelDateTime {
     let rhs_offset_opt = match rhs_zone {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_t(rhs_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, rhs_date_tuple, rhs_time_tuple),
     };
     if let Some((lhs_offset, rhs_offset)) = lhs_offset_opt.zip(rhs_offset_opt) {
@@ -139,23 +96,19 @@ impl PartialOrd for FeelDateTime {
 
 impl Add<FeelYearsAndMonthsDuration> for FeelDateTime {
   type Output = Option<Self>;
-  /// Adds [FeelYearsAndMonthsDuration] to [FeelDateTime].
+  /// Adds [FeelYearsAndMonthsDuration] to [FeelDateTime]: the date moves as a date does, the time
+  /// stays.
   fn add(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.sub(rhs.abs());
-    }
-    if let Some(date) = self.0.add(rhs) { Some(FeelDateTime(date, self.1)) } else { None }
+    Some(FeelDateTime(self.0.add_months(rhs.as_months())?, self.1))
   }
 }
 
 impl Sub<FeelYearsAndMonthsDuration> for FeelDateTime {
   type Output = Option<Self>;
-  /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDateTime].
+  /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDateTime]: the date moves as a date does, the
+  /// time stays.
   fn sub(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.add(rhs.abs());
-    }
-    if let Some(date) = self.0.sub(rhs) { Some(FeelDateTime(date, self.1)) } else { None }
+    Some(FeelDateTime(self.0.add_months((-rhs).as_months())?, self.1))
   }
 }
 
@@ -163,22 +116,7 @@ impl Add<FeelDaysAndTimeDuration> for FeelDateTime {
   type Output = Option<Self>;
   /// Adds [FeelDaysAndTimeDuration] to [FeelDateTime].
   fn add(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.sub(rhs.abs());
-    }
-    let zone = self.1.zone().clone();
-    let date_time = <FeelDateTime as TryInto<DateTime<FixedOffset>>>::try_into(self)
-      .ok()?
-      .checked_add_signed(Duration::nanoseconds(rhs.as_nanos()))?;
-    let date = FeelDate::new(date_time.year(), date_time.month(), date_time.day())?;
-    let time = FeelTime::zone_opt(
-      date_time.hour() as u8,
-      date_time.minute() as u8,
-      date_time.second() as u8,
-      date_time.nanosecond() as u64,
-      zone,
-    )?;
-    Some(FeelDateTime(date, time))
+    self.add_nanos(rhs.as_nanos())
   }
 }
 
@@ -186,58 +124,17 @@ impl Sub<FeelDaysAndTimeDuration> for FeelDateTime {
   type Output = Option<Self>;
   /// Subtracts [FeelDaysAndTimeDuration] from [FeelDateTime].
   fn sub(self, rhs: FeelDaysAndTimeDuration) -> Self::Output {
-    if rhs.is_negative() {
-      return self.add(rhs.abs());
-    }
-    let zone = self.1.zone().clone();
-    let mut date_time = <FeelDateTime as TryInto<DateTime<FixedOffset>>>::try_into(self).ok()?;
-    date_time -= Duration::nanoseconds(rhs.as_nanos());
-    let date = FeelDate::new(date_time.year(), date_time.month(), date_time.day())?;
-    let time = FeelTime::zone_opt(
-      date_time.hour() as u8,
-      date_time.minute() as u8,
-      date_time.second() as u8,
-      date_time.nanosecond() as u64,
-      zone,
-    )?;
-    Some(FeelDateTime(date, time))
+    self.add_nanos((-rhs).as_nanos())
   }
 }
 
 impl Sub<FeelDateTime> for FeelDateTime {
   type Output = Option<FeelDaysAndTimeDuration>;
+  /// Subtracts two [FeelDateTimes](FeelDateTime) taken as instants, the result is
+  /// [FeelDaysAndTimeDuration], or `None` when [FeelDateTime::nanos_since] is `None` or the
+  /// difference is out of the range of a duration.
   fn sub(self, other: FeelDateTime) -> Self::Output {
-    let me_zone = self.1.zone();
-    let other_zone = other.1.zone();
-    if me_zone.has_offset() != other_zone.has_offset() {
-      return None;
-    }
-    let me_date_tuple = self.0.as_tuple();
-    let me_time_tuple = ((self.1).hour() as u32, (self.1).minute() as u32, (self.1).second() as u32, (self.1).nanos() as u32);
-    let me_offset_opt = match me_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_dt(me_date_tuple, me_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
-    };
-    let other_date_tuple = other.0.as_tuple();
-    let other_time_tuple = ((other.1).hour() as u32, (other.1).minute() as u32, (other.1).second() as u32, (other.1).nanos() as u32);
-    let other_offset_opt = match other_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_dt(other_date_tuple, other_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, other_date_tuple, other_time_tuple),
-    };
-    if let Some((me_offset, other_offset)) = me_offset_opt.zip(other_offset_opt) {
-      let me_date_opt = date_time_offset_dt(me_date_tuple, me_time_tuple, me_offset);
-      let other_date_opt = date_time_offset_dt(other_date_tuple, other_time_tuple, other_offset);
-      if let Some((me_date, other_date)) = me_date_opt.zip(other_date_opt)
-        && let Some(nanos) = me_date.sub(other_date).num_nanoseconds()
-      {
-        return Some(FeelDaysAndTimeDuration::from_n(nanos));
-      }
-    }
-    None
+    self.nanos_since(&other).and_then(FeelDaysAndTimeDuration::from_n)
   }
 }
 
@@ -249,7 +146,7 @@ impl TryFrom<FeelDateTime> for DateTime<FixedOffset> {
     let me_offset_opt = match (value.1).zone() {
       FeelZone::Utc => Some(0),
       FeelZone::Local => get_local_offset_dt(me_date_tuple, me_time_tuple),
-      FeelZone::Offset(offset) => Some(*offset),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
       FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
     };
     if let Some(me_offset) = me_offset_opt
@@ -262,9 +159,115 @@ impl TryFrom<FeelDateTime> for DateTime<FixedOffset> {
 }
 
 impl FeelDateTime {
+  /// Parses a date and time literal, as [TryFrom] does, and also returns the fraction digits
+  /// beyond nanoseconds that were truncated, when one of them is not zero.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelDateTime;
+  /// let (date_time, dropped) = FeelDateTime::parse_reporting_truncation("2018-10-01T12:32:59.123123123123").unwrap();
+  /// assert_eq!(("2018-10-01T12:32:59.123123123", Some("123")), (date_time.to_string().as_str(), dropped));
+  /// ```
+  pub fn parse_reporting_truncation(s: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Some(captures) = RE_DATE_AND_TIME.captures(s)
+      && let Some(year_match) = captures.name("year")
+      && let Ok(mut year) = year_match.as_str().parse::<Year>()
+    {
+      if captures.name("sign").is_some() {
+        year = -year;
+      }
+      if let Some(month_match) = captures.name("month")
+        && let Ok(month) = month_match.as_str().parse::<Month>()
+        && let Some(day_match) = captures.name("day")
+        && let Ok(day) = day_match.as_str().parse::<Day>()
+        && let Some(hour_match) = captures.name("hours")
+        && let Ok(mut hour) = hour_match.as_str().parse::<u8>()
+        && let Some(min_match) = captures.name("minutes")
+        && let Ok(min) = min_match.as_str().parse::<u8>()
+        && let Some(sec_match) = captures.name("seconds")
+        && let Ok(sec) = sec_match.as_str().parse::<u8>()
+        && let Some((nanos, dropped)) = parse_fraction_nanos(fraction_digits(&captures))
+      {
+        let nanos = u64::from(nanos);
+        if let Some(mut date) = FeelDate::new(year, month, day)
+          && let Some(zone) = FeelZone::from_captures(&captures)
+        {
+          if !is_valid_time(hour, min, sec, nanos) {
+            return Err(err_invalid_date_time_literal(s));
+          }
+          if hour == 24 {
+            if let Some(updated_date) = date.add_days(1) {
+              hour = 0;
+              date = updated_date;
+            } else {
+              return Err(err_invalid_date_time_literal(s));
+            }
+          }
+          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone) {
+            return Ok((FeelDateTime(date, time), dropped));
+          }
+        }
+      }
+    }
+    Err(err_invalid_date_time_literal(s))
+  }
+
   /// Creates date and time from provided [FeelDate] and [FeelTime] values.
   pub fn new(date: FeelDate, time: FeelTime) -> Self {
     Self(date, time)
+  }
+
+  /// Returns this date and time moved by `nanos` nanoseconds, forward or back, in the same zone:
+  /// `valuedt⁻¹(valuedt(e1) ± valuedtd(e2))` of DMN 1.6 Table 58. `None` when the result is
+  /// outside the supported instants.
+  fn add_nanos(self, nanos: i64) -> Option<Self> {
+    let zone = self.1.zone().clone();
+    let date_time = DateTime::<FixedOffset>::try_from(self).ok()?.checked_add_signed(Duration::nanoseconds(nanos))?;
+    let date = FeelDate::new(date_time.year(), date_time.month(), date_time.day())?;
+    let time = FeelTime::zone_opt(
+      date_time.hour() as u8,
+      date_time.minute() as u8,
+      date_time.second() as u8,
+      date_time.nanosecond() as u64,
+      zone,
+    )?;
+    Some(FeelDateTime(date, time))
+  }
+
+  /// Returns the number of nanoseconds from `other` to this date and time, both taken as
+  /// instants, or `None` when only one of them has an offset or a zone, a zone has no offset at
+  /// that date and time, or the number does not fit in an `i64`.
+  pub fn nanos_since(&self, other: &FeelDateTime) -> Option<i64> {
+    let me_zone = self.1.zone();
+    let other_zone = other.1.zone();
+    if me_zone.has_offset() != other_zone.has_offset() {
+      return None;
+    }
+    let me_date_tuple = self.0.as_tuple();
+    let me_time_tuple = ((self.1).hour() as u32, (self.1).minute() as u32, (self.1).second() as u32, (self.1).nanos() as u32);
+    let me_offset_opt = match me_zone {
+      FeelZone::Utc => Some(0),
+      FeelZone::Local => get_local_offset_dt(me_date_tuple, me_time_tuple),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
+      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, me_date_tuple, me_time_tuple),
+    };
+    let other_date_tuple = other.0.as_tuple();
+    let other_time_tuple = ((other.1).hour() as u32, (other.1).minute() as u32, (other.1).second() as u32, (other.1).nanos() as u32);
+    let other_offset_opt = match other_zone {
+      FeelZone::Utc => Some(0),
+      FeelZone::Local => get_local_offset_dt(other_date_tuple, other_time_tuple),
+      FeelZone::Offset(offset) => Some(offset.seconds()),
+      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, other_date_tuple, other_time_tuple),
+    };
+    if let Some((me_offset, other_offset)) = me_offset_opt.zip(other_offset_opt) {
+      let me_date_opt = date_time_offset_dt(me_date_tuple, me_time_tuple, me_offset);
+      let other_date_opt = date_time_offset_dt(other_date_tuple, other_time_tuple, other_offset);
+      if let Some((me_date, other_date)) = me_date_opt.zip(other_date_opt)
+        && let Some(nanos) = me_date.signed_duration_since(other_date).num_nanoseconds()
+      {
+        return Some(nanos);
+      }
+    }
+    None
   }
 
   /// Creates UTC date and time from specified date and time values.
@@ -293,7 +296,7 @@ impl FeelDateTime {
     let now = crate::defs::local_now();
     Self(
       FeelDate::new(now.year(), now.month(), now.day()).unwrap(), // Unwrap is ok here, date can not be invalid.
-      FeelTime::local(now.hour() as u8, now.minute() as u8, now.second() as u8, now.nanosecond() as u64),
+      FeelTime::of_clock(now.time(), FeelZone::Local),
     )
   }
 
@@ -345,6 +348,11 @@ impl FeelDateTime {
 
   pub fn second(&self) -> u8 {
     self.1.second()
+  }
+
+  /// Returns the nanoseconds of the second of this date and time.
+  pub fn nanos(&self) -> u64 {
+    self.1.nanos()
   }
 
   pub fn feel_time_offset(&self) -> Option<i32> {

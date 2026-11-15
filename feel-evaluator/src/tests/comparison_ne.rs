@@ -131,3 +131,24 @@ fn _0024() {
   te_bool(false, scope, "null != x", false);
   te_bool(false, scope, "x != y", false);
 }
+
+#[test]
+fn not_equal_on_kinds_that_equal_cannot_compare_reports_like_equal() {
+  // DMN 1.6 §10.3.2.15: "By definition, FEEL(e1 != e2) is FEEL(not(e 1= e2))"
+  for (lhs, rhs, lhs_text, rhs_text) in [
+    (r#""a""#, "1", r#""a""#, "1"),
+    ("10", r#"{c1: {a: {c: "bar", b: "foo"}}}"#, "10", r#"{c1: {a: {b: "foo", c: "bar"}}}"#),
+    (r#"{a: {b: "bar", c: "car"}}"#, "15", r#"{a: {b: "bar", c: "car"}}"#, "15"),
+    ("[1,2,3]", r#""a""#, "[1, 2, 3]", r#""a""#),
+    (r#"@"2018-12-08""#, "2018", "2018-12-08", "2018"),
+    (r#"@"2018-12-08T10:11:12""#, "2018", "2018-12-08T10:11:12", "2018"),
+    (r#"@"10:11:12""#, "10", "10:11:12", "10"),
+    (r#"@"P1D""#, r#""P1D""#, "P1D", r#""P1D""#),
+    (r#"@"P1Y""#, r#""P1Y""#, "P1Y", r#""P1Y""#),
+    ("(1..2]", "10", "(1..2]", "10"),
+  ] {
+    let reason = format!("equal err '{lhs_text}' =?= '{rhs_text}'");
+    te_errors(&format!("{lhs} = {rhs}"), &format!("null({reason})"), &[&reason]);
+    te_errors(&format!("{lhs} != {rhs}"), &format!("null({reason})"), &[&reason]);
+  }
+}

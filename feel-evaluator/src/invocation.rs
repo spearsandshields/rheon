@@ -10,6 +10,8 @@ use crate::evaluator_java::evaluate_external_java_function;
 use crate::evaluator_pmml::evaluate_external_pmml_function;
 use rheon_feel::bif::Bif;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
+use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, FeelType, FunctionBody, FunctionDefinition, Name, QualifiedName, value_null};
 use std::sync::Arc;
@@ -20,43 +22,18 @@ use std::sync::Arc;
 /// in each other) uses host stack. Without a limit, deep recursion overflows the stack, which on
 /// wasm32 is a trap that kills the engine instance, at a depth that depends on the host (browser
 /// worker, Node main thread, ...). With this limit the evaluation stops deterministically at the
-/// same depth everywhere.
+/// same depth everywhere, with [Abort::CallDepth](rheon_feel::diagnostics::Abort::CallDepth).
 pub const MAX_CALL_DEPTH: usize = 200;
 
-thread_local! {
-  /// Current depth of nested function invocations.
-  static CALL_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
-  /// Set when [MAX_CALL_DEPTH] was exceeded; all further invocations return null immediately
-  /// so the evaluation unwinds quickly. Cleared by [reset_call_depth].
-  static CALL_DEPTH_EXCEEDED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-}
-
-/// Resets the call depth tracking; call before every top-level evaluation.
-pub fn reset_call_depth() {
-  CALL_DEPTH.with(|depth| depth.set(0));
-  CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.set(false));
-}
-
-/// Returns `true` when the last evaluation exceeded [MAX_CALL_DEPTH]; its result is then
-/// meaningless (it was cut short) and should be reported as an error.
-pub fn call_depth_exceeded() -> bool {
-  CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.get())
-}
-
 /// Evaluates an invocation expression within [MAX_CALL_DEPTH]; the result is never a non-finite number.
+///
+/// A call beyond the limit stops the evaluation, and no further call is made in it. A refused
+/// call's null is never observed: the abort is the outcome of the evaluation.
 pub(crate) fn guarded(evaluate: impl FnOnce() -> Value) -> Value {
-  if CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.get()) {
-    return value_null!("function call depth limit ({}) exceeded", MAX_CALL_DEPTH);
+  match diagnostics::enter_call(MAX_CALL_DEPTH) {
+    None => Value::Null(None),
+    Some(call) => call.finish(finite(evaluate())),
   }
-  let depth = CALL_DEPTH.with(|depth| depth.get());
-  if depth >= MAX_CALL_DEPTH {
-    CALL_DEPTH_EXCEEDED.with(|exceeded| exceeded.set(true));
-    return value_null!("function call depth limit ({}) exceeded", MAX_CALL_DEPTH);
-  }
-  CALL_DEPTH.with(|d| d.set(depth + 1));
-  let value = finite(evaluate());
-  CALL_DEPTH.with(|d| d.set(depth));
-  value
 }
 
 /// Arguments of an invocation (DMN 1.6, §10.3.2.13.5).
@@ -84,7 +61,7 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
       };
       result.into_coerced(&function.result_type)
     }
-    other => value_null!("expected built-in function name or function definition, actual is {}", other),
+    other => value_null!("expected built-in function name or function definition, actual is {}", arg(&other)),
   }
 }
 
@@ -102,7 +79,7 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
       let mut values = vec![value_null!(); parameters.len()];
       for (name, value) in arguments {
         let Some(index) = parameters.iter().position(|(parameter_name, _)| *parameter_name == name) else {
-          return Err(format!("function has no parameter named '{name}'"));
+          return Err(format!("function has no parameter named '{}'", arg(&name)));
         };
         values[index] = value;
       }
@@ -115,7 +92,7 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
     .map(|(value, (name, parameter_type))| {
       value
         .try_into_coerced(parameter_type)
-        .ok_or_else(|| format!("argument for parameter '{name}' does not conform to type {parameter_type}"))
+        .ok_or_else(|| format!("argument for parameter '{}' does not conform to type {}", arg(name), arg(parameter_type)))
     })
     .collect()
 }
@@ -164,7 +141,7 @@ fn apply_external(scope: &FeelScope, body: &FunctionBody, arguments: &[Value]) -
   match &body.evaluate(scope) {
     Value::ExternalJavaFunction(class_name, method_signature) => evaluate_external_java_function(class_name, method_signature, arguments),
     Value::ExternalPmmlFunction(document, model_name) => evaluate_external_pmml_function(document, model_name, arguments),
-    other => value_null!("expected JAVA or PMML mapping, actual value is {}", other),
+    other => value_null!("expected JAVA or PMML mapping, actual value is {}", arg(&other)),
   }
 }
 

@@ -73,6 +73,11 @@ pub fn err_xml_parsing_model_failed(s: &str) -> DsntkError {
   ModelParserError(format!("parsing model from XML failed with reason: {s}")).into()
 }
 
+/// Raised when the elements of a model nest deeper than the parser accepts.
+pub fn err_elements_nested_too_deeply(max_depth: usize) -> DsntkError {
+  ModelParserError(format!("elements are nested more than {max_depth} levels deep")).into()
+}
+
 /// Raised when specified node has no child nodes.
 pub fn err_node_has_no_children(s: &str) -> DsntkError {
   ModelParserError(format!("node {s} has no children nodes")).into()
@@ -92,14 +97,6 @@ pub fn err_xml_expected_mandatory_child_node(s1: &str, s2: &str) -> DsntkError {
 
 pub fn err_xml_expected_mandatory_text_content(s: &str) -> DsntkError {
   ModelParserError(format!("expected mandatory text content in node '{s}'")).into()
-}
-
-/// Errors related with validating the decision model.
-#[derive(ToErrorMessage)]
-struct ModelValidatorError(String);
-
-pub fn err_item_definitions_cycle() -> DsntkError {
-  ModelValidatorError("cyclic dependency between item definitions".to_string()).into()
 }
 
 pub fn err_no_supported_namespace() -> DsntkError {

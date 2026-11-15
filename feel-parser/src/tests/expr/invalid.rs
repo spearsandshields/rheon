@@ -130,3 +130,14 @@ fn _0011() {
     "#;
   accept(&scope!(), StartExpression, input, expected, false);
 }
+
+#[test]
+fn a_long_input_is_quoted_as_a_preview() {
+  // a syntax error quotes an input of more than 120 characters as its first 120 and its length
+  let input = format!("1{}+", "+1".repeat(20000));
+  te(&input, "ParserError", &format!("syntax error: {}… (40002 characters)", &input[..120]));
+  // 120 characters are quoted whole
+  let input = format!("1{}+", "+1".repeat(59));
+  assert_eq!(120, input.len());
+  te(&input, "ParserError", &format!("syntax error: {input}"));
+}

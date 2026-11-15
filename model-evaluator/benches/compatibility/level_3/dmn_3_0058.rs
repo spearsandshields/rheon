@@ -129,7 +129,7 @@ fn _0011(b: &mut Bencher) {
 fn _0012(b: &mut Bencher) {
   let ctx = context(r#"{}"#);
   let invocable_name = "decision008";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx, r#"1000000.00"#);
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx, r#"1000000"#);
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx));
 }
 

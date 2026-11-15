@@ -113,12 +113,21 @@ fn error_modes() {
   // DMN 1.6 §7.3.8: a failed conversion is an error; lenient returns the null and lists it,
   // strict returns null with the first error; an error-free evaluation has no diagnostics.
   use rheon_feel::diagnostics::ErrorMode;
-  let (value, diagnostics) = MODEL_EVALUATOR.evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List Error", &CTX, ErrorMode::Lenient);
+  let (value, diagnostics) = MODEL_EVALUATOR
+    .evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List Error", &CTX, ErrorMode::Lenient)
+    .into_result()
+    .unwrap();
   assert_eq!(value.to_string(), "null(after coercion)");
   assert!(diagnostics.count > 0);
-  let (value, _) = MODEL_EVALUATOR.evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List Error", &CTX, ErrorMode::Strict);
+  let (value, _) = MODEL_EVALUATOR
+    .evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List Error", &CTX, ErrorMode::Strict)
+    .into_result()
+    .unwrap();
   assert!(value.to_string().starts_with("null(strict error mode: "), "{value}");
-  let (value, diagnostics) = MODEL_EVALUATOR.evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List", &CTX, ErrorMode::Strict);
+  let (value, diagnostics) = MODEL_EVALUATOR
+    .evaluate_invocable_with_mode(&MODEL_NAMESPACE, &MODEL_NAME, "From Singleton List", &CTX, ErrorMode::Strict)
+    .into_result()
+    .unwrap();
   assert_eq!(value.to_string(), r#""abc""#);
   assert_eq!(diagnostics.count, 0, "{diagnostics:?}");
 }

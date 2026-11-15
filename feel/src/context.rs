@@ -1,9 +1,10 @@
 //! FEEL context.
 
 use crate::errors::*;
+use crate::message::{MessageArg, Size};
 use crate::names::Name;
 use crate::qualified_names::QualifiedName;
-use crate::strings::ToFeelString;
+use crate::strings::{ToFeelString, write_separated};
 use crate::value_null;
 use crate::values::Value;
 use dsntk_common::{DsntkError, Jsonify, Result};
@@ -44,19 +45,28 @@ impl From<FeelContext> for Value {
   }
 }
 
+impl MessageArg for FeelContext {
+  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fmt::Display::fmt(self, f)
+  }
+
+  fn size(&self) -> Option<Size> {
+    Some(Size::Entries(self.0.len()))
+  }
+}
+
 impl fmt::Display for FeelContext {
   /// Convert [FeelContext] to string.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(
+    f.write_str("{")?;
+    write_separated(
       f,
-      "{{{}}}",
-      self
-        .0
-        .iter()
-        .map(|(name, value)| { format!("{}: {}", if name.is_empty() { r#""""#.to_string() } else { name.to_string() }, value) })
-        .collect::<Vec<String>>()
-        .join(", ")
-    )
+      &self.0,
+      |f, (name, value)| {
+        if name.is_empty() { write!(f, r#""": {value}"#) } else { write!(f, "{name}: {value}") }
+      },
+    )?;
+    f.write_str("}")
   }
 }
 

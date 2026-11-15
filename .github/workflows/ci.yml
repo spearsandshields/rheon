@@ -26,6 +26,11 @@ jobs:
       # (dsntk-examples) walks a DMN TCK checkout at ../tck that CI does not have; the dsntk-server
       # `utils::tests::getting_*` tests assert that the checkout directory is named `dsntk`.
       - run: cargo test --workspace --no-fail-fast -- --skip external_functions --skip dmn_3_0076 --skip compare_the_number_of_models --skip utils::tests::getting_
+      # the API documentation of the published crates, with every rustdoc warning (a broken
+      # intra-doc link among them) an error
+      - run: cargo doc --no-deps -p rheon-feel-number -p rheon-feel-temporal -p rheon-feel -p rheon-feel-regex -p rheon-feel-grammar -p rheon-feel-parser -p rheon-feel-evaluator -p rheon-model -p rheon-model-evaluator -p rheon-feel-wasm
+        env:
+          RUSTDOCFLAGS: -D warnings
 
   wasm:
     name: feel.wasm + runtime + playground
@@ -38,11 +43,25 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24 # the identity check runs the previous release, which can crash Node 22 itself (tools/identity/README.md)
           cache: npm
       - run: npm ci
       - run: npm run bootstrap # wasm target + wasmtime into .tools/ (sha256-checked)
       - run: npm run build:wasm # dist/feel.wasm + interface check against CONTRACT §1
+      # every committed request answers exactly as in the previous release (tools/identity/baseline.json,
+      # sha256-checked), except the differences registered in tools/identity/registered/. run.sh caches
+      # the release's answers in .tools/identity-cache/, which no step restores: this run evaluates
+      # them in full on every push.
+      - run: bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm run test:identity # the identity tool's own checks, on the baseline and the build
+      # every number result of the build judged against its truth under DMN 1.6 (tools/number-oracle):
+      # the runner's own python3 in a virtual environment with mpmath, pinned by hash
+      - run: python3 -m venv .tools/py && .tools/py/bin/pip install --require-hashes -r tools/number-oracle/requirements.txt
+      - run: bash tools/number-oracle/run.sh quick
+        env:
+          PYTHON: .tools/py/bin/python
       - run: npm run test:rust # native contract tests of rheon-feel-wasm
       - run: npm run test:rust:wasm # the same tests under wasmtime
       - run: npm run test:runtime # @rheon/feel-runtime (node --test)

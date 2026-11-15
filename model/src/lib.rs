@@ -4,6 +4,7 @@
 #[macro_use]
 extern crate dsntk_macros;
 
+mod element_depth;
 mod errors;
 mod mapper;
 mod model;

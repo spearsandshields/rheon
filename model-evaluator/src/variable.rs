@@ -1,6 +1,7 @@
 use crate::item_definition::ItemDefinitionEvaluator;
 use crate::item_definition_type::ItemDefinitionTypeEvaluator;
 use crate::model_definitions::{DefInformationItem, DefKey};
+use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name, value_null};
 
@@ -200,13 +201,14 @@ impl Variable {
           if let Some(entry_value) = ctx.get_entry(&variable_name) {
             let evaluated_value = item_definition_evaluator
               .eval(&DefKey::new(&variable_namespace, &variable_type_ref), entry_value)
-              .unwrap_or_else(|| value_null!("input data evaluator: item definition evaluator '{}' not found", variable_type_ref));
+              .unwrap_or_else(|| value_null!("input data evaluator: item definition evaluator '{}' not found", arg(&variable_type_ref)));
             (variable_name.clone(), evaluated_value)
           } else {
-            (variable_name.clone(), value_null!("no name {} in context {}", variable_name, ctx))
+            // missing data, as for a variable of a built-in type: a null with a note, no error
+            (variable_name.clone(), value_null!(note: "no name {} in context {}", arg(&variable_name), arg(&ctx)))
           }
         } else {
-          (variable_name.clone(), value_null!("expected context, actual value is {}", value))
+          (variable_name.clone(), value_null!("expected context, actual value is {}", arg(&value)))
         }
       }),
     }

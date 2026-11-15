@@ -2895,22 +2895,6 @@ fn _0277() {
 }
 
 #[test]
-#[cfg(feature = "intel")]
-fn _0278() {
-  // 5 ** 2.55 = 60.586171666066336737457249282442615...: the Intel library's result is 1 ulp
-  // below the correctly rounded value (it evaluates pow in binary128).
-  assert_decision(
-    &MODEL_EVALUATOR,
-    &MODEL_NAMESPACE,
-    &MODEL_NAME,
-    "exponent_lhs_number_exp_rhs_number_005",
-    &CTX,
-    r#"60.58617166606633673745724928244261"#,
-  );
-}
-
-#[test]
-#[cfg(not(feature = "intel"))]
 fn _0278() {
   // 5 ** 2.55 = 60.586171666066336737457249282442615..., correctly rounded to 34 digits
   assert_decision(
@@ -3205,7 +3189,7 @@ fn _0303() {
     &MODEL_NAME,
     "error_when_multiply_lhs_string_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: string)"#,
+    r#"null([multiplication] incompatible types: "10" * null)"#,
   );
 }
 
@@ -3361,7 +3345,7 @@ fn _0316() {
     &MODEL_NAME,
     "error_when_multiply_lhs_boolean_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: boolean)"#,
+    r#"null([multiplication] incompatible types: true * null)"#,
   );
 }
 
@@ -3517,7 +3501,7 @@ fn _0329() {
     &MODEL_NAME,
     "error_when_multiply_lhs_date_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: date)"#,
+    r#"null([multiplication] incompatible types: 2021-01-01 * null)"#,
   );
 }
 
@@ -3673,7 +3657,7 @@ fn _0342() {
     &MODEL_NAME,
     "error_when_multiply_lhs_dateAndTime_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: date and time)"#,
+    r#"null([multiplication] incompatible types: 2021-01-01T10:10:10 * null)"#,
   );
 }
 
@@ -3829,7 +3813,7 @@ fn _0355() {
     &MODEL_NAME,
     "error_when_multiply_lhs_time_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: time)"#,
+    r#"null([multiplication] incompatible types: 10:10:10 * null)"#,
   );
 }
 
@@ -3985,7 +3969,7 @@ fn _0368() {
     &MODEL_NAME,
     "error_when_multiply_lhs_list_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: list<number>)"#,
+    r#"null([multiplication] incompatible types: [10] * null)"#,
   );
 }
 
@@ -4141,7 +4125,7 @@ fn _0381() {
     &MODEL_NAME,
     "error_when_multiply_lhs_context_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: context<a: number>)"#,
+    r#"null([multiplication] incompatible types: {a: 10} * null)"#,
   );
 }
 
@@ -4585,7 +4569,7 @@ fn _0418() {
     &MODEL_NAME,
     "error_when_multiply_lhs_range_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: range<number>)"#,
+    r#"null([multiplication] incompatible types: [1..10] * null)"#,
   );
 }
 
@@ -4741,7 +4725,7 @@ fn _0431() {
     &MODEL_NAME,
     "error_when_multiply_lhs_function_by_rhs_null",
     &CTX,
-    r#"null(unexpected value type in multiplication: function<Any>->Any)"#,
+    r#"null([multiplication] incompatible types: FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any) * null)"#,
   );
 }
 
@@ -4753,7 +4737,7 @@ fn _0432() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_number",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * 10)"#,
   );
 }
 
@@ -4765,7 +4749,7 @@ fn _0433() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_string",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * "10")"#,
   );
 }
 
@@ -4777,13 +4761,20 @@ fn _0434() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_boolean",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * true)"#,
   );
 }
 
 #[test]
 fn _0435() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_multiply_lhs_null_by_rhs_date", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_multiply_lhs_null_by_rhs_date",
+    &CTX,
+    r#"null([multiplication] incompatible types: null * 2021-01-01)"#,
+  );
 }
 
 #[test]
@@ -4794,18 +4785,32 @@ fn _0436() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_dateAndTime",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * 2021-01-01T10:10:10)"#,
   );
 }
 
 #[test]
 fn _0437() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_multiply_lhs_null_by_rhs_time", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_multiply_lhs_null_by_rhs_time",
+    &CTX,
+    r#"null([multiplication] incompatible types: null * 10:10:10)"#,
+  );
 }
 
 #[test]
 fn _0438() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_multiply_lhs_null_by_rhs_list", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_multiply_lhs_null_by_rhs_list",
+    &CTX,
+    r#"null([multiplication] incompatible types: null * [10])"#,
+  );
 }
 
 #[test]
@@ -4816,7 +4821,7 @@ fn _0439() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_context",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * {a: 10})"#,
   );
 }
 
@@ -4828,7 +4833,7 @@ fn _0440() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_dtDuration",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * P1D)"#,
   );
 }
 
@@ -4840,7 +4845,7 @@ fn _0441() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_ymDuration",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * P1Y)"#,
   );
 }
 
@@ -4852,7 +4857,7 @@ fn _0442() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_range",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * [1..10])"#,
   );
 }
 
@@ -4864,13 +4869,20 @@ fn _0443() {
     &MODEL_NAME,
     "error_when_multiply_lhs_null_by_rhs_function",
     &CTX,
-    r#"null"#,
+    r#"null([multiplication] incompatible types: null * FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any))"#,
   );
 }
 
 #[test]
 fn _0444() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_multiply_lhs_null_by_rhs_null", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_multiply_lhs_null_by_rhs_null",
+    &CTX,
+    r#"null([multiplication] incompatible types: null * null)"#,
+  );
 }
 
 #[test]
@@ -6975,7 +6987,14 @@ fn _0619() {
 
 #[test]
 fn _0620() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_number_to_rhs_null", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_number_to_rhs_null",
+    &CTX,
+    r#"null([addition] incompatible types: 10 + null)"#,
+  );
 }
 
 #[test]
@@ -7118,7 +7137,7 @@ fn _0632() {
     &MODEL_NAME,
     "error_when_add_lhs_string_to_rhs_null",
     &CTX,
-    r#"null(expected string as a second argument in addition)"#,
+    r#"null([addition] incompatible types: "10" + null)"#,
   );
 }
 
@@ -7274,7 +7293,7 @@ fn _0645() {
     &MODEL_NAME,
     "error_when_add_lhs_boolean_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is boolean)"#,
+    r#"null([addition] incompatible types: true + null)"#,
   );
 }
 
@@ -7406,7 +7425,7 @@ fn _0656() {
     &MODEL_NAME,
     "error_when_add_lhs_date_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected years and months duration, actual type is Null)"#,
+    r#"null([addition] incompatible types: 2021-01-01 + null)"#,
   );
 }
 
@@ -7538,7 +7557,7 @@ fn _0667() {
     &MODEL_NAME,
     "error_when_add_lhs_dateAndTime_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected days and time duration, years and months duration, actual type is Null)"#,
+    r#"null([addition] incompatible types: 2021-01-01T10:10:10 + null)"#,
   );
 }
 
@@ -7682,7 +7701,7 @@ fn _0679() {
     &MODEL_NAME,
     "error_when_add_lhs_time_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected days and time duration, actual type is Null)"#,
+    r#"null([addition] incompatible types: 10:10:10 + null)"#,
   );
 }
 
@@ -7838,7 +7857,7 @@ fn _0692() {
     &MODEL_NAME,
     "error_when_add_lhs_list_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is list<number>)"#,
+    r#"null([addition] incompatible types: [10] + null)"#,
   );
 }
 
@@ -7994,7 +8013,7 @@ fn _0705() {
     &MODEL_NAME,
     "error_when_add_lhs_context_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<a: number>)"#,
+    r#"null([addition] incompatible types: {a: 10} + null)"#,
   );
 }
 
@@ -8102,7 +8121,7 @@ fn _0714() {
     &MODEL_NAME,
     "error_when_add_lhs_dtDuration_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected days and time duration, date and time, actual type is Null)"#,
+    r#"null([addition] incompatible types: P1D + null)"#,
   );
 }
 
@@ -8222,7 +8241,7 @@ fn _0724() {
     &MODEL_NAME,
     "error_when_add_lhs_ymDuration_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected years and months duration, date and time, actual type is Null)"#,
+    r#"null([addition] incompatible types: P1Y + null)"#,
   );
 }
 
@@ -8378,7 +8397,7 @@ fn _0737() {
     &MODEL_NAME,
     "error_when_add_lhs_range_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is range<number>)"#,
+    r#"null([addition] incompatible types: [1..10] + null)"#,
   );
 }
 
@@ -8534,28 +8553,56 @@ fn _0750() {
     &MODEL_NAME,
     "error_when_add_lhs_function_to_rhs_null",
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is function<Any>->Any)"#,
+    r#"null([addition] incompatible types: FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any) + null)"#,
   );
 }
 
 #[test]
 fn _0751() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_number", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_number",
+    &CTX,
+    r#"null([addition] incompatible types: null + 10)"#,
+  );
 }
 
 #[test]
 fn _0752() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_string", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_string",
+    &CTX,
+    r#"null([addition] incompatible types: null + "10")"#,
+  );
 }
 
 #[test]
 fn _0753() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_boolean", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_boolean",
+    &CTX,
+    r#"null([addition] incompatible types: null + true)"#,
+  );
 }
 
 #[test]
 fn _0754() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_date", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_date",
+    &CTX,
+    r#"null([addition] incompatible types: null + 2021-01-01)"#,
+  );
 }
 
 #[test]
@@ -8566,23 +8613,44 @@ fn _0755() {
     &MODEL_NAME,
     "error_when_add_lhs_null_to_rhs_dateAndTime",
     &CTX,
-    r#"null"#,
+    r#"null([addition] incompatible types: null + 2021-01-01T10:10:10)"#,
   );
 }
 
 #[test]
 fn _0756() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_time", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_time",
+    &CTX,
+    r#"null([addition] incompatible types: null + 10:10:10)"#,
+  );
 }
 
 #[test]
 fn _0757() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_list", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_list",
+    &CTX,
+    r#"null([addition] incompatible types: null + [10])"#,
+  );
 }
 
 #[test]
 fn _0758() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_context", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_context",
+    &CTX,
+    r#"null([addition] incompatible types: null + {a: 10})"#,
+  );
 }
 
 #[test]
@@ -8593,7 +8661,7 @@ fn _0759() {
     &MODEL_NAME,
     "error_when_add_lhs_null_to_rhs_dtDuration",
     &CTX,
-    r#"null"#,
+    r#"null([addition] incompatible types: null + P1D)"#,
   );
 }
 
@@ -8605,23 +8673,44 @@ fn _0760() {
     &MODEL_NAME,
     "error_when_add_lhs_null_to_rhs_ymDuration",
     &CTX,
-    r#"null"#,
+    r#"null([addition] incompatible types: null + P1Y)"#,
   );
 }
 
 #[test]
 fn _0761() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_range", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_range",
+    &CTX,
+    r#"null([addition] incompatible types: null + [1..10])"#,
+  );
 }
 
 #[test]
 fn _0762() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_function", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_function",
+    &CTX,
+    r#"null([addition] incompatible types: null + FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any))"#,
+  );
 }
 
 #[test]
 fn _0763() {
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "error_when_add_lhs_null_to_rhs_null", &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "error_when_add_lhs_null_to_rhs_null",
+    &CTX,
+    r#"null([addition] incompatible types: null + null)"#,
+  );
 }
 
 #[test]
@@ -10636,7 +10725,7 @@ fn _0931() {
     &MODEL_NAME,
     "error_when_exponent_lhs_number_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation exponent is not a number)"#,
+    r#"null([exponentiation] incompatible types: 10 ** null)"#,
   );
 }
 
@@ -10792,7 +10881,7 @@ fn _0944() {
     &MODEL_NAME,
     "error_when_exponent_lhs_string_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: "10" ** null)"#,
   );
 }
 
@@ -10948,7 +11037,7 @@ fn _0957() {
     &MODEL_NAME,
     "error_when_exponent_lhs_boolean_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: true ** null)"#,
   );
 }
 
@@ -11104,7 +11193,7 @@ fn _0970() {
     &MODEL_NAME,
     "error_when_exponent_lhs_date_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: 2021-01-01 ** null)"#,
   );
 }
 
@@ -11260,7 +11349,7 @@ fn _0983() {
     &MODEL_NAME,
     "error_when_exponent_lhs_dateAndTime_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: 2021-01-01T10:10:10 ** null)"#,
   );
 }
 
@@ -11416,7 +11505,7 @@ fn _0996() {
     &MODEL_NAME,
     "error_when_exponent_lhs_time_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: 10:10:10 ** null)"#,
   );
 }
 
@@ -11572,7 +11661,7 @@ fn _1009() {
     &MODEL_NAME,
     "error_when_exponent_lhs_list_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: [10] ** null)"#,
   );
 }
 
@@ -11728,7 +11817,7 @@ fn _1022() {
     &MODEL_NAME,
     "error_when_exponent_lhs_context_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: {a: 10} ** null)"#,
   );
 }
 
@@ -11884,7 +11973,7 @@ fn _1035() {
     &MODEL_NAME,
     "error_when_exponent_lhs_dtDuration_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: P1D ** null)"#,
   );
 }
 
@@ -12040,7 +12129,7 @@ fn _1048() {
     &MODEL_NAME,
     "error_when_exponent_lhs_ymDuration_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: P1Y ** null)"#,
   );
 }
 
@@ -12196,7 +12285,7 @@ fn _1061() {
     &MODEL_NAME,
     "error_when_exponent_lhs_range_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: [1..10] ** null)"#,
   );
 }
 
@@ -12352,7 +12441,7 @@ fn _1074() {
     &MODEL_NAME,
     "error_when_exponent_lhs_function_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any) ** null)"#,
   );
 }
 
@@ -12364,7 +12453,7 @@ fn _1075() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_number",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 10)"#,
   );
 }
 
@@ -12376,7 +12465,7 @@ fn _1076() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_string",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** "10")"#,
   );
 }
 
@@ -12388,7 +12477,7 @@ fn _1077() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_boolean",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** true)"#,
   );
 }
 
@@ -12400,7 +12489,7 @@ fn _1078() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_date",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 2021-01-01)"#,
   );
 }
 
@@ -12412,7 +12501,7 @@ fn _1079() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_dateAndTime",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 2021-01-01T10:10:10)"#,
   );
 }
 
@@ -12424,7 +12513,7 @@ fn _1080() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_time",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 10:10:10)"#,
   );
 }
 
@@ -12436,7 +12525,7 @@ fn _1081() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_list",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** [10])"#,
   );
 }
 
@@ -12448,7 +12537,7 @@ fn _1082() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_context",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** {a: 10})"#,
   );
 }
 
@@ -12460,7 +12549,7 @@ fn _1083() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_dtDuration",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** P1D)"#,
   );
 }
 
@@ -12472,7 +12561,7 @@ fn _1084() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_ymDuration",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** P1Y)"#,
   );
 }
 
@@ -12484,7 +12573,7 @@ fn _1085() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_range",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** [1..10])"#,
   );
 }
 
@@ -12496,7 +12585,7 @@ fn _1086() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_function",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any))"#,
   );
 }
 
@@ -12508,6 +12597,6 @@ fn _1087() {
     &MODEL_NAME,
     "error_when_exponent_lhs_null_exp_rhs_null",
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** null)"#,
   );
 }

@@ -1,32 +1,32 @@
-//! # decimal128 core shared by the pure-Rust number backends
+//! # decimal128 core of the FEEL number
 //!
-//! Implementation of the FEEL number type with the semantics of IEEE 754-2008 **decimal128**,
-//! exactly like the Intel-based implementation (`dfp_number.rs`): 34 significant digits,
-//! rounding half-even, exponent (of the coefficient) in range `-6176..=6111`, cohorts preserved.
+//! Implementation of the FEEL number type with the semantics of IEEE 754-2008 **decimal128**
+//! (DMN 1.6 §10.3.2.3.1): 34 significant digits, rounding half-even, exponent (of the
+//! coefficient) in range `-6176..=6111`, cohorts preserved.
 //!
 //! The value is stored in a backend-independent, `Copy` form [V]: sign, `u128` coefficient
 //! (< 10^34) and `i32` exponent, plus infinity and NaN. Everything whose exact result has a
 //! bounded number of digits is computed here, directly on that triple, in `u128` when the
 //! intermediate fits and in a tiny 256-bit integer ([U256]) otherwise: `+ - *`, square root,
-//! rounding to integral, quantize, scaling, comparisons, parsing, formatting, conversions, the
-//! integer-exponent power and the cohort rules. Only the operations with an unbounded exact
-//! result (`/`, `exp`, `ln`, `pow` with a non-integer exponent) are delegated to a [Backend],
+//! rounding to a scale, `modulo`, comparisons, parsing, formatting, conversions, the
+//! integer-exponent power that fits in 256 bits. The operations with an unbounded or a large exact
+//! result (`/`, `exp`, `ln`, `pow` with a non-integer exponent, a larger exact integer power and its
+//! reciprocal) are delegated to a [Backend],
 //! which returns a correctly rounded value together with the side the exact value lies on; that
 //! side becomes a sticky digit and the value is passed **once** through [round_pack], which also
 //! applies the decimal128 exponent range (subnormals, clamping and overflow to infinity).
 //!
-//! The backend is selected by a Cargo feature (`dashu`: `backend_dashu.rs`).
+//! The backend is `backend_dashu.rs`, on dashu-float.
 
 use crate::errors::*;
 use dsntk_common::{DsntkError, Jsonify, Result};
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Debug, Display};
-use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 use std::str::FromStr;
 
-/// The backend selected by the Cargo features.
-#[cfg(feature = "dashu")]
+/// The backend of the operations with an unbounded exact result.
 type B = crate::backend_dashu::Dashu;
 
 /// Minimum scale accepted by the scale-based rounding functions (FEEL: `-6111..=6176`).
@@ -35,16 +35,8 @@ const MIN_SCALE: i32 = -6111;
 /// Maximum scale accepted by the scale-based rounding functions (FEEL: `-6111..=6176`).
 const MAX_SCALE: i32 = 6176;
 
-/// Largest adjusted exponent of the scaled intermediate `n * 10^scale` the rounding
-/// functions work on (the maximum exponent of a decimal128 number).
-const SCALED_EXP_MAX: i64 = 6144;
-
 /// Precision of decimal128 (number of significant digits).
 pub(crate) const PRECISION: usize = 34;
-
-/// Precision used when the exact cohort of an `exp`/`ln` result has to be decided
-/// (see [binary128_cohort]); the decision needs a few digits more than decimal128.
-const COHORT_PRECISION: usize = 45;
 
 /// Minimum exponent of the coefficient in decimal128.
 const EXP_MIN: i64 = -6176;
@@ -62,34 +54,46 @@ pub(crate) const POW_T_OVERFLOW: f64 = 14200.0;
 pub(crate) const POW_T_UNDERFLOW: f64 = -14250.0;
 
 /// Working precisions of [pow_exp_log]: the first one leaves 11 digits to decide the rounding,
-/// the later ones are only used when the result is very close to a rounding boundary.
+/// the later ones are only used when the result is very close to a rounding boundary. An integer
+/// exponent goes on to the precisions of [POW_INTEGER_PRECISIONS].
 const POW_PRECISIONS: [usize; 4] = [45, 60, 90, 140];
+
+/// The largest exact integer power, in bits, that [Backend::int_pow] computes (about 4,900
+/// digits): beyond it [pow_exp_log] is faster than the exact power.
+pub(crate) const POW_EXACT_MAX_BITS: u64 = 16_384;
+
+/// The further working precisions of [pow_exp_log] for an integer exponent, whose inexact result
+/// is never a tie.
+const POW_INTEGER_PRECISIONS: [usize; 2] = [280, 560];
 
 /// Unpacked decimal128 value.
 #[derive(Copy, Clone, Debug, PartialEq)]
 enum V {
-  /// Not a number, with sign (`true` = negative). The sign only shows in `Debug`
-  /// (`-NaN`, like Intel's `bid128_to_string`): it is flipped by negation, cleared by `abs`,
-  /// kept when a NaN operand is propagated, and positive for an invalid operation.
-  NaN(bool),
+  /// Not a number: the result of an invalid operation, propagated by every operation. It has
+  /// no sign; FEEL has no such number (DMN 1.6 §10.3.2.3.1), so the evaluators give null.
+  NaN,
   /// Infinity with sign (`true` = negative).
   Inf(bool),
   /// Finite number: sign (`true` = negative), coefficient (< 10^34), exponent.
   Fin(bool, u128, i32),
 }
 
-/// Rounding modes used for rounding to integral value.
-#[derive(Copy, Clone)]
-enum Rnd {
-  /// Round half to even.
+/// The rounding modes of the FEEL rounding functions (DMN 1.6 Table 77).
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum RoundingMode {
+  /// To the nearest, a tie to the even neighbour (`decimal`).
   HalfEven,
-  /// Round half away from zero.
-  HalfAway,
-  /// Round toward zero.
-  Zero,
-  /// Round toward positive infinity.
+  /// To the nearest, a tie away from zero (`round half up`).
+  HalfUp,
+  /// To the nearest, a tie toward zero (`round half down`).
+  HalfDown,
+  /// Away from zero (`round up`).
+  Up,
+  /// Toward zero (`round down`).
+  Down,
+  /// Toward positive infinity (`ceiling`).
   Ceiling,
-  /// Round toward negative infinity.
+  /// Toward negative infinity (`floor`).
   Floor,
 }
 
@@ -134,13 +138,17 @@ pub(crate) trait Backend {
   /// `a / b` for `a = ca · 10^ea`, `b = cb · 10^eb`, correctly rounded to [PRECISION] digits.
   fn div(ca: u128, ea: i32, cb: u128, eb: i32) -> Wide;
 
-  /// `e^x` for `x = ±c · 10^e` (`neg` is the sign of `x`), correctly rounded to `precision`
-  /// digits. The core calls it with [PRECISION] for the value, and with [COHORT_PRECISION]
-  /// for the digits only (the side is then ignored).
-  fn exp(neg: bool, c: u128, e: i32, precision: usize) -> Wide;
+  /// `e^x` for `x = ±c · 10^e` (`neg` is the sign of `x`), correctly rounded to [PRECISION]
+  /// digits.
+  fn exp(neg: bool, c: u128, e: i32) -> Wide;
 
-  /// `ln(c · 10^e)`, correctly rounded to `precision` digits (used like [Backend::exp]).
-  fn ln(c: u128, e: i32, precision: usize) -> Wide;
+  /// `ln(c · 10^e)`, correctly rounded to [PRECISION] digits.
+  fn ln(c: u128, e: i32) -> Wide;
+
+  /// `c^n` exactly (as [Wide::Digits]), or with `reciprocal` `1 / c^n` correctly rounded to
+  /// [PRECISION] digits, for `c > 0` and `n > 0`; `None` when `c^n` would have more than
+  /// [POW_EXACT_MAX_BITS] bits.
+  fn int_pow(c: u128, n: u64, reciprocal: bool) -> Option<Wide>;
 
   /// One round of `x^y = exp(t)`, `t = y ln x`, for `x = cx · 10^ex` and `y = ±cy · 10^ey`
   /// (`sy` is the sign of `y`), with `ln`, `*` and `exp` each correctly rounded to `precision`
@@ -178,7 +186,7 @@ pub(crate) fn digit_count(c: u128) -> u32 {
 }
 
 /// Unsigned 256-bit integer: just enough for the exact intermediate values of this module
-/// (sums and products of two 34-digit coefficients, square root radicands, cohort decisions).
+/// (sums and products of two 34-digit coefficients, square root radicands).
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 struct U256 {
   hi: u128,
@@ -237,6 +245,31 @@ impl U256 {
     })
   }
 
+  /// Product of two values, `None` when it does not fit in 256 bits.
+  fn checked_mul(self, other: U256) -> Option<U256> {
+    match (self.hi, other.hi) {
+      (0, _) => other.checked_mul_u128(self.lo),
+      (_, 0) => self.checked_mul_u128(other.lo),
+      _ => None,
+    }
+  }
+
+  /// `base^n`, `None` when it does not fit in 256 bits (square and multiply with exact products;
+  /// a square is only taken when a later bit needs it, so no intermediate overflows needlessly).
+  fn checked_pow(base: u128, n: u64) -> Option<U256> {
+    let (mut result, mut square, mut n) = (U256::from_u128(1), U256::from_u128(base), n);
+    while n > 0 {
+      if n & 1 == 1 {
+        result = result.checked_mul(square)?;
+      }
+      n >>= 1;
+      if n > 0 {
+        square = square.checked_mul(square)?;
+      }
+    }
+    Some(result)
+  }
+
   fn checked_mul_pow10(self, n: u32) -> Option<U256> {
     let mut x = self;
     let mut n = n;
@@ -246,32 +279,6 @@ impl U256 {
       n -= k;
     }
     Some(x)
-  }
-
-  /// 10^n, when it fits.
-  fn pow10(n: u32) -> Option<U256> {
-    U256::from_u128(1).checked_mul_pow10(n)
-  }
-
-  fn checked_shl(self, n: u32) -> Option<U256> {
-    if n == 0 {
-      Some(self)
-    } else if n >= 256 {
-      if self.is_zero() { Some(self) } else { None }
-    } else if n >= 128 {
-      if self.hi != 0 || (n > 128 && self.lo >> (256 - n) != 0) {
-        None
-      } else {
-        Some(U256 { hi: self.lo << (n - 128), lo: 0 })
-      }
-    } else if self.hi >> (128 - n) != 0 {
-      None
-    } else {
-      Some(U256 {
-        hi: (self.hi << n) | (self.lo >> (128 - n)),
-        lo: self.lo << n,
-      })
-    }
   }
 
   fn shr(self, n: u32) -> U256 {
@@ -292,6 +299,21 @@ impl U256 {
   /// Number of significant bits.
   fn bits(self) -> u32 {
     if self.hi != 0 { 256 - self.hi.leading_zeros() } else { 128 - self.lo.leading_zeros() }
+  }
+
+  /// Remainder of the division by `d`, for `0 < d < 2^127` (bit by bit; the partial remainder
+  /// stays below `2d`, so it fits in `u128`).
+  fn rem_u128(self, d: u128) -> u128 {
+    debug_assert!(d != 0 && d < 1 << 127, "divisor out of range");
+    let mut rem: u128 = 0;
+    for i in (0..self.bits()).rev() {
+      let bit = if i >= 128 { (self.hi >> (i - 128)) & 1 } else { (self.lo >> i) & 1 };
+      rem = (rem << 1) | bit;
+      if rem >= d {
+        rem -= d;
+      }
+    }
+    rem
   }
 
   /// Quotient and remainder of the division by a `u64`.
@@ -330,24 +352,6 @@ impl U256 {
       s.push_str(&format!("{chunk:019}"));
     }
     s
-  }
-
-  /// Parses a string of decimal digits; `None` when it is not one or does not fit.
-  fn from_decimal(s: &str) -> Option<U256> {
-    if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) {
-      return None;
-    }
-    let mut x = U256::ZERO;
-    let head = s.len() % 19;
-    let (first, rest) = s.split_at(head);
-    if !first.is_empty() {
-      x = U256::from_u128(first.parse::<u128>().ok()?);
-    }
-    for chunk in rest.as_bytes().chunks(19) {
-      let c: u128 = std::str::from_utf8(chunk).ok()?.parse().ok()?;
-      x = x.checked_mul_u128(pow10(19))?.checked_add(U256::from_u128(c))?;
-    }
-    Some(x)
   }
 }
 
@@ -490,7 +494,7 @@ fn round_pack_u128(neg: bool, c: u128, exp: i64) -> (V, bool) {
 /// spacing below it.
 fn pack(w: Wide) -> (V, bool) {
   match w {
-    Wide::NaN => (V::NaN(false), false),
+    Wide::NaN => (V::NaN, false),
     Wide::Inf(neg) => (V::Inf(neg), true),
     Wide::Rounded(neg, c, e, Ordering::Equal) => round_pack_u128(neg, c, e),
     Wide::Rounded(neg, c, e, side) => {
@@ -505,15 +509,6 @@ fn pack(w: Wide) -> (V, bool) {
       (round_pack_u128(neg, c, e - pad as i64 - 2).0, true)
     }
     Wide::Digits(neg, digits, e) => round_pack(neg, &digits, e),
-  }
-}
-
-/// Magnitude digits and exponent of a backend result (for the cohort decision).
-fn wide_digits(w: Wide) -> Option<(String, i64)> {
-  match w {
-    Wide::Rounded(_, c, e, _) => Some((c.to_string(), e)),
-    Wide::Digits(_, digits, e) => Some((digits, e)),
-    _ => None,
   }
 }
 
@@ -538,89 +533,13 @@ fn ideal(v: V, inexact: bool, ideal: i32) -> V {
   }
 }
 
-/// Pads the coefficient of an (inexact) result with zeros up to 34 digits.
-fn full_precision(v: V) -> V {
-  match v {
-    V::Fin(_, c, _) if c != 0 => ideal(v, false, EXP_MIN as i32),
-    other => other,
-  }
-}
-
-/// Chooses the cohort (exponent) of a correctly rounded result of `exp` or `ln`
-/// the way Intel's `bid128_exp` / `bid128_log` do.
-///
-/// Intel evaluates these functions in binary128 and converts the binary result `B`
-/// with `binary128_to_bid128`, which returns:
-/// - an integer `B < 10^34` with exponent 0 (e.g. `2E+0`),
-/// - a dyadic fraction `B = c / 2^a` (`a <= 48`, `c * 5^a < 10^34`) with exponent `-a` (e.g. `5E-1`),
-/// - any other value rounded to the full 34 digits (e.g. `1.000000000000000000000000000000000`).
-///
-/// `v` is the correctly rounded 34-digit result and `wide` recomputes it with
-/// [COHORT_PRECISION] digits (only called when `v` is an integer or a short dyadic fraction).
-/// When the wide value `w` rounds to exactly `v` in binary128 (i.e. `|w - v|` is below half
-/// a binary128 ulp of `v`), Intel's exact cohort is used, otherwise the result is padded to
-/// 34 digits.
-fn binary128_cohort(v: V, wide: impl FnOnce() -> Option<(String, i64)>) -> V {
-  let V::Fin(neg, c, e) = v else { return v };
-  if c == 0 {
-    return v;
-  }
-  // value with trailing zeros removed: c0 * 10^e0
-  let (mut c0, mut e0) = (c, e);
-  while c0 % 10 == 0 {
-    c0 /= 10;
-    e0 += 1;
-  }
-  // (coefficient, exponent) of Intel's exact conversion, binary exponent E (2^E <= |v| < 2^(E+1)),
-  // and the flag telling whether |v| is a power of two
-  let (rc, re, binary_exp, power_of_two) = if e0 >= 0 {
-    if digit_count(c0) as i32 + e0 > PRECISION as i32 {
-      return full_precision(v);
-    }
-    let n = c0 * pow10(e0 as u32);
-    (n, 0, (127 - n.leading_zeros()) as i32, n.is_power_of_two())
-  } else {
-    let a = (-e0) as u32;
-    if a > 48 || c0 % 5_u128.pow(a) != 0 {
-      return full_precision(v);
-    }
-    let odd = c0 / 5_u128.pow(a);
-    (c0, e0, (127 - odd.leading_zeros()) as i32 - a as i32, odd == 1)
-  };
-  let Some((w_digits, ew)) = wide() else { return full_precision(v) };
-  // |w - v| = d * 10^emin with d an integer
-  let emin = ew.min(re as i64);
-  let scaled = |digits: Option<U256>, exp: i64| digits.and_then(|x| x.checked_mul_pow10((exp - emin) as u32));
-  let (Some(wu), Some(vu)) = (scaled(U256::from_decimal(&w_digits), ew), scaled(Some(U256::from_u128(rc)), re as i64)) else {
-    return full_precision(v);
-  };
-  let below = wu < vu;
-  let d = if below { vu.checked_sub(wu) } else { wu.checked_sub(vu) }.unwrap_or(U256::ZERO);
-  // half a binary128 ulp (113-bit significand) is 2^(E-113), or 2^(E-114) just below a power of two
-  let shift = 113 - binary_exp + if power_of_two && below { 1 } else { 0 };
-  // within: d * 10^emin * 2^shift < 1
-  let within = if d.is_zero() {
-    true
-  } else if emin >= 0 {
-    false
-  } else {
-    matches!((d.checked_shl(shift as u32), U256::pow10((-emin) as u32)), (Some(x), Some(limit)) if x < limit)
-  };
-  if within { V::Fin(neg, rc, re) } else { full_precision(v) }
-}
-
 fn is_zero_v(v: V) -> bool {
   matches!(v, V::Fin(_, 0, _))
 }
 
-/// Sign bit of the value (like `bid128_is_signed`).
-fn is_signed_v(v: V) -> bool {
-  matches!(v, V::Fin(true, _, _) | V::Inf(true) | V::NaN(true))
-}
-
 fn negate(v: V) -> V {
   match v {
-    V::NaN(s) => V::NaN(!s),
+    V::NaN => V::NaN,
     V::Inf(s) => V::Inf(!s),
     V::Fin(s, c, e) => V::Fin(!s, c, e),
   }
@@ -660,7 +579,7 @@ fn add_fin(sa: bool, ca: u128, ea: i32, sb: bool, cb: u128, eb: i32) -> (V, bool
   }
   // d < dl - dh + 36 <= 69 here, so ch * 10^d has fewer than 70 digits
   let Some(x) = U256::from_u128(ch).checked_mul_pow10(d) else {
-    return (V::NaN(false), false);
+    return (V::NaN, false);
   };
   let l = U256::from_u128(cl);
   let (s, sum) = if sh == sl {
@@ -672,18 +591,18 @@ fn add_fin(sa: bool, ca: u128, ea: i32, sb: bool, cb: u128, eb: i32) -> (V, bool
   };
   match sum {
     Some(sum) => round_pack(s, &sum.to_decimal(), el as i64),
-    None => (V::NaN(false), false),
+    None => (V::NaN, false),
   }
 }
 
 fn add_v(a: V, b: V) -> V {
   match (a, b) {
-    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
+    (V::NaN, _) | (_, V::NaN) => V::NaN,
     (V::Inf(x), V::Inf(y)) => {
       if x == y {
         V::Inf(x)
       } else {
-        V::NaN(false)
+        V::NaN
       }
     }
     (V::Inf(x), _) | (_, V::Inf(x)) => V::Inf(x),
@@ -700,11 +619,7 @@ fn add_v(a: V, b: V) -> V {
 }
 
 fn sub_v(a: V, b: V) -> V {
-  // like bid128_sub: the sign of a NaN subtrahend is not inverted
-  match b {
-    V::NaN(_) => add_v(a, b),
-    _ => add_v(a, negate(b)),
-  }
+  add_v(a, negate(b))
 }
 
 /// Exact product of two finite values, rounded once to decimal128.
@@ -718,11 +633,11 @@ fn mul_fin(s: bool, ca: u128, ea: i32, cb: u128, eb: i32) -> (V, bool) {
 
 fn mul_v(a: V, b: V) -> V {
   match (a, b) {
-    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
+    (V::NaN, _) | (_, V::NaN) => V::NaN,
     (V::Inf(x), V::Inf(y)) => V::Inf(x != y),
     (V::Inf(x), V::Fin(y, c, _)) | (V::Fin(y, c, _), V::Inf(x)) => {
       if c == 0 {
-        V::NaN(false)
+        V::NaN
       } else {
         V::Inf(x != y)
       }
@@ -739,13 +654,13 @@ fn mul_v(a: V, b: V) -> V {
 
 fn div_v(a: V, b: V) -> V {
   match (a, b) {
-    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
-    (V::Inf(_), V::Inf(_)) => V::NaN(false),
+    (V::NaN, _) | (_, V::NaN) => V::NaN,
+    (V::Inf(_), V::Inf(_)) => V::NaN,
     (V::Inf(x), V::Fin(y, _, _)) => V::Inf(x != y),
     (V::Fin(x, _, _), V::Inf(y)) => V::Fin(x != y, 0, EXP_MIN as i32),
     (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) => {
       if cb == 0 {
-        return if ca == 0 { V::NaN(false) } else { V::Inf(sa != sb) };
+        return if ca == 0 { V::NaN } else { V::Inf(sa != sb) };
       }
       if ca == 0 {
         return V::Fin(sa != sb, 0, ((ea - eb) as i64).clamp(EXP_MIN, EXP_MAX) as i32);
@@ -760,103 +675,104 @@ fn div_v(a: V, b: V) -> V {
   }
 }
 
-/// Multiplies the value by 10^n (exact unless out of range).
+/// Rounds the value to a multiple of `10^exponent` by `mode`, in one step on the coefficient.
 ///
-/// Like `dfp_number_sys::bid128_scalbn` (the binding used by the Intel backend),
-/// `n` is first clamped to `-6176..=6144`. This clamping is observable through
-/// `new`, `round` and the scale-based rounding functions (e.g. `ceiling(0.25, 6145)`
-/// is `0.025` on both backends), so it is reproduced here for bit-identical results.
-///
-/// Above the maximum exponent the coefficient is padded with trailing zeros up to the
-/// full 34 digits before the result is declared infinite, exactly like every other
-/// operation here: `scalbn(999999999999999, 6130)` is
-/// `9999999999999990000000000000000000E+6111`, the same value `FromStr`, `+` and `*`
-/// produce for `999999999999999E+6130`.
-///
-/// Intel's `bid128_scalbn` deliberately is *not* reproduced in this respect: it shifts
-/// the coefficient left only while its high 64-bit word is below that of 10^33 (i.e.
-/// while `c < 0x314dc6448d93 * 2^64`), so it reports overflow for values that are
-/// representable (`new(999999999999999, -6130)`, `floor(999999999999999E+6121, 9)` are
-/// `+Inf` on Intel). The mathematically correct finite value is returned instead; this
-/// is the one known place where this core differs from Intel on an exact operation.
-fn scalbn_v(v: V, n: i32) -> V {
-  let n = n.clamp(-6176, 6144);
+/// A value with no digit below `10^exponent` (its exponent is at least `exponent`), a zero with
+/// such an exponent included, is returned as it is: rounding cannot change it, and it is never
+/// padded. Otherwise the result is `±q · 10^exponent`, where `q` is the coefficient without its
+/// last `k` digits, incremented when the dropped digits are not all zero and the mode says so.
+/// `q + 1 <= 10^33`, so the result always fits; `exponent` must lie in `EXP_MIN..=EXP_MAX`.
+fn round_at(v: V, exponent: i32, mode: RoundingMode) -> V {
   match v {
-    V::Fin(s, c, e) => round_pack_u128(s, c, e as i64 + n as i64).0,
-    other => other,
-  }
-}
-
-/// Rounds the value to integral value (exponent >= 0 left unchanged, otherwise exponent 0).
-fn round_integral_v(v: V, mode: Rnd) -> V {
-  match v {
-    V::Fin(s, c, e) if e < 0 => {
-      let k = (-e) as u32;
-      let (q, r, divisor) = if k > 38 { (0, c, None) } else { (c / pow10(k), c % pow10(k), Some(pow10(k))) };
-      let up = if r == 0 {
-        false
+    V::Fin(s, c, e) if e < exponent => {
+      let k = exponent.abs_diff(e);
+      // the dropped digits compared with half a unit of the kept position; with more than 38
+      // dropped digits the coefficient (below 10^34) is below half of it
+      let (q, r, half) = if k > 38 {
+        (0, c, Ordering::Less)
       } else {
-        match mode {
-          Rnd::Zero => false,
-          Rnd::Ceiling => !s,
-          Rnd::Floor => s,
-          Rnd::HalfEven | Rnd::HalfAway => {
-            let cmp = match divisor {
-              // r compared to divisor/2 (divisor is a power of ten, so even)
-              Some(d) => r.cmp(&(d / 2)),
-              None => Ordering::Less,
-            };
-            match cmp {
-              Ordering::Greater => true,
-              Ordering::Less => false,
-              Ordering::Equal => matches!(mode, Rnd::HalfAway) || q % 2 == 1,
-            }
-          }
-        }
+        let p = pow10(k);
+        (c / p, c % p, (c % p).cmp(&(p / 2)))
       };
-      V::Fin(s, if up { q + 1 } else { q }, 0)
+      let up = r != 0
+        && match mode {
+          RoundingMode::Up => true,
+          RoundingMode::Down => false,
+          RoundingMode::Ceiling => !s,
+          RoundingMode::Floor => s,
+          RoundingMode::HalfUp => half != Ordering::Less,
+          RoundingMode::HalfDown => half == Ordering::Greater,
+          RoundingMode::HalfEven => half == Ordering::Greater || half == Ordering::Equal && q % 2 == 1,
+        };
+      V::Fin(s, q + u128::from(up), exponent)
     }
     other => other,
   }
 }
 
-/// Quantize: rounds the value (half-even) to have the exponent of `q`.
-fn quantize_v(v: V, q: V) -> V {
-  match (v, q) {
-    (V::NaN(s), _) | (_, V::NaN(s)) => V::NaN(s),
-    (V::Inf(s), V::Inf(_)) => V::Inf(s),
-    (V::Inf(_), _) | (_, V::Inf(_)) => V::NaN(false),
-    (V::Fin(s, c, e), V::Fin(_, _, eq)) => {
-      if e >= eq {
-        let shift = (e - eq) as u32;
-        if c == 0 {
-          return V::Fin(s, 0, eq);
-        }
-        if digit_count(c) + shift > PRECISION as u32 {
-          return V::NaN(false);
-        }
-        V::Fin(s, c * pow10(shift), eq)
-      } else {
-        // round to integral at the position of the quantum exponent
-        match round_integral_v(V::Fin(s, c, e - eq), Rnd::HalfEven) {
-          V::Fin(s, c, _) => {
-            if digit_count(c) > PRECISION as u32 {
-              V::NaN(false)
-            } else {
-              V::Fin(s, c, eq)
-            }
-          }
-          other => other,
-        }
-      }
+/// Rounds the value to an integral value by `mode` (an exponent of 0 or more is left unchanged).
+fn round_integral_v(v: V, mode: RoundingMode) -> V {
+  round_at(v, 0, mode)
+}
+
+/// `10^n mod m` for `0 < m < 10^34`, by binary exponentiation with exact products.
+fn pow10_mod(n: u32, m: u128) -> u128 {
+  let (mut result, mut base, mut n) = (1 % m, 10 % m, n);
+  while n > 0 {
+    if n & 1 == 1 {
+      result = U256::mul(result, base).rem_u128(m);
     }
+    base = U256::mul(base, base).rem_u128(m);
+    n >>= 1;
+  }
+  result
+}
+
+/// `a - b·floor(a/b)` for a finite `a` and a finite, non-zero `b` (DMN 1.6 Table 77), over the
+/// exact values and rounded once to decimal128; NaN for any other operand.
+///
+/// The truncated remainder `R = |a| mod |b|` is exact with at most 34 digits: for `ea >= eb` it
+/// is `(ca · 10^(ea-eb) mod cb) · 10^eb`, the power of ten taken modulo `cb`; for `ea < eb` it is
+/// `(ca mod cb · 10^(eb-ea)) · 10^ea`, which is `|a|` itself when `|b|` is the larger. The result
+/// is `R` with the sign of `b` when the signs agree, and `|b| - R` with the sign of `b` when they
+/// differ and `R` is not zero; that difference is the only rounding.
+fn modulo_v(a: V, b: V) -> V {
+  let (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) = (a, b) else {
+    return V::NaN;
+  };
+  if cb == 0 {
+    return V::NaN;
+  }
+  let (r, e) = if ea >= eb {
+    let d = ea.abs_diff(eb);
+    let r = if digit_count(ca) + d <= 38 {
+      (ca * pow10(d)) % cb
+    } else {
+      U256::mul(ca % cb, pow10_mod(d, cb)).rem_u128(cb)
+    };
+    (r, eb)
+  } else {
+    let d = eb.abs_diff(ea);
+    let r = match POW10.get(d as usize).and_then(|p| cb.checked_mul(*p)) {
+      Some(m) => ca % m,
+      // |b| exceeds every u128 coefficient, so |a| < |b|
+      None => ca,
+    };
+    (r, ea)
+  };
+  if r == 0 || sa == sb {
+    return V::Fin(sb, r, e);
+  }
+  match add_v(V::Fin(false, cb, eb), V::Fin(true, r, e)) {
+    V::Fin(_, c, x) => V::Fin(sb, c, x),
+    other => other,
   }
 }
 
 /// Compares two values, returns `None` when unordered (NaN involved).
 fn cmp_v(a: V, b: V) -> Option<Ordering> {
   match (a, b) {
-    (V::NaN(_), _) | (_, V::NaN(_)) => None,
+    (V::NaN, _) | (_, V::NaN) => None,
     (V::Inf(x), V::Inf(y)) => Some(y.cmp(&x)),
     (V::Inf(x), _) => Some(if x { Ordering::Less } else { Ordering::Greater }),
     (_, V::Inf(y)) => Some(if y { Ordering::Greater } else { Ordering::Less }),
@@ -927,7 +843,7 @@ fn rem_two_is_zero(v: V) -> bool {
 
 /// Converts the value to integer, rounding toward zero (like bid128_to_int*_int).
 fn to_i128_int(v: V) -> Option<i128> {
-  match round_integral_v(v, Rnd::Zero) {
+  match round_integral_v(v, RoundingMode::Down) {
     V::Fin(s, c, e) => {
       if c == 0 {
         return Some(0);
@@ -969,7 +885,7 @@ fn parse_v(s: &str) -> (V, bool) {
   let at = |k: usize| if k < b.len() { b[k] } else { 0 };
   if !(at(i) == b'.' || at(i).is_ascii_digit()) {
     let rest = s[i..].to_ascii_lowercase();
-    return (if rest == "inf" || rest == "infinity" { V::Inf(neg) } else { V::NaN(false) }, false);
+    return (if rest == "inf" || rest == "infinity" { V::Inf(neg) } else { V::NaN }, false);
   }
   let mut digits = String::new();
   let mut after = 0_i64;
@@ -992,12 +908,12 @@ fn parse_v(s: &str) -> (V, bool) {
   if i < b.len() {
     let c = b[i];
     if c != b'e' && c != b'E' {
-      return (V::NaN(false), false);
+      return (V::NaN, false);
     }
     i += 1;
     let c = at(i);
     if !c.is_ascii_digit() && !((c == b'+' || c == b'-') && at(i + 1).is_ascii_digit()) {
-      return (V::NaN(false), false);
+      return (V::NaN, false);
     }
     let mut sign = 1;
     if c == b'-' || c == b'+' {
@@ -1021,21 +937,13 @@ fn parse_v(s: &str) -> (V, bool) {
   round_pack(neg, &digits, exp - after)
 }
 
-/// Converts the value into the string in the same format as Intel's `bid128_to_string`.
+/// Converts the value into the string in the format of Intel's `bid128_to_string` (`+12E-1`,
+/// `-Inf`), except NaN, which has no sign.
 fn to_intel_string(v: V) -> String {
   match v {
-    V::NaN(s) => if s { "-NaN" } else { "+NaN" }.to_string(),
+    V::NaN => "NaN".to_string(),
     V::Inf(s) => if s { "-Inf" } else { "+Inf" }.to_string(),
     V::Fin(s, c, e) => format!("{}{}E{}{}", if s { '-' } else { '+' }, c, if e >= 0 { "+" } else { "" }, e),
-  }
-}
-
-/// Intel's `bid128_ilogb`.
-fn ilogb_v(v: V) -> i32 {
-  match v {
-    V::Fin(_, 0, _) | V::NaN(_) => i32::MIN,
-    V::Inf(_) => i32::MAX,
-    V::Fin(_, c, e) => digit_count(c) as i32 - 1 + e,
   }
 }
 
@@ -1045,41 +953,45 @@ fn exp_v(s: bool, c: u128, e: i32) -> V {
   if c as f64 * 10f64.powi(e) > 14300.0 {
     return if s { V::Fin(false, 0, EXP_MIN as i32) } else { V::Inf(false) };
   }
-  match pack(B::exp(s, c, e, PRECISION)).0 {
-    // underflow, like Intel
+  match pack(B::exp(s, c, e)).0 {
+    // underflow to zero
     V::Fin(_, 0, _) => V::Fin(false, 0, EXP_MIN as i32),
-    // the cohort follows Intel's binary128 -> decimal128 conversion (e.g. exp(1E-40) = 1E+0)
-    v => binary128_cohort(v, || wide_digits(B::exp(s, c, e, COHORT_PRECISION))),
+    v => v,
   }
 }
 
 /// Natural logarithm of a finite, positive value.
 fn ln_v(c: u128, e: i32) -> V {
-  let v = pack(B::ln(c, e, PRECISION)).0;
-  // the cohort follows Intel's binary128 -> decimal128 conversion (e.g. ln(e^2) = 2E+0)
-  binary128_cohort(v, || wide_digits(B::ln(c, e, COHORT_PRECISION)))
+  pack(B::ln(c, e)).0
 }
 
-/// `x^y = exp(y ln x)` for a finite `x > 0` and a finite, non-zero `y` that is either not an
-/// integer or an integer outside `i32`, correctly rounded to 34 digits (Ziv's strategy).
+/// `x^y = exp(y ln x)` for a finite `x > 0` and a finite, non-zero `y`, correctly rounded to 34
+/// digits (Ziv's strategy); `integer` tells that `y` is an integer whose exact power is beyond
+/// [POW_EXACT_MAX_BITS] or `|y|` beyond `u64` ([pow_integer] takes the others).
 ///
 /// The backend evaluates `ln`, `*` and `exp` at the working precision `p` (each correctly
 /// rounded, see [Backend::pow_step]), so the relative error of the result is below
 /// `|t| * 10^(1-p) + 10^(1-p)` with `t = y ln x`, `|t| < 14250`, i.e. below `2 * 10^5` units of
 /// the `p`-th digit. The result is accepted when its digits after the final rounding position
 /// are more than `10^7` units away from the half-way point `5000…`, otherwise the precision is
-/// increased. When even 140 digits do not settle it, the value is taken to be an exact tie (an
-/// algebraic result such as `16^-12.5 = 2^-50`, 35 digits ending in 5) and rounded half-even as
-/// such (the computed digits themselves carry an error of a few units in the 140th digit, so
-/// they cannot decide); a true value within `10^-133` of a tie without being one is not expected
-/// to exist for decimal128 operands.
-fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
+/// increased.
+///
+/// A non-integer `y` stops at 140 digits: a result still undecided there is taken to be an exact
+/// tie (an algebraic result such as `16^-12.5 = 2^-50`, 35 digits ending in 5) and rounded
+/// half-even as such, since the computed digits carry an error of a few units in the 140th digit
+/// and cannot decide; a true value within `10^-133` of a tie without being one is not expected to
+/// exist for decimal128 operands. An integer `y` cannot give a tie here (an exact power with a
+/// 35-digit tie is far below that size), so it goes on to 280 and 560 digits, and a result still
+/// undecided at 560 digits, within about `10^-520` of a half-way point relatively, is rounded as
+/// its computed digits say.
+fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32, integer: bool) -> V {
+  let further: &[usize] = if integer { &POW_INTEGER_PRECISIONS } else { &[] };
   let mut result = None;
-  for &precision in POW_PRECISIONS.iter() {
+  for &precision in POW_PRECISIONS.iter().chain(further) {
     let (mut digits, mut e) = match B::pow_step(cx, ex, sy, cy, ey, precision) {
       PowStep::Overflow => return V::Inf(false),
       PowStep::Underflow => return V::Fin(false, 0, EXP_MIN as i32),
-      PowStep::Undefined => return V::NaN(false),
+      PowStep::Undefined => return V::NaN,
       PowStep::Value(digits, e) => (digits, e),
     };
     // exactly p digits (a backend may strip trailing zeros)
@@ -1101,10 +1013,77 @@ fn pow_exp_log(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
     if !near_tie {
       return round_pack(false, &digits, e).0;
     }
-    // an exact tie: the digits above the rounding position followed by a single 5
-    result = Some(round_pack(false, &format!("{}5", &digits[..p - tail_len]), e + tail_len as i64 - 1).0);
+    result = Some(if integer {
+      // never a tie: the computed digits decide
+      round_pack(false, &digits, e).0
+    } else {
+      // an exact tie: the digits above the rounding position followed by a single 5
+      round_pack(false, &format!("{}5", &digits[..p - tail_len]), e + tail_len as i64 - 1).0
+    });
   }
-  result.unwrap_or(V::NaN(false))
+  result.unwrap_or(V::NaN)
+}
+
+/// `|x|^y` for `x = cx · 10^ex` (`cx > 0`) and an integer `y = ±cy · 10^ey` that is not zero,
+/// rounded once to 34 digits (DMN 1.6 Table 61: "p is limited to 34 digits"; §10.3.2.3.1).
+///
+/// With the trailing zeros of the base stripped, `|x| = c0 · 10^e0` and `n = |y|`:
+/// - `y > 0` and `c0^n` fits in 256 bits: that exact power at the exponent `e0 · n`, rounded once;
+/// - `y < 0` and `c0` a power of two (or of five): `1/c0` is the exact `5^k · 10^-k` (or
+///   `2^k · 10^-k`), raised to `n` the same way, so the ties such as `2 ** -50` are exact;
+/// - otherwise, while `c0^n` has at most [POW_EXACT_MAX_BITS] bits: the exact power from the
+///   backend, or its correctly rounded reciprocal, at the exponent `±e0 · n`, rounded once more
+///   only by the exponent range;
+/// - beyond that, the certified loop of [pow_exp_log] with the integer as exponent.
+fn pow_integer(cx: u128, ex: i32, sy: bool, cy: u128, ey: i32) -> V {
+  let (mut c0, mut e0) = (cx, i64::from(ex));
+  while c0 % 10 == 0 {
+    c0 /= 10;
+    e0 += 1;
+  }
+  if let Some(n) = to_unsigned(V::Fin(false, cy, ey), u64::MAX as u128).map(|n| n as u64) {
+    // base^k at the exponent unit · n, rounded once; None when base^k exceeds 256 bits
+    let exact = |base: u128, k: Option<u64>, unit: i64| -> Option<V> {
+      let power = U256::checked_pow(base, k?)?;
+      // beyond the range of i64 the value is zero or infinite anyway
+      let e = (i128::from(unit) * i128::from(n)).clamp(-(1 << 62), 1 << 62) as i64;
+      Some(if power.hi == 0 {
+        round_pack_u128(false, power.lo, e).0
+      } else {
+        round_pack(false, &power.to_decimal(), e).0
+      })
+    };
+    let reciprocal = || {
+      // 1 / 2^a = 5^a · 10^-a and 1 / 5^b = 2^b · 10^-b (1 is 2^0)
+      let twos = c0.trailing_zeros();
+      if c0 >> twos == 1 {
+        return exact(5, u64::from(twos).checked_mul(n), -e0 - i64::from(twos));
+      }
+      let (mut rest, mut fives) = (c0, 0_u32);
+      while rest % 5 == 0 {
+        rest /= 5;
+        fives += 1;
+      }
+      if rest == 1 {
+        exact(2, u64::from(fives).checked_mul(n), -e0 - i64::from(fives))
+      } else {
+        None
+      }
+    };
+    if let Some(v) = if sy { reciprocal() } else { exact(c0, Some(n), e0) } {
+      return v;
+    }
+    // the exact power, or its correctly rounded reciprocal, moved to the exponent ±e0 · n and
+    // rounded once into the range
+    let e = (i128::from(e0) * i128::from(n) * if sy { -1 } else { 1 }).clamp(-(1 << 62), 1 << 62) as i64;
+    match B::int_pow(c0, n, sy) {
+      Some(Wide::Rounded(neg, c, x, side)) => return pack(Wide::Rounded(neg, c, x.saturating_add(e), side)).0,
+      Some(Wide::Digits(neg, digits, x)) => return pack(Wide::Digits(neg, digits, x.saturating_add(e))).0,
+      Some(other) => return pack(other).0,
+      None => {}
+    }
+  }
+  pow_exp_log(cx, ex, sy, cy, ey, true)
 }
 
 /// Square root of a finite, positive value, correctly rounded.
@@ -1119,7 +1098,7 @@ fn sqrt_v(c: u128, e: i32) -> V {
   let k = ((69 - digit_count(c2) as i32).max(0) + 1) / 2;
   // c2 has at most 35 digits and 2k at most 68, so the radicand has at most 70 digits
   let Some(radicand) = U256::from_u128(c2).checked_mul_pow10(2 * k as u32) else {
-    return V::NaN(false);
+    return V::NaN;
   };
   let (root, inexact) = isqrt_rem(radicand);
   let exp = (e2 / 2 - k) as i64;
@@ -1134,54 +1113,63 @@ fn sqrt_v(c: u128, e: i32) -> V {
 const ZERO: V = V::Fin(false, 0, 0);
 const ONE: V = V::Fin(false, 1, 0);
 const TWO: V = V::Fin(false, 2, 0);
-const ONE_TENTH: V = V::Fin(false, 1, -1);
 
 /// FEEL number.
+///
+/// The value keeps its cohort, the pair `(p,s)` of DMN 1.6 §10.3.2.3.1 among the "many different
+/// pairs \[that\] have the same value"; no text shows it ([Display] prints the value).
 #[derive(Copy, Clone)]
-pub struct FeelNumber(V, bool);
+pub struct FeelNumber(V);
 
 impl FeelNumber {
   fn v(&self) -> V {
     self.0
   }
 
-  fn of(v: V, flag: bool) -> Self {
-    Self(v, flag)
+  /// The one constructor: every [FeelNumber] is made here. A zero loses its sign (DMN 1.6
+  /// §10.3.2.3.1: "There is no distinction between -0 and 0"); the arithmetic on [V] keeps the
+  /// signs of IEEE 754 internally.
+  fn of(v: V) -> Self {
+    match v {
+      V::Fin(true, 0, e) => Self(V::Fin(false, 0, e)),
+      v => Self(v),
+    }
   }
 
   /// Returns [FeelNumber] value infinite.
   pub fn infinite() -> FeelNumber {
-    Self::of(V::Inf(false), false)
+    Self::of(V::Inf(false))
   }
 
   /// Returns [FeelNumber] value 0 (zero).
   pub fn zero() -> FeelNumber {
-    Self::of(ZERO, false)
+    Self::of(ZERO)
   }
 
   /// Returns [FeelNumber] value 1 (one).
   pub fn one() -> FeelNumber {
-    Self::of(ONE, false)
+    Self::of(ONE)
   }
 
   /// Returns [FeelNumber] value 2 (two).
   pub fn two() -> FeelNumber {
-    Self::of(TWO, false)
+    Self::of(TWO)
   }
 
   /// Returns [FeelNumber] value 1_000_000_000 (billion).
   pub fn billion() -> FeelNumber {
-    Self::of(V::Fin(false, 1_000_000_000, 0), false)
+    Self::of(V::Fin(false, 1_000_000_000, 0))
   }
 
-  /// Creates a new [FeelNumber] from integer value and a scale.
+  /// Creates the number `n · 10^-s`, rounded once to decimal128 (half-even, gradual underflow,
+  /// infinite beyond the range); every scale `s` is taken as it is.
   pub fn new(n: i64, s: i32) -> Self {
-    Self::of(scalbn_v(V::Fin(n < 0, n.unsigned_abs() as u128, 0), s.saturating_neg()), false)
+    Self::of(round_pack_u128(n < 0, n.unsigned_abs() as u128, -i64::from(s)).0)
   }
 
   /// Creates a new [FeelNumber] from [isize].
   fn from_isize(n: isize) -> Self {
-    Self::of(V::Fin(n < 0, n.unsigned_abs() as u128, 0), false)
+    Self::of(V::Fin(n < 0, n.unsigned_abs() as u128, 0))
   }
 
   /// Returns an absolute value of this [FeelNumber].
@@ -1189,26 +1177,22 @@ impl FeelNumber {
     let v = match self.v() {
       V::Fin(_, c, e) => V::Fin(false, c, e),
       V::Inf(_) => V::Inf(false),
-      V::NaN(_) => V::NaN(false),
+      V::NaN => V::NaN,
     };
-    Self::of(v, false)
+    Self::of(v)
   }
 
-  /// Returns a nearest integer greater or equal to this [FeelNumber].
-  pub fn ceiling(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        let rounded = round_integral_v(self.v(), Rnd::Ceiling);
-        if is_zero_v(rounded) { ZERO } else { rounded }
-      } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Ceiling), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+  /// Rounds this number to `scale` fraction digits by `mode` ([RoundingMode]), in one step:
+  /// to a multiple of `10^-scale` (DMN 1.6 Table 77: "Return n with given scale and rounding
+  /// mode"). A number with no digit below the scale is returned as it is. The only error is a
+  /// scale outside `-6111..=6176` (Table 77, footnote 1: "Scale is in the range
+  /// [−6111..6176]"); every number, a zero or a tiny one included, can be rounded at every scale
+  /// of that range, and the result always fits.
+  pub fn round_to(&self, scale: i32, mode: RoundingMode) -> Result<Self> {
+    if !(MIN_SCALE..=MAX_SCALE).contains(&scale) {
+      return Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale));
+    }
+    Ok(Self::of(round_at(self.v(), -scale, mode)))
   }
 
   pub fn even(&self) -> bool {
@@ -1217,39 +1201,23 @@ impl FeelNumber {
 
   pub fn exp(&self) -> Option<Self> {
     let n = match self.v() {
-      V::NaN(s) => V::NaN(s),
+      V::NaN => V::NaN,
       V::Inf(false) => V::Inf(false),
       V::Inf(true) => ZERO,
       V::Fin(_, 0, _) => ONE,
       V::Fin(s, c, e) => exp_v(s, c, e),
     };
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
-  }
-
-  /// Returns a nearest integer less or equal to this [FeelNumber].
-  pub fn floor(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), Rnd::Floor)
-      } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Floor), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn frac(&self) -> Self {
     let v = self.v();
-    Self::of(sub_v(v, round_integral_v(v, Rnd::Zero)), true)
+    Self::of(sub_v(v, round_integral_v(v, RoundingMode::Down)))
   }
 
   pub fn is_integer(&self) -> bool {
     let v = self.v();
-    eq_v(v, round_integral_v(v, Rnd::Zero))
+    eq_v(v, round_integral_v(v, RoundingMode::Down))
   }
 
   pub fn is_zero(&self) -> bool {
@@ -1259,8 +1227,8 @@ impl FeelNumber {
   /// Returns `true` when this number is finite (not an infinity and not NaN).
   ///
   /// Arithmetic on decimal128 values can overflow to infinity (e.g. `9e6144 * 10`) or produce NaN
-  /// (e.g. a failed quantize in `decimal(1e33, 1)`); FEEL has no such numbers, so evaluators
-  /// turn non-finite results into null.
+  /// by an invalid operation (e.g. `0 / 0`, or an infinity minus itself); FEEL has no such
+  /// numbers, so evaluators turn non-finite results into null.
   pub fn is_finite(&self) -> bool {
     is_finite_v(self.v())
   }
@@ -1279,14 +1247,22 @@ impl FeelNumber {
 
   pub fn ln(&self) -> Option<Self> {
     let n = match self.v() {
-      V::NaN(s) => V::NaN(s),
-      V::Inf(true) => V::NaN(false),
+      V::NaN => V::NaN,
+      V::Inf(true) => V::NaN,
       V::Inf(false) => V::Inf(false),
       V::Fin(_, 0, _) => V::Inf(true),
-      V::Fin(true, _, _) => V::NaN(false),
+      V::Fin(true, _, _) => V::NaN,
       V::Fin(false, c, e) => ln_v(c, e),
     };
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
+  }
+
+  /// `self - divisor·floor(self/divisor)` (DMN 1.6 Table 77), over the exact values and rounded
+  /// once to 34 digits: zero or a number with the sign of the divisor. `None` when the divisor is
+  /// zero (or an operand is not finite).
+  pub fn modulo(&self, divisor: &FeelNumber) -> Option<Self> {
+    let n = modulo_v(self.v(), divisor.v());
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn odd(&self) -> bool {
@@ -1295,107 +1271,28 @@ impl FeelNumber {
 
   pub fn pow(&self, rhs: &FeelNumber) -> Option<Self> {
     let n = pow_v(self.v(), rhs.v());
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
-  }
-
-  pub fn round(&self, rhs: &FeelNumber) -> Self {
-    let scale = to_signed(rhs.v(), i32::MIN as i128, i32::MAX as i128).unwrap_or(i32::MIN as i128) as i32;
-    let quantifier = scalbn_v(ONE, scale.saturating_neg());
-    let quantized = quantize_v(self.v(), quantifier);
-    // A coefficient can not be widened to the requested quantum when that needs more than 34
-    // digits (`decimal(5.5, 6176)`); the value itself is already exact at that scale, so it is
-    // returned unchanged instead of NaN.
-    if matches!(quantized, V::NaN(_)) && self.settled_at(scale) {
-      return Self::of(self.v(), false);
-    }
-    Self::of(quantized, false)
-  }
-
-  pub fn round_down(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), Rnd::Zero)
-      } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::Zero), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
-  }
-
-  pub fn round_half_down(&self, scale: i32) -> Result<Self> {
-    let positive = |n| round_integral_v(sub_v(n, ONE_TENTH), Rnd::HalfAway);
-    let negative = |n| round_integral_v(add_v(n, ONE_TENTH), Rnd::HalfAway);
-    let signed = is_signed_v(self.0);
-    Ok(Self::of(
-      if scale == 0 {
-        let v = self.v();
-        if signed { negative(v) } else { positive(v) }
-      } else {
-        if self.check_scale(scale)? {
-          let scaled = scalbn_v(self.v(), scale);
-          self.unscale(if signed { negative(scaled) } else { positive(scaled) }, scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
-  }
-
-  pub fn round_half_up(&self, scale: i32) -> Result<Self> {
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), Rnd::HalfAway)
-      } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), Rnd::HalfAway), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
-  }
-
-  pub fn round_up(&self, scale: i32) -> Result<Self> {
-    let mode = if is_signed_v(self.0) { Rnd::Floor } else { Rnd::Ceiling };
-    Ok(Self::of(
-      if scale == 0 {
-        round_integral_v(self.v(), mode)
-      } else {
-        if self.check_scale(scale)? {
-          self.unscale(round_integral_v(scalbn_v(self.v(), scale), mode), scale)
-        } else {
-          self.v()
-        }
-      },
-      true,
-    ))
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn sqrt(&self) -> Option<Self> {
     let n = match self.v() {
-      V::NaN(s) => V::NaN(s),
-      V::Inf(true) => V::NaN(false),
+      V::NaN => V::NaN,
+      V::Inf(true) => V::NaN,
       V::Inf(false) => V::Inf(false),
       V::Fin(s, 0, e) => V::Fin(s, 0, e.div_euclid(2)),
-      V::Fin(true, _, _) => V::NaN(false),
+      V::Fin(true, _, _) => V::NaN,
       V::Fin(false, c, e) => sqrt_v(c, e),
     };
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn square(&self) -> Option<Self> {
     let n = pow_v(self.v(), TWO);
-    if is_finite_v(n) { Some(Self::of(n, true)) } else { None }
+    if is_finite_v(n) { Some(Self::of(n)) } else { None }
   }
 
   pub fn trunc(&self) -> Self {
-    Self::of(round_integral_v(self.v(), Rnd::Zero), false)
+    Self::of(round_integral_v(self.v(), RoundingMode::Down))
   }
 
   /// Parses a number like [FromStr::from_str] and also reports whether the value had
@@ -1404,76 +1301,25 @@ impl FeelNumber {
   pub fn from_str_reporting_rounding(s: &str) -> Result<(Self, bool), DsntkError> {
     let (n, inexact) = parse_v(s);
     if is_finite_v(n) {
-      Ok((Self::of(n, false), inexact))
+      Ok((Self::of(n), inexact))
     } else {
       Err(err_invalid_number_literal(s))
     }
   }
-
-  /// Calculates the remainder of the division.
-  fn remainder(&self, rhs: V) -> V {
-    let mut n = div_v(self.v(), rhs);
-    n = round_integral_v(n, Rnd::Floor);
-    n = mul_v(rhs, n);
-    sub_v(self.v(), n)
-  }
-
-  /// Checks the scale of a scale-based rounding function (`round up(n, scale)` etc.).
-  ///
-  /// `Err` when `scale` is outside the FEEL range `-6111..=6176`. `Ok(true)` when the rounding
-  /// can be done on the scaled intermediate `n * 10^scale` (its adjusted exponent fits
-  /// decimal128). `Ok(false)` when that intermediate would not fit but `n` has no digit below
-  /// `10^-scale`, so rounding to `scale` leaves it unchanged: `round up(5.5, 6176)` is `5.5`
-  /// (TCK 1141-1144). The remaining case, a value far below `10^-scale` with a negative
-  /// scale (`1E-6176` at scale `-6111`), stays an error.
-  fn check_scale(&self, scale: i32) -> Result<bool> {
-    if !(MIN_SCALE..=MAX_SCALE).contains(&scale) {
-      return Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale));
-    }
-    let scaled_exp = ilogb_v(self.v()) as i64 + scale as i64;
-    if (MIN_SCALE as i64..=SCALED_EXP_MAX).contains(&scaled_exp) {
-      Ok(true)
-    } else if self.settled_at(scale) {
-      Ok(false)
-    } else {
-      Err(err_invalid_scale(MIN_SCALE, MAX_SCALE, scale))
-    }
-  }
-
-  /// `true` when this finite, non-zero number has no digit below `10^-scale`, i.e. rounding
-  /// it to `scale` fraction digits can not change its value.
-  fn settled_at(&self, scale: i32) -> bool {
-    matches!(self.v(), V::Fin(_, c, e) if c != 0 && i64::from(e) >= -i64::from(scale))
-  }
-
-  /// Undoes the scaling applied before rounding: `n * 10^-scale`.
-  ///
-  /// Zero is returned as a plain zero (no exponent). Every other rounded integral is scaled
-  /// back, also when it is `1` or `-1`: an earlier special case returned `±1` unscaled, so
-  /// `round up(0.1, 1)` was `1` instead of `0.1` and `floor(-1.56, -6111)` was `-1` instead
-  /// of `-1E+6111`.
-  fn unscale(&self, n: V, scale: i32) -> V {
-    if is_zero_v(n) { ZERO } else { scalbn_v(n, scale.saturating_neg()) }
-  }
 }
 
-/// Power function, mirrors the structure of Intel's `bid128_pow`:
-/// - special cases (zero exponent, base one, NaN, infinities, zero base, negative base),
-/// - integer exponent fitting in `i32`: binary exponentiation using decimal128
-///   multiplications (each rounded to 34 digits, exactly like Intel), `1/x^|n|` for n < 0,
-/// - otherwise `exp(y ln x)` correctly rounded by [pow_exp_log] (more accurate than Intel,
-///   which goes through binary128 and may differ in the last digit).
+/// Power function:
+/// - special cases (zero exponent, base one, NaN, infinities, zero base, negative base);
+/// - an integer exponent: [pow_integer], correctly rounded;
+/// - otherwise `exp(y ln x)` correctly rounded by [pow_exp_log].
 fn pow_v(x: V, y: V) -> V {
   // 1^y = x^0 = 1, even for NaN
   if is_zero_v(y) || eq_v(x, ONE) {
     return ONE;
   }
-  // a NaN operand is propagated, the base first
-  if let V::NaN(s) = x {
-    return V::NaN(s);
-  }
-  if let V::NaN(s) = y {
-    return V::NaN(s);
+  // a NaN operand is propagated
+  if x == V::NaN || y == V::NaN {
+    return V::NaN;
   }
   if let V::Inf(y_negative) = y {
     let ax = match x {
@@ -1486,7 +1332,7 @@ fn pow_v(x: V, y: V) -> V {
       _ => ZERO,
     };
   }
-  let y_integer = eq_v(y, round_integral_v(y, Rnd::HalfEven));
+  let y_integer = eq_v(y, round_integral_v(y, RoundingMode::HalfEven));
   let y_odd = y_integer && !rem_two_is_zero(y);
   let y_negative = matches!(y, V::Fin(true, _, _));
   let x_negative = matches!(x, V::Fin(true, _, _) | V::Inf(true));
@@ -1497,39 +1343,18 @@ fn pow_v(x: V, y: V) -> V {
     _ => {}
   }
   if x_negative && !y_integer {
-    return V::NaN(false);
+    return V::NaN;
   }
-  // integer exponent that fits in i32 (and is not i32::MIN, like in Intel's implementation)
-  if y_integer && let Some(n) = to_signed(y, i32::MIN as i128 + 1, i32::MAX as i128) {
-    let mut n_abs = (n as i32).unsigned_abs();
-    let mut r = ONE;
-    let mut p = x;
-    while n_abs > 0 {
-      if n_abs & 1 == 1 {
-        r = mul_v(r, p);
-      }
-      if n_abs > 1 {
-        p = mul_v(p, p);
-      }
-      n_abs >>= 1;
-    }
-    return if n < 0 { div_v(ONE, r) } else { r };
-  }
-  let V::Fin(_, cx, ex) = x else { return V::NaN(false) };
-  let V::Fin(sy, cy, ey) = y else { return V::NaN(false) };
-  // (-1)^y for an integer y outside i32: Intel's logarithm takes its Taylor branch with
-  // t = |x| - 1 = 0, all intermediate values are zeros whose exponents propagate into
-  // the final `fma(exp(l), l_lo, exp(l)) = 1`; with x = -1 written with k fractional
-  // zeros (-1.000...), l_lo = 0E(ey - 34 - 3k), so the result is 1 with exponent
-  // min(0, ey - 34 - 3k), but at most 34 digits (e.g. (-1)**1E+10 = 1E-24 as 1.000...).
-  if (-33..=0).contains(&ex) && cx == pow10((-ex) as u32) {
-    let k = -ex as i64;
-    let l_lo_exp = (ey as i64 - 34 - 3 * k).clamp(EXP_MIN, EXP_MAX);
-    let exp = l_lo_exp.min(0).max(1 - PRECISION as i64) as i32;
-    return V::Fin(odd_negative, pow10((-exp) as u32), exp);
-  }
-  match full_precision(pow_exp_log(cx, ex, sy, cy, ey)) {
-    // like Intel: zero (underflow) and infinity (overflow) are returned without sign correction
+  let V::Fin(_, cx, ex) = x else { return V::NaN };
+  let V::Fin(sy, cy, ey) = y else { return V::NaN };
+  let magnitude = if y_integer {
+    pow_integer(cx, ex, sy, cy, ey)
+  } else {
+    pow_exp_log(cx, ex, sy, cy, ey, false)
+  };
+  match magnitude {
+    // zero (underflow) and infinity (overflow) carry no sign: FEEL has neither a signed zero nor
+    // an infinity
     V::Fin(_, 0, _) => V::Fin(false, 0, EXP_MIN as i32),
     V::Fin(_, c, e) => V::Fin(odd_negative, c, e),
     other => other,
@@ -1600,7 +1425,7 @@ impl PartialOrd<isize> for FeelNumber {
 impl Add<FeelNumber> for FeelNumber {
   type Output = Self;
   fn add(self, rhs: Self) -> Self::Output {
-    Self::of(add_v(self.v(), rhs.v()), true)
+    Self::of(add_v(self.v(), rhs.v()))
   }
 }
 
@@ -1613,7 +1438,7 @@ impl AddAssign<FeelNumber> for FeelNumber {
 impl Sub<FeelNumber> for FeelNumber {
   type Output = Self;
   fn sub(self, rhs: Self) -> Self::Output {
-    Self::of(sub_v(self.v(), rhs.v()), true)
+    Self::of(sub_v(self.v(), rhs.v()))
   }
 }
 
@@ -1626,7 +1451,7 @@ impl SubAssign<FeelNumber> for FeelNumber {
 impl Mul<FeelNumber> for FeelNumber {
   type Output = Self;
   fn mul(self, rhs: Self) -> Self::Output {
-    Self::of(mul_v(self.v(), rhs.v()), true)
+    Self::of(mul_v(self.v(), rhs.v()))
   }
 }
 
@@ -1639,7 +1464,7 @@ impl MulAssign<FeelNumber> for FeelNumber {
 impl Div<FeelNumber> for FeelNumber {
   type Output = Self;
   fn div(self, rhs: Self) -> Self::Output {
-    Self::of(div_v(self.v(), rhs.v()), true)
+    Self::of(div_v(self.v(), rhs.v()))
   }
 }
 
@@ -1649,23 +1474,10 @@ impl DivAssign<FeelNumber> for FeelNumber {
   }
 }
 
-impl Rem<FeelNumber> for FeelNumber {
-  type Output = Self;
-  fn rem(self, rhs: Self) -> Self::Output {
-    Self::of(self.remainder(rhs.v()), true)
-  }
-}
-
-impl RemAssign<FeelNumber> for FeelNumber {
-  fn rem_assign(&mut self, rhs: Self) {
-    *self = *self % rhs;
-  }
-}
-
 impl Neg for FeelNumber {
   type Output = Self;
   fn neg(self) -> Self::Output {
-    Self::of(negate(self.v()), true)
+    Self::of(negate(self.v()))
   }
 }
 
@@ -1676,60 +1488,44 @@ impl Debug for FeelNumber {
 }
 
 impl Display for FeelNumber {
-  /// Converts [FeelNumber] to human readable string.
+  /// Writes the canonical text of the value: plain digits without an exponent, no trailing zeros
+  /// after the decimal point, and `0` for every zero, whatever the cohort (`1.50` and `1.5E+0`
+  /// are `1.5`, `decimal(1, 2)` is `1`). Width, fill, alignment and the sign flag apply; a
+  /// precision is ignored.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     // Infinity and NaN: FEEL has no such numbers, but never panic while formatting them
     // (a panic aborts the whole engine on wasm32).
     let (negative, c, exponent) = match self.v() {
-      V::NaN(_) => return f.pad("NaN"),
+      V::NaN => return f.pad("NaN"),
       V::Inf(negative) => return f.pad(if negative { "-Infinity" } else { "Infinity" }),
-      V::Fin(negative, c, e) => (negative, c, e as isize),
+      V::Fin(negative, c, e) => (negative, c, e),
     };
-    // A zero with a huge exponent (e.g. `0 * 1e-6000` or `decimal(0, 6000)`) would otherwise be
-    // printed with thousands of zeros; print it as a plain `0` instead.
-    if c == 0 && !(-34..=0).contains(&exponent) && f.precision().is_none() {
+    if c == 0 {
       return f.pad_integral(true, "", "0");
     }
-    let sb = c.to_string();
-    let decimal_points = exponent.unsigned_abs();
-    let (mut before, mut after) = if exponent < 0 {
-      let digit_count = sb.len();
-      if digit_count <= decimal_points {
-        let before = "0".to_string();
-        let mut after = "0".repeat(decimal_points - digit_count);
-        if self.1 {
-          after.push_str(sb.trim_end_matches('0'));
-        } else {
-          after.push_str(&sb);
-        }
-        (before, after)
-      } else {
-        let before = sb[..digit_count - decimal_points].to_string();
-        let after = if self.1 {
-          sb[digit_count - decimal_points..].trim_end_matches('0').to_string()
-        } else {
-          sb[digit_count - decimal_points..].to_string()
-        };
-        (before, after)
-      }
+    let mut digits = c.to_string();
+    let text = if exponent >= 0 {
+      digits.extend(std::iter::repeat_n('0', exponent as usize));
+      digits
     } else {
-      let mut before = sb;
-      before.push_str(&"0".repeat(decimal_points));
-      let after = "".to_string();
-      (before, after)
-    };
-    if let Some(precision) = f.precision() {
-      if after.len() < precision {
-        after.push_str(&"0".repeat(precision - after.len()));
+      // the trailing zeros of the coefficient that stand after the decimal point
+      let zeros = (digits.len() - digits.trim_end_matches('0').len()).min(exponent.unsigned_abs() as usize);
+      digits.truncate(digits.len() - zeros);
+      let fraction = exponent.unsigned_abs() as usize - zeros;
+      if fraction == 0 {
+        digits
+      } else if digits.len() > fraction {
+        digits.insert(digits.len() - fraction, '.');
+        digits
       } else {
-        after = after[0..precision].to_string();
+        let mut text = String::with_capacity(fraction + 2);
+        text.push_str("0.");
+        text.extend(std::iter::repeat_n('0', fraction - digits.len()));
+        text.push_str(&digits);
+        text
       }
-    }
-    if !after.is_empty() {
-      before.push('.');
-      before.push_str(&after);
-    }
-    f.pad_integral(!negative, "", &before)
+    };
+    f.pad_integral(!negative, "", &text)
   }
 }
 
@@ -1744,7 +1540,7 @@ impl FromStr for FeelNumber {
   type Err = DsntkError;
   fn from_str(s: &str) -> Result<Self, Self::Err> {
     let (n, _) = parse_v(s);
-    if is_finite_v(n) { Ok(Self::of(n, false)) } else { Err(err_invalid_number_literal(s)) }
+    if is_finite_v(n) { Ok(Self::of(n)) } else { Err(err_invalid_number_literal(s)) }
   }
 }
 
@@ -1753,7 +1549,7 @@ macro_rules! from_unsigned {
     $(
       impl From<$t> for FeelNumber {
         fn from(value: $t) -> Self {
-          Self::of(V::Fin(false, value as u128, 0), false)
+          Self::of(V::Fin(false, value as u128, 0))
         }
       }
     )*
@@ -1765,7 +1561,7 @@ macro_rules! from_signed {
     $(
       impl From<$t> for FeelNumber {
         fn from(value: $t) -> Self {
-          Self::of(V::Fin(value < 0, (value as i128).unsigned_abs(), 0), false)
+          Self::of(V::Fin(value < 0, (value as i128).unsigned_abs(), 0))
         }
       }
     )*

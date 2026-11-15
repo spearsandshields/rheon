@@ -34,7 +34,8 @@ impl Workspaces {
     if let Some((workspace_name, model_namespace, model_name, invocable_name)) = self.invocables.get(invocable_path)
       && let Some(evaluator) = self.evaluators.get(workspace_name)
     {
-      return Ok(evaluator.evaluate_invocable(model_namespace, model_name, invocable_name, input_data));
+      // an evaluation stopped by an implementation limit is an error, not a value
+      return Ok(evaluator.evaluate_invocable(model_namespace, model_name, invocable_name, input_data).into_result()?);
     }
     Err(err_invocable_not_found(invocable_path))
   }

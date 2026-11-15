@@ -410,14 +410,8 @@ fn bif_lower_case(parameters: &[Value]) -> Value {
 
 fn bif_matches(parameters: &[Value]) -> Value {
   match parameters.len() {
-    2 => core::matches_2(&parameters[0], &parameters[1]),
-    3 => {
-      if parameters[2].is_null() {
-        core::matches_2(&parameters[0], &parameters[1])
-      } else {
-        core::matches_3(&parameters[0], &parameters[1], &parameters[2])
-      }
-    }
+    2 => core::matches(&parameters[0], &parameters[1], &value_null!()),
+    3 => core::matches(&parameters[0], &parameters[1], &parameters[2]),
     n => invalid_number_of_parameters!("2,3", n),
   }
 }
@@ -678,7 +672,7 @@ fn bif_stddev(parameters: &[Value]) -> Value {
     0 => invalid_number_of_parameters!("1+", 0),
     1 => match &parameters[0] {
       Value::List(values) => core::stddev(values),
-      _ => value_null!("[positional::stddev] invalid argument type, expected list, actual type is {}", parameters[0].type_of()),
+      _ => core::stddev(parameters),
     },
     _ => core::stddev(parameters),
   }

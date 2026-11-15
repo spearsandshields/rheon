@@ -5,8 +5,10 @@ use crate::input::{Path, feel_context, json_into_value, json_object_into_context
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, ErrorMode};
 use rheon_feel::dto::ValueDto;
+use rheon_feel::message::{arg, compose};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, Name};
+use rheon_feel_evaluator::Session;
 use rheon_feel_parser::AstNode;
 use serde_json::{Map, Value as Json, json};
 use std::sync::Mutex;
@@ -19,7 +21,8 @@ const ENGINE_COMMIT: &str = env!("RHEON_COMMIT");
 /// The upstream dsntk-rs commit the engine crates are based on (`[package.metadata.rheon]` in this crate's `Cargo.toml`).
 const UPSTREAM_COMMIT: &str = env!("RHEON_UPSTREAM_COMMIT");
 
-/// Largest accepted `tzOffsetMinutes` magnitude (±18:00, the FEEL/XSD limit).
+/// Largest accepted `tzOffsetMinutes` magnitude (±18:00): the largest host offset a request
+/// accepts for local time, not a FEEL limit (a FEEL time offset is within ±14:00).
 const MAX_TZ_OFFSET_MINUTES: i64 = 18 * 60;
 
 /// Maximum depth of a parsed expression (or FEEL context literal) AST.
@@ -101,8 +104,9 @@ pub fn call_bytes(request: &[u8]) -> String {
   }
 }
 
+/// The failure response; its message holds at most 1,000 characters, as every message does.
 fn error_response(kind: Kind, message: &str) -> Json {
-  json!({ "ok": false, "error": { "kind": kind.as_str(), "message": message } })
+  json!({ "ok": false, "error": { "kind": kind.as_str(), "message": compose(format_args!("{message}")) } })
 }
 
 fn handle(request: &str) -> Result<Json, Failure> {
@@ -128,7 +132,7 @@ fn handle(request: &str) -> Result<Json, Failure> {
       "info" => Op::Info,
       "evaluate" => Op::Evaluate,
       "parse" => Op::Parse,
-      other => return fail(Kind::Request, format!("unknown op '{other}' (expected 'evaluate', 'parse' or 'info')")),
+      other => return fail(Kind::Request, format!("unknown op '{}' (expected 'evaluate', 'parse' or 'info')", arg(other))),
     },
     None => return fail(Kind::Request, "missing 'op'"),
     Some(_) => return fail(Kind::Request, "'op' must be a string"),
@@ -161,7 +165,7 @@ fn dialect(req: &Map<String, Json>) -> Result<Dialect, Failure> {
     None | Some(Json::Null) => Ok(Dialect::Expression),
     Some(Json::String(d)) if d == "expression" => Ok(Dialect::Expression),
     Some(Json::String(d)) if d == "unaryTests" => Ok(Dialect::UnaryTests),
-    Some(other) => fail(Kind::Request, format!("invalid 'dialect' {other} (expected \"expression\" or \"unaryTests\")")),
+    Some(other) => fail(Kind::Request, format!("invalid 'dialect' {} (expected \"expression\" or \"unaryTests\")", arg(other))),
   }
 }
 
@@ -171,7 +175,7 @@ fn language(req: &Map<String, Json>) -> Result<rheon_feel_evaluator::Dialect, Fa
     None | Some(Json::Null) => Ok(rheon_feel_evaluator::Dialect::Feel),
     Some(Json::String(l)) if l == "feel" => Ok(rheon_feel_evaluator::Dialect::Feel),
     Some(Json::String(l)) if l == "b-feel" => Ok(rheon_feel_evaluator::Dialect::BFeel),
-    Some(other) => fail(Kind::Request, format!("invalid 'language' {other} (expected \"feel\" or \"b-feel\")")),
+    Some(other) => fail(Kind::Request, format!("invalid 'language' {} (expected \"feel\" or \"b-feel\")", arg(other))),
   }
 }
 
@@ -181,7 +185,7 @@ fn error_mode(req: &Map<String, Json>) -> Result<ErrorMode, Failure> {
     None | Some(Json::Null) => Ok(ErrorMode::Lenient),
     Some(Json::String(m)) if m == "lenient" => Ok(ErrorMode::Lenient),
     Some(Json::String(m)) if m == "strict" => Ok(ErrorMode::Strict),
-    Some(other) => fail(Kind::Request, format!("invalid 'errorMode' {other} (expected \"lenient\" or \"strict\")")),
+    Some(other) => fail(Kind::Request, format!("invalid 'errorMode' {} (expected \"lenient\" or \"strict\")", arg(other))),
   }
 }
 
@@ -201,13 +205,13 @@ fn context(req: &mut Map<String, Json>, warnings: &mut Vec<String>) -> Result<Fe
     None | Some(Json::Null) => "json",
     Some(Json::String(f)) if f == "json" => "json",
     Some(Json::String(f)) if f == "feel" => "feel",
-    Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {other} (expected \"json\" or \"feel\")")),
+    Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {} (expected \"json\" or \"feel\")", arg(other))),
   };
   match (format, req.remove("context")) {
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
     ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e)),
     ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
-    (_, Some(Json::String(text))) => feel_context(&text).map_err(|e| Failure(Kind::Context, e)),
+    (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure(Kind::Context, e)),
     (_, Some(_)) => fail(Kind::Context, "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal"),
   }
 }
@@ -224,11 +228,14 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
       _ => {
         return fail(
           Kind::Request,
-          format!("'tzOffsetMinutes' must be an integer in -{MAX_TZ_OFFSET_MINUTES}..={MAX_TZ_OFFSET_MINUTES}, got {n}"),
+          format!(
+            "'tzOffsetMinutes' must be an integer in -{MAX_TZ_OFFSET_MINUTES}..={MAX_TZ_OFFSET_MINUTES}, got {}",
+            arg(n.as_str())
+          ),
         );
       }
     },
-    Some(other) => return fail(Kind::Request, format!("'tzOffsetMinutes' must be a number, got {other}")),
+    Some(other) => return fail(Kind::Request, format!("'tzOffsetMinutes' must be a number, got {}", arg(other))),
   };
   rheon_feel_temporal::set_local_offset_override(offset);
   Ok(())
@@ -291,14 +298,6 @@ pub(crate) fn check_ast_depth(node: &AstNode) -> Result<(), String> {
   Ok(())
 }
 
-/// Message of the `evaluation` error reported when the call depth limit was hit.
-pub(crate) fn call_depth_message() -> String {
-  format!(
-    "function calls are nested too deeply (more than {} levels, e.g. runaway recursion); evaluation stopped",
-    rheon_feel_evaluator::MAX_CALL_DEPTH
-  )
-}
-
 /// Warns about unary tests that are boolean expressions using `?` (e.g. `? > 5`): dsntk compares
 /// the input with such a test's boolean result instead of treating it as satisfied when true.
 fn boolean_unary_test_warnings(node: &AstNode, warnings: &mut Vec<String>) {
@@ -359,22 +358,24 @@ fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failur
       AstNode::In(Box::new(AstNode::Name(question_mark())), Box::new(node))
     }
   };
-  rheon_feel_evaluator::reset_call_depth();
   let evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, language);
-  let (value, diagnostics) = diagnostics::collect(|| evaluator(&scope));
-  if rheon_feel_evaluator::call_depth_exceeded() {
-    return fail(Kind::Evaluation, call_depth_message());
-  }
+  // an evaluation stopped by an implementation limit has no result, only the abort
+  let (value, diagnostics) = Session::new()
+    .run(|| diagnostics::collect(|| evaluator(&scope)))
+    .into_result()
+    .or_else(|abort| fail(Kind::Evaluation, abort.to_string()))?;
   // strict mode (DMN 1.6 §7.3.8): the first error stops the evaluation
   if error_mode == ErrorMode::Strict
     && let Some(first) = diagnostics.first()
   {
-    return fail(Kind::Evaluation, format!("strict error mode: {first}"));
+    return fail(Kind::Evaluation, compose(format_args!("strict error mode: {first}")));
   }
+  // the warnings of the input and the unary tests come first, then those of the evaluation
+  warnings.extend_from_slice(diagnostics.warnings());
   Ok(json!({
     "ok": true,
     "result": result_json(&value),
-    "warnings": warnings.into_iter().map(|message| json!({ "message": message })).collect::<Vec<_>>(),
+    "warnings": warnings.into_iter().map(|message| json!({ "message": compose(format_args!("{message}")) })).collect::<Vec<_>>(),
     "diagnostics": { "count": diagnostics.count, "messages": diagnostics.messages },
     "elapsedMicros": elapsed_micros(started),
   }))

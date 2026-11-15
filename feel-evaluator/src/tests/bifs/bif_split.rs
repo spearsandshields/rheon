@@ -60,3 +60,47 @@ fn _0011() {
 fn _0012() {
   te_null(false, &scope!(), r#"split("John Doe","[a-z")"#, r#"split: invalid delimiter"#);
 }
+
+#[test]
+fn an_engine_limit_stops_the_evaluation() {
+  crate::tests::te_aborted(
+    r#"split("a", "\\w{10000}")"#,
+    crate::Dialect::Feel,
+    r"split: the pattern '\w{10000}' exceeds the regex engine's compiled size limit; evaluation stopped",
+  );
+  let nested = crate::tests::nested_groups(300);
+  crate::tests::te_aborted(
+    &format!(r#"split("a", "{nested}")"#),
+    crate::Dialect::Feel,
+    &format!(
+      "split: the pattern '{}… (601 characters)' exceeds the regex engine's nesting limit; evaluation stopped",
+      &nested[..120]
+    ),
+  );
+}
+
+#[test]
+fn a_delimiter_that_matches_the_zero_length_string_is_null() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.4: FORX0003 "If the supplied $pattern matches a zero-length
+  // string, that is, if fn:matches("", $pattern, $flags) returns true"
+  let reason = "<FeelRegexError> the pattern matches the zero-length string";
+  te_null(false, &scope!(), r#"split("abc","")"#, reason);
+  te_null(false, &scope!(), r#"split("a,b",",*")"#, reason);
+  te_null(false, &scope!(), r#"split("abba",".?")"#, reason);
+  // the delimiter is checked also for an empty input
+  te_null(false, &scope!(), r#"split("","x*")"#, reason);
+  te_null(false, &scope!(), r#"split("","[a-z")"#, "split: invalid delimiter");
+}
+
+#[test]
+fn split_follows_tokenize() {
+  // F&O §7.6.4: "If $input is the empty sequence, or if $input is the zero-length string, the
+  // result is the empty sequence."
+  te_be_value(false, &scope!(), r#"split("",";")"#, "[]");
+  // separators at the start, at the end and next to each other give zero-length strings
+  te_be_value(false, &scope!(), r#"split("1,15,,24,50,",",")"#, r#"["1","15","","24","50",""]"#);
+  te_be_value(false, &scope!(), r#"split(";",";")"#, r#"["",""]"#);
+  te_be_value(false, &scope!(), r#"split("abracadabra","(ab)|(a)")"#, r#"["","r","c","d","r",""]"#);
+  te_be_value(false, &scope!(), r#"split("The cat sat on the mat","\\s+")"#, r#"["The","cat","sat","on","the","mat"]"#);
+  te_be_value(false, &scope!(), r#"split("abc",";")"#, r#"["abc"]"#);
+}

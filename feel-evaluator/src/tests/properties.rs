@@ -338,7 +338,7 @@ fn _0065() {
 
 #[test]
 fn _0066() {
-  te_number(false, &scope!(), r#" >1.start "#, 1, 0);
+  te_number(false, &scope!(), r#" (>1).start "#, 1, 0);
 }
 
 #[test]
@@ -353,77 +353,77 @@ fn _0068() {
 
 #[test]
 fn _0069() {
-  te_null(false, &scope!(), r#" >1.end "#, "no such property in unary greater: end");
+  te_null(false, &scope!(), r#" (>1).end "#, "no such property in unary greater: end");
 }
 
 #[test]
 fn _0070() {
-  te_bool(false, &scope!(), r#" >1.start included "#, false);
+  te_bool(false, &scope!(), r#" (>1).start included "#, false);
 }
 
 #[test]
 fn _0071() {
-  te_bool(false, &scope!(), r#" >1.end included "#, false);
+  te_bool(false, &scope!(), r#" (>1).end included "#, false);
 }
 
 #[test]
 fn _0072() {
-  te_number(true, &scope!(), r#" >=1.start "#, 1, 0);
+  te_number(true, &scope!(), r#" (>=1).start "#, 1, 0);
 }
 
 #[test]
 fn _0073() {
-  te_null(false, &scope!(), r#" >=1.end "#, "no such property in unary greater or equal: end");
+  te_null(false, &scope!(), r#" (>=1).end "#, "no such property in unary greater or equal: end");
 }
 
 #[test]
 fn _0074() {
-  te_bool(false, &scope!(), r#" >=1.start included "#, true);
+  te_bool(false, &scope!(), r#" (>=1).start included "#, true);
 }
 
 #[test]
 fn _0075() {
-  te_bool(false, &scope!(), r#" >=1.end included "#, false);
+  te_bool(false, &scope!(), r#" (>=1).end included "#, false);
 }
 
 #[test]
 fn _0076() {
-  te_null(false, &scope!(), r#" <1.start "#, "no such property in unary less: start");
+  te_null(false, &scope!(), r#" (<1).start "#, "no such property in unary less: start");
 }
 
 #[test]
 fn _0077() {
-  te_number(false, &scope!(), r#" <1.end "#, 1, 0);
+  te_number(false, &scope!(), r#" (<1).end "#, 1, 0);
 }
 
 #[test]
 fn _0078() {
-  te_bool(false, &scope!(), r#" <1.start included "#, false);
+  te_bool(false, &scope!(), r#" (<1).start included "#, false);
 }
 
 #[test]
 fn _0079() {
-  te_bool(false, &scope!(), r#" <1.end included "#, false);
+  te_bool(false, &scope!(), r#" (<1).end included "#, false);
 }
 
 #[test]
 fn _0080() {
-  te_null(false, &scope!(), r#" <=1.start "#, "no such property in unary less or equal: start");
+  te_null(false, &scope!(), r#" (<=1).start "#, "no such property in unary less or equal: start");
 }
 
 #[test]
 fn _0081() {
-  te_number(false, &scope!(), r#" <=1.end "#, 1, 0);
+  te_number(false, &scope!(), r#" (<=1).end "#, 1, 0);
 }
 
 #[test]
 fn _0082() {
-  te_bool(false, &scope!(), r#" <=1.start included "#, false);
+  te_bool(false, &scope!(), r#" (<=1).start included "#, false);
 }
 
 #[test]
 fn _0083() {
-  te_bool(false, &scope!(), r#" <=1.end included "#, true);
+  te_bool(false, &scope!(), r#" (<=1).end included "#, true);
 }
 
 #[test]
@@ -456,4 +456,82 @@ fn dmn_1_6_value_property() {
   te_bool(false, scope, r#"@"2018-07-01T12:00:00@Europe/Paris".value = @"2018-07-01T10:00:00Z".value"#, true);
   te_null(false, scope, r#"@"2018-01-01T10:00:00".value"#, "value: a local date and time has no UTC form");
   te_number(false, scope, r#"{value: 5}.value"#, 5, 0);
+}
+
+#[test]
+fn _0086() {
+  // The components of every days and time duration exist; a product of -2^63 nanoseconds is null.
+  let scope = &scope!();
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").days"#, 106751, 0);
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").hours"#, 23, 0);
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").minutes"#, 47, 0);
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").seconds"#, 16854775807, 9);
+  te_null(
+    false,
+    scope,
+    r#"(duration("PT0.000000001S") * -9223372036854775808).days"#,
+    "multiplication result is out of range of days and time duration",
+  );
+  te_null(
+    false,
+    scope,
+    r#"(date and time("1677-09-21T00:12:43.145224192Z") - date and time("1970-01-01T00:00:00Z")).days"#,
+    "[subtraction] incompatible types: 1677-09-21T00:12:43.145224192Z - 1970-01-01T00:00:00Z",
+  );
+  // valuedt is the exact number of seconds since the epoch (§10.3.2.3.5), also at -2^63 nanoseconds
+  te_number_x(false, scope, r#"date and time("1677-09-21T00:12:43.145224192Z").value"#, "-9223372036.854775808");
+}
+
+/// DMN 1.6 Table 67: `second` is "the second of the minute as a decimal in the interval [0..60)",
+/// and `seconds` of a days and time duration "must return a decimal in the interval [0..60)": the
+/// fraction of a second is part of both, and `seconds` is a magnitude like the other components.
+#[test]
+fn second_and_seconds_are_exact_decimals() {
+  let scope = &scope!();
+  te_number(false, scope, r#"time("10:00:30.5").second"#, 305, 1);
+  te_number(false, scope, r#"time("10:00:00.0157").second"#, 157, 4);
+  te_number(false, scope, r#"time("10:00:00.999999999").second"#, 999999999, 9);
+  te_number(false, scope, r#"time("10:00:59.000000001+01:00").second"#, 59000000001, 9);
+  te_number(false, scope, r#"date and time("2020-01-01T10:00:30.5Z").second"#, 305, 1);
+  te_number(false, scope, r#"date and time("2020-01-01T10:00:00.0157@Europe/Paris").second"#, 157, 4);
+  te_number(false, scope, r#"duration("PT1.5S").seconds"#, 15, 1);
+  te_number(false, scope, r#"duration("-PT1.5S").seconds"#, 15, 1);
+  te_number(false, scope, r#"duration("P1DT2H3M4.000000005S").seconds"#, 4000000005, 9);
+  te_number(false, scope, r#"duration("PT0.000000001S").seconds"#, 1, 9);
+  te_number(false, scope, r#"time("10:00:30").second"#, 30, 0);
+  te_number(false, scope, r#"duration("PT59S").seconds"#, 59, 0);
+}
+
+/// DMN 1.6 Table 67: `years` is "The normalized years component of a years and months duration",
+/// and `months` "must return an integer in the interval [0.. 11]": both are magnitudes, the sign
+/// belongs to the duration (`-P1Y2M` has the years 1 and the months 2).
+#[test]
+fn years_and_months_are_magnitudes() {
+  let scope = &scope!();
+  te_number(false, scope, r#"duration("-P1Y2M").years"#, 1, 0);
+  te_number(false, scope, r#"duration("-P1Y2M").months"#, 2, 0);
+  te_number(false, scope, r#"duration("-P2M").months"#, 2, 0);
+  te_number(false, scope, r#"duration("-P2M").years"#, 0, 0);
+  te_number(false, scope, r#"duration("-P1Y").years"#, 1, 0);
+  te_number(false, scope, r#"duration("-P1Y").months"#, 0, 0);
+  te_number(false, scope, r#"duration("-P14M").years"#, 1, 0);
+  te_number(false, scope, r#"duration("-P14M").months"#, 2, 0);
+  te_number(false, scope, r#"duration("-P1Y2M").value"#, -14, 0);
+  te_number(false, scope, r#"(date("2020-01-01") - date("2021-03-01")).days"#, 425, 0);
+}
+
+#[test]
+fn a_unary_comparison_compares_with_the_value_of_its_path_endpoint() {
+  // DMN 1.6 §10.3.2.7: a range is "a comparison operator and a single endpoint", and "Endpoints
+  // can be expressions (grammar rule 16)", so `< d.year` compares with the year of `d`
+  let scope = &te_scope(r#"{d: date("2020-06-15"), r: [1..10]}"#);
+  satisfies(false, scope, "2000", "", "< d.year", true);
+  satisfies(false, scope, "2020", "", "<= d.year", true);
+  satisfies(false, scope, "2020", "", "= d.year", true);
+  satisfies(false, scope, "2020", "", "!= d.year", false);
+  satisfies(false, scope, "2021", "", ">= d.year", true);
+  satisfies(false, scope, "20", "", "> r.start", true);
+  satisfies(false, scope, "5", "", "> r.start, < r.end", true);
+  te_errors(r#"{d: date("2020-06-15")}.d.year"#, "2020", &[]);
+  te_errors(r#"(< {d: date("2020-06-15")}.d.year) = (< 2020)"#, "true", &[]);
 }

@@ -10,9 +10,10 @@ use crate::model_definitions::{DefKey, InvocableType, Invocables};
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Diagnostics, ErrorMode};
+use rheon_feel::message::{arg, compose};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, Name, value_null};
-use rheon_feel_evaluator::{Dialect, evaluate_invocation, reset_call_depth};
+use rheon_feel_evaluator::{Dialect, Outcome, Session, evaluate_invocation};
 use rheon_model::Definitions;
 use std::sync::Arc;
 
@@ -56,6 +57,13 @@ impl From<ModelBuilder> for ModelEvaluator {
 
 impl ModelEvaluator {
   /// Creates an instance of [ModelEvaluator] from parsed [Definitions].
+  ///
+  /// The models are built together, so a reference may cross models with one namespace. Item
+  /// definitions that refer to themselves, directly or through others, are an error that names
+  /// the cycle (`<ItemDefinitionError> item definitions form a cycle: tA -> tB -> tA`), and so is
+  /// an item definition whose type has more than 100,000 nodes or nests more than 256 levels deep
+  /// (`item definition 'tA' expands to more than 100000 type nodes`, `item definition 'tA' nests
+  /// types more than 256 levels deep`).
   pub fn new(definitions: &[Definitions]) -> Result<Arc<Self>> {
     let mut model_builder = ModelBuilder::default();
     definitions.iter().for_each(|definitions| model_builder.add_model(definitions));
@@ -95,11 +103,38 @@ impl ModelEvaluator {
     &self.invocables
   }
 
-  /// Evaluates an invocable.
-  pub fn evaluate_invocable(&self, model_namespace: &str, model_name: &str, invocable_name: &str, input_data: &FeelContext) -> Value {
-    reset_call_depth(); // the call depth limit is per evaluation
+  /// Evaluates an invocable in its own [Session]: the outcome is its value, or the abort when an
+  /// implementation limit stopped the evaluation.
+  pub fn evaluate_invocable(&self, model_namespace: &str, model_name: &str, invocable_name: &str, input_data: &FeelContext) -> Outcome<Value> {
+    Session::new().run(|| self.invoke(model_namespace, model_name, invocable_name, input_data))
+  }
+
+  /// Evaluates an invocable in its own [Session] in the given error handling mode (DMN 1.6 §7.3.8)
+  /// and returns its value together with the errors recorded during the evaluation. Lenient (the
+  /// default of [evaluate_invocable](Self::evaluate_invocable)) returns the value with the errors
+  /// collected; strict returns null with the first error when any error occurred. An abort
+  /// stops the evaluation in both modes.
+  pub fn evaluate_invocable_with_mode(
+    &self,
+    model_namespace: &str,
+    model_name: &str,
+    invocable_name: &str,
+    input_data: &FeelContext,
+    error_mode: ErrorMode,
+  ) -> Outcome<(Value, Diagnostics)> {
+    Session::new().run(|| {
+      let (value, diagnostics) = diagnostics::collect(|| self.invoke(model_namespace, model_name, invocable_name, input_data));
+      match (error_mode, diagnostics.first()) {
+        (ErrorMode::Strict, Some(first)) => (Value::Null(Some(compose(format_args!("strict error mode: {first}")))), diagnostics),
+        _ => (value, diagnostics),
+      }
+    })
+  }
+
+  /// Invokes an invocable as part of the running session.
+  fn invoke(&self, model_namespace: &str, model_name: &str, invocable_name: &str, input_data: &FeelContext) -> Value {
     let Some(invocable) = self.invocables.by_name(model_namespace, model_name, invocable_name) else {
-      return value_null!("invocable '{}' not found in namespace '{}'", invocable_name, model_namespace);
+      return value_null!("invocable '{}' not found in namespace '{}'", arg(&invocable_name), arg(&model_namespace));
     };
     match invocable {
       InvocableType::Decision(def_key) => {
@@ -114,25 +149,6 @@ impl ModelEvaluator {
         // evaluate a decision service
         self.evaluate_decision_service(def_key, input_data)
       }
-    }
-  }
-
-  /// Evaluates an invocable in the given error handling mode (DMN 1.6 §7.3.8) and returns its
-  /// value together with the errors recorded during the evaluation. Lenient (the default of
-  /// [evaluate_invocable](Self::evaluate_invocable)) returns the value with the errors collected;
-  /// strict returns null with the first error when any error occurred.
-  pub fn evaluate_invocable_with_mode(
-    &self,
-    model_namespace: &str,
-    model_name: &str,
-    invocable_name: &str,
-    input_data: &FeelContext,
-    error_mode: ErrorMode,
-  ) -> (Value, Diagnostics) {
-    let (value, diagnostics) = diagnostics::collect(|| self.evaluate_invocable(model_namespace, model_name, invocable_name, input_data));
-    match (error_mode, diagnostics.first()) {
-      (ErrorMode::Strict, Some(first)) => (Value::Null(Some(format!("strict error mode: {first}"))), diagnostics),
-      _ => (value, diagnostics),
     }
   }
 

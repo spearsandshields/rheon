@@ -3,15 +3,17 @@
 use crate::FilterExpressionEvaluator;
 use crate::bfeel::{self, Dialect};
 use crate::invocation::{Arguments, guarded, invoke};
-use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
+use crate::iterations::{Domain, Iteration, Sequence};
 use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::{VALUE_FALSE, VALUE_TRUE, Value};
+use rheon_feel::diagnostics;
+use rheon_feel::message::arg;
+use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, truncated_fraction_warning};
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, IntervalType, Name, value_null};
 use rheon_feel_parser::{AstNode, ClosureBuilder};
-use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration};
+use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::Write;
@@ -19,8 +21,8 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
-/// Replaces non-finite numbers (BID128 infinity or NaN, produced e.g. by `9e6144 * 10`,
-/// `1 / 1e-6176` or `decimal(1e33, 1)`) with null: FEEL has no such numbers.
+/// Replaces non-finite numbers (decimal128 infinity or NaN, produced e.g. by `9e6144 * 10` or
+/// `1 / 1e-6176`) with null: FEEL has no such numbers.
 pub(crate) fn finite(value: Value) -> Value {
   match value {
     Value::Number(n) if !n.is_finite() => value_null!("result is not a finite number (decimal overflow)"),
@@ -46,44 +48,42 @@ pub fn build_evaluator(node: &AstNode) -> Evaluator {
 
 /// Builds an evaluator for the expression in the given dialect (FEEL or B-FEEL, DMN 1.6 chapter 11).
 pub fn build_evaluator_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluator {
-  let mut evaluator_builder = EvaluatorBuilder { dialect, ..Default::default() };
+  let mut evaluator_builder = EvaluatorBuilder { dialect };
   evaluator_builder.build(node)
 }
 
 /// Prepares null value with error message for second argument in `between` operator.
 macro_rules! between_null2 {
   ($expected:literal, $actual:expr) => {
-    value_null!("expected {} as a second argument in 'between' operator, actual value type is {}", $expected, $actual)
+    value_null!(
+      "expected {} as a second argument in 'between' operator, actual value type is {}",
+      $expected,
+      arg(&TypeOf($actual))
+    )
   };
 }
 
 /// Prepares null value with error message for third argument in `between` operator.
 macro_rules! between_null3 {
   ($expected:literal, $actual:expr) => {
-    value_null!("expected {} as a third argument in 'between' operator, actual value type is {}", $expected, $actual)
+    value_null!(
+      "expected {} as a third argument in 'between' operator, actual value type is {}",
+      $expected,
+      arg(&TypeOf($actual))
+    )
   };
 }
 
 /// Evaluator builder.
 #[derive(Default)]
-struct EvaluatorBuilder<'b> {
-  /// Stack of visited parent nodes in AST during evaluator building.
-  node_stack: Vec<&'b AstNode>,
+struct EvaluatorBuilder {
   /// FEEL or B-FEEL.
   dialect: Dialect,
 }
 
-impl<'b> EvaluatorBuilder<'b> {
-  /// Returns an optional reference to parent node if any.
-  fn parent_node(&self) -> Option<&AstNode> {
-    let stack_height = self.node_stack.len();
-    if stack_height > 1 { self.node_stack.get(stack_height - 2).cloned() } else { None }
-  }
-
+impl EvaluatorBuilder {
   /// Builds and evaluator based on provided AST node.
-  fn build(&mut self, node: &'b AstNode) -> Evaluator {
-    // push the current node on the top of the node stack
-    self.node_stack.push(node);
+  fn build(&mut self, node: &AstNode) -> Evaluator {
     // B-FEEL: arithmetic converts mismatched operands, boolean operators never return null
     if self.dialect == Dialect::BFeel {
       let operator = match node {
@@ -101,7 +101,6 @@ impl<'b> EvaluatorBuilder<'b> {
         // it already carries the non-finite guard added at the end of `build` (the early return below
         // skips that guard only for the B-FEEL wrapper, whose results all come from the FEEL operator)
         let feel_operator = bfeel::feel_operator_evaluator(operator);
-        self.node_stack.pop();
         return Box::new(move |scope: &FeelScope| bfeel::arithmetic(operator, &feel_operator, scope, lhe(scope), rhe(scope)));
       }
     }
@@ -200,140 +199,137 @@ impl<'b> EvaluatorBuilder<'b> {
       AstNode::FunctionInvocation(..) => guard_invocation(evaluator),
       _ => evaluator,
     };
-    // remove the current node from the top of the nodes stack
-    self.node_stack.pop();
     // return the evaluator
     evaluator
   }
 
   /// Returns an evaluator for `addition`.
-  fn build_add(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_add(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Number(lh) => match rhv {
-          Value::Number(rh) => Value::Number(lh + rh),
-          value @ Value::Null(_) => value,
-          _ => value_null!("incompatible types in addition: {}({}) + {}({})", lhv, lhv.type_of(), rhv, rhv.type_of()),
-        },
-        Value::String(lh) => {
-          if let Value::String(rh) = rhv {
-            Value::String(lh.concat(&rh))
+    arithmetic(Arithmetic::Addition, lhe, rhe, |lhv, rhv| match lhv {
+      Value::Number(lh) => match rhv {
+        Value::Number(rh) => Value::Number(lh + rh),
+        _ => value_null!(
+          "incompatible types in addition: {}({}) + {}({})",
+          arg(&lhv),
+          arg(&TypeOf(&lhv)),
+          arg(&rhv),
+          arg(&TypeOf(&rhv))
+        ),
+      },
+      Value::String(lh) => {
+        if let Value::String(rh) = rhv {
+          Value::String(lh.concat(&rh))
+        } else {
+          value_null!("expected string as a second argument in addition")
+        }
+      }
+      Value::Date(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => {
+          if let Some(result) = lh + rh {
+            Value::Date(result)
           } else {
-            value_null!("expected string as a second argument in addition")
+            value_null!("invalid result while adding days and time duration to date")
           }
         }
-        Value::Date(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => {
-            if let Some(result) = lh + rh {
-              Value::Date(result)
-            } else {
-              value_null!("invalid result while adding days and time duration to date")
-            }
+        Value::YearsAndMonthsDuration(rh) => {
+          if let Some(a) = lh + rh {
+            Value::Date(a)
+          } else {
+            value_null!("invalid result while adding years and months duration to date")
           }
-          Value::YearsAndMonthsDuration(rh) => {
-            if let Some(a) = lh + rh {
-              Value::Date(a)
-            } else {
-              value_null!("invalid result while adding years and months duration to date")
-            }
+        }
+        other => invalid_argument_type!("add", "years and months duration", other),
+      },
+      Value::DateTime(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => {
+          if let Some(a) = lh + rh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding days and time duration to date and time")
           }
-          other => invalid_argument_type!("add", "years and months duration", other.type_of()),
-        },
-        Value::DateTime(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => {
-            if let Some(a) = lh + rh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding days and time duration to date and time")
-            }
+        }
+        Value::YearsAndMonthsDuration(rh) => {
+          if let Some(a) = lh + rh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding years and months duration to date and time")
           }
-          Value::YearsAndMonthsDuration(rh) => {
-            if let Some(a) = lh + rh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding years and months duration to date and time")
-            }
+        }
+        other => invalid_argument_type!("add", "days and time duration, years and months duration", other),
+      },
+      Value::Time(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => Value::Time(lh + rh),
+        other => invalid_argument_type!("add", "days and time duration", other),
+      },
+      Value::DaysAndTimeDuration(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => lh
+          .checked_add(&rh)
+          .map_or_else(|| value_null!("days and time duration addition overflow"), Value::DaysAndTimeDuration),
+        Value::Date(rh) => {
+          if let Some(result) = rh + lh {
+            Value::Date(result)
+          } else {
+            value_null!("invalid result while adding date to days and time duration")
           }
-          other => invalid_argument_type!("add", "days and time duration, years and months duration", other.type_of()),
-        },
-        Value::Time(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => Value::Time(lh + rh),
-          other => invalid_argument_type!("add", "days and time duration", other.type_of()),
-        },
-        Value::DaysAndTimeDuration(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => lh
-            .checked_add(&rh)
-            .map_or_else(|| value_null!("days and time duration addition overflow"), Value::DaysAndTimeDuration),
-          Value::Date(rh) => {
-            if let Some(result) = rh + lh {
-              Value::Date(result)
-            } else {
-              value_null!("invalid result while adding date to days and time duration")
-            }
+        }
+        Value::DateTime(rh) => {
+          if let Some(a) = rh + lh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding date and time to days and time duration")
           }
-          Value::DateTime(rh) => {
-            if let Some(a) = rh + lh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding date and time to days and time duration")
-            }
+        }
+        Value::Time(rh) => Value::Time(rh + lh),
+        other => invalid_argument_type!("add", "days and time duration, date and time", other),
+      },
+      Value::YearsAndMonthsDuration(lh) => match rhv {
+        Value::Date(rh) => {
+          if let Some(a) = rh + lh {
+            Value::Date(a)
+          } else {
+            value_null!("invalid result while adding date to years and months duration")
           }
-          Value::Time(rh) => Value::Time(rh + lh),
-          other => invalid_argument_type!("add", "days and time duration, date and time", other.type_of()),
-        },
-        Value::YearsAndMonthsDuration(lh) => match rhv {
-          Value::Date(rh) => {
-            if let Some(a) = rh + lh {
-              Value::Date(a)
-            } else {
-              value_null!("invalid result while adding date to years and months duration")
-            }
+        }
+        Value::DateTime(rh) => {
+          if let Some(a) = rh + lh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding date and time to years and months duration")
           }
-          Value::DateTime(rh) => {
-            if let Some(a) = rh + lh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding date and time to years and months duration")
-            }
-          }
-          Value::YearsAndMonthsDuration(rh) => lh
-            .checked_add(&rh)
-            .map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
-          other => invalid_argument_type!("add", "years and months duration, date and time", other.type_of()),
-        },
-        value @ Value::Null(_) => value,
-        other => invalid_argument_type!(
-          "add",
-          "number, string, date and time, days and time duration, years and months duration, null",
-          other.type_of()
-        ),
-      }
+        }
+        Value::YearsAndMonthsDuration(rh) => lh
+          .checked_add(&rh)
+          .map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
+        other => invalid_argument_type!("add", "years and months duration, date and time", other),
+      },
+      other => invalid_argument_type!("add", "number, string, date and time, days and time duration, years and months duration, null", other),
     })
   }
 
   /// Returns an evaluator of the temporal expression after `@` (at) literal.
+  /// Builds an `@` literal. Its value is parsed once, here; a literal whose fraction digits
+  /// beyond nanoseconds were truncated warns on each evaluation, since diagnostics are recorded
+  /// while an evaluation runs (a model built once reports in every evaluation).
   fn build_at(&mut self, text: &str) -> Evaluator {
     if let Ok(date) = FeelDate::from_str(text) {
       Box::new(move |_: &FeelScope| Value::Date(date.clone()))
-    } else if let Ok(date_time) = FeelDateTime::try_from(text) {
-      Box::new(move |_: &FeelScope| Value::DateTime(date_time.clone()))
-    } else if let Ok(time) = text.parse::<FeelTime>() {
-      Box::new(move |_: &FeelScope| Value::Time(time.clone()))
+    } else if let Ok((date_time, dropped)) = FeelDateTime::parse_reporting_truncation(text) {
+      truncating_at_literal(Value::DateTime(date_time), text, dropped)
+    } else if let Ok((time, dropped)) = FeelTime::parse_reporting_truncation(text) {
+      truncating_at_literal(Value::Time(time), text, dropped)
     } else if let Ok(ym_duration) = FeelYearsAndMonthsDuration::try_from(text) {
       Box::new(move |_: &FeelScope| Value::YearsAndMonthsDuration(ym_duration.clone()))
-    } else if let Ok(dt_duration) = FeelDaysAndTimeDuration::try_from(text) {
-      Box::new(move |_: &FeelScope| Value::DaysAndTimeDuration(dt_duration.clone()))
+    } else if let Ok((dt_duration, dropped)) = FeelDaysAndTimeDuration::parse_reporting_truncation(text) {
+      truncating_at_literal(Value::DaysAndTimeDuration(dt_duration), text, dropped)
     } else {
-      let invalid_at_literal = format!("invalid @ literal: {}", text);
+      let invalid_at_literal = format!("invalid @ literal: {}", arg(text));
       Box::new(move |_: &FeelScope| value_null!(invalid_at_literal))
     }
   }
 
-  fn build_between(&mut self, lhs: &'b AstNode, mhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_between(&mut self, lhs: &AstNode, mhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let mhe = self.build(mhs);
     let rhe = self.build(rhs);
@@ -347,10 +343,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::Number(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("number", rhv.type_of())
+              between_null3!("number", &rhv)
             }
           } else {
-            between_null2!("number", mhv.type_of())
+            between_null2!("number", &mhv)
           }
         }
         Value::String(lh) => {
@@ -358,10 +354,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::String(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("string", rhv.type_of())
+              between_null3!("string", &rhv)
             }
           } else {
-            between_null2!("string", mhv.type_of())
+            between_null2!("string", &mhv)
           }
         }
         Value::Date(lh) => {
@@ -369,10 +365,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::Date(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("date", rhv.type_of())
+              between_null3!("date", &rhv)
             }
           } else {
-            between_null2!("date", mhv.type_of())
+            between_null2!("date", &mhv)
           }
         }
         Value::Time(lh) => {
@@ -380,10 +376,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::Time(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("time", rhv.type_of())
+              between_null3!("time", &rhv)
             }
           } else {
-            between_null2!("time", mhv.type_of())
+            between_null2!("time", &mhv)
           }
         }
         Value::DateTime(lh) => {
@@ -391,10 +387,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::DateTime(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("date and time", rhv.type_of())
+              between_null3!("date and time", &rhv)
             }
           } else {
-            between_null2!("date and time", mhv.type_of())
+            between_null2!("date and time", &mhv)
           }
         }
         Value::DaysAndTimeDuration(lh) => {
@@ -402,10 +398,10 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::DaysAndTimeDuration(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("days and time duration", rhv.type_of())
+              between_null3!("days and time duration", &rhv)
             }
           } else {
-            between_null2!("days and time duration", mhv.type_of())
+            between_null2!("days and time duration", &mhv)
           }
         }
         Value::YearsAndMonthsDuration(lh) => {
@@ -413,17 +409,17 @@ impl<'b> EvaluatorBuilder<'b> {
             if let Value::YearsAndMonthsDuration(rh) = rhv {
               Value::Boolean(mh <= lh && lh <= rh)
             } else {
-              between_null3!("years and months duration", rhv.type_of())
+              between_null3!("years and months duration", &rhv)
             }
           } else {
-            between_null2!("years and months duration", mhv.type_of())
+            between_null2!("years and months duration", &mhv)
           }
         }
         other => {
           if other.is_null() {
             other
           } else {
-            value_null!("unexpected value type in 'between' operator: {}", other.type_of())
+            value_null!("unexpected value type in 'between' operator: {}", arg(&TypeOf(&other)))
           }
         }
       }
@@ -449,7 +445,7 @@ impl<'b> EvaluatorBuilder<'b> {
   /// otherwise   false        false
   /// otherwise   otherwise    null
   /// ```
-  fn build_and(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_and(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -480,7 +476,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_context(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_context(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -497,7 +493,7 @@ impl<'b> EvaluatorBuilder<'b> {
             Value::ContextEntry(name, value) => {
               if evaluated_ctx.contains_entry(&name) {
                 // duplicated context entry keys are not allowed
-                break 'entries Some(value_null!("duplicated context entry key: {}", name));
+                break 'entries Some(value_null!("duplicated context entry key: {}", arg(&name)));
               } else {
                 // add newly evaluated entry to evaluated context
                 evaluated_ctx.set_entry(&name, (*value).clone());
@@ -506,7 +502,7 @@ impl<'b> EvaluatorBuilder<'b> {
               }
             }
             value_null @ Value::Null(_) => break 'entries Some(value_null),
-            other => break 'entries Some(value_null!("expected context entry, actual value type is {}", other.type_of())),
+            other => break 'entries Some(value_null!("expected context entry, actual value type is {}", arg(&TypeOf(&other)))),
           }
         }
         None
@@ -517,7 +513,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_context_entry(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_context_entry(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -525,7 +521,7 @@ impl<'b> EvaluatorBuilder<'b> {
       let rhv = rhe(scope);
       match lhv {
         Value::ContextEntryKey(name) => Value::ContextEntry(name, Box::new(rhv)),
-        _ => value_null!("expected context entry key, actual value type is {}", lhv.type_of()),
+        _ => value_null!("expected context entry key, actual value type is {}", arg(&TypeOf(&lhv))),
       }
     })
   }
@@ -535,7 +531,7 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |_: &FeelScope| Value::ContextEntryKey(name.clone()))
   }
 
-  fn build_context_type(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_context_type(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -548,14 +544,14 @@ impl<'b> EvaluatorBuilder<'b> {
             entries.insert(name, feel_type.clone());
           }
           null @ Value::Null(_) => return null,
-          other => return value_null!("expected context type entry, actual value type is {}", other.type_of()),
+          other => return value_null!("expected context type entry, actual value type is {}", arg(&TypeOf(&other))),
         }
       }
       Value::FeelType(FeelType::Context(entries))
     })
   }
 
-  fn build_context_type_entry(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_context_type_entry(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -578,77 +574,73 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |_: &FeelScope| Value::ContextTypeEntryKey(name.clone()))
   }
 
-  fn build_div(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_div(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Number(lh) => match rhv {
-          Value::Number(rh) => {
-            if rh.abs() == FeelNumber::zero() {
-              value_null!("[division] division by zero")
+    arithmetic(Arithmetic::Division, lhe, rhe, |lhv, rhv| match lhv {
+      Value::Number(lh) => match rhv {
+        Value::Number(rh) => {
+          if rh.abs() == FeelNumber::zero() {
+            value_null!("[division] division by zero")
+          } else {
+            Value::Number(lh / rh)
+          }
+        }
+        _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
+      },
+      Value::DaysAndTimeDuration(ref lh) => match rhv {
+        Value::Number(rh) => {
+          if rh.is_zero() {
+            value_null!("[division] division by zero")
+          } else {
+            let lv = FeelNumber::from(lh.as_nanos()) / rh;
+            if let Ok(v) = FeelNumber::try_into(lv)
+              && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+            {
+              Value::DaysAndTimeDuration(duration)
             } else {
-              Value::Number(lh / rh)
+              value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv))
             }
           }
-          _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
-        },
-        Value::DaysAndTimeDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            if rh.is_zero() {
-              value_null!("[division] division by zero")
-            } else {
-              let lv = FeelNumber::from(lh.as_nanos()) / rh;
-              if let Ok(v) = FeelNumber::try_into(lv) {
-                Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_n(v))
-              } else {
-                value_null!("[division] error: {} / {}", lhv, rhv)
-              }
+        }
+        Value::DaysAndTimeDuration(rh) => {
+          if rh.as_nanos() == 0 {
+            value_null!("[division] division by zero")
+          } else {
+            let lvl = FeelNumber::from(lh.as_nanos());
+            let rvl = FeelNumber::from(rh.as_nanos());
+            Value::Number(lvl / rvl)
+          }
+        }
+        _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
+      },
+      Value::YearsAndMonthsDuration(ref lh) => match rhv {
+        Value::Number(rh) => {
+          if rh.is_zero() {
+            value_null!("[division] division by zero")
+          } else {
+            match temporal_value::ym_duration(FeelNumber::from(lh.as_months()) / rh, &lhv, '/', &rhv) {
+              Some(duration) => Value::YearsAndMonthsDuration(duration),
+              None => value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv)),
             }
           }
-          Value::DaysAndTimeDuration(rh) => {
-            if rh.as_nanos() == 0 {
-              value_null!("[division] division by zero")
-            } else {
-              let lvl = FeelNumber::from(lh.as_nanos());
-              let rvl = FeelNumber::from(rh.as_nanos());
-              Value::Number(lvl / rvl)
-            }
+        }
+        Value::YearsAndMonthsDuration(rh) => {
+          if rh.as_months() == 0 {
+            value_null!("[division] division by zero")
+          } else {
+            let lvl = FeelNumber::from(lh.as_months());
+            let rvl = FeelNumber::from(rh.as_months());
+            Value::Number(lvl / rvl)
           }
-          _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
-        },
-        Value::YearsAndMonthsDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            if rh.is_zero() {
-              value_null!("[division] division by zero")
-            } else {
-              let vl = FeelNumber::from(lh.as_months()) / rh;
-              if let Ok(v) = FeelNumber::try_into(vl) {
-                Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(v))
-              } else {
-                value_null!("[division] error: {} / {}", lhv, rhv)
-              }
-            }
-          }
-          Value::YearsAndMonthsDuration(rh) => {
-            if rh.as_months() == 0 {
-              value_null!("[division] division by zero")
-            } else {
-              let lvl = FeelNumber::from(lh.as_months());
-              let rvl = FeelNumber::from(rh.as_months());
-              Value::Number(lvl / rvl)
-            }
-          }
-          _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
-        },
-        _ => value_null!("[division] incompatible types: {} / {}", lhv, rhv),
-      }
+        }
+        _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
+      },
+      _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
     })
   }
 
-  fn build_expression_list(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_expression_list(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -662,15 +654,17 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_exp(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_exp(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
+    arithmetic(Arithmetic::Exponentiation, lhe, rhe, |lhv, rhv| {
       if let Value::Number(lh) = lhv {
         if let Value::Number(rh) = rhv {
-          if let Some(result) = lh.pow(&rh) {
+          // DMN 1.6 Table 61: "value(e2) is a number in the range [-999,999,999..999,999,999]",
+          // checked before any power, also where the power would not depend on the exponent
+          if rh.abs() > FeelNumber::from(999_999_999) {
+            value_null!("exponentiation exponent is out of range -999999999..999999999")
+          } else if let Some(result) = lh.pow(&rh) {
             Value::Number(result)
           } else {
             value_null!("exponentiation result is not a finite number")
@@ -689,7 +683,7 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |_: &FeelScope| Value::FeelType(feel_type.clone()))
   }
 
-  fn build_filter(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_filter(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -698,78 +692,69 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_for(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
-    enum IteratorType {
-      Interval((Name, Evaluator, Evaluator)),
-      Range((Name, Evaluator, Evaluator)),
-      List((Name, Evaluator)),
-      Variable((Name, Name)),
-    }
-    let rhe = self.build(rhs);
-    let mut evaluators = vec![];
-    let mut binding_variables = HashSet::new();
+  fn build_for(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
+    let mut variables = vec![];
     if let AstNode::IterationContexts(items) = lhs {
       for item in items {
         match item {
-          AstNode::IterationContextInterval(variable_name, interval_start_node, interval_end_node) => {
+          AstNode::IterationContextInterval(variable_name, start_node, end_node) => {
             if let AstNode::Name(name) = variable_name.borrow() {
-              let interval_start_evaluator = self.build(interval_start_node);
-              let interval_end_evaluator = self.build(interval_end_node);
-              evaluators.push(IteratorType::Interval((name.clone(), interval_start_evaluator, interval_end_evaluator)));
-              binding_variables.insert(name.clone());
+              let start_evaluator = self.build(start_node);
+              let end_evaluator = self.build(end_node);
+              let domain: Domain = Box::new(move |scope: &FeelScope| Sequence::interval(start_evaluator(scope), end_evaluator(scope)));
+              variables.push((name.clone(), domain));
             }
           }
           AstNode::IterationContextSingle(variable_name, expr_node) => {
             if let AstNode::Name(name) = variable_name.borrow() {
-              if let AstNode::Name(variable_name) = expr_node.borrow()
-                && binding_variables.contains(variable_name)
-              {
-                evaluators.push(IteratorType::Variable((name.clone(), variable_name.clone())));
-                binding_variables.insert(name.clone());
-                continue; // JUMP TO THE NEXT ITERATION, DO NOT MISS THIS LINE WHEN ANALYZING THE CODE!
-              }
-              if let AstNode::Range(range_start_node, range_end_node) = expr_node.borrow() {
-                let range_start_evaluator = self.build(range_start_node);
-                let range_end_evaluator = self.build(range_end_node);
-                evaluators.push(IteratorType::Range((name.clone(), range_start_evaluator, range_end_evaluator)));
-                binding_variables.insert(name.clone());
-              } else {
-                evaluators.push(IteratorType::List((name.clone(), self.build(expr_node))));
-                binding_variables.insert(name.clone());
-              };
+              variables.push((name.clone(), self.build_domain(expr_node, true)));
             }
           }
           _ => {}
         }
       }
     }
-    Box::new(move |scope: &FeelScope| {
-      let mut for_expression_evaluator = ForExpressionEvaluator::for_feel();
-      for iterator_type in &evaluators {
-        match iterator_type {
-          IteratorType::Interval((name, interval_start_evaluator, interval_end_evaluator)) => {
-            if let Err(reason) = for_expression_evaluator.add_interval(name.clone(), interval_start_evaluator(scope), interval_end_evaluator(scope)) {
-              return value_null!(reason);
-            }
-          }
-          IteratorType::Range((name, range_start_evaluator, range_end_evaluator)) => {
-            if let Err(reason) = for_expression_evaluator.add_range(name.clone(), range_start_evaluator(scope), range_end_evaluator(scope)) {
-              return value_null!(reason);
-            }
-          }
-          IteratorType::List((name, list_evaluator)) => {
-            for_expression_evaluator.add_list(name.clone(), list_evaluator(scope));
-          }
-          IteratorType::Variable((name, variable_name)) => {
-            for_expression_evaluator.add_variable(name.clone(), variable_name.clone());
-          }
-        }
-      }
-      for_expression_evaluator.evaluate(scope, &rhe)
-    })
+    let iteration = match iteration(variables) {
+      Ok(iteration) => iteration,
+      Err(evaluator) => return evaluator,
+    };
+    let rhe = self.build(rhs);
+    Box::new(move |scope: &FeelScope| iteration.collect(scope, &rhe))
   }
 
-  fn build_formal_parameter(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  /// The domain of an iteration variable: the items of the value of `node`. In a `for`
+  /// expression (`range_literal`) a range literal `[a..b]` is the numbers or dates it contains.
+  fn build_domain(&mut self, node: &AstNode, range_literal: bool) -> Domain {
+    match node {
+      AstNode::Range(start_node, end_node) if range_literal => {
+        let start_evaluator = self.build(start_node);
+        let end_evaluator = self.build(end_node);
+        Box::new(move |scope: &FeelScope| Sequence::range(start_evaluator(scope), end_evaluator(scope)))
+      }
+      _ => {
+        let evaluator = self.build(node);
+        Box::new(move |scope: &FeelScope| Ok(Sequence::of(evaluator(scope))))
+      }
+    }
+  }
+
+  /// The iteration of a `some` or an `every` expression: its quantified contexts, in order.
+  fn build_quantified_contexts(&mut self, lhs: &AstNode) -> std::result::Result<Iteration, Evaluator> {
+    let AstNode::QuantifiedContexts(items) = lhs else {
+      return Err(build_err_msg(err_msg_expected_node("QuantifiedContexts", lhs)));
+    };
+    let mut variables = vec![];
+    for item in items {
+      if let AstNode::QuantifiedContext(variable_name, expr_node) = item
+        && let AstNode::Name(name) = variable_name.borrow()
+      {
+        variables.push((name.clone(), self.build_domain(expr_node, false)));
+      }
+    }
+    iteration(variables)
+  }
+
+  fn build_formal_parameter(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -787,7 +772,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_formal_parameters(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_formal_parameters(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -800,14 +785,14 @@ impl<'b> EvaluatorBuilder<'b> {
             formal_parameters.push((parameter_name, parameter_type));
           }
           null @ Value::Null(_) => return null,
-          other => return value_null!("expected formal parameter, actual value type is: {}", other.type_of()),
+          other => return value_null!("expected formal parameter, actual value type is: {}", arg(&TypeOf(&other))),
         }
       }
       Value::FormalParameters(formal_parameters)
     })
   }
 
-  fn build_function_body(&mut self, lhs: &'b AstNode, rhs: &bool) -> Evaluator {
+  fn build_function_body(&mut self, lhs: &AstNode, rhs: &bool) -> Evaluator {
     if *rhs {
       self.build_external_function_body(lhs)
     } else {
@@ -815,12 +800,12 @@ impl<'b> EvaluatorBuilder<'b> {
     }
   }
 
-  fn build_internal_function_body(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_internal_function_body(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = Arc::new(self.build(lhs));
     Box::new(move |_: &FeelScope| Value::FunctionBody(FunctionBody::LiteralExpression(lhe.clone()), false))
   }
 
-  fn build_external_function_body(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_external_function_body(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     Box::new(move |scope: &FeelScope| {
       let mapping_value = lhe(scope);
@@ -835,10 +820,10 @@ impl<'b> EvaluatorBuilder<'b> {
                 let lhe = Arc::new(java_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
               } else {
-                value_null!("invalid Java function mapping, no method signature entry in context {}", java_mapping)
+                value_null!("invalid Java function mapping, no method signature entry in context {}", arg(&java_mapping))
               }
             } else {
-              value_null!("invalid Java function mapping, no class name entry in context {}", java_mapping)
+              value_null!("invalid Java function mapping, no class name entry in context {}", arg(&java_mapping))
             };
           }
           if let Some(Value::Context(pmml_mapping)) = mapping_information.get_entry(&"pmml".into()) {
@@ -850,20 +835,23 @@ impl<'b> EvaluatorBuilder<'b> {
                 let lhe = Arc::new(pmml_evaluator);
                 Value::FunctionBody(FunctionBody::External(lhe), true)
               } else {
-                value_null!("invalid PMML function mapping, no model name entry in context {}", pmml_mapping)
+                value_null!("invalid PMML function mapping, no model name entry in context {}", arg(&pmml_mapping))
               }
             } else {
-              value_null!("invalid PMML function mapping, no document entry in context {}", pmml_mapping)
+              value_null!("invalid PMML function mapping, no document entry in context {}", arg(&pmml_mapping))
             };
           }
-          value_null!("invalid external function mapping, expected 'java' or 'pmml' entry in context {}", mapping_information)
+          value_null!(
+            "invalid external function mapping, expected 'java' or 'pmml' entry in context {}",
+            arg(&mapping_information)
+          )
         }
-        other => value_null!("invalid external function mapping, expected context, actual value is {}", other),
+        other => value_null!("invalid external function mapping, expected context, actual value is {}", arg(&other)),
       }
     })
   }
 
-  fn build_function_definition(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_function_definition(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let closure = ClosureBuilder::from_function_definition(lhs, rhs);
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
@@ -887,57 +875,41 @@ impl<'b> EvaluatorBuilder<'b> {
           }
         }
         null @ Value::Null(_) => null,
-        other => value_null!("expected formal parameters, actual value type is {}", other.type_of()),
+        other => value_null!("expected formal parameters, actual value type is {}", arg(&TypeOf(&other))),
       }
     })
   }
 
-  fn build_eq(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_eq(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      if let Some(result) = eval_ternary_equality(&lhv, &rhv) {
-        Value::Boolean(result)
-      } else {
-        value_null!("equal err '{}' =?= '{}'", lhv, rhv)
-      }
-    })
+    Box::new(move |scope: &FeelScope| equal(&lhe(scope), &rhe(scope)))
   }
 
-  fn build_evaluated_expression(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_evaluated_expression(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     Box::new(move |scope: &FeelScope| lhe(scope))
   }
 
-  fn build_every(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
-    let mut expr_evaluators = vec![];
-    let AstNode::QuantifiedContexts(items) = lhs else {
-      return build_err_msg(err_msg_expected_node("QuantifiedContexts", lhs));
-    };
-    for item in items {
-      if let AstNode::QuantifiedContext(variable_name, expr_node) = item
-        && let AstNode::Name(name) = variable_name.borrow()
-      {
-        let evaluator_single = self.build(expr_node);
-        expr_evaluators.push((name.clone(), evaluator_single));
-      }
-    }
-    let AstNode::Satisfies(satisfies) = rhs else {
-      return build_err_msg(err_msg_expected_node("Satisfies", lhs));
-    };
-    let satisfies_evaluator = self.build(satisfies);
-    Box::new(move |scope: &FeelScope| {
-      let mut expression_evaluator = EveryExpressionEvaluator::for_feel();
-      for (name, expr_evaluator) in &expr_evaluators {
-        expression_evaluator.add_list(name.clone(), expr_evaluator(scope));
-      }
-      expression_evaluator.evaluate(scope, &satisfies_evaluator)
-    })
+  fn build_every(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
+    self.build_quantified(lhs, rhs, Iteration::every)
   }
 
-  fn build_function_invocation(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  /// Builds a `some` or an `every` expression: the iteration contexts of `lhs`, the `satisfies`
+  /// body of `rhs`, and the `quantifier` that evaluates the body over the contexts.
+  fn build_quantified(&mut self, lhs: &AstNode, rhs: &AstNode, quantifier: fn(&Iteration, &FeelScope, &Evaluator) -> Value) -> Evaluator {
+    let iteration = match self.build_quantified_contexts(lhs) {
+      Ok(iteration) => iteration,
+      Err(evaluator) => return evaluator,
+    };
+    let AstNode::Satisfies(satisfies) = rhs else {
+      return build_err_msg(err_msg_expected_node("Satisfies", rhs));
+    };
+    let satisfies_evaluator = self.build(satisfies);
+    Box::new(move |scope: &FeelScope| quantifier(&iteration, scope, &satisfies_evaluator))
+  }
+
+  fn build_function_invocation(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     match rhs {
       AstNode::PositionalParameters(parameters) => self.build_function_invocation_with_positional_parameters(lhs, parameters),
       AstNode::NamedParameters(parameters) => self.build_function_invocation_with_named_parameters(lhs, parameters),
@@ -945,7 +917,7 @@ impl<'b> EvaluatorBuilder<'b> {
     }
   }
 
-  fn build_function_invocation_with_positional_parameters(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Evaluator {
+  fn build_function_invocation_with_positional_parameters(&mut self, lhs: &AstNode, rhs: &[AstNode]) -> Evaluator {
     let function_evaluator = self.build(lhs);
     let argument_evaluators = self.build_positional_argument_evaluators(lhs, rhs);
     let dialect = self.dialect;
@@ -956,7 +928,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_positional_argument_evaluators(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Vec<Evaluator> {
+  fn build_positional_argument_evaluators(&mut self, lhs: &AstNode, rhs: &[AstNode]) -> Vec<Evaluator> {
     if let AstNode::Name(name) = lhs {
       match name.to_string().as_str() {
         "range" => {
@@ -990,7 +962,7 @@ impl<'b> EvaluatorBuilder<'b> {
     argument_evaluators
   }
 
-  fn build_function_invocation_with_named_parameters(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Evaluator {
+  fn build_function_invocation_with_named_parameters(&mut self, lhs: &AstNode, rhs: &[AstNode]) -> Evaluator {
     let function_evaluator = self.build(lhs);
     let argument_evaluators = match self.build_named_argument_evaluators(lhs, rhs) {
       Ok(argument_evaluators) => argument_evaluators,
@@ -1004,7 +976,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_named_argument_evaluators(&mut self, lhs: &'b AstNode, rhs: &'b [AstNode]) -> Result<Vec<(Name, Evaluator)>, String> {
+  fn build_named_argument_evaluators(&mut self, lhs: &AstNode, rhs: &[AstNode]) -> Result<Vec<(Name, Evaluator)>, String> {
     if let AstNode::Name(name) = lhs {
       match name.to_string().as_str() {
         "range" => {
@@ -1044,7 +1016,7 @@ impl<'b> EvaluatorBuilder<'b> {
     Ok(argument_evaluators)
   }
 
-  fn build_function_type(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_function_type(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1066,7 +1038,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_ge(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_ge(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1106,7 +1078,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_gt(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_gt(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1146,18 +1118,19 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_if(&mut self, lhs: &'b AstNode, mhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  /// Returns an evaluator for `if`: DMN 1.6 Table 50, "if FEEL(e1) is true then FEEL(e2) else
+  /// FEEL(e3)", so every condition that is not `true` takes the else branch.
+  fn build_if(&mut self, lhs: &AstNode, mhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let mhe = self.build(mhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| match lhe(scope) {
       Value::Boolean(true) => mhe(scope),
-      Value::Boolean(false) | Value::Null(_) => rhe(scope),
-      _ => value_null!("condition in 'if' expression is not a boolean value"),
+      _ => rhe(scope),
     })
   }
 
-  fn build_in(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_in(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1191,12 +1164,12 @@ impl<'b> EvaluatorBuilder<'b> {
         Value::UnaryGreater(inner) => eval_in_unary_greater(&lhv, inner.borrow()),
         Value::UnaryGreaterOrEqual(inner) => eval_in_unary_greater_or_equal(&lhv, inner.borrow()),
         Value::Irrelevant => VALUE_TRUE,
-        _ => value_null!("unexpected argument type in 'in' operator: {}", rhv.type_of()),
+        _ => value_null!("unexpected argument type in 'in' operator: {}", arg(&TypeOf(&rhv))),
       }
     })
   }
 
-  fn build_interval_end(&mut self, lhs: &'b AstNode, rhs: &IntervalType) -> Evaluator {
+  fn build_interval_end(&mut self, lhs: &AstNode, rhs: &IntervalType) -> Evaluator {
     let lhe = self.build(lhs);
     let interval_type = *rhs;
     Box::new(move |scope: &FeelScope| {
@@ -1205,7 +1178,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_interval_start(&mut self, lhs: &'b AstNode, rhs: &IntervalType) -> Evaluator {
+  fn build_interval_start(&mut self, lhs: &AstNode, rhs: &IntervalType) -> Evaluator {
     let lhe = self.build(lhs);
     let interval_type = *rhs;
     Box::new(move |scope: &FeelScope| {
@@ -1218,7 +1191,7 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |_: &FeelScope| Value::Irrelevant)
   }
 
-  fn build_instance_of(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_instance_of(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1286,7 +1259,7 @@ impl<'b> EvaluatorBuilder<'b> {
             FeelType::Any => VALUE_TRUE,
             expected => Value::Boolean(value.type_of() == expected),
           },
-          other => value_null!("invalid value in 'instance of' operator: {}", other),
+          other => value_null!("invalid value in 'instance of' operator: {}", arg(&other)),
         }
       } else {
         Value::Boolean(lhv.type_of() == rhv.type_of())
@@ -1294,7 +1267,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_le(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_le(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1334,7 +1307,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_lt(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_lt(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1374,7 +1347,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_list(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_list(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -1388,7 +1361,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_list_type(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_list_type(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     Box::new(move |scope: &FeelScope| {
       let lhv = lhe(scope);
@@ -1400,58 +1373,43 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_mul(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_mul(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Number(lh) => match rhv {
-          Value::Number(rh) => Value::Number(lh * rh),
-          Value::DaysAndTimeDuration(ref rh) => {
-            let val = lh * FeelNumber::from(rh.as_nanos());
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_n(v))
-            } else {
-              value_null!("multiplication result is out of range of days and time duration")
-            }
+    arithmetic(Arithmetic::Multiplication, lhe, rhe, |lhv, rhv| match lhv {
+      Value::Number(lh) => match rhv {
+        Value::Number(rh) => Value::Number(lh * rh),
+        Value::DaysAndTimeDuration(ref rh) => {
+          let val = lh * FeelNumber::from(rh.as_nanos());
+          if let Ok(v) = FeelNumber::try_into(val)
+            && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+          {
+            Value::DaysAndTimeDuration(duration)
+          } else {
+            value_null!("multiplication result is out of range of days and time duration")
           }
-          Value::YearsAndMonthsDuration(ref rh) => {
-            let val = lh * FeelNumber::from(rh.as_months());
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(v))
-            } else {
-              value_null!("multiplication result is out of range of years and months duration")
-            }
+        }
+        Value::YearsAndMonthsDuration(ref rh) => ym_product(temporal_value::ym_duration(lh * FeelNumber::from(rh.as_months()), &lhv, '*', &rhv)),
+        _ => Arithmetic::Multiplication.incompatible(&[&lhv, &rhv]),
+      },
+      Value::DaysAndTimeDuration(ref lh) => match rhv {
+        Value::Number(rh) => {
+          let val = FeelNumber::from(lh.as_nanos()) * rh;
+          if let Ok(v) = FeelNumber::try_into(val)
+            && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+          {
+            Value::DaysAndTimeDuration(duration)
+          } else {
+            value_null!("multiplication result is out of range of days and time duration")
           }
-          _ => value_null!("[multiplication] incompatible types: {} * {}", lhv, rhv),
-        },
-        Value::DaysAndTimeDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            let val = FeelNumber::from(lh.as_nanos()) * rh;
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_n(v))
-            } else {
-              value_null!("multiplication result is out of range of days and time duration")
-            }
-          }
-          _ => value_null!("[multiplication] incompatible types: {} * {}", lhv, rhv),
-        },
-        Value::YearsAndMonthsDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            let val = FeelNumber::from(lh.as_months()) * rh;
-            if let Ok(v) = FeelNumber::try_into(val) {
-              Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(v))
-            } else {
-              value_null!("multiplication result is out of range of years and months duration")
-            }
-          }
-          _ => value_null!("[multiplication] incompatible types: {} * {}", lhv, rhv),
-        },
-        value @ Value::Null(_) => value,
-        other => value_null!("unexpected value type in multiplication: {}", other.type_of()),
-      }
+        }
+        _ => Arithmetic::Multiplication.incompatible(&[&lhv, &rhv]),
+      },
+      Value::YearsAndMonthsDuration(ref lh) => match rhv {
+        Value::Number(rh) => ym_product(temporal_value::ym_duration(FeelNumber::from(lh.as_months()) * rh, &lhv, '*', &rhv)),
+        _ => Arithmetic::Multiplication.incompatible(&[&lhv, &rhv]),
+      },
+      other => value_null!("unexpected value type in multiplication: {}", arg(&TypeOf(&other))),
     })
   }
 
@@ -1462,29 +1420,30 @@ impl<'b> EvaluatorBuilder<'b> {
       } else if let Ok(bif) = Bif::from_str(&name.to_string()) {
         Value::BuiltInFunction(bif)
       } else {
-        value_null!("context has no value for key '{}'", name)
+        value_null!("context has no value for key '{}'", arg(&name))
       }
     })
   }
 
-  fn build_neg(&mut self, lhs: &'b AstNode) -> Evaluator {
+  /// Returns an evaluator for the arithmetic negation `-e`, the one unary arithmetic operator,
+  /// whose null operand is an error as those of the binary ones are ([arithmetic]).
+  fn build_neg(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     Box::new(move |scope: &FeelScope| {
       let lhv = lhe(scope);
+      if let Some(null) = Arithmetic::Negation.null_operand(&[&lhv]) {
+        return null;
+      }
       match lhv {
         Value::Number(lh) => Value::Number(-lh),
-        Value::DaysAndTimeDuration(lh) => lh
-          .checked_neg()
-          .map_or_else(|| value_null!("days and time duration negation overflow"), Value::DaysAndTimeDuration),
-        Value::YearsAndMonthsDuration(lh) => lh
-          .checked_neg()
-          .map_or_else(|| value_null!("years and months duration negation overflow"), Value::YearsAndMonthsDuration),
-        other => value_null!("unexpected type in arithmetic negation: {}", other.type_of()),
+        Value::DaysAndTimeDuration(lh) => Value::DaysAndTimeDuration(-lh),
+        Value::YearsAndMonthsDuration(lh) => Value::YearsAndMonthsDuration(-lh),
+        other => value_null!("unexpected type in arithmetic negation: {}", arg(&TypeOf(&other))),
       }
     })
   }
 
-  fn build_negated_list(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_negated_list(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -1514,21 +1473,18 @@ impl<'b> EvaluatorBuilder<'b> {
     if let Ok(num) = text.parse::<FeelNumber>() {
       Box::new(move |_: &FeelScope| Value::Number(num))
     } else {
-      Box::new(move |_: &FeelScope| value_null!("failed to convert text '{}' into number", text))
+      Box::new(move |_: &FeelScope| value_null!("failed to convert text '{}' into number", arg(&text)))
     }
   }
 
-  fn build_nq(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  /// Returns an evaluator for `!=`: DMN 1.6 §10.3.2.15, "By definition, FEEL(e1 != e2) is
+  /// FEEL(not(e 1= e2))", so the operands that `=` cannot compare give its null and its error.
+  fn build_nq(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      if let Some(result) = eval_ternary_equality(&lhv, &rhv) {
-        Value::Boolean(!result)
-      } else {
-        value_null!()
-      }
+    Box::new(move |scope: &FeelScope| match equal(&lhe(scope), &rhe(scope)) {
+      Value::Boolean(result) => Value::Boolean(!result),
+      null => null,
     })
   }
 
@@ -1547,7 +1503,7 @@ impl<'b> EvaluatorBuilder<'b> {
   /// otherwise   false        null
   /// otherwise   otherwise    null
   /// ```
-  fn build_or(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_or(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1578,7 +1534,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_out(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_out(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let ine = self.build_in(lhs, rhs);
     let lhe = self.build(lhs);
     Box::new(move |scope: &FeelScope| {
@@ -1596,7 +1552,7 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |_: &FeelScope| Value::ParameterName(name.clone()))
   }
 
-  fn build_parameter_types(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_parameter_types(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -1610,7 +1566,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_qualified_name(&mut self, lhs: &'b [AstNode]) -> Evaluator {
+  fn build_qualified_name(&mut self, lhs: &[AstNode]) -> Evaluator {
     let mut evaluators = vec![];
     for node in lhs {
       evaluators.push(self.build(node));
@@ -1635,7 +1591,7 @@ impl<'b> EvaluatorBuilder<'b> {
   /// `e...name` (DMN 1.6, grammar rule 68, DMN16-72): the values of every entry named `name` in the
   /// context `e` and in all its nested contexts, as a list, each matching entry before the entries
   /// nested in its value. A non-context `e` is null.
-  fn build_descendant(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_descendant(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let AstNode::Name(name) = rhs else {
       return build_err_msg(err_expected_name(rhs));
     };
@@ -1657,24 +1613,15 @@ impl<'b> EvaluatorBuilder<'b> {
         collect(&context, &name, &mut result);
         Value::List(result)
       }
-      other => value_null!("descendant expression: expected context, actual type is {}", other.type_of()),
+      other => value_null!("descendant expression: expected context, actual type is {}", arg(&TypeOf(&other))),
     })
   }
 
-  fn build_path(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_path(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let AstNode::Name(name) = rhs else {
       return build_err_msg(err_expected_name(rhs));
     };
     let name = name.clone();
-    let fn_adjust = match self.parent_node() {
-      Some(AstNode::UnaryEq(_)) => |value: Value| (Value::UnaryEqual(value.into()), true),
-      Some(AstNode::UnaryNe(_)) => |value: Value| (Value::UnaryNotEqual(value.into()), true),
-      Some(AstNode::UnaryLt(_)) => |value: Value| (Value::UnaryLess(value.into()), true),
-      Some(AstNode::UnaryLe(_)) => |value: Value| (Value::UnaryLessOrEqual(value.into()), true),
-      Some(AstNode::UnaryGt(_)) => |value: Value| (Value::UnaryGreater(value.into()), true),
-      Some(AstNode::UnaryGe(_)) => |value: Value| (Value::UnaryGreaterOrEqual(value.into()), true),
-      _ => |value: Value| (value, false),
-    };
     let lhe = self.build(lhs);
     // prepare and return the evaluator
     Box::new(move |scope: &FeelScope| {
@@ -1684,7 +1631,7 @@ impl<'b> EvaluatorBuilder<'b> {
           if let Some(value) = context.get_entry(&name) {
             value.clone()
           } else {
-            value_null!("build_path: no entry {} in context: {}", name, context)
+            value_null!(note: "build_path: no entry {} in context: {}", arg(&name), arg(&context))
           }
         }
         Value::List(items) => {
@@ -1697,20 +1644,17 @@ impl<'b> EvaluatorBuilder<'b> {
                 result.push(value_null!());
               }
             } else {
-              result.push(get_property_from_value(item, false, &name));
+              result.push(get_property_from_value(item, &name));
             }
           }
           Value::List(result)
         }
-        other => {
-          let (value, adjusted) = fn_adjust(other);
-          get_property_from_value(value, adjusted, &name)
-        }
+        other => get_property_from_value(other, &name),
       }
     })
   }
 
-  fn build_range(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_range(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
@@ -1728,7 +1672,7 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_range_type(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_range_type(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     Box::new(move |scope: &FeelScope| {
       let lhv = lhe(scope);
@@ -1740,30 +1684,8 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
-  fn build_some(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
-    let mut expr_evaluators = vec![];
-    let AstNode::QuantifiedContexts(items) = lhs else {
-      return build_err_msg(err_msg_expected_node("QuantifiedContexts", lhs));
-    };
-    for item in items {
-      if let AstNode::QuantifiedContext(variable_name, expr_node) = item
-        && let AstNode::Name(name) = variable_name.borrow()
-      {
-        let evaluator_single = self.build(expr_node);
-        expr_evaluators.push((name.clone(), evaluator_single));
-      }
-    }
-    let AstNode::Satisfies(satisfies) = rhs else {
-      return build_err_msg(err_msg_expected_node("Satisfies", lhs));
-    };
-    let satisfies_evaluator = self.build(satisfies);
-    Box::new(move |scope: &FeelScope| {
-      let mut expression_evaluator = SomeExpressionEvaluator::for_feel();
-      for (name, expr_evaluator) in &expr_evaluators {
-        expression_evaluator.add_list(name.clone(), expr_evaluator(scope));
-      }
-      expression_evaluator.evaluate(scope, &satisfies_evaluator)
-    })
+  fn build_some(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
+    self.build_quantified(lhs, rhs, Iteration::some)
   }
 
   fn build_string(&mut self, lhs: &str) -> Evaluator {
@@ -1771,12 +1693,10 @@ impl<'b> EvaluatorBuilder<'b> {
     Box::new(move |_: &FeelScope| value.clone())
   }
 
-  fn build_sub(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
+  fn build_sub(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
+    arithmetic(Arithmetic::Subtraction, lhe, rhe, |lhv, rhv| {
       // the operands stay available for the message below: temporal values are copied only in
       // the arm that subtracts them
       match &lhv {
@@ -1787,14 +1707,14 @@ impl<'b> EvaluatorBuilder<'b> {
         }
         Value::Date(lh) => match &rhv {
           Value::Date(rh) => {
-            let l = FeelDateTime::new(lh.clone(), FeelTime::utc(0, 0, 0, 0));
-            let r = FeelDateTime::new(rh.clone(), FeelTime::utc(0, 0, 0, 0));
+            let l = FeelDateTime::new(lh.clone(), FeelTime::midnight(FeelZone::Utc));
+            let r = FeelDateTime::new(rh.clone(), FeelTime::midnight(FeelZone::Utc));
             if let Some(result) = l - r {
               return Value::DaysAndTimeDuration(result);
             }
           }
           Value::DateTime(rh) => {
-            let l = FeelDateTime::new(lh.clone(), FeelTime::utc(0, 0, 0, 0));
+            let l = FeelDateTime::new(lh.clone(), FeelTime::midnight(FeelZone::Utc));
             if let Some(result) = l - rh.clone() {
               return Value::DaysAndTimeDuration(result);
             }
@@ -1824,7 +1744,7 @@ impl<'b> EvaluatorBuilder<'b> {
         },
         Value::DateTime(lh) => match &rhv {
           Value::Date(rh) => {
-            let r = FeelDateTime::new(rh.clone(), FeelTime::utc(0, 0, 0, 0));
+            let r = FeelDateTime::new(rh.clone(), FeelTime::midnight(FeelZone::Utc));
             if let Some(result) = lh.clone() - r {
               return Value::DaysAndTimeDuration(result);
             }
@@ -1864,70 +1784,151 @@ impl<'b> EvaluatorBuilder<'b> {
       }
       // the operands as evaluated above: evaluating them again would repeat their diagnostics
       // and take exponential time in a chain of failing subtractions
-      value_null!("[subtraction] incompatible types: {} - {}", lhv, rhv)
+      Arithmetic::Subtraction.incompatible(&[&lhv, &rhv])
     })
   }
 
   /// Returns an evaluator for unary `=` (equal) operator.
-  fn build_unary_eq(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_unary_eq(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
-    Box::new(move |scope: &FeelScope| match lhe(scope) {
-      Value::Transparent(value) => *value,
-      other => Value::UnaryEqual(other.into()),
-    })
+    Box::new(move |scope: &FeelScope| Value::UnaryEqual(lhe(scope).into()))
   }
 
   /// Returns an evaluator for unary `!=` (not equal) operator.
-  fn build_unary_ne(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_unary_ne(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
-    Box::new(move |scope: &FeelScope| match lhe(scope) {
-      Value::Transparent(value) => *value,
-      other => Value::UnaryNotEqual(other.into()),
-    })
+    Box::new(move |scope: &FeelScope| Value::UnaryNotEqual(lhe(scope).into()))
   }
 
   /// Returns an evaluator for unary `<` (less) operator.
-  fn build_unary_lt(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_unary_lt(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
-    Box::new(move |scope: &FeelScope| match lhe(scope) {
-      Value::Transparent(value) => *value,
-      other => Value::UnaryLess(other.into()),
-    })
+    Box::new(move |scope: &FeelScope| Value::UnaryLess(lhe(scope).into()))
   }
 
   /// Returns an evaluator for unary `<=` (less or equal) operator.
-  fn build_unary_le(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_unary_le(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
-    Box::new(move |scope: &FeelScope| match lhe(scope) {
-      Value::Transparent(value) => *value,
-      other => Value::UnaryLessOrEqual(other.into()),
-    })
+    Box::new(move |scope: &FeelScope| Value::UnaryLessOrEqual(lhe(scope).into()))
   }
 
   /// Returns an evaluator for unary `>` (greater) operator.
-  fn build_unary_gt(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_unary_gt(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
-    Box::new(move |scope: &FeelScope| match lhe(scope) {
-      Value::Transparent(value) => *value,
-      other => Value::UnaryGreater(other.into()),
-    })
+    Box::new(move |scope: &FeelScope| Value::UnaryGreater(lhe(scope).into()))
   }
 
   /// Returns an evaluator for unary `>=` (greater or equal) operator.
-  fn build_unary_ge(&mut self, lhs: &'b AstNode) -> Evaluator {
+  fn build_unary_ge(&mut self, lhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
-    Box::new(move |scope: &FeelScope| match lhe(scope) {
-      Value::Transparent(value) => *value,
-      other => Value::UnaryGreaterOrEqual(other.into()),
-    })
+    Box::new(move |scope: &FeelScope| Value::UnaryGreaterOrEqual(lhe(scope).into()))
   }
 }
 
-fn set_transparency(value: Value, transparent: bool) -> Value {
-  if transparent { Value::Transparent(value.into()) } else { value }
+/// The arithmetic operators, named and written as their errors name and write them.
+#[derive(Clone, Copy)]
+enum Arithmetic {
+  Addition,
+  Subtraction,
+  Multiplication,
+  Division,
+  Exponentiation,
+  Negation,
 }
 
-fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Value {
+impl Arithmetic {
+  fn name(self) -> &'static str {
+    match self {
+      Arithmetic::Addition => "addition",
+      Arithmetic::Subtraction => "subtraction",
+      Arithmetic::Multiplication => "multiplication",
+      Arithmetic::Division => "division",
+      Arithmetic::Exponentiation => "exponentiation",
+      Arithmetic::Negation => "negation",
+    }
+  }
+
+  fn symbol(self) -> &'static str {
+    match self {
+      Arithmetic::Addition => "+",
+      Arithmetic::Subtraction | Arithmetic::Negation => "-",
+      Arithmetic::Multiplication => "*",
+      Arithmetic::Division => "/",
+      Arithmetic::Exponentiation => "**",
+    }
+  }
+
+  /// The rule of a null operand, for every arithmetic operator and on either side: DMN 1.6, before
+  /// Table 57 and before Table 59, "if input values are not of the listed types, the result is
+  /// null", and the official TCK expects an error result for every arithmetic operation with a null
+  /// operand (compliance-level-3/0100-arithmetic). With a null among `operands`, the result is
+  /// [Arithmetic::incompatible], an error of the operator's own; a null that stands for an error
+  /// of its own has counted it where it was created (§7.3.8). `None` when no operand is null.
+  fn null_operand(self, operands: &[&Value]) -> Option<Value> {
+    operands.iter().any(|operand| operand.is_null()).then(|| self.incompatible(operands))
+  }
+
+  /// The null of this operator on `operands` it does not take, with the error
+  /// `[<name>] incompatible types: <operation>`, the operation written with its operands as
+  /// evaluated (`1 - null`, `-null`).
+  fn incompatible(self, operands: &[&Value]) -> Value {
+    value_null!("[{}] incompatible types: {}", self.name(), Written(self, operands))
+  }
+}
+
+/// An arithmetic operation as its error writes it: the operands infix, or after the symbol for a
+/// single one.
+struct Written<'a>(Arithmetic, &'a [&'a Value]);
+
+impl std::fmt::Display for Written<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let Written(operator, operands) = self;
+    let symbol = operator.symbol();
+    if let [operand] = operands {
+      return write!(f, "{symbol}{}", arg(*operand));
+    }
+    for (index, operand) in operands.iter().enumerate() {
+      if index > 0 {
+        write!(f, " {symbol} ")?;
+      }
+      write!(f, "{}", arg(*operand))?;
+    }
+    Ok(())
+  }
+}
+
+/// An evaluator of the binary arithmetic `operator` on the values of `lhe` and `rhe`, evaluated in
+/// that order: `operation` gets them when [Arithmetic::null_operand] gives no null.
+fn arithmetic(operator: Arithmetic, lhe: Evaluator, rhe: Evaluator, operation: impl Fn(Value, Value) -> Value + Send + Sync + 'static) -> Evaluator {
+  Box::new(move |scope: &FeelScope| {
+    let lhv = lhe(scope);
+    let rhv = rhe(scope);
+    operate(operator, &operation, lhv, rhv)
+  })
+}
+
+/// The null rule of [arithmetic] and the operation, out of line: the evaluator's frame is on the
+/// stack while an operand nested in it evaluates, so it holds the two operands and no locals of
+/// the operation, and a deep chain of operators keeps a small frame per level.
+#[inline(never)]
+fn operate(operator: Arithmetic, operation: &impl Fn(Value, Value) -> Value, lhv: Value, rhv: Value) -> Value {
+  if let Some(null) = operator.null_operand(&[&lhv, &rhv]) {
+    return null;
+  }
+  operation(lhv, rhv)
+}
+
+/// FEEL `lhs = rhs` (DMN 1.6 Table 53, Table 54): a boolean, or null with an error when the operands
+/// cannot be compared.
+fn equal(lhs: &Value, rhs: &Value) -> Value {
+  if let Some(result) = eval_ternary_equality(lhs, rhs) {
+    Value::Boolean(result)
+  } else {
+    value_null!("equal err '{}' =?= '{}'", arg(lhs), arg(rhs))
+  }
+}
+
+fn get_property_from_value(value: Value, name: &Name) -> Value {
   let property = Bip::new(name.as_str());
   match value {
     Value::Date(date) => match property {
@@ -1942,7 +1943,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
         }
       }
       Bip::Value => temporal_value::of_date(&date),
-      other => value_null!("no such property in date: {}", other),
+      other => value_null!("no such property in date: {}", arg(&other)),
     },
     Value::DateTime(date_time) => match property {
       Bip::Year => Value::Number(date_time.year().into()),
@@ -1957,10 +1958,10 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       }
       Bip::Hour => Value::Number(date_time.hour().into()),
       Bip::Minute => Value::Number(date_time.minute().into()),
-      Bip::Second => Value::Number(date_time.second().into()),
+      Bip::Second => temporal_value::second(date_time.second().into(), date_time.nanos()),
       Bip::TimeOffset => {
         if let Some(offset) = date_time.feel_time_offset() {
-          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset as i64))
+          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset))
         } else {
           value_null!("could not retrieve time offset for date and time")
         }
@@ -1973,15 +1974,15 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
         }
       }
       Bip::Value => temporal_value::of_date_time(&date_time),
-      other => value_null!("no such property in date and time: {}", other),
+      other => value_null!("no such property in date and time: {}", arg(&other)),
     },
     Value::Time(time) => match property {
       Bip::Hour => Value::Number(time.hour().into()),
       Bip::Minute => Value::Number(time.minute().into()),
-      Bip::Second => Value::Number(time.second().into()),
+      Bip::Second => temporal_value::second(time.second().into(), time.nanos()),
       Bip::TimeOffset => {
         if let Some(offset) = time.feel_time_offset() {
-          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset as i64))
+          Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset))
         } else {
           value_null!("could not retrieve time offset for time")
         }
@@ -1994,65 +1995,65 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
         }
       }
       Bip::Value => temporal_value::of_time(&time),
-      other => value_null!("no such property in time: {}", other),
+      other => value_null!("no such property in time: {}", arg(&other)),
     },
     Value::DaysAndTimeDuration(dt_duration) => match property {
       Bip::Days => Value::Number(dt_duration.get_days().into()),
       Bip::Hours => Value::Number(dt_duration.get_hours().into()),
       Bip::Minutes => Value::Number(dt_duration.get_minutes().into()),
-      Bip::Seconds => Value::Number(dt_duration.get_seconds().into()),
+      Bip::Seconds => temporal_value::second(dt_duration.get_seconds() as u64, dt_duration.get_nanoseconds()),
       Bip::Value => temporal_value::of_dt_duration(&dt_duration),
-      other => value_null!("no such property in days and time duration: {}", other),
+      other => value_null!("no such property in days and time duration: {}", arg(&other)),
     },
     Value::YearsAndMonthsDuration(ym_duration) => match property {
       Bip::Years => Value::Number(ym_duration.years().into()),
       Bip::Months => Value::Number(ym_duration.months().into()),
       Bip::Value => Value::Number(ym_duration.as_months().into()),
-      other => value_null!("no such property in years and months duration: {}", other),
+      other => value_null!("no such property in years and months duration: {}", arg(&other)),
     },
     Value::Range(rs, cs, re, ce) => match property {
       Bip::Start => *rs,
       Bip::StartIncluded => Value::Boolean(cs.closed()),
       Bip::End => *re,
       Bip::EndIncluded => Value::Boolean(ce.closed()),
-      other => value_null!("no such property in range: {}", other),
+      other => value_null!("no such property in range: {}", arg(&other)),
     },
     Value::UnaryEqual(value) => match property {
-      Bip::Start => set_transparency(*value, transparent),
-      Bip::End => set_transparency(*value, transparent),
-      Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(true), transparent),
-      other => set_transparency(value_null!("no such property in unary equal: {}", other), transparent),
+      Bip::Start => *value,
+      Bip::End => *value,
+      Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(true),
+      other => value_null!("no such property in unary equal: {}", arg(&other)),
     },
     Value::UnaryNotEqual(value) => match property {
-      Bip::Start => set_transparency(*value, transparent),
-      Bip::End => set_transparency(*value, transparent),
-      Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(true), transparent),
-      other => set_transparency(value_null!("no such property in unary not equal: {}", other), transparent),
+      Bip::Start => *value,
+      Bip::End => *value,
+      Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(true),
+      other => value_null!("no such property in unary not equal: {}", arg(&other)),
     },
     Value::UnaryLess(value) => match property {
-      Bip::End => set_transparency(*value, transparent),
-      Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(false), transparent),
-      other => set_transparency(value_null!("no such property in unary less: {}", other), transparent),
+      Bip::End => *value,
+      Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(false),
+      other => value_null!("no such property in unary less: {}", arg(&other)),
     },
     Value::UnaryLessOrEqual(value) => match property {
-      Bip::End => set_transparency(*value, transparent),
-      Bip::StartIncluded => set_transparency(Value::Boolean(false), transparent),
-      Bip::EndIncluded => set_transparency(Value::Boolean(true), transparent),
-      other => set_transparency(value_null!("no such property in unary less or equal: {}", other), transparent),
+      Bip::End => *value,
+      Bip::StartIncluded => Value::Boolean(false),
+      Bip::EndIncluded => Value::Boolean(true),
+      other => value_null!("no such property in unary less or equal: {}", arg(&other)),
     },
     Value::UnaryGreater(value) => match property {
-      Bip::Start => set_transparency(*value, transparent),
-      Bip::StartIncluded | Bip::EndIncluded => set_transparency(Value::Boolean(false), transparent),
-      other => set_transparency(value_null!("no such property in unary greater: {}", other), transparent),
+      Bip::Start => *value,
+      Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(false),
+      other => value_null!("no such property in unary greater: {}", arg(&other)),
     },
     Value::UnaryGreaterOrEqual(value) => match property {
-      Bip::Start => set_transparency(*value, transparent),
-      Bip::StartIncluded => set_transparency(Value::Boolean(true), transparent),
-      Bip::EndIncluded => set_transparency(Value::Boolean(false), transparent),
-      other => set_transparency(value_null!("no such property in unary greater or equal: {}", other), transparent),
+      Bip::Start => *value,
+      Bip::StartIncluded => Value::Boolean(true),
+      Bip::EndIncluded => Value::Boolean(false),
+      other => value_null!("no such property in unary greater or equal: {}", arg(&other)),
     },
     v @ Value::Null(_) => v,
-    other => value_null!("unexpected type: {}, for property: {}", other.type_of(), property),
+    other => value_null!("unexpected type: {}, for property: {}", arg(&TypeOf(&other)), arg(&property)),
   }
 }
 
@@ -2268,7 +2269,7 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_TRUE;
         }
       }
-      other => return value_null!("unexpected type in list: {}", other.type_of()),
+      other => return value_null!("unexpected type in list: {}", arg(&TypeOf(other))),
     }
   }
   if !unary_not_equal.is_empty() && unary_not_equal.iter().all(|value| *value) {
@@ -2336,7 +2337,7 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
           return VALUE_FALSE;
         }
       }
-      other => return value_null!("unexpected type in negated list: {}", other.type_of()),
+      other => return value_null!("unexpected type in negated list: {}", arg(&TypeOf(other))),
     }
   }
   if !unary_not_equal.is_empty() && unary_not_equal.iter().all(|value| *value) {
@@ -2680,6 +2681,17 @@ fn eval_in_unary_greater_or_equal(left: &Value, right: &Value) -> Value {
   value_null!("eval_in_unary_greater_or_equal")
 }
 
+/// The iteration of a `for`, `some` or `every` expression over `variables`, in order. A variable
+/// named twice builds an evaluator of null instead: the later binding would hide the earlier one.
+fn iteration(variables: Vec<(Name, Domain)>) -> std::result::Result<Iteration, Evaluator> {
+  let mut names = HashSet::new();
+  if let Some((name, _)) = variables.iter().find(|(name, _)| !names.insert(name)) {
+    let name = name.clone();
+    return Err(Box::new(move |_: &FeelScope| value_null!("duplicate iteration variable '{}'", arg(&name))));
+  }
+  Ok(Iteration::for_feel(variables))
+}
+
 fn build_err_msg(err_msg: String) -> Evaluator {
   Box::new(move |_: &FeelScope| value_null!(err_msg))
 }
@@ -2709,12 +2721,39 @@ fn err_expected_name(actual: &AstNode) -> String {
   format!("expected name node, actual node is: {actual:?}")
 }
 
-/// The `value` property of temporal values (DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table 66, DMN16-11):
-/// `valuet`, `valuedt`, `valuedtd` and `valueymd` of the spec, as numbers.
+/// The value of a years and months duration times a number: the duration [temporal_value::ym_duration]
+/// gives, or null beyond the range.
+fn ym_product(duration: Option<FeelYearsAndMonthsDuration>) -> Value {
+  match duration {
+    Some(duration) => Value::YearsAndMonthsDuration(duration),
+    None => value_null!("multiplication result is out of range of years and months duration"),
+  }
+}
+
+/// The evaluator of an `@` literal of `value` with seconds: with no `dropped` digits it gives the
+/// value, otherwise it also records the warning, built once, that `text` lost them.
+fn truncating_at_literal(value: Value, text: &str, dropped: Option<&str>) -> Evaluator {
+  match dropped {
+    None => Box::new(move |_: &FeelScope| value.clone()),
+    Some(dropped) => {
+      let warning = truncated_fraction_warning(text, dropped);
+      Box::new(move |_: &FeelScope| {
+        diagnostics::warn(&warning);
+        value.clone()
+      })
+    }
+  }
+}
+
+/// The numbers of temporal values: the `value` property (DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table
+/// 66), `valuet`, `valuedt`, `valuedtd` and `valueymd` of the spec, and the `second` and `seconds`
+/// properties, decimals in the interval [0..60) (Table 67).
 mod temporal_value {
+  use rheon_feel::diagnostics;
+  use rheon_feel::message::{arg, compose};
   use rheon_feel::values::Value;
   use rheon_feel::{FeelNumber, value_null};
-  use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime};
+  use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 
   const NANOS_IN_SECOND: i64 = 1_000_000_000;
   const SECONDS_IN_DAY: i64 = 86_400;
@@ -2725,6 +2764,37 @@ mod temporal_value {
     let fraction = nanos.rem_euclid(NANOS_IN_SECOND);
     let n = FeelNumber::from(whole);
     Value::Number(if fraction == 0 { n } else { n + FeelNumber::new(fraction, 9) })
+  }
+
+  /// `valueymd⁻¹` (DMN 1.6 §10.3.2.3.8): the years and months duration of `months`, the product
+  /// or the quotient of Table 60 as FEEL computes it, `None` beyond the range of a duration. A
+  /// fraction of a month is truncated toward zero, as the DMN TCK expects, and the evaluation
+  /// warns that the operation `left operator right` dropped it.
+  pub fn ym_duration(months: FeelNumber, left: &Value, operator: char, right: &Value) -> Option<FeelYearsAndMonthsDuration> {
+    let duration = i64::try_from(&months).ok().and_then(FeelYearsAndMonthsDuration::from_m)?;
+    if !months.is_integer() {
+      warn_dropped_months(months.frac(), left, operator, right);
+    }
+    Some(duration)
+  }
+
+  /// Records the warning that the operation `left operator right` dropped the fraction of a month
+  /// `dropped`; a warning is the rare path, kept out of the arithmetic.
+  #[cold]
+  #[inline(never)]
+  fn warn_dropped_months(dropped: FeelNumber, left: &Value, operator: char, right: &Value) {
+    diagnostics::warn(&compose(format_args!(
+      "fractional months of '{} {operator} {}' truncated to whole months; dropped fraction: '{}'",
+      arg(left),
+      arg(right),
+      arg(&dropped)
+    )));
+  }
+
+  /// The second of a minute with its fraction, from the whole seconds and the nanoseconds:
+  /// `second` of a time or a date and time and `seconds` of a days and time duration.
+  pub fn second(whole: u64, nanos: u64) -> Value {
+    seconds((whole * NANOS_IN_SECOND as u64 + nanos) as i64)
   }
 
   /// `valuedtd`: a days and time duration as a number of seconds.
@@ -2741,22 +2811,55 @@ mod temporal_value {
     let Some(epoch) = FeelDateTime::utc(1970, 1, 1, 0, 0, 0, 0) else {
       return value_null!("value: epoch");
     };
-    match date_time.clone() - epoch {
-      Some(duration) => seconds(duration.as_nanos()),
+    match date_time.nanos_since(&epoch) {
+      Some(nanos) => seconds(nanos),
       None => value_null!("value: date and time out of range"),
     }
   }
 
   /// A date is taken as the date and time at UTC midnight (§10.3.2.3.5).
   pub fn of_date(date: &FeelDate) -> Value {
-    of_date_time(&FeelDateTime::new(date.clone(), FeelTime::utc(0, 0, 0, 0)))
+    of_date_time(&FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc)))
   }
 
   /// `valuet`: seconds since midnight in [0..86400). A time with an offset is taken in its UTC
-  /// form, which keeps `value` consistent with time subtraction; a local time uses its clock time.
+  /// form, which keeps `value` consistent with time subtraction; a local time uses its clock time,
+  /// and a time in a zone whose offset is not known has no value (null), never the value of UTC.
   pub fn of_time(time: &FeelTime) -> Value {
     let clock = (time.hour() as i64 * 3600 + time.minute() as i64 * 60 + time.second() as i64) * NANOS_IN_SECOND + time.nanos() as i64;
-    let offset = time.feel_time_offset().unwrap_or(0) as i64 * NANOS_IN_SECOND;
+    let offset = match (time.zone(), time.feel_time_offset()) {
+      (FeelZone::Local, _) => 0,
+      (_, Some(offset)) => offset as i64 * NANOS_IN_SECOND,
+      (_, None) => return value_null!("value: the time zone of the time has no known offset"),
+    };
     seconds((clock - offset).rem_euclid(SECONDS_IN_DAY * NANOS_IN_SECOND))
+  }
+
+  #[cfg(test)]
+  mod tests {
+    use super::*;
+
+    fn time(zone: FeelZone) -> FeelTime {
+      FeelTime::zone_opt(10, 0, 0, 500_000_000, zone).unwrap()
+    }
+
+    /// DMN 1.6 §10.3.2.3.4: "If no time offset is specified, the time is interpreted as a local
+    /// time of day", so a local time is valued by its clock time; a time in a zone is valued in
+    /// its UTC form, and a zone whose offset cannot be resolved gives no value instead of the
+    /// value of UTC. Such a zone is not reachable from an expression whose result does not depend
+    /// on the date of the evaluation (a zone name is checked when it is read, and a time in a
+    /// gap of daylight saving time resolves on the current date).
+    #[test]
+    fn the_value_of_a_time_needs_its_offset() {
+      assert_eq!(Value::Number("36000.5".parse().unwrap()), of_time(&time(FeelZone::Local)));
+      assert_eq!(Value::Number("36000.5".parse().unwrap()), of_time(&time(FeelZone::Utc)));
+      let plus_one = FeelTime::offset_opt(10, 0, 0, 500_000_000, 3600).unwrap();
+      assert_eq!(Value::Number("32400.5".parse().unwrap()), of_time(&plus_one));
+      assert_eq!(Value::Number("32400.5".parse().unwrap()), of_time(&time(FeelZone::Zone("Etc/GMT-1".to_string()))));
+      assert_eq!(
+        Value::Null(Some("value: the time zone of the time has no known offset".to_string())),
+        of_time(&time(FeelZone::Zone("No/Such_Zone".to_string())))
+      );
+    }
   }
 }

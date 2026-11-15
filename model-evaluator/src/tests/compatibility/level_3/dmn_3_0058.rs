@@ -106,7 +106,7 @@ fn _0011() {
 #[test]
 fn _0012() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision008", &ctx, r#"1000000.00"#);
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision008", &ctx, r#"1000000"#);
 }
 
 #[test]

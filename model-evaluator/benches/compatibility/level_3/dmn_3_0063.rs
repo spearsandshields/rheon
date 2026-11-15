@@ -35,7 +35,7 @@ fn _0003(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &ctx,
-    r#"null([positional::stddev] invalid argument type, expected list, actual type is Null)"#,
+    r#"null(stddev: expected number, actual type is Null with value null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx));
 }
@@ -95,7 +95,7 @@ fn _0007(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &ctx,
-    r#"null([positional::stddev] invalid argument type, expected list, actual type is number)"#,
+    r#"null(stddev: minimum two input arguments expected)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &ctx));
 }

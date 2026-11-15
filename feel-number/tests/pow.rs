@@ -8,14 +8,6 @@ fn test_pow_001() {
 }
 
 #[test]
-#[cfg(feature = "intel")]
-fn test_pow_002() {
-  // Intel BID128 result, 1 ulp below the correctly rounded value
-  eqs!("41959.857373594361860953310707468", num!(12.2384283).pow(&num!(4.25)).unwrap());
-}
-
-#[test]
-#[cfg(not(feature = "intel"))]
 fn test_pow_002() {
   // correctly rounded: 12.2384283^4.25 = 41959.857373594361860953310707468005517...
   eqs!("41959.85737359436186095331070746801", num!(12.2384283).pow(&num!(4.25)).unwrap());
@@ -69,25 +61,62 @@ fn test_pow_009() {
   assert!(num!(1.000000000000000000000000000000001).pow(&num!(1E+6144)).is_none());
 }
 
-fn dbg(n: FeelNumber) -> String {
-  format!("{n:?}")
-}
-
 fn n(s: &str) -> FeelNumber {
   s.parse().unwrap()
 }
 
 #[test]
 fn test_pow_010() {
-  // (-1)^y with an integer y outside i32: the cohort of 1 depends on the exponents
-  // of x and y exactly like in Intel's bid128_pow (zero logarithm propagated through fma)
-  eqs!("+1000000000000000000000000E-24", dbg(n("-1").pow(&n("1E+10")).unwrap()));
-  eqs!("+10000000000000000000000000E-25", dbg(n("-1").pow(&n("1.0E+10")).unwrap()));
-  eqs!("+1000000000000000000000000000000000E-33", dbg(n("-1").pow(&n("10000000000")).unwrap()));
-  eqs!("+1E+0", dbg(n("-1").pow(&n("1E+40")).unwrap()));
-  eqs!("+1000E-3", dbg(n("-1.000").pow(&n("1E+40")).unwrap()));
-  eqs!("+1000000000000000000000000000000000E-33", dbg(n("-1.000").pow(&n("1E+10")).unwrap()));
-  eqs!("-1000000000000000000000000000000000E-33", dbg(n("-1").pow(&n("2147483649")).unwrap()));
-  eqs!("1.000000000000000000000000", n("-1").pow(&n("1E+10")).unwrap().abs());
-  eqs!("1", n("-1").pow(&n("1E+40")).unwrap().abs());
+  // (-1)^y for an integer y: 1 or -1 by the parity of y, whatever its size and cohort
+  for (x, y, expected) in [
+    ("-1", "1E+10", "1"),
+    ("-1", "1.0E+10", "1"),
+    ("-1", "10000000000", "1"),
+    ("-1", "1E+40", "1"),
+    ("-1.000", "1E+40", "1"),
+    ("-1.000", "1E+10", "1"),
+    ("-1", "2147483649", "-1"),
+    ("-1", "-2147483649", "-1"),
+    ("-1", "99999999999999999999", "-1"),
+  ] {
+    assert_eq!(expected, n(x).pow(&n(y)).unwrap().to_string(), "{x} ** {y}");
+  }
+}
+
+#[test]
+fn integer_powers_are_correctly_rounded() {
+  // DMN 1.6 Table 61: value(p,s) = value(e1)^value(e2) + ε, "p is limited to 34 digits", with
+  // the one rounding of §10.3.2.3.1 (to the nearest, a tie to even); the expected values are the
+  // exact powers rounded once
+  let base = n("1") + n("0.05") / n("12");
+  let mut wrong = vec![];
+  for (x, y, expected) in [
+    (n("1.05"), "360", "42476396.40868002039560415895318542"),
+    (base, "360", "4.46774431400613221242807011041355"),
+    (n("1.0025"), "120", "1.349353547190833348068274459415923"),
+    (n("1.000001"), "1000000", "2.718280469319376883819799708454356"),
+    (n("1.5"), "200", "1.652919910788208030156002593555710E+35"),
+    (n("1.0001"), "1000000", "2.674710993142140172948354481790713E+43"),
+    (n("1.1"), "100000", "1.855734417546823747428055637305764E+4139"),
+    (n("1.1"), "-100000", "5.388702125393264024384868212038677E-4140"),
+    (n("2"), "-20000", "2.51238805769874458518013504213361E-6021"),
+    (n("0.5"), "20000", "2.51238805769874458518013504213361E-6021"),
+    (n("0.3"), "-200", "3.764861949599026419883421890011116E+104"),
+    (n("999"), "100", "9.047921471137090420322146062399503E+299"),
+    (n("3"), "-7", "0.0004572473708276177411979881115683585"),
+    (n("7"), "-3", "0.002915451895043731778425655976676385"),
+    (n("12.5"), "-3", "0.000512"),
+    (n("3"), "50", "717897987691852588770249"),
+    (n("2"), "100", "1267650600228229401496703205376"),
+    // exact ties: 35 digits ending in 5, rounded to the even neighbour
+    (n("5"), "50", "8.881784197001252323389053344726562E+34"),
+    (n("2"), "-50", "8.881784197001252323389053344726562E-16"),
+    (n("-5"), "51", "-4.440892098500626161694526672363281E+35"),
+  ] {
+    let actual = x.pow(&n(y));
+    if actual != Some(n(expected)) {
+      wrong.push(format!("{x} ** {y}: {actual:?}, expected {expected}"));
+    }
+  }
+  assert!(wrong.is_empty(), "{} wrong powers: {wrong:#?}", wrong.len());
 }

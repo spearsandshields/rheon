@@ -182,12 +182,12 @@ fn _0031() {
 
 #[test]
 fn _0032() {
-  te_time(false, &scope!(), r#" @"12:34:56" - (-@"P1DT2H") "#, FeelTime::local(14, 34, 56, 0));
+  te_time(false, &scope!(), r#" @"12:34:56" - (-@"P1DT2H") "#, FeelTime::local_opt(14, 34, 56, 0).unwrap());
 }
 
 #[test]
 fn _0033() {
-  te_time(false, &scope!(), r#" @"12:34:56" - @"PT14H" "#, FeelTime::local(22, 34, 56, 0));
+  te_time(false, &scope!(), r#" @"12:34:56" - @"PT14H" "#, FeelTime::local_opt(22, 34, 56, 0).unwrap());
 }
 
 #[test]
@@ -245,10 +245,10 @@ fn _0041() {
 #[test]
 fn _0042() {
   // Time minus duration wraps around midnight, nanoseconds included.
-  te_time(false, &scope!(), r#" @"00:00:00" - @"PT1S" "#, FeelTime::local(23, 59, 59, 0));
+  te_time(false, &scope!(), r#" @"00:00:00" - @"PT1S" "#, FeelTime::local_opt(23, 59, 59, 0).unwrap());
   te_be_value(false, &scope!(), r#" string(@"00:00:00" - @"PT0.000000001S") "#, r#""23:59:59.999999999""#);
   te_be_value(false, &scope!(), r#" string(@"10:00:01.25" - @"PT0.75S") "#, r#""10:00:00.5""#);
-  te_time(false, &scope!(), r#" @"01:00:00Z" - @"PT2H" "#, FeelTime::utc(23, 0, 0, 0));
+  te_time(false, &scope!(), r#" @"01:00:00Z" - @"PT2H" "#, FeelTime::utc_opt(23, 0, 0, 0).unwrap());
 }
 
 #[test]
@@ -266,4 +266,95 @@ fn _0043() {
   assert_eq!(16, diagnostics.count);
   te_null(false, scope, r#""a" - 1"#, r#"[subtraction] incompatible types: "a" - 1"#);
   te_null(false, scope, r#"date("2020-01-01") - "x""#, r#"[subtraction] incompatible types: 2020-01-01 - "x""#);
+}
+
+#[test]
+fn _0044() {
+  // A difference of -2^63 months or nanoseconds is out of the range of a duration.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("P1M") * -9223372036854775807 - duration("P1M")"#,
+    "years and months duration subtraction overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("PT0.000000001S") * -9223372036854775807 - duration("PT0.000000001S")"#,
+    "days and time duration subtraction overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date and time("1677-09-21T00:12:43.145224192Z") - date and time("1970-01-01T00:00:00Z")"#,
+    "[subtraction] incompatible types: 1677-09-21T00:12:43.145224192Z - 1970-01-01T00:00:00Z",
+  );
+  te_days_and_time_duration_x(
+    false,
+    scope,
+    r#"date and time("1677-09-21T00:12:43.145224193Z") - date and time("1970-01-01T00:00:00Z")"#,
+    "-P106751DT23H47M16.854775807S",
+  );
+}
+
+#[test]
+fn _0045() {
+  // A date and time minus a duration before the first supported instant is null.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:00Z") - duration("P1D")"#,
+    "[subtraction] incompatible types: -262143-01-01T00:00:00Z - P1D",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:00Z") - duration("PT0.000000001S")"#,
+    "[subtraction] incompatible types: -262143-01-01T00:00:00Z - PT0.000000001S",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date and time("262142-12-31T23:59:59Z") - duration("-PT1S")"#,
+    "[subtraction] incompatible types: 262142-12-31T23:59:59Z - -PT1S",
+  );
+  te_value(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:01Z") - duration("PT1S")"#,
+    r#"date and time("-262143-01-01T00:00:00Z")"#,
+  );
+  te_value(false, scope, r#"date("2020-03-31") - duration("P1M")"#, r#"date("2020-02-29")"#);
+  te_value(false, scope, r#"date("2020-03-31") - duration("-P11M")"#, r#"date("2021-02-28")"#);
+  te_value(
+    false,
+    scope,
+    r#"date and time("2020-03-31T10:00:00Z") - duration("P1M")"#,
+    r#"date and time("2020-02-29T10:00:00Z")"#,
+  );
+}
+
+#[test]
+fn _0046() {
+  // A date is the date and time at UTC midnight, so a date minus a days and time duration is
+  // date(valuedt⁻¹(valuedt(e1) - valuedtd(e2))): the date of the instant, whatever its time of day.
+  let scope = &scope!();
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT0.5S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT0.000000001S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("P1DT0.5S")"#, 2019, 12, 31);
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT1S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("P1D")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("PT24H")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") - duration("-PT23H59M59.999999999S")"#, 2020, 1, 2);
+  te_date(false, scope, r#"date("2020-01-02") - duration("-P1DT0.5S")"#, 2020, 1, 3);
+}
+
+#[test]
+fn a_null_operand_of_a_subtraction_is_an_error() {
+  // DMN 1.6, before Table 57: "if input values are not of the listed types, the result is null";
+  // the official TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_subtract_lhs_null_minus_rhs_number and the others)
+  te_null_operands("subtraction", "-");
 }

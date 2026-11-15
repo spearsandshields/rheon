@@ -1,12 +1,14 @@
 use dsntk_common::{DsntkError, ToErrorMessage};
 use rheon_feel::FeelType;
+use rheon_feel::message::{arg, compose};
+use std::fmt::Display;
 
 /// Errors related to model evaluation.
 #[derive(ToErrorMessage)]
 struct ModelEvaluatorError(String);
 
 pub fn err_business_knowledge_model_with_reference_not_found(namespace: &str, id: &str) -> DsntkError {
-  ModelEvaluatorError(format!("no business knowledge model with reference: '{namespace}#{id}'")).into()
+  ModelEvaluatorError(format!("no business knowledge model with reference: '{}#{}'", arg(namespace), arg(id))).into()
 }
 
 pub fn err_empty_literal_expression() -> DsntkError {
@@ -18,11 +20,11 @@ pub fn err_empty_encapsulated_logic() -> DsntkError {
 }
 
 pub fn err_invalid_item_definition_type(s: &str) -> DsntkError {
-  ModelEvaluatorError(format!("invalid item definition type for '{s}'")).into()
+  ModelEvaluatorError(format!("invalid item definition type for '{}'", arg(s))).into()
 }
 
 pub fn err_unsupported_feel_type(feel_type: FeelType, s: &str) -> DsntkError {
-  ModelEvaluatorError(format!("unsupported FEEL type: {feel_type} in {s}")).into()
+  ModelEvaluatorError(format!("unsupported FEEL type: {} in {s}", arg(&feel_type))).into()
 }
 
 pub fn err_empty_feel_type() -> DsntkError {
@@ -31,4 +33,23 @@ pub fn err_empty_feel_type() -> DsntkError {
 
 pub fn err_empty_function_body() -> DsntkError {
   ModelEvaluatorError("empty function definition body".into()).into()
+}
+
+/// Errors of the item definitions of the models of a build, found before any of their types is built.
+#[derive(ToErrorMessage)]
+struct ItemDefinitionError(String);
+
+/// Raised when item definitions refer to themselves; `cycle` names them, the first one repeated at the end.
+pub fn err_item_definition_cycle(cycle: impl Display) -> DsntkError {
+  ItemDefinitionError(compose(format_args!("item definitions form a cycle: {cycle}"))).into()
+}
+
+/// Raised when the type of an item definition has more nodes than a type may have.
+pub fn err_item_definition_too_large(name: &str, max_nodes: u64) -> DsntkError {
+  ItemDefinitionError(compose(format_args!("item definition '{}' expands to more than {max_nodes} type nodes", arg(name)))).into()
+}
+
+/// Raised when the type of an item definition nests deeper than a type may nest.
+pub fn err_item_definition_too_deep(name: &str, max_depth: u64) -> DsntkError {
+  ItemDefinitionError(compose(format_args!("item definition '{}' nests types more than {max_depth} levels deep", arg(name)))).into()
 }

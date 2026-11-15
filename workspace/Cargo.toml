@@ -13,13 +13,6 @@ edition = { workspace = true }
 # carried from dsntk with manifest-only changes; never published from rheon
 publish = false
 
-[features]
-default = ["dashu"]
-# Number backend (exactly one): `dashu` (pure Rust, default) or `intel` (dfp-number-sys, C).
-# Forwarded to every dsntk dependency so that one selection covers the whole build graph.
-dashu = ["rheon-feel/dashu", "rheon-feel-evaluator/dashu", "rheon-model/dashu", "rheon-model-evaluator/dashu"]
-intel = ["rheon-feel/intel", "rheon-feel-evaluator/intel", "rheon-model/intel", "rheon-model-evaluator/intel"]
-
 [dependencies]
 antex = { workspace = true }
 walkdir = { workspace = true }

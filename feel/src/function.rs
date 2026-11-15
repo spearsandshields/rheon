@@ -58,7 +58,9 @@ pub enum FunctionBody {
   Conditional(FunctionBodyEvaluator),
   /// Function body created from context defined in DMN model.
   Context(FunctionBodyEvaluator),
-  /// Function body created from decision service defined in DMN model.
+  /// Function body created from decision service defined in DMN model. It holds only a weak
+  /// reference to the model that holds the function value, so a value never holds a strong
+  /// handle to the state that holds it; called after the model was dropped, it gives null.
   DecisionService(FunctionBodyEvaluator),
   /// Function body created from decision table defined in DMN model.
   DecisionTable(FunctionBodyEvaluator),

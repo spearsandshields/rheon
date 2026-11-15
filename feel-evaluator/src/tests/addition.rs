@@ -131,7 +131,7 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  te_null(false, &scope!(), r#" null + @"P1DT2H" "#, r#""#);
+  te_null(false, &scope!(), r#" null + @"P1DT2H" "#, r#"[addition] incompatible types: null + P1DT2H"#);
 }
 
 #[test]
@@ -297,12 +297,12 @@ fn _0042() {
 
 #[test]
 fn _0043() {
-  te_time(false, &scope!(), r#" @"10:11:12" + @"PT2H" "#, FeelTime::local(12, 11, 12, 0));
+  te_time(false, &scope!(), r#" @"10:11:12" + @"PT2H" "#, FeelTime::local_opt(12, 11, 12, 0).unwrap());
 }
 
 #[test]
 fn _0044() {
-  te_time(false, &scope!(), r#" @"PT2H" + @"10:11:12" "#, FeelTime::local(12, 11, 12, 0));
+  te_time(false, &scope!(), r#" @"PT2H" + @"10:11:12" "#, FeelTime::local_opt(12, 11, 12, 0).unwrap());
 }
 
 #[test]
@@ -318,11 +318,11 @@ fn _0045() {
 #[test]
 fn _0046() {
   // Time plus duration wraps around midnight, nanoseconds included (regression: 24:00:00).
-  te_time(false, &scope!(), r#" @"23:59:59" + @"PT1S" "#, FeelTime::local(0, 0, 0, 0));
-  te_time(false, &scope!(), r#" @"23:00:00" + @"PT2H" "#, FeelTime::local(1, 0, 0, 0));
-  te_time(false, &scope!(), r#" @"23:59:59" + @"PT2S" "#, FeelTime::local(0, 0, 1, 0));
-  te_time(false, &scope!(), r#" @"23:59:59Z" + @"PT1S" "#, FeelTime::utc(0, 0, 0, 0));
-  te_time(false, &scope!(), r#" @"23:59:59.999999999" + @"PT0.000000001S" "#, FeelTime::local(0, 0, 0, 0));
+  te_time(false, &scope!(), r#" @"23:59:59" + @"PT1S" "#, FeelTime::local_opt(0, 0, 0, 0).unwrap());
+  te_time(false, &scope!(), r#" @"23:00:00" + @"PT2H" "#, FeelTime::local_opt(1, 0, 0, 0).unwrap());
+  te_time(false, &scope!(), r#" @"23:59:59" + @"PT2S" "#, FeelTime::local_opt(0, 0, 1, 0).unwrap());
+  te_time(false, &scope!(), r#" @"23:59:59Z" + @"PT1S" "#, FeelTime::utc_opt(0, 0, 0, 0).unwrap());
+  te_time(false, &scope!(), r#" @"23:59:59.999999999" + @"PT0.000000001S" "#, FeelTime::local_opt(0, 0, 0, 0).unwrap());
   te_be_value(false, &scope!(), r#" string(@"23:59:59.999999999" + @"PT0.000000001S") "#, r#""00:00:00""#);
   te_be_value(false, &scope!(), r#" string(@"10:00:00.5" + @"PT0.75S") "#, r#""10:00:01.25""#);
   te_be_value(false, &scope!(), r#" string(@"23:59:59" + @"P1DT1S") "#, r#""00:00:00""#);
@@ -337,4 +337,80 @@ fn _0047() {
   te_value(false, &scope!(), r#"{s: "ab", t: (s + "c") + "d", r: [s, t]}.r"#, r#"["ab", "abcd"]"#);
   te_value(false, &scope!(), r#"{f: function(s) s + "!", s: "ab", r: [f(s), f(s), s]}.r"#, r#"["ab!", "ab!", "ab"]"#);
   te_value(false, &scope!(), r#"for s in ["a", "b"] return s + s + s"#, r#"["aaa", "bbb"]"#);
+}
+
+#[test]
+fn _0048() {
+  // A sum of -2^63 months or nanoseconds is out of the range of a duration.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"duration("P1M") * -9223372036854775807 + duration("-P1M")"#,
+    "years and months duration addition overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"duration("PT0.000000001S") * -9223372036854775807 + duration("-PT0.000000001S")"#,
+    "days and time duration addition overflow",
+  );
+  te_null(
+    false,
+    scope,
+    r#"date("2020-01-01") + duration("P1M") * -9223372036854775808"#,
+    "[addition] incompatible types: 2020-01-01 + null(multiplication result is out of range of years and months duration)",
+  );
+}
+
+#[test]
+fn _0049() {
+  // A date and time plus a negative duration before the first supported instant is null.
+  let scope = &scope!();
+  te_null(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:00Z") + duration("-P1D")"#,
+    "invalid result while adding days and time duration to date and time",
+  );
+  te_value(
+    false,
+    scope,
+    r#"date and time("-262143-01-01T00:00:01Z") + duration("-PT1S")"#,
+    r#"date and time("-262143-01-01T00:00:00Z")"#,
+  );
+  te_value(false, scope, r#"date("2020-01-31") + duration("P1M")"#, r#"date("2020-02-29")"#);
+  te_value(false, scope, r#"date("2020-01-31") + duration("-P11M")"#, r#"date("2019-02-28")"#);
+  te_value(
+    false,
+    scope,
+    r#"date and time("2020-03-31T10:00:00@Europe/Paris") + duration("-P1M")"#,
+    r#"date and time("2020-02-29T10:00:00@Europe/Paris")"#,
+  );
+}
+
+#[test]
+fn _0050() {
+  // A date is the date and time at UTC midnight, so a date plus a days and time duration is
+  // date(valuedt⁻¹(valuedt(e1) + valuedtd(e2))): the date of the instant, whatever its time of day.
+  let scope = &scope!();
+  te_date(false, scope, r#"date("2020-01-02") + duration("-PT0.000000001S")"#, 2020, 1, 1);
+  te_date(false, scope, r#"date("2020-01-02") + duration("-P1DT0.5S")"#, 2019, 12, 31);
+  te_date(false, scope, r#"date("2020-01-02") + duration("PT23H59M59.999999999S")"#, 2020, 1, 2);
+  te_date(false, scope, r#"date("2020-01-02") + duration("PT24H")"#, 2020, 1, 3);
+  te_date(false, scope, r#"duration("-PT0.5S") + date("2020-01-02")"#, 2020, 1, 1);
+  te_null(
+    false,
+    scope,
+    r#"date("262142-12-31") + duration("P1D")"#,
+    "invalid result while adding days and time duration to date",
+  );
+}
+
+#[test]
+fn a_null_operand_of_an_addition_is_an_error() {
+  // DMN 1.6, before Table 57: "if input values are not of the listed types, the result is null";
+  // the official TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_add_lhs_null_to_rhs_number and the others)
+  te_null_operands("addition", "+");
 }

@@ -1,5 +1,6 @@
 use super::super::*;
 use rheon_feel::scope;
+use rheon_feel::values::Value;
 
 #[test]
 fn _0001() {
@@ -230,7 +231,7 @@ fn _0038() {
 
 #[test]
 fn _0039() {
-  te_null(false, &scope!(), r#"matches("input", "pattern", "")"#, "<FeelRegexError> empty regex flags");
+  te_bool(false, &scope!(), r#"matches("input", "pattern", "")"#, false);
 }
 
 #[test]
@@ -286,4 +287,81 @@ fn back_references() {
   te_bool(false, &scope!(), r#"matches("aa", "(a)\\1")"#, true);
   te_bool(false, &scope!(), r#"matches("aA", "(a)\\1", "i")"#, true);
   te_bool(false, &scope!(), r#"matches("ab", "(a)\\1")"#, false);
+}
+
+#[test]
+fn the_reason_of_a_long_invalid_pattern_holds_at_most_1000_characters() {
+  let expression = format!(r#"matches("a", "({}")"#, "a".repeat(5000));
+  let node = rheon_feel_parser::parse_textual_expression(&scope!(), &expression, false).unwrap();
+  let Value::Null(Some(reason)) = crate::evaluate(&scope!(), &node).into_result().unwrap() else {
+    panic!("a null with a reason")
+  };
+  assert_eq!(1000, reason.chars().count(), "{} characters", reason.chars().count());
+  assert!(reason.starts_with("<FeelRegexError> invalid regex pattern: '(aaa"), "{reason}");
+  assert!(reason.ends_with('…'), "{reason}");
+}
+
+#[test]
+fn an_engine_limit_stops_the_evaluation() {
+  let input = format!("{}!", "a".repeat(40));
+  let backtracking = r"matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped";
+  crate::tests::te_aborted(&format!(r#"matches("{input}", "^(a|a)*\\1$")"#), crate::Dialect::Feel, backtracking);
+  crate::tests::te_aborted(&format!(r#"matches("{input}", "^(a|a)*\\1$", "i")"#), crate::Dialect::Feel, backtracking);
+  crate::tests::te_aborted(
+    r#"matches("a", "\\w{10000}")"#,
+    crate::Dialect::Feel,
+    r"matches: the pattern '\w{10000}' exceeds the regex engine's compiled size limit; evaluation stopped",
+  );
+  let nested = crate::tests::nested_groups(100);
+  crate::tests::te_aborted(
+    &format!(r#"matches("a", "{nested}")"#),
+    crate::Dialect::Feel,
+    &format!(
+      "matches: the pattern '{}… (201 characters)' exceeds the regex engine's nesting limit; evaluation stopped",
+      &nested[..120]
+    ),
+  );
+  // a pattern within the limits matches, and an invalid pattern is null with its reason
+  te_bool(false, &scope!(), &format!(r#"matches("a", "{}")"#, crate::tests::nested_groups(60)), true);
+  te_null(false, &scope!(), r#"matches("a", "[a-z")"#, "<FeelRegexError> invalid regex pattern: '[a-z'");
+}
+
+#[test]
+fn every_character_of_the_flags_is_a_flag() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.1.1: a character that is not a flag is an error, and the
+  // flags are not trimmed
+  te_null(false, &scope!(), r#"matches("abc", "b", " i ")"#, "<FeelRegexError> invalid regex flag: ' '");
+  te_null(false, &scope!(), r#"matches("abc", "b", "iI")"#, "<FeelRegexError> invalid regex flag: 'I'");
+  // the empty flags switch every option off
+  te_bool(false, &scope!(), r#"matches("abc", "B", "")"#, false);
+  te_bool(false, &scope!(), r#"matches("abc", "B", "ii")"#, true);
+}
+
+#[test]
+fn x_removes_the_whitespace_outside_character_classes() {
+  // the examples of F&O §7.6.1.1
+  te_bool(false, &scope!(), r#"matches("helloworld", "hello world", "x")"#, true);
+  te_bool(false, &scope!(), r#"matches("helloworld", "hello[ ]world", "x")"#, false);
+  te_bool(false, &scope!(), r#"matches("hello world", "hello\\\nsworld", "x")"#, true);
+  te_bool(false, &scope!(), r#"matches("hello world", "hello world", "x")"#, false);
+  // `#` starts no comment
+  te_bool(false, &scope!(), r#"matches("ab", "a#b", "x")"#, false);
+  te_bool(false, &scope!(), r#"matches("a#b", "a#b", "x")"#, true);
+  // a bracket after an escape opens no class
+  te_bool(false, &scope!(), r#"matches("a[b", "a\\ [ b", "x")"#, true);
+}
+
+#[test]
+fn q_takes_every_character_of_the_pattern_as_itself() {
+  te_bool(false, &scope!(), r#"matches("a-[b]", "a-[b]", "q")"#, true);
+  te_bool(false, &scope!(), r#"matches("a\\p{IsBasicLatin}", "\\p{IsBasicLatin}", "q")"#, true);
+  // with `m`, `s` or `x` beside it, `q` still applies and they have no effect
+  te_bool(false, &scope!(), r#"matches("a b", "a b", "qx")"#, true);
+  te_bool(false, &scope!(), r#"matches("a.b", ".", "qs")"#, true);
+  te_bool(false, &scope!(), r#"matches("ab", ".", "qs")"#, false);
+}
+
+#[test]
+fn an_invalid_pattern_is_quoted_as_written() {
+  te_null(false, &scope!(), r#"matches("a", "[a-z", "i")"#, "<FeelRegexError> invalid regex pattern: '[a-z'");
 }

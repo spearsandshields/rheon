@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/"
+             namespace="https://dsntk.io/decision-service-inputs"
+             name="decision service inputs"
+             id="_decision_service_inputs">
+    <description>
+        A decision service whose input decision is typed by an item definition. Invoked as a
+        whole, the service takes the value of its input decision from the input context.
+    </description>
+
+    <itemDefinition name="tScore">
+        <typeRef>number</typeRef>
+    </itemDefinition>
+
+    <decision name="Score" id="_score">
+        <variable name="Score" typeRef="tScore"/>
+        <literalExpression>
+            <text>5</text>
+        </literalExpression>
+    </decision>
+
+    <decision name="Doubled" id="_doubled">
+        <variable name="Doubled" typeRef="number"/>
+        <informationRequirement>
+            <requiredDecision href="#_score"/>
+        </informationRequirement>
+        <literalExpression>
+            <text>Score * 2</text>
+        </literalExpression>
+    </decision>
+
+    <decisionService name="Doubler" id="_doubler">
+        <variable name="Doubler"/>
+        <outputDecision href="#_doubled"/>
+        <inputDecision href="#_score"/>
+    </decisionService>
+</definitions>

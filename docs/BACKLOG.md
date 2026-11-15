@@ -12,6 +12,11 @@ was written.
   but no contract version, so a host cannot recognise a module built for another contract.
 - **Every result is serialised three ways** `[contract]` (2026-10-17): `display`, `feel` and
   `typed`, whether or not the host needs them.
+- **Display renders scalars other than strings to measure them** `[contract]` (2026-11-14). To
+  decide whether a list or context fits one 80-column line, `display` measures it with a writer
+  that stops past the width left; a string stops the measure at once, but another scalar (a range
+  with long string endpoints) is still rendered to text first, at most once per enclosing level
+  within 80 bytes of it (`wasm/feel-wasm/src/display.rs`).
 - **The ABI packs the response into an i64** `[contract]` (2026-10-17). `feel_call` returns
   `(ptr << 32) | len`, which ties the ABI to wasm32 (no native cdylib), and a host sees an error
   response only by parsing it.
@@ -46,11 +51,6 @@ was written.
 - **Decision-table bounds** `[fork]` (2026-10-18). Rules and outputs are indexed by clause position
   with no count check (`model-evaluator/src/decision_table.rs`): a short rule or a zero-output table
   panics.
-- **The call-depth flag is not reset by every entry point** `[fork]` (2026-10-18). The sticky
-  `CALL_DEPTH_EXCEEDED` (`feel-evaluator/src/invocation.rs`) is reset by the wasm layer and by
-  `ModelEvaluator::evaluate_invocable`, not by `rheon_feel_evaluator::evaluate` and the other FEEL
-  entry points: after one runaway, a native caller that evaluates FEEL directly on the same thread
-  gets null from every invocation until it calls `reset_call_depth`.
 - **Nanosecond rule** `[fork]` (2026-10-18). Time/date-time equality drops nanoseconds, ordering
   keeps them, so `=` and `<` can both hold.
 - **Grammar precedence for unary endpoints** `[fork]` (2026-10-17). `> 0.1 + 0.2` parses as
@@ -58,10 +58,12 @@ was written.
 - **Zoned `now()`** `[fork]` (2026-10-17). `now()` is zone-less, so
   `now() - date and time("…Z")` is null.
 - **`sort` comparator bypasses guards** `[fork]` (2026-10-18). Depth and finiteness guards are
-  skipped for the user comparator; non-boolean result silently means equal.
+  skipped for the user comparator; a non-boolean answer silently means "does not precede" (the
+  ordering itself cannot fail on any answer).
 - **Globals in the engine** `[fork]` (2026-10-17). The tz-offset override is process-global, so
-  the wasm layer serialises requests with `ENGINE_LOCK` (`wasm/feel-wasm/src/engine.rs`), and the
-  call depth is thread-local.
+  the wasm layer serialises requests with `ENGINE_LOCK` (`wasm/feel-wasm/src/engine.rs`). The
+  call depth and the abort of an evaluation are thread-local state owned by that evaluation
+  (`rheon_feel::diagnostics`), cleared when it ends.
 
 ## Lexer and evaluation limits (2026-11-13)
 
@@ -81,11 +83,6 @@ was written.
   reads such a part only right after an additional name symbol (`.`, `/`, `-`, `'`, `+`, `*`).
   The composite search visits up to (nested contexts) × (separators in the candidate + 1)
   states per candidate.
-- **An empty list in a `for` with a dependent variable** `[fork]`.
-  `for x in [[1,2],[],[3]], y in x return y` is `[1, 2, 2, 3]`, not `[1, 2, 3]`: when the list of
-  `y` is empty the iteration is not skipped, and `y` keeps its value from the iteration before.
-  DMN 1.6 §10.3.2.14: an empty iteration context contributes no iteration.
-  `feel-evaluator/src/tests/iterations.rs` `_0020` pins the sequence as it is.
 - **Filters evaluate their expression once more in the outer scope** `[fork]`. After
   evaluating the expression for every item, the filter evaluates it once in the enclosing scope
   to decide between indexing and filtering (`FilterExpressionEvaluator::evaluate`). A predicate
@@ -111,6 +108,11 @@ was written.
   through the scope stack (`FeelScope::get_value`).
 - **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),
   `replace` and `split` compile their pattern for each invocation.
+- **`sort` on long lists with few distinct values** `[fork]` (2026-11-14). `sort` merges runs of
+  its own (`feel-evaluator/src/bifs/sorting.rs`), and on long lists with few distinct values it
+  calls the predicate more often than the standard library's sort: 10,000 items of seven distinct
+  values take 1.33 times the calls and 1.23 times the time of 0.4.0 (19.7 to 24.2 ms on the wasm
+  module). A stable partition of runs of equal items would remove the difference.
 
 ## DMN 1.6
 
@@ -127,8 +129,8 @@ Open in 1.6:
   model's dialect to the whole table. Not exercised by the TCK.
 - **Strict mode granularity** `[dmn]`. Strict evaluates to the end and then returns null with the
   first error (no side effects make the difference observable). Errors are recorded where the
-  core creates a null with a reason (`value_null!`); a few places build nulls directly and are
-  not recorded.
+  core creates a null with an error reason (`value_null!`, a note is not one); a few places build
+  nulls directly and are not recorded.
 - **TCK conflicts** (tck-addendum/MANIFEST.md): 1151 006 and 1152 003/004 expect the DMN 1.5
   "no singleton conversion" rule for boxed iterators; rheon follows 1.6.
 - **Spec typo**: the 1.6 number() footnote cites grammar rule 37 (`digits`); rheon uses rule 35.
@@ -144,8 +146,6 @@ Open in 1.6:
     times and durations.
   - *Context equality depends on key order*: it returns null at the first pair it can not
     compare, even when a later pair differs. List equality treats such a pair as unequal.
-  - *`!=` on values of different kinds* returns a null without a reason, so it records no
-    diagnostic: strict mode stops on `"a" = 1` but not on `"a" != 1`.
   - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
     OR (comparison_in.rs asserts AND). The spec also reads differently for `null <= null` (spec:
     `<` or `=`, so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and
@@ -198,8 +198,20 @@ back-references via fancy-regex). The unpatched subset stands at 289/298. Remain
 
 - **Cycle protection** `[fork]` (2026-10-18). Decision→decision and BKM→BKM cycles recurse until the
   stack traps; only item definitions are checked.
-- **Evaluator leak** `[fork]` (2026-10-18). Decision services capture a strong `Arc` to their own
-  evaluator; a host that reloads models never frees them.
+- **Decision service values reach their model through the value** `[fork]`. A decision service's
+  function value holds a weak reference to its model evaluator (so models are freed) and gives
+  null once the model is dropped; the invocation should take the model from the call's session
+  instead of from the value.
+- **Element nesting bound** `[fork]` (2026-11-14). A model's elements nest at most 100 levels
+  deep (`model/src/element_depth.rs`), because roxmltree's tokenizer recurses once per element:
+  the measured ceiling on a 2 MiB thread of the unoptimized test build is 124 levels (aarch64,
+  rustc 1.95.0; it overflows from 125 on). The bound keeps a margin of about a quarter below it
+  because CI runs the at-bound tests on x86_64 Linux, whose ceiling could not be measured. Large
+  machine-generated schemas want 256; that needs an XML parser that does not recurse per element.
+- **Named types are expanded at each use** `[fork]` (2026-11-14). The size and depth bounds of an
+  item definition type hold per definition, so a type is expanded wherever it is used, and the
+  global type context, cloned for each decision evaluation, grows with the models times the node
+  bound. Sharing named types removes both.
 - **Structured errors** `[fork]` (2026-10-18). Unknown invocables, dangling hrefs and unresolved
   types come back as FEEL null; "empty FEEL type" carries no name.
 - **No decision-table short-circuit or memoisation** `[fork]` (2026-10-18). Every cell of every

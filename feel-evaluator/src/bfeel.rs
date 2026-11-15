@@ -18,7 +18,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name};
 use rheon_feel_parser::AstNode;
-use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelTime, FeelYearsAndMonthsDuration};
+use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelOffset, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 use std::sync::LazyLock;
 
 /// The expression language of an expression: FEEL (the default) or B-FEEL.
@@ -247,16 +247,16 @@ fn zero() -> Value {
   Value::Number(FeelNumber::zero())
 }
 fn zero_ym_duration() -> Value {
-  Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_m(0))
+  Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::default())
 }
 fn epoch_date() -> Value {
   FeelDate::new(1970, 1, 1).map(Value::Date).unwrap_or(Value::Null(None))
 }
 fn epoch_time() -> Value {
-  Value::Time(FeelTime::offset(0, 0, 0, 0, 0))
+  Value::Time(FeelTime::midnight(FeelZone::Offset(FeelOffset::ZERO)))
 }
 fn epoch_date_time() -> Value {
-  match (FeelDate::new(1970, 1, 1), FeelTime::offset(0, 0, 0, 0, 0)) {
+  match (FeelDate::new(1970, 1, 1), FeelTime::midnight(FeelZone::Offset(FeelOffset::ZERO))) {
     (Some(date), time) => Value::DateTime(FeelDateTime::new(date, time)),
     _ => Value::Null(None),
   }

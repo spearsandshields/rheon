@@ -389,7 +389,7 @@ fn test_type_get_conformant_value() {
   // time
   let v_time = Value::Time(FeelTime::local_opt(9, 2, 0, 0).unwrap());
   // years and months duration
-  let v_years_and_months_duration = Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3));
+  let v_years_and_months_duration = Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(2, 3).unwrap());
   // list
   let v_list_a = Value::List(vec![v_boolean_true.clone(), v_boolean_false.clone()]);
   let v_list_b = Value::List(vec![v_number_1.clone(), v_number_2.clone()]);

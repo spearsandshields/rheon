@@ -5,6 +5,7 @@ use crate::input_data::InputDataEvaluator;
 use crate::input_data_context::InputDataContextEvaluator;
 use crate::item_definition::ItemDefinitionEvaluator;
 use crate::item_definition_context::ItemDefinitionContextEvaluator;
+use crate::item_definition_graph;
 use crate::item_definition_type::{InformationItemTypes, ItemDefinitionTypeEvaluator};
 use crate::model_definitions::{DefDefinitions, DefKey, Invocables};
 use dsntk_common::Result;
@@ -76,6 +77,8 @@ impl ModelBuilder {
     self.item_definition_evaluator = ItemDefinitionEvaluator::new(&self.model_definitions)?;
     self.item_definition_context_evaluator = ItemDefinitionContextEvaluator::new(&self.model_definitions)?;
     self.item_definition_type_evaluator = ItemDefinitionTypeEvaluator::new(&self.model_definitions)?;
+    // the evaluators above only hold the references; everything below follows them
+    item_definition_graph::check(&self.model_definitions)?;
     self.business_knowledge_model_evaluator = BusinessKnowledgeModelEvaluator::new(&self.model_definitions, self)?;
     self.decision_evaluator = DecisionEvaluator::new(&self.model_definitions, self)?;
     self.decision_service_evaluator = DecisionServiceEvaluator::new(&self.model_definitions, self)?;
