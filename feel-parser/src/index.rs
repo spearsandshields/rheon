@@ -147,7 +147,7 @@ struct InputNode<'s> {
 impl<'s> NameTree for InputNode<'s> {
   fn contains_key(self, key: &str) -> bool {
     match self.node {
-      Node::Context(ctx) => ctx.contains_key(key),
+      Node::Context(ctx) => ctx.contains_entry(key),
       Node::Type(entries) => entries.contains_key(key),
     }
   }
@@ -204,7 +204,7 @@ impl<'a> FrameIndex<'a> {
 
   /// Returns `true` when `name` is a key at any depth.
   pub(crate) fn contains(&self, name: &str) -> bool {
-    self.top.contains_key(name) || self.keys().names.contains(name)
+    self.top.contains_entry(name) || self.keys().names.contains(name)
   }
 
   /// Length in bytes of the longest key at any depth.
@@ -220,7 +220,7 @@ impl<'a> FrameIndex<'a> {
   /// Upper bound of the length in bytes of the keys of the input context itself whose first word
   /// is `word` (see [first_word]).
   pub(crate) fn group_bound(&self, word: &str) -> usize {
-    first_word_bound(self.top, word, self.max_plain())
+    first_word_bound(self.top.keys_from(word), word, self.max_plain())
   }
 
   /// Length in bytes of the longest key at depth one or more (or of a list item type) that is

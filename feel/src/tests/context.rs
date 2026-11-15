@@ -426,25 +426,22 @@ fn test_try_from_value_context() {
 }
 
 #[test]
-fn test_deref() {
+fn test_read_api() {
   let name_a = Name::from("a");
   let name_b = Name::from("b");
   let name_c = Name::from("c");
-  let name_d = Name::from("d");
   let mut ctx_a: FeelContext = Default::default();
+  ctx_a.set_entry(&name_c, value_number!(3));
   ctx_a.set_entry(&name_a, value_number!(1));
   ctx_a.set_entry(&name_b, value_number!(2));
-  ctx_a.set_entry(&name_c, value_number!(3));
-  ctx_a.set_entry(&name_d, value_number!(4));
-  let entries = &(*ctx_a);
-  entries.contains_key(&name_a);
-  assert_eq!(value_number!(1), entries.get(&name_a).unwrap().clone());
-  entries.contains_key(&name_b);
-  assert_eq!(value_number!(2), entries.get(&name_b).unwrap().clone());
-  entries.contains_key(&name_c);
-  assert_eq!(value_number!(3), entries.get(&name_c).unwrap().clone());
-  entries.contains_key(&name_d);
-  assert_eq!(value_number!(4), entries.get(&name_d).unwrap().clone());
+  assert!(ctx_a.contains_entry(&name_a));
+  assert!(!ctx_a.contains_entry(&Name::from("d")));
+  assert_eq!(Some(&value_number!(2)), ctx_a.get_entry(&name_b));
+  assert_eq!(
+    vec![(&name_a, &value_number!(1)), (&name_b, &value_number!(2)), (&name_c, &value_number!(3))],
+    ctx_a.iter().collect::<Vec<_>>()
+  );
+  assert_eq!(3, ctx_a.iter().len());
 }
 
 #[test]

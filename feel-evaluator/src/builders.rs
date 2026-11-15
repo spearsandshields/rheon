@@ -17,7 +17,6 @@ use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelT
 use std::borrow::Borrow;
 use std::collections::{BTreeMap, HashSet};
 use std::fmt::Write;
-use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -2081,8 +2080,8 @@ pub fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
     },
     Value::Context(ls) => match rhs {
       Value::Context(rs) => {
-        if ls.keys().len() == rs.keys().len() {
-          for (key1, value1) in ls.deref() {
+        if ls.len() == rs.len() {
+          for (key1, value1) in ls.iter() {
             if let Some(value2) = rs.get_entry(key1) {
               if let Some(equal) = eval_ternary_equality(value1, value2) {
                 if !equal {

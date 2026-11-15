@@ -463,7 +463,7 @@ pub fn context(entries: &Value) -> Value {
               Value::String(key) => key.as_str().into(),
               _ => return value_null!("context: 'key' entry is not a string, actual type is {}", arg(&TypeOf(key))),
             };
-            if result_ctx.contains_key(&key) {
+            if result_ctx.contains_entry(&key) {
               return value_null!("context: duplicated key: {}", arg(&key));
             }
             result_ctx.set_entry(&key, value.clone());

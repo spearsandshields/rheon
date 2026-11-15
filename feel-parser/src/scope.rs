@@ -6,10 +6,9 @@ use crate::index::FrameIndex;
 use rheon_feel::Name;
 use rheon_feel::context::FeelContext;
 use std::cell::{Cell, RefCell, RefMut};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Display;
-use std::ops::Bound;
 
 /// Parsing scope: the names the lexer recognizes as names in scope.
 ///
@@ -221,13 +220,14 @@ pub(crate) fn first_word(name: &str) -> &str {
   name.find([' ', '.', '/', '-', '\'', '+', '*']).map_or(name, |end| &name[..end])
 }
 
-/// Returns an upper bound of the length in bytes of the keys of `keys` whose first word is `word`
-/// (see [first_word]), or `fallback` (a bound of all keys) when there are too many keys to look at.
-/// These keys are `word` followed by a space or a symbol, all bytes below `0`, so they follow
-/// `word` in the order of the keys; the keys looked at may include others, which only enlarges the bound.
-pub(crate) fn first_word_bound<V>(keys: &BTreeMap<Name, V>, word: &str, fallback: usize) -> usize {
+/// Returns an upper bound of the length in bytes of the keys whose first word is `word` (see
+/// [first_word]), or `fallback` (a bound of all keys) when there are too many keys to look at.
+/// `keys` are the ordered keys of a context from the first key not less than `word` on. The keys
+/// whose first word is `word` are `word` followed by a space or a symbol, all bytes below `0`, so
+/// they come first; the keys looked at may include others, which only enlarges the bound.
+pub(crate) fn first_word_bound<'k>(keys: impl Iterator<Item = &'k Name>, word: &str, fallback: usize) -> usize {
   let mut bound = 0;
-  for (count, key) in keys.range::<str, _>((Bound::Included(word), Bound::Unbounded)).map(|(key, _)| key.as_str()).enumerate() {
+  for (count, key) in keys.map(Name::as_str).enumerate() {
     if !key.starts_with(word) || key.as_bytes().get(word.len()).is_some_and(|&byte| byte >= b'0') {
       break;
     }

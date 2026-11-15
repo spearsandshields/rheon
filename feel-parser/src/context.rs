@@ -8,6 +8,7 @@ use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
 use std::collections::BTreeMap;
 use std::fmt;
+use std::ops::Bound;
 use std::ptr;
 
 /// Types of entries in parsing context.
@@ -164,7 +165,7 @@ impl ParsingContext {
   /// Returns an upper bound of the length of the keys of this context (not of the nested ones)
   /// whose first word is `word`, see [first_word_bound].
   pub(crate) fn group_bound(&self, word: &str, fallback: usize) -> usize {
-    first_word_bound(&self.0, word, fallback)
+    first_word_bound(self.0.range::<str, _>((Bound::Included(word), Bound::Unbounded)).map(|(key, _)| key), word, fallback)
   }
 }
 

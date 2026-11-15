@@ -2352,6 +2352,18 @@ their items with both answers. The totals are under "Verification" below.
     per call are those of 0.5.0 for every workload (native counting harness); the stack report
     and the string doubling's peak memory (n = 17 to 26) are identical. Rust API: the added
     function `rheon_feel::diagnostics::stopped`.
+147. **A context has its own read API and no longer derefs to its map.** `FeelContext`
+    dereferenced to the `BTreeMap` that holds its entries, so every caller could read the map
+    directly and the way a context stores its entries was part of the API. The context now reads
+    through its own methods: `iter` (an `ExactSizeIterator`, in the order of the names),
+    `keys_from(name)` (the names from the first one not less than `name` on, which
+    the parser's bound on the keys whose first word is a given word reads), and `contains_entry`,
+    which takes a `Name` or its text. The parser, `context` and `=` read the context through
+    them. Identity step: no answer changes. Rust API (`rheon-feel`): `impl Deref for FeelContext`
+    is removed (use the methods above, `get_entry`, `len` and `is_empty`); `FeelContext::iter`
+    returns `impl ExactSizeIterator<Item = (&Name, &Value)>` instead of
+    `std::collections::btree_map::Iter`; `contains_entry` is generic over `Q` with `Name: Borrow<Q>`
+    (a `&Name` argument compiles as before); `keys_from` is added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -18,7 +18,6 @@ use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fmt::Display;
-use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -512,7 +511,7 @@ impl Value {
       Value::BuiltInFunction(_) => FeelType::Any,
       Value::Context(context) => {
         let mut entries = BTreeMap::new();
-        for (name, value) in context.deref() {
+        for (name, value) in context.iter() {
           entries.insert(name.clone(), value.type_of_within(budget)?);
         }
         FeelType::Context(entries)
@@ -640,7 +639,7 @@ impl Value {
       Value::Context(context) => {
         if let FeelType::Context(type_context) = target_type {
           for (name, entry_type) in type_context.iter() {
-            if let Some(entry_value) = context.get(name) {
+            if let Some(entry_value) = context.get_entry(name) {
               if !entry_value.is_conformant(entry_type) {
                 return false;
               }

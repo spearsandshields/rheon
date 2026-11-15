@@ -8,10 +8,10 @@ use crate::strings::{ToFeelString, write_separated};
 use crate::value_null;
 use crate::values::Value;
 use dsntk_common::{DsntkError, Jsonify, Result};
+use std::borrow::Borrow;
 use std::collections::BTreeMap;
-use std::collections::btree_map::Iter;
 use std::fmt;
-use std::ops::Deref;
+use std::ops::Bound;
 
 /// Type alias for context entries.
 type FeelContextEntries = BTreeMap<Name, Value>;
@@ -19,13 +19,6 @@ type FeelContextEntries = BTreeMap<Name, Value>;
 /// The FEEL context.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct FeelContext(FeelContextEntries);
-
-impl Deref for FeelContext {
-  type Target = FeelContextEntries;
-  fn deref(&self) -> &Self::Target {
-    &self.0
-  }
-}
 
 impl TryFrom<Value> for FeelContext {
   type Error = DsntkError;
@@ -114,8 +107,11 @@ impl FeelContext {
     Self::default()
   }
 
-  /// Returns `true` if context contains an entry specified by **name**.
-  pub fn contains_entry(&self, name: &Name) -> bool {
+  /// Returns `true` if context contains an entry specified by **name** (a [Name] or its text).
+  pub fn contains_entry<Q: Ord + ?Sized>(&self, name: &Q) -> bool
+  where
+    Name: Borrow<Q>,
+  {
     self.0.contains_key(name)
   }
 
@@ -170,9 +166,14 @@ impl FeelContext {
     self.0.iter().collect::<Vec<(&Name, &Value)>>()
   }
 
-  /// Returns an iterator over all entries in [FeelContext].
-  pub fn iter(&self) -> Iter<'_, Name, Value> {
+  /// Returns an iterator over all entries in [FeelContext], in the order of their names.
+  pub fn iter(&self) -> impl ExactSizeIterator<Item = (&Name, &Value)> {
     self.0.iter()
+  }
+
+  /// Returns an iterator over the names of the entries from the first name not less than `name` on, in their order.
+  pub fn keys_from(&self, name: &str) -> impl Iterator<Item = &Name> {
+    self.0.range::<str, _>((Bound::Included(name), Bound::Unbounded)).map(|(key, _)| key)
   }
 
   /// Returns a first value contained by context.
