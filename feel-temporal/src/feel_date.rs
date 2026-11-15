@@ -99,22 +99,16 @@ impl Ord for FeelDate {
 impl Sub<&FeelDate> for &FeelDate {
   type Output = Option<FeelYearsAndMonthsDuration>;
   /// Subtracts two [FeelDates](FeelDate), the result is [FeelYearsAndMonthsDuration], or `None`
-  /// when it is out of range.
+  /// when it is out of range. The whole months from the earlier date to the later one: the
+  /// difference of their months, one fewer when the day of the later date is below the day of
+  /// the earlier one; negative when `self` is the earlier date, so `a - b` is `-(b - a)`.
   fn sub(self, other: &FeelDate) -> Self::Output {
-    let mut months;
-    if self.0 < other.0 {
-      months = 12 * (other.0 as i64 - self.0 as i64) + (other.1 as i64 - self.1 as i64);
-      if self.2 > other.2 {
-        months -= 1;
-      }
-      months *= -1;
-    } else {
-      months = 12 * (self.0 as i64 - other.0 as i64) + (self.1 as i64 - other.1 as i64);
-      if other.2 > self.2 {
-        months -= 1;
-      }
+    let (earlier, later) = if self < other { (self, other) } else { (other, self) };
+    let mut months = 12 * (later.0 as i64 - earlier.0 as i64) + (later.1 as i64 - earlier.1 as i64);
+    if later.2 < earlier.2 {
+      months -= 1;
     }
-    FeelYearsAndMonthsDuration::from_m(months)
+    FeelYearsAndMonthsDuration::from_m(if self < other { -months } else { months })
   }
 }
 

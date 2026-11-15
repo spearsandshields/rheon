@@ -1590,6 +1590,27 @@ The totals are under "Verification" below.
     (positive durations, a negative one's zero component, `value` and the text) added to
     `requests/temporal.json`. Rust API break (rheon-feel-temporal):
     `FeelYearsAndMonthsDuration::years` and `months` return `u64` magnitudes (were signed `i64`).
+113. **`years and months duration(from, to)` has one rule for both signs.** DMN 1.6 Table 73:
+    "return years and months duration between from and to", with `years and months
+    duration(date("2011-12-22"), date("2013-08-24")) = duration("P1Y8M")`. `&FeelDate - &FeelDate`
+    chose its branch by the year alone, so a negative span inside one year took the day rule of a
+    positive one: from 2020-05-15 to 2020-03-01 was `-P3M`, while from 2020-03-01 to 2020-05-15
+    is `P2M`. Now it orders the two dates: the difference of their months, one fewer when the day
+    of the later date is below the day of the earlier one, negated when `self` is the earlier
+    date, so `a - b` is `-(b - a)`. Positive spans and negative spans across years keep their
+    answers; date and time arguments still compare their dates alone. Test first:
+    `a_negative_span_inside_one_year` and
+    `the_months_between_two_dates_have_one_rule_for_both_signs` (feel-temporal: over a grid of two
+    years, every month and the days 1, 15, 28, 31, antisymmetry, and for an earlier date whose day
+    every month has, `a + (b - a) <= b < a + (b - a) + P1M`) and
+    `the_duration_between_two_dates_has_one_rule_for_both_signs` (feel-evaluator) failed on the
+    parent with `-P3M`. At a month end the day rule and the clamped addition differ
+    (2021-01-31 plus `P1M` is 2021-02-28, while from 2021-01-31 to 2021-02-28 is `P0M`), so the
+    grid's addition test leaves out the days 29 to 31 of the earlier date. Identity: 6 registered
+    differences in `registered/years-and-months-between.json`, with their requests and six
+    controls (the positive twins, a span across years, equal dates, the example of Table 73 and
+    its reverse) added to `requests/temporal.json`. Rust behaviour break (rheon-feel-temporal):
+    `&FeelDate - &FeelDate` gives new results for negative spans inside one year.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

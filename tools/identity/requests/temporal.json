@@ -500,5 +500,17 @@
   {"op":"evaluate","expression":"duration(\"P1Y2M\").months"},
   {"op":"evaluate","expression":"duration(\"-P1Y2M\").value"},
   {"op":"evaluate","expression":"string(duration(\"-P1Y2M\"))"},
-  {"op":"evaluate","expression":"years and months duration(date(\"2021-03-01\"), date(\"2020-01-01\")).years"}
+  {"op":"evaluate","expression":"years and months duration(date(\"2021-03-01\"), date(\"2020-01-01\")).years"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-05-15\"), date(\"2020-03-01\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-05-15\"), date(\"2020-05-01\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-05-01\"), date(\"2020-03-15\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-05-15\"), date(\"2020-03-20\"))"},
+  {"op":"evaluate","expression":"years and months duration(date and time(\"2020-05-15T10:00:00\"), date and time(\"2020-03-01T10:00:00\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-03-01\"), date(\"2020-05-15\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2021-05-15\"), date(\"2020-03-01\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-05-15\"), date(\"2020-05-15\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-01-31\"), date(\"2020-02-29\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2020-02-29\"), date(\"2020-01-31\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2011-12-22\"), date(\"2013-08-24\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2013-08-24\"), date(\"2011-12-22\"))"}
 ]

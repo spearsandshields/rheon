@@ -123,3 +123,23 @@ fn _0013() {
     r#"[core::years and months duration] invalid argument type, expected date, date and time, actual type is number"#,
   );
 }
+
+/// DMN 1.6 Table 73: `years and months duration(from, to)` returns "years and months duration
+/// between from and to", the same whole months in both directions.
+#[test]
+fn the_duration_between_two_dates_has_one_rule_for_both_signs() {
+  let scope = &scope!();
+  te_years_and_months_duration_x(false, scope, r#"years and months duration(date("2020-05-15"), date("2020-03-01"))"#, "-P2M");
+  te_years_and_months_duration_x(false, scope, r#"years and months duration(date("2020-03-01"), date("2020-05-15"))"#, "P2M");
+  te_years_and_months_duration_x(false, scope, r#"years and months duration(date("2020-05-15"), date("2020-05-01"))"#, "P0M");
+  te_years_and_months_duration_x(false, scope, r#"years and months duration(date("2020-05-01"), date("2020-03-15"))"#, "-P1M");
+  te_years_and_months_duration_x(false, scope, r#"years and months duration(date("2020-05-15"), date("2020-03-20"))"#, "-P1M");
+  te_years_and_months_duration_x(
+    false,
+    scope,
+    r#"years and months duration(date and time("2020-05-15T10:00:00"), date and time("2020-03-01T10:00:00"))"#,
+    "-P2M",
+  );
+  te_years_and_months_duration_x(false, scope, r#"years and months duration(date("2021-05-15"), date("2020-03-01"))"#, "-P1Y2M");
+  te_years_and_months_duration_x(false, scope, r#"years and months duration(date("2011-12-22"), date("2013-08-24"))"#, "P1Y8M");
+}
