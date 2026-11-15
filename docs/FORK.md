@@ -495,7 +495,8 @@ a 5,000-entry context literal 19.2 ms → 6.2 ms; `count(for i in 1..10000 retur
 diagnostics, errors) of 1,174 requests (evaluate requests and a parse request made from each)
 equal 0.3.0's except 52 registered differences, all from commits 39, 41, 46, 48, 49 and 53.
 
-Commits 55-84 (0.5.0) make the engine robust at its limits: no input traps the module, every
+Commits 55-84 (0.5.0) make the engine robust at its limits: the inputs that trapped the module
+through a panic no longer do (an input that exhausts the module's memory still traps), every
 message and evaluation is bounded, temporal values are exact at their edges and in their
 fractions, and model loading is bounded. Each change of a wasm answer against 0.4.0 that the
 identity check finds is registered with both answers and counted in its item, except the 544
