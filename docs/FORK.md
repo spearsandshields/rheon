@@ -1725,6 +1725,26 @@ The totals are under "Verification" below.
     Identity: no difference (the wasm module evaluates no decision tables). Rust behaviour break
     (rheon-model-evaluator): `evaluate_invocable_with_mode` counts no error for a decision table
     without a matching rule, and in strict mode returns its value.
+120. **A missing input variable is a defined null whatever its type.** An input variable that
+    is missing from the input context is missing data, and a null the specification defines for
+    its input is no error (DMN 1.6 §7.3.8 covers semantic errors; the owner's list of defined
+    nulls names the missing input variable). A variable of a built-in type gave a bare null with
+    no error, while one whose type is an item definition (model-evaluator, `variable.rs`) gave
+    the counted reason `no name … in context …`, so strict mode failed on it. Now that reason is
+    a note (item 117): the value keeps its text, the count is 0. A structured input that lacks a
+    component stays a counted error: how structured inputs are bound is not changed here. Test
+    first: `a_missing_input_variable_of_an_item_definition_type_is_a_null_with_a_note`
+    (model-evaluator, `input_data.rs`, model `tEmploymentStatus` with the context `{}`) failed on
+    the parent with a count of 1. The same conversion reads the input decisions of a decision
+    service invoked as a whole from the input context, so an input decision of an
+    item-definition type that the context does not supply is the same missing data:
+    `a_missing_input_decision_of_an_item_definition_type_is_a_null_with_a_note`
+    (model-evaluator, `tests/various/dmn_0007`) failed on the parent with a count of 1.
+    Identity: no difference (the wasm module has no input data).
+    Rust behaviour break (rheon-model-evaluator): `evaluate_invocable_with_mode` counts no error
+    for a missing input variable of an item-definition type, nor for such an input decision of
+    a decision service that the context does not supply, and in strict mode no longer fails
+    on it.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -204,7 +204,8 @@ impl Variable {
               .unwrap_or_else(|| value_null!("input data evaluator: item definition evaluator '{}' not found", arg(&variable_type_ref)));
             (variable_name.clone(), evaluated_value)
           } else {
-            (variable_name.clone(), value_null!("no name {} in context {}", arg(&variable_name), arg(&ctx)))
+            // missing data, as for a variable of a built-in type: a null with a note, no error
+            (variable_name.clone(), value_null!(note: "no name {} in context {}", arg(&variable_name), arg(&ctx)))
           }
         } else {
           (variable_name.clone(), value_null!("expected context, actual value is {}", arg(&value)))

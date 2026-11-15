@@ -270,4 +270,17 @@ mod tests {
     assert_eq!(Some((Name::new(&["Full", "Name"]), value_null!())), evaluated);
     assert_eq!(0, diagnostics.count);
   }
+
+  /// An input variable whose type is an item definition and that is missing from the input
+  /// context is missing data as well: the null keeps its reason as a note, which is no error.
+  #[test]
+  fn a_missing_input_variable_of_an_item_definition_type_is_a_null_with_a_note() {
+    let (input_data_evaluator, item_definitions_evaluator) = build_evaluators(DMN_0004);
+    let def_key = DefKey::new(NAMESPACE, "_input_1");
+    let context = rheon_feel_evaluator::evaluate_context(&Default::default(), "{}").unwrap();
+    let (evaluated, diagnostics) = rheon_feel::diagnostics::collect(|| input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator));
+    let note = Value::Null(Some("no name Employment Status in context {}".to_string()));
+    assert_eq!(Some((Name::new(&["Employment", "Status"]), note)), evaluated);
+    assert_eq!(0, diagnostics.count, "{diagnostics:?}");
+  }
 }
