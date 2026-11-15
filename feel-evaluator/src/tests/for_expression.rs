@@ -394,3 +394,14 @@ fn a_later_iteration_context_is_evaluated_in_every_iteration_of_the_earlier_ones
   te_errors("for x in [], y in [1/0] return y", "[]", &[]);
   te_errors(r#"for x in [], y in 1.."a" return y"#, "[]", &[]);
 }
+
+/// A variable named twice in the iteration contexts gives null: the later binding would hide the
+/// earlier one, and keeping either one silently gives an answer the expression did not ask for.
+#[test]
+fn a_repeated_iteration_variable_gives_null() {
+  let reason = "duplicate iteration variable 'i'";
+  te_errors("for i in [1,2], i in [3] return i", &format!("null({reason})"), &[reason]);
+  te_errors("for i in 1..2, j in [3], i in [4] return i", &format!("null({reason})"), &[reason]);
+  te_errors("some i in [1], i in [2] satisfies i = 2", &format!("null({reason})"), &[reason]);
+  te_errors("every i in [1], i in [2] satisfies i = 1", &format!("null({reason})"), &[reason]);
+}

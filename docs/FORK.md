@@ -1950,6 +1950,19 @@ The totals are under "Verification" below.
     `ForExpressionEvaluator`, `SomeExpressionEvaluator` and `EveryExpressionEvaluator` are
     removed; `Iteration` (`boxed`, `collect`, `some`, `every`), `Sequence` (`of`, `empty`,
     `interval`) and `Domain` are added.
+129. **A repeated iteration variable gives null.** DMN 1.6 §10.3.2.14 binds each element "to the
+    corresponding variable", and §10.3.2.15 binds "keys n1, n2, etc." to the elements of the
+    Cartesian product; the text is silent on a variable named twice. With the contexts bound in
+    order (item 128) the later binding hides the earlier one, so `for i in [1,2], i in [3] return
+    i` was `[3, 3]`, where 0.4.0 kept the earlier binding and gave `[1, 2]`. Keeping either
+    binding silently answers a question the expression does not ask, so now the builder checks
+    the names of the iteration contexts of `for`, `some` and `every` (feel-evaluator,
+    `builders.rs`, `iteration`), and a name given twice builds an evaluator of null with the
+    counted reason `duplicate iteration variable 'i'`. The boxed expressions have one variable.
+    Test first: `a_repeated_iteration_variable_gives_null` (`for_expression.rs`) failed on the
+    parent with `[3, 3]`. Identity: the three requests of a repeated variable in
+    `registered/iteration-contexts-see-earlier-variables.json` are amended in place (`for`,
+    `some`, `every`: null with the reason). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

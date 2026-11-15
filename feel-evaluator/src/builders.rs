@@ -714,8 +714,11 @@ impl EvaluatorBuilder {
         }
       }
     }
+    let iteration = match iteration(variables) {
+      Ok(iteration) => iteration,
+      Err(evaluator) => return evaluator,
+    };
     let rhe = self.build(rhs);
-    let iteration = Iteration::for_feel(variables);
     Box::new(move |scope: &FeelScope| iteration.collect(scope, &rhe))
   }
 
@@ -748,7 +751,7 @@ impl EvaluatorBuilder {
         variables.push((name.clone(), self.build_domain(expr_node, false)));
       }
     }
-    Ok(Iteration::for_feel(variables))
+    iteration(variables)
   }
 
   fn build_formal_parameter(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
@@ -2676,6 +2679,17 @@ fn eval_in_unary_greater_or_equal(left: &Value, right: &Value) -> Value {
     _ => {}
   }
   value_null!("eval_in_unary_greater_or_equal")
+}
+
+/// The iteration of a `for`, `some` or `every` expression over `variables`, in order. A variable
+/// named twice builds an evaluator of null instead: the later binding would hide the earlier one.
+fn iteration(variables: Vec<(Name, Domain)>) -> std::result::Result<Iteration, Evaluator> {
+  let mut names = HashSet::new();
+  if let Some((name, _)) = variables.iter().find(|(name, _)| !names.insert(name)) {
+    let name = name.clone();
+    return Err(Box::new(move |_: &FeelScope| value_null!("duplicate iteration variable '{}'", arg(&name))));
+  }
+  Ok(Iteration::for_feel(variables))
 }
 
 fn build_err_msg(err_msg: String) -> Evaluator {
