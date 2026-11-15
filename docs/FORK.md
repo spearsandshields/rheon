@@ -2179,6 +2179,25 @@ their items with both answers. The totals are under "Verification" below.
     `no entry`) with one example explained 3 of the 120 differences, the other 116 stayed
     differences, and the same rule stated as an increase was refused (exit 2, `diagnostics.count:
     1 to 0 is not an increase`). No API change.
+137. **The identity check has request sources and a ledger for the release tier.** Some requests
+    cost the 0.5.0 module seconds each before it exhausts its memory. The two large request sets
+    kept outside the repository were run once against 0.5.0 (7,845 requests with the committed
+    ones, 480 s, peak 3.5 GB): 22 trap both sides, 19 of them on memory exhaustion after more than
+    a second each and 3 at once. The 17 of those 19 that are short texts are committed as
+    `tools/identity/release/requests/memory-exhausting.json`: 15 that double a list or a context
+    30 times through `partial` and then count, compare, search, render or walk it (1.2 to 1.7 s
+    each), and 2 that nest a list or a context 100,000 levels deep by a loop (158 s and 35 s); the
+    other 2 are 2 MB texts (100,000 context entries that each nest the one before, 1.2 s each)
+    and stay in the large set. `tools/identity/run.sh` reads `release/requests/` and the ledger
+    `release/registered/` only with `--release`; otherwise `equal.mjs --exclude` (new) leaves
+    those requests, with their parse twins, out of every other source and counts them in the
+    summary, so no run after a build evaluates them, while a ledger entry is always run.
+    `run.sh --large` adds the sets that `IDENTITY_LARGE_SETS` lists (colon-separated), and the
+    npm scripts `identity` and `identity:large` run the check with and without them. A change
+    that alters the answer of a release-tier request registers it in `release/registered/`; at a
+    release that directory is emptied with `registered/`. `run.sh --release` against 0.5.0: 7,534
+    requests, the 17 trap both modules, 0 differences, 427 s, peak 3.7 GB; the run without it is
+    unchanged (7,502 requests, 0 left out). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

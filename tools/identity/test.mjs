@@ -11,7 +11,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -231,6 +231,53 @@ test('the reference answers each source on its own instance: the order of the so
   const lines = (run) => run.out.split('\n').filter((l) => /^(DIFF|NOT REPRODUCED|MALFORMED) /.test(l)).sort();
   assert.deepEqual(lines(forward), lines(backward));
   assert.equal(summary(forward), summary(backward));
+});
+
+test('--exclude leaves the requests of a source out of every other source and counts them; a ledger entry is still run', () => {
+  const source = file(plain);
+  const excluded = file(plain.slice(0, 2));
+  const run = equal(reference, reference, source, '--parse-too', '--exclude', excluded);
+  assert.equal(run.status, 0, run.out + run.err);
+  // the two requests and their parse twins
+  assert.match(summary(run), /^7 requests \(7 from sources, 2 left out for now\(\)\/today\(\), 4 left out by --exclude, 0 registered, /);
+  const entry = file([{ expression: '1 + 1', why: 'test', old: '2', new: '3' }]);
+  const registered = equal(reference, reference, source, '--exclude', excluded, '--ledger', entry);
+  assert.equal(registered.status, 1, registered.out + registered.err);
+  assert.match(registered.out, /^NOT REPRODUCED /m);
+  assert.match(summary(registered), /\(4 from sources, 1 left out for now\(\)\/today\(\), 2 left out by --exclude, 1 registered, /);
+  assertInputError(equal(reference, reference, source, '--exclude', path.join(dir, 'missing.json')), 'missing.json: not found');
+});
+
+test('run.sh reads the release sources and ledger only with --release, and the large sets only with --large', () => {
+  // run.sh in a tree of its own, with an equal.mjs that prints the arguments it is given
+  const tree = path.join(dir, `tree${++fileCount}`);
+  const identity = path.join(tree, 'tools/identity');
+  for (const d of ['requests', 'registered', 'release/requests', 'release/registered']) mkdirSync(path.join(identity, d), { recursive: true });
+  mkdirSync(path.join(tree, 'wasm/feel-wasm/tests/corpus'), { recursive: true });
+  copyFileSync(path.join(here, 'run.sh'), path.join(identity, 'run.sh'));
+  writeFileSync(path.join(identity, 'equal.mjs'), 'console.log(JSON.stringify(process.argv.slice(2)));\n');
+  const run = (env, ...args) => {
+    const r = spawnSync('bash', [path.join(identity, 'run.sh'), 'ref.wasm', 'cand.wasm', ...args], { encoding: 'utf8', env: { ...process.env, IDENTITY_LARGE_SETS: '', ...env } });
+    return { status: r.status, args: r.status === 0 ? JSON.parse(r.stdout) : null, err: r.stderr };
+  };
+  const after = (args, option) => args.flatMap((a, i) => (args[i - 1] === option ? [a.slice(a.indexOf('/tools/identity/') + 1)] : []));
+  const sources = (args) => args.filter((a, i) => !a.startsWith('--') && !args[i - 1]?.startsWith('--') && i >= 2).map((a) => a.slice(a.indexOf('/tools/') + 1));
+  const plainRun = run({}, '--record', 'out.json');
+  assert.equal(plainRun.status, 0, plainRun.err);
+  assert.deepEqual(after(plainRun.args, '--ledger'), ['tools/identity/registered']);
+  assert.deepEqual(after(plainRun.args, '--exclude'), ['tools/identity/release/requests']);
+  assert.ok(!plainRun.args.some((a) => a.endsWith('release/registered')));
+  assert.deepEqual(plainRun.args.slice(-2), ['--record', 'out.json']);
+  const release = run({}, '--release');
+  assert.equal(release.status, 0, release.err);
+  assert.deepEqual(after(release.args, '--ledger'), ['tools/identity/registered', 'tools/identity/release/registered']);
+  assert.deepEqual(after(release.args, '--exclude'), []);
+  assert.ok(sources(release.args).includes('tools/identity/release/requests'), release.args.join(' '));
+  assert.equal(run({}, '--large').status, 2);
+  const large = run({ IDENTITY_LARGE_SETS: '/sets/a.json:/sets/b' }, '--large');
+  assert.equal(large.status, 0, large.err);
+  assert.ok(large.args.includes('/sets/a.json') && large.args.includes('/sets/b'), large.args.join(' '));
+  assert.deepEqual(after(large.args, '--exclude'), ['tools/identity/release/requests']);
 });
 
 // ------------------------------------------------------------------ rule entries

@@ -22,6 +22,8 @@
     "test:rust:wasm": "bash -c 'source ./scripts/env.sh && cargo test -p rheon-feel-wasm --target wasm32-wasip1'",
     "test:runtime": "npm test -w @rheon/feel-runtime",
     "test:identity": "node --test tools/identity/test.mjs",
+    "identity": "bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm",
+    "identity:large": "bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm --large",
     "smoke": "node scripts/smoke.mjs",
     "stack": "node scripts/stack-headroom.mjs"
   },

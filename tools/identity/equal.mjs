@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Full-response identity of two feel.wasm modules, with a ledger of registered differences.
 //
-//   node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]…
+//   node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--exclude <file|dir>]…
 //                  [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>]
 //                  [--cache <dir> [--verify-cache]]
 //
@@ -9,7 +9,9 @@
 // files are such sources. Every request goes through both modules (raw ABI, node:wasi; a fresh
 // instance after a trap), byte for byte as it is written in its file. Requests that call now() or
 // today() are left out: their answers depend on the clock. With --parse-too, every evaluate
-// request is also sent as a parse request, the same request with `op` set to "parse".
+// request is also sent as a parse request, the same request with `op` set to "parse". --exclude
+// names a source whose requests (with their parse twins) are left out of every source and
+// counted in the summary; a ledger entry is still run.
 //
 // JSON is read losslessly: a number keeps its source text, so a number beyond the range or the
 // precision of a double is sent, keyed and compared as written, in requests, responses and the
@@ -47,15 +49,16 @@ import { checkRule, explainedBy } from './rules.mjs';
 class InputError extends Error {}
 
 function usage(message) {
-  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>] [--cache <dir> [--verify-cache]]`);
+  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--exclude <file|dir>]… [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>] [--cache <dir> [--verify-cache]]`);
 }
 
 function parseArgs(argv) {
-  const options = { positional: [], ledgers: [], parseToo: false, record: null, why: null, explained: null, cache: null, verifyCache: false };
+  const options = { positional: [], ledgers: [], excludes: [], parseToo: false, record: null, why: null, explained: null, cache: null, verifyCache: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => (i + 1 < argv.length ? argv[++i] : usage(`${arg} needs a value`));
     if (arg === '--ledger') options.ledgers.push(value());
+    else if (arg === '--exclude') options.excludes.push(value());
     else if (arg === '--parse-too') options.parseToo = true;
     else if (arg === '--record') options.record = value();
     else if (arg === '--why') options.why = value();
@@ -491,9 +494,21 @@ async function main() {
             const parse = { ...request, op: 'parse' };
             return { label: `${label} (as parse)`, request: parse, text: JSON.stringify(parse) };
           });
-  const twins = sourceUnits.map(twinsOf);
+  // The requests of an excluded source, with their parse twins, are left out of every source; a
+  // ledger entry is run whatever its request.
+  const excludedKeys = new Set((await loadSources(options.excludes)).flatMap((unit) => [...unit.requests, ...twinsOf(unit)]).map(({ request }) => canonical(request)));
+  let leftOut = 0;
+  const kept = (items) =>
+    items.filter((item) => {
+      item.key = canonical(item.request);
+      if (!excludedKeys.has(item.key)) return true;
+      leftOut++;
+      return false;
+    });
+  const twins = sourceUnits.map((unit) => kept(twinsOf(unit)));
+  for (const unit of sourceUnits) unit.requests = kept(unit.requests);
   const sourced = [...sourceUnits.flatMap((unit) => unit.requests), ...twins.flat()];
-  for (const item of [...sourced, ...ledgerUnits.flatMap((unit) => unit.requests)]) item.key = canonical(item.request);
+  for (const item of ledgerUnits.flatMap((unit) => unit.requests)) item.key = canonical(item.request);
 
   // The work list: the requests of every source unit, then their parse twins, then the requests
   // only the ledger lists; the first occurrence of a request wins.
@@ -568,7 +583,7 @@ async function main() {
   }
   const count = (kind) => failures.filter((f) => f.startsWith(kind)).length;
   console.log(
-    `${work.size} requests (${fromSources} from sources, ${excluded} left out for now()/today(), ${ledger.size} registered, ${trapped} trapping the reference): ` +
+    `${work.size} requests (${fromSources} from sources, ${excluded} left out for now()/today(), ${options.excludes.length ? `${leftOut} left out by --exclude, ` : ''}${ledger.size} registered, ${trapped} trapping the reference): ` +
       `${reproduced} registered differences reproduced, ${count('DIFF')} unregistered differences, ` +
       `${count('NOT REPRODUCED')} registered entries not reproduced, ${count('MALFORMED')} malformed responses, ` +
       `${[...byRule.values()].reduce((n, m) => n + m, 0)} differences explained by ${rules.length} rules${rules.length ? ` (${[...byRule].map(([name, n]) => `${name}: ${n}`).join(', ')})` : ''}; ` +
