@@ -2396,6 +2396,31 @@ their items with both answers. The totals are under "Verification" below.
     `values_to_feel_string` and `values_to_jsonify` take `&[Value]` instead of `&Vec<Value>` (a
     `&Vec<Value>` argument compiles as before). `Values` stays `Vec<Value>`, the type of the other
     variants that hold several values.
+151. **Lists and contexts keep their nesting depth.** A limit on how deeply values nest needs the
+    depth of a value where it is produced, and a walk over the whole value there would make every
+    loop quadratic. A list now keeps the nesting depth of its deepest item: a push raises it in
+    constant time and a list built from its items computes it in the same pass (a list has no
+    other way to change). A context remembers its depth once it was read, until an entry changes:
+    every method that changes an entry (`set_entry`, `insert`, `assign_entry`, `remove_entry`,
+    `set_null`, `zip`, `overwrite`, `move_entry`, `create_entries`, `create_entry`,
+    `apply_entries`) goes through one accessor that forgets it, so a write costs one store, and a
+    context that is only written, such as the iteration context of a loop, never computes it; the
+    next read looks at each entry once. The remembered depth is no cache: it is derived from the
+    entries alone, it is exact whenever it is set (it goes from not known to the depth on a read,
+    and back on a change), a clone copies it with the identical entries, and two reads of one
+    context, through any handles and on any threads, store the same number. A context kept exact on every write instead, as a list is,
+    made `count(for i in 1..10000 return i)` 0.70x as fast as 0.5.0 (three writes of the iteration
+    context per item), and 0.88x with the depth of a scalar read inline. The depth of a scalar is 0;
+    a list or a context is one level deeper than the deepest value it holds, so an empty one is
+    1 level deep; a function is one level deeper than its closure context, so 2 when it captures
+    nothing; a range, an interval end, a unary test and the other values that hold values are one
+    level deeper than what they hold. Nothing reads it yet. The
+    tests in `feel/src/tests/depth.rs` change random contexts 60,000 times through every method
+    that writes an entry, build random lists by push, from a vector and from an iterator, and
+    compare each depth with a walk of the whole value, the changes that make a value shallower
+    included. Equality, cloning and the debug forms are unchanged; `Value` stays `Send + Sync`
+    (the remembered depth is an atomic). Identity step: no answer changes; no API change (the
+    depth is read inside `rheon-feel` only).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

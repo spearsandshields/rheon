@@ -431,6 +431,70 @@ impl Value {
     matches!(self, Value::List(_))
   }
 
+  /// The nesting depth of this value: 0 for a scalar; a list or a context is one level deeper
+  /// than the deepest value it holds, so an empty one is 1 level deep (a list keeps its depth, and
+  /// a context remembers it from its first read until its next write); a function is one level
+  /// deeper than its closure context, so 2 when it captures nothing; a range, an interval end, a
+  /// unary test and the other values that hold values are one level deeper than what they hold.
+  #[inline]
+  pub(crate) fn nesting_depth(&self) -> u32 {
+    // lists, contexts and the values that hold none are read where they are, as they are the most common
+    match self {
+      Value::List(list) => list.nesting_depth(),
+      Value::Context(context) => context.nesting_depth(),
+      Value::Null(_) | Value::Number(_) | Value::Boolean(_) | Value::String(_) => 0,
+      other => other.operand_depth(),
+    }
+  }
+
+  /// The nesting depth of the values other than lists, contexts and the most common scalars.
+  #[inline(never)]
+  fn operand_depth(&self) -> u32 {
+    fn deepest<'a>(values: impl Iterator<Item = &'a Value>) -> u32 {
+      values.map(Value::nesting_depth).max().unwrap_or(0).saturating_add(1)
+    }
+    match self {
+      Value::List(list) => list.nesting_depth(),
+      Value::Context(context) => context.nesting_depth(),
+      Value::FunctionDefinition(function) => function.closure_ctx.nesting_depth().saturating_add(1),
+      Value::Range(start, _, end, _) => deepest([start.as_ref(), end.as_ref()].into_iter()),
+      Value::ContextEntry(_, value)
+      | Value::IntervalEnd(value, _)
+      | Value::IntervalStart(value, _)
+      | Value::UnaryGreater(value)
+      | Value::UnaryGreaterOrEqual(value)
+      | Value::UnaryLess(value)
+      | Value::UnaryLessOrEqual(value)
+      | Value::UnaryEqual(value)
+      | Value::UnaryNotEqual(value) => value.nesting_depth().saturating_add(1),
+      Value::ExpressionList(values) | Value::NegatedCommaList(values) | Value::ParameterTypes(values) => deepest(values.iter()),
+      Value::NamedParameters(parameters) => deepest(parameters.values().map(|(value, _)| value)),
+      Value::Boolean(_)
+      | Value::BuiltInFunction(_)
+      | Value::ContextEntryKey(_)
+      | Value::ContextType(_)
+      | Value::ContextTypeEntry(_, _)
+      | Value::ContextTypeEntryKey(_)
+      | Value::Date(_)
+      | Value::DateTime(_)
+      | Value::DaysAndTimeDuration(_)
+      | Value::ExternalJavaFunction(_, _)
+      | Value::ExternalPmmlFunction(_, _)
+      | Value::FeelType(_)
+      | Value::FormalParameter(_, _)
+      | Value::FormalParameters(_)
+      | Value::FunctionBody(_, _)
+      | Value::Irrelevant
+      | Value::Null(_)
+      | Value::Number(_)
+      | Value::ParameterName(_)
+      | Value::QualifiedNameSegment(_)
+      | Value::String(_)
+      | Value::Time(_)
+      | Value::YearsAndMonthsDuration(_) => 0,
+    }
+  }
+
   /// Returns `true` when the value is of type [Value::Range].
   pub fn is_range(&self) -> bool {
     matches!(self, Value::Range(_, _, _, _))

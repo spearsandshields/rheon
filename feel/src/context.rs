@@ -12,13 +12,54 @@ use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::ops::Bound;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 /// Type alias for context entries.
 type FeelContextEntries = BTreeMap<Name, Value>;
 
 /// The FEEL context.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct FeelContext(FeelContextEntries);
+///
+/// A context remembers its nesting depth once it was read, until its entries change: every
+/// method that changes an entry goes through `FeelContext::entries_mut`, which forgets it, so a
+/// change costs one store and a context that is only written (a scope frame) never computes it.
+/// Reading it again after a change looks at each entry once, and an entry that is a list or a
+/// context read since it last changed answers in constant time.
+///
+/// The remembered depth is no cache: it is derived from the entries alone and exact whenever it is
+/// set. It goes from "not known" to the depth on a read and back on a change, a clone copies it
+/// with the identical entries, and no other state is kept. Two reads of one context, through any
+/// handles and on any threads, store the same number, so a context read through a shared handle
+/// stays equal to one never read.
+///
+/// Equality is that of the entries; the debug form is `FeelContext({..})` with the entries.
+#[derive(Default)]
+pub struct FeelContext {
+  entries: FeelContextEntries,
+  /// The nesting depth of this context when it was read since the last change, 0 otherwise
+  /// (a context is at least one level deep).
+  depth: AtomicU32,
+}
+
+impl Clone for FeelContext {
+  fn clone(&self) -> Self {
+    Self {
+      entries: self.entries.clone(),
+      depth: AtomicU32::new(self.depth.load(Ordering::Relaxed)),
+    }
+  }
+}
+
+impl PartialEq for FeelContext {
+  fn eq(&self, other: &Self) -> bool {
+    self.entries == other.entries
+  }
+}
+
+impl fmt::Debug for FeelContext {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_tuple("FeelContext").field(&self.entries).finish()
+  }
+}
 
 impl TryFrom<Value> for FeelContext {
   type Error = DsntkError;
@@ -44,7 +85,7 @@ impl MessageArg for FeelContext {
   }
 
   fn size(&self) -> Option<Size> {
-    Some(Size::Entries(self.0.len()))
+    Some(Size::Entries(self.entries.len()))
   }
 }
 
@@ -54,7 +95,7 @@ impl fmt::Display for FeelContext {
     f.write_str("{")?;
     write_separated(
       f,
-      &self.0,
+      &self.entries,
       |f, (name, value)| {
         if name.is_empty() { write!(f, r#""": {value}"#) } else { write!(f, "{name}: {value}") }
       },
@@ -69,7 +110,7 @@ impl ToFeelString for FeelContext {
     format!(
       "{{{}}}",
       self
-        .0
+        .entries
         .iter()
         .map(|(name, value)| {
           let name_str = format!("{name}");
@@ -92,7 +133,7 @@ impl Jsonify for FeelContext {
     format!(
       "{{{}}}",
       self
-        .0
+        .entries
         .iter()
         .map(|(name, value)| format!(r#""{}": {}"#, name, value.jsonify()))
         .collect::<Vec<String>>()
@@ -112,7 +153,7 @@ impl FeelContext {
   where
     Name: Borrow<Q>,
   {
-    self.0.contains_key(name)
+    self.entries.contains_key(name)
   }
 
   /// Returns `true` if this [FeelContext] contains an entry specified by [QualifiedName].
@@ -122,17 +163,17 @@ impl FeelContext {
 
   /// Returns a value of an entry with specified name.
   pub fn get_entry(&self, name: &Name) -> Option<&Value> {
-    self.0.get(name)
+    self.entries.get(name)
   }
 
   /// Sets a value for specified entry name.
   pub fn set_entry(&mut self, name: &Name, value: Value) {
-    self.0.insert(name.clone(), value);
+    self.put(name.clone(), value);
   }
 
   /// Inserts an entry, taking the name (an entry with the same name is replaced, like [FeelContext::set_entry]).
   pub fn insert(&mut self, name: Name, value: Value) {
-    self.0.insert(name, value);
+    self.put(name, value);
   }
 
   /// Sets a value for specified entry name like [FeelContext::set_entry], but clones the name only
@@ -142,76 +183,77 @@ impl FeelContext {
   /// Returns the value it replaces, or `None` when the entry is new: so a value moved into an entry
   /// is taken back out by assigning a placeholder.
   pub fn assign_entry(&mut self, name: &Name, value: Value) -> Option<Value> {
-    if let Some(entry) = self.0.get_mut(name) {
+    let entries = self.entries_mut();
+    if let Some(entry) = entries.get_mut(name) {
       Some(std::mem::replace(entry, value))
     } else {
-      self.0.insert(name.clone(), value);
+      entries.insert(name.clone(), value);
       None
     }
   }
 
   /// Removes a value of an entry with specified name.
   pub fn remove_entry(&mut self, name: &Name) -> Option<Value> {
-    self.0.remove(name)
+    self.entries_mut().remove(name)
   }
 
   /// Sets a null value for specified entry.
   pub fn set_null(&mut self, name: Name) {
-    self.0.insert(name, value_null!());
+    self.put(name, value_null!());
   }
 
   /// Returns a list of all [FeelContext] entries.
   pub fn get_entries(&self) -> Vec<(&Name, &Value)> {
-    self.0.iter().collect::<Vec<(&Name, &Value)>>()
+    self.entries.iter().collect::<Vec<(&Name, &Value)>>()
   }
 
   /// Returns an iterator over all entries in [FeelContext], in the order of their names.
   pub fn iter(&self) -> impl ExactSizeIterator<Item = (&Name, &Value)> {
-    self.0.iter()
+    self.entries.iter()
   }
 
   /// Returns an iterator over the names of the entries from the first name not less than `name` on, in their order.
   pub fn keys_from(&self, name: &str) -> impl Iterator<Item = &Name> {
-    self.0.range::<str, _>((Bound::Included(name), Bound::Unbounded)).map(|(key, _)| key)
+    self.entries.range::<str, _>((Bound::Included(name), Bound::Unbounded)).map(|(key, _)| key)
   }
 
   /// Returns a first value contained by context.
   pub fn get_first(&self) -> Option<&Value> {
-    self.0.values().next()
+    self.entries.values().next()
   }
 
   /// Returns the number of entries in [FeelContext].
   pub fn len(&self) -> usize {
-    self.0.len()
+    self.entries.len()
   }
 
   /// Returns `true` if [FeelContext] is empty.
   pub fn is_empty(&self) -> bool {
-    self.0.is_empty()
+    self.entries.is_empty()
   }
 
   /// Returns `true` if [FeelContext] contains an entry with specified name, and the value is context.
   pub fn is_context(&self, name: &Name) -> bool {
-    matches!(self.0.get(name), Some(Value::Context(_)))
+    matches!(self.entries.get(name), Some(Value::Context(_)))
   }
 
   pub fn zip(&mut self, other: &FeelContext) {
-    for (name, value) in &other.0 {
-      self.0.insert(name.clone(), value.clone());
+    for (name, value) in &other.entries {
+      self.put(name.clone(), value.clone());
     }
   }
 
   pub fn overwrite(&mut self, other: &FeelContext) {
-    for (name, value) in &other.0 {
-      if self.0.contains_key(name) {
-        self.0.insert(name.clone(), value.clone());
+    for (name, value) in &other.entries {
+      if self.entries.contains_key(name) {
+        self.put(name.clone(), value.clone());
       }
     }
   }
 
   //TODO refactor the name, this operation is not moving, it is like prefixing
   pub fn move_entry(&mut self, name: Name, parent: Name) {
-    if let Some(value) = self.0.remove(&name) {
+    if let Some(value) = self.remove_entry(&name) {
       self.create_entries(&[parent, name], value);
     }
   }
@@ -233,7 +275,7 @@ impl FeelContext {
       return false;
     }
     let tail = &names[1..];
-    if let Some(value) = self.0.get(&names[0]) {
+    if let Some(value) = self.entries.get(&names[0]) {
       if tail.is_empty() {
         return true;
       }
@@ -254,18 +296,18 @@ impl FeelContext {
     let tail = &names[1..];
     // if tail is empty, then insert the value under the key in current context and return
     if tail.is_empty() {
-      self.0.insert(key, value);
+      self.put(key, value);
       return;
     }
     // if there is a context under the key, then insert value to this context and return
-    if let Some(Value::Context(ctx)) = self.0.get_mut(&key) {
+    if let Some(Value::Context(ctx)) = self.entries_mut().get_mut(&key) {
       ctx.create_entries(tail, value);
       return;
     }
     // insert a value from tail to newly created context
     let mut ctx = FeelContext::default();
     ctx.create_entries(tail, value);
-    self.0.insert(key, ctx.into());
+    self.put(key, ctx.into());
   }
 
   /// ???
@@ -278,14 +320,13 @@ impl FeelContext {
     let tail = &names[1..];
     // if tail is empty, then insert the value under the key in current context and return
     if tail.is_empty() {
-      self.0.insert(key, value);
+      self.put(key, value);
       return Ok(());
     }
     // if there is a context under the key, then insert value to this context and return
-    match self.0.get_mut(&key) {
+    match self.entries_mut().get_mut(&key) {
       Some(Value::Context(ctx)) => {
-        ctx.apply_entries(tail, value)?;
-        return Ok(());
+        return ctx.apply_entries(tail, value);
       }
       Some(other) => {
         return Err(err_value_is_not_a_context(other));
@@ -295,7 +336,7 @@ impl FeelContext {
     // insert a value from tail to new created context
     let mut ctx = FeelContext::default();
     ctx.apply_entries(tail, value)?;
-    self.0.insert(key, ctx.into());
+    self.put(key, ctx.into());
     Ok(())
   }
 
@@ -303,7 +344,7 @@ impl FeelContext {
   pub fn search_deep(&self, names: &[Name]) -> Option<&Value> {
     if !names.is_empty() {
       let tail = &names[1..];
-      if let Some(value) = self.0.get(&names[0]) {
+      if let Some(value) = self.entries.get(&names[0]) {
         if let Value::Context(ctx) = value {
           return if tail.is_empty() { Some(value) } else { ctx.search_deep(tail) };
         } else if tail.is_empty() {
@@ -312,5 +353,27 @@ impl FeelContext {
       }
     }
     None
+  }
+
+  /// The nesting depth of this context: one more than that of its deepest entry.
+  pub(crate) fn nesting_depth(&self) -> u32 {
+    let known = self.depth.load(Ordering::Relaxed);
+    if known != 0 {
+      return known;
+    }
+    let depth = self.entries.values().map(Value::nesting_depth).max().unwrap_or(0).saturating_add(1);
+    self.depth.store(depth, Ordering::Relaxed);
+    depth
+  }
+
+  /// The entries, to be changed: the nesting depth is forgotten.
+  fn entries_mut(&mut self) -> &mut FeelContextEntries {
+    *self.depth.get_mut() = 0;
+    &mut self.entries
+  }
+
+  /// Inserts an entry.
+  fn put(&mut self, name: Name, value: Value) {
+    self.entries_mut().insert(name, value);
   }
 }
