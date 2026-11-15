@@ -259,12 +259,12 @@ impl Iteration {
         ctx,
         self.mode,
         body,
-        |iteration_context| iteration_context.assign_entry(&partial, Value::List(std::mem::take(&mut results))),
+        |iteration_context| {
+          iteration_context.assign_entry(&partial, Value::List(std::mem::take(&mut results)));
+        },
         |iteration_context| {
           // the entry stays (with a placeholder) in a moved context; the next iteration sets it again
-          if let Some(entry) = iteration_context.get_entry_mut(&partial)
-            && let Value::List(values) = std::mem::replace(entry, Value::Null(None))
-          {
+          if let Some(Value::List(values)) = iteration_context.assign_entry(&partial, Value::Null(None)) {
             previous_results = Some(values);
           }
         },

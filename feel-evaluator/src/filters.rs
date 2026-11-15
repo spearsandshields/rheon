@@ -99,7 +99,7 @@ fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator)
         };
         special_context = ctx;
         // the entry stays (with a placeholder) for the next item
-        let Some(item) = special_context.get_entry_mut(name_item).map(|entry| std::mem::replace(entry, Value::Null(None))) else {
+        let Some(item) = special_context.assign_entry(name_item, Value::Null(None)) else {
           return Err(lost_context(ITEM_CONTEXT));
         };
         *slot = item;

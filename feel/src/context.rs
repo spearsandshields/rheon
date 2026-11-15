@@ -138,17 +138,16 @@ impl FeelContext {
   /// Sets a value for specified entry name like [FeelContext::set_entry], but clones the name only
   /// when the entry is new: for entries that are written again and again (iteration variables).
   /// For a new entry it costs one more lookup than [FeelContext::set_entry].
-  pub fn assign_entry(&mut self, name: &Name, value: Value) {
+  ///
+  /// Returns the value it replaces, or `None` when the entry is new: so a value moved into an entry
+  /// is taken back out by assigning a placeholder.
+  pub fn assign_entry(&mut self, name: &Name, value: Value) -> Option<Value> {
     if let Some(entry) = self.0.get_mut(name) {
-      *entry = value;
+      Some(std::mem::replace(entry, value))
     } else {
       self.0.insert(name.clone(), value);
+      None
     }
-  }
-
-  /// Returns a mutable reference to the value of an entry with specified name.
-  pub fn get_entry_mut(&mut self, name: &Name) -> Option<&mut Value> {
-    self.0.get_mut(name)
   }
 
   /// Removes a value of an entry with specified name.

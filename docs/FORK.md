@@ -2370,6 +2370,15 @@ their items with both answers. The totals are under "Verification" below.
     they were matched only to display them and to give their type `Any`. Identity step: no answer changes. Rust API (`rheon-feel`): the variants
     `Value::NamedParameter` and `Value::PositionalParameters` are removed (`Value::NamedParameters`
     stays).
+149. **`assign_entry` returns the value it replaces.** `FeelContext::get_entry_mut` handed out a
+    `&mut Value` into a context, a write that the context cannot see; the next commits keep the
+    nesting depth of a context, which such a write would bypass. `FeelContext::assign_entry` now
+    returns the value it replaces (`None` for a new entry), and the two callers of
+    `get_entry_mut` take their value back through it: `for` takes `partial` out of the iteration
+    context, and a filter takes the item out of its `{item: …}` context, by assigning a null
+    placeholder, as they did by hand. When the item context no longer has `item` the filter gives
+    the lost-context null as before. Identity step: no answer changes. Rust API (`rheon-feel`):
+    `FeelContext::get_entry_mut` is removed; `FeelContext::assign_entry` returns `Option<Value>`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
