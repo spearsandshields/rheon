@@ -7,4 +7,5 @@ mod dmn_0004;
 mod dmn_0005;
 mod dmn_0006;
 mod dmn_0007;
+mod dmn_0008;
 mod model_lifetime;

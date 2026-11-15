@@ -2287,6 +2287,19 @@ their items with both answers. The totals are under "Verification" below.
     text built by the test. Identity against 0.5.0: 7,710 requests in 2.7 s uncached and 1.4 s
     cached; with the large sets 7,905; with `--release` 7,766 in 513 s (peak 3.5 GB); 0
     differences. No API change.
+143. **What a boxed context writes into an iteration or an item frame is pinned.** A boxed context
+    writes each named entry into the context on the top of the scope. In the body of a boxed
+    `for` that is the iteration context, as the match of a boxed filter the context of the item;
+    no FEEL expression reaches this path, so the identity check cannot see it. The model of
+    `model-evaluator/src/tests/various/dmn_0008` pins today's answers: an entry written in one
+    iteration or for one item is not seen by the next (`[1, 2, 3]`; `[{a: 2}, {a: 3}]`), nor by
+    the entries before it (`[[0, 10], [0, 20], [0, 30]]`; all three items); an entry named
+    `partial` replaces the results of the iterations before it, by the list it holds (`[3, 1]`
+    for `[x]` over `[1, 2, 3]`) or by no results when it is not a list (`[3]`); an entry named
+    `item` is read by the entries after it and leaves the items as they were (`[2, 3]`); and an
+    entry named as an entry of a context item is not read by the entries after it (`[]` for
+    `a: a * 10` then `a > 15`). A change to how frames are stored or shared that alters one of
+    these answers states it here. Tests only; no API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
