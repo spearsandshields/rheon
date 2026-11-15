@@ -1907,6 +1907,49 @@ The totals are under "Verification" below.
     module has no item definitions). Rust behaviour break (rheon-model-evaluator): an input
     typed by a collection with allowed values takes a list whose elements each satisfy them,
     including the empty list, and a rejected list names its first failing element.
+128. **An iteration context sees the variables bound before it.** DMN 1.6 §10.3.2.14: "Examples
+    of valid iteration contexts are: ... x..x+10", and "A for loop expression will iterate over
+    each element in the iteration context, binding the element to the corresponding variable";
+    §10.3.2.15 binds the variables of `some` and `every` to the elements of the Cartesian
+    product of their contexts, and "When the Cartesian product is empty, the some ... satisfies
+    quantifier returns false and the every ... satisfies quantifier returns true". The DMN TCK
+    (compliance-level-3, 0084-feel-for-loops, "for loop with second iterator depending on first
+    iterator") expects `for x in [[1,2],[3,4]], y in x return y` to be `[1,2,3,4]`. The loops
+    (feel-evaluator, `iterations.rs`) evaluated every context once, before the loop, with one
+    special case for a context that is the bare name of an earlier variable, which did not skip
+    an empty list: `for x in [[1,2],[],[3]], y in x return y` was `[1, 2, 2, 3]`, `for i in 1..3,
+    j in 1..i return j` was null, and `y in x.items` and the contexts of `some` and `every` saw
+    no earlier variable. Now one walk binds the variables of `for`, `some` and `every` in order:
+    the domain of the first is evaluated in the scope of the expression, the domain of each later
+    one in every iteration of the earlier ones with them bound, and a domain without items
+    contributes no iteration. The walk keeps one open sequence per variable, so it has no
+    recursion; a variable whose sequence ended is unbound, and the implicit `partial` of a `for`
+    is unbound while a domain is evaluated, so a domain sees the variables before it only.
+    Numbers and dates of an interval are still produced one at a time, with the rule that a step
+    lost to rounding ends a number interval. The boxed `for`, `some` and `every`
+    (model-evaluator, `boxed_expressions.rs`) use the same walk with their one variable and a
+    copied iteration context. So a later context is evaluated once per iteration of the earlier
+    ones: its errors are counted once per iteration (the message is listed once), and after an
+    empty context it is not evaluated at all. A repeated variable is bound by the later context.
+    Test first: `an_iteration_context_sees_the_variables_bound_before_it` and
+    `a_later_iteration_context_is_evaluated_in_every_iteration_of_the_earlier_ones`
+    (`for_expression.rs`) and `a_quantified_context_sees_the_variables_bound_before_it`
+    (`some_expression.rs`, `every_expression.rs`) failed on the parent with `[1, 2, 2, 3]`, a
+    count of 1, `false` and null. `tests/iterations.rs` is rewritten against `Iteration` and
+    `Sequence`; its dependent case with an empty list now has no iteration for it. The BACKLOG
+    entry on an empty list in a `for` with a dependent variable is removed. TCK 0003, 0016,
+    0033, 0084, 1152, 1153 and 1154 pass as before. Identity: 21 registered differences in
+    `registered/iteration-contexts-see-earlier-variables.json`, all requests of the new committed
+    source `requests/iteration.json` (47 requests: dependent, independent and single contexts,
+    errors in later contexts, empty contexts, `partial`, repeated variables, `some` and `every`).
+    Speed (the median of the wasm engine, Apple M2, against the module before this change):
+    single-variable loops of 10,000 iterations 0.92 to 1.02, independent two-variable loops of
+    10,000 iterations 0.80 to 0.97, the dependent loop `for x in xs, y in x` over 100 lists of
+    100 numbers 0.20 (the value of each earlier variable was copied again in every iteration);
+    against 0.4.0 0.79 to 0.93 and 0.18. Rust API break (rheon-feel-evaluator):
+    `ForExpressionEvaluator`, `SomeExpressionEvaluator` and `EveryExpressionEvaluator` are
+    removed; `Iteration` (`boxed`, `collect`, `some`, `every`), `Sequence` (`of`, `empty`,
+    `interval`) and `Domain` are added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

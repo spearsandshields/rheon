@@ -3,7 +3,7 @@
 use crate::FilterExpressionEvaluator;
 use crate::bfeel::{self, Dialect};
 use crate::invocation::{Arguments, guarded, invoke};
-use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
+use crate::iterations::{Domain, Iteration, Sequence};
 use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
 use rheon_feel::bip::*;
@@ -693,74 +693,62 @@ impl EvaluatorBuilder {
   }
 
   fn build_for(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
-    enum IteratorType {
-      Interval((Name, Evaluator, Evaluator)),
-      Range((Name, Evaluator, Evaluator)),
-      List((Name, Evaluator)),
-      Variable((Name, Name)),
-    }
-    let rhe = self.build(rhs);
-    let mut evaluators = vec![];
-    let mut binding_variables = HashSet::new();
+    let mut variables = vec![];
     if let AstNode::IterationContexts(items) = lhs {
       for item in items {
         match item {
-          AstNode::IterationContextInterval(variable_name, interval_start_node, interval_end_node) => {
+          AstNode::IterationContextInterval(variable_name, start_node, end_node) => {
             if let AstNode::Name(name) = variable_name.borrow() {
-              let interval_start_evaluator = self.build(interval_start_node);
-              let interval_end_evaluator = self.build(interval_end_node);
-              evaluators.push(IteratorType::Interval((name.clone(), interval_start_evaluator, interval_end_evaluator)));
-              binding_variables.insert(name.clone());
+              let start_evaluator = self.build(start_node);
+              let end_evaluator = self.build(end_node);
+              let domain: Domain = Box::new(move |scope: &FeelScope| Sequence::interval(start_evaluator(scope), end_evaluator(scope)));
+              variables.push((name.clone(), domain));
             }
           }
           AstNode::IterationContextSingle(variable_name, expr_node) => {
             if let AstNode::Name(name) = variable_name.borrow() {
-              if let AstNode::Name(variable_name) = expr_node.borrow()
-                && binding_variables.contains(variable_name)
-              {
-                evaluators.push(IteratorType::Variable((name.clone(), variable_name.clone())));
-                binding_variables.insert(name.clone());
-                continue; // JUMP TO THE NEXT ITERATION, DO NOT MISS THIS LINE WHEN ANALYZING THE CODE!
-              }
-              if let AstNode::Range(range_start_node, range_end_node) = expr_node.borrow() {
-                let range_start_evaluator = self.build(range_start_node);
-                let range_end_evaluator = self.build(range_end_node);
-                evaluators.push(IteratorType::Range((name.clone(), range_start_evaluator, range_end_evaluator)));
-                binding_variables.insert(name.clone());
-              } else {
-                evaluators.push(IteratorType::List((name.clone(), self.build(expr_node))));
-                binding_variables.insert(name.clone());
-              };
+              variables.push((name.clone(), self.build_domain(expr_node, true)));
             }
           }
           _ => {}
         }
       }
     }
-    Box::new(move |scope: &FeelScope| {
-      let mut for_expression_evaluator = ForExpressionEvaluator::for_feel();
-      for iterator_type in &evaluators {
-        match iterator_type {
-          IteratorType::Interval((name, interval_start_evaluator, interval_end_evaluator)) => {
-            if let Err(reason) = for_expression_evaluator.add_interval(name.clone(), interval_start_evaluator(scope), interval_end_evaluator(scope)) {
-              return value_null!(reason);
-            }
-          }
-          IteratorType::Range((name, range_start_evaluator, range_end_evaluator)) => {
-            if let Err(reason) = for_expression_evaluator.add_range(name.clone(), range_start_evaluator(scope), range_end_evaluator(scope)) {
-              return value_null!(reason);
-            }
-          }
-          IteratorType::List((name, list_evaluator)) => {
-            for_expression_evaluator.add_list(name.clone(), list_evaluator(scope));
-          }
-          IteratorType::Variable((name, variable_name)) => {
-            for_expression_evaluator.add_variable(name.clone(), variable_name.clone());
-          }
-        }
+    let rhe = self.build(rhs);
+    let iteration = Iteration::for_feel(variables);
+    Box::new(move |scope: &FeelScope| iteration.collect(scope, &rhe))
+  }
+
+  /// The domain of an iteration variable: the items of the value of `node`. In a `for`
+  /// expression (`range_literal`) a range literal `[a..b]` is the numbers or dates it contains.
+  fn build_domain(&mut self, node: &AstNode, range_literal: bool) -> Domain {
+    match node {
+      AstNode::Range(start_node, end_node) if range_literal => {
+        let start_evaluator = self.build(start_node);
+        let end_evaluator = self.build(end_node);
+        Box::new(move |scope: &FeelScope| Sequence::range(start_evaluator(scope), end_evaluator(scope)))
       }
-      for_expression_evaluator.evaluate(scope, &rhe)
-    })
+      _ => {
+        let evaluator = self.build(node);
+        Box::new(move |scope: &FeelScope| Ok(Sequence::of(evaluator(scope))))
+      }
+    }
+  }
+
+  /// The iteration of a `some` or an `every` expression: its quantified contexts, in order.
+  fn build_quantified_contexts(&mut self, lhs: &AstNode) -> std::result::Result<Iteration, Evaluator> {
+    let AstNode::QuantifiedContexts(items) = lhs else {
+      return Err(build_err_msg(err_msg_expected_node("QuantifiedContexts", lhs)));
+    };
+    let mut variables = vec![];
+    for item in items {
+      if let AstNode::QuantifiedContext(variable_name, expr_node) = item
+        && let AstNode::Name(name) = variable_name.borrow()
+      {
+        variables.push((name.clone(), self.build_domain(expr_node, false)));
+      }
+    }
+    Ok(Iteration::for_feel(variables))
   }
 
   fn build_formal_parameter(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
@@ -901,29 +889,21 @@ impl EvaluatorBuilder {
   }
 
   fn build_every(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
-    let mut expr_evaluators = vec![];
-    let AstNode::QuantifiedContexts(items) = lhs else {
-      return build_err_msg(err_msg_expected_node("QuantifiedContexts", lhs));
+    self.build_quantified(lhs, rhs, Iteration::every)
+  }
+
+  /// Builds a `some` or an `every` expression: the iteration contexts of `lhs`, the `satisfies`
+  /// body of `rhs`, and the `quantifier` that evaluates the body over the contexts.
+  fn build_quantified(&mut self, lhs: &AstNode, rhs: &AstNode, quantifier: fn(&Iteration, &FeelScope, &Evaluator) -> Value) -> Evaluator {
+    let iteration = match self.build_quantified_contexts(lhs) {
+      Ok(iteration) => iteration,
+      Err(evaluator) => return evaluator,
     };
-    for item in items {
-      if let AstNode::QuantifiedContext(variable_name, expr_node) = item
-        && let AstNode::Name(name) = variable_name.borrow()
-      {
-        let evaluator_single = self.build(expr_node);
-        expr_evaluators.push((name.clone(), evaluator_single));
-      }
-    }
     let AstNode::Satisfies(satisfies) = rhs else {
-      return build_err_msg(err_msg_expected_node("Satisfies", lhs));
+      return build_err_msg(err_msg_expected_node("Satisfies", rhs));
     };
     let satisfies_evaluator = self.build(satisfies);
-    Box::new(move |scope: &FeelScope| {
-      let mut expression_evaluator = EveryExpressionEvaluator::for_feel();
-      for (name, expr_evaluator) in &expr_evaluators {
-        expression_evaluator.add_list(name.clone(), expr_evaluator(scope));
-      }
-      expression_evaluator.evaluate(scope, &satisfies_evaluator)
-    })
+    Box::new(move |scope: &FeelScope| quantifier(&iteration, scope, &satisfies_evaluator))
   }
 
   fn build_function_invocation(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
@@ -1702,29 +1682,7 @@ impl EvaluatorBuilder {
   }
 
   fn build_some(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
-    let mut expr_evaluators = vec![];
-    let AstNode::QuantifiedContexts(items) = lhs else {
-      return build_err_msg(err_msg_expected_node("QuantifiedContexts", lhs));
-    };
-    for item in items {
-      if let AstNode::QuantifiedContext(variable_name, expr_node) = item
-        && let AstNode::Name(name) = variable_name.borrow()
-      {
-        let evaluator_single = self.build(expr_node);
-        expr_evaluators.push((name.clone(), evaluator_single));
-      }
-    }
-    let AstNode::Satisfies(satisfies) = rhs else {
-      return build_err_msg(err_msg_expected_node("Satisfies", lhs));
-    };
-    let satisfies_evaluator = self.build(satisfies);
-    Box::new(move |scope: &FeelScope| {
-      let mut expression_evaluator = SomeExpressionEvaluator::for_feel();
-      for (name, expr_evaluator) in &expr_evaluators {
-        expression_evaluator.add_list(name.clone(), expr_evaluator(scope));
-      }
-      expression_evaluator.evaluate(scope, &satisfies_evaluator)
-    })
+    self.build_quantified(lhs, rhs, Iteration::some)
   }
 
   fn build_string(&mut self, lhs: &str) -> Evaluator {

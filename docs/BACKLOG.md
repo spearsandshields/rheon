@@ -83,11 +83,6 @@ was written.
   reads such a part only right after an additional name symbol (`.`, `/`, `-`, `'`, `+`, `*`).
   The composite search visits up to (nested contexts) × (separators in the candidate + 1)
   states per candidate.
-- **An empty list in a `for` with a dependent variable** `[fork]`.
-  `for x in [[1,2],[],[3]], y in x return y` is `[1, 2, 2, 3]`, not `[1, 2, 3]`: when the list of
-  `y` is empty the iteration is not skipped, and `y` keeps its value from the iteration before.
-  DMN 1.6 §10.3.2.14: an empty iteration context contributes no iteration.
-  `feel-evaluator/src/tests/iterations.rs` `_0020` pins the sequence as it is.
 - **Filters evaluate their expression once more in the outer scope** `[fork]`. After
   evaluating the expression for every item, the filter evaluates it once in the enclosing scope
   to decide between indexing and filtering (`FilterExpressionEvaluator::evaluate`). A predicate

@@ -26,5 +26,5 @@ pub use crate::bfeel::Dialect;
 pub use crate::evaluators::*;
 pub use crate::filters::FilterExpressionEvaluator;
 pub use crate::invocation::MAX_CALL_DEPTH;
-pub use crate::iterations::{EveryExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator};
+pub use crate::iterations::{Domain, Iteration, Sequence};
 pub use crate::session::{Outcome, Session};

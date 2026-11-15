@@ -10,7 +10,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
-use rheon_feel_evaluator::{EveryExpressionEvaluator, FilterExpressionEvaluator, ForExpressionEvaluator, SomeExpressionEvaluator, evaluate_invocation};
+use rheon_feel_evaluator::{Domain, FilterExpressionEvaluator, Iteration, Sequence, evaluate_invocation};
 use rheon_feel_parser::{ClosureBuilder, parse_name};
 use rheon_model::*;
 use std::sync::Arc;
@@ -373,23 +373,16 @@ pub fn build_for_evaluator(scope: &FeelScope, r#for: &For, model_builder: &Model
   let (return_evaluator, _) = build_expression_instance_evaluator(scope, r#for.return_expression().value(), model_builder)?;
   scope.pop();
   // prepare `for` evaluator
-  let evaluator = Box::new(move |scope: &FeelScope| {
-    let mut for_expression_evaluator = ForExpressionEvaluator::default();
-    let iterator_variable = iterator_variable.clone();
-    match in_evaluator(scope) {
-      value @ Value::List(_) => for_expression_evaluator.add_list(iterator_variable, value),
-      Value::Range(start, IntervalType::Closed, end, IntervalType::Closed) => {
-        if let Err(reason) = for_expression_evaluator.add_interval(iterator_variable, *start, *end) {
-          return value_null!(reason);
-        }
-      }
-      // null in the `in` row: unspecified, iterates over nothing (as before)
-      Value::Null(_) => {}
-      // any other value is a singleton list (DMN 1.6 boxed for, implicit conversion, DMN16-94)
-      value => for_expression_evaluator.add_list(iterator_variable, Value::List(vec![value])),
-    }
-    for_expression_evaluator.evaluate(scope, &return_evaluator)
+  let domain: Domain = Box::new(move |scope: &FeelScope| match in_evaluator(scope) {
+    value @ Value::List(_) => Ok(Sequence::of(value)),
+    Value::Range(start, IntervalType::Closed, end, IntervalType::Closed) => Sequence::interval(*start, *end),
+    // null in the `in` row: unspecified, iterates over nothing
+    Value::Null(_) => Ok(Sequence::empty()),
+    // any other value is a singleton list (DMN 1.6 boxed for, implicit conversion)
+    value => Ok(Sequence::of(value)),
   });
+  let iteration = Iteration::boxed(iterator_variable, domain);
+  let evaluator = Box::new(move |scope: &FeelScope| iteration.collect(scope, &return_evaluator));
   Ok((build_coerced_result_evaluator(evaluator, r#for, r#for.namespace(), model_builder), Closure::default()))
 }
 
@@ -406,13 +399,8 @@ pub fn build_every_evaluator(scope: &FeelScope, every: &Every, model_builder: &M
   let (satisfies_evaluator, _) = build_expression_instance_evaluator(scope, every.satisfies_expression().value(), model_builder)?;
   scope.pop();
   // prepare `every` evaluator
-  let evaluator = Box::new(move |scope: &FeelScope| {
-    let mut every_expression_evaluator = EveryExpressionEvaluator::default();
-    let iterator_variable = iterator_variable.clone();
-    let in_clause = in_evaluator(scope);
-    every_expression_evaluator.add_list(iterator_variable, in_clause);
-    every_expression_evaluator.evaluate(scope, &satisfies_evaluator)
-  });
+  let iteration = Iteration::boxed(iterator_variable, Box::new(move |scope: &FeelScope| Ok(Sequence::of(in_evaluator(scope)))));
+  let evaluator = Box::new(move |scope: &FeelScope| iteration.every(scope, &satisfies_evaluator));
   Ok((build_coerced_result_evaluator(evaluator, every, every.namespace(), model_builder), Closure::default()))
 }
 
@@ -429,13 +417,8 @@ pub fn build_some_evaluator(scope: &FeelScope, some: &Some, model_builder: &Mode
   let (satisfies_evaluator, _) = build_expression_instance_evaluator(scope, some.satisfies_expression().value(), model_builder)?;
   scope.pop();
   // prepare `some` evaluator
-  let evaluator = Box::new(move |scope: &FeelScope| {
-    let mut some_expression_evaluator = SomeExpressionEvaluator::default();
-    let iterator_variable = iterator_variable.clone();
-    let in_clause = in_evaluator(scope);
-    some_expression_evaluator.add_list(iterator_variable, in_clause);
-    some_expression_evaluator.evaluate(scope, &satisfies_evaluator)
-  });
+  let iteration = Iteration::boxed(iterator_variable, Box::new(move |scope: &FeelScope| Ok(Sequence::of(in_evaluator(scope)))));
+  let evaluator = Box::new(move |scope: &FeelScope| iteration.some(scope, &satisfies_evaluator));
   Ok((build_coerced_result_evaluator(evaluator, some, some.namespace(), model_builder), Closure::default()))
 }
 

@@ -1,256 +1,66 @@
-use crate::iterations::{FeelIterator, ForExpressionEvaluator};
+use crate::iterations::{Domain, Iteration, Sequence};
 use crate::tests::te_scope;
-use rheon_feel::values::{Value, Values, values_to_string};
-use rheon_feel::{FeelNumber, value_number};
+use rheon_feel::values::{Value, values_to_string};
+use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name, value_number};
 use rheon_feel_temporal::FeelDate;
-use std::ops::ControlFlow;
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 
-/// The iteration contexts of all iterations of `iterator`, as text.
-fn iterated(iterator: &mut FeelIterator) -> Vec<String> {
-  let mut contexts = vec![];
-  iterator.iterate_while(|ctx| {
-    contexts.push(ctx.to_string());
-    ControlFlow::Continue(())
-  });
-  contexts
-}
-
-/// The iteration contexts as the text of a list.
-fn listed(contexts: &[String]) -> String {
-  format!("[{}]", contexts.join(", "))
-}
-
-#[test]
-fn _0001() {
-  let mut iterator = FeelIterator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(3), false).unwrap();
-  let actual = iterated(&mut iterator);
-  assert_eq!(3, actual.len());
-  assert_eq!(r#"[{x: 1}, {x: 2}, {x: 3}]"#, listed(&actual));
-}
-
-#[test]
-fn _0002() {
-  let mut iterator = FeelIterator::new();
-  iterator.add_interval("x".into(), value_number!(3), value_number!(1), false).unwrap();
-  let actual = iterated(&mut iterator);
-  assert_eq!(3, actual.len());
-  assert_eq!(r#"[{x: 3}, {x: 2}, {x: 1}]"#, listed(&actual));
-}
-
-#[test]
-fn _0003() {
-  let mut iterator = FeelIterator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(3), false).unwrap();
-  iterator.add_interval("y".into(), value_number!(1), value_number!(5), false).unwrap();
-  let actual = iterated(&mut iterator);
-  assert_eq!(15, actual.len());
-  assert_eq!(
-    r#"[{x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}, {x: 1, y: 4}, {x: 1, y: 5}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 2, y: 3}, {x: 2, y: 4}, {x: 2, y: 5}, {x: 3, y: 1}, {x: 3, y: 2}, {x: 3, y: 3}, {x: 3, y: 4}, {x: 3, y: 5}]"#,
-    listed(&actual)
-  );
-}
-
-#[test]
-fn _0004() {
-  let mut iterator = FeelIterator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(3), false).unwrap();
-  iterator.add_interval("y".into(), value_number!(5), value_number!(1), false).unwrap();
-  let actual = iterated(&mut iterator);
-  assert_eq!(15, actual.len());
-  assert_eq!(
-    r#"[{x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}, {x: 1, y: 2}, {x: 1, y: 1}, {x: 2, y: 5}, {x: 2, y: 4}, {x: 2, y: 3}, {x: 2, y: 2}, {x: 2, y: 1}, {x: 3, y: 5}, {x: 3, y: 4}, {x: 3, y: 3}, {x: 3, y: 2}, {x: 3, y: 1}]"#,
-    listed(&actual)
-  );
-}
-
-#[test]
-fn _0005() {
-  let mut iterator = FeelIterator::new();
-  iterator.add_interval("x".into(), value_number!(3), value_number!(1), false).unwrap();
-  iterator.add_interval("y".into(), value_number!(5), value_number!(1), false).unwrap();
-  let actual = iterated(&mut iterator);
-  assert_eq!(15, actual.len());
-  assert_eq!(
-    r#"[{x: 3, y: 5}, {x: 3, y: 4}, {x: 3, y: 3}, {x: 3, y: 2}, {x: 3, y: 1}, {x: 2, y: 5}, {x: 2, y: 4}, {x: 2, y: 3}, {x: 2, y: 2}, {x: 2, y: 1}, {x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}, {x: 1, y: 2}, {x: 1, y: 1}]"#,
-    listed(&actual)
-  );
-}
-
-#[test]
-fn _0006() {
-  let mut iterator = FeelIterator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(2), false).unwrap();
-  iterator.add_interval("y".into(), value_number!(1), value_number!(3), false).unwrap();
-  iterator.add_interval("z".into(), value_number!(1), value_number!(4), false).unwrap();
-  let actual = iterated(&mut iterator);
-  assert_eq!(24, actual.len());
-  assert_eq!(
-    r#"[{x: 1, y: 1, z: 1}, {x: 1, y: 1, z: 2}, {x: 1, y: 1, z: 3}, {x: 1, y: 1, z: 4}, {x: 1, y: 2, z: 1}, {x: 1, y: 2, z: 2}, {x: 1, y: 2, z: 3}, {x: 1, y: 2, z: 4}, {x: 1, y: 3, z: 1}, {x: 1, y: 3, z: 2}, {x: 1, y: 3, z: 3}, {x: 1, y: 3, z: 4}, {x: 2, y: 1, z: 1}, {x: 2, y: 1, z: 2}, {x: 2, y: 1, z: 3}, {x: 2, y: 1, z: 4}, {x: 2, y: 2, z: 1}, {x: 2, y: 2, z: 2}, {x: 2, y: 2, z: 3}, {x: 2, y: 2, z: 4}, {x: 2, y: 3, z: 1}, {x: 2, y: 3, z: 2}, {x: 2, y: 3, z: 3}, {x: 2, y: 3, z: 4}]"#,
-    listed(&actual)
-  );
-}
-
-#[test]
-fn _0007() {
-  let mut iterator = FeelIterator::new();
-  let list = vec![Value::String("a".into()), Value::String("b".into()), Value::String("c".into())];
-  iterator.add_list("x".into(), Value::List(list));
-  let actual = iterated(&mut iterator);
-  assert_eq!(3, actual.len());
-  assert_eq!(r#"[{x: "a"}, {x: "b"}, {x: "c"}]"#, listed(&actual));
-}
-
-#[test]
-fn _0008() {
-  let mut iterator = FeelIterator::new();
-  let list1 = vec![Value::String("a".into()), Value::String("b".into()), Value::String("c".into())];
-  iterator.add_list("x".into(), Value::List(list1));
-  let list2 = vec![value_number!(1), value_number!(2), value_number!(3)];
-  iterator.add_list("y".into(), Value::List(list2));
-  let actual = iterated(&mut iterator);
-  assert_eq!(9, actual.len());
-  assert_eq!(
-    r#"[{x: "a", y: 1}, {x: "a", y: 2}, {x: "a", y: 3}, {x: "b", y: 1}, {x: "b", y: 2}, {x: "b", y: 3}, {x: "c", y: 1}, {x: "c", y: 2}, {x: "c", y: 3}]"#,
-    listed(&actual)
-  );
-}
-
-#[test]
-fn _0009() {
-  let mut iterator = FeelIterator::new();
-  let list_x = vec![Value::String("a".into()), Value::String("b".into())];
-  let list_y = vec![value_number!(1), value_number!(2), value_number!(3)];
-  let list_z = vec![value_number!(1), value_number!(2), value_number!(3), value_number!(4)];
-  iterator.add_list("x".into(), Value::List(list_x));
-  iterator.add_list("y".into(), Value::List(list_y));
-  iterator.add_list("z".into(), Value::List(list_z));
-  let actual = iterated(&mut iterator);
-  assert_eq!(24, actual.len());
-  assert_eq!(
-    r#"[{x: "a", y: 1, z: 1}, {x: "a", y: 1, z: 2}, {x: "a", y: 1, z: 3}, {x: "a", y: 1, z: 4}, {x: "a", y: 2, z: 1}, {x: "a", y: 2, z: 2}, {x: "a", y: 2, z: 3}, {x: "a", y: 2, z: 4}, {x: "a", y: 3, z: 1}, {x: "a", y: 3, z: 2}, {x: "a", y: 3, z: 3}, {x: "a", y: 3, z: 4}, {x: "b", y: 1, z: 1}, {x: "b", y: 1, z: 2}, {x: "b", y: 1, z: 3}, {x: "b", y: 1, z: 4}, {x: "b", y: 2, z: 1}, {x: "b", y: 2, z: 2}, {x: "b", y: 2, z: 3}, {x: "b", y: 2, z: 4}, {x: "b", y: 3, z: 1}, {x: "b", y: 3, z: 2}, {x: "b", y: 3, z: 3}, {x: "b", y: 3, z: 4}]"#,
-    listed(&actual)
-  );
-}
-
-#[test]
-fn _0010() {
-  let mut iterator = FeelIterator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(2), false).unwrap();
-  iterator.add_list("y".into(), Value::List(vec![value_number!(1), value_number!(2), value_number!(3)]));
-  let actual = iterated(&mut iterator);
-  assert_eq!(6, actual.len());
-  assert_eq!(r#"[{x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}, {x: 2, y: 1}, {x: 2, y: 2}, {x: 2, y: 3}]"#, listed(&actual));
-}
-
-#[test]
-fn _0011() {
-  let mut iterator = ForExpressionEvaluator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(3)).unwrap();
-  let scope = &te_scope(r#"{x:null}"#);
-  let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
-  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
-    panic!("expected a list")
-  };
-  assert_eq!(3, actual.len());
-  assert_eq!(r#"[2, 3, 4]"#, values_to_string(&actual));
-}
-
-#[test]
-fn _0012() {
-  let mut iterator = ForExpressionEvaluator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(2)).unwrap();
-  iterator.add_list("y".into(), Value::List(vec![value_number!(5), value_number!(6), value_number!(7)]));
-  let scope = &te_scope(r#"{x:null,y:null}"#);
-  let node = rheon_feel_parser::parse_expression(scope, "x+y", false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
-  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
-    panic!("expected a list")
-  };
-  assert_eq!(6, actual.len());
-  assert_eq!(r#"[6, 7, 8, 7, 8, 9]"#, values_to_string(&actual));
-}
-
-#[test]
-fn _0013() {
-  let mut iterator = ForExpressionEvaluator::new();
-  iterator.add_list("x".into(), Value::List(Values::default()));
-  let scope = &te_scope(r#"{x:null}"#);
-  let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
-  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
-    panic!("expected a list")
-  };
-  assert_eq!(0, actual.len());
-  assert_eq!(r#"[]"#, values_to_string(&actual));
-}
-
-#[test]
-fn _0014() {
-  let mut iterator = ForExpressionEvaluator::new();
-  iterator.add_list("x".into(), value_number!(1));
-  let scope = &te_scope(r#"{x:null}"#);
-  let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
-  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
-    panic!("expected a list")
-  };
-  assert_eq!(1, actual.len());
-  assert_eq!(r#"[2]"#, values_to_string(&actual));
-}
-
-#[test]
-fn _0015() {
-  let mut iterator = ForExpressionEvaluator::new();
-  iterator.add_interval("x".into(), value_number!(1), value_number!(2)).unwrap();
-  iterator.add_list("y".into(), Value::List(Values::default()));
-  let scope = &te_scope(r#"{x:null,y:null}"#);
-  let node = rheon_feel_parser::parse_expression(scope, "x+1", false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
-  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
-    panic!("expected a list")
-  };
-  assert_eq!(0, actual.len());
-  assert_eq!(r#"[]"#, values_to_string(&actual));
-}
-
-#[test]
-fn _0016() {
-  let mut iterator = ForExpressionEvaluator::new();
-  let list = Value::List(vec![value_number!(1), value_number!(2), value_number!(3), value_number!(4)]);
-  iterator.add_list("x".into(), list);
-  iterator.add_variable("y".into(), "x".into());
-  let scope = &te_scope(r#"{x:null,y:null}"#);
-  let node = rheon_feel_parser::parse_expression(scope, "y", false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
-  let Value::List(actual) = iterator.evaluate(scope, &evaluator) else {
-    panic!("expected a list")
-  };
-  assert_eq!(4, actual.len());
-  assert_eq!(r#"[1, 2, 3, 4]"#, values_to_string(&actual));
-}
-
-/// One iteration context of a test iterator: an interval, a list, or a variable iterating over
-/// the value of another variable.
+/// One iteration context of a test iteration: an interval, a list, or a variable iterating over
+/// the value of a variable before it.
 enum State {
   Interval(&'static str, Value, Value),
   List(&'static str, Value),
   Variable(&'static str, &'static str),
 }
 
-/// An iterator over `states`, in this order (the last one advances fastest).
-fn iterator(states: &[State]) -> FeelIterator {
-  let mut iterator = FeelIterator::new();
-  for state in states {
-    match state {
-      State::Interval(name, start, end) => iterator.add_interval((*name).into(), start.clone(), end.clone(), false).unwrap(),
-      State::List(name, value) => iterator.add_list((*name).into(), value.clone()),
-      State::Variable(name, bound) => iterator.add_variable((*name).into(), (*bound).into()),
-    }
+/// The iteration of `states`, in this order (the last one advances fastest).
+fn iteration(states: &[State]) -> Iteration {
+  let variables = states
+    .iter()
+    .map(|state| -> (Name, Domain) {
+      match state {
+        State::Interval(name, start, end) => {
+          let (start, end) = (start.clone(), end.clone());
+          ((*name).into(), Box::new(move |_: &FeelScope| Sequence::interval(start.clone(), end.clone())))
+        }
+        State::List(name, value) => {
+          let value = value.clone();
+          ((*name).into(), Box::new(move |_: &FeelScope| Ok(Sequence::of(value.clone()))))
+        }
+        State::Variable(name, bound) => {
+          let bound = Name::from(*bound);
+          (
+            (*name).into(),
+            Box::new(move |scope: &FeelScope| Ok(Sequence::of(scope.get_value(&bound).unwrap_or(Value::Null(None))))),
+          )
+        }
+      }
+    })
+    .collect();
+  Iteration::for_feel(variables)
+}
+
+/// The iteration contexts of the first `limit` iterations of `states`, as text: the body of an
+/// `every` expression that records the context on the top of the scope.
+fn visited(states: &[State], limit: usize) -> String {
+  let seen = Arc::new(Mutex::new(vec![]));
+  let recorded = Arc::clone(&seen);
+  let body: Evaluator = Box::new(move |scope: &FeelScope| {
+    let mut seen = recorded.lock().unwrap();
+    seen.push(scope.peek().unwrap().to_string());
+    Value::Boolean(seen.len() < limit)
+  });
+  iteration(states).every(&FeelScope::default(), &body);
+  let seen = seen.lock().unwrap();
+  format!("[{}]", seen.join(", "))
+}
+
+/// Checks the iteration contexts of every iteration in `cases`.
+fn check(cases: Vec<(Vec<State>, &str)>) {
+  for (index, (states, expected)) in cases.iter().enumerate() {
+    assert_eq!(*expected, visited(states, usize::MAX), "case {}", index + 1);
   }
-  iterator
 }
 
 fn number(text: &str) -> Value {
@@ -265,11 +75,84 @@ fn numbers(items: &[i64]) -> Value {
   Value::List(items.iter().map(|item| Value::Number(FeelNumber::from(*item))).collect())
 }
 
-/// Checks the iteration contexts of every iterator in `cases`.
-fn check(cases: Vec<(Vec<State>, &str)>) {
-  for (index, (states, expected)) in cases.iter().enumerate() {
-    assert_eq!(*expected, listed(&iterated(&mut iterator(states))), "case {}", index + 1);
-  }
+/// The values of `body` (FEEL text, the iteration variables bound) in every iteration of `states`.
+fn collected(states: &[State], body: &str) -> String {
+  collected_in("{}", states, body)
+}
+
+/// [collected] in the scope of the context `scope`.
+fn collected_in(scope: &str, states: &[State], body: &str) -> String {
+  let scope = &te_scope(scope);
+  // the parser knows the names of the variables
+  let names = states.iter().map(|state| match state {
+    State::Interval(name, ..) | State::List(name, _) | State::Variable(name, _) => format!("{name}: null"),
+  });
+  let names = te_scope(&format!("{{{}}}", names.collect::<Vec<_>>().join(", ")));
+  let node = rheon_feel_parser::parse_expression(&names, body, false).unwrap();
+  let evaluator = crate::builders::build_evaluator(&node);
+  let Value::List(values) = iteration(states).collect(scope, &evaluator) else {
+    panic!("expected a list")
+  };
+  values_to_string(&values)
+}
+
+#[test]
+fn _0001() {
+  check(vec![
+    (vec![State::Interval("x", value_number!(1), value_number!(3))], "[{x: 1}, {x: 2}, {x: 3}]"),
+    (vec![State::Interval("x", value_number!(3), value_number!(1))], "[{x: 3}, {x: 2}, {x: 1}]"),
+  ]);
+}
+
+#[test]
+fn _0002() {
+  // every combination, the last context advancing fastest
+  check(vec![
+    (
+      vec![
+        State::Interval("x", value_number!(1), value_number!(3)),
+        State::Interval("y", value_number!(5), value_number!(1)),
+      ],
+      "[{x: 1, y: 5}, {x: 1, y: 4}, {x: 1, y: 3}, {x: 1, y: 2}, {x: 1, y: 1}, {x: 2, y: 5}, {x: 2, y: 4}, {x: 2, y: 3}, {x: 2, y: 2}, {x: 2, y: 1}, {x: 3, y: 5}, {x: 3, y: 4}, {x: 3, y: 3}, {x: 3, y: 2}, {x: 3, y: 1}]",
+    ),
+    (
+      vec![
+        State::Interval("x", value_number!(1), value_number!(2)),
+        State::Interval("y", value_number!(1), value_number!(3)),
+        State::Interval("z", value_number!(1), value_number!(2)),
+      ],
+      "[{x: 1, y: 1, z: 1}, {x: 1, y: 1, z: 2}, {x: 1, y: 2, z: 1}, {x: 1, y: 2, z: 2}, {x: 1, y: 3, z: 1}, {x: 1, y: 3, z: 2}, {x: 2, y: 1, z: 1}, {x: 2, y: 1, z: 2}, {x: 2, y: 2, z: 1}, {x: 2, y: 2, z: 2}, {x: 2, y: 3, z: 1}, {x: 2, y: 3, z: 2}]",
+    ),
+    (
+      vec![
+        State::List("x", Value::List(vec![Value::String("a".into()), Value::String("b".into())])),
+        State::List("y", numbers(&[1, 2, 3])),
+      ],
+      r#"[{x: "a", y: 1}, {x: "a", y: 2}, {x: "a", y: 3}, {x: "b", y: 1}, {x: "b", y: 2}, {x: "b", y: 3}]"#,
+    ),
+  ]);
+}
+
+#[test]
+fn _0003() {
+  // the values of the body, with the implicit `partial` bound to the values before it
+  assert_eq!("[2, 3, 4]", collected(&[State::Interval("x", value_number!(1), value_number!(3))], "x + 1"));
+  assert_eq!(
+    "[6, 7, 8, 7, 8, 9]",
+    collected(&[State::Interval("x", value_number!(1), value_number!(2)), State::List("y", numbers(&[5, 6, 7]))], "x + y")
+  );
+  assert_eq!("[]", collected(&[State::List("x", numbers(&[]))], "x + 1"));
+  assert_eq!("[2]", collected(&[State::List("x", value_number!(1))], "x + 1"));
+  assert_eq!(
+    "[]",
+    collected(&[State::Interval("x", value_number!(1), value_number!(2)), State::List("y", numbers(&[]))], "x + 1")
+  );
+  assert_eq!("[0, 1, 2]", collected(&[State::List("x", numbers(&[7, 8, 9]))], "count(partial)"));
+  assert_eq!(
+    "[0, 1, 2, 3]",
+    collected(&[State::List("x", numbers(&[1, 2])), State::List("y", numbers(&[3, 4]))], "count(partial)")
+  );
+  assert_eq!("[1, 2, 3, 4]", collected(&[State::List("x", numbers(&[1, 2, 3, 4])), State::Variable("y", "x")], "y"));
 }
 
 #[test]
@@ -331,20 +214,17 @@ fn _0019() {
 
 #[test]
 fn _0020() {
-  // Variables iterating over the value of another variable (`y in x`, `z in y`); a value that
-  // is not a list is iterated as a singleton list.
-  //
-  // When the list of `y` is empty, the iteration is not skipped and `y` keeps the value of the
-  // preceding iteration (case 1, `{x: [], y: 2}`). By §10.3.2.14 an empty iteration context has no
-  // elements to iterate over; the case pins the evaluated contexts, so that changing them is a
-  // deliberate change.
+  // Variables iterating over the value of a variable before them (`y in x`, `z in y`); a value
+  // that is not a list is iterated as a singleton list. An empty list contributes no iteration
+  // (DMN 1.6 §10.3.2.14: an iteration binds "the element to the corresponding variable"), and a
+  // variable after a dependent one restarts in every iteration of it.
   check(vec![
     (
       vec![
         State::List("x", Value::List(vec![numbers(&[1, 2]), numbers(&[]), numbers(&[3])])),
         State::Variable("y", "x"),
       ],
-      "[{x: [1, 2], y: 1}, {x: [1, 2], y: 2}, {x: [], y: 2}, {x: [3], y: 3}]",
+      "[{x: [1, 2], y: 1}, {x: [1, 2], y: 2}, {x: [3], y: 3}]",
     ),
     (
       vec![State::List("x", Value::List(vec![numbers(&[1, 2]), number("3")])), State::Variable("y", "x")],
@@ -366,6 +246,7 @@ fn _0020() {
       ],
       "[{j: 7, x: [1, 2], y: 1}, {j: 8, x: [1, 2], y: 1}, {j: 7, x: [1, 2], y: 2}, {j: 8, x: [1, 2], y: 2}, {j: 7, x: [3], y: 3}, {j: 8, x: [3], y: 3}]",
     ),
+    (vec![State::List("x", Value::List(vec![numbers(&[]), numbers(&[])])), State::Variable("y", "x")], "[]"),
   ]);
 }
 
@@ -421,7 +302,7 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  // A handler that returns Break ends the iteration after that iteration.
+  // A decided body ends the iteration after that iteration.
   let cases = [
     (vec![State::Interval("i", number("1"), number("5"))], "[{i: 1}, {i: 2}]"),
     (vec![State::List("x", numbers(&[7]))], "[{x: 7}]"),
@@ -444,12 +325,7 @@ fn _0022() {
     ),
   ];
   for (index, (states, expected)) in cases.iter().enumerate() {
-    let mut seen = vec![];
-    iterator(states).iterate_while(|ctx| {
-      seen.push(ctx.to_string());
-      if seen.len() == 2 { ControlFlow::Break(()) } else { ControlFlow::Continue(()) }
-    });
-    assert_eq!(*expected, listed(&seen), "case {}", index + 1);
+    assert_eq!(*expected, visited(states, 2), "case {}", index + 1);
   }
 }
 
@@ -473,4 +349,22 @@ fn _0023() {
       "[{d: -262143-01-02, i: 1}, {d: -262143-01-01, i: 1}, {d: -262143-01-02, i: 2}, {d: -262143-01-01, i: 2}]",
     ),
   ]);
+}
+
+#[test]
+fn _0024() {
+  // A domain sees the variables before it only: the variable of a closed context is unbound
+  // (`z` when `y` is evaluated again), and so is the implicit `partial` of the `for` expression,
+  // so a `partial` of the scope is seen.
+  assert_eq!(
+    "[[1, null, 5], [2, null, 5]]",
+    collected(
+      &[State::List("x", numbers(&[1, 2])), State::Variable("y", "z"), State::List("z", numbers(&[5]))],
+      "[x, y, z]"
+    )
+  );
+  assert_eq!(
+    "[7, 7]",
+    collected_in("{partial: 7}", &[State::List("x", numbers(&[1, 2])), State::Variable("y", "partial")], "y")
+  );
 }
