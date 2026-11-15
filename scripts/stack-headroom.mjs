@@ -7,8 +7,9 @@
 // stacks: the module's shadow stack in linear memory (10 MiB, set in wasm/feel-wasm/build.rs) and
 // the native stack the host runs wasm code on (V8: the thread's stack; Wasmtime: at most
 // max-wasm-stack bytes). Running out of either is a trap. The engine bounds what a request can
-// nest: ASTs deeper than 300 levels are rejected and evaluations stop after 200 nested function
-// calls. This check asserts that five constructs nested to the AST depth limit evaluate on every
+// nest: ASTs deeper than 300 levels are rejected, evaluations stop after 200 nested function
+// calls and at a value nested more than 500 levels deep. This check asserts that five constructs
+// nested to the AST depth limit and a value nested to the value depth limit evaluate on every
 // host, and that a recursion of 190 calls with a body nested to the floor evaluates in the worker
 // and in Wasmtime (the main thread's recursion depth is only shown by --report), so that a change
 // that makes stack frames larger (a compiler setting, more inlining, larger locals) fails here and
@@ -17,7 +18,9 @@
 // Requests:
 //   - flat nesting: five constructs (a right-nested addition chain, nested lists, nested contexts,
 //     nested ifs, nested calls), each at the deepest nesting the parse op accepts, i.e. at the AST
-//     depth limit;
+//     depth limit, and a value nested 500 levels deep, the value depth limit: a `for` builds it
+//     through `partial` (the results 500 levels deep, `partial` in a scope frame one level deeper),
+//     and it is passed to a function, compared with itself, returned, rendered and dropped;
 //   - recursion: `{f: function(n) if n = 0 then 0 else 0 + (0 + (... (1 + f(n-1)) ...)), r: f(190)}.r`
 //     with the body nested d levels: 190 nested calls, each evaluating a d-level-deep body. It must
 //     return 190.
@@ -76,6 +79,8 @@ const V8_COMPILERS = [
 // Upper bound of the search for the AST depth limit: the parse op must reject this nesting.
 const MAX_NESTING = 400;
 const RECURSION_CALLS = 190;
+// The value depth limit (docs/CONTRACT.md §2).
+const VALUE_DEPTH = 500;
 // Internal option: run the Node hosts in this process and print their results as JSON.
 const NODE_HOSTS_OPTION = '--node-hosts';
 
@@ -86,6 +91,13 @@ const flat = [
   { name: 'nested contexts', expression: (d) => `${'{a: '.repeat(d)}1${'}'.repeat(d)}`, display: (d) => `${'{"a":'.repeat(d)}1${'}'.repeat(d)}` },
   { name: 'nested ifs', expression: (d) => `${'if true then '.repeat(d)}1${' else 0'.repeat(d)}`, display: () => '1' },
   { name: 'nested calls', expression: (d) => `${'abs('.repeat(d)}-1${')'.repeat(d)}`, display: () => '1' },
+  // not bounded by the AST depth: evaluated at the value depth limit (`depth`)
+  {
+    name: 'nested value',
+    depth: VALUE_DEPTH,
+    expression: (d) => `(function(x) if [x] = [x] then [x] else null)((for i in 1..${d - 1} return if i = 1 then [] else [partial[-1]])[-1])`,
+    display: (d) => `${'['.repeat(d)}${']'.repeat(d)}`,
+  },
 ];
 const recursion = {
   name: 'recursion',
@@ -121,6 +133,10 @@ async function nodeHost(module) {
 async function astLimits(call) {
   const limits = {};
   for (const construct of [...flat, recursion]) {
+    if (construct.depth !== undefined) {
+      limits[construct.name] = construct.depth;
+      continue;
+    }
     const accepted = async (d) => {
       const response = await call(JSON.stringify({ op: 'parse', expression: construct.expression(d) }));
       if (response.trap !== undefined) throw new Error(`${construct.name}: the parse op trapped at nesting ${d}: ${response.trap}`);
@@ -310,7 +326,7 @@ async function runWasmtime(host, limits, stackBytes, floor, report) {
     const requests = [...flat.map((c) => evaluate(c, limits[c.name])), evaluate(recursion, floor)];
     const responses = await host.run(requests, stackBytes);
     const sent = (i) => responses[i] ?? { trap: 'not sent (an earlier request trapped)' };
-    flat.forEach((c, i) => (result.flat[c.name] = outcome(c, limits[c.name], sent(i))));
+    flat.forEach((c, i) => (result.flat[c.name] = outcome(c, limits[c.name], sent(i))))
     result.recursion = outcome(recursion, floor, sent(flat.length));
   }
   return result;
@@ -343,7 +359,8 @@ async function main(args) {
   console.log(`stack headroom${report ? ' report' : ''}: ${modulePath}`);
 
   const limits = await astLimits(await nodeHost(await WebAssembly.compile(await readFile(modulePath))));
-  console.log(`deepest nesting the parse op accepts: ${Object.entries(limits).map(([n, d]) => `${n} ${d}`).join(', ')}`);
+  const parsed = [...flat, recursion].filter((c) => c.depth === undefined);
+  console.log(`deepest nesting the parse op accepts: ${parsed.map((c) => `${c.name} ${limits[c.name]}`).join(', ')}; value depth limit ${VALUE_DEPTH}`);
   for (const [host, floor] of [['worker', WORKER_FLOOR], ['Wasmtime', WASMTIME_FLOOR]]) {
     if (floor > limits[recursion.name]) throw new Error(`the ${host} floor ${floor} is above the AST limit of the recursion (${limits[recursion.name]})`);
   }

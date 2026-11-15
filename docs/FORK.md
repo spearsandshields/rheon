@@ -2480,6 +2480,16 @@ their items with both answers. The totals are under "Verification" below.
     Rust API: the added variant `rheon_feel::diagnostics::Abort::ValueDepth` and the added functions
     `rheon_feel::diagnostics::bound_depth` and `bound_list_depth`; `FeelContext::apply_entries` returns an error (and stops
     a running evaluation) for a path that would nest the value more than 500 levels deep.
+153. **The stack check nests a value to the depth limit.** `npm run stack` evaluated five
+    constructs nested to the AST depth limit, but no value nested to the value depth limit of item
+    152, so a change that makes the frames of a walk over a value larger could take a host's stack
+    below 500 levels unseen. `scripts/stack-headroom.mjs` now also evaluates on every host it
+    checks a value nested 500 levels deep: a `for` builds it through `partial` (its results 500
+    levels deep, `partial` held in a scope frame one level deeper), and it is passed to a function,
+    compared with itself, returned, rendered and dropped. On this module it passes on Node's main
+    thread and in a 4 MiB worker with Liftoff and with TurboFan and in Wasmtime with a 4 MiB wasm
+    stack (7.0 s for the whole check), as on 0.5.0; with the depth set to 501 every host reports the
+    construct as failed, where the limit stops the evaluation. Tooling; no API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
