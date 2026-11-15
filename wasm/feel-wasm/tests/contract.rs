@@ -1323,6 +1323,27 @@ fn error_modes() {
   assert_eq!(error_kind(&response), "request", "{response}");
 }
 
+/// Asserts that `expression` answers `display` with no error counted, and that strict mode answers
+/// the same result: a null the specification defines for its input is no error (DMN 1.6 §7.3.8).
+#[track_caller]
+fn assert_no_error(expression: &str, display: &str) {
+  let lenient = ok(json!({"op": "evaluate", "expression": expression}));
+  assert_eq!(lenient["result"]["display"], display, "{lenient}");
+  assert_eq!(lenient["diagnostics"]["count"], 0, "{lenient}");
+  let strict = ok(json!({"op": "evaluate", "expression": expression, "errorMode": "strict"}));
+  assert_eq!(strict["result"], lenient["result"], "{strict}");
+}
+
+#[test]
+fn defined_nulls_are_no_errors() {
+  // Table 51: and, or with an operand that is no boolean; §10.3.4.4: sum and mean of []; Table 82:
+  // get value of a missing key, which a path over a list selects per item
+  for expression in ["true and 1", "1 and true", "false or \"x\"", "1 or 1", "sum([])", "mean([])", "get value({a: 1}, \"b\")"] {
+    assert_no_error(expression, "null");
+  }
+  assert_no_error("[{a: 1}].b", "[null]");
+}
+
 #[test]
 fn zoned_date_time_display() {
   // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets

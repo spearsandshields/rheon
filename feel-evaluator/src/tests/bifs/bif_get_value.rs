@@ -65,3 +65,12 @@ fn _0009() {
 fn _0010() {
   te_be_value(false, &scope!(), r#"get value(m: {a: "foo"}, key: "b")"#, r#"null"#);
 }
+
+/// DMN 1.6 Table 82: `get value({key1 : "value 1"}, "unexistent-key") = null`, a null the
+/// specification defines, so no error; a path over a list selects the key of each item the same
+/// way.
+#[test]
+fn get_value_of_a_missing_key_is_a_null_without_an_error() {
+  te_errors(r#"get value({a: 1}, "b")"#, "null", &[]);
+  te_errors("[{a: 1}].b", "[null]", &[]);
+}

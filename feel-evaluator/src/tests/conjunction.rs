@@ -137,3 +137,12 @@ fn test_0023() {
   let scope = &te_scope("{}");
   te_bool(false, scope, "(1 > 2) and (3 between 1 and 2) or true", true);
 }
+
+/// DMN 1.6 Table 51: `and` is a total function, "the input can be true, false, or otherwise", and
+/// the table gives null for an operand that is no boolean unless the other operand decides
+/// (`false and x` is false); a null the specification defines is no error.
+#[test]
+fn a_conjunction_with_a_non_boolean_operand_is_a_null_without_an_error() {
+  te_errors("true and 1", "null", &[]);
+  te_errors("1 and true", "null", &[]);
+}

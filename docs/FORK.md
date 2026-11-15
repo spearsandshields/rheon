@@ -1648,6 +1648,25 @@ The totals are under "Verification" below.
     the new warning), with their requests and fourteen controls (whole results, zero, a product
     out of range, a division by zero, days and time durations) added to `requests/temporal.json`.
     No API change.
+116. **The nulls that the specification defines are pinned as no errors.** DMN 1.6 §7.3.8: the
+    evaluation of a semantic error "MUST report or log diagnostic information and SHALL return
+    null", while some inputs have null as their defined result: Table 51, before which "Because
+    these are total functions, the input can be true, false, or otherwise", gives null for `and`
+    and `or` with an operand that is no boolean unless the other operand decides (`false and x`
+    is false, `true or x` is true); §10.3.4.4 has `sum([]) = null` and `mean([]) =
+    null`; Table 82 has `get value({key1 : "value 1"}, "unexistent-key") = null`. These already
+    answer a bare null with no error, and now tests hold them so: `te_errors` (feel-evaluator,
+    `tests/mod.rs`, beside `te_warnings`, which shares its evaluation) asserts the value, the
+    counted errors and their messages, and the `and`, `or`, `sum`, `mean`, `get value` and
+    `[{a: 1}].b` tests assert none; `defined_nulls_are_no_errors`
+    (`wasm/feel-wasm/tests/contract.rs`) asserts a count of 0 and the same result in strict mode;
+    `a_missing_input_variable_of_a_built_in_type_is_a_null_without_an_error`
+    (model-evaluator, `input_data.rs`) asserts a bare null and a count of 0. Tests only: they pass
+    on the parent. `requests/nulls.json` is a new committed request source (71 requests) for
+    these and the neighbouring nulls and errors (a missing context entry, `stddev` of fewer than
+    two numbers, `if` with a condition that is not true, `!=` on kinds that `=` cannot compare, a
+    null operand of `+`), lenient and strict, FEEL and B-FEEL. Identity: no difference. No API
+    change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

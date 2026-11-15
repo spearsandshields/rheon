@@ -40,3 +40,9 @@ fn _0006() {
 fn _0007() {
   te_null(false, &scope!(), r#"mean()"#, r#"expected 1+ parameters, actual number of parameters is 0"#);
 }
+
+/// DMN 1.6 §10.3.4.4: `mean([]) = null`, a null the specification defines, so no error.
+#[test]
+fn the_mean_of_an_empty_list_is_a_null_without_an_error() {
+  te_errors("mean([])", "null", &[]);
+}

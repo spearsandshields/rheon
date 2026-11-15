@@ -69,15 +69,30 @@ pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {
   crate::evaluate(scope, node).into_result().unwrap_or_else(|abort| panic!("evaluation stopped: {abort}"))
 }
 
+/// Evaluates `text` in an empty scope while collecting its diagnostics.
+fn te_collect(text: &str) -> (Value, rheon_feel::diagnostics::Diagnostics) {
+  let scope = FeelScope::default();
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
+  rheon_feel::diagnostics::collect(|| evaluator(&scope))
+}
+
 /// Asserts that evaluating `text` gives a value whose text is `expected`, with exactly the
 /// warnings `warnings` and no error.
 pub fn te_warnings(text: &str, expected: &str, warnings: &[&str]) {
-  let scope = FeelScope::default();
-  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
-  let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
+  let (value, diagnostics) = te_collect(text);
   assert_eq!(expected, value.to_string(), "{text}");
   assert_eq!(warnings, diagnostics.warnings(), "{text}");
   assert_eq!(0, diagnostics.count, "{text}");
+}
+
+/// Asserts that evaluating `text` gives a value whose text is `expected`, with exactly the
+/// errors `errors` counted and listed (DMN 1.6 §7.3.8): a null that the specification defines
+/// for its input is no error.
+pub fn te_errors(text: &str, expected: &str, errors: &[&str]) {
+  let (value, diagnostics) = te_collect(text);
+  assert_eq!(expected, value.to_string(), "{text}");
+  assert_eq!(errors, diagnostics.messages, "{text}");
+  assert_eq!(errors.len(), diagnostics.count, "{text}");
 }
 
 /// The warning that the seconds of `literal` lost the fraction digits `dropped`.
