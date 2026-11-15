@@ -57,3 +57,20 @@ fn _0007() {
   let scope = te_scope(r#"{ a: [{ b: @"P1DT5H" }, { b: @"P2DT6H" }, { b: @"P3DT7H" }] }"#);
   assert_eq!("null(expected name node, actual node is: Boolean(false))", crate::tests::eval(&scope, &node).to_string());
 }
+
+/// DMN 1.6 §10.3.2.6: "Selecting a value by key from context m in the semantic domain is denoted
+/// as m.key1 or get value(m, "key1")", and Table 82 defines `get value({key1 : "value 1"},
+/// "unexistent-key") = null`: a missing entry is a null the specification defines, no error. The
+/// null keeps the reason as a note.
+#[test]
+fn a_missing_context_entry_is_a_null_with_a_note() {
+  te_errors("{a: 1}.b", "null(build_path: no entry b in context: {a: 1})", &[]);
+  // the null is passed on by the addition
+  te_errors("({a: {b: 1}}.a.c) + 1", "null(build_path: no entry c in context: {b: 1})", &[]);
+  // an error beside it is still counted
+  te_errors(
+    "if {a: 1}.b = null then 1 / 0 else 0",
+    "null([division] division by zero)",
+    &["[division] division by zero"],
+  );
+}

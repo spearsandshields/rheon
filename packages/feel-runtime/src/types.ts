@@ -37,7 +37,11 @@ export type Language = 'feel' | 'b-feel';
 /** Error handling mode of an evaluation (DMN 1.6 §7.3.8). */
 export type ErrorMode = 'lenient' | 'strict';
 
-/** Errors recorded during an evaluation: null values the core created with a reason. */
+/**
+ * Errors recorded during an evaluation: null values the core created with an error reason. A null
+ * that the specification defines for its input (a missing context entry) may carry a note as its
+ * `nullReason`; a note is no error, so it is not counted here and strict mode does not stop at it.
+ */
 export interface Diagnostics {
   count: number;
   messages: string[];

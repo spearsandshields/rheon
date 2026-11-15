@@ -1345,6 +1345,16 @@ fn defined_nulls_are_no_errors() {
 }
 
 #[test]
+fn a_missing_context_entry_is_no_error() {
+  // §10.3.2.6: m.key1 is get value(m, "key1"), which Table 82 defines as null for a missing key;
+  // the null keeps its reason as a note, which is not counted and does not fail strict mode
+  assert_no_error("{a: 1}.b", "null");
+  let response = ok(json!({"op": "evaluate", "expression": "{a: 1}.b", "errorMode": "strict"}));
+  assert_eq!(response["result"]["nullReason"], "build_path: no entry b in context: {a: 1}", "{response}");
+  assert_eq!(response["diagnostics"]["messages"], json!([]), "{response}");
+}
+
+#[test]
 fn zoned_date_time_display() {
   // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets
   assert_eq!(display(r#"@"2007-12-03T10:15:30@Europe/Paris""#), r#""2007-12-03T10:15:30+01:00[Europe/Paris]""#);

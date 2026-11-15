@@ -26,7 +26,9 @@ mod string;
 
 pub use string::FeelString;
 
-/// Creates `Value::Null` with optional tracing message.
+/// Creates `Value::Null` with optional tracing message: the reason of an error null, or with
+/// `note:` the note on a null that the specification defines, which is not counted as an error
+/// ([Severity](crate::diagnostics::Severity)).
 ///
 /// The message is built by [compose](crate::message::compose), so it holds at most 1,000
 /// characters whatever its arguments; values in it are quoted with [arg](crate::message::arg).
@@ -46,17 +48,30 @@ pub use string::FeelString;
 ///
 /// let v = value_null!("integer out of range {}..{}", 1, 100);
 /// assert_eq!("null(integer out of range 1..100)", v.to_string());
+///
+/// // the note on a null that the specification defines, which is no error
+/// let v = value_null!(note: "no entry {} in context", "b");
+/// assert_eq!("null(no entry b in context)", v.to_string());
 /// ```
 #[macro_export]
 macro_rules! value_null {
+  (note: $format:literal, $($arguments:tt)*) => {
+    $crate::value_null!(@severity Note, $format, $($arguments)*)
+  };
+  (note: $argument:expr) => {
+    $crate::value_null!(@severity Note, "{}", $argument)
+  };
+  (@severity $severity:ident, $($format:tt)*) => {
+    $crate::values::null_with_reason($crate::diagnostics::Severity::$severity, || $crate::message::compose(format_args!($($format)*)))
+  };
   ($module:expr, $function:expr, $format:literal, $($arguments:tt)*) => {
-    $crate::values::null_with_reason(|| $crate::message::compose(format_args!("[{}::{}] {}", $module, $function, format_args!($format, $($arguments)*))))
+    $crate::value_null!(@severity Error, "[{}::{}] {}", $module, $function, format_args!($format, $($arguments)*))
   };
   ($format:literal, $($arguments:tt)*) => {
-    $crate::values::null_with_reason(|| $crate::message::compose(format_args!($format, $($arguments)*)))
+    $crate::value_null!(@severity Error, $format, $($arguments)*)
   };
   ($argument:expr) => {
-    $crate::values::null_with_reason(|| $crate::message::compose(format_args!("{}", $argument)))
+    $crate::value_null!(@severity Error, "{}", $argument)
   };
   () => {
     Value::Null(None)
@@ -64,14 +79,14 @@ macro_rules! value_null {
 }
 
 /// The null with the reason that `reason` builds, recorded in the running diagnostics collection
-/// (the body of `value_null!`). It is cold and never inlined: building a message takes stack space
-/// for its arguments and formatting, and a null with a reason is the rare path of the code that
-/// returns it, often an evaluator that recursion nests deeply.
+/// when it is an error (the body of `value_null!`). It is cold and never inlined: building a
+/// message takes stack space for its arguments and formatting, and a null with a reason is the
+/// rare path of the code that returns it, often an evaluator that recursion nests deeply.
 #[cold]
 #[inline(never)]
-pub fn null_with_reason(reason: impl FnOnce() -> String) -> Value {
+pub fn null_with_reason(severity: crate::diagnostics::Severity, reason: impl FnOnce() -> String) -> Value {
   let message = reason();
-  crate::diagnostics::record(&message);
+  crate::diagnostics::record(severity, &message);
   Value::Null(Some(message))
 }
 

@@ -5,7 +5,18 @@
 //! lenient (the default: errors are collected and evaluation continues) and strict (evaluation
 //! halts at the first error and returns null).
 //!
-//! While a caller collects diagnostics ([collect]), every null-with-reason created through
+//! Every null an evaluation gives is one of four outcomes, read off the semantic tables:
+//! - a value: the specification defines a non-null result for the input, so there is no null;
+//! - a defined null: the specification defines null for the input (`sum([])`, a missing context
+//!   entry, `stddev` of one number, a decision table without a matching rule) or the input is
+//!   missing data, and a null operand passed on belongs here too. It is no error: the null is
+//!   bare or carries a note (`value_null!(note: …)`, [Severity::Note]), which is not counted;
+//! - an error null: an input outside the domain of the operation, or an error §7.3.8 names. It
+//!   carries its reason (`value_null!(…)`, [Severity::Error]), which is counted and listed where
+//!   the null is created, and strict mode stops at it;
+//! - an abort: an implementation limit ([Abort]), never a value.
+//!
+//! While a caller collects diagnostics ([collect]), every error null created through
 //! `value_null!` is recorded here (per thread). Outside a collection nothing is recorded, so
 //! ordinary evaluations pay one thread-local flag check per error null.
 //!
@@ -37,7 +48,7 @@ thread_local! {
 /// Errors and warnings recorded during one evaluation.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Diagnostics {
-  /// The number of errors (null values with a reason) created.
+  /// The number of errors (null values with an error reason; a note is not counted) created.
   pub count: usize,
   /// The first [MAX_MESSAGES] error messages, in the order they occurred; consecutive repeats of
   /// the same message (an error passed up through several operators) are kept once.
@@ -59,10 +70,23 @@ impl Diagnostics {
   }
 }
 
-/// Records an error message when a collection is active (called by `value_null!`).
+/// What the reason of a null says about the evaluation (DMN 1.6 §7.3.8).
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Severity {
+  /// A semantic error: counted, kept among the messages, and a strict evaluation fails on it.
+  Error,
+  /// The explanation of a null that the specification defines for its input, such as a missing
+  /// context entry. It is no error: it is not counted, not kept, and strict mode does not stop at
+  /// it. The null still carries the text.
+  Note,
+}
+
+/// Records the message of an error when a collection is active (called by `value_null!`); a
+/// note is not recorded.
 #[inline]
-pub fn record(message: &str) {
-  if !ACTIVE.with(Cell::get) {
+pub fn record(severity: Severity, message: &str) {
+  if severity == Severity::Note || !ACTIVE.with(Cell::get) {
     return;
   }
   COUNT.with(|count| count.set(count.get() + 1));
@@ -368,13 +392,13 @@ mod tests {
   fn collection_ends_when_the_evaluation_panics() {
     let result = std::panic::catch_unwind(|| {
       collect(|| {
-        record("before the panic");
+        record(Severity::Error, "before the panic");
         panic!("evaluation failed");
       })
     });
     assert!(result.is_err());
     // the thread no longer collects: nothing recorded outside a collection
-    record("after the panic");
+    record(Severity::Error, "after the panic");
     let (_, diagnostics) = collect(|| ());
     assert_eq!(diagnostics, Diagnostics::default());
   }
@@ -450,7 +474,7 @@ mod tests {
     assert_eq!(["w".to_string()], diagnostics.warnings());
     assert_eq!((0, 0, None), (diagnostics.count, diagnostics.messages.len(), diagnostics.first()));
     let ((), diagnostics) = collect(|| {
-      record("e");
+      record(Severity::Error, "e");
       warn("w");
     });
     assert_eq!((1, vec!["e".to_string()]), (diagnostics.count, diagnostics.messages.clone()));
@@ -504,10 +528,31 @@ mod tests {
   }
 
   #[test]
+  fn a_note_is_no_error() {
+    let (value, diagnostics) = collect(|| crate::value_null!(note: "n"));
+    assert_eq!(Value::Null(Some("n".to_string())), value);
+    assert_eq!((0, 0, None), (diagnostics.count, diagnostics.messages.len(), diagnostics.first()));
+    // an error beside it is counted
+    let (values, diagnostics) = collect(|| [crate::value_null!(note: "n"), crate::value_null!("e")]);
+    assert_eq!([Value::Null(Some("n".to_string())), Value::Null(Some("e".to_string()))], values);
+    assert_eq!((1, vec!["e".to_string()]), (diagnostics.count, diagnostics.messages));
+  }
+
+  #[test]
+  fn a_note_with_arguments_is_capped_like_any_message() {
+    let long = "x".repeat(2_000);
+    let (value, diagnostics) = collect(|| crate::value_null!(note: "no entry {} in context", crate::message::arg(long.as_str())));
+    let Value::Null(Some(note)) = value else { panic!("a null with a note expected") };
+    assert!(note.starts_with("no entry xxx"), "{note}");
+    assert!(note.chars().count() <= 1_000, "{note}");
+    assert_eq!(0, diagnostics.count);
+  }
+
+  #[test]
   fn nested_collections_add_up() {
     let (inner, outer) = collect(|| {
-      record("outer");
-      let (_, inner) = collect(|| record("inner"));
+      record(Severity::Error, "outer");
+      let (_, inner) = collect(|| record(Severity::Error, "inner"));
       inner
     });
     assert_eq!((inner.count, inner.messages), (1, vec!["inner".to_string()]));

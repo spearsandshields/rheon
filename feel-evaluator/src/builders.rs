@@ -1692,7 +1692,7 @@ impl<'b> EvaluatorBuilder<'b> {
           if let Some(value) = context.get_entry(&name) {
             value.clone()
           } else {
-            value_null!("build_path: no entry {} in context: {}", arg(&name), arg(&context))
+            value_null!(note: "build_path: no entry {} in context: {}", arg(&name), arg(&context))
           }
         }
         Value::List(items) => {

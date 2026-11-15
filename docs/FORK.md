@@ -1667,6 +1667,34 @@ The totals are under "Verification" below.
     two numbers, `if` with a condition that is not true, `!=` on kinds that `=` cannot compare, a
     null operand of `+`), lenient and strict, FEEL and B-FEEL. Identity: no difference. No API
     change.
+117. **A missing context entry is a defined null with a note.** DMN 1.6 §10.3.2.6: "Selecting a
+    value by key from context m in the semantic domain is denoted as m.key1 or get value(m,
+    "key1")", and Table 82 defines `get value({key1 : "value 1"}, "unexistent-key") = null`;
+    §7.3.8 makes a semantic error "report or log diagnostic information". `{a: 1}.b` gave the
+    null with the reason `build_path: no entry b in context: {a: 1}`, counted as an error, so
+    strict mode failed on it, while `get value({a: 1}, "b")` is a bare null without one. Now a
+    reason is an error or a note: `rheon_feel::diagnostics::Severity` (`Error`, `Note`,
+    non-exhaustive) says which, `record(severity, message)` records an error and returns at once
+    for a note, and `null_with_reason(severity, reason)` builds the message once for both.
+    `value_null!(note: …)` gives the null with a note, every other form an error null, and
+    `value_null!()` is unchanged. The path's missing entry (feel-evaluator, `build_path`) is a
+    note: the null keeps its text (`result.nullReason`, the `null(…)` of `result.feel` and the
+    Rust `Display` are unchanged), it is not counted or listed in `diagnostics`, and strict mode
+    does not stop at it. The module docs of `diagnostics` classify every null as a value, a
+    defined null (bare or with a note), an error null or an abort. CONTRACT §3 and the
+    `Diagnostics` type of `@rheon/feel-runtime` say that a note is no error. Test first:
+    `a_missing_context_entry_is_a_null_with_a_note` (feel-evaluator, `path.rs`) failed on the
+    parent with the message listed, and `a_missing_context_entry_is_no_error`
+    (`wasm/feel-wasm/tests/contract.rs`) with a count of 1; `a_note_is_no_error` and
+    `a_note_with_arguments_is_capped_like_any_message` (feel, `diagnostics.rs`) test the
+    mechanism. Identity: 6 registered differences in `registered/missing-context-entry.json`
+    (lenient, strict and B-FEEL `{a: 1}.b`, a nested path, and a path beside a division by zero,
+    whose division is still counted), all requests of `requests/nulls.json`, three of them added
+    in this commit; the entry of `{a: for i in 1..1000 return i}.b` in
+    `registered/message-previews.json` is amended in place (its count is now 0). Rust API break
+    (rheon-feel): `diagnostics::Severity` added; `diagnostics::record` and
+    `values::null_with_reason` take the severity first; `value_null!` gains the `note:` forms;
+    `Diagnostics::count` and `messages` leave out notes.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

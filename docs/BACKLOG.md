@@ -134,8 +134,8 @@ Open in 1.6:
   model's dialect to the whole table. Not exercised by the TCK.
 - **Strict mode granularity** `[dmn]`. Strict evaluates to the end and then returns null with the
   first error (no side effects make the difference observable). Errors are recorded where the
-  core creates a null with a reason (`value_null!`); a few places build nulls directly and are
-  not recorded.
+  core creates a null with an error reason (`value_null!`, a note is not one); a few places build
+  nulls directly and are not recorded.
 - **TCK conflicts** (tck-addendum/MANIFEST.md): 1151 006 and 1152 003/004 expect the DMN 1.5
   "no singleton conversion" rule for boxed iterators; rheon follows 1.6.
 - **Spec typo**: the 1.6 number() footnote cites grammar rule 37 (`digits`); rheon uses rule 35.

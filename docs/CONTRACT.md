@@ -42,7 +42,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 ```
 
 - `language: "b-feel"` evaluates in B-FEEL (DMN 1.6 chapter 11): null only means missing data; where FEEL returns null for an error, B-FEEL returns `false` (boolean operators and functions; `true` for `!=`), the default of the function's result type (`0`, `""`, the epoch, `P0M`, `[]`, `(0..0)`), or converts mismatched arithmetic operands (`"The result is: " + 1` = `"The result is: 1"`, `1 + null` = `1`). The FEEL errors behind these defaults still appear in `diagnostics`.
-- `errorMode: "strict"`: when any error occurred during the evaluation (a null created with a reason, see `diagnostics`), the response is an `evaluation` error whose message is `strict error mode: <first error>`, instead of a result. `"lenient"` returns the result and lists the errors.
+- `errorMode: "strict"`: when any error occurred during the evaluation (a null created with an error reason, see `diagnostics`), the response is an `evaluation` error whose message is `strict error mode: <first error>`, instead of a result. `"lenient"` returns the result and lists the errors.
 
 - `parse` also accepts `context`/`contextFormat` (optional): the parser needs to know which multi-word names exist (`Grace's age + 1` only parses as a name if `Grace's age` is in the context). For `dialect: "unaryTests"`, `?` is always a known name.
 - Unary tests are evaluated as dsntk's decision tables do: the tested value is bound to the name `?` in the scope and the result is `? in (<unary tests>)`, i.e. a boolean (or null). Note (dsntk at the pinned commit): a boolean *expression* used as a test, e.g. `? > 5`, is **compared** with the input (`7 = true` → `false`) instead of being "satisfied when true" as in DMN 1.2+. Use `> 5` instead. The response carries a warning for every test that is a comparison/logical expression (or `not(...)`) using `?`.
@@ -72,10 +72,10 @@ Success:
     "type": "string",      // FEEL type name, e.g. "number", "string", "date", "list<number>", "context<...>", "Null"
     "typed": { /* rheon_feel::dto::ValueDto: type+text per value, TCK style */ },
     "isNull": false,
-    "nullReason": "string?" // when dsntk produced null carrying an error message (value_null!(...)), that message
+    "nullReason": "string?" // when the null carries a reason, that text: an error, or a note on a null the specification defines for its input (a missing context entry), which is no error
   },
   "warnings": [ { "message": "string" } ],
-  "diagnostics": { "count": 1, "messages": ["string"] },  // errors recorded during evaluate (null values created with a reason), first 64, consecutive repeats once
+  "diagnostics": { "count": 1, "messages": ["string"] },  // errors recorded during evaluate (null values created with an error reason; a note is not an error), first 64, consecutive repeats once
   "elapsedMicros": 123
 }
 ```
