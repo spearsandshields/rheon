@@ -1574,6 +1574,22 @@ The totals are under "Verification" below.
     `requests/temporal.json` already, with the other eight and three controls (whole seconds,
     `date("2020-01-01").second`) added to it. Rust API (rheon-feel-temporal):
     `FeelDaysAndTimeDuration::get_nanoseconds` and `FeelDateTime::nanos` added.
+112. **The years and months of a duration are magnitudes.** DMN 1.6 Table 67: `years` is "The
+    normalized years component of a years and months duration value as an integer", and `months`
+    "must return an integer in the interval [0.. 11]"; the owner's decision is that every
+    duration component is a magnitude. `years` and `months` were signed (`duration("-P1Y2M")` had
+    -1 and -2), while `days`, `hours`, `minutes` and `seconds` of a days and time duration are
+    magnitudes. Now `FeelYearsAndMonthsDuration::years` and `months` split the magnitude of the
+    months count (`-P1Y2M` has 1 and 2), `is_negative` carries the sign, and the `Display` of the
+    duration uses them instead of its own split. `value` keeps the signed months count. Test
+    first: `the_components_are_magnitudes` (feel-temporal, every count in -30..=30: `months` in
+    `0..12`, `12 * years + months` the magnitude) and `years_and_months_are_magnitudes`
+    (feel-evaluator, `properties.rs`) failed on the parent with -6 months for -30 and -1 for
+    `duration("-P1Y2M").years`. Identity: 7 registered differences in
+    `registered/duration-component-magnitudes.json`, with their requests and six controls
+    (positive durations, a negative one's zero component, `value` and the text) added to
+    `requests/temporal.json`. Rust API break (rheon-feel-temporal):
+    `FeelYearsAndMonthsDuration::years` and `months` return `u64` magnitudes (were signed `i64`).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

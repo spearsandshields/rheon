@@ -487,5 +487,18 @@
   {"op":"evaluate","expression":"duration(\"-PT9223372036.854775807S\").seconds"},
   {"op":"evaluate","expression":"time(\"10:00:30\").second"},
   {"op":"evaluate","expression":"duration(\"PT59S\").seconds"},
-  {"op":"evaluate","expression":"date(\"2020-01-01\").second"}
+  {"op":"evaluate","expression":"date(\"2020-01-01\").second"},
+  {"op":"evaluate","expression":"duration(\"-P1Y2M\").years"},
+  {"op":"evaluate","expression":"duration(\"-P1Y2M\").months"},
+  {"op":"evaluate","expression":"duration(\"-P2M\").months"},
+  {"op":"evaluate","expression":"duration(\"-P1Y\").years"},
+  {"op":"evaluate","expression":"duration(\"-P2M\").years"},
+  {"op":"evaluate","expression":"duration(\"-P1Y\").months"},
+  {"op":"evaluate","expression":"duration(\"-P14M\").years"},
+  {"op":"evaluate","expression":"duration(\"-P14M\").months"},
+  {"op":"evaluate","expression":"duration(\"P1Y2M\").years"},
+  {"op":"evaluate","expression":"duration(\"P1Y2M\").months"},
+  {"op":"evaluate","expression":"duration(\"-P1Y2M\").value"},
+  {"op":"evaluate","expression":"string(duration(\"-P1Y2M\"))"},
+  {"op":"evaluate","expression":"years and months duration(date(\"2021-03-01\"), date(\"2020-01-01\")).years"}
 ]

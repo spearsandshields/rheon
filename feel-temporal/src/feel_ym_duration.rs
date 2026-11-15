@@ -36,14 +36,15 @@ impl FeelYearsAndMonthsDuration {
     (months != i64::MIN).then_some(Self(months))
   }
 
-  /// Returns the number of years in this duration.
-  pub fn years(&self) -> i64 {
-    self.0 / MONTHS_IN_YEAR
+  /// Returns the normalized years of this duration, a magnitude: `-P1Y2M` has 1 (the sign is
+  /// [is_negative](Self::is_negative)).
+  pub fn years(&self) -> u64 {
+    self.0.unsigned_abs() / MONTHS_IN_YEAR as u64
   }
 
-  /// Returns the number of months in this duration.
-  pub fn months(&self) -> i64 {
-    self.0 % MONTHS_IN_YEAR
+  /// Returns the normalized months of this duration, a magnitude in `0..12`: `-P1Y2M` has 2.
+  pub fn months(&self) -> u64 {
+    self.0.unsigned_abs() % MONTHS_IN_YEAR as u64
   }
 
   /// Returns the total number of months of this duration.
@@ -84,9 +85,7 @@ impl fmt::Display for FeelYearsAndMonthsDuration {
   /// Converts [FeelYearsAndMonthsDuration] into string.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let sign = if self.0 < 0 { "-" } else { "" };
-    let mut month = self.0.unsigned_abs();
-    let year = month / MONTHS_IN_YEAR as u64;
-    month -= year * MONTHS_IN_YEAR as u64;
+    let (year, month) = (self.years(), self.months());
     match (year > 0, month > 0) {
       (false, false) => write!(f, "P0M"),
       (false, true) => write!(f, "{sign}P{month}M"),
@@ -288,6 +287,20 @@ mod tests {
     assert_eq!(2, ym_duration.years());
     assert_eq!(3, ym_duration.months());
     assert_eq!(27, ym_duration.as_months());
+  }
+
+  /// DMN 1.6 Table 67: `months` "must return an integer in the interval [0.. 11]"; the years and
+  /// the months of a duration are its normalized components, magnitudes of either sign.
+  #[test]
+  fn the_components_are_magnitudes() {
+    for m in -30..=30 {
+      let duration = FeelYearsAndMonthsDuration::from_m(m).unwrap();
+      let (years, months) = (i128::from(duration.years()), i128::from(duration.months()));
+      assert!((0..12).contains(&months), "months of {m}: {months}");
+      assert!(years >= 0, "years of {m}: {years}");
+      assert_eq!(i128::from(m).abs(), 12 * years + months, "{m}");
+      assert_eq!(m < 0, duration.is_negative());
+    }
   }
 
   #[test]

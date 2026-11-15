@@ -501,3 +501,21 @@ fn second_and_seconds_are_exact_decimals() {
   te_number(false, scope, r#"time("10:00:30").second"#, 30, 0);
   te_number(false, scope, r#"duration("PT59S").seconds"#, 59, 0);
 }
+
+/// DMN 1.6 Table 67: `years` is "The normalized years component of a years and months duration",
+/// and `months` "must return an integer in the interval [0.. 11]": both are magnitudes, the sign
+/// belongs to the duration (`-P1Y2M` has the years 1 and the months 2).
+#[test]
+fn years_and_months_are_magnitudes() {
+  let scope = &scope!();
+  te_number(false, scope, r#"duration("-P1Y2M").years"#, 1, 0);
+  te_number(false, scope, r#"duration("-P1Y2M").months"#, 2, 0);
+  te_number(false, scope, r#"duration("-P2M").months"#, 2, 0);
+  te_number(false, scope, r#"duration("-P2M").years"#, 0, 0);
+  te_number(false, scope, r#"duration("-P1Y").years"#, 1, 0);
+  te_number(false, scope, r#"duration("-P1Y").months"#, 0, 0);
+  te_number(false, scope, r#"duration("-P14M").years"#, 1, 0);
+  te_number(false, scope, r#"duration("-P14M").months"#, 2, 0);
+  te_number(false, scope, r#"duration("-P1Y2M").value"#, -14, 0);
+  te_number(false, scope, r#"(date("2020-01-01") - date("2021-03-01")).days"#, 425, 0);
+}
