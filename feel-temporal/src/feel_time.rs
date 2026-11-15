@@ -213,9 +213,9 @@ impl FeelTime {
   }
 
   /// Creates a time with an offset of `offset` seconds (see [FeelTime::zone_opt]), or `None` when
-  /// the offset is not a valid zone offset either.
+  /// the offset is beyond ±14:00 either; the zero offset is UTC.
   pub fn offset_opt(hour: u8, minute: u8, second: u8, nanos: u64, offset: i32) -> Option<Self> {
-    Self::zone_opt(hour, minute, second, nanos, FeelZone::try_from(offset).ok()?)
+    Self::zone_opt(hour, minute, second, nanos, FeelZone::from(FeelOffset::from_seconds(offset)?))
   }
 
   /// Midnight, 00:00:00, in `zone`.

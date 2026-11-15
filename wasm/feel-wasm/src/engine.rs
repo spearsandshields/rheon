@@ -21,7 +21,8 @@ const ENGINE_COMMIT: &str = env!("RHEON_COMMIT");
 /// The upstream dsntk-rs commit the engine crates are based on (`[package.metadata.rheon]` in this crate's `Cargo.toml`).
 const UPSTREAM_COMMIT: &str = env!("RHEON_UPSTREAM_COMMIT");
 
-/// Largest accepted `tzOffsetMinutes` magnitude (±18:00, the FEEL/XSD limit).
+/// Largest accepted `tzOffsetMinutes` magnitude (±18:00): the largest host offset a request
+/// accepts for local time, not a FEEL limit (a FEEL time offset is within ±14:00).
 const MAX_TZ_OFFSET_MINUTES: i64 = 18 * 60;
 
 /// Maximum depth of a parsed expression (or FEEL context literal) AST.

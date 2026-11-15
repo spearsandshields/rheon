@@ -1,5 +1,6 @@
 //! Implementation of a FEEL time offset.
 
+use crate::feel_dt_duration::{FeelDaysAndTimeDuration, NANOSECONDS_IN_SECOND};
 use std::fmt;
 
 /// The largest magnitude of a time offset: 14:00, in seconds (DMN 1.6 Table 67, `time offset`:
@@ -19,6 +20,17 @@ impl FeelOffset {
   /// here.
   pub(crate) fn from_seconds(seconds: i32) -> Option<Self> {
     (-MAX_OFFSET_SECONDS..=MAX_OFFSET_SECONDS).contains(&seconds).then_some(Self(seconds))
+  }
+
+  /// The offset of `duration`, or `None` when it is beyond ±14:00 or has a fraction of a second,
+  /// which no time offset has (XML Schema Part 2 §3.2.7.3: "Timezones are durations with
+  /// (integer-valued) hour and minute properties").
+  pub fn from_duration(duration: &FeelDaysAndTimeDuration) -> Option<Self> {
+    let nanos = duration.as_nanos();
+    if nanos % NANOSECONDS_IN_SECOND != 0 {
+      return None;
+    }
+    i32::try_from(nanos / NANOSECONDS_IN_SECOND).ok().and_then(Self::from_seconds)
   }
 
   /// The number of seconds east of UTC.
@@ -53,6 +65,7 @@ impl fmt::Display for FeelOffset {
 #[cfg(test)]
 mod tests {
   use super::FeelOffset;
+  use crate::FeelDaysAndTimeDuration;
 
   fn text(seconds: i32) -> String {
     FeelOffset::from_seconds(seconds).unwrap().to_string()
@@ -80,6 +93,25 @@ mod tests {
     assert_eq!(None, FeelOffset::from_seconds(i32::MIN));
     assert_eq!(None, FeelOffset::from_seconds(i32::MAX));
     assert_eq!(Some(-50_400), FeelOffset::from_seconds(-50_400).map(FeelOffset::seconds));
+  }
+
+  #[test]
+  fn an_offset_of_a_duration_is_whole_seconds_within_14_hours() {
+    let seconds = |text: &str| FeelOffset::from_duration(&FeelDaysAndTimeDuration::try_from(text).unwrap()).map(FeelOffset::seconds);
+    assert_eq!(Some(50_400), seconds("PT14H"));
+    assert_eq!(Some(-50_400), seconds("-PT14H"));
+    assert_eq!(Some(9_955), seconds("PT2H45M55S"));
+    assert_eq!(Some(-30), seconds("-PT30S"));
+    assert_eq!(Some(0), seconds("PT0S"));
+    assert_eq!(None, seconds("PT14H1S"));
+    assert_eq!(None, seconds("-PT14H1S"));
+    assert_eq!(None, seconds("P1D"));
+    assert_eq!(None, seconds("PT0.5S"));
+    assert_eq!(None, seconds("-PT1H0.5S"));
+    assert_eq!(None, seconds("PT0.000000001S"));
+    assert_eq!(None, seconds("PT13H59M59.999999999S"));
+    assert_eq!(None, seconds("PT1000000H"));
+    assert_eq!(None, seconds("-PT1000000H"));
   }
 
   #[test]

@@ -373,6 +373,42 @@ fn fractional_seconds_are_exact() {
 }
 
 #[test]
+fn an_offset_is_a_whole_number_of_seconds_within_14_hours() {
+  // DMN 1.6 Table 67, time offset: "in the interval [duration("-PT14H")..duration("PT14H")]"
+  for (offset, text) in [
+    ("PT13H", "10:00:00+13:00"),
+    ("PT14H", "10:00:00+14:00"),
+    ("-PT12H", "10:00:00-12:00"),
+    ("-PT14H", "10:00:00-14:00"),
+    ("PT12H30M", "10:00:00+12:30"),
+    ("-PT13H59M59S", "10:00:00-13:59:59"),
+    ("PT2H45M55S", "10:00:00+02:45:55"),
+    ("PT0S", "10:00:00Z"),
+  ] {
+    te_string(false, &scope!(), &format!(r#"string(time(10, 0, 0, duration("{offset}")))"#), text);
+  }
+  // beyond the interval, or a fraction of a second, which no time offset has
+  for offset in [
+    "PT14H1S",
+    "-PT14H1S",
+    "PT19H",
+    "P1D",
+    "PT0.5S",
+    "-PT0.5S",
+    "PT1H0.5S",
+    "PT14H0.000000001S",
+    "PT0.000000001S",
+  ] {
+    te_null(
+      false,
+      &scope!(),
+      &format!(r#"time(10, 0, 0, duration("{offset}"))"#),
+      &format!("time: offset is out of range: {offset}"),
+    );
+  }
+}
+
+#[test]
 fn an_offset_prints_its_own_sign() {
   // XML Schema Part 2 §3.2.7.3: the sign of a timezone is the sign of the offset, also below one hour
   te_string(false, &scope!(), r#"string(time("10:00:00-00:30"))"#, "10:00:00-00:30");

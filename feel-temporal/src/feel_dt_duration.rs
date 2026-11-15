@@ -17,7 +17,7 @@ const NANOSECONDS_IN_HOUR: i64 = 60 * NANOSECONDS_IN_MINUTE;
 /// Number of nanoseconds in a minute.
 const NANOSECONDS_IN_MINUTE: i64 = 60 * NANOSECONDS_IN_SECOND;
 /// Number of nanoseconds in a second.
-const NANOSECONDS_IN_SECOND: i64 = 1_000_000_000;
+pub(crate) const NANOSECONDS_IN_SECOND: i64 = 1_000_000_000;
 
 static RE_DAYS_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_DAYS_AND_TIME).unwrap());
 

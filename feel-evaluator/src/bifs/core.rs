@@ -12,7 +12,9 @@ use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values, warn_tr
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_number::RoundingMode;
 use rheon_feel_regex::{Limit, RegexError};
-use rheon_feel_temporal::{DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, FeelZone, MonthOfYear, WeekOfYear};
+use rheon_feel_temporal::{
+  DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelOffset, FeelTime, FeelYearsAndMonthsDuration, FeelZone, MonthOfYear, WeekOfYear,
+};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::str::FromStr;
@@ -2805,12 +2807,9 @@ pub fn time_4(hour_value: &Value, minute_value: &Value, second_value: &Value, of
               let (nanoseconds, dropped) = split_nanoseconds(second);
               let n = nanoseconds.try_into().unwrap();
               let time = match offset_value {
-                // the offset is NOT range-checked above: an offset outside the allowed zone range
-                // (e.g. duration("PT19H") or duration("P1D")) gives null instead of a panic
-                Value::DaysAndTimeDuration(offset) => match i32::try_from(offset.as_seconds())
-                  .ok()
-                  .and_then(|offset_seconds| FeelTime::offset_opt(h, m, s, n, offset_seconds))
-                {
+                // a time offset is whole seconds within ±14:00 (DMN 1.6 Table 67); any other
+                // duration (duration("PT19H"), duration("PT0.5S")) gives null
+                Value::DaysAndTimeDuration(offset) => match FeelOffset::from_duration(offset).and_then(|offset| FeelTime::zone_opt(h, m, s, n, FeelZone::from(offset))) {
                   Some(time) => time,
                   None => return value_null!("time: offset is out of range: {}", offset),
                 },

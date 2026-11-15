@@ -1478,6 +1478,31 @@ The totals are under "Verification" below.
     (rheon-feel-temporal): `FeelZone::Offset` holds a `FeelOffset` (was `i32`); `FeelOffset` is
     added with `ZERO` and `Display`; the `Display` of `FeelZone::Offset` changes for negative
     offsets below one hour.
+107. **`time()` takes every offset within ±14:00 and none with a fraction of a second.** DMN 1.6
+    Table 67, `time offset`: "The time offset duration must be in the interval
+    [duration("-PT14H")..duration("PT14H")] as per the XML Schema Part 2 dateTime datatype"; XML
+    Schema Part 2 §3.2.7.3: "Timezones are durations with (integer-valued) hour and minute
+    properties". `time(hour, minute, second, offset)` accepted -11:59..+12:00 only (the range of
+    XML Schema's recoverable timezone of a date, not of a time offset), so `time(10, 0, 0,
+    duration("PT13H"))` was null, while literals took ±14:00; and it truncated the offset to
+    whole seconds, so `duration("PT0.5S")` gave a UTC time and `duration("PT1H0.5S")` +01:00.
+    Now `FeelOffset::from_duration` is the offset of a duration: whole seconds, then the one
+    range check of `FeelOffset`; `time_4` builds the time in `FeelZone::from` of it, and any
+    other duration gives null with the reason `time: offset is out of range: …` as before. Whole
+    seconds stay accepted (the TCK's `time(11, 59, 45, duration("PT2H45M55S"))` is
+    `11:59:45+02:45:55`). `FeelTime::offset_opt` and `FeelDateTime::offset` go through the same
+    check. `TryFrom<i32> for FeelZone` and `err_invalid_time_zone_offset` are removed; the doc of
+    `FeelZone::Offset` and the comment on `tzOffsetMinutes` (its ±18:00 is the host offset a
+    request accepts, not a FEEL limit) are corrected. Test first:
+    `an_offset_is_a_whole_number_of_seconds_within_14_hours` (feel-evaluator, `bif_time.rs`)
+    failed on the parent with null for `duration("PT13H")`. Identity: 9 registered differences in
+    `registered/time-offset-range.json` (whole responses: six offsets between ±12:00 and ±14:00
+    that were null are times, and three with a fraction of a second that were times are null),
+    with their requests and the boundary cases that keep their answers (`PT14H1S`, `-PT14H1S`,
+    `PT14H0.000000001S`, the TCK's `PT2H45M55S` pair) added to `requests/temporal.json`. Rust API
+    break (rheon-feel-temporal): `TryFrom<i32> for FeelZone` removed (`From<FeelOffset>`
+    replaces it); `FeelOffset::from_duration` added; `FeelTime::offset_opt` and
+    `FeelDateTime::offset` accept offsets within ±14:00 (were -11:59..+12:00).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
