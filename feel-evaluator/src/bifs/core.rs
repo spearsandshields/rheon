@@ -1,9 +1,10 @@
 //! # Core implementation of build-in functions
 
 use crate::bfeel::Dialect;
+use crate::equality::Equality;
+use crate::evaluate_range_literal;
 use crate::invocation::{Arguments, invoke};
 use crate::macros::invalid_argument_type;
-use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Abort};
@@ -713,9 +714,10 @@ pub fn decimal(number_value: &Value, scale_value: &Value) -> Value {
 /// Returns new list with removed duplicates.
 pub fn distinct_values(value: &Value) -> Value {
   if let Value::List(items) = value {
+    let mut equality = Equality::default();
     let mut result = vec![];
     for item in items {
-      if result.iter().all(|v| !evaluate_equals(v, item)) {
+      if result.iter().all(|v| equality.compare(v, item) != Some(true)) {
         result.push(item.clone())
       }
     }
@@ -1155,9 +1157,10 @@ pub fn includes(value1: &Value, value2: &Value) -> Value {
 /// Return ascending list of list positions containing match.
 pub fn index_of(list: &Value, element: &Value) -> Value {
   if let Value::List(items) = list {
+    let mut equality = Equality::default();
     let mut indexes = vec![];
     for (i, item) in items.iter().enumerate() {
-      if evaluate_equals(item, element) {
+      if equality.compare(item, element) == Some(true) {
         indexes.push(Value::Number((i + 1).into()));
       }
     }
@@ -1268,8 +1271,9 @@ pub fn is(value1: &Value, value2: &Value) -> Value {
 /// Returns `true` when the list contain the specified element.
 pub fn list_contains(list: &Value, element: &Value) -> Value {
   if let Value::List(items) = list {
+    let mut equality = Equality::default();
     for item in items {
-      if evaluate_equals(item, element) {
+      if equality.compare(item, element) == Some(true) {
         return VALUE_TRUE;
       }
     }
@@ -2875,12 +2879,13 @@ pub fn intersection(lists: &[Value]) -> Value {
       other => return invalid_argument_type!("intersection", "list", other),
     }
   }
+  let mut equality = Equality::default();
   let mut result: Vec<Value> = vec![];
   for item in inputs[0].iter() {
-    if result.iter().any(|a| evaluate_equals(a, item)) {
+    if result.iter().any(|a| equality.compare(a, item) == Some(true)) {
       continue;
     }
-    if inputs[1..].iter().all(|other| other.iter().any(|b| evaluate_equals(b, item))) {
+    if inputs[1..].iter().all(|other| other.iter().any(|b| equality.compare(b, item) == Some(true))) {
       result.push(item.clone());
     }
   }
@@ -2905,11 +2910,12 @@ pub fn trim(value: &Value) -> Value {
 
 /// Returns new list containing concatenated list with duplicates removed.
 pub fn union(lists: &[Value]) -> Value {
+  let mut equality = Equality::default();
   let mut result = vec![];
   for list in lists {
     if let Value::List(items) = list {
       for item in items {
-        if result.iter().all(|a| !evaluate_equals(a, item)) {
+        if result.iter().all(|a| equality.compare(a, item) != Some(true)) {
           result.push(item.clone())
         }
       }

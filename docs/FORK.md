@@ -2551,6 +2551,23 @@ their items with both answers. The totals are under "Verification" below.
     `release/registered/shared-lists.json` with `=`, `distinct values`, `index of` and `union`
     take 7 to 9 ms (5.1 to 14.4 s before); `instance of` still takes 21.8 s. Rust API
     (`rheon-feel`): the added `FeelList::address` and `FeelList::is_shared`.
+156. **The list built-ins that compare items share one equality walk per call.** `distinct
+    values`, `index of`, `list contains`, `union`, `intersection` and `in` with a list compare
+    many pairs in one call, each with an equality walk of its own (item 155), so a pair of shared
+    lists below the items was compared again in every comparison that reached it: over 2,000
+    copies of a list doubled 60 times, each comparison walked the 59 levels again. Each call now
+    passes one walk through all its comparisons, so such a pair is compared once per call. The
+    items and the match themselves are compared as the two values of a comparison are, without
+    a lookup, so a scan over lists that are not shared below their items creates no memory. Test:
+    in `feel-evaluator/src/tests/shared_values.rs`, these built-ins and `in` answer on 100 random
+    sets of values that share their lists as on the same values with nothing shared. Identity
+    step: no answer changes. Measured (wasm, Node 26, Apple M2, 2 rounds) against the module of
+    item 155, with `d` a list doubled 60 times: `count(distinct values(for i in 1..2000 return d))`
+    11.1 to 0.53 ms, `count(index of(l, d))` over 2,000 copies of `d` 11.1 to 0.54 ms,
+    `count(union(l, l))` 21.7 to 0.60 ms; scans over lists that share nothing below their items
+    unchanged (`count(distinct values(for i in 1..2000 return [i, i]))` 26.5 and 25.9 ms,
+    `index of` and `in` over 2,000 one-item lists 0.34 and 0.31 ms, `list contains` over 5,000
+    numbers 0.56 ms on both). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

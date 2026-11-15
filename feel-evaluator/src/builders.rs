@@ -2,7 +2,7 @@
 
 use crate::FilterExpressionEvaluator;
 use crate::bfeel::{self, Dialect};
-use crate::equality::eval_ternary_equality;
+use crate::equality::{Equality, eval_ternary_equality};
 use crate::invocation::{Arguments, guarded, invoke};
 use crate::iterations::{Domain, Iteration, Sequence};
 use crate::macros::invalid_argument_type;
@@ -1148,19 +1148,19 @@ impl EvaluatorBuilder {
         | inner @ Value::DateTime(_)
         | inner @ Value::YearsAndMonthsDuration(_)
         | inner @ Value::DaysAndTimeDuration(_)
-        | inner @ Value::Context(_) => eval_in_equal(&lhv, &inner),
+        | inner @ Value::Context(_) => eval_in_equal(&mut Equality::default(), &lhv, &inner),
         Value::Range(l, l_type, r, r_type) => eval_in_range(&lhv, &l, l_type, &r, r_type),
         Value::List(r_inner) => {
           if let Value::List(l_inner) = lhv {
-            eval_in_list_in_list(&l_inner, &r_inner)
+            eval_in_list_in_list(&mut Equality::default(), &l_inner, &r_inner)
           } else {
-            eval_in_list(&lhv, &r_inner)
+            eval_in_list(&mut Equality::default(), &lhv, &r_inner)
           }
         }
-        Value::ExpressionList(inner) => eval_in_list(&lhv, &inner),
-        Value::NegatedCommaList(inner) => eval_in_negated_list(&lhv, &inner),
-        Value::UnaryEqual(inner) => eval_in_equal(&lhv, &inner),
-        Value::UnaryNotEqual(inner) => eval_in_not_equal(&lhv, &inner),
+        Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), &lhv, &inner),
+        Value::NegatedCommaList(inner) => eval_in_negated_list(&mut Equality::default(), &lhv, &inner),
+        Value::UnaryEqual(inner) => eval_in_equal(&mut Equality::default(), &lhv, &inner),
+        Value::UnaryNotEqual(inner) => eval_in_not_equal(&mut Equality::default(), &lhv, &inner),
         Value::UnaryLess(inner) => eval_in_unary_less(&lhv, inner.borrow()),
         Value::UnaryLessOrEqual(inner) => eval_in_unary_less_or_equal(&lhv, inner.borrow()),
         Value::UnaryGreater(inner) => eval_in_unary_greater(&lhv, inner.borrow()),
@@ -2059,7 +2059,7 @@ fn get_property_from_value(value: Value, name: &Name) -> Value {
   }
 }
 
-fn eval_in_list(left: &Value, items: &[Value]) -> Value {
+fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value]) -> Value {
   let mut unary_not_equal = vec![];
   for item in items {
     match item {
@@ -2073,17 +2073,17 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
       | inner @ Value::YearsAndMonthsDuration(_)
       | inner @ Value::DaysAndTimeDuration(_)
       | inner @ Value::Context(_) => {
-        if let Value::Boolean(true) = eval_in_equal(left, inner) {
+        if let Value::Boolean(true) = eval_in_equal(equality, left, inner) {
           return VALUE_TRUE;
         }
       }
       Value::UnaryEqual(inner) => {
-        if let Value::Boolean(true) = eval_in_equal(left, inner.borrow()) {
+        if let Value::Boolean(true) = eval_in_equal(equality, left, inner.borrow()) {
           return VALUE_TRUE;
         }
       }
       Value::UnaryNotEqual(inner) => {
-        if let Value::Boolean(true) = eval_in_equal(left, inner.borrow()) {
+        if let Value::Boolean(true) = eval_in_equal(equality, left, inner.borrow()) {
           unary_not_equal.push(false);
         } else {
           unary_not_equal.push(true);
@@ -2110,7 +2110,7 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
         }
       }
       Value::List(inner) => {
-        if let Value::Boolean(true) = eval_in_list(left, inner) {
+        if let Value::Boolean(true) = eval_in_list(equality, left, inner) {
           return VALUE_TRUE;
         }
       }
@@ -2128,7 +2128,7 @@ fn eval_in_list(left: &Value, items: &[Value]) -> Value {
   VALUE_FALSE
 }
 
-fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
+fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value]) -> Value {
   let mut unary_not_equal = vec![];
   for item in items {
     match item {
@@ -2141,17 +2141,17 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
       | inner @ Value::DateTime(_)
       | inner @ Value::DaysAndTimeDuration(_)
       | inner @ Value::YearsAndMonthsDuration(_) => {
-        if let Value::Boolean(true) = eval_in_equal(left, inner) {
+        if let Value::Boolean(true) = eval_in_equal(equality, left, inner) {
           return VALUE_FALSE;
         }
       }
       Value::UnaryEqual(inner) => {
-        if let Value::Boolean(true) = eval_in_equal(left, inner) {
+        if let Value::Boolean(true) = eval_in_equal(equality, left, inner) {
           return VALUE_FALSE;
         }
       }
       Value::UnaryNotEqual(inner) => {
-        if let Value::Boolean(true) = eval_in_equal(left, inner.borrow()) {
+        if let Value::Boolean(true) = eval_in_equal(equality, left, inner.borrow()) {
           unary_not_equal.push(false);
         } else {
           unary_not_equal.push(true);
@@ -2178,7 +2178,7 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
         }
       }
       Value::List(inner) => {
-        if let Value::Boolean(true) = eval_in_list(left, inner) {
+        if let Value::Boolean(true) = eval_in_list(equality, left, inner) {
           return VALUE_FALSE;
         }
       }
@@ -2197,7 +2197,7 @@ fn eval_in_negated_list(left: &Value, items: &[Value]) -> Value {
 }
 
 /// Checks if all elements from `list` are present in `items`.
-fn eval_in_list_in_list(l_items: &[Value], r_items: &[Value]) -> Value {
+fn eval_in_list_in_list(equality: &mut Equality, l_items: &[Value], r_items: &[Value]) -> Value {
   for item in r_items {
     if let Value::List(rhs) = item {
       let mut available: HashSet<usize> = (0..rhs.len()).collect();
@@ -2205,7 +2205,7 @@ fn eval_in_list_in_list(l_items: &[Value], r_items: &[Value]) -> Value {
         let mut found = false;
         for (index, r) in rhs.iter().enumerate() {
           if available.contains(&index)
-            && let Value::Boolean(true) = eval_in_equal(l, r)
+            && let Value::Boolean(true) = eval_in_equal(equality, l, r)
           {
             available.remove(&index);
             found = true;
@@ -2351,16 +2351,12 @@ fn eval_in_range(lhv: &Value, start: &Value, start_type: IntervalType, end: &Val
   }
 }
 
-fn eval_in_equal(left: &Value, right: &Value) -> Value {
-  if let Some(true) = eval_ternary_equality(left, right) { VALUE_TRUE } else { VALUE_FALSE }
+fn eval_in_equal(equality: &mut Equality, left: &Value, right: &Value) -> Value {
+  if let Some(true) = equality.compare(left, right) { VALUE_TRUE } else { VALUE_FALSE }
 }
 
-fn eval_in_not_equal(left: &Value, right: &Value) -> Value {
-  if let Some(false) = eval_ternary_equality(left, right) {
-    VALUE_TRUE
-  } else {
-    VALUE_FALSE
-  }
+fn eval_in_not_equal(equality: &mut Equality, left: &Value, right: &Value) -> Value {
+  if let Some(false) = equality.compare(left, right) { VALUE_TRUE } else { VALUE_FALSE }
 }
 
 fn eval_in_unary_less(left: &Value, right: &Value) -> Value {

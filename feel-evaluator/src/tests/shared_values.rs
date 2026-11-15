@@ -96,3 +96,36 @@ fn equality_of_shared_values_is_that_of_the_unshared_values() {
   // the pairs cover equal values built apart, not only a value compared with itself
   assert!(equal_apart > 1_000, "{equal_apart} pairs of values built apart are equal");
 }
+
+/// The built-ins that compare the items of a list with one another or with a match, and `in`,
+/// answer on values that share lists as on the same values with nothing shared: one walk serves
+/// all comparisons of a call.
+#[test]
+fn list_scans_over_shared_values_answer_as_over_unshared_values() {
+  use crate::bifs::core::{distinct_values, index_of, intersection, list_contains, union};
+  let mut rng = Rng(0x2545_f491_4f6c_dd1d);
+  let in_list = build_evaluator(&rheon_feel_parser::parse_expression(&FeelScope::default(), "x in l", false).unwrap());
+  let is_in = |x: &Value, l: &Value| {
+    let mut ctx = FeelContext::default();
+    ctx.set_entry(&Name::from("x"), x.clone());
+    ctx.set_entry(&Name::from("l"), l.clone());
+    in_list(&FeelScope::from(ctx))
+  };
+  for _ in 0..100 {
+    let values = values(&mut rng);
+    let (front, back) = values.split_at(values.len() / 2);
+    let shared = [Value::List(front.iter().cloned().collect()), Value::List(back.iter().cloned().collect())];
+    let apart = [unshared(&shared[0]), unshared(&shared[1])];
+    assert_eq!(distinct_values(&apart[0]), distinct_values(&shared[0]));
+    assert_eq!(union(&apart), union(&shared));
+    assert_eq!(intersection(&apart), intersection(&shared));
+    for value in &values {
+      let value_apart = unshared(value);
+      for (list, list_apart) in shared.iter().zip(&apart) {
+        assert_eq!(index_of(list_apart, &value_apart), index_of(list, value), "index of({list}, {value})");
+        assert_eq!(list_contains(list_apart, &value_apart), list_contains(list, value), "list contains({list}, {value})");
+        assert_eq!(is_in(&value_apart, list_apart), is_in(value, list), "{value} in {list}");
+      }
+    }
+  }
+}

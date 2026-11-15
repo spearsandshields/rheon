@@ -25,14 +25,18 @@ pub(crate) fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
 /// never iterated. While the values are borrowed, no other items are stored at the addresses it
 /// holds. Remembering only the pairs with a shared side is enough: a pair of lists is reached
 /// again only through two paths that meet in a list held twice, and that list is shared.
+///
+/// One walk serves every comparison of an operation that compares several pairs of values, such
+/// as a built-in that compares the items of a list with one another or with a match: a pair of
+/// shared lists met again below a later comparison is answered from memory as well.
 #[derive(Default)]
-struct Equality {
+pub(crate) struct Equality {
   shared: Option<HashMap<(usize, usize), Option<bool>>>,
 }
 
 impl Equality {
-  /// The equality of two values held by the values being compared: remembered for a pair of
-  /// lists with a shared side, compared otherwise.
+  /// The equality of two values held by the values compared: remembered for a pair of lists
+  /// with a shared side, compared otherwise.
   fn nested(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
     if let (Value::List(ls), Value::List(rs)) = (lhs, rhs)
       && ls.len() == rs.len()
@@ -50,8 +54,9 @@ impl Equality {
   }
 
   /// The equality of two values ([eval_ternary_equality]), with the values they hold compared
-  /// through this walk.
-  fn compare(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
+  /// through this walk. The two values are never looked up: each comparison of an operation is
+  /// made once, and the pairs met again are the ones below them.
+  pub(crate) fn compare(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
     if lhs.is_null() || rhs.is_null() {
       return Some(lhs.is_null() && rhs.is_null());
     }
