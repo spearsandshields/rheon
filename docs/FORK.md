@@ -2364,6 +2364,12 @@ their items with both answers. The totals are under "Verification" below.
     returns `impl ExactSizeIterator<Item = (&Name, &Value)>` instead of
     `std::collections::btree_map::Iter`; `contains_entry` is generic over `Q` with `Name: Borrow<Q>`
     (a `&Name` argument compiles as before); `keys_from` is added.
+148. **The named-parameter and positional-parameters values that nothing builds are removed.**
+    `Value::NamedParameter` and `Value::PositionalParameters` came from upstream, but no code
+    builds either value (the evaluator binds an invocation's arguments from the syntax tree), so
+    they were matched only to display them and to give their type `Any`. Identity step: no answer changes. Rust API (`rheon-feel`): the variants
+    `Value::NamedParameter` and `Value::PositionalParameters` are removed (`Value::NamedParameters`
+    stays).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

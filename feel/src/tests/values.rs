@@ -91,17 +91,12 @@ fn test_debug() {
   eq_dbg!(r#"IntervalStart(Number(+1E+0), Opened)"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
   eq_dbg!(r#"Irrelevant"#, Value::Irrelevant);
   eq_dbg!(r#"List([])"#, Value::List(Values::default()));
-  eq_dbg!(
-    r#"NamedParameter(ParameterName(Name("a")), Number(+1E+0))"#,
-    Value::NamedParameter(Box::new(Value::ParameterName(name.clone())), b_number.clone())
-  );
   eq_dbg!(r#"NamedParameters({})"#, Value::NamedParameters(BTreeMap::new()));
   eq_dbg!(r#"NegatedCommaList([])"#, Value::NegatedCommaList(Values::default()));
   eq_dbg!(r#"Number(+1E+0)"#, Value::Number(FeelNumber::new(1, 0)));
   eq_dbg!(r#"Null(None)"#, Value::Null(None));
   eq_dbg!(r#"ParameterName(Name("a"))"#, Value::ParameterName(name.clone()));
   eq_dbg!(r#"ParameterTypes([])"#, Value::ParameterTypes(vec![]));
-  eq_dbg!(r#"PositionalParameters([])"#, Value::PositionalParameters(Values::default()));
   eq_dbg!(r#"QualifiedNameSegment(Name("a"))"#, Value::QualifiedNameSegment(name));
   eq_dbg!(
     r#"Range(Number(+1E+0), Opened, Number(+1E+0), Closed)"#,
@@ -175,14 +170,12 @@ fn test_display() {
   eq_dsp!(r#"IntervalStart"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
   eq_dsp!(r#"Irrelevant"#, Value::Irrelevant);
   eq_dsp!(r#"[]"#, Value::List(Values::default()));
-  eq_dsp!(r#"NamedParameter"#, Value::NamedParameter(Box::new(Value::ParameterName(name.clone())), b_number.clone()));
   eq_dsp!(r#"NamedParameters"#, Value::NamedParameters(BTreeMap::new()));
   eq_dsp!(r#"NegatedCommaList"#, Value::NegatedCommaList(Values::default()));
   eq_dsp!(r#"1"#, Value::Number(FeelNumber::new(1, 0)));
   eq_dsp!(r#"null"#, Value::Null(None));
   eq_dsp!(r#"ParameterName"#, Value::ParameterName(name.clone()));
   eq_dsp!(r#"ParameterTypes"#, Value::ParameterTypes(vec![]));
-  eq_dsp!(r#"PositionalParameters"#, Value::PositionalParameters(Values::default()));
   eq_dsp!(r#"QualifiedNameSegment"#, Value::QualifiedNameSegment(name));
   eq_dsp!(r#"(1..1]"#, Value::Range(b_number.clone(), IntervalType::Opened, b_number.clone(), IntervalType::Closed));
   eq_dsp!(r#""beta""#, Value::String("beta".into()));
@@ -248,14 +241,12 @@ fn test_type_of() {
   eq_typ!(FeelType::List(Box::new(FeelType::Null)), Value::List(vec![]));
   eq_typ!(FeelType::List(Box::new(t_number)), Value::List(vec![v_number.clone()]));
   eq_typ!(FeelType::List(Box::new(FeelType::Any)), Value::List(vec![v_number, v_boolean]));
-  eq_typ!(FeelType::Any, Value::NamedParameter(Box::new(Value::ParameterName(name.clone())), b_number.clone()));
   eq_typ!(FeelType::Any, Value::NamedParameters(BTreeMap::new()));
   eq_typ!(FeelType::Any, Value::NegatedCommaList(Values::default()));
   eq_typ!(FeelType::Number, Value::Number(FeelNumber::new(1, 0)));
   eq_typ!(FeelType::Null, Value::Null(None));
   eq_typ!(FeelType::Any, Value::ParameterName(name.clone()));
   eq_typ!(FeelType::Any, Value::ParameterTypes(vec![]));
-  eq_typ!(FeelType::Any, Value::PositionalParameters(Values::default()));
   eq_typ!(FeelType::Any, Value::QualifiedNameSegment(name));
   eq_typ!(
     FeelType::Range(Box::new(FeelType::Number)),

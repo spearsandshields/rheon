@@ -206,9 +206,6 @@ pub enum Value {
   /// Value representing a list of values.
   List(Values),
 
-  /// Named parameter.
-  NamedParameter(Box<Value>, Box<Value>),
-
   /// Value representing a collection of named parameters.
   NamedParameters(BTreeMap<Name, (Value, usize)>),
 
@@ -226,9 +223,6 @@ pub enum Value {
 
   /// Value representing a list of function's parameter types.
   ParameterTypes(Vec<Value>),
-
-  /// List of positional parameters.
-  PositionalParameters(Values),
 
   /// Value representing a segment of a qualified name.
   QualifiedNameSegment(Name),
@@ -331,7 +325,6 @@ impl Display for Value {
       Value::IntervalStart(_, _) => write!(f, "IntervalStart"),
       Value::Irrelevant => write!(f, "Irrelevant"),
       Value::List(items) => write_values(f, items),
-      Value::NamedParameter(_, _) => write!(f, "NamedParameter"),
       Value::NamedParameters(_) => write!(f, "NamedParameters"),
       Value::NegatedCommaList(_) => write!(f, "NegatedCommaList"),
       Value::Number(value) => write!(f, "{value}"),
@@ -339,7 +332,6 @@ impl Display for Value {
       Value::Null(Some(reason)) => write!(f, "null({reason})"),
       Value::ParameterName(_) => write!(f, "ParameterName"),
       Value::ParameterTypes(_) => write!(f, "ParameterTypes"),
-      Value::PositionalParameters(_) => write!(f, "PositionalParameters"),
       Value::QualifiedNameSegment(_) => write!(f, "QualifiedNameSegment"),
       Value::Range(start, start_type, end, end_type) => {
         f.write_str(if start_type.closed() { "[" } else { "(" })?;
@@ -542,14 +534,12 @@ impl Value {
       Value::IntervalStart(interval_start, _) => interval_start.type_of_within(budget)?,
       Value::Irrelevant => FeelType::Any,
       Value::List(values) => FeelType::List(Box::new(list_item_type(values, budget)?)),
-      Value::NamedParameter(_, _) => FeelType::Any,
       Value::NamedParameters(_) => FeelType::Any,
       Value::NegatedCommaList(_) => FeelType::Any,
       Value::Null(_) => FeelType::Null,
       Value::Number(_) => FeelType::Number,
       Value::ParameterName(_) => FeelType::Any,
       Value::ParameterTypes(_) => FeelType::Any,
-      Value::PositionalParameters(_) => FeelType::Any,
       Value::QualifiedNameSegment(_) => FeelType::Any,
       Value::Range(range_start, _, range_end, _) => {
         let range_start_type = range_start.type_of_within(budget)?;
