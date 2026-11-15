@@ -74,6 +74,10 @@ impl FeelZone {
       && let Some(minutes_match) = captures.name("offMinutes")
       && let Ok(minutes) = minutes_match.as_str().parse::<i32>()
     {
+      // XML Schema Part 2 §3.2.7.3: the minute magnitude is "limited to at most 59"
+      if minutes >= 60 {
+        return None;
+      }
       let mut offset = 3600 * hours + 60 * minutes;
       if let Some(seconds_match) = captures.name("offSeconds")
         && let Ok(seconds) = seconds_match.as_str().parse::<i32>()
@@ -97,8 +101,8 @@ impl FeelZone {
 
   /// The zone written as `designator`: `Z` or `z`, an offset such as `+02:00` or `-05:30:15`, or
   /// `@` and an IANA zone name, by the rules of the zone suffix of a time literal (an offset within
-  /// ±14:00, a zone name the zone database knows). `None` for any other text, the empty one
-  /// included.
+  /// ±14:00 with minutes below 60, a zone name the zone database knows). `None` for any other
+  /// text, the empty one included.
   pub fn from_designator(designator: &str) -> Option<Self> {
     Self::from_captures(&RE_ZONE.captures(designator)?)
   }
@@ -177,6 +181,11 @@ mod tests {
     assert_zone!(None, "00:00:00+14:00:01");
     assert_zone!(None, "00:00:00-14:01");
     assert_zone!(None, "00:00:00-14:00:01");
+    // XML Schema Part 2 §3.2.7.3: "mm is a two-digit numeral that represents the minutes", 00 to 59
+    assert_zone!(None, "00:00:00+05:99");
+    assert_zone!(None, "00:00:00+13:60");
+    assert_zone!(None, "00:00:00-00:60");
+    assert_zone!(Some(offset(-3_540)), "00:00:00-00:59");
     assert_zone!(Some(FeelZone::Zone("Europe/Warsaw".to_string())), "00:00:00@Europe/Warsaw");
     assert_zone!(None, "00:00:00@abc/xyz");
   }
@@ -198,6 +207,9 @@ mod tests {
       "@",
       "+14:01",
       "-14:00:01",
+      "+05:99",
+      "+13:60",
+      "-00:60",
       "+15:00",
       "+2:00",
       "@Mars/Olympus",

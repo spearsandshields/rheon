@@ -1503,6 +1503,20 @@ The totals are under "Verification" below.
     break (rheon-feel-temporal): `TryFrom<i32> for FeelZone` removed (`From<FeelOffset>`
     replaces it); `FeelOffset::from_duration` added; `FeelTime::offset_opt` and
     `FeelDateTime::offset` accept offsets within ±14:00 (were -11:59..+12:00).
+108. **The minutes of an offset literal are below 60.** DMN 1.6 §10.3.2.3.4: a time is "a value
+    of the XML Schema time datatype"; XML Schema Part 2 §3.2.7.3: timezones have "the minute
+    magnitude limited to at most 59". The offset of a literal was the sum `3600 h + 60 m`
+    unchecked, so `+05:99` was `+06:39`, `+13:60` was `+14:00` and `-00:60` was `-01:00`. Now
+    `FeelZone::from_captures` gives `None` for minutes of 60 or more, so a time, date and time
+    or `@` literal with such an offset is invalid (null with its literal reason), and so is the
+    zone `"+05:99"` of `date and time(date, time, zone)` (`FeelZone::from_designator`). Test
+    first: `test_from_captures` and `zone_designators` (feel-temporal) and
+    `the_minutes_of_an_offset_literal_are_below_60` (feel-evaluator) failed on the parent with
+    `Some(Offset(FeelOffset(23940)))` and `10:00:00+06:39`. Identity: 8 registered differences
+    in `registered/offset-literal-minutes.json` (whole responses), four on requests of
+    `requests/temporal.json`; the other requests and two controls (`-01:59`, `+05:59`) are added
+    to it. Rust behaviour break (rheon-feel-temporal): `FeelTime`, `FeelDateTime` and
+    `FeelZone::from_designator` reject an offset with minutes of 60 or more.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

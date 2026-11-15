@@ -409,6 +409,19 @@ fn an_offset_is_a_whole_number_of_seconds_within_14_hours() {
 }
 
 #[test]
+fn the_minutes_of_an_offset_literal_are_below_60() {
+  for literal in ["10:00:00+05:99", "10:00:00+13:60", "10:00:00-00:60"] {
+    te_null(
+      false,
+      &scope!(),
+      &format!(r#"time("{literal}")"#),
+      &format!("time: invalid time literal '{literal}', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"),
+    );
+  }
+  te_string(false, &scope!(), r#"string(time("10:00:00+05:59"))"#, "10:00:00+05:59");
+}
+
+#[test]
 fn an_offset_prints_its_own_sign() {
   // XML Schema Part 2 §3.2.7.3: the sign of a timezone is the sign of the offset, also below one hour
   te_string(false, &scope!(), r#"string(time("10:00:00-00:30"))"#, "10:00:00-00:30");
