@@ -2214,6 +2214,26 @@ their items with both answers. The totals are under "Verification" below.
     through `cargo metadata`, so the run works with any `CARGO_TARGET_DIR`. Run here: official
     3,392 of 3,407, addendum 312 of 312, 0 newly failing, 0 newly passing, 0 not run, exit 0, 86 s
     with the server's release build. No API change.
+139. **The three test tiers are commands with measured times and budgets.** `scripts/tier.mjs`
+    (`npm run tier:fix`, `tier:group`, `tier:release`; the README's "Test tiers") runs each tier as
+    a list of steps and ends with a table of every step (build or run, seconds, result), the build
+    and run totals, the budget and the verdict. The fix tier runs format, compilation of every
+    target, the fix's own test, the tests of the touched crates (named with `-p` or derived from
+    the files that differ from the merge base with `main` through `cargo metadata`), the wasm build
+    and the identity check, adds the Rust copies of the TCK tests and each release-tier ledger
+    file when a ledger changes and a tool's own tests when the tool changes, and stops at the
+    first failure. The group tier runs the whole workspace and every check of the module and the
+    official TCK; the release tier adds the large and slow checks, and requires the inputs kept
+    outside the repository unless a `--without` flag lists the step as NOT RUN. Test steps are
+    split into their `--no-run` build and their run, and the budget (fix 2 min, group 6 min,
+    release 30 min) judges the run total only; with `CI` set the times are reported without a
+    budget. `npm run test:tier` checks the runner on step tables of its own (a failing step,
+    stopping, a skipped dependant, the budget, a missing outside input, usage errors). The
+    toolchain gains the `clippy` component, so clippy is the pinned one everywhere.
+    `scripts/build-wasm.sh` and `scripts/tck.sh` find cargo's target directory through the new
+    `scripts/cargo-target-dir.sh` instead of assuming `./target`, and `RHEON_WASM_TARGET_DIR` gives
+    the tiers' wasm steps a target directory of their own. The fix tier of this change: 3.0 s of
+    run time, 25.9 s of builds. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

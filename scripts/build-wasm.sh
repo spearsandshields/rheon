@@ -25,7 +25,7 @@ echo "==> cargo build --profile wasm --target wasm32-wasip1 -p rheon-feel-wasm (
 cargo build --profile wasm --target wasm32-wasip1 -p rheon-feel-wasm
 
 mkdir -p dist
-cp target/wasm32-wasip1/wasm/feel_wasm.wasm dist/feel.wasm
+cp "$("$ROOT/scripts/cargo-target-dir.sh")/wasm32-wasip1/wasm/feel_wasm.wasm" dist/feel.wasm
 
 node --input-type=module - "$ROOT/dist/feel.wasm" <<'JS'
 import { readFileSync } from 'node:fs';

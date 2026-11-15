@@ -52,7 +52,7 @@ echo "== building the runner and the server (release)"
 # the runner is its own workspace, built into its own target directory
 (cd "$CACHE/runner" && cargo build -q --release --target-dir "$CACHE/runner/target")
 cargo build -q --release --features tck -p dsntk
-TARGET=$(cargo metadata --format-version 1 --no-deps | node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => console.log(JSON.parse(s).target_directory))')
+TARGET=$("$ROOT/scripts/cargo-target-dir.sh")
 
 # one test tree: official compliance levels (optionally patched) + the addendum
 RUN=$CACHE/run
