@@ -1863,6 +1863,16 @@ The totals are under "Verification" below.
     `requests/unary-tests.json` (20 requests: path endpoints in unary tests and as expressions,
     and the parenthesised forms, which do not change). Rust API break (rheon-feel):
     `Value::Transparent` is removed.
+125. **One collection evaluator for every simple type.** An item definition that is a collection
+    of a simple type (model-evaluator, `item_definition.rs`) had ten copies of one closure, one
+    per FEEL type, that differed only in the test of an element and the type named in the
+    message. They are one closure now, built from the element test and that name, so a rule for
+    the elements is written once. The messages stay as they were, including the two that differ
+    from the rest: a collection of nulls says `expected null` for a value that is no list, and a
+    collection of `Any` takes every element. A test pins them:
+    `a_collection_of_a_simple_type_names_what_it_expected` (`item_definition.rs`), which passes on
+    the parent as well. The compatibility tests of the model evaluator pass unchanged. Identity:
+    no difference (the wasm module has no item definitions). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

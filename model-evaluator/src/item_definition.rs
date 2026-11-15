@@ -212,191 +212,31 @@ fn build_component_type_evaluator(item_definition: &DefItemDefinition) -> Result
 }
 
 fn build_collection_of_simple_type_evaluator(feel_type: FeelType, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-  fn build_any_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        check_allowed_values(Value::List(values.clone()), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_null_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Null(_) = item_value {
-            evaluated_values.push(item_value.clone());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected null");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected null")
-      }
-    }))
-  }
-
-  fn build_string_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::String(_) = item_value {
-            evaluated_values.push(item_value.clone());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected string");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_number_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Number(_) = item_value {
-            evaluated_values.push(item_value.clone());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected number");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_boolean_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Boolean(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected boolean");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_date_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Date(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected date");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_time_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::Time(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected time");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_date_and_time_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::DateTime(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected date and time");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_days_and_time_duration_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::DaysAndTimeDuration(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected days and time duration");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-
-  fn build_months_and_years_duration_evaluator(av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
-    Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
-      if let Value::List(values) = value {
-        let mut evaluated_values = Values::default();
-        for item_value in values {
-          if let Value::YearsAndMonthsDuration(_) = item_value {
-            evaluated_values.push(item_value.to_owned());
-          } else {
-            return value_null!("item definition evaluator (CollectionOfSimpleType): expected months and years duration");
-          }
-        }
-        check_allowed_values(Value::List(evaluated_values), av_evaluator.as_ref())
-      } else {
-        value_null!("item definition evaluator (CollectionOfSimpleType): expected list")
-      }
-    }))
-  }
-  // build evaluator based on FEEL type
-  match feel_type {
-    FeelType::Any => build_any_evaluator(av_evaluator),
-    FeelType::Null => build_null_evaluator(av_evaluator),
-    FeelType::String => build_string_evaluator(av_evaluator),
-    FeelType::Number => build_number_evaluator(av_evaluator),
-    FeelType::Boolean => build_boolean_evaluator(av_evaluator),
-    FeelType::Date => build_date_evaluator(av_evaluator),
-    FeelType::Time => build_time_evaluator(av_evaluator),
-    FeelType::DateTime => build_date_and_time_evaluator(av_evaluator),
-    FeelType::DaysAndTimeDuration => build_days_and_time_duration_evaluator(av_evaluator),
-    FeelType::YearsAndMonthsDuration => build_months_and_years_duration_evaluator(av_evaluator),
-    _ => Err(err_unsupported_feel_type(feel_type, "b")),
-  }
+  // the test of each element and the name of the element type in the message
+  let (is_element, element_type): (fn(&Value) -> bool, &'static str) = match feel_type {
+    FeelType::Any => (|_| true, "Any"),
+    FeelType::Null => (|value| matches!(value, Value::Null(_)), "null"),
+    FeelType::String => (|value| matches!(value, Value::String(_)), "string"),
+    FeelType::Number => (|value| matches!(value, Value::Number(_)), "number"),
+    FeelType::Boolean => (|value| matches!(value, Value::Boolean(_)), "boolean"),
+    FeelType::Date => (|value| matches!(value, Value::Date(_)), "date"),
+    FeelType::Time => (|value| matches!(value, Value::Time(_)), "time"),
+    FeelType::DateTime => (|value| matches!(value, Value::DateTime(_)), "date and time"),
+    FeelType::DaysAndTimeDuration => (|value| matches!(value, Value::DaysAndTimeDuration(_)), "days and time duration"),
+    FeelType::YearsAndMonthsDuration => (|value| matches!(value, Value::YearsAndMonthsDuration(_)), "months and years duration"),
+    _ => return Err(err_unsupported_feel_type(feel_type, "b")),
+  };
+  // a value that is no list is reported as a list expected, except by a collection of nulls
+  let expected_list = if element_type == "null" { "null" } else { "list" };
+  Ok(Box::new(move |value: &Value, _: &ItemDefinitionEvaluator| {
+    let Value::List(values) = value else {
+      return value_null!("item definition evaluator (CollectionOfSimpleType): expected {}", expected_list);
+    };
+    if !values.iter().all(is_element) {
+      return value_null!("item definition evaluator (CollectionOfSimpleType): expected {}", element_type);
+    }
+    check_allowed_values(Value::List(values.clone()), av_evaluator.as_ref())
+  }))
 }
 
 fn build_collection_of_referenced_type_evaluator(def_key: DefKey, av_evaluator: Option<Evaluator>) -> Result<ItemDefinitionEvaluatorFn> {
@@ -800,5 +640,39 @@ mod tests {
     ctx_3.set_entry(&"manager".into(), Value::String("Bob".into()));
     let expected = Value::List(vec![Value::Context(ctx_1), Value::Context(ctx_2), Value::Context(ctx_3)]);
     assert_eq!(Some(expected), evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value));
+  }
+
+  /// A collection of a simple type names what it expected: a list for a value that is no list
+  /// (the collection of nulls says null), and the element type for an element of another type;
+  /// `Any` takes every element.
+  #[test]
+  fn a_collection_of_a_simple_type_names_what_it_expected() {
+    use rheon_feel::FeelType;
+    let evaluators = ItemDefinitionEvaluator::default();
+    let expected = |text: &str| Value::Null(Some(format!("item definition evaluator (CollectionOfSimpleType): expected {text}")));
+    let cases = [
+      (FeelType::Any, "list", None),
+      (FeelType::Null, "null", Some("null")),
+      (FeelType::String, "list", Some("string")),
+      (FeelType::Number, "list", Some("number")),
+      (FeelType::Boolean, "list", Some("boolean")),
+      (FeelType::Date, "list", Some("date")),
+      (FeelType::Time, "list", Some("time")),
+      (FeelType::DateTime, "list", Some("date and time")),
+      (FeelType::DaysAndTimeDuration, "list", Some("days and time duration")),
+      (FeelType::YearsAndMonthsDuration, "list", Some("months and years duration")),
+    ];
+    for (feel_type, not_a_list, element) in cases {
+      let evaluator = super::build_collection_of_simple_type_evaluator(feel_type.clone(), None).unwrap();
+      assert_eq!(expected(not_a_list), evaluator(&value_number!(1), &evaluators), "{feel_type:?}");
+      let list = Value::List(vec![Value::Context(FeelContext::default())]);
+      let result = evaluator(&list, &evaluators);
+      match element {
+        Some(element) => assert_eq!(expected(element), result, "{feel_type:?}"),
+        None => assert_eq!(list, result, "{feel_type:?}"),
+      }
+      assert_eq!(Value::List(vec![]), evaluator(&Value::List(vec![]), &evaluators), "{feel_type:?}");
+    }
+    assert!(super::build_collection_of_simple_type_evaluator(FeelType::Context(Default::default()), None).is_err());
   }
 }
