@@ -512,5 +512,9 @@
   {"op":"evaluate","expression":"years and months duration(date(\"2020-01-31\"), date(\"2020-02-29\"))"},
   {"op":"evaluate","expression":"years and months duration(date(\"2020-02-29\"), date(\"2020-01-31\"))"},
   {"op":"evaluate","expression":"years and months duration(date(\"2011-12-22\"), date(\"2013-08-24\"))"},
-  {"op":"evaluate","expression":"years and months duration(date(\"2013-08-24\"), date(\"2011-12-22\"))"}
+  {"op":"evaluate","expression":"years and months duration(date(\"2013-08-24\"), date(\"2011-12-22\"))"},
+  {"op":"evaluate","expression":"time(\"10:00:00.5\").value"},
+  {"op":"evaluate","expression":"time(\"10:00:00.5Z\").value"},
+  {"op":"evaluate","expression":"time(\"10:00:00.5@Etc/GMT-1\").value"},
+  {"op":"evaluate","expression":"time(\"10:00:00.5+01:00\").value"}
 ]

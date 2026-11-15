@@ -2805,10 +2805,43 @@ mod temporal_value {
   }
 
   /// `valuet`: seconds since midnight in [0..86400). A time with an offset is taken in its UTC
-  /// form, which keeps `value` consistent with time subtraction; a local time uses its clock time.
+  /// form, which keeps `value` consistent with time subtraction; a local time uses its clock time,
+  /// and a time in a zone whose offset is not known has no value (null), never the value of UTC.
   pub fn of_time(time: &FeelTime) -> Value {
     let clock = (time.hour() as i64 * 3600 + time.minute() as i64 * 60 + time.second() as i64) * NANOS_IN_SECOND + time.nanos() as i64;
-    let offset = time.feel_time_offset().unwrap_or(0) as i64 * NANOS_IN_SECOND;
+    let offset = match (time.zone(), time.feel_time_offset()) {
+      (FeelZone::Local, _) => 0,
+      (_, Some(offset)) => offset as i64 * NANOS_IN_SECOND,
+      (_, None) => return value_null!("value: the time zone of the time has no known offset"),
+    };
     seconds((clock - offset).rem_euclid(SECONDS_IN_DAY * NANOS_IN_SECOND))
+  }
+
+  #[cfg(test)]
+  mod tests {
+    use super::*;
+
+    fn time(zone: FeelZone) -> FeelTime {
+      FeelTime::zone_opt(10, 0, 0, 500_000_000, zone).unwrap()
+    }
+
+    /// DMN 1.6 §10.3.2.3.4: "If no time offset is specified, the time is interpreted as a local
+    /// time of day", so a local time is valued by its clock time; a time in a zone is valued in
+    /// its UTC form, and a zone whose offset cannot be resolved gives no value instead of the
+    /// value of UTC. Such a zone is not reachable from an expression whose result does not depend
+    /// on the date of the evaluation (a zone name is checked when it is read, and a time in a
+    /// gap of daylight saving time resolves on the current date).
+    #[test]
+    fn the_value_of_a_time_needs_its_offset() {
+      assert_eq!(Value::Number("36000.5".parse().unwrap()), of_time(&time(FeelZone::Local)));
+      assert_eq!(Value::Number("36000.5".parse().unwrap()), of_time(&time(FeelZone::Utc)));
+      let plus_one = FeelTime::offset_opt(10, 0, 0, 500_000_000, 3600).unwrap();
+      assert_eq!(Value::Number("32400.5".parse().unwrap()), of_time(&plus_one));
+      assert_eq!(Value::Number("32400.5".parse().unwrap()), of_time(&time(FeelZone::Zone("Etc/GMT-1".to_string()))));
+      assert_eq!(
+        Value::Null(Some("value: the time zone of the time has no known offset".to_string())),
+        of_time(&time(FeelZone::Zone("No/Such_Zone".to_string())))
+      );
+    }
   }
 }

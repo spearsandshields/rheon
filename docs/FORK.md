@@ -1611,6 +1611,20 @@ The totals are under "Verification" below.
     controls (the positive twins, a span across years, equal dates, the example of Table 73 and
     its reverse) added to `requests/temporal.json`. Rust behaviour break (rheon-feel-temporal):
     `&FeelDate - &FeelDate` gives new results for negative spans inside one year.
+114. **The value of a time in a zone without a known offset is null.** DMN 1.6 §10.3.2.3.4: "If
+    no time offset is specified, the time is interpreted as a local time of day", and `valuet` is
+    the number of seconds since midnight; a time in a zone is valued in its UTC form. `of_time`
+    (feel-evaluator, `temporal_value`) took a zone whose offset it could not resolve as UTC
+    (`feel_time_offset().unwrap_or(0)`), so such a time had the value of another instant. Now a
+    local time keeps its clock time, a time with an offset or a resolved zone its UTC form, and a
+    time in a zone without a known offset gives null with the reason `value: the time zone of the
+    time has no known offset`. A time in a zone resolves its offset on the current date, so the
+    case is not reproducible through an expression (a zone name is checked when it is read; a
+    time in a gap of daylight saving time has no offset only on such a day). Test first:
+    `the_value_of_a_time_needs_its_offset`, a unit test inside `temporal_value` (local, UTC,
+    `+01:00`, `Etc/GMT-1` and an unknown zone name), failed on the parent with 36000.5 for the
+    unknown zone. Identity: no difference; four controls (a local, a UTC, a zoned and an offset
+    time with a fraction) are added to `requests/temporal.json`. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
