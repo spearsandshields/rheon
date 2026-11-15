@@ -146,6 +146,11 @@ the documentation) are timed but not judged. Each step's output is in `.tools/ti
 | `npm run tier:release -- [--without-large-sets] [--without-speed-suite]` | Before a release: the group tier, then the identity check with `--release` and with the large sets (`IDENTITY_LARGE_SETS`), each with `--verify-cache`, the oracle's full run, the full-size randomized tests and the parser corpus, `npm run stack -- --report`, the speed suite (`RHEON_BENCH`, the directory of `bench.mjs`: the previous release and the build, engine mode, results beside the logs) and `cargo doc` of the published crates with warnings denied. An input kept outside the repository is required unless its `--without` flag names it, and then the step is listed as NOT RUN | 30 min |
 
 The budgets hold on a developer machine; with `CI` set the times are reported without a budget.
+Measured on an Apple M2 with Node 26, warm builds, the engine of 0.5.0: the fix tier of a change to
+the tools 3 to 7 s of run time, the group tier 62 s (the workspace tests 22 s of it, the oracle 7 s,
+the contract tests 24 s, the TCK 3 s), the release tier about 18 minutes (the release-tier identity
+sources 7.1 min while 0.5.0 exhausts its memory on them, the oracle's full run 5.7 min, the
+full-size tests 2.4 min, the large sets 39 s, the speed suite 54 s).
 `RHEON_WASM_TARGET_DIR` gives the wasm steps a target directory of their own. `npm run
 test:tier` checks the runner on step tables of its own.
 

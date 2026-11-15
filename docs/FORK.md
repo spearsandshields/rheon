@@ -2249,6 +2249,23 @@ their items with both answers. The totals are under "Verification" below.
     twice that); until then the jobs time out at 60 and 120 minutes. The documents that named the
     CI jobs name the tiers. The workflows were not run here: they are seen on the first push. No
     API change.
+141. **The identity check's Node requirement and times are stated against 0.5.0.** The identity
+    tool's README said to use Node 24 or later because one registered request made the 0.4.0
+    module crash Node 22; with 0.5.0 as the reference no committed request does, so it now says
+    that Node 21 or later is enough against 0.5.0 and that Node 24 or later is still needed for a
+    reference of 0.4.0 or older (a bisect of older commits, a comparison with an old release).
+    `engines.node` stays `>=21`, and CI stays on Node 24, the version its times are measured on, as
+    the workflow comments now say. The table of times is measured again against 0.5.0 (Apple M2,
+    Node 26): the committed sources 7,502 requests, 1.0 s uncached and 0.6 s cached (8.4 s and 7.5 s
+    against 0.4.0); with the large sets 7,813 requests, 38 s uncached and 22 s cached; the release
+    tier's `--release --verify-cache` 7,534 requests in 427 s and `--large --verify-cache` in 39 s,
+    0 cache mismatches, peaks 4.1 GB and 2.2 GB. The README gives the times of the tiers from their
+    first runs: the group tier 62.1 s of run time and 15.4 s of warm builds, every step passing;
+    the release tier 1,029 s of run time and 51 s of builds, every step passing except the speed
+    suite, whose `bench.mjs` (outside the repository) loaded a comparison engine that is not
+    installed here; with that load made optional it ran in 54 s, a geomean of 1.00x between the
+    release module and the build of the same engine. Running the committed sets on Node 22
+    against 0.5.0 was not checked here (no Node 22 is installed). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

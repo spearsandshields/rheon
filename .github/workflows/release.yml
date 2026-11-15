@@ -30,7 +30,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
-          node-version: 24 # the identity check runs the previous release, which can crash Node 22 itself (tools/identity/README.md)
+          node-version: 24 # the version the tiers' CI times are measured on; a 0.4.0 or older reference can crash Node 22 itself (tools/identity/README.md)
           cache: npm
       - run: npm ci
       - run: npm run bootstrap
@@ -57,7 +57,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
-          node-version: 24 # the identity check runs the previous release, which can crash Node 22 itself (tools/identity/README.md)
+          node-version: 24 # the version the tiers' CI times are measured on; a 0.4.0 or older reference can crash Node 22 itself (tools/identity/README.md)
           cache: npm
       - run: npm ci
       - run: npm run bootstrap

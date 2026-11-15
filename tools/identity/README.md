@@ -50,28 +50,34 @@ entries, so a number beyond the range or precision of a double (`1.5e-6176`, a 1
 integer) is sent, keyed and compared exactly as written. This needs Node 21 or later
 (`JSON.rawJSON` and the source text of a parsed number); an older Node exits with status 2.
 
-Run it with Node 24 or later when the reference is 0.4.0. One registered request,
-`{big: for i in 1..100000 return i, r: for j in 1..1000 return big = j}.r`, makes the 0.4.0 module
-exhaust its memory. Node 24 and Node 26 report that as a trap of the module; Node 22.23 crashes
-itself with a segmentation fault (6 of 6 runs, macOS arm64 and the ubuntu runner), so the run ends
-with status 139 before it compares anything. CI therefore runs on Node 24.
+With 0.5.0 as the reference, Node 21 or later is enough: no committed request makes it crash
+Node, and a request that exhausts its memory, such as those of `release/requests/`, ends as a
+trap of the module (`docs/FORK.md` records that Node 22 reports such a trap as well). A run whose
+reference is 0.4.0 or older, such as a bisect of older commits or a comparison with an old
+release, needs Node 24 or later: the request
+`{big: for i in 1..100000 return i, r: for j in 1..1000 return big = j}.r` makes the 0.4.0 module
+exhaust its memory, which Node 24 and Node 26 report as a trap of the module, while Node 22.23
+crashes itself with a segmentation fault (6 of 6 runs, macOS arm64 and the ubuntu runner), so the
+run ends with status 139 before it compares anything. CI runs Node 24, the version its times are
+measured on; the times below are of Node 26.
 
 ## While developing
 
 | When | What | Time |
 |---|---|---|
-| After every build | `run.sh .tools/baseline/feel.wasm dist/feel.wasm`: the committed sources | 8.4 s uncached, 7.5 s cached |
-| Once per group of changes | the same with the larger request sets kept outside the repository as further sources | 7.0 min uncached, 6.5 min cached |
+| After every build (the fix and group tiers) | `npm run identity`: the committed sources | 1.0 s uncached, 0.6 s cached |
+| Once per group of changes, on demand | `npm run identity:large`: the same with the larger request sets kept outside the repository (`IDENTITY_LARGE_SETS`) | 38 s uncached, 22 s cached |
 | On a failure | `--record <entries.json> --why "<basis>"`, then `git bisect start <bad> <good>` and `git bisect run tools/identity/bisect.sh .tools/baseline/feel.wasm <entries.json>` | one wasm build per step |
-| Before a release | every request set with `--verify-cache` | 7.1 min |
+| Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 7.1 min and 39 s |
 
-Measured on a MacBook (Apple silicon, Node 26) against 0.4.0, with every evaluate request also
-sent as parse: the committed sources are 7,359 requests, and with the sets kept outside the
-repository 187,677. The cache saves little against 0.4.0, because the requests that trap
-0.4.0 are evaluated again on every run (see the cache section) and most of them exhaust the
-module's memory slowly: 30 trapping requests take 5.6 s of the committed run, and 22 of one large
-set take 175 s. Without traps in the reference, a cached run spends its time on the candidate. The
-peak memory of a run over every set is about 3.4 GB uncached and 3.1 GB cached.
+Measured on a MacBook (Apple M2, Node 26) against 0.5.0, with every evaluate request also sent as
+parse: the committed sources are 7,502 requests, with the two sets kept outside the repository
+7,813 (the 32 of `release/requests/` and their parse twins left out), and with `--release` 7,534.
+No committed request traps 0.5.0. Five requests of the large sets trap it (two of them after
+1.2 s each, three at once), and the 17 of `release/requests/` exhaust its memory slowly on both
+sides, 427 s of the release run; a cached trap is evaluated again on every run (see the cache
+section), so the cache cannot save that time. The peak memory is 2.2 GB for the large sets and
+4.1 GB for the release sources with `--verify-cache`.
 
 `bisect.sh` builds `dist/feel.wasm` of the checked-out commit and passes the entries as the only
 ledger: a commit that answers every entry's `new` is bad (exit 1), any other is good (exit 0), and
