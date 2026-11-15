@@ -26,6 +26,11 @@ jobs:
       # (dsntk-examples) walks a DMN TCK checkout at ../tck that CI does not have; the dsntk-server
       # `utils::tests::getting_*` tests assert that the checkout directory is named `dsntk`.
       - run: cargo test --workspace --no-fail-fast -- --skip external_functions --skip dmn_3_0076 --skip compare_the_number_of_models --skip utils::tests::getting_
+      # the API documentation of the published crates, with every rustdoc warning (a broken
+      # intra-doc link among them) an error
+      - run: cargo doc --no-deps -p rheon-feel-number -p rheon-feel-temporal -p rheon-feel -p rheon-feel-regex -p rheon-feel-grammar -p rheon-feel-parser -p rheon-feel-evaluator -p rheon-model -p rheon-model-evaluator -p rheon-feel-wasm
+        env:
+          RUSTDOCFLAGS: -D warnings
 
   wasm:
     name: feel.wasm + runtime + playground

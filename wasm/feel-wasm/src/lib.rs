@@ -5,10 +5,10 @@
 //!
 //! The binding specification is `docs/CONTRACT.md` (§1–3). In short:
 //!
-//! * [`feel_alloc`] `(len) -> ptr` — allocate a request buffer;
-//! * [`feel_call`] `(ptr, len) -> (resp_ptr << 32) | resp_len` — takes ownership of the request
+//! * `feel_alloc` `(len) -> ptr` — allocate a request buffer;
+//! * `feel_call` `(ptr, len) -> (resp_ptr << 32) | resp_len` — takes ownership of the request
 //!   buffer and returns a newly allocated UTF-8 JSON response;
-//! * [`feel_free`] `(ptr, len)` — frees a buffer from `feel_alloc` (if it was never passed to
+//! * `feel_free` `(ptr, len)` — frees a buffer from `feel_alloc` (if it was never passed to
 //!   `feel_call`) or a response returned by `feel_call`.
 //!
 //! All recoverable problems (bad JSON, syntax errors, bad context, ...) are reported as

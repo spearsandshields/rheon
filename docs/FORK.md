@@ -2057,6 +2057,14 @@ The totals are under "Verification" below.
     (behaviour, rheon-feel-regex): `replace` and `split` return `RegexError::InvalidArgument` for
     a pattern that matches the zero-length string, and `split` returns no item for an empty
     input.
+133. **CI documents the published crates with warnings denied.** Job `engine` runs `cargo doc
+    --no-deps` on the ten published crates with `RUSTDOCFLAGS=-D warnings`, so an intra-doc link
+    that resolves to nothing, or any other rustdoc warning, fails the run; the README's script
+    table names the step. The module docs of rheon-feel-wasm linked its three ABI exports, which
+    exist only on wasm32, and now write them as code, so that crate documents without a warning
+    too. The step was checked against a tree whose rheon-feel-number docs still quoted DMN 1.6's
+    "pairs [that] have the same value" with bare brackets (item 97 escapes them): it failed there
+    with `unresolved link to 'that'` (exit 101), and it passes here. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
