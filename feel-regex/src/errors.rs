@@ -19,6 +19,10 @@ pub fn err_lone_backslash() -> DsntkError {
   FeelRegexError(r"invalid replacement string: a '\' must be followed by '\' or '$'".to_string()).into()
 }
 
+pub fn err_zero_length_match() -> DsntkError {
+  FeelRegexError("the pattern matches the zero-length string".to_string()).into()
+}
+
 pub fn err_invalid_pattern(pattern: &str) -> DsntkError {
   FeelRegexError(format!("invalid regex pattern: '{pattern}'").to_string()).into()
 }
@@ -29,8 +33,9 @@ pub enum RegexError {
   /// A pattern that is invalid (XQuery 1.0 and XPath 2.0 F&O §7.6, FORX0002): the FEEL result
   /// is null. The reason quotes the pattern as the caller wrote it.
   InvalidPattern(DsntkError),
-  /// Flags (FORX0001) or a replacement string (FORX0004) that are invalid: the FEEL result is
-  /// null. The reason names the rule.
+  /// Flags (FORX0001) or a replacement string (FORX0004) that are invalid, or a pattern of
+  /// `replace` or `split` that matches the zero-length string (FORX0003): the FEEL result is null.
+  /// The reason names the rule.
   InvalidArgument(DsntkError),
   /// The engine gave up on a pattern F&O accepts: an implementation limit, never a FEEL value.
   LimitExceeded(Limit),

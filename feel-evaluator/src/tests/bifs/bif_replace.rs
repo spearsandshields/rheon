@@ -354,3 +354,19 @@ fn q_uses_the_replacement_string_as_is() {
   te_string(false, &scope!(), r#"replace("abc","b","$1","q")"#, "a$1c");
   te_string(false, &scope!(), r#"replace("abc","b","\\x$","q")"#, r"a\x$c");
 }
+
+#[test]
+fn a_pattern_that_matches_the_zero_length_string_is_null() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.3: FORX0003 "if the pattern matches a zero-length string,
+  // that is, if the expression fn:matches("", $pattern, $flags) returns true"
+  let reason = "<FeelRegexError> the pattern matches the zero-length string";
+  te_null(false, &scope!(), r#"replace("abc","x*","-")"#, reason);
+  te_null(false, &scope!(), r#"replace("abc","","-")"#, reason);
+  te_null(false, &scope!(), r#"replace("abc","^","-")"#, reason);
+  te_null(false, &scope!(), r#"replace("abracadabra",".*?","$1")"#, reason);
+  te_null(false, &scope!(), r#"replace("abc","x *","-","x")"#, reason);
+  te_null(false, &scope!(), r#"replace("","a?","-")"#, reason);
+  // "It is not an error, however, if a captured substring is zero-length."
+  te_string(false, &scope!(), r#"replace("abc","b(x*)","[$1]")"#, "a[]c");
+  te_string(false, &scope!(), r#"replace("","a","-")"#, "");
+}

@@ -75,3 +75,18 @@ fn replace_and_split_answer() {
   assert_eq!(Ok("a-b".to_string()), replace("a.b", ".", "-", "q"));
   assert_eq!(Ok(vec!["a".to_string(), "b".to_string(), "c".to_string()]), split("a,b;c", "[,;]"));
 }
+
+#[test]
+fn replace_and_split_reject_a_pattern_that_matches_the_zero_length_string() {
+  let zero_length = || RegexError::InvalidArgument(DsntkError::new("FeelRegexError", "the pattern matches the zero-length string"));
+  assert_eq!(Err(zero_length()), replace("abc", "x*", "-", ""));
+  assert_eq!(Err(zero_length()), replace("abc", "x *", "-", "x"));
+  assert_eq!(Err(zero_length()), split("abc", ""));
+  assert_eq!(Err(zero_length()), split("", "a?"));
+  // a limit or an invalid pattern comes first
+  assert_eq!(Err(RegexError::LimitExceeded(Limit::CompiledSize)), split("", r"\w{10000}"));
+  assert_eq!(Err(invalid("(|")), split("", "(|"));
+  // a zero-length input has no item
+  assert_eq!(Ok(Vec::<String>::new()), split("", ";"));
+  assert_eq!(Ok(vec!["".to_string(), "".to_string()]), split(";", ";"));
+}

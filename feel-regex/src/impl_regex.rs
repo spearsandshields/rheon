@@ -1,4 +1,4 @@
-use crate::errors::{Limit, RegexError, err_invalid_pattern};
+use crate::errors::{Limit, RegexError, err_invalid_pattern, err_zero_length_match};
 use crate::flags::Flags;
 use crate::replacement::Replacement;
 use crate::unicode_blocks::replace_block_names;
@@ -36,11 +36,13 @@ fn is_nest_limit(error: &regex_syntax::Error) -> bool {
   matches!(error, regex_syntax::Error::Parse(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)))
 }
 
-/// The engine source `source` compiled by the automata engine (no back-references), or which
-/// limit it hit, or that the pattern is invalid (quoting `quoted`, the pattern as the caller wrote
-/// it).
+/// The engine source `source` of a `replace` or `split` pattern compiled by the automata engine
+/// (no back-references), or which limit it hit, or that the pattern is invalid (quoting `quoted`,
+/// the pattern as the caller wrote it), or that it matches the zero-length string. F&O §7.6.3 and
+/// §7.6.4 raise FORX0003 "if the pattern matches a zero-length string, that is, if the expression
+/// fn:matches("", $pattern, $flags) returns true", whatever the input.
 fn compile(source: &str, quoted: &str) -> Result<regex::Regex, RegexError> {
-  regex::Regex::new(source).map_err(|error| match error {
+  let regex = regex::Regex::new(source).map_err(|error| match error {
     regex::Error::CompiledTooBig(_) => RegexError::LimitExceeded(Limit::CompiledSize),
     // the error names no kind; the parser with the engine's defaults tells a nesting limit apart,
     // and it runs only on this error path
@@ -49,7 +51,11 @@ fn compile(source: &str, quoted: &str) -> Result<regex::Regex, RegexError> {
       _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
     },
     _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
-  })
+  })?;
+  if regex.is_match("") {
+    return Err(RegexError::InvalidArgument(err_zero_length_match()));
+  }
+  Ok(regex)
 }
 
 /// Replaces every match of `pattern` with `flags` in `input` with `replacement` (F&O §7.6.3
@@ -61,9 +67,16 @@ pub fn replace(input: &str, pattern: &str, replacement: &str, flags: &str) -> Re
   Ok(regex.replace_all(input, &replacement).into_owned())
 }
 
-/// Splits `input` at every match of `delimiter`.
+/// Splits `input` at every match of `delimiter` (F&O §7.6.4 `fn:tokenize` without flags). "If
+/// $input is the empty sequence, or if $input is the zero-length string, the result is the empty
+/// sequence"; otherwise a separator at the start or the end of the input, and two adjacent
+/// separators, give a zero-length string.
 pub fn split(input: &str, delimiter: &str) -> Result<Vec<String>, RegexError> {
-  Ok(compile(delimiter, delimiter)?.split(input).map(String::from).collect())
+  let regex = compile(delimiter, delimiter)?;
+  if input.is_empty() {
+    return Ok(Vec::new());
+  }
+  Ok(regex.split(input).map(String::from).collect())
 }
 
 // Nasty tricks on input.

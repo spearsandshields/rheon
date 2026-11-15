@@ -2031,6 +2031,32 @@ The totals are under "Verification" below.
     to `"a$1c"`; `requests/regex.json` gains the 9 requests of the new tests that it did not hold.
     API break (behaviour, rheon-feel-regex): `replace` reads the replacement by these rules and
     returns `RegexError::InvalidArgument` for an invalid one.
+132. **`replace` and `split` reject a pattern that matches the zero-length string.** XQuery 1.0
+    and XPath 2.0 F&O §7.6.3: "An error is raised [err:FORX0003] if the pattern matches a
+    zero-length string, that is, if the expression fn:matches("", $pattern, $flags) returns true.
+    It is not an error, however, if a captured substring is zero-length." §7.6.4 (`fn:tokenize`,
+    which DMN 1.6's `split` is without flags) raises the same error, and "If $input is the empty
+    sequence, or if $input is the zero-length string, the result is the empty sequence"; a
+    separator at the start or the end, and two adjacent separators, give zero-length strings.
+    `replace` and `split` iterated over the engine's empty matches: `replace("abc","x*","-")` was
+    `"-a-b-c-"`, `replace("abc","^","-")` was `"-abc"`, `split("abc","")` was
+    `["", "a", "b", "c", ""]`, `split("a,b",",*")` was `["", "a", "b", ""]`, and `split("", ";")`
+    was `[""]`. Now the one compile of the two built-ins (feel-regex, `impl_regex.rs`, `compile`)
+    tests the compiled pattern, flags included, against `""` once and returns
+    `RegexError::InvalidArgument` with `the pattern matches the zero-length string`, a null in
+    FEEL; `split` of `""` is `[]` (owner decision), and every other input keeps the engine's
+    split, which already gives tokenize's zero-length strings (`split("1,15,,24,50,",",")` is
+    `["1", "15", "", "24", "50", ""]`, the clause's example). The pattern is checked before the
+    input, as an invalid pattern is, so `split("","x*")` is null, not `[]`; an engine limit and an
+    invalid pattern come before the zero-length test. Test first: the zero-length tests of
+    `bif_replace.rs` and `bif_split.rs` failed on the parent (`"-a-b-c-"`, `[""]`, `["", "a",
+    "b", "c", ""]`). TCK 0067 and 1109 use no such pattern and pass. Every entry of
+    `registered/regex-engine-limits.json` still reproduces (`split("a", <100 nested groups>)` is
+    `["", ""]`). 11 registered differences (`registered/regex-zero-length-matches.json`);
+    `requests/regex.json` gains the 13 requests of the new tests that it did not hold. API break
+    (behaviour, rheon-feel-regex): `replace` and `split` return `RegexError::InvalidArgument` for
+    a pattern that matches the zero-length string, and `split` returns no item for an empty
+    input.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

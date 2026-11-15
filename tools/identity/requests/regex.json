@@ -254,5 +254,18 @@
 {"op":"evaluate","expression":"replace(\"abc\",\"(b)\",\"\\\\$1\")"},
 {"op":"evaluate","expression":"replace(\"abc\",\"b\",\"x\\\\\")"},
 {"op":"evaluate","expression":"replace(\"abc\",\"z\",\"$\")"},
-{"op":"evaluate","expression":"replace(\"abc\",\"b\",\"\\\\x$\",\"q\")"}
+{"op":"evaluate","expression":"replace(\"abc\",\"b\",\"\\\\x$\",\"q\")"},
+{"op":"evaluate","expression":"replace(\"abracadabra\",\".*?\",\"$1\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"x *\",\"-\",\"x\")"},
+{"op":"evaluate","expression":"replace(\"\",\"a?\",\"-\")"},
+{"op":"evaluate","expression":"replace(\"abc\",\"b(x*)\",\"[$1]\")"},
+{"op":"evaluate","expression":"replace(\"\",\"a\",\"-\")"},
+{"op":"evaluate","expression":"split(\"abba\",\".?\")"},
+{"op":"evaluate","expression":"split(\"\",\"x*\")"},
+{"op":"evaluate","expression":"split(\"\",\"[a-z\")"},
+{"op":"evaluate","expression":"split(\"1,15,,24,50,\",\",\")"},
+{"op":"evaluate","expression":"split(\";\",\";\")"},
+{"op":"evaluate","expression":"split(\"abracadabra\",\"(ab)|(a)\")"},
+{"op":"evaluate","expression":"split(\"The cat sat on the mat\",\"\\\\s+\")"},
+{"op":"evaluate","expression":"split(\"abc\",\";\")"}
 ]

@@ -1387,8 +1387,9 @@ pub fn matches(input: &Value, pattern: &Value, flags: &Value) -> Value {
 
 /// The result of a regex built-in that gives no answer. DMN 1.6, Table 75 note 2: "where XPath
 /// specifies an error result, FEEL specifies a null result". An invalid pattern is the null that
-/// `invalid_pattern` makes of its reason; invalid flags and an invalid replacement string are a
-/// null with their reason.
+/// `invalid_pattern` makes of its reason; invalid flags, an invalid replacement string and a
+/// pattern of `replace` or `split` that matches the zero-length string are a null with their
+/// reason.
 ///
 /// A regex engine that gives up on a valid pattern stops the evaluation: an implementation limit
 /// is not an F&O error, so it has no FEEL result; the evaluation reports the abort instead
@@ -2078,7 +2079,8 @@ pub fn remove(list: &Value, position_value: &Value) -> Value {
 }
 
 /// Replaces the matches of a pattern in a string (DMN 1.6, Table 75): null for an invalid pattern,
-/// invalid flags or an invalid replacement string; a null `flags_string_value` is no flags.
+/// invalid flags, an invalid replacement string or a pattern that matches the zero-length string;
+/// a null `flags_string_value` is no flags.
 pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replacement_string_value: &Value, flags_string_value: &Value) -> Value {
   let Value::String(input_string) = input_string_value else {
     return value_null!("replace: input must be a string");
@@ -2171,7 +2173,8 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   }
 }
 
-/// Splits a string at the matches of a delimiter pattern (DMN 1.6, Table 75): null for an invalid pattern.
+/// Splits a string at the matches of a delimiter pattern (DMN 1.6, Table 75): null for an invalid
+/// pattern or a delimiter that matches the zero-length string.
 pub fn split(input_string_value: &Value, delimiter_string_value: &Value) -> Value {
   let Value::String(input_string) = input_string_value else {
     return value_null!("split: input must be a string");
