@@ -1987,7 +1987,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       }
       Bip::Hour => Value::Number(date_time.hour().into()),
       Bip::Minute => Value::Number(date_time.minute().into()),
-      Bip::Second => Value::Number(date_time.second().into()),
+      Bip::Second => temporal_value::second(date_time.second().into(), date_time.nanos()),
       Bip::TimeOffset => {
         if let Some(offset) = date_time.feel_time_offset() {
           Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset))
@@ -2008,7 +2008,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
     Value::Time(time) => match property {
       Bip::Hour => Value::Number(time.hour().into()),
       Bip::Minute => Value::Number(time.minute().into()),
-      Bip::Second => Value::Number(time.second().into()),
+      Bip::Second => temporal_value::second(time.second().into(), time.nanos()),
       Bip::TimeOffset => {
         if let Some(offset) = time.feel_time_offset() {
           Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(offset))
@@ -2030,7 +2030,7 @@ fn get_property_from_value(value: Value, transparent: bool, name: &Name) -> Valu
       Bip::Days => Value::Number(dt_duration.get_days().into()),
       Bip::Hours => Value::Number(dt_duration.get_hours().into()),
       Bip::Minutes => Value::Number(dt_duration.get_minutes().into()),
-      Bip::Seconds => Value::Number(dt_duration.get_seconds().into()),
+      Bip::Seconds => temporal_value::second(dt_duration.get_seconds() as u64, dt_duration.get_nanoseconds()),
       Bip::Value => temporal_value::of_dt_duration(&dt_duration),
       other => value_null!("no such property in days and time duration: {}", arg(&other)),
     },
@@ -2754,8 +2754,9 @@ fn truncating_at_literal(value: Value, text: &str, dropped: Option<&str>) -> Eva
   }
 }
 
-/// The `value` property of temporal values (DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table 66, DMN16-11):
-/// `valuet`, `valuedt`, `valuedtd` and `valueymd` of the spec, as numbers.
+/// The numbers of temporal values: the `value` property (DMN 1.6 §10.3.2.3.4–§10.3.2.3.8, Table
+/// 66), `valuet`, `valuedt`, `valuedtd` and `valueymd` of the spec, and the `second` and `seconds`
+/// properties, decimals in the interval [0..60) (Table 67).
 mod temporal_value {
   use rheon_feel::values::Value;
   use rheon_feel::{FeelNumber, value_null};
@@ -2770,6 +2771,12 @@ mod temporal_value {
     let fraction = nanos.rem_euclid(NANOS_IN_SECOND);
     let n = FeelNumber::from(whole);
     Value::Number(if fraction == 0 { n } else { n + FeelNumber::new(fraction, 9) })
+  }
+
+  /// The second of a minute with its fraction, from the whole seconds and the nanoseconds:
+  /// `second` of a time or a date and time and `seconds` of a days and time duration.
+  pub fn second(whole: u64, nanos: u64) -> Value {
+    seconds((whole * NANOS_IN_SECOND as u64 + nanos) as i64)
   }
 
   /// `valuedtd`: a days and time duration as a number of seconds.

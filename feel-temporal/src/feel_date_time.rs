@@ -350,6 +350,11 @@ impl FeelDateTime {
     self.1.second()
   }
 
+  /// Returns the nanoseconds of the second of this date and time.
+  pub fn nanos(&self) -> u64 {
+    self.1.nanos()
+  }
+
   pub fn feel_time_offset(&self) -> Option<i32> {
     feel_time_offset(self)
   }

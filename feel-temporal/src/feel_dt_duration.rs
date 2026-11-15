@@ -135,6 +135,11 @@ impl FeelDaysAndTimeDuration {
     ((self.0.unsigned_abs() % NANOSECONDS_IN_MINUTE as u64) / NANOSECONDS_IN_SECOND as u64) as usize
   }
 
+  /// Returns the nanoseconds of the seconds component of this duration, below one second.
+  pub fn get_nanoseconds(&self) -> u64 {
+    self.0.unsigned_abs() % NANOSECONDS_IN_SECOND as u64
+  }
+
   /// Returns the whole seconds of this duration with sign, truncated toward zero; a 64-bit
   /// number on every target.
   pub fn as_seconds(&self) -> i64 {
@@ -180,7 +185,7 @@ impl fmt::Display for FeelDaysAndTimeDuration {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let sign = if self.0 < 0 { "-" } else { "" };
     let (day, hour, minute, seconds) = (self.get_days(), self.get_hours(), self.get_minutes(), self.get_seconds());
-    let nanoseconds = self.0.unsigned_abs() % NANOSECONDS_IN_SECOND as u64;
+    let nanoseconds = self.get_nanoseconds();
     let nanoseconds_str = nanos_to_string(nanoseconds);
     match (day > 0, hour > 0, minute > 0, seconds > 0, nanoseconds > 0) {
       (false, false, false, false, false) => write!(f, "PT0S"),

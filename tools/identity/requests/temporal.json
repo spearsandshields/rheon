@@ -476,5 +476,16 @@
   {"op":"evaluate","expression":"date and time(\"1880-01-01T12:00:00@America/New_York\")"},
   {"op":"evaluate","expression":"@\"1900-01-01T12:00:00@Europe/Paris\""},
   {"op":"evaluate","expression":"date and time(\"2020-01-01T12:00:00@Asia/Kolkata\")"},
-  {"op":"evaluate","expression":"date and time(\"1900-01-01T12:00:00@Europe/Paris\").time offset"}
+  {"op":"evaluate","expression":"date and time(\"1900-01-01T12:00:00@Europe/Paris\").time offset"},
+  {"op":"evaluate","expression":"date and time(\"2020-01-01T10:00:30.5Z\").second"},
+  {"op":"evaluate","expression":"duration(\"PT1.5S\").seconds"},
+  {"op":"evaluate","expression":"duration(\"-PT1.5S\").seconds"},
+  {"op":"evaluate","expression":"time(\"10:00:30.5\").second"},
+  {"op":"evaluate","expression":"time(\"10:00:59.000000001+01:00\").second"},
+  {"op":"evaluate","expression":"date and time(\"2020-01-01T10:00:00.0157@Europe/Paris\").second"},
+  {"op":"evaluate","expression":"duration(\"PT0.000000001S\").seconds"},
+  {"op":"evaluate","expression":"duration(\"-PT9223372036.854775807S\").seconds"},
+  {"op":"evaluate","expression":"time(\"10:00:30\").second"},
+  {"op":"evaluate","expression":"duration(\"PT59S\").seconds"},
+  {"op":"evaluate","expression":"date(\"2020-01-01\").second"}
 ]

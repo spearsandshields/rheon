@@ -465,7 +465,7 @@ fn _0086() {
   te_number(false, scope, r#"duration("-PT9223372036.854775807S").days"#, 106751, 0);
   te_number(false, scope, r#"duration("-PT9223372036.854775807S").hours"#, 23, 0);
   te_number(false, scope, r#"duration("-PT9223372036.854775807S").minutes"#, 47, 0);
-  te_number(false, scope, r#"duration("-PT9223372036.854775807S").seconds"#, 16, 0);
+  te_number(false, scope, r#"duration("-PT9223372036.854775807S").seconds"#, 16854775807, 9);
   te_null(
     false,
     scope,
@@ -480,4 +480,24 @@ fn _0086() {
   );
   // valuedt is the exact number of seconds since the epoch (§10.3.2.3.5), also at -2^63 nanoseconds
   te_number_x(false, scope, r#"date and time("1677-09-21T00:12:43.145224192Z").value"#, "-9223372036.854775808");
+}
+
+/// DMN 1.6 Table 67: `second` is "the second of the minute as a decimal in the interval [0..60)",
+/// and `seconds` of a days and time duration "must return a decimal in the interval [0..60)": the
+/// fraction of a second is part of both, and `seconds` is a magnitude like the other components.
+#[test]
+fn second_and_seconds_are_exact_decimals() {
+  let scope = &scope!();
+  te_number(false, scope, r#"time("10:00:30.5").second"#, 305, 1);
+  te_number(false, scope, r#"time("10:00:00.0157").second"#, 157, 4);
+  te_number(false, scope, r#"time("10:00:00.999999999").second"#, 999999999, 9);
+  te_number(false, scope, r#"time("10:00:59.000000001+01:00").second"#, 59000000001, 9);
+  te_number(false, scope, r#"date and time("2020-01-01T10:00:30.5Z").second"#, 305, 1);
+  te_number(false, scope, r#"date and time("2020-01-01T10:00:00.0157@Europe/Paris").second"#, 157, 4);
+  te_number(false, scope, r#"duration("PT1.5S").seconds"#, 15, 1);
+  te_number(false, scope, r#"duration("-PT1.5S").seconds"#, 15, 1);
+  te_number(false, scope, r#"duration("P1DT2H3M4.000000005S").seconds"#, 4000000005, 9);
+  te_number(false, scope, r#"duration("PT0.000000001S").seconds"#, 1, 9);
+  te_number(false, scope, r#"time("10:00:30").second"#, 30, 0);
+  te_number(false, scope, r#"duration("PT59S").seconds"#, 59, 0);
 }

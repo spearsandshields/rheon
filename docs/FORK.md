@@ -1559,6 +1559,21 @@ The totals are under "Verification" below.
     York 1880 `-04:56:02`), with their requests and two controls (Kolkata `+05:30`, the `time
     offset` of Paris 1900) added to `requests/temporal.json`. Rust API (rheon-feel-temporal):
     `FeelOffset::write_seconds` added.
+111. **`second` and `seconds` are exact decimals.** DMN 1.6 Table 67: `second` is "The second of
+    the minute as a decimal in the interval [0..60)", and `seconds` of a days and time duration
+    "must return a decimal in the interval [0..60)". Both read the whole seconds only, so
+    `time("10:00:30.5").second` was 30 and `duration("PT1.5S").seconds` 1. Now they come from
+    `temporal_value::second` (feel-evaluator, `builders.rs`), which builds the exact decimal of the
+    whole seconds and the nanoseconds with the same step as `value`; `seconds` stays a magnitude
+    (`duration("-PT1.5S").seconds` is 1.5), like `days`, `hours` and `minutes`. The `Display` of a
+    days and time duration takes its nanoseconds from the new `get_nanoseconds`. Test first:
+    `second_and_seconds_are_exact_decimals` (feel-evaluator, `properties.rs`) failed on the parent
+    with 30 for `time("10:00:30.5").second`; the pinned `seconds` of
+    `duration("-PT9223372036.854775807S")` is 16.854775807 (was 16). Identity: 13 registered
+    differences in `registered/exact-decimal-seconds.json`, five of them requests of
+    `requests/temporal.json` already, with the other eight and three controls (whole seconds,
+    `date("2020-01-01").second`) added to it. Rust API (rheon-feel-temporal):
+    `FeelDaysAndTimeDuration::get_nanoseconds` and `FeelDateTime::nanos` added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
