@@ -2300,6 +2300,16 @@ their items with both answers. The totals are under "Verification" below.
     entry named as an entry of a context item is not read by the entries after it (`[]` for
     `a: a * 10` then `a > 15`). A change to how frames are stored or shared that alters one of
     these answers states it here. Tests only; no API change.
+144. **The ordering of `sort` takes a predicate that can stop.** `order_by`
+    (`feel-evaluator/src/bifs/sorting.rs`) took a predicate that always answered, so a sort ran to
+    its end whatever the predicate's calls did. The predicate now answers `Some(precedes)` or
+    `None`, and at the first `None` the ordering returns `None` without calling it again, from the
+    insertion of a short list, the runs of a long one and its merges alike (the internal helpers
+    pass the stop on with `?`). `sort` answers `Some` for every call, so nothing it returns changes;
+    a `None` would give null. The unit test stops the predicate at its first call, at a call during
+    the runs and at a call during the merges, for 2 to 5,000 items, and checks that the predicate
+    was called exactly that many times; on the parent it does not compile, because the predicate
+    cannot stop there. Identity step; no API change (the function is private to the crate).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

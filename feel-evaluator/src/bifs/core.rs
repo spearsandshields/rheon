@@ -2159,9 +2159,15 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
         // an answer other than `true` (false, null, any other value) means "does not precede"
         let order = super::sorting::order_by(items.len(), |a, b| {
           let arguments = Arguments::Positional(vec![items[a].clone(), items[b].clone()]);
-          matches!(invoke(&FeelScope::default(), ordering_function.clone(), arguments, Dialect::Feel), Value::Boolean(true))
+          Some(matches!(
+            invoke(&FeelScope::default(), ordering_function.clone(), arguments, Dialect::Feel),
+            Value::Boolean(true)
+          ))
         });
-        Value::List(order.into_iter().map(|position| items[position].clone()).collect())
+        match order {
+          Some(order) => Value::List(order.into_iter().map(|position| items[position].clone()).collect()),
+          None => Value::Null(None),
+        }
       } else {
         value_null!("sort: ordering function should take exactly two arguments")
       }
