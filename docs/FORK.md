@@ -2490,6 +2490,44 @@ their items with both answers. The totals are under "Verification" below.
     thread and in a 4 MiB worker with Liftoff and with TurboFan and in Wasmtime with a 4 MiB wasm
     stack (7.0 s for the whole check), as on 0.5.0; with the depth set to 501 every host reports the
     construct as failed, where the limit stops the evaluation. Tooling; no API change.
+154. **Lists share their items.** A list held its items in a vector of its own, so every copy of
+    a list (a name read, an argument passed, an item taken out of a list, `partial` in a loop)
+    copied all its items and theirs: `count(items)` over 10,000 contexts read by name copied the
+    10,000 contexts, and a list that a loop doubles 30 times through `partial`
+    (`if i = 1 then [1] else [partial[-1], partial[-1]]`) held 2^29 copies of its first item and
+    exhausted the module's memory. `FeelList` now holds its items behind a reference count: a copy
+    shares them, the empty list allocates nothing, and the items are never changed while they are
+    shared (DMN 1.6 §10.3.2.5: "Lists are immutable and may be nested"). `push` appends in place
+    when the list holds its items alone and to a copy of them otherwise; `into_vec` moves the
+    items out of a list that holds them alone and clones them otherwise (a shallow copy: each
+    item clone shares what the item holds); taking the items by value moves them out or clones
+    them one at a time as they are taken, so a loop over a list read by name copies no vector of
+    items first, and a loop domain that is a single value is held as such. The depth of item 151
+    is kept as before. Tests first: `feel/src/tests/lists_shared.rs` (a copy shares the items; a
+    push, `into_vec` and taking the items of a copy leave the other copy unchanged; the items of a
+    list that holds them alone are moved out; the empty list; a list of contexts of strings copied
+    into 8 threads and changed in each leaves the original unchanged), failing on the parent where
+    a copy does not share; and in `feel-evaluator/tests/allocations.rs`, `count(items)` and
+    `{f: function(l) count(l), r: f(items)}.r` over 10,000 numbers and 10,000 contexts read by
+    name cost at most 8 allocations and under 4 KiB more than over one item (0 allocations and
+    0 B more; on the parent 639,936 B more for `count(items)` over numbers, the copy of the
+    items). Answers change: 7 requests of
+    `tools/identity/release/requests/memory-exhausting.json`, which exhausted the memory of 0.5.0
+    after 1.2 to 1.7 s, now answer (`tools/identity/release/registered/shared-lists.json`):
+    `count` of the doubled loop (30, in 8 ms), `=` of two doubled lists and of one with itself
+    (true), `instance of list<Any>` (true), `distinct values` (1 item), `index of` ([1, 2]) and
+    `union` (1 item). On this module the last six take 5.1 to 21.7 s each, because equality and
+    the type of a list walk a shared item again on every path that reaches it (2^28 to 2^29
+    visits). Rendering the doubled list, `string` and `flatten` of it, whose results are
+    exponential in size, and the 5 requests that double a context still exhaust the memory. No
+    other committed request and no official TCK test changes its answer. Measured (wasm, Node
+    26, Apple M2) against the module of item 153, 2 rounds: `count(items)` over 10,000 contexts
+    1.197x (8.1 to 6.8 ms), over 10,000 numbers 1.082x, `{f: function(l) count(l), r: f(items)}.r`
+    1.430x, `count(for x in items return x.amount)` 1.015x, `count(for i in 1..10000 return i)`
+    1.019x, `sum(items[amount > 100].amount)` 1.036x, `count(items[status = "open"])` 1.023x.
+    Rust API (`rheon-feel`): `FeelList`'s `IntoIterator` by value yields the added
+    `rheon_feel::values::ListItems` instead of `std::vec::IntoIter<Value>`; `FeelList` and
+    `ListItems` are `Send + Sync`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

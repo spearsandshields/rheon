@@ -5,7 +5,7 @@
 
 use crate::closure::Closure;
 use crate::context::FeelContext;
-use crate::values::{FeelString, Value};
+use crate::values::{FeelList, FeelString, ListItems, Value};
 use crate::{FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, Name, QualifiedName};
 
 fn send_sync<T: Send + Sync>() {}
@@ -16,6 +16,8 @@ fn send<T: Send>() {}
 fn value_types_are_send_and_sync() {
   send_sync::<Value>();
   send_sync::<FeelString>();
+  send_sync::<FeelList>();
+  send_sync::<ListItems>();
   send_sync::<FeelContext>();
   send_sync::<FeelType>();
   send_sync::<FeelNumber>();

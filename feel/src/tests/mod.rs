@@ -6,6 +6,7 @@ mod display;
 mod dto;
 mod function;
 mod list;
+mod lists_shared;
 mod message;
 mod names;
 mod qualified_names;

@@ -10,7 +10,7 @@ use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
-use rheon_feel::values::{FeelList, TypeOf, Value};
+use rheon_feel::values::{FeelList, ListItems, TypeOf, Value};
 use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, value_null};
 use rheon_feel_temporal::FeelDate;
 use std::ops::ControlFlow;
@@ -18,10 +18,12 @@ use std::ops::ControlFlow;
 /// The values one iteration variable takes, in order.
 pub struct Sequence(Items);
 
-/// The items of a [Sequence]: the remaining items of a list, or the next number or date of an
-/// interval, which are produced one at a time.
+/// The items of a [Sequence]: the remaining items of a list (taken one at a time, so a shared
+/// list is not copied first), a single value, or the next number or date of an interval, which
+/// are produced one at a time.
 enum Items {
-  List(std::vec::IntoIter<Value>),
+  List(ListItems),
+  One(Option<Value>),
   Numbers { next: Option<FeelNumber>, end: FeelNumber, ascending: bool },
   Dates { next: Option<FeelDate>, end: FeelDate, ascending: bool },
 }
@@ -29,16 +31,15 @@ enum Items {
 impl Sequence {
   /// The items of a list; a value that is not a list is the only item.
   pub fn of(value: Value) -> Self {
-    let values = match value {
-      Value::List(values) => values.into_vec(),
-      single => vec![single],
-    };
-    Self(Items::List(values.into_iter()))
+    match value {
+      Value::List(values) => Self(Items::List(values.into_iter())),
+      single => Self(Items::One(Some(single))),
+    }
   }
 
   /// No items.
   pub fn empty() -> Self {
-    Self(Items::List(Vec::new().into_iter()))
+    Self(Items::One(None))
   }
 
   /// The numbers from `start` to `end` by steps of one, or the dates by steps of one day, in
@@ -96,6 +97,7 @@ impl Sequence {
   fn next_item(&mut self) -> Option<Value> {
     match &mut self.0 {
       Items::List(values) => values.next(),
+      Items::One(value) => value.take(),
       Items::Numbers { next, end, ascending } => {
         let current = (*next)?;
         let following = if *ascending { current + FeelNumber::one() } else { current - FeelNumber::one() };

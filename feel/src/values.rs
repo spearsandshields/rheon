@@ -24,7 +24,7 @@ use std::sync::Arc;
 mod list;
 mod string;
 
-pub use list::FeelList;
+pub use list::{FeelList, ListItems};
 pub use string::FeelString;
 
 /// Creates `Value::Null` with optional tracing message: the reason of an error null, or with

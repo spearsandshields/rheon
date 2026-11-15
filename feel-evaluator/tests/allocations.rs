@@ -105,6 +105,47 @@ fn a_message_quoting_the_type_of_a_wide_context_allocates_little() {
   assert!(bytes <= 4 * 1024, "{bytes} bytes allocated");
 }
 
+/// The allocations and the bytes the evaluation of `expression` makes over a list of 10,000
+/// `item`s, less those it makes over a list of the one item `0`: the cost that grows with the list.
+fn cost_of_a_long_list(expression: &str, item: impl Fn(i64) -> Value) -> (i64, i64) {
+  let measure = |items: Vec<Value>| {
+    let len = items.len();
+    let mut input = rheon_feel::context::FeelContext::default();
+    input.set_entry(&rheon_feel::Name::from("items"), Value::List(items.into()));
+    let scope = FeelScope::from(input);
+    let evaluator = prepare(&parse_expression(&scope, expression, false).expect("the expression parses"));
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    let allocations = ALLOCATIONS.with(Cell::get) - allocations;
+    assert_eq!(Value::Number(len.into()), value, "{expression}");
+    (allocations as i64, bytes as i64)
+  };
+  let (long_allocations, long_bytes) = measure((0..10_000).map(&item).collect());
+  let (one_allocations, one_bytes) = measure(vec![item(0)]);
+  (long_allocations - one_allocations, long_bytes - one_bytes)
+}
+
+/// A context with a number and a string entry.
+fn record(n: i64) -> Value {
+  let mut context = rheon_feel::context::FeelContext::default();
+  context.set_entry(&rheon_feel::Name::from("n"), Value::Number(n.into()));
+  context.set_entry(&rheon_feel::Name::from("s"), Value::String(format!("item {n}").into()));
+  Value::Context(context)
+}
+
+#[test]
+fn a_list_read_by_name_and_passed_on_is_not_copied() {
+  let number = |n: i64| Value::Number(n.into());
+  for expression in ["count(items)", "{f: function(l) count(l), r: f(items)}.r"] {
+    for (kind, (allocations, bytes)) in [("numbers", cost_of_a_long_list(expression, number)), ("contexts", cost_of_a_long_list(expression, record))] {
+      assert!(
+        allocations <= 8 && bytes < 4 * 1024,
+        "{expression} over 10,000 {kind}: {allocations} allocations and {bytes} bytes more than over one"
+      );
+    }
+  }
+}
+
 #[test]
 fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
   let mut input = rheon_feel::context::FeelContext::default();
