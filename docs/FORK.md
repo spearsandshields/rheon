@@ -2266,6 +2266,27 @@ their items with both answers. The totals are under "Verification" below.
     installed here; with that load made optional it ran in 54 s, a geomean of 1.00x between the
     release module and the build of the same engine. Running the committed sets on Node 22
     against 0.5.0 was not checked here (no Node 22 is installed). No API change.
+142. **Requests and tests on values that are used again after they were passed on.** The value
+    rework changes how lists, contexts and frames are stored and shared, and its risk is a write
+    through one holder of a value that shows through another. `tools/identity/requests/values.json`
+    (105 requests) uses a list, a context or a string again after a built-in, an operator, a
+    filter, a loop, a call or a closure derived a new value from it (`append`, `context put` with
+    a key and a key list, `sort`, `reverse`, `list replace`, `insert before`, `remove`, `distinct
+    values`, `union`, `concatenate`, `flatten`, `sublist`, `context merge`, `get entries`, `+` on
+    strings), with items with and without an entry `item` and the input context aliased in both
+    context formats; it nests a value 100 and 499 levels deep through each channel that builds one
+    (`partial`, a recursion around list literals, a chain of context literals, ranges, closures,
+    `context put` with a key list) and walks it with `count`, `=`, `instance of`, `string`,
+    `flatten` and `...`; and it doubles a list and a context 10 times through `partial`, so their
+    items share the value before them. 0.5.0 answers every one of them (0.8 s for the set). A list
+    and a context nested 499 levels deep through `partial`, and their walks, cost 0.5.0 0.7 s and
+    5.6 s each, because it copies `partial` in every iteration, so these 12 requests are
+    `tools/identity/release/requests/values-deep.json` (44 s on each side). The same expressions,
+    except those 12, are tests in `feel-evaluator/src/tests/values_used_again.rs` with the answers
+    they have (the value text and the number of errors); the deep values are compared with their
+    text built by the test. Identity against 0.5.0: 7,710 requests in 2.7 s uncached and 1.4 s
+    cached; with the large sets 7,905; with `--release` 7,766 in 513 s (peak 3.5 GB); 0
+    differences. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -58,6 +58,7 @@ mod some_expression;
 mod subtraction;
 mod types;
 mod unary_tests;
+mod values_used_again;
 mod various;
 
 const SECONDS_IN_DAY: i64 = 86_400;
