@@ -23,6 +23,7 @@ use std::sync::Arc;
 
 mod list;
 mod string;
+mod type_relations;
 
 pub use list::{FeelList, ListItems};
 pub use string::FeelString;

@@ -40,6 +40,7 @@
   {"op": "evaluate", "expression": "((function(f) f(f, 99))(function(g, n) if n = 0 then {a: {a: {a: {a: {}}}}} else {a: {a: {a: {a: {a: g(g, n - 1)}}}}})).a"},
   {"op": "evaluate", "expression": "(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[]]]]] else [[[[[g(g, n - 1)]]]]]) = (function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[]]]]] else [[[[[g(g, n - 1)]]]]])"},
   {"op": "evaluate", "expression": "(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[]]]]] else [[[[[g(g, n - 1)]]]]]) instance of list<Any>"},
+  {"op": "evaluate", "expression": "(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[1], [1]], [1]], [1]], [1]] else [[[[[g(g, n - 1), [1]], [1]], [1]], [1]], [1]]) instance of list<number>"},
   {"op": "evaluate", "expression": "string length(string((function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[]]]]] else [[[[[g(g, n - 1)]]]]])))"},
   {"op": "evaluate", "expression": "count(a)", "contextFormat": "feel", "context": "{a: (function(f) f(f, 99))(function(g, n) if n = 0 then [[[[]]]] else [[[[[g(g, n - 1)]]]]])}"},
   {"op": "evaluate", "expression": "count(a)", "contextFormat": "feel", "context": "{a: (function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[]]]]] else [[[[[g(g, n - 1)]]]]])}"},

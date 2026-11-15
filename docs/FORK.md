@@ -2568,6 +2568,58 @@ their items with both answers. The totals are under "Verification" below.
     unchanged (`count(distinct values(for i in 1..2000 return [i, i]))` 26.5 and 25.9 ms,
     `index of` and `in` over 2,000 one-item lists 0.34 and 0.31 ms, `list contains` over 5,000
     numbers 0.56 ms on both). No API change.
+157. **`instance of` is decided on the value, without building its type.** `instance of` built the
+    type of a list, a context, a range or a function (`Value::type_of`) and related it to the
+    type asked for. The type of a list is a list of the type of its first item when every other
+    item's type conforms to it, so building it typed each item, and a value that holds the same
+    list on many paths was typed once per path: `instance of list<Any>` over a list doubled 30
+    times through `partial` took 21.8 s after item 154, and doubled 60 times it would not end.
+    `Value::has_type`, `Value::has_type_of` and `Value::type_instance_of`
+    (`feel/src/values/type_relations.rs`) answer what `type_of() == t`,
+    `type_of() == other.type_of()` and `type_of().instance_of(t)` answer, reading the value only
+    as far as the relation needs (a list against `list<Any>` is not read at all, a context only
+    in the entries of the type asked for). Within one relation, whether the items of a list
+    conform to its first is decided once for a list that nests more than two levels (a shallower
+    list costs a pass over its items when it is reached again), and the answer for a pair of
+    nodes is remembered when either is a list that shares its items, keyed by the addresses of
+    the borrowed nodes; the memory lives for the relation, is created on first use and is never
+    iterated. `instance of` uses them for lists, contexts, ranges and functions and for a right
+    operand that is not a type; Table 62 is not changed (the answers are those of the built
+    types). Tests first: `feel/src/tests/type_relations.rs` compares the three relations with
+    the built types for 300 random sets of values of every kind that share their lists (scalars,
+    lists, contexts, ranges, functions, types, interval ends, unary tests) against the types of
+    those values and random types, and relates lists doubled 60 times, one of them with a
+    different last item, to their types at once; in `feel-evaluator/src/tests/shared_values.rs`,
+    `instance of` over a list doubled 60 times answers at once, while on the parent that test was
+    still running when it was stopped after 180 s. Identity step: no answer changes. The request
+    `instance of list<Any>` of `release/registered/shared-lists.json` takes 7.6 ms (21.8 s
+    before). Measured (wasm, Node 26, Apple M2, 2 rounds) against the module of item 156:
+    `instance of` over lists that share nothing is slower, `l instance of list<list<number>>` for
+    100 lists of two numbers 3.38 to 6.44 ms per 1,000 (1.9x the time; 11.0 ms when the items of
+    every list were decided once through the memory, which is now kept for deeper lists only),
+    with items of two kinds 3.78 to 5.89 ms; `instance of` over a context 4.83 to 4.79 ms per
+    10,000, a range 2.22 to 2.28 ms, a number 1.24 ms on both. Rust API (`rheon-feel`): the added
+    `Value::has_type`, `Value::has_type_of` and `Value::type_instance_of`.
+    Measured on the module of items 154 to 157 together (wasm, Node 26, Apple M2, two
+    alternating rounds): against the module of item 153, geomean 1.012x and 1.016x over the 39
+    workloads of the speed suite, none below 0.97x in either round; `count(items)` over 10,000
+    contexts 1.194x and 1.188x, over 10,000 numbers 1.062x and 1.070x,
+    `{f: function(l) count(l), r: f(items)}.r` 1.434x; against 0.5.0, geomean 1.009x and 1.006x
+    over the suite and 0.998x and 0.992x over the 86 parse workloads; below 0.97x in both rounds
+    `count(for i in 1..10000 return abs(i))` (0.952x, 0.965x) and the 100 by 100 nested loop
+    (0.965x, 0.947x), against item 153's module at least 0.990x and 0.977x, and of the parse set a
+    list literal nested 297 levels (0.924x; 0.955x of item 153's module, one allocation more per
+    list) and a flat context literal of 5,000 entries (0.964x, 0.970x; 1.00x of item 153's
+    module). Allocations per call (native): one more per non-empty list built (the box that holds
+    its items), fewer where a list was copied (`count(items)` over 10,000 contexts 210,105 to
+    160,105, `{f: function(l) count(l), r: f(items)}.r` 260,207 to 160,206); the native peak of
+    `count(items[status = "open"])` 22,459,853 B on 0.5.0, 22,459,925 B here (one box more than
+    item 153's module); `count(items)` over 10,000 contexts 22,447,220 to 12,191,876 B. The string
+    doubling's peak memory (n = 17 to 26, 267.38 MiB at 26) and the stack report are those of
+    0.5.0. The walkers of a value built natively reach at least 1,265 levels on every host, as
+    on 0.5.0 (equality at least 2,140 levels, 3,750 before; dropping a list at least 4,609, 6,656
+    before); `context put` refuses a key list beyond 500 levels by design. `run.sh --release`:
+    7,886 requests, 34 registered differences, 0 others, 529 s, peak RSS 3.1 GB.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

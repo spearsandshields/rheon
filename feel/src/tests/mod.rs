@@ -13,6 +13,7 @@ mod qualified_names;
 mod scope;
 mod send_sync;
 mod strings_shared;
+mod type_relations;
 mod types;
 mod values;
 

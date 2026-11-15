@@ -1247,24 +1247,24 @@ impl EvaluatorBuilder {
           },
           value @ Value::Range { .. } => match feel_type {
             FeelType::Any => VALUE_TRUE,
-            expected => Value::Boolean(value.type_of() == expected),
+            expected => Value::Boolean(value.has_type(&expected)),
           },
           value @ Value::List { .. } => match feel_type {
             FeelType::Any => VALUE_TRUE,
-            expected => Value::Boolean(value.type_of().instance_of(&expected)),
+            expected => Value::Boolean(value.type_instance_of(&expected)),
           },
           value @ Value::Context { .. } => match feel_type {
             FeelType::Any => VALUE_TRUE,
-            expected => Value::Boolean(value.type_of().instance_of(&expected)),
+            expected => Value::Boolean(value.type_instance_of(&expected)),
           },
           value @ Value::FunctionDefinition { .. } => match feel_type {
             FeelType::Any => VALUE_TRUE,
-            expected => Value::Boolean(value.type_of() == expected),
+            expected => Value::Boolean(value.has_type(&expected)),
           },
           other => value_null!("invalid value in 'instance of' operator: {}", arg(&other)),
         }
       } else {
-        Value::Boolean(lhv.type_of() == rhv.type_of())
+        Value::Boolean(lhv.has_type_of(&rhv))
       }
     })
   }

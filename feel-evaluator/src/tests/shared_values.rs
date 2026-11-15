@@ -129,3 +129,20 @@ fn list_scans_over_shared_values_answer_as_over_unshared_values() {
     }
   }
 }
+
+#[test]
+fn instance_of_reads_a_shared_list_once() {
+  let x = doubled(60, "1");
+  let list_of = |levels: usize, item: &str| format!("{}{item}{}", "list<".repeat(levels), ">".repeat(levels));
+  te_warnings(
+    &format!(
+      "{{x: {x}, r: [x instance of list<Any>, x instance of {}, x instance of {}, x instance of {}, {{a: x}} instance of context<a: {}>]}}.r",
+      list_of(60, "number"),
+      list_of(60, "string"),
+      list_of(59, "number"),
+      list_of(60, "number")
+    ),
+    "[true, true, false, false, true]",
+    &[],
+  );
+}
