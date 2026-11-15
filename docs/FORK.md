@@ -2158,6 +2158,27 @@ their items with both answers. The totals are under "Verification" below.
     times the model build (parsing and `ModelEvaluator::new`) and each test case's evaluation with
     its own timing loop, one row per model, so nothing in it can drift from the tests. No API
     change.
+136. **A ledger entry of the identity check can state a rule.** A change that removes the same
+    kind of diagnostic from many requests needed one ledger entry per request. A ledger file may
+    now also hold rule entries (`tools/identity/README.md`, "Rule entries"): a name, the basis, an
+    optional pattern the request's expression must match, the paths where the two responses may
+    differ, each with its relation (`gains` or `loses` elements that match a pattern, `decreases`
+    or `increases` as exact integers, `rewrite` by a pattern and its replacement), and examples in
+    the whole-response form. A difference of a request with no entry of its own is explained by
+    the first rule, in ledger order, whose relations hold at its paths and outside of which the
+    two responses are identical; a trap is never explained. Each example is run like an entry
+    (the reference answers `old`, the candidate `new`) and must be an instance of its rule, so a
+    rule cannot go stale, and an example's request is registered at most once like any other.
+    The summary counts the explained differences per rule, `--explained <out.json>` lists them
+    for review, and `--record` drafts only what nothing explains. The relations are pure
+    functions in `rules.mjs`, tested on literal responses (`npm run test:identity`, 18 tests, the
+    6 that need two modules that differ skipped while the ledger is empty), and the lossless JSON
+    helpers move to `json.mjs`; the cache format is 2 and its key covers the three files. Checked
+    by hand with the 0.4.0 module as the reference and 0.5.0 as the candidate on
+    `requests/nulls.json`: a rule for a dropped `no entry` error (count down, messages lose
+    `no entry`) with one example explained 3 of the 120 differences, the other 116 stayed
+    differences, and the same rule stated as an increase was refused (exit 2, `diagnostics.count:
+    1 to 0 is not an increase`). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -16,6 +16,8 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 |---|---|
 | `run.sh <reference.wasm> <candidate.wasm> [source…] [option…]` | Runs `equal.mjs` with every committed source and ledger and the cache in `.tools/identity-cache/`; further sources and options are passed on |
 | `equal.mjs` | The comparison (Node 21 or later, no dependencies); its header lists the options |
+| `rules.mjs` | The relations of rule entries (see "Rule entries"), pure functions on parsed responses |
+| `json.mjs` | Lossless JSON: parsing with every number as its source text, and the canonical form responses are compared in |
 | `test.mjs` | The tool's own checks (`npm run test:identity`), on `IDENTITY_REFERENCE` (default `.tools/baseline/feel.wasm`) and `IDENTITY_CANDIDATE` (default `dist/feel.wasm`); a missing module fails them |
 | `bisect.sh <reference.wasm> <entries.json> [candidate.wasm]` | The step of `git bisect run` that finds the commit behind recorded differences (see "While developing") |
 | `baseline.json` | `tag` and `sha256` of the previous release's `feel.wasm` |
@@ -78,15 +80,19 @@ tree in the same layout. With a third argument it checks that module instead of 
    and each ledger file on a fresh instance of its own, so that its answers to a file depend on
    the module and the file alone; a request that several files list takes the answer of the first.
    The candidate answers every request once, on one instance.
-2. Every request is compared. A difference that is not registered fails the run.
-3. Every ledger entry is run, whether or not a source lists its request. The reference must answer
-   its `old` and the candidate its `new`; an entry that does not reproduce fails the run, so the
-   ledger cannot go stale.
-4. A request is registered at most once across all ledger files. Its key is its JSON with sorted
-   object keys.
-5. A response that is not JSON fails the run.
-6. Exit status: 0 when every response is identical or registered, 1 on any failure, 2 on a usage or
-   input error (including a malformed ledger).
+2. Every request is compared. A difference that is neither registered nor explained by a rule
+   entry fails the run.
+3. Every ledger entry and every example of a rule entry is run, whether or not a source lists its
+   request. The reference must answer its `old` and the candidate its `new`; an entry or an
+   example that does not reproduce fails the run, so the ledger cannot go stale.
+4. A request is registered at most once across all ledger files, as an entry or as an example.
+   Its key is its JSON with sorted object keys.
+5. A request with an entry of its own is checked against that entry only. A difference of any
+   other request is explained by the first rule entry, in ledger order (files by name, entries in
+   file order), that it is an instance of; a difference that no rule explains fails the run.
+6. A response that is not JSON fails the run.
+7. Exit status: 0 when every response is identical, registered or explained, 1 on any failure, 2
+   on a usage or input error (including a malformed ledger).
 
 ## The cache of reference answers
 
@@ -101,7 +107,8 @@ The reference is a fixed module, so its answers to a file do not change until th
   it.
 - The cached answers are used only when the trailer's digest is right and the header equals the
   run's: the format, the reference's sha256, the sha256 of the unit file's bytes, the kind of unit
-  (requests or ledger), `--parse-too`, the sha256 of `equal.mjs` and `scripts/feel-abi.mjs`, and
+  (requests or ledger), `--parse-too`, the sha256 of `equal.mjs`, `json.mjs`, `rules.mjs` and
+  `scripts/feel-abi.mjs`, and
   Node's version, architecture and `execArgv`; the request hashes must also be the unit's requests
   in order. Anything else is a miss: the unit is evaluated and its file written again (to a
   temporary file, then renamed). An existing file that does not match is reported as
@@ -145,6 +152,55 @@ A ledger file is a JSON array of entries:
 with `run.sh … --record <out.json> --why "<basis>"`, which writes the run's unregistered
 differences as entries in the whole-response form; then check every `new` against the spec before
 committing it.
+
+## Rule entries
+
+A rule entry explains a class of differences that many requests share, such as diagnostics that a
+change no longer records, instead of one entry per request. It stands in a ledger file beside the
+request entries:
+
+```jsonc
+{
+  "rule": "right-operand-not-evaluated",           // a name of lowercase words joined by hyphens, unique in the ledger
+  "why": "DMN 1.6 §…: …",                          // the basis, as for a request entry
+  "applies": { "expression": "\\b(and|or)\\b" },   // optional: the rule explains only requests whose expression matches
+  "allow": [                                       // the paths where the two responses may differ, each once
+    { "at": "diagnostics.count", "change": "decreases" },
+    { "at": "diagnostics.messages", "change": "loses", "each": "^\\[addition\\] " }
+  ],
+  "examples": [                                    // at least one, each in the whole-response form
+    { "expression": "false and (1 + \"a\")", "old": { … }, "new": { … } }
+  ]
+}
+```
+
+A path names a field by its keys joined with dots (`diagnostics.count`, `result.display`); a key
+ending in `[*]` stands for each element of two arrays of equal length (`warnings[*].message`). An
+absent field counts as 0 for `decreases` and `increases` and as the empty list for `gains` and
+`loses`. The changes:
+
+- `gains`: both lists, the old one a subsequence of the new one, and every added element matching
+  the regular expression `each` (required); an element is matched as its text when it is a string,
+  otherwise as its canonical JSON;
+- `loses`: the mirror image, `each` matching every element the new list drops;
+- `decreases` and `increases`: both JSON integers, compared exactly from their source text, and
+  the new one strictly smaller or larger;
+- `rewrite`: both strings, and the old text with every match of `pattern` replaced by
+  `replacement` (JavaScript's `String.replace`, so `$1` names a group) is the new text.
+
+A difference is explained when both answers are responses (a trap is never explained), the two
+values at every allowed path stand in its relation, and the two responses are identical once the
+allowed paths are removed; an object that the removal leaves empty is removed with them, so
+`diagnostics` that a change drops entirely compares equal to its absence. Anything else stays a
+difference. A transformation that a regular expression cannot state is added to `rules.mjs` as a
+named change, with the first change that needs it.
+
+Each example is a ledger request like any other: the reference must answer its `old` and the
+candidate its `new`, so a rule whose examples no longer reproduce fails the run. An example must
+be an instance of its rule and match its `applies`, and a malformed rule is an input error (exit
+status 2). The summary line counts the explained differences per rule, `--explained <out.json>`
+writes every explained request with its rule's name and both answers for review, and `--record`
+writes only the differences that nothing explains.
 
 ## When a release is cut
 
