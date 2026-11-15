@@ -1517,6 +1517,27 @@ The totals are under "Verification" below.
     `requests/temporal.json`; the other requests and two controls (`-01:59`, `+05:59`) are added
     to it. Rust behaviour break (rheon-feel-temporal): `FeelTime`, `FeelDateTime` and
     `FeelZone::from_designator` reject an offset with minutes of 60 or more.
+109. **An offset literal has no seconds.** DMN 1.6 §10.3.2.3.4: a time is "a value of the XML
+    Schema time datatype"; XML Schema Part 2 §3.2.7.3: "The lexical representation of a timezone
+    is a string of the form: (('+' | '-') hh ':' mm) | 'Z'". The offset pattern of time, date
+    and time and `@` literals and of the zone of `date and time(date, time, zone)` took an
+    optional `:ss`, so `time("10:00:00+05:30:15")` was a time with that offset and
+    `@"2020-01-01T10:00:00+01:00:00"` one with +01:00. Now `OFFSET_PATTERN` is `±hh:mm` and
+    `FeelZone::from_captures` has no seconds branch: such a literal or zone is invalid and gives
+    null with its reason. An offset with seconds remains a value: `time(h, m, s, offset)` takes
+    whole seconds (item 107), and the TCK requires `string(time(11, 59, 45,
+    duration("PT2H45M55S")))` to be `"11:59:45+02:45:55"`; that text does not read back as a
+    literal. Test first: `an_offset_literal_has_no_seconds` (feel-temporal and feel-evaluator)
+    failed on the parent with `Some(Offset(FeelOffset(18001)))` and the time
+    `10:00:00+05:30:15`. Tests changed with it: `test_from_captures`, `zone_designators`, the
+    zone table of `date_and_time_from_date_time_and_zone_takes_the_zone_suffix_rules` (`+01:00:30`
+    is invalid), `bif_date_time::_0038` (null, and the same value written `+05:01`),
+    `bif_is::_0047`-`_0049` (written with `±hh:mm` offsets), and the non-compliant model N_0079,
+    `_0013` and `_0016` with their bench copies (null; the model expects the text with offset
+    seconds). Identity: 8 registered differences in `registered/offset-literal-seconds.json`
+    (whole responses), four on requests of `requests/temporal.json`; the other four are added
+    to it. Rust behaviour break (rheon-feel-temporal): `FeelTime`, `FeelDateTime` and
+    `FeelZone::from_designator` reject an offset written with seconds.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

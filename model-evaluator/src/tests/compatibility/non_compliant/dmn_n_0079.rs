@@ -97,15 +97,10 @@ fn _0012() {
 
 #[test]
 fn _0013() {
+  // the model expects an offset with seconds (+05:00:01); an offset literal is ±hh:mm (XML Schema
+  // Part 2 §3.2.7.3), so the literal is invalid
   let ctx = context(r#"{}"#);
-  assert_decision(
-    &MODEL_EVALUATOR,
-    &MODEL_NAMESPACE,
-    &MODEL_NAME,
-    "dateTime_003",
-    &ctx,
-    r#""2018-12-10T10:30:00.0001+05:00:01""#,
-  );
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "dateTime_003", &ctx, r#"null"#);
 }
 
 #[test]
@@ -122,8 +117,10 @@ fn _0015() {
 
 #[test]
 fn _0016() {
+  // the model expects an offset with seconds (+05:00:01); an offset literal is ±hh:mm (XML Schema
+  // Part 2 §3.2.7.3), so the literal is invalid
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "time_002", &ctx, r#""10:30:00.0001+05:00:01""#);
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "time_002", &ctx, r#"null"#);
 }
 
 #[test]

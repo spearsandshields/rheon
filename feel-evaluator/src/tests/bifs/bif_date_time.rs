@@ -269,13 +269,20 @@ fn _0037() {
 
 #[test]
 fn _0038() {
-  te_date_time_offset(
+  // XML Schema Part 2 §3.2.7.3: a timezone is written ±hh:mm, without seconds
+  te_null(
     false,
     &scope!(),
     r#"date and time("2018-12-10T10:30:00.0001+05:00:01")"#,
+    "[core::date and time] invalid date or date and time '2018-12-10T10:30:00.0001+05:00:01'",
+  );
+  te_date_time_offset(
+    false,
+    &scope!(),
+    r#"date and time("2018-12-10T10:30:00.0001+05:01")"#,
     (2018, 12, 10),
     (10, 30, 0, 100_000),
-    18001,
+    18060,
   )
 }
 
@@ -451,7 +458,6 @@ fn date_and_time_from_date_time_and_zone_takes_the_zone_suffix_rules() {
     (" Z ", "2020-01-01T10:00:00.5Z"),
     ("+02:00", "2020-01-01T10:00:00.5+02:00"),
     ("-05:30", "2020-01-01T10:00:00.5-05:30"),
-    ("+01:00:30", "2020-01-01T10:00:00.5+01:00:30"),
     ("+14:00", "2020-01-01T10:00:00.5+14:00"),
     ("Europe/Paris", "2020-01-01T10:00:00.5@Europe/Paris"),
     ("Etc/UTC", "2020-01-01T10:00:00.5@Etc/UTC"),
@@ -467,6 +473,7 @@ fn date_and_time_from_date_time_and_zone_takes_the_zone_suffix_rules() {
     "@Europe/Paris",
     "Z@Europe/Paris",
     "+02:00Z",
+    "+01:00:30",
   ] {
     te_null(
       false,

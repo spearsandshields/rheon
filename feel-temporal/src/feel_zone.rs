@@ -79,11 +79,6 @@ impl FeelZone {
         return None;
       }
       let mut offset = 3600 * hours + 60 * minutes;
-      if let Some(seconds_match) = captures.name("offSeconds")
-        && let Ok(seconds) = seconds_match.as_str().parse::<i32>()
-      {
-        offset += seconds;
-      }
       if sign_match.as_str() == "-" {
         offset = -offset;
       }
@@ -99,7 +94,7 @@ impl FeelZone {
     Some(FeelZone::Local)
   }
 
-  /// The zone written as `designator`: `Z` or `z`, an offset such as `+02:00` or `-05:30:15`, or
+  /// The zone written as `designator`: `Z` or `z`, an offset such as `+02:00` or `-05:30`, or
   /// `@` and an IANA zone name, by the rules of the zone suffix of a time literal (an offset within
   /// ±14:00 with minutes below 60, a zone name the zone database knows). `None` for any other
   /// text, the empty one included.
@@ -170,17 +165,13 @@ mod tests {
     assert_zone!(Some(FeelZone::Utc), "00:00:00-00:00");
     assert_zone!(Some(FeelZone::Utc), "00:00:00-00:00");
     assert_zone!(Some(offset(18_000)), "00:00:00+05:00");
-    assert_zone!(Some(offset(18_001)), "00:00:00+05:00:01");
-    assert_zone!(Some(offset(18_060)), "00:00:00+05:01:00");
+    assert_zone!(Some(offset(18_060)), "00:00:00+05:01");
     assert_zone!(Some(offset(-18_000)), "00:00:00-05:00");
-    assert_zone!(Some(offset(-18_001)), "00:00:00-05:00:01");
-    assert_zone!(Some(offset(-18_060)), "00:00:00-05:01:00");
+    assert_zone!(Some(offset(-18_060)), "00:00:00-05:01");
     assert_zone!(Some(offset(50_400)), "00:00:00+14:00");
     assert_zone!(Some(offset(-50_400)), "00:00:00-14:00");
     assert_zone!(None, "00:00:00+14:01");
-    assert_zone!(None, "00:00:00+14:00:01");
     assert_zone!(None, "00:00:00-14:01");
-    assert_zone!(None, "00:00:00-14:00:01");
     // XML Schema Part 2 §3.2.7.3: "mm is a two-digit numeral that represents the minutes", 00 to 59
     assert_zone!(None, "00:00:00+05:99");
     assert_zone!(None, "00:00:00+13:60");
@@ -191,13 +182,32 @@ mod tests {
   }
 
   #[test]
+  fn an_offset_literal_has_no_seconds() {
+    // XML Schema Part 2 §3.2.7.3: "(('+' | '-') hh ':' mm) | 'Z'"
+    for literal in [
+      "00:00:00+05:00:01",
+      "00:00:00+14:00:01",
+      "00:00:00-14:00:01",
+      "00:00:00-05:01:00",
+      "00:00:00+01:00:30",
+      "00:00:00-00:00:30",
+      "00:00:00+00:00:00",
+    ] {
+      assert_eq!(None, RE_TIME.captures(literal).and_then(|captures| FeelZone::from_captures(&captures)), "{literal}");
+    }
+    for designator in ["+05:00:01", "-05:01:00", "+01:00:30", "-00:00:30", "+00:00:00"] {
+      assert_eq!(None, FeelZone::from_designator(designator), "{designator}");
+    }
+  }
+
+  #[test]
   fn zone_designators() {
     assert_eq!(Some(FeelZone::Utc), FeelZone::from_designator("Z"));
     assert_eq!(Some(FeelZone::Utc), FeelZone::from_designator("z"));
     assert_eq!(Some(FeelZone::Utc), FeelZone::from_designator("-00:00"));
     assert_eq!(Some(7_200), offset_seconds(FeelZone::from_designator("+02:00")));
     assert_eq!(Some(-19_800), offset_seconds(FeelZone::from_designator("-05:30")));
-    assert_eq!(Some(3_630), offset_seconds(FeelZone::from_designator("+01:00:30")));
+    assert_eq!(Some(-3_540), offset_seconds(FeelZone::from_designator("-00:59")));
     assert_eq!(Some(50_400), offset_seconds(FeelZone::from_designator("+14:00")));
     assert_eq!(Some(FeelZone::Zone("Europe/Paris".to_string())), FeelZone::from_designator("@Europe/Paris"));
     for designator in [

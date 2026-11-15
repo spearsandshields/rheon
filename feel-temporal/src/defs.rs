@@ -49,8 +49,9 @@ const TIME_PATTERN: &str = r"(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<secon
 const ZULU_PATTERN: &str = r"(?P<zulu>[zZ])";
 /// Regular expression pattern for parsing time zones given as zone name.
 const ZONE_PATTERN: &str = r"@(?P<zone>[a-zA-Z_/]+)";
-/// Regular expression pattern for parsing time zones given as offset.
-const OFFSET_PATTERN: &str = r"(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})(:(?P<offSeconds>[0-9]{2}))?";
+/// Regular expression pattern for parsing time zones given as offset: `±hh:mm`, the lexical
+/// representation of a timezone (XML Schema Part 2 §3.2.7.3: "(('+' | '-') hh ':' mm) | 'Z'").
+const OFFSET_PATTERN: &str = r"(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
 
 pub const ETC_UTC: &str = "Etc/UTC";
 

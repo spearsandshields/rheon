@@ -422,6 +422,24 @@ fn the_minutes_of_an_offset_literal_are_below_60() {
 }
 
 #[test]
+fn an_offset_literal_has_no_seconds() {
+  for literal in ["10:00:00+05:30:15", "10:00:00-00:00:30", "10:00:00+01:00:00"] {
+    te_null(
+      false,
+      &scope!(),
+      &format!(r#"time("{literal}")"#),
+      &format!("time: invalid time literal '{literal}', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"),
+    );
+  }
+  te_null(
+    false,
+    &scope!(),
+    r#"date and time(date(2020,1,1), time(10,0,0.5), "+01:00:30")"#,
+    "[core::date and time] invalid timezone '+01:00:30'",
+  );
+}
+
+#[test]
 fn an_offset_prints_its_own_sign() {
   // XML Schema Part 2 §3.2.7.3: the sign of a timezone is the sign of the offset, also below one hour
   te_string(false, &scope!(), r#"string(time("10:00:00-00:30"))"#, "10:00:00-00:30");

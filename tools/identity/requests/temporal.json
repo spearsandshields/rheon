@@ -467,5 +467,9 @@
   {"op":"evaluate","expression":"date and time(date(2020,1,1), time(10,0,0), \"+05:99\")"},
   {"op":"evaluate","expression":"time(\"10:00:00-00:60\")"},
   {"op":"evaluate","expression":"time(\"10:00:00-01:59\")"},
-  {"op":"evaluate","expression":"date and time(date(2020,1,1), time(10,0,0), \"+05:59\")"}
+  {"op":"evaluate","expression":"date and time(date(2020,1,1), time(10,0,0), \"+05:59\")"},
+  {"op":"evaluate","expression":"string(time(\"10:00:00-00:00:30\"))"},
+  {"op":"evaluate","expression":"@\"10:00:00+05:30:15\""},
+  {"op":"evaluate","expression":"@\"2020-01-01T10:00:00+01:00:00\""},
+  {"op":"evaluate","expression":"time(\"10:00:00+00:00:00\")"}
 ]
