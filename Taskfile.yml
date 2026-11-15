@@ -14,23 +14,6 @@ tasks:
     cmds:
       - cmd: cargo +stable build --workspace && cd bbt && ./bbt.sh {{.CLI_ARGS}} && cd ..
 
-  bench:
-    desc: Runs all benchmarks
-    cmds:
-      - cmd: cargo +nightly bench
-
-  benchmarks-dry:
-    desc: Runs all benchmarks
-    cmds:
-      - cmd: DSNTK_DRY_BENCHMARK_RUN=1 cargo +nightly bench -p rheon-model-evaluator -- --nocapture
-
-  benchmarks:
-    desc: Runs all compatibility benchmarks
-    cmds:
-      - cmd: rm -rf ./target/benchmarks
-      - cmd: mkdir -p ./target/benchmarks
-      - cmd: cargo +nightly bench -p rheon-model-evaluator -q compatibility | tee ./target/benchmarks/out.txt | grep 'bench' > ./target/benchmarks/benchmarks.txt
-
   build:
     desc: Builds in debug mode
     cmds:

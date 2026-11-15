@@ -21,7 +21,5 @@ dsntk-macros = { workspace = true }
 rheon-model = { workspace = true }
 
 [dev-dependencies]
-antex = { workspace = true }
-walkdir = { workspace = true }
 dsntk-examples = { workspace = true }
 dsntk-recognizer = { workspace = true }

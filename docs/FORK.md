@@ -2140,6 +2140,24 @@ their items with both answers. The totals are under "Verification" below.
     memory of this module (a list doubled 30 times) ends as a trap on Node 22 as well. For
     hosts: a 0.4.0 module on Node 22 can take the whole process down on such a request, not only
     its worker. No API change.
+135. **The benchmarks that need a nightly toolchain are removed.** Five crates had a `benches/`
+    directory (model-evaluator 156 files, feel-number 11, feel-parser 6, feel-evaluator 4, feel 3;
+    36,510 lines), and every file needed `#![feature(test)]`. `rust-toolchain.toml` pins a stable
+    compiler, so no gate and no CI step compiled them, and `cargo check --workspace --all-targets`
+    failed on the first of them (E0554). The model-evaluator ones were a second copy of the TCK
+    tests in `src/tests/compatibility`: 3,591 `#[bench]` against 3,594 `#[test]`, kept in step by
+    hand, and 16 of the 151 copied files already held other string literals (expected answers and
+    input contexts) than their tests, 177 in all. The answers stay pinned by the tests, and the
+    speed of the engine is measured on the wasm module. Removed with them: the Taskfile tasks
+    `bench`, `benchmarks-dry` and `benchmarks`, the `benchmarks.txt` ignore line, and the two
+    model-evaluator tests that only printed the number of tests beside the number of benches (so
+    the workspace runs 2 tests fewer), with the `antex` and `walkdir` dev-dependencies they alone
+    used; the table at the top of the compatibility tests loses its benches column. A benchmark
+    of the TCK models, when one is built, runs on the stable toolchain and states no expected
+    answer: it takes the models and inputs from the pinned TCK checkout of `scripts/tck.sh` and
+    times the model build (parsing and `ModelEvaluator::new`) and each test case's evaluation with
+    its own timing loop, one row per model, so nothing in it can drift from the tests. No API
+    change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

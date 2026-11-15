@@ -2004,7 +2004,6 @@ dependencies = [
 name = "rheon-model-evaluator"
 version = "0.5.0"
 dependencies = [
- "antex",
  "dsntk-common",
  "dsntk-examples",
  "dsntk-macros",
@@ -2014,7 +2013,6 @@ dependencies = [
  "rheon-feel-parser",
  "rheon-feel-temporal",
  "rheon-model",
- "walkdir",
 ]
 
 [[package]]
