@@ -231,7 +231,7 @@ fn _0038() {
 
 #[test]
 fn _0039() {
-  te_null(false, &scope!(), r#"matches("input", "pattern", "")"#, "<FeelRegexError> empty regex flags");
+  te_bool(false, &scope!(), r#"matches("input", "pattern", "")"#, false);
 }
 
 #[test]
@@ -324,4 +324,44 @@ fn an_engine_limit_stops_the_evaluation() {
   // a pattern within the limits matches, and an invalid pattern is null with its reason
   te_bool(false, &scope!(), &format!(r#"matches("a", "{}")"#, crate::tests::nested_groups(60)), true);
   te_null(false, &scope!(), r#"matches("a", "[a-z")"#, "<FeelRegexError> invalid regex pattern: '[a-z'");
+}
+
+#[test]
+fn every_character_of_the_flags_is_a_flag() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.1.1: a character that is not a flag is an error, and the
+  // flags are not trimmed
+  te_null(false, &scope!(), r#"matches("abc", "b", " i ")"#, "<FeelRegexError> invalid regex flag: ' '");
+  te_null(false, &scope!(), r#"matches("abc", "b", "iI")"#, "<FeelRegexError> invalid regex flag: 'I'");
+  // the empty flags switch every option off
+  te_bool(false, &scope!(), r#"matches("abc", "B", "")"#, false);
+  te_bool(false, &scope!(), r#"matches("abc", "B", "ii")"#, true);
+}
+
+#[test]
+fn x_removes_the_whitespace_outside_character_classes() {
+  // the examples of F&O §7.6.1.1
+  te_bool(false, &scope!(), r#"matches("helloworld", "hello world", "x")"#, true);
+  te_bool(false, &scope!(), r#"matches("helloworld", "hello[ ]world", "x")"#, false);
+  te_bool(false, &scope!(), r#"matches("hello world", "hello\\\nsworld", "x")"#, true);
+  te_bool(false, &scope!(), r#"matches("hello world", "hello world", "x")"#, false);
+  // `#` starts no comment
+  te_bool(false, &scope!(), r#"matches("ab", "a#b", "x")"#, false);
+  te_bool(false, &scope!(), r#"matches("a#b", "a#b", "x")"#, true);
+  // a bracket after an escape opens no class
+  te_bool(false, &scope!(), r#"matches("a[b", "a\\ [ b", "x")"#, true);
+}
+
+#[test]
+fn q_takes_every_character_of_the_pattern_as_itself() {
+  te_bool(false, &scope!(), r#"matches("a-[b]", "a-[b]", "q")"#, true);
+  te_bool(false, &scope!(), r#"matches("a\\p{IsBasicLatin}", "\\p{IsBasicLatin}", "q")"#, true);
+  // with `m`, `s` or `x` beside it, `q` still applies and they have no effect
+  te_bool(false, &scope!(), r#"matches("a b", "a b", "qx")"#, true);
+  te_bool(false, &scope!(), r#"matches("a.b", ".", "qs")"#, true);
+  te_bool(false, &scope!(), r#"matches("ab", ".", "qs")"#, false);
+}
+
+#[test]
+fn an_invalid_pattern_is_quoted_as_written() {
+  te_null(false, &scope!(), r#"matches("a", "[a-z", "i")"#, "<FeelRegexError> invalid regex pattern: '[a-z'");
 }

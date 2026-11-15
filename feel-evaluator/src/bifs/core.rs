@@ -11,7 +11,7 @@ use rheon_feel::message::{arg, compose};
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values, warn_truncated_fraction};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_number::RoundingMode;
-use rheon_feel_regex::{Limit, RegexError};
+use rheon_feel_regex::RegexError;
 use rheon_feel_temporal::{
   DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelOffset, FeelTime, FeelYearsAndMonthsDuration, FeelZone, MonthOfYear, WeekOfYear,
 };
@@ -1362,26 +1362,9 @@ pub fn lower_case(input_string_value: &Value) -> Value {
   invalid_argument_type!("lower case", "string", input_string_value)
 }
 
-/// Returns `true` when the input matches the regex pattern.
-pub fn matches_2(input: &Value, pattern: &Value) -> Value {
-  // The input must be a string.
-  let Value::String(input) = input else {
-    return invalid_argument_type!("matches", "string", input);
-  };
-  // The pattern must be a string.
-  let Value::String(pattern) = pattern else {
-    return invalid_argument_type!("matches", "string", pattern);
-  };
-  // Match input against the pattern.
-  match rheon_feel_regex::is_match(input, pattern) {
-    Ok(value) => Value::Boolean(value),
-    Err(RegexError::Invalid(reason)) => value_null!("{}", reason),
-    Err(RegexError::LimitExceeded(limit)) => regex_limit("matches", pattern, limit),
-  }
-}
-
-/// Returns `true` when the input matches the regex pattern.
-pub fn matches_3(input: &Value, pattern: &Value, flags: &Value) -> Value {
+/// Returns `true` when the input matches the regex pattern with the flags (DMN 1.6, Table 75); a
+/// null `flags` is no flags.
+pub fn matches(input: &Value, pattern: &Value, flags: &Value) -> Value {
   // The input must be a string.
   let Value::String(input) = input else {
     return invalid_argument_type!("matches", "string", input);
@@ -1391,24 +1374,34 @@ pub fn matches_3(input: &Value, pattern: &Value, flags: &Value) -> Value {
     return invalid_argument_type!("matches", "string", pattern);
   };
   // Flags if present must be a string.
-  let Value::String(flags) = flags else {
-    return invalid_argument_type!("matches", "string", flags);
+  let flags = match flags {
+    Value::Null(_) => "",
+    Value::String(flags) => flags.as_str(),
+    other => return invalid_argument_type!("matches", "string", other),
   };
-  // Match input against the pattern with flags.
-  match rheon_feel_regex::is_match_with_flags(input, pattern, flags) {
+  match rheon_feel_regex::is_match(input, pattern, flags) {
     Ok(value) => Value::Boolean(value),
-    Err(RegexError::Invalid(reason)) => value_null!("{}", reason),
-    Err(RegexError::LimitExceeded(limit)) => regex_limit("matches", pattern, limit),
+    Err(error) => regex_failure("matches", pattern, error, |reason| value_null!("{}", reason)),
   }
 }
 
-/// Stops the evaluation when a regex engine gives up on a valid pattern: an implementation limit
-/// is not an F&O error, so it has no FEEL result (DMN 1.6, Table 75 note 2 covers only those);
-/// the evaluation reports the abort instead (§7.3.8). The null returned is never observed.
-fn regex_limit(function: &str, pattern: &str, limit: Limit) -> Value {
-  let reason = compose(format_args!("{function}: the pattern '{}' exceeds the regex engine's {limit}", arg(pattern)));
-  diagnostics::abort(Abort::limit(reason));
-  Value::Null(None)
+/// The result of a regex built-in that gives no answer. DMN 1.6, Table 75 note 2: "where XPath
+/// specifies an error result, FEEL specifies a null result". An invalid pattern is the null that
+/// `invalid_pattern` makes of its reason, and invalid flags are a null with their reason.
+///
+/// A regex engine that gives up on a valid pattern stops the evaluation: an implementation limit
+/// is not an F&O error, so it has no FEEL result; the evaluation reports the abort instead
+/// (§7.3.8). The null returned then is never observed.
+fn regex_failure(function: &str, pattern: &str, error: RegexError, invalid_pattern: impl FnOnce(DsntkError) -> Value) -> Value {
+  match error {
+    RegexError::InvalidPattern(reason) => invalid_pattern(reason),
+    RegexError::InvalidArgument(reason) => value_null!("{}", reason),
+    RegexError::LimitExceeded(limit) => {
+      let reason = compose(format_args!("{function}: the pattern '{}' exceeds the regex engine's {limit}", arg(pattern)));
+      diagnostics::abort(Abort::limit(reason));
+      Value::Null(None)
+    }
+  }
 }
 
 /// Returns the maximum value in the collection of comparable values.
@@ -2083,7 +2076,8 @@ pub fn remove(list: &Value, position_value: &Value) -> Value {
   value_null!("probably index is out of range")
 }
 
-/// Replaces the matches of a pattern in a string (DMN 1.6, Table 75): null for an invalid pattern.
+/// Replaces the matches of a pattern in a string (DMN 1.6, Table 75): null for an invalid pattern
+/// or invalid flags; a null `flags_string_value` is no flags.
 pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replacement_string_value: &Value, flags_string_value: &Value) -> Value {
   let Value::String(input_string) = input_string_value else {
     return value_null!("replace: input must be a string");
@@ -2095,13 +2089,13 @@ pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replace
     return value_null!("replace: replacement must be a string");
   };
   let flags = match flags_string_value {
-    Value::String(flags_string) => Some(flags_string.as_str()),
-    _ => None,
+    Value::Null(_) => "",
+    Value::String(flags_string) => flags_string.as_str(),
+    _ => return value_null!("replace: flags must be a string"),
   };
   match rheon_feel_regex::replace(input_string, pattern_string, replacement_string, flags) {
     Ok(result) => Value::String(result.into()),
-    Err(RegexError::Invalid(_)) => value_null!("replace: invalid pattern"),
-    Err(RegexError::LimitExceeded(limit)) => regex_limit("replace", pattern_string, limit),
+    Err(error) => regex_failure("replace", pattern_string, error, |_| value_null!("replace: invalid pattern")),
   }
 }
 
@@ -2186,8 +2180,7 @@ pub fn split(input_string_value: &Value, delimiter_string_value: &Value) -> Valu
   };
   match rheon_feel_regex::split(input_string, delimiter_string) {
     Ok(parts) => Value::List(parts.into_iter().map(|part| Value::String(part.into())).collect()),
-    Err(RegexError::Invalid(_)) => value_null!("split: invalid delimiter"),
-    Err(RegexError::LimitExceeded(limit)) => regex_limit("split", delimiter_string, limit),
+    Err(error) => regex_failure("split", delimiter_string, error, |_| value_null!("split: invalid delimiter")),
   }
 }
 

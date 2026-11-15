@@ -7,10 +7,6 @@ use dsntk_macros::ToErrorMessage;
 #[derive(ToErrorMessage)]
 struct FeelRegexError(String);
 
-pub fn err_empty_flags() -> DsntkError {
-  FeelRegexError("empty regex flags".to_string()).into()
-}
-
 pub fn err_invalid_flag(flag: char) -> DsntkError {
   FeelRegexError(format!("invalid regex flag: '{flag}'").to_string()).into()
 }
@@ -22,8 +18,11 @@ pub fn err_invalid_pattern(pattern: &str) -> DsntkError {
 /// Why a regular expression gave no answer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RegexError {
-  /// An invalid pattern or flags (XQuery F&O 3.1, FORX0001-FORX0004): the FEEL result is null.
-  Invalid(DsntkError),
+  /// A pattern that is invalid (XQuery 1.0 and XPath 2.0 F&O §7.6, FORX0002): the FEEL result
+  /// is null. The reason quotes the pattern as the caller wrote it.
+  InvalidPattern(DsntkError),
+  /// Flags that are invalid (FORX0001): the FEEL result is null. The reason names the rule.
+  InvalidArgument(DsntkError),
   /// The engine gave up on a pattern F&O accepts: an implementation limit, never a FEEL value.
   LimitExceeded(Limit),
 }

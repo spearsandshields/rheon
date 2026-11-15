@@ -189,7 +189,7 @@ fn _0025(b: &mut Bencher) {
 #[bench]
 fn _0026(b: &mut Bencher) {
   let invocable = "K-MatchesFunc-5";
-  let expected = "null(<FeelRegexError> empty regex flags)";
+  let expected = "null(<FeelRegexError> invalid regex flag: ' ')";
   eq(b, invocable, &CTX, expected);
 }
 

@@ -117,7 +117,7 @@ fn init_blocks() -> Blocks {
   map
 }
 
-pub fn replace_block_names(input: &str, collapse_whitespaces: bool) -> String {
+pub fn replace_block_names(input: &str) -> String {
   let mut output = String::new();
   let mut buffer = String::new();
   let mut name = String::new();
@@ -169,9 +169,6 @@ pub fn replace_block_names(input: &str, collapse_whitespaces: bool) -> String {
             name.clear();
             state = 0;
           }
-          ' ' if collapse_whitespaces => {
-            // Skip whitespace if needed.
-          }
           other => {
             // Collect the next character of the block name.
             name.push(other);
@@ -193,12 +190,11 @@ mod tests {
   use super::*;
   #[test]
   fn replacing_block_names_should_work() {
-    assert_eq!(r#"[\u0000-\u007F]+"#, replace_block_names(r#"\p{IsBasicLatin}+"#, false));
-    assert_eq!(r#"[\u0000-\u007F]+"#, replace_block_names(r#"\p{ I s   B a si   c La ti  n}+"#, true));
-    assert_eq!(r#"[\u0000-\u007F]+\s[\uFFF0-\uFFFF]+"#, replace_block_names(r#"\p{IsBasicLatin}+\s\p{IsSpecials}+"#, false));
-    assert_eq!(r#"[\u0000-\u007F]+\s"#, replace_block_names(r#"\p{IsBasicLatin}+\s"#, false));
-    assert_eq!(r#"\p{IsBasicLatin+"#, replace_block_names(r#"\p{IsBasicLatin+"#, false));
-    assert_eq!(r#"\p{}+"#, replace_block_names(r#"\p{}+"#, false));
-    assert_eq!(r#"\p{NonExistingBlockName}+"#, replace_block_names(r#"\p{NonExistingBlockName}+"#, false));
+    assert_eq!(r#"[\u0000-\u007F]+"#, replace_block_names(r#"\p{IsBasicLatin}+"#));
+    assert_eq!(r#"[\u0000-\u007F]+\s[\uFFF0-\uFFFF]+"#, replace_block_names(r#"\p{IsBasicLatin}+\s\p{IsSpecials}+"#));
+    assert_eq!(r#"[\u0000-\u007F]+\s"#, replace_block_names(r#"\p{IsBasicLatin}+\s"#));
+    assert_eq!(r#"\p{IsBasicLatin+"#, replace_block_names(r#"\p{IsBasicLatin+"#));
+    assert_eq!(r#"\p{}+"#, replace_block_names(r#"\p{}+"#));
+    assert_eq!(r#"\p{NonExistingBlockName}+"#, replace_block_names(r#"\p{NonExistingBlockName}+"#));
   }
 }

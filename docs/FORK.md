@@ -1963,6 +1963,43 @@ The totals are under "Verification" below.
     parent with `[3, 3]`. Identity: the three requests of a repeated variable in
     `registered/iteration-contexts-see-earlier-variables.json` are amended in place (`for`,
     `some`, `every`: null with the reason). No API change.
+130. **`matches` and `replace` read their flags by one rule.** DMN 1.6 Table 75 note 2:
+    "pattern, replacement, and flags SHALL conform to the syntax and constraints specified in
+    clause 7.6 of XQuery 1.0 and XPath 2.0 Functions and Operators. Note that where XPath
+    specifies an error result, FEEL specifies a null result." That edition's §7.6.1.1: "If there
+    are characters present that are not defined here as flags, then an error is raised
+    [err:FORX0001]"; "Letters may appear in any order and may be repeated"; and `x`: "whitespace
+    characters (#x9, #xA, #xD and #x20) in the regular expression are removed prior to matching
+    with one exception: whitespace characters within character class expressions (charClassExpr)
+    are not removed". `matches` trimmed its flags and rejected `""` (`empty regex flags`), passed
+    `x` to the engine, where `#` starts a comment and whitespace inside a class is dropped too
+    (three string rewrites patched part of that), and applied `q` after the block-name rewrite;
+    `replace` ignored letters that are no flags, dropped `q` beside `s`, `m` or `x`, escaped every
+    character under `q` (so `b` became the word boundary `\b`), ignored flags that are not a
+    string, and compiled the pattern without its flags when the flagged pattern was invalid. Now
+    one private `Flags` (feel-regex, `flags.rs`) reads the flags of both: every character must be
+    `s`, `m`, `i`, `x` or `q`, `""` is no flags, nothing is trimmed, and there is no fallback.
+    `q` is not defined by the edition DMN 1.6 cites; it is the flag of XPath and XQuery F&O 3.1
+    §5.6.2, kept as an extension: "all characters in the regular expression are treated as
+    representing themselves, not as metacharacters", and "If it is used together with the m, s,
+    or x flag, that flag has no effect". So under `q` the pattern is quoted (only the engine's
+    special characters are escaped) and only `i` applies. `x` is applied by a scanner, never by
+    the engine: whitespace outside character classes is removed, also after a backslash, so
+    `"hello\ sworld"` reads `hello\sworld` as the clause's example expects, and `#` is an ordinary
+    character. An invalid pattern's reason quotes the pattern as written, not the engine's form
+    with its `(?i)` group. In the evaluator one `matches` replaces `matches_2` and `matches_3`;
+    null flags are no flags for both built-ins (TCK 1111 `fn-null-flags`), other flags that are
+    not a string are null (`replace: flags must be a string`), and one helper turns a
+    `RegexError` into the result of all three regex built-ins. Test first: the flag tests of
+    `bif_matches.rs` and `bif_replace.rs` failed on the parent (`matches("input", "pattern", "")`
+    was null with `empty regex flags`; `replace("abc","[A-Z]","#","all unknown but i")` was
+    `"###"`). TCK 1111 `K-MatchesFunc-5` (flags `" "`) stays null, now with `invalid regex flag:
+    ' '`. 25 registered differences (`registered/regex-flags.json`), among them
+    `replace("abc","b","x","q")`, which was `"xabcx"`, and `replace("a#b","#","-","x")`, which was
+    `"-a-#-b-"`; `requests/regex.json` gains the 23 requests of the new tests that it did not
+    hold. API breaks (rheon-feel-regex): `is_match` takes the flags (`""` for none) and
+    `is_match_with_flags` is removed; `replace` takes `flags: &str` instead of `Option<&str>`;
+    `RegexError::Invalid` is renamed `InvalidPattern`, and `RegexError::InvalidArgument` is added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

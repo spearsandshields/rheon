@@ -188,7 +188,7 @@ fn _0025() {
 #[test]
 fn _0026() {
   let invocable = "K-MatchesFunc-5";
-  let expected = "null(<FeelRegexError> empty regex flags)";
+  let expected = "null(<FeelRegexError> invalid regex flag: ' ')";
   eq(invocable, &CTX, expected);
 }
 

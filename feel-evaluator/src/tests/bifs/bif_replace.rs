@@ -153,7 +153,12 @@ fn _0030() {
 
 #[test]
 fn _0031() {
-  te_string(false, &scope!(), "replace(\"abc\",\"[A-Z]\",\"#\",\"all unknown but i\")", "###");
+  te_null(
+    false,
+    &scope!(),
+    "replace(\"abc\",\"[A-Z]\",\"#\",\"all unknown but i\")",
+    "<FeelRegexError> invalid regex flag: 'a'",
+  );
 }
 
 #[test]
@@ -255,4 +260,43 @@ fn an_engine_limit_stops_the_evaluation() {
       &nested[..120]
     ),
   );
+}
+
+#[test]
+fn every_character_of_the_flags_is_a_flag() {
+  // XQuery 1.0 and XPath 2.0 F&O §7.6.3: the flags are interpreted as for `fn:matches`
+  te_null(false, &scope!(), r#"replace("abc","b","x"," i")"#, "<FeelRegexError> invalid regex flag: ' '");
+  te_null(false, &scope!(), r#"replace("abc","b","x","?")"#, "<FeelRegexError> invalid regex flag: '?'");
+  te_string(false, &scope!(), r#"replace("abc","B","x","ii")"#, "axc");
+}
+
+#[test]
+fn flags_that_are_no_string_are_null() {
+  te_null(false, &scope!(), r#"replace("abc","b","x",1)"#, "replace: flags must be a string");
+  te_null(false, &scope!(), r#"replace("abc","b","x",["i"])"#, "replace: flags must be a string");
+  // null flags are no flags
+  te_string(false, &scope!(), r#"replace("abc","b","x",null)"#, "axc");
+}
+
+#[test]
+fn q_takes_every_character_of_the_pattern_as_itself() {
+  te_string(false, &scope!(), r#"replace("a1d","d","!","q")"#, "a1!");
+  te_string(false, &scope!(), r#"replace("abc","b","x","q")"#, "axc");
+  te_string(false, &scope!(), r#"replace("a.c abc",".c","X","q")"#, "aX abc");
+  te_string(false, &scope!(), r#"replace("A.B",".","!","qi")"#, "A!B");
+  // with `m`, `s` or `x` beside it, `q` still applies and they have no effect
+  te_string(false, &scope!(), r#"replace("a.b",".","!","qs")"#, "a!b");
+  te_string(false, &scope!(), r#"replace("a b"," ","-","qx")"#, "a-b");
+}
+
+#[test]
+fn x_removes_the_whitespace_outside_character_classes() {
+  te_string(false, &scope!(), r##"replace("a#b","#","-","x")"##, "a-b");
+  te_string(false, &scope!(), r#"replace("a b","a [ ] b","-","x")"#, "-");
+  te_string(false, &scope!(), r#"replace("ab","a b","-","x")"#, "-");
+}
+
+#[test]
+fn an_invalid_pattern_with_flags_is_null() {
+  te_null(false, &scope!(), r#"replace("a","[a-z","b","i")"#, "replace: invalid pattern");
 }
