@@ -2410,13 +2410,12 @@ pub fn starts_with(input_string_value: &Value, match_string_value: &Value) -> Va
   }
 }
 
-/// Returns the sample standard deviation of the list of numbers.
+/// Returns the sample standard deviation of the list of numbers. An item that is no number is an
+/// error; fewer than two numbers give the null that DMN 1.6 §10.3.4.4 defines ("If the list is
+/// empty or if the list contains only one element, the function returns null"), with a note.
 pub fn stddev(values: &[Value]) -> Value {
-  if values.len() < 2 {
-    return value_null!("stddev: minimum two input arguments expected");
-  }
   let mut sum = FeelNumber::zero();
-  let mut numbers = vec![];
+  let mut numbers = Vec::with_capacity(values.len());
   for value in values {
     if let Value::Number(x) = *value {
       sum += x;
@@ -2424,6 +2423,9 @@ pub fn stddev(values: &[Value]) -> Value {
     } else {
       return value_null!("stddev: expected number, actual type is {} with value {}", arg(&TypeOf(value)), arg(&value));
     }
+  }
+  if numbers.len() < 2 {
+    return value_null!(note: "stddev: minimum two input arguments expected");
   }
   let n: FeelNumber = numbers.len().into();
   let avg = sum / n;

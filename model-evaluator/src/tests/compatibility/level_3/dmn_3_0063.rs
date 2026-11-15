@@ -30,7 +30,7 @@ fn _0003() {
     &MODEL_NAME,
     "decision003_a",
     &ctx,
-    r#"null([positional::stddev] invalid argument type, expected list, actual type is Null)"#,
+    r#"null(stddev: expected number, actual type is Null with value null)"#,
   );
 }
 
@@ -82,7 +82,7 @@ fn _0007() {
     &MODEL_NAME,
     "decision008",
     &ctx,
-    r#"null([positional::stddev] invalid argument type, expected list, actual type is number)"#,
+    r#"null(stddev: minimum two input arguments expected)"#,
   );
 }
 

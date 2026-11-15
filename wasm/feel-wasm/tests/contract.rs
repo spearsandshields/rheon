@@ -1345,6 +1345,16 @@ fn defined_nulls_are_no_errors() {
 }
 
 #[test]
+fn stddev_of_fewer_than_two_numbers_is_no_error() {
+  // §10.3.4.4: stddev( [ 47 ] ) = null and stddev( 47 ) = null
+  for expression in ["stddev([47])", "stddev([])", "stddev(47)"] {
+    assert_no_error(expression, "null");
+  }
+  let response = ok(json!({"op": "evaluate", "expression": "stddev([47])", "errorMode": "strict"}));
+  assert_eq!(response["result"]["nullReason"], "stddev: minimum two input arguments expected", "{response}");
+}
+
+#[test]
 fn a_missing_context_entry_is_no_error() {
   // §10.3.2.6: m.key1 is get value(m, "key1"), which Table 82 defines as null for a missing key;
   // the null keeps its reason as a note, which is not counted and does not fail strict mode

@@ -1,8 +1,7 @@
 use crate::bifs::core;
 use crate::macros::invalid_number_of_parameters;
 use rheon_feel::bif::Bif;
-use rheon_feel::message::arg;
-use rheon_feel::values::{TypeOf, Value};
+use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, value_null};
 
 pub fn evaluate_bif(bif: Bif, parameters: &[Value]) -> Value {
@@ -679,7 +678,7 @@ fn bif_stddev(parameters: &[Value]) -> Value {
     0 => invalid_number_of_parameters!("1+", 0),
     1 => match &parameters[0] {
       Value::List(values) => core::stddev(values),
-      _ => value_null!("[positional::stddev] invalid argument type, expected list, actual type is {}", arg(&TypeOf(&parameters[0]))),
+      _ => core::stddev(parameters),
     },
     _ => core::stddev(parameters),
   }

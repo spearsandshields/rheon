@@ -1695,6 +1695,24 @@ The totals are under "Verification" below.
     (rheon-feel): `diagnostics::Severity` added; `diagnostics::record` and
     `values::null_with_reason` take the severity first; `value_null!` gains the `note:` forms;
     `Diagnostics::count` and `messages` leave out notes.
+118. **`stddev` of fewer than two numbers is a defined null.** DMN 1.6 §10.3.4.4, stddev: "If
+    the list is empty or if the list contains only one element, the function returns null", with
+    `stddev( [ 47 ] ) = null` and `stddev( 47 ) = null`; its parameter is a "list of number".
+    `stddev` (feel-evaluator, `bifs/core.rs`) tested the count first, with a counted error, so
+    `stddev([47])` failed strict mode and `stddev(["a"])` was reported as too short; the
+    positional form gave a number or a boolean as its one argument the error `[positional::stddev]
+    invalid argument type, expected list`. Now the items are checked to be numbers first (an
+    error null, `stddev: expected number, actual type is … with value …`), and then fewer than
+    two numbers is the null with the note `stddev: minimum two input arguments expected`, not
+    counted and not failing strict mode; one positional argument that is no list is a list of
+    one item, as for `sum`, `mean` and `median`. Test first:
+    `stddev_of_fewer_than_two_numbers_is_a_null_with_a_note` (`bif_stddev.rs`) failed on the
+    parent with the message counted, and `stddev_of_fewer_than_two_numbers_is_no_error`
+    (`wasm/feel-wasm/tests/contract.rs`) with a count of 1. The pins of `stddev(true)`
+    (`bif_stddev.rs`) and of TCK 0063 `stddev(null)` and `stddev(47)` (`dmn_3_0063.rs`, test and
+    bench) take the new texts. Identity: 15 registered differences in
+    `registered/stddev-fewer-than-two-numbers.json` (lenient, strict and B-FEEL), all requests of
+    `requests/nulls.json`, four of them added in this commit. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
