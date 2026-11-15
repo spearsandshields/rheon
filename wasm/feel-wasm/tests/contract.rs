@@ -703,6 +703,28 @@ fn nesting_and_recursion_limits_body() {
   ] {
     assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", call_depth);
   }
+  // values nest at most 500 levels: a value 501 levels deep stops the evaluation, also when a
+  // loop or a key list would nest it far deeper, and a value 500 levels deep is bound and returned
+  let value_depth = "values are nested too deeply (more than 500 levels); evaluation stopped";
+  // a list `5 * calls + base` levels deep, built by a recursion that adds 5 levels per call
+  let list = |calls: u32, base: usize| {
+    let base = format!("{}[]{}", "[".repeat(base - 1), "]".repeat(base - 1));
+    format!("(function(f) f(f, {calls}))(function(g, n) if n = 0 then {base} else [[[[[g(g, n - 1)]]]]])")
+  };
+  assert_eq!(display(&format!("count({})", list(99, 5))), "1");
+  assert_eq!(display(&format!("(function(x) count(x))({})", list(99, 5))), "1");
+  for e in [
+    format!("[{}]", list(99, 5)),
+    list(100, 1),
+    format!("{{a: {}}}", list(99, 5)),
+    format!("for i in 1..2 return {}", list(99, 5)),
+    "context put({}, for i in 1..100000 return \"a\", 0)".to_string(),
+    "{f: function(x, n) if n = 0 then x else f([x], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r".to_string(),
+  ] {
+    assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", value_depth);
+  }
+  let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": format!("{{a: {}}}", list(99, 5))}));
+  assert_error(&response, "context", value_depth);
   // the limit does not leak into the next request
   assert_eq!(display(&rec(150)), "150");
   // a JSON context nested deeper than the request parser allows is a context error

@@ -25,14 +25,15 @@ use std::sync::Arc;
 /// same depth everywhere, with [Abort::CallDepth](rheon_feel::diagnostics::Abort::CallDepth).
 pub const MAX_CALL_DEPTH: usize = 200;
 
-/// Evaluates an invocation expression within [MAX_CALL_DEPTH]; the result is never a non-finite number.
+/// Evaluates an invocation expression within [MAX_CALL_DEPTH]; the result is never a non-finite
+/// number, and never a value nested more deeply than values may nest ([diagnostics::bound_depth]).
 ///
 /// A call beyond the limit stops the evaluation, and no further call is made in it. A refused
 /// call's null is never observed: the abort is the outcome of the evaluation.
 pub(crate) fn guarded(evaluate: impl FnOnce() -> Value) -> Value {
   match diagnostics::enter_call(MAX_CALL_DEPTH) {
     None => Value::Null(None),
-    Some(call) => call.finish(finite(evaluate())),
+    Some(call) => call.finish(diagnostics::bound_depth(finite(evaluate()))),
   }
 }
 

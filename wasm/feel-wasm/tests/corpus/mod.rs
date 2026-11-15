@@ -5,8 +5,9 @@
 //!
 //! `no-trap.json` is a JSON array of module requests, exactly as a host sends them: inputs at the
 //! limits of the engine (temporal range edges, regex engine limits, the nesting and call-depth
-//! limits, sort predicates, loops over many items whose calls are refused after an abort). An input that trapped the module is added with its fix and stays as a
-//! regression seed. The tests assert only that the
+//! limits, sort predicates, loops over many items whose calls are refused after an abort, values
+//! that a loop, a recursion or a key list would nest thousands of levels deep). An input that
+//! trapped the module is added with its fix and stays as a regression seed. The tests assert only that the
 //! module answers; the answers themselves are pinned by the identity check against the previous
 //! release (`tools/identity/`), which reads this file as one of its request sources.
 //!

@@ -1,5 +1,6 @@
 //! FEEL context.
 
+use crate::diagnostics;
 use crate::errors::*;
 use crate::message::{MessageArg, Size};
 use crate::names::Name;
@@ -310,33 +311,28 @@ impl FeelContext {
     self.put(key, ctx.into());
   }
 
-  /// ???
+  /// Sets `value` at the path `names` like [FeelContext::create_entries], with an error when an
+  /// entry on the path holds a value that is not a context; the context is then left as it was.
+  ///
+  /// A path that would nest the value more levels deep than values may nest within an evaluation
+  /// ([bound_depth](crate::diagnostics::bound_depth)) is refused before anything is built: the
+  /// running evaluation stops, and the context is left as it was. A path that is blocked builds
+  /// nothing, so it is the error of the blocking entry whatever its length.
   pub fn apply_entries(&mut self, names: &[Name], value: Value) -> Result<()> {
-    // if there are no entry names provided, then do nothing
-    if names.is_empty() {
-      return Ok(());
-    }
-    let key = names[0].clone();
-    let tail = &names[1..];
-    // if tail is empty, then insert the value under the key in current context and return
-    if tail.is_empty() {
-      self.put(key, value);
-      return Ok(());
-    }
-    // if there is a context under the key, then insert value to this context and return
-    match self.entries_mut().get_mut(&key) {
-      Some(Value::Context(ctx)) => {
-        return ctx.apply_entries(tail, value);
+    // the part of the path that exists: no deeper than this context, so read without recursion
+    let mut ctx: &FeelContext = self;
+    for name in names.iter().take(names.len().saturating_sub(1)) {
+      match ctx.entries.get(name) {
+        Some(Value::Context(inner)) => ctx = inner,
+        Some(other) => return Err(err_value_is_not_a_context(other)),
+        None => break,
       }
-      Some(other) => {
-        return Err(err_value_is_not_a_context(other));
-      }
-      _ => {}
     }
-    // insert a value from tail to new created context
-    let mut ctx = FeelContext::default();
-    ctx.apply_entries(tail, value)?;
-    self.put(key, ctx.into());
+    if u64::try_from(names.len()).unwrap_or(u64::MAX).saturating_add(u64::from(value.nesting_depth())) > u64::from(diagnostics::MAX_VALUE_DEPTH) {
+      diagnostics::too_deep();
+      return Err(err_value_nested_too_deeply(names.len()));
+    }
+    self.create_entries(names, value);
     Ok(())
   }
 

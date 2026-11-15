@@ -213,7 +213,8 @@ impl FilterExpressionEvaluator {
       // conversion to singleton list, DMN 1.6 §10.3.2.9.4, DMN16-94), so `item` and the context
       // entries of a singleton context are in scope like for a list element.
       Value::Null(_) => value_null!(),
-      v => self.evaluate(scope, Value::List(vec![v].into()), evaluator),
+      // the list holding the value is one level deeper than the value
+      v => diagnostics::bound_depth(self.evaluate(scope, Value::List(vec![v].into()), evaluator)),
     }
   }
 }

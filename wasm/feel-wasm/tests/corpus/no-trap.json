@@ -122,5 +122,11 @@
   {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: sort(for i in 1..100000 return i, function(x, y) f(x) = null)}.r"},
   {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: list replace(for i in 1..100000 return i, function(item, newItem) f(item) = null, 0)}.r"},
   {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: for i in 1..10000000 return f(i)}.r"},
-  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: for i in 1..100, j in 1..100000 return f(j)}.r"}
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: for i in 1..100, j in 1..100000 return f(j)}.r"},
+  {"op":"evaluate","expression":"context put({}, for i in 1..100000 return \"a\", 0)"},
+  {"op":"evaluate","expression":"count(context put({}, for i in 1..100000 return \"a\", 0))"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f([x], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f({a: x}, n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f([x..1], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f(append([], x), n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"}
 ]

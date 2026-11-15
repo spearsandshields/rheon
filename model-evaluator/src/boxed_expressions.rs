@@ -7,6 +7,7 @@ use crate::model_definitions::*;
 use dsntk_common::Result;
 use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
@@ -80,7 +81,8 @@ pub fn build_context_evaluator(scope: &FeelScope, context: &Context, model_build
     let mut evaluated_context = FeelContext::default();
     for (opt_variable_name, variable_type, evaluator) in &entry_evaluators {
       let value = evaluator(scope) as Value;
-      let coerced_value = value.coerced(variable_type);
+      // a coercion to a list type puts a value that is no list into one, a level deeper
+      let coerced_value = diagnostics::bound_depth(value.coerced(variable_type));
       match opt_variable_name {
         Some(variable_name) => {
           scope.set_value(variable_name, coerced_value.clone());
@@ -422,13 +424,14 @@ pub fn build_some_evaluator(scope: &FeelScope, some: &Some, model_builder: &Mode
   Ok((build_coerced_result_evaluator(evaluator, some, some.namespace(), model_builder), Closure::default()))
 }
 
-/// Builds an evaluator that provides coercion for output type of the expression.
+/// The evaluator of a boxed expression: its result coerced to the expression's type when it has
+/// one, and never a value nested more deeply than values may nest ([diagnostics::bound_depth]),
+/// as a boxed context, list or relation builds its value from those of its parts.
 fn build_coerced_result_evaluator(evaluator: Evaluator, expression: &dyn Expression, namespace: &str, model_builder: &ModelBuilder) -> Evaluator {
   if let Some(type_ref) = expression.type_ref()
     && let Some(feel_type) = model_builder.item_definition_type_evaluator().information_item_type(namespace, type_ref)
   {
-    let coerced_result_evaluator = Box::new(move |scope: &FeelScope| evaluator(scope).coerced(&feel_type));
-    return coerced_result_evaluator;
+    return Box::new(move |scope: &FeelScope| diagnostics::bound_depth(evaluator(scope).coerced(&feel_type)));
   }
-  evaluator
+  Box::new(move |scope: &FeelScope| diagnostics::bound_depth(evaluator(scope)))
 }

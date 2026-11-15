@@ -275,6 +275,10 @@ impl Iteration {
         results = values;
       }
       results.push(value);
+      // the results grow with every iteration, through `partial` by a level in each
+      if let Err(null) = diagnostics::bound_list_depth(&results) {
+        return ControlFlow::Break(null);
+      }
       ControlFlow::Continue(())
     });
     match walked {

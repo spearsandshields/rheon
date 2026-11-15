@@ -27,9 +27,10 @@
 //!
 //! An evaluation can also be stopped by an implementation limit ([Abort]), such as the depth of
 //! nested function calls. One evaluation ([evaluation]) owns the abort and the call depth, every
-//! function call reads them ([enter_call]), and nothing of them outlives the evaluation.
+//! function call reads them ([enter_call]), and nothing of them outlives the evaluation. The
+//! depth of nested values is bounded where an expression produces a value ([bound_depth]).
 
-use crate::values::Value;
+use crate::values::{FeelList, Value};
 use crate::{Evaluator, FeelScope};
 use dsntk_common::{DsntkError, ToErrorMessage};
 use std::cell::{Cell, RefCell};
@@ -185,6 +186,9 @@ pub enum Abort {
   /// An engine below FEEL gave up; `reason` names the function, the input and the limit.
   #[non_exhaustive]
   Limit { reason: Box<str> },
+  /// A value nested more than `limit` levels deep ([bound_depth]).
+  #[non_exhaustive]
+  ValueDepth { limit: u32 },
 }
 
 impl Abort {
@@ -202,6 +206,7 @@ impl std::fmt::Display for Abort {
         "function calls are nested too deeply (more than {limit} levels, e.g. runaway recursion); evaluation stopped"
       ),
       Self::Limit { reason } => write!(f, "{reason}; evaluation stopped"),
+      Self::ValueDepth { limit } => write!(f, "values are nested too deeply (more than {limit} levels); evaluation stopped"),
     }
   }
 }
@@ -332,6 +337,44 @@ pub fn abort(reason: Abort) {
 /// outcome of the evaluation. Outside an evaluation it is `false`.
 pub fn stopped() -> bool {
   EVALUATION.with(Evaluation::stopped)
+}
+
+/// The number of levels values may nest in each other within an evaluation: the depth of a scalar
+/// is 0; a list or a context is one level deeper than the deepest value it holds, so an empty one
+/// is 1 level deep; a function is one level deeper than its closure context; a range and the
+/// other values that hold values are one level deeper than what they hold. Every consumer of a
+/// value on every host walks twice as many levels, measured on the stack of each.
+pub(crate) const MAX_VALUE_DEPTH: u32 = 500;
+
+/// The value an expression produced, when it nests at most 500 levels.
+///
+/// A deeper value stops the running evaluation with [Abort::ValueDepth] and is dropped; the null
+/// returned in its place is never observed, because the abort, not a value, is the outcome of the
+/// evaluation. Outside an evaluation the null carries the abort's text. It is read where values
+/// are produced (the result of an invocation, a list, range, context and function literal, the
+/// results of a loop as they grow, a boxed expression), not where values are bound: a scope frame
+/// may hold a value at the limit.
+#[inline]
+pub fn bound_depth(value: Value) -> Value {
+  if value.nesting_depth() <= MAX_VALUE_DEPTH { value } else { too_deep() }
+}
+
+/// [bound_depth] for a list that grows in place, such as the results of a loop: `Ok` when it nests
+/// at most 500 levels, otherwise the evaluation is stopped and the error is the null to return in
+/// place of the list. The list keeps its depth, so this reads one field.
+#[inline]
+pub fn bound_list_depth(list: &FeelList) -> Result<(), Value> {
+  if list.nesting_depth() <= MAX_VALUE_DEPTH { Ok(()) } else { Err(too_deep()) }
+}
+
+/// Stops the running evaluation for a value nested more than [MAX_VALUE_DEPTH] levels: the null
+/// returned in place of the value ([bound_depth]).
+#[cold]
+#[inline(never)]
+pub(crate) fn too_deep() -> Value {
+  let reason = Abort::ValueDepth { limit: MAX_VALUE_DEPTH };
+  abort(reason.clone());
+  if stopped() { Value::Null(None) } else { crate::value_null!(reason) }
 }
 
 /// Enters a function call when at most `limit` calls are nested in it. `None` refuses the call:

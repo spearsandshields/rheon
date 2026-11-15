@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/" namespace="https://dsntk.io/value-depth" name="value depth" id="_value_depth">
+    <description>
+        Boxed expressions that build a value from the values of their parts: a list, a context, and a
+        context entry of a collection type. Values nest at most 500 levels within an evaluation.
+    </description>
+    <itemDefinition name="tList" isCollection="true">
+        <typeRef>Any</typeRef>
+    </itemDefinition>
+    <decision name="boxed list 500" id="_d1">
+        <description>A boxed list of one item 499 levels deep.</description>
+        <variable name="boxed list 500"/>
+        <list>
+            <literalExpression><text>(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[]]]] else [[[[[g(g, n - 1)]]]]])</text></literalExpression>
+        </list>
+    </decision>
+    <decision name="boxed list 501" id="_d2">
+        <description>A boxed list of one item 500 levels deep.</description>
+        <variable name="boxed list 501"/>
+        <list>
+            <literalExpression><text>(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[]]]]] else [[[[[g(g, n - 1)]]]]])</text></literalExpression>
+        </list>
+    </decision>
+    <decision name="boxed context 500" id="_d3">
+        <description>A boxed context whose entry is 499 levels deep.</description>
+        <variable name="boxed context 500"/>
+        <context>
+            <contextEntry>
+                <variable name="a"/>
+                <literalExpression><text>(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[]]]] else [[[[[g(g, n - 1)]]]]])</text></literalExpression>
+            </contextEntry>
+        </context>
+    </decision>
+    <decision name="boxed context 501" id="_d4">
+        <description>A boxed context whose entry is 500 levels deep.</description>
+        <variable name="boxed context 501"/>
+        <context>
+            <contextEntry>
+                <variable name="a"/>
+                <literalExpression><text>(function(f) f(f, 99))(function(g, n) if n = 0 then [[[[[]]]]] else [[[[[g(g, n - 1)]]]]])</text></literalExpression>
+            </contextEntry>
+        </context>
+    </decision>
+    <decision name="boxed context entry 500" id="_d5">
+        <description>A context 499 levels deep in an entry of a collection type, which puts it in a list.</description>
+        <variable name="boxed context entry 500"/>
+        <context>
+            <contextEntry>
+                <variable name="a" typeRef="tList"/>
+                <literalExpression><text>(function(f) f(f, 99))(function(g, n) if n = 0 then {a: {a: {a: {}}}} else {a: {a: {a: {a: {a: g(g, n - 1)}}}}})</text></literalExpression>
+            </contextEntry>
+            <contextEntry>
+                <literalExpression><text>count(a)</text></literalExpression>
+            </contextEntry>
+        </context>
+    </decision>
+    <decision name="boxed context entry 501" id="_d6">
+        <description>A context 500 levels deep in an entry of a collection type, which puts it in a list.</description>
+        <variable name="boxed context entry 501"/>
+        <context>
+            <contextEntry>
+                <variable name="a" typeRef="tList"/>
+                <literalExpression><text>(function(f) f(f, 99))(function(g, n) if n = 0 then {a: {a: {a: {a: {}}}}} else {a: {a: {a: {a: {a: g(g, n - 1)}}}}})</text></literalExpression>
+            </contextEntry>
+            <contextEntry>
+                <literalExpression><text>count(a)</text></literalExpression>
+            </contextEntry>
+        </context>
+    </decision>
+</definitions>

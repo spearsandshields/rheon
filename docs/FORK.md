@@ -2421,6 +2421,65 @@ their items with both answers. The totals are under "Verification" below.
     included. Equality, cloning and the debug forms are unchanged; `Value` stays `Send + Sync`
     (the remembered depth is an atomic). Identity step: no answer changes; no API change (the
     depth is read inside `rheon-feel` only).
+152. **Values nest at most 500 levels within an evaluation.** Nothing bounded how deeply values
+    nest, and every consumer of a value (its drop, display, `string`, `=`, the response JSON, the
+    parser's index of an input context) walks it recursively, so a value deep enough ran out of
+    the stack: a recursion or a loop that wraps a value 9,500 times, and `context put` with a list
+    of 100,000 keys, trapped 0.5.0. A value 501 levels deep now stops the evaluation with
+    `Abort::ValueDepth` ("values are nested too deeply (more than 500 levels); evaluation
+    stopped"), an `evaluation` error, or a `context` error for a FEEL-format input context
+    (CONTRACT §1 to §3). Every consumer on every host walks at least 1,193 levels (measured on
+    0.5.0), twice the limit and more. The depth is that of item 151, and the limit is read where an
+    expression produces a value, by `rheon_feel::diagnostics::bound_depth`: the result of every
+    invocation (`guarded`, so every built-in and user function, FEEL and boxed), a list, range and
+    context literal (each entry, and the result), the results of a `for` after each item (their
+    growth through `partial`; `bound_list_depth` reads the depth the list keeps), a function definition (its closure context), a filter of a value
+    that is no list (the list that holds it is a level deeper), and in `rheon-model-evaluator` the
+    result of every boxed expression (`build_coerced_result_evaluator`, which a boxed list, context
+    or relation passes) and each entry of a boxed context after its coercion (a collection type
+    puts a value that is no list into one). It is not read where a value is bound: a scope frame
+    is a context, and a frame that binds a value 500 levels deep to a parameter, a loop variable,
+    `item` or `partial` is 501 levels deep, which is allowed. `context put` with a key list
+    refuses a list of more keys than the value may still nest (`FeelContext::apply_entries`)
+    before it builds a context, so 100,000 keys stop at once; a key list whose path is blocked by
+    an entry that is not a context builds nothing and gives null whatever its length, as on 0.5.0
+    (the existing part of the path is read first, without recursion). Inside an evaluation the null that
+    takes the place of the deeper value is never observed, because the abort is the outcome;
+    outside one it carries the abort's text. Test first: `feel-evaluator/tests/value_depth.rs`
+    checks each channel at 500 levels (the depth of the answer) and at 501 (the abort, and a clean
+    next evaluation), a 500-level value bound and returned through each kind of frame, and loops
+    and a key list that would nest 100,000 levels; on the parent the 501 cases answer values 501
+    and 502 levels deep. `model-evaluator/src/tests/various/dmn_0009` does the same for a boxed list,
+    a boxed context and a boxed context entry of a collection type, and fails without the boxed
+    checks; the contract test asserts both error kinds with their texts. Answers change, each
+    registered with both answers: `tools/identity/requests/value-depth.json` (46 requests, every
+    channel at 500 and 501 levels, the 500 ones and two blocked key paths identical) and the two `context put` requests with
+    100,000 keys in `no-trap.json` in `tools/identity/registered/value-depth.json` (19 entries);
+    the four requests of `tools/identity/release/requests/value-depth-deep.json` (also in
+    `no-trap.json`), which trapped 0.5.0 after 0.6 to 1.3 s, and the two loops of
+    `memory-exhausting.json` that nest a list and a context 100,000 levels deep, which trapped it
+    after 158 s and 35 s, in `tools/identity/release/registered/value-depth.json`. Basis: an
+    implementation limit, reported under DMN 1.6 §7.3.8 (the evaluation "MUST report or log
+    diagnostic information"), at the limit the owner approved. No committed request of an earlier
+    source and no official TCK test nests a value beyond 500 levels: their answers are unchanged.
+    Measured (wasm, Node 26, Apple M2) on the module of this commit and the next against 0.5.0, two
+    alternating rounds: geomean 0.996x and 0.988x over the 39 workloads of the speed suite, 0.997x
+    and 1.000x over the 86 parse workloads; below 0.97x in both rounds `loop-count-1k` (0.964x,
+    0.959x), `bif-loop-10k` (0.963x, 0.952x) and `fib15` (0.955x, 0.939x), the cost of items 149
+    to 152 together (about 1 to 2 % each on a tight loop, measured per item: moving `partial`
+    out through `assign_entry`, the list type, the depth bookkeeping, and the check of every call's
+    result); reading the depth of a loop's results by value instead of from the list cost
+    `count(for i in 1..10000 return i)` 8 %, and this commit reads the field the list keeps.
+    Allocations and reallocations per call are those of 0.5.0 for all 39 suite and 86 parse
+    workloads; the peak of live bytes grows by 8 to 2,048 B (a context is 8 bytes larger natively
+    for its remembered depth; `list-filter-count` 22,459,853 to 22,459,885 B). The string doubling's
+    peak memory (n = 17 to 26), 2,000 calls (0 B) and the stack report are those of 0.5.0. The
+    walkers of a value built natively (drop, display, `string`, JSON, the response's type,
+    `=`, `instance of`, `flatten`, `...`, the parser's index) reach at least 1,265 levels on every
+    host, as on 0.5.0.
+    Rust API: the added variant `rheon_feel::diagnostics::Abort::ValueDepth` and the added functions
+    `rheon_feel::diagnostics::bound_depth` and `bound_list_depth`; `FeelContext::apply_entries` returns an error (and stops
+    a running evaluation) for a path that would nest the value more than 500 levels deep.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

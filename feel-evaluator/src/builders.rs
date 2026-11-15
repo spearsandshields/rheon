@@ -34,7 +34,8 @@ fn guard_finite(evaluator: Evaluator) -> Evaluator {
   Box::new(move |scope: &FeelScope| finite(evaluator(scope)))
 }
 
-/// Wraps a function invocation evaluator: the call depth limit and finite results ([guarded]).
+/// Wraps a function invocation evaluator: the call depth limit, finite results and results nested
+/// no deeper than values may nest ([guarded]).
 fn guard_invocation(evaluator: Evaluator) -> Evaluator {
   Box::new(move |scope: &FeelScope| guarded(|| evaluator(scope)))
 }
@@ -494,10 +495,11 @@ impl EvaluatorBuilder {
                 // duplicated context entry keys are not allowed
                 break 'entries Some(value_null!("duplicated context entry key: {}", arg(&name)));
               } else {
+                let value = diagnostics::bound_depth(*value);
                 // add newly evaluated entry to evaluated context
-                evaluated_ctx.set_entry(&name, (*value).clone());
+                evaluated_ctx.set_entry(&name, value.clone());
                 // add newly evaluated entry to special context
-                scope.set_value(&name, *value);
+                scope.set_value(&name, value);
               }
             }
             value_null @ Value::Null(_) => break 'entries Some(value_null),
@@ -508,7 +510,7 @@ impl EvaluatorBuilder {
       };
       // remove special context from scope, on every path
       scope.truncate(depth);
-      failure.unwrap_or(Value::Context(evaluated_ctx))
+      failure.unwrap_or_else(|| diagnostics::bound_depth(Value::Context(evaluated_ctx)))
     })
   }
 
@@ -868,7 +870,7 @@ impl EvaluatorBuilder {
               }
             }
             //TODO Check if `FeelType::Any` is always ok for function result type in function definition.
-            FunctionDefinition::new(parameters, body, external, closure.clone(), closure_ctx, FeelType::Any).into()
+            diagnostics::bound_depth(FunctionDefinition::new(parameters, body, external, closure.clone(), closure_ctx, FeelType::Any).into())
           } else {
             value_null!("invalid body in function definition")
           }
@@ -1356,7 +1358,7 @@ impl EvaluatorBuilder {
       for evaluator in &evaluators {
         values.push(evaluator(scope))
       }
-      Value::List(values.into())
+      diagnostics::bound_depth(Value::List(values.into()))
     })
   }
 
@@ -1661,7 +1663,7 @@ impl EvaluatorBuilder {
       let rhv = rhe(scope);
       if let Value::IntervalStart(lhv, l_closed) = lhv {
         if let Value::IntervalEnd(rhv, r_closed) = rhv {
-          Value::Range(lhv, l_closed, rhv, r_closed)
+          diagnostics::bound_depth(Value::Range(lhv, l_closed, rhv, r_closed))
         } else {
           value_null!("expected interval end")
         }
