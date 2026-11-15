@@ -51,7 +51,7 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
   match function {
     Value::BuiltInFunction(bif) => apply_built_in(bif, arguments, dialect),
     Value::FunctionDefinition(function) => {
-      let values = match bind(&function.parameters, arguments) {
+      let values = match bind(function.parameters(), arguments) {
         Ok(values) => values,
         Err(reason) => return value_null!(reason),
       };
@@ -60,7 +60,7 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
       } else {
         apply_body(scope, &function, values)
       };
-      result.into_coerced(&function.result_type)
+      result.into_coerced(function.result_type())
     }
     other => value_null!("expected built-in function name or function definition, actual is {}", arg(&other)),
   }
@@ -102,7 +102,7 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
 /// scope of the invocation extended with the function's closure.
 fn apply_body(scope: &FeelScope, function: &FunctionDefinition, values: Vec<Value>) -> Value {
   let mut params_ctx = FeelContext::default();
-  for ((name, _), value) in function.parameters.iter().zip(values) {
+  for ((name, _), value) in function.parameters().iter().zip(values) {
     params_ctx.set_entry(name, value);
   }
   // parameters innermost: a decision service body reads its inputs from the top (decision_service.rs)

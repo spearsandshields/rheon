@@ -315,13 +315,9 @@ impl Display for Value {
       Value::FunctionBody(_, external) => write!(f, "FunctionBody{}", if *external { " (external)" } else { "" }),
       Value::FunctionDefinition(function) => {
         let FunctionDefinition {
-          parameters,
-          external,
-          closure,
-          closure_ctx,
-          result_type,
-          ..
+          external, closure, closure_ctx, ..
         } = function.as_ref();
+        let (parameters, result_type) = (function.parameters(), function.result_type());
         write!(f, "FunctionDefinition({parameters:?},_,{external},{closure},{closure_ctx},{result_type})")
       }
       Value::IntervalEnd(_, _) => write!(f, "IntervalEnd"),
@@ -591,11 +587,11 @@ impl Value {
       Value::FormalParameters(_) => FeelType::Any,
       Value::FunctionBody(_, _) => FeelType::Any,
       Value::FunctionDefinition(function) => {
-        let mut parameter_types = Vec::with_capacity(function.parameters.len());
-        for (_, feel_type) in &function.parameters {
+        let mut parameter_types = Vec::with_capacity(function.parameters().len());
+        for (_, feel_type) in function.parameters() {
           parameter_types.push(budget.copy(feel_type)?);
         }
-        FeelType::Function(parameter_types, Box::new(budget.copy(&function.result_type)?))
+        FeelType::Function(parameter_types, Box::new(budget.copy(function.result_type())?))
       }
       Value::IntervalEnd(interval_end, _) => interval_end.type_of_within(budget)?,
       Value::IntervalStart(interval_start, _) => interval_start.type_of_within(budget)?,
@@ -710,13 +706,13 @@ impl Value {
       }
       Value::FunctionDefinition(function) => {
         if let FeelType::Function(t_parameters, t_result) = target_type {
-          if function.parameters.len() != t_parameters.len() {
+          if function.parameters().len() != t_parameters.len() {
             return false;
           }
-          if !function.result_type.is_conformant(t_result) {
+          if !function.result_type().is_conformant(t_result) {
             return false;
           }
-          for (i, (_, parameter_type)) in function.parameters.iter().enumerate() {
+          for (i, (_, parameter_type)) in function.parameters().iter().enumerate() {
             if !parameter_type.is_conformant(&t_parameters[i]) {
               return false;
             }
@@ -1028,7 +1024,7 @@ impl Display for TypeOf<'_> {
         Some(item_type) => write_list_type(f, item_type),
         None => write_list_type(f, "…"),
       },
-      Value::FunctionDefinition(function) => write_function_type(f, function.parameters.iter().map(|(_, feel_type)| feel_type), &function.result_type),
+      Value::FunctionDefinition(function) => write_function_type(f, function.parameters().iter().map(|(_, feel_type)| feel_type), function.result_type()),
       Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => fmt::Display::fmt(feel_type, f),
       Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => fmt::Display::fmt(&TypeOf(value), f),
       other => fmt::Display::fmt(&other.type_of(), f),

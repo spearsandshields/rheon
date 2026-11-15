@@ -13,7 +13,7 @@ use std::sync::Arc;
 #[derive(Clone, Debug, PartialEq)]
 pub struct FunctionDefinition {
   /// Formal parameters of the function.
-  pub parameters: Vec<(Name, FeelType)>,
+  parameters: Vec<(Name, FeelType)>,
   /// Body of the function.
   pub body: FunctionBody,
   /// Flag indicating if the function's body is an external function, `true` == external.
@@ -23,7 +23,7 @@ pub struct FunctionDefinition {
   /// Values of the closed names (closure values).
   pub closure_ctx: FeelContext,
   /// Return type of the function.
-  pub result_type: FeelType,
+  result_type: FeelType,
 }
 
 impl FunctionDefinition {
@@ -37,6 +37,16 @@ impl FunctionDefinition {
       closure_ctx,
       result_type,
     }
+  }
+
+  /// The formal parameters of the function, with their types, in their order.
+  pub fn parameters(&self) -> &[(Name, FeelType)] {
+    &self.parameters
+  }
+
+  /// The return type of the function.
+  pub fn result_type(&self) -> &FeelType {
+    &self.result_type
   }
 }
 

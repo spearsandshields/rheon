@@ -2620,6 +2620,18 @@ their items with both answers. The totals are under "Verification" below.
     on 0.5.0 (equality at least 2,140 levels, 3,750 before; dropping a list at least 4,609, 6,656
     before); `context put` refuses a key list beyond 500 levels by design. `run.sh --release`:
     7,886 requests, 34 registered differences, 0 others, 529 s, peak RSS 3.1 GB.
+158. **The parameters and the result type of a function definition are read through accessors.**
+    `FunctionDefinition` exposed its formal parameters and its return type as public fields, so any
+    holder of a function definition could change what an invocation binds and coerces to. They are
+    now private and read through `parameters()` (the names with their types, in order) and
+    `result_type()`; the invocation, `sort`, the callback check of `list replace`, the business
+    knowledge model's inputs, `instance of` and the display read them there. `closure` and
+    `closure_ctx` stay public: a function returned by a body is closed over by writing them.
+    Identity step: no answer changes. Rust API (`rheon-feel`): the fields
+    `FunctionDefinition::parameters` and `FunctionDefinition::result_type` are private; read them
+    with the added `FunctionDefinition::parameters()` (`&[(Name, FeelType)]`) and
+    `FunctionDefinition::result_type()` (`&FeelType`); build a definition with
+    `FunctionDefinition::new` as before.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

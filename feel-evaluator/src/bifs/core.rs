@@ -1319,7 +1319,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
       }
     }
     Value::FunctionDefinition(function) => {
-      if function.parameters.len() != 2 {
+      if function.parameters().len() != 2 {
         return value_null!("list replace: matching function must have exactly two arguments");
       }
       let mut elements = vec![];
@@ -2168,7 +2168,7 @@ fn round_to_scale(n: &Value, scale: &Value, mode: RoundingMode, name: &str, site
 pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   if let Value::List(items) = list {
     if let Value::FunctionDefinition(function) = ordering_function {
-      if function.parameters.len() == 2 {
+      if function.parameters().len() == 2 {
         // an answer other than `true` (false, null, any other value) means "does not precede";
         // once the evaluation was stopped the ordering ends, and its null is never observed
         let order = super::sorting::order_by(items.len(), |a, b| {

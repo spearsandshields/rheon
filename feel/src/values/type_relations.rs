@@ -150,8 +150,8 @@ impl<'a> Ty<'a> {
         Value::Range(start, _, end, _) => Shape::Range(Ends::Of(start, end)),
         Value::Context(ctx) => Shape::Context(Entries::Of(ctx)),
         Value::FunctionDefinition(function) => Shape::Function(Cow::Owned(FeelType::Function(
-          function.parameters.iter().map(|(_, feel_type)| feel_type.clone()).collect(),
-          Box::new(function.result_type.clone()),
+          function.parameters().iter().map(|(_, feel_type)| feel_type.clone()).collect(),
+          Box::new(function.result_type().clone()),
         ))),
         Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => Ty::Is(feel_type).shape(),
         Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => Ty::Of(value).shape(),
