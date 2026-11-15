@@ -9,11 +9,12 @@
 //! - a value: the specification defines a non-null result for the input, so there is no null;
 //! - a defined null: the specification defines null for the input (`sum([])`, a missing context
 //!   entry, `stddev` of one number, a decision table without a matching rule) or the input is
-//!   missing data, and a null operand passed on belongs here too. It is no error: the null is
-//!   bare or carries a note (`value_null!(note: …)`, [Severity::Note]), which is not counted;
-//! - an error null: an input outside the domain of the operation, or an error §7.3.8 names. It
-//!   carries its reason (`value_null!(…)`, [Severity::Error]), which is counted and listed where
-//!   the null is created, and strict mode stops at it;
+//!   missing data. It is no error: the null is bare or carries a note (`value_null!(note: …)`,
+//!   [Severity::Note]), which is not counted;
+//! - an error null: an input outside the domain of the operation, a null operand of an
+//!   arithmetic operator among them (the official TCK expects an error result for `1 + null`), or
+//!   an error §7.3.8 names. It carries its reason (`value_null!(…)`, [Severity::Error]), which is
+//!   counted and listed where the null is created, and strict mode stops at it;
 //! - an abort: an implementation limit ([Abort]), never a value.
 //!
 //! While a caller collects diagnostics ([collect]), every error null created through

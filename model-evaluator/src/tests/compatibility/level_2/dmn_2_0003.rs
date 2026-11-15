@@ -14,6 +14,6 @@ fn _0001() {
 fn _0002() {
   let ctx = context(r#"{Employment Status: "RETIRED"}"#);
   let invocable = "Employment Status Statement";
-  let expected = "null(expected string as a second argument in addition)";
+  let expected = r#"null([addition] incompatible types: "You are " + null(value '"RETIRED"' is not allowed))"#;
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &ctx, expected);
 }

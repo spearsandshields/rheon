@@ -146,3 +146,11 @@ fn an_exponent_outside_the_range_gives_null() {
   te_number(false, &scope!(), "1 ** 999999998.5", 1, 0);
   te_number(false, &scope!(), "0 ** 0", 1, 0);
 }
+
+#[test]
+fn a_null_operand_of_an_exponentiation_is_an_error() {
+  // DMN 1.6 Table 61: the input domain is "type(e1) is number. value(e2) is a number"; the official
+  // TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_exponent_lhs_null_exp_rhs_number and the others)
+  te_null_operands("exponentiation", "**");
+}

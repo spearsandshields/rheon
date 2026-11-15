@@ -95,6 +95,39 @@ pub fn te_errors(text: &str, expected: &str, errors: &[&str]) {
   assert_eq!(errors.len(), diagnostics.count, "{text}");
 }
 
+/// Asserts that a null on either side of the binary arithmetic operator `symbol`, beside a value of
+/// every kind, is an error (DMN 1.6, before Table 57 and before Table 59: "if input values are not
+/// of the listed types, the result is null"; the official TCK expects an error result for every
+/// such operation, compliance-level-3/0100-arithmetic): the value is null, its reason
+/// `[<name>] incompatible types: <operation>` is counted once, and a failing operand counts its own
+/// error before it.
+pub fn te_null_operands(name: &str, symbol: &str) {
+  for (value, shown) in [
+    ("1", "1"),
+    (r#""a""#, r#""a""#),
+    (r#"@"2020-01-01""#, "2020-01-01"),
+    (r#"@"2020-01-01T10:00:00""#, "2020-01-01T10:00:00"),
+    (r#"@"10:00:00""#, "10:00:00"),
+    (r#"@"P1D""#, "P1D"),
+    (r#"@"P1Y""#, "P1Y"),
+    ("true", "true"),
+    ("[1]", "[1]"),
+    ("{a: 1}", "{a: 1}"),
+    ("[1..2]", "[1..2]"),
+    ("null", "null"),
+  ] {
+    let reason = format!("[{name}] incompatible types: {shown} {symbol} null");
+    te_errors(&format!("{value} {symbol} null"), &format!("null({reason})"), &[&reason]);
+    let reason = format!("[{name}] incompatible types: null {symbol} {shown}");
+    te_errors(&format!("null {symbol} {value}"), &format!("null({reason})"), &[&reason]);
+  }
+  let division_by_zero = "[division] division by zero";
+  let reason = format!(r#"[{name}] incompatible types: "a" {symbol} null({division_by_zero})"#);
+  te_errors(&format!(r#""a" {symbol} (1/0)"#), &format!("null({reason})"), &[division_by_zero, &reason]);
+  let reason = format!(r#"[{name}] incompatible types: null({division_by_zero}) {symbol} "a""#);
+  te_errors(&format!(r#"(1/0) {symbol} "a""#), &format!("null({reason})"), &[division_by_zero, &reason]);
+}
+
 /// The warning that the seconds of `literal` lost the fraction digits `dropped`.
 pub fn truncation_warning(literal: &str, dropped: &str) -> String {
   format!("fractional seconds of '{literal}' truncated to nanoseconds; dropped digits: '{dropped}'")

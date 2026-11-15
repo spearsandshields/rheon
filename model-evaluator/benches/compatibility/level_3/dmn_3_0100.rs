@@ -2581,7 +2581,7 @@ fn _0303(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: string)"#,
+    r#"null([multiplication] incompatible types: "10" * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -2763,7 +2763,7 @@ fn _0316(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: boolean)"#,
+    r#"null([multiplication] incompatible types: true * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -2945,7 +2945,7 @@ fn _0329(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: date)"#,
+    r#"null([multiplication] incompatible types: 2021-01-01 * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -3127,7 +3127,7 @@ fn _0342(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: date and time)"#,
+    r#"null([multiplication] incompatible types: 2021-01-01T10:10:10 * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -3309,7 +3309,7 @@ fn _0355(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: time)"#,
+    r#"null([multiplication] incompatible types: 10:10:10 * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -3491,7 +3491,7 @@ fn _0368(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: list<number>)"#,
+    r#"null([multiplication] incompatible types: [10] * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -3673,7 +3673,7 @@ fn _0381(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: context<a: number>)"#,
+    r#"null([multiplication] incompatible types: {a: 10} * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -4191,7 +4191,7 @@ fn _0418(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: range<number>)"#,
+    r#"null([multiplication] incompatible types: [1..10] * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -4373,7 +4373,7 @@ fn _0431(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(unexpected value type in multiplication: function<Any>->Any)"#,
+    r#"null([multiplication] incompatible types: FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any) * null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -4381,91 +4381,182 @@ fn _0431(b: &mut Bencher) {
 #[bench]
 fn _0432(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_number";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * 10)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0433(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_string";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * "10")"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0434(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_boolean";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * true)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0435(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_date";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * 2021-01-01)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0436(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_dateAndTime";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * 2021-01-01T10:10:10)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0437(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_time";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * 10:10:10)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0438(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_list";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * [10])"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0439(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_context";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * {a: 10})"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0440(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_dtDuration";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * P1D)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0441(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_ymDuration";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * P1Y)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0442(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_range";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * [1..10])"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0443(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_function";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any))"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0444(b: &mut Bencher) {
   let invocable_name = "error_when_multiply_lhs_null_by_rhs_null";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([multiplication] incompatible types: null * null)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
@@ -6922,7 +7013,14 @@ fn _0619(b: &mut Bencher) {
 #[bench]
 fn _0620(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_number_to_rhs_null";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: 10 + null)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
@@ -7089,7 +7187,7 @@ fn _0632(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(expected string as a second argument in addition)"#,
+    r#"null([addition] incompatible types: "10" + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -7271,7 +7369,7 @@ fn _0645(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is boolean)"#,
+    r#"null([addition] incompatible types: true + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -7425,7 +7523,7 @@ fn _0656(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected years and months duration, actual type is Null)"#,
+    r#"null([addition] incompatible types: 2021-01-01 + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -7579,7 +7677,7 @@ fn _0667(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected days and time duration, years and months duration, actual type is Null)"#,
+    r#"null([addition] incompatible types: 2021-01-01T10:10:10 + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -7747,7 +7845,7 @@ fn _0679(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected days and time duration, actual type is Null)"#,
+    r#"null([addition] incompatible types: 10:10:10 + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -7929,7 +8027,7 @@ fn _0692(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is list<number>)"#,
+    r#"null([addition] incompatible types: [10] + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -8111,7 +8209,7 @@ fn _0705(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<a: number>)"#,
+    r#"null([addition] incompatible types: {a: 10} + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -8237,7 +8335,7 @@ fn _0714(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected days and time duration, date and time, actual type is Null)"#,
+    r#"null([addition] incompatible types: P1D + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -8377,7 +8475,7 @@ fn _0724(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected years and months duration, date and time, actual type is Null)"#,
+    r#"null([addition] incompatible types: P1Y + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -8559,7 +8657,7 @@ fn _0737(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is range<number>)"#,
+    r#"null([addition] incompatible types: [1..10] + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -8741,7 +8839,7 @@ fn _0750(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null([builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is function<Any>->Any)"#,
+    r#"null([addition] incompatible types: FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any) + null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -8749,91 +8847,182 @@ fn _0750(b: &mut Bencher) {
 #[bench]
 fn _0751(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_number";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + 10)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0752(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_string";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + "10")"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0753(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_boolean";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + true)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0754(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_date";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + 2021-01-01)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0755(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_dateAndTime";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + 2021-01-01T10:10:10)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0756(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_time";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + 10:10:10)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0757(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_list";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + [10])"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0758(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_context";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + {a: 10})"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0759(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_dtDuration";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + P1D)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0760(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_ymDuration";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + P1Y)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0761(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_range";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + [1..10])"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0762(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_function";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any))"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
 #[bench]
 fn _0763(b: &mut Bencher) {
   let invocable_name = "error_when_add_lhs_null_to_rhs_null";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    r#"null([addition] incompatible types: null + null)"#,
+  );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
 
@@ -11184,7 +11373,7 @@ fn _0931(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation exponent is not a number)"#,
+    r#"null([exponentiation] incompatible types: 10 ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -11366,7 +11555,7 @@ fn _0944(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: "10" ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -11548,7 +11737,7 @@ fn _0957(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: true ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -11730,7 +11919,7 @@ fn _0970(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: 2021-01-01 ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -11912,7 +12101,7 @@ fn _0983(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: 2021-01-01T10:10:10 ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -12094,7 +12283,7 @@ fn _0996(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: 10:10:10 ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -12276,7 +12465,7 @@ fn _1009(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: [10] ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -12458,7 +12647,7 @@ fn _1022(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: {a: 10} ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -12640,7 +12829,7 @@ fn _1035(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: P1D ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -12822,7 +13011,7 @@ fn _1048(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: P1Y ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13004,7 +13193,7 @@ fn _1061(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: [1..10] ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13186,7 +13375,7 @@ fn _1074(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any) ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13200,7 +13389,7 @@ fn _1075(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 10)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13214,7 +13403,7 @@ fn _1076(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** "10")"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13228,7 +13417,7 @@ fn _1077(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** true)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13242,7 +13431,7 @@ fn _1078(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 2021-01-01)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13256,7 +13445,7 @@ fn _1079(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 2021-01-01T10:10:10)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13270,7 +13459,7 @@ fn _1080(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** 10:10:10)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13284,7 +13473,7 @@ fn _1081(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** [10])"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13298,7 +13487,7 @@ fn _1082(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** {a: 10})"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13312,7 +13501,7 @@ fn _1083(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** P1D)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13326,7 +13515,7 @@ fn _1084(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** P1Y)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13340,7 +13529,7 @@ fn _1085(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** [1..10])"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13354,7 +13543,7 @@ fn _1086(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** FunctionDefinition([(Name("a"), Any)],_,false,[],{},Any))"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }
@@ -13368,7 +13557,7 @@ fn _1087(b: &mut Bencher) {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    r#"null(exponentiation base is not a number)"#,
+    r#"null([exponentiation] incompatible types: null ** null)"#,
   );
   iter!(b, MODEL_EVALUATOR.evaluate_invocable(&MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX));
 }

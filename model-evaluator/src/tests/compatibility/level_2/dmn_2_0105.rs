@@ -137,13 +137,27 @@ fn _0022() {
 #[test]
 fn _0023() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "Decision23", &ctx, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "Decision23",
+    &ctx,
+    r#"null([addition] incompatible types: 10 + null)"#,
+  );
 }
 
 #[test]
 fn _0024() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "Decision24", &ctx, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "Decision24",
+    &ctx,
+    r#"null([addition] incompatible types: null + 10)"#,
+  );
 }
 
 #[test]
@@ -188,7 +202,14 @@ fn _0027() {
 #[test]
 fn _0028() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "Decision28", &ctx, r#"null"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "Decision28",
+    &ctx,
+    r#"null([multiplication] incompatible types: null * 10)"#,
+  );
 }
 
 #[test]

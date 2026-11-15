@@ -139,7 +139,7 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  te_null(false, &scope!(), r#" null * @"P1Y" "#, r#""#);
+  te_null(false, &scope!(), r#" null * @"P1Y" "#, r#"[multiplication] incompatible types: null * P1Y"#);
 }
 
 #[test]
@@ -205,4 +205,12 @@ fn a_years_and_months_product_warns_when_it_drops_a_fraction_of_a_month() {
   te_warnings(r#"duration("P1M") * 0"#, "P0M", &[]);
   // a days and time duration keeps its truncation of a fraction of a nanosecond
   te_warnings(r#"duration("PT0.000000001S") * 1.5"#, "PT0.000000001S", &[]);
+}
+
+#[test]
+fn a_null_operand_of_a_multiplication_is_an_error() {
+  // DMN 1.6, before Table 59: "if input values are not of the listed types, the result is null";
+  // the official TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_multiply_lhs_null_by_rhs_number and the others)
+  te_null_operands("multiplication", "*");
 }

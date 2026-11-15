@@ -1775,6 +1775,69 @@ The totals are under "Verification" below.
     Identity: 5 registered differences in `registered/not-equal-reports-like-equal.json`
     (lenient, strict, B-FEEL, B-FEEL strict, and a date against a number), all requests of
     `requests/nulls.json`. No API change.
+123. **A null operand of an arithmetic operator is an error.** DMN 1.6, before Table 57 and
+    before Table 59: "if input values are not of the listed types, the result is null"; Table 61
+    takes "type(e1) is number. value(e2) is a number"; Table 63 defines `-e` as "e*-1". The text
+    gives the value, null, and does not say whether a null operand is an error, so the official
+    TCK decides: it marks every arithmetic operation with a null operand `errorResult="true"`
+    ("invalid arithmetic combination", compliance-level-3/0100-arithmetic, the
+    `error_when_{add,subtract,multiply,divide,exponent}_*` cases with a null on either side,
+    `10 + null` and `null + 10` among them), and TCK 0085 decision 002 with a null input ("because
+    of the string + null operation"). The operators decided it each in their own way: the
+    addition (feel-evaluator, `build_add`) passed a null on when it was the left operand or stood
+    beside a number (`1 + null`, `null + "a"`, no error) and otherwise counted an error with one
+    of several reasons (`expected string as a second argument in addition`, `[builders::add]
+    invalid argument type, …`); the multiplication passed a null left operand on (`null * 1`, no
+    error); the subtraction and the division counted `[subtraction] incompatible types: 1 - null`
+    and `[division] incompatible types: …`, the exponentiation `exponentiation base is not a
+    number`, the negation `unexpected type in arithmetic negation: Null`. Now one private rule,
+    `Arithmetic::null_operand`, decides for all six operators: with a null operand on either side
+    the value is null with the counted reason `[<operator>] incompatible types: <operation>`, the
+    style of the subtraction's and the division's type errors, which `Arithmetic::incompatible`
+    writes with the operands as evaluated (`[addition] incompatible types: 1 + null`,
+    `[negation] incompatible types: -null`), and strict mode fails on it; a failing operand
+    counts its own error before it (`"a" + 1/0` counts the division's and the addition's). The
+    binary operators go through one combinator, `arithmetic`, which evaluates both operands and
+    hands them to `operate`, and the incompatible-types errors of the subtraction, the
+    multiplication and the division come from `Arithmetic::incompatible` too, with their texts
+    unchanged. `operate` holds the null rule and the operator and is never inlined: the
+    combinator's frame stays on the stack while a nested operand evaluates, and with `operate`
+    inlined the stack report's recursion reached 17 levels on Node's main thread with Liftoff,
+    one fewer than the parent; out of line it reaches 22 there (parent 18), 46, 75 and 104 in
+    workers of 2, 3 and 4 MiB (40, 64, 89), 24, 51, 83 and 114 with TurboFan (13, 29, 47, 65),
+    and 289, the parser's limit, in Wasmtime with a 16 MiB stack (120); the smaller Wasmtime
+    stacks reach the parent's 10, 26, 57 and 120. B-FEEL converts the null operand (§11.9-§11.11)
+    and gives a value (`1 + null` and `2 ** null` are 1, `null - 6` is -6, `null * 1` is 0,
+    `"a" + null` is `"a"`), and the FEEL error behind it stays listed, as for its other
+    conversions (CONTRACT §2), so B-FEEL in strict mode fails on it, as it did for the
+    subtraction (`null - 6`). Test first: `a_null_operand_of_an_addition_is_an_error`,
+    `…_of_a_multiplication_…`, `…_of_an_exponentiation_…` and `…_of_a_negation_…`
+    (feel-evaluator, one per operator's test file, the binary ones through `te_null_operands`:
+    every kind on either side of a null, and a failing operand) and
+    `a_null_operand_of_an_arithmetic_operator_is_an_error` (`wasm/feel-wasm/tests/contract.rs`,
+    lenient, strict and B-FEEL) failed on the parent; `…_of_a_subtraction_…` and
+    `…_of_a_division_…` passed there, as those operators already counted the error with this
+    text. Pins that took the old answers: TCK 0100 (72 tests: 25 additions, 22 multiplications,
+    25 exponentiations), TCK 0085 decisions 002 with a null input (three), TCK 2-0105 (three,
+    which expect null and mark no error) and TCK 2-0003 (the allowed-values null of the input),
+    each in `src/tests/compatibility` and in its bench copy; in feel-evaluator `null + @"P1DT2H"`,
+    `null * @"P1Y"`, a date plus an out-of-range product and its negation, two function bodies
+    that add a missing name, and a missing context entry plus 1 (`path.rs`); in model-evaluator
+    the decision of `various/dmn_0007` that doubles a missing input decision, whose note stays
+    uncounted while the multiplication counts its error; and `bbt/tests/cli/edm/1006_ERR`. The
+    TCK runner of this repository compares values, which stay null, so its results are
+    unchanged. The diagnostics module docs no longer count a null operand passed on among the
+    defined nulls. Identity: 85 registered differences in `registered/arithmetic-null-operand.json`
+    (30 FEEL, 16 FEEL strict, 23 B-FEEL, 16 B-FEEL strict), all requests of `requests/nulls.json`,
+    which gains 146 requests (each binary operator with a null on either side of a number, of a
+    string, of a null and of a failing operand, and the negation of null, of a failing operand and
+    of a missing context entry, in the four modes): the operations whose null operand 0.4.0 passed
+    on (`1 + null`, `null + 1`, `null * 1`, …) count an error now, the others keep their count
+    with the new reason, and the subtraction and the division answer as in 0.4.0. Five entries of
+    `registered/durations-symmetric-range.json` (the negation of an out-of-range product, and a
+    date, a date and time or a time plus one) and the entry `({a: {b: 1}}.a.c) + 1` of
+    `registered/missing-context-entry.json` are amended in place (the product's or the note's null
+    and the operator's error). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -1390,6 +1390,50 @@ fn not_equal_reports_like_equal() {
 }
 
 #[test]
+fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
+  // before Table 57 and Table 59: "if input values are not of the listed types, the result is
+  // null", and the official TCK expects an error result for a null operand of every arithmetic
+  // operator, on either side (compliance-level-3/0100-arithmetic): the value is null, the error
+  // is counted, and strict mode stops at it
+  for (expression, message) in [
+    ("1 + null", "[addition] incompatible types: 1 + null"),
+    ("null + 1", "[addition] incompatible types: null + 1"),
+    ("\"a\" + null", "[addition] incompatible types: \"a\" + null"),
+    ("1 - null", "[subtraction] incompatible types: 1 - null"),
+    ("null - 1", "[subtraction] incompatible types: null - 1"),
+    ("1 * null", "[multiplication] incompatible types: 1 * null"),
+    ("null * 1", "[multiplication] incompatible types: null * 1"),
+    ("1 / null", "[division] incompatible types: 1 / null"),
+    ("null / 1", "[division] incompatible types: null / 1"),
+    ("2 ** null", "[exponentiation] incompatible types: 2 ** null"),
+    ("null ** 2", "[exponentiation] incompatible types: null ** 2"),
+    ("-null", "[negation] incompatible types: -null"),
+  ] {
+    let lenient = ok(json!({"op": "evaluate", "expression": expression}));
+    assert_eq!(lenient["result"]["display"], "null", "{lenient}");
+    assert_eq!(lenient["result"]["nullReason"], message, "{lenient}");
+    assert_eq!(lenient["diagnostics"]["count"], 1, "{lenient}");
+    assert_eq!(lenient["diagnostics"]["messages"], json!([message]), "{lenient}");
+    let strict = req(json!({"op": "evaluate", "expression": expression, "errorMode": "strict"}));
+    assert_eq!(strict["ok"], false, "{strict}");
+    assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
+  }
+  // B-FEEL (§11.9-§11.11) converts the null operand and gives a value; the FEEL error behind it
+  // stays listed
+  for (expression, display, message) in [
+    ("1 + null", "1", "[addition] incompatible types: 1 + null"),
+    ("null - 6", "-6", "[subtraction] incompatible types: null - 6"),
+    ("null * 2", "0", "[multiplication] incompatible types: null * 2"),
+    ("null / 22", "0", "[division] incompatible types: null / 22"),
+    ("2 ** null", "1", "[exponentiation] incompatible types: 2 ** null"),
+  ] {
+    let b_feel = ok(json!({"op": "evaluate", "expression": expression, "language": "b-feel"}));
+    assert_eq!(b_feel["result"]["display"], display, "{b_feel}");
+    assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+  }
+}
+
+#[test]
 fn zoned_date_time_display() {
   // DMN 1.6 Table 48 (DMN16-68): ISO 8601 with the offset, the IANA zone in brackets
   assert_eq!(display(r#"@"2007-12-03T10:15:30@Europe/Paris""#), r#""2007-12-03T10:15:30+01:00[Europe/Paris]""#);

@@ -21,7 +21,12 @@ fn _0002() {
 #[test]
 fn _0003() {
   let scope = &te_scope(r#"{ add: function (x: number, y: number) x + y + a }"#);
-  te_null(false, scope, r#"add(17.82,32.18)"#, "context has no value for key 'a'");
+  te_null(
+    false,
+    scope,
+    r#"add(17.82,32.18)"#,
+    "[addition] incompatible types: 50 + null(context has no value for key 'a')",
+  );
 }
 
 #[test]

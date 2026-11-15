@@ -131,7 +131,7 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  te_null(false, &scope!(), r#" null + @"P1DT2H" "#, r#""#);
+  te_null(false, &scope!(), r#" null + @"P1DT2H" "#, r#"[addition] incompatible types: null + P1DT2H"#);
 }
 
 #[test]
@@ -359,7 +359,7 @@ fn _0048() {
     false,
     scope,
     r#"date("2020-01-01") + duration("P1M") * -9223372036854775808"#,
-    "[builders::add] invalid argument type, expected years and months duration, actual type is Null",
+    "[addition] incompatible types: 2020-01-01 + null(multiplication result is out of range of years and months duration)",
   );
 }
 
@@ -405,4 +405,12 @@ fn _0050() {
     r#"date("262142-12-31") + duration("P1D")"#,
     "invalid result while adding days and time duration to date",
   );
+}
+
+#[test]
+fn a_null_operand_of_an_addition_is_an_error() {
+  // DMN 1.6, before Table 57: "if input values are not of the listed types, the result is null";
+  // the official TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_add_lhs_null_to_rhs_number and the others)
+  te_null_operands("addition", "+");
 }

@@ -162,3 +162,11 @@ fn a_years_and_months_quotient_warns_when_it_drops_a_fraction_of_a_month() {
   te_warnings(r#"duration("P1Y") / 0.5"#, "P2Y", &[]);
   te_warnings(r#"duration("-P1Y") / 3"#, "-P4M", &[]);
 }
+
+#[test]
+fn a_null_operand_of_a_division_is_an_error() {
+  // DMN 1.6, before Table 59: "if input values are not of the listed types, the result is null";
+  // the official TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_divide_lhs_null_by_rhs_number and the others)
+  te_null_operands("division", "/");
+}

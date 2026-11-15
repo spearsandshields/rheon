@@ -41,12 +41,12 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  eqs("decisionService_002", CTX, r#"null(expected string as a second argument in addition)"#);
+  eqs("decisionService_002", CTX, r#"null([addition] incompatible types: "foo " + null)"#);
 }
 
 #[test]
 fn _0007() {
-  eqs("decision_002", r#"{decision_002_input: null}"#, r#"null(expected string as a second argument in addition)"#);
+  eqs("decision_002", r#"{decision_002_input: null}"#, r#"null([addition] incompatible types: "foo " + null)"#);
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn _0008() {
   eqs(
     "decisionService_002",
     r#"{decision_002_input: null}"#,
-    r#"null(expected string as a second argument in addition)"#,
+    r#"null([addition] incompatible types: "foo " + null)"#,
   );
 }
 

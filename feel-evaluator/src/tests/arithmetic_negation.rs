@@ -98,5 +98,20 @@ fn _0019() {
   te_years_and_months_duration_x(false, scope, r#"-duration("-P9223372036854775807M")"#, "P768614336404564650Y7M");
   te_years_and_months_duration_x(false, scope, r#"-duration("P9223372036854775807M")"#, "-P768614336404564650Y7M");
   te_days_and_time_duration_x(false, scope, r#"-duration("-PT9223372036.854775807S")"#, "P106751DT23H47M16.854775807S");
-  te_null(false, scope, r#"-(duration("P1M") * -9223372036854775808)"#, "unexpected type in arithmetic negation: Null");
+  te_null(
+    false,
+    scope,
+    r#"-(duration("P1M") * -9223372036854775808)"#,
+    "[negation] incompatible types: -null(multiplication result is out of range of years and months duration)",
+  );
+}
+
+#[test]
+fn a_null_operand_of_a_negation_is_an_error() {
+  // DMN 1.6 Table 63: -e is "e*-1", so its null operand is an error as the multiplication's is
+  let reason = "[negation] incompatible types: -null";
+  te_errors("-null", &format!("null({reason})"), &[reason]);
+  let division_by_zero = "[division] division by zero";
+  let reason = format!("[negation] incompatible types: -null({division_by_zero})");
+  te_errors("-(1/0)", &format!("null({reason})"), &[division_by_zero, &reason]);
 }

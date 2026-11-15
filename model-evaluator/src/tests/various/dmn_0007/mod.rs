@@ -29,12 +29,16 @@ fn _0001() {
 
 /// An input decision that the input context does not supply is missing data, as a missing
 /// input variable is: a null with a note, which is no error, also when its type is an item
-/// definition.
+/// definition. The decision multiplies it, and the null operand of the multiplication is its one
+/// error.
 #[test]
 fn a_missing_input_decision_of_an_item_definition_type_is_a_null_with_a_note() {
+  let error = "[multiplication] incompatible types: null(no name Score in context {}) * 2";
   for error_mode in [ErrorMode::Lenient, ErrorMode::Strict] {
-    let (value, diagnostics) = evaluate("{}", error_mode);
-    assert_eq!(value.to_string(), "null(no name Score in context {})", "{error_mode:?}");
-    assert_eq!(diagnostics.count, 0, "{error_mode:?} {diagnostics:?}");
+    let (_, diagnostics) = evaluate("{}", error_mode);
+    assert_eq!(diagnostics.messages, [error], "{error_mode:?}");
+    assert_eq!(diagnostics.count, 1, "{error_mode:?} {diagnostics:?}");
   }
+  let (value, _) = evaluate("{}", ErrorMode::Lenient);
+  assert_eq!(value.to_string(), format!("null({error})"));
 }

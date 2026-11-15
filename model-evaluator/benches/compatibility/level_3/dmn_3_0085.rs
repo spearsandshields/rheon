@@ -43,17 +43,12 @@ fn _0005(b: &mut Bencher) {
 
 #[bench]
 fn _0006(b: &mut Bencher) {
-  eqs(b, "decisionService_002", CTX, r#"null(expected string as a second argument in addition)"#);
+  eqs(b, "decisionService_002", CTX, r#"null([addition] incompatible types: "foo " + null)"#);
 }
 
 #[bench]
 fn _0007(b: &mut Bencher) {
-  eqs(
-    b,
-    "decision_002",
-    r#"{decision_002_input: null}"#,
-    r#"null(expected string as a second argument in addition)"#,
-  );
+  eqs(b, "decision_002", r#"{decision_002_input: null}"#, r#"null([addition] incompatible types: "foo " + null)"#);
 }
 
 #[bench]
@@ -62,7 +57,7 @@ fn _0008(b: &mut Bencher) {
     b,
     "decisionService_002",
     r#"{decision_002_input: null}"#,
-    r#"null(expected string as a second argument in addition)"#,
+    r#"null([addition] incompatible types: "foo " + null)"#,
   );
 }
 

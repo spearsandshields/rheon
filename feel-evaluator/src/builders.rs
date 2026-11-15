@@ -220,110 +220,104 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_add(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Number(lh) => match rhv {
-          Value::Number(rh) => Value::Number(lh + rh),
-          value @ Value::Null(_) => value,
-          _ => value_null!(
-            "incompatible types in addition: {}({}) + {}({})",
-            arg(&lhv),
-            arg(&TypeOf(&lhv)),
-            arg(&rhv),
-            arg(&TypeOf(&rhv))
-          ),
-        },
-        Value::String(lh) => {
-          if let Value::String(rh) = rhv {
-            Value::String(lh.concat(&rh))
+    arithmetic(Arithmetic::Addition, lhe, rhe, |lhv, rhv| match lhv {
+      Value::Number(lh) => match rhv {
+        Value::Number(rh) => Value::Number(lh + rh),
+        _ => value_null!(
+          "incompatible types in addition: {}({}) + {}({})",
+          arg(&lhv),
+          arg(&TypeOf(&lhv)),
+          arg(&rhv),
+          arg(&TypeOf(&rhv))
+        ),
+      },
+      Value::String(lh) => {
+        if let Value::String(rh) = rhv {
+          Value::String(lh.concat(&rh))
+        } else {
+          value_null!("expected string as a second argument in addition")
+        }
+      }
+      Value::Date(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => {
+          if let Some(result) = lh + rh {
+            Value::Date(result)
           } else {
-            value_null!("expected string as a second argument in addition")
+            value_null!("invalid result while adding days and time duration to date")
           }
         }
-        Value::Date(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => {
-            if let Some(result) = lh + rh {
-              Value::Date(result)
-            } else {
-              value_null!("invalid result while adding days and time duration to date")
-            }
+        Value::YearsAndMonthsDuration(rh) => {
+          if let Some(a) = lh + rh {
+            Value::Date(a)
+          } else {
+            value_null!("invalid result while adding years and months duration to date")
           }
-          Value::YearsAndMonthsDuration(rh) => {
-            if let Some(a) = lh + rh {
-              Value::Date(a)
-            } else {
-              value_null!("invalid result while adding years and months duration to date")
-            }
+        }
+        other => invalid_argument_type!("add", "years and months duration", other),
+      },
+      Value::DateTime(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => {
+          if let Some(a) = lh + rh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding days and time duration to date and time")
           }
-          other => invalid_argument_type!("add", "years and months duration", other),
-        },
-        Value::DateTime(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => {
-            if let Some(a) = lh + rh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding days and time duration to date and time")
-            }
+        }
+        Value::YearsAndMonthsDuration(rh) => {
+          if let Some(a) = lh + rh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding years and months duration to date and time")
           }
-          Value::YearsAndMonthsDuration(rh) => {
-            if let Some(a) = lh + rh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding years and months duration to date and time")
-            }
+        }
+        other => invalid_argument_type!("add", "days and time duration, years and months duration", other),
+      },
+      Value::Time(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => Value::Time(lh + rh),
+        other => invalid_argument_type!("add", "days and time duration", other),
+      },
+      Value::DaysAndTimeDuration(lh) => match rhv {
+        Value::DaysAndTimeDuration(rh) => lh
+          .checked_add(&rh)
+          .map_or_else(|| value_null!("days and time duration addition overflow"), Value::DaysAndTimeDuration),
+        Value::Date(rh) => {
+          if let Some(result) = rh + lh {
+            Value::Date(result)
+          } else {
+            value_null!("invalid result while adding date to days and time duration")
           }
-          other => invalid_argument_type!("add", "days and time duration, years and months duration", other),
-        },
-        Value::Time(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => Value::Time(lh + rh),
-          other => invalid_argument_type!("add", "days and time duration", other),
-        },
-        Value::DaysAndTimeDuration(lh) => match rhv {
-          Value::DaysAndTimeDuration(rh) => lh
-            .checked_add(&rh)
-            .map_or_else(|| value_null!("days and time duration addition overflow"), Value::DaysAndTimeDuration),
-          Value::Date(rh) => {
-            if let Some(result) = rh + lh {
-              Value::Date(result)
-            } else {
-              value_null!("invalid result while adding date to days and time duration")
-            }
+        }
+        Value::DateTime(rh) => {
+          if let Some(a) = rh + lh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding date and time to days and time duration")
           }
-          Value::DateTime(rh) => {
-            if let Some(a) = rh + lh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding date and time to days and time duration")
-            }
+        }
+        Value::Time(rh) => Value::Time(rh + lh),
+        other => invalid_argument_type!("add", "days and time duration, date and time", other),
+      },
+      Value::YearsAndMonthsDuration(lh) => match rhv {
+        Value::Date(rh) => {
+          if let Some(a) = rh + lh {
+            Value::Date(a)
+          } else {
+            value_null!("invalid result while adding date to years and months duration")
           }
-          Value::Time(rh) => Value::Time(rh + lh),
-          other => invalid_argument_type!("add", "days and time duration, date and time", other),
-        },
-        Value::YearsAndMonthsDuration(lh) => match rhv {
-          Value::Date(rh) => {
-            if let Some(a) = rh + lh {
-              Value::Date(a)
-            } else {
-              value_null!("invalid result while adding date to years and months duration")
-            }
+        }
+        Value::DateTime(rh) => {
+          if let Some(a) = rh + lh {
+            Value::DateTime(a)
+          } else {
+            value_null!("invalid result while adding date and time to years and months duration")
           }
-          Value::DateTime(rh) => {
-            if let Some(a) = rh + lh {
-              Value::DateTime(a)
-            } else {
-              value_null!("invalid result while adding date and time to years and months duration")
-            }
-          }
-          Value::YearsAndMonthsDuration(rh) => lh
-            .checked_add(&rh)
-            .map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
-          other => invalid_argument_type!("add", "years and months duration, date and time", other),
-        },
-        value @ Value::Null(_) => value,
-        other => invalid_argument_type!("add", "number, string, date and time, days and time duration, years and months duration, null", other),
-      }
+        }
+        Value::YearsAndMonthsDuration(rh) => lh
+          .checked_add(&rh)
+          .map_or_else(|| value_null!("years and months duration addition overflow"), Value::YearsAndMonthsDuration),
+        other => invalid_argument_type!("add", "years and months duration, date and time", other),
+      },
+      other => invalid_argument_type!("add", "number, string, date and time, days and time duration, years and months duration, null", other),
     })
   }
 
@@ -596,70 +590,66 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_div(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Number(lh) => match rhv {
-          Value::Number(rh) => {
-            if rh.abs() == FeelNumber::zero() {
-              value_null!("[division] division by zero")
+    arithmetic(Arithmetic::Division, lhe, rhe, |lhv, rhv| match lhv {
+      Value::Number(lh) => match rhv {
+        Value::Number(rh) => {
+          if rh.abs() == FeelNumber::zero() {
+            value_null!("[division] division by zero")
+          } else {
+            Value::Number(lh / rh)
+          }
+        }
+        _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
+      },
+      Value::DaysAndTimeDuration(ref lh) => match rhv {
+        Value::Number(rh) => {
+          if rh.is_zero() {
+            value_null!("[division] division by zero")
+          } else {
+            let lv = FeelNumber::from(lh.as_nanos()) / rh;
+            if let Ok(v) = FeelNumber::try_into(lv)
+              && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+            {
+              Value::DaysAndTimeDuration(duration)
             } else {
-              Value::Number(lh / rh)
+              value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv))
             }
           }
-          _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
-        },
-        Value::DaysAndTimeDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            if rh.is_zero() {
-              value_null!("[division] division by zero")
-            } else {
-              let lv = FeelNumber::from(lh.as_nanos()) / rh;
-              if let Ok(v) = FeelNumber::try_into(lv)
-                && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
-              {
-                Value::DaysAndTimeDuration(duration)
-              } else {
-                value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv))
-              }
+        }
+        Value::DaysAndTimeDuration(rh) => {
+          if rh.as_nanos() == 0 {
+            value_null!("[division] division by zero")
+          } else {
+            let lvl = FeelNumber::from(lh.as_nanos());
+            let rvl = FeelNumber::from(rh.as_nanos());
+            Value::Number(lvl / rvl)
+          }
+        }
+        _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
+      },
+      Value::YearsAndMonthsDuration(ref lh) => match rhv {
+        Value::Number(rh) => {
+          if rh.is_zero() {
+            value_null!("[division] division by zero")
+          } else {
+            match temporal_value::ym_duration(FeelNumber::from(lh.as_months()) / rh, &lhv, '/', &rhv) {
+              Some(duration) => Value::YearsAndMonthsDuration(duration),
+              None => value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv)),
             }
           }
-          Value::DaysAndTimeDuration(rh) => {
-            if rh.as_nanos() == 0 {
-              value_null!("[division] division by zero")
-            } else {
-              let lvl = FeelNumber::from(lh.as_nanos());
-              let rvl = FeelNumber::from(rh.as_nanos());
-              Value::Number(lvl / rvl)
-            }
+        }
+        Value::YearsAndMonthsDuration(rh) => {
+          if rh.as_months() == 0 {
+            value_null!("[division] division by zero")
+          } else {
+            let lvl = FeelNumber::from(lh.as_months());
+            let rvl = FeelNumber::from(rh.as_months());
+            Value::Number(lvl / rvl)
           }
-          _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
-        },
-        Value::YearsAndMonthsDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            if rh.is_zero() {
-              value_null!("[division] division by zero")
-            } else {
-              match temporal_value::ym_duration(FeelNumber::from(lh.as_months()) / rh, &lhv, '/', &rhv) {
-                Some(duration) => Value::YearsAndMonthsDuration(duration),
-                None => value_null!("[division] error: {} / {}", arg(&lhv), arg(&rhv)),
-              }
-            }
-          }
-          Value::YearsAndMonthsDuration(rh) => {
-            if rh.as_months() == 0 {
-              value_null!("[division] division by zero")
-            } else {
-              let lvl = FeelNumber::from(lh.as_months());
-              let rvl = FeelNumber::from(rh.as_months());
-              Value::Number(lvl / rvl)
-            }
-          }
-          _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
-        },
-        _ => value_null!("[division] incompatible types: {} / {}", arg(&lhv), arg(&rhv)),
-      }
+        }
+        _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
+      },
+      _ => Arithmetic::Division.incompatible(&[&lhv, &rhv]),
     })
   }
 
@@ -680,9 +670,7 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_exp(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
+    arithmetic(Arithmetic::Exponentiation, lhe, rhe, |lhv, rhv| {
       if let Value::Number(lh) = lhv {
         if let Value::Number(rh) = rhv {
           // DMN 1.6 Table 61: "value(e2) is a number in the range [-999,999,999..999,999,999]",
@@ -1418,45 +1406,40 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_mul(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Number(lh) => match rhv {
-          Value::Number(rh) => Value::Number(lh * rh),
-          Value::DaysAndTimeDuration(ref rh) => {
-            let val = lh * FeelNumber::from(rh.as_nanos());
-            if let Ok(v) = FeelNumber::try_into(val)
-              && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
-            {
-              Value::DaysAndTimeDuration(duration)
-            } else {
-              value_null!("multiplication result is out of range of days and time duration")
-            }
+    arithmetic(Arithmetic::Multiplication, lhe, rhe, |lhv, rhv| match lhv {
+      Value::Number(lh) => match rhv {
+        Value::Number(rh) => Value::Number(lh * rh),
+        Value::DaysAndTimeDuration(ref rh) => {
+          let val = lh * FeelNumber::from(rh.as_nanos());
+          if let Ok(v) = FeelNumber::try_into(val)
+            && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+          {
+            Value::DaysAndTimeDuration(duration)
+          } else {
+            value_null!("multiplication result is out of range of days and time duration")
           }
-          Value::YearsAndMonthsDuration(ref rh) => ym_product(temporal_value::ym_duration(lh * FeelNumber::from(rh.as_months()), &lhv, '*', &rhv)),
-          _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
-        },
-        Value::DaysAndTimeDuration(ref lh) => match rhv {
-          Value::Number(rh) => {
-            let val = FeelNumber::from(lh.as_nanos()) * rh;
-            if let Ok(v) = FeelNumber::try_into(val)
-              && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
-            {
-              Value::DaysAndTimeDuration(duration)
-            } else {
-              value_null!("multiplication result is out of range of days and time duration")
-            }
+        }
+        Value::YearsAndMonthsDuration(ref rh) => ym_product(temporal_value::ym_duration(lh * FeelNumber::from(rh.as_months()), &lhv, '*', &rhv)),
+        _ => Arithmetic::Multiplication.incompatible(&[&lhv, &rhv]),
+      },
+      Value::DaysAndTimeDuration(ref lh) => match rhv {
+        Value::Number(rh) => {
+          let val = FeelNumber::from(lh.as_nanos()) * rh;
+          if let Ok(v) = FeelNumber::try_into(val)
+            && let Some(duration) = FeelDaysAndTimeDuration::from_n(v)
+          {
+            Value::DaysAndTimeDuration(duration)
+          } else {
+            value_null!("multiplication result is out of range of days and time duration")
           }
-          _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
-        },
-        Value::YearsAndMonthsDuration(ref lh) => match rhv {
-          Value::Number(rh) => ym_product(temporal_value::ym_duration(FeelNumber::from(lh.as_months()) * rh, &lhv, '*', &rhv)),
-          _ => value_null!("[multiplication] incompatible types: {} * {}", arg(&lhv), arg(&rhv)),
-        },
-        value @ Value::Null(_) => value,
-        other => value_null!("unexpected value type in multiplication: {}", arg(&TypeOf(&other))),
-      }
+        }
+        _ => Arithmetic::Multiplication.incompatible(&[&lhv, &rhv]),
+      },
+      Value::YearsAndMonthsDuration(ref lh) => match rhv {
+        Value::Number(rh) => ym_product(temporal_value::ym_duration(FeelNumber::from(lh.as_months()) * rh, &lhv, '*', &rhv)),
+        _ => Arithmetic::Multiplication.incompatible(&[&lhv, &rhv]),
+      },
+      other => value_null!("unexpected value type in multiplication: {}", arg(&TypeOf(&other))),
     })
   }
 
@@ -1472,10 +1455,15 @@ impl<'b> EvaluatorBuilder<'b> {
     })
   }
 
+  /// Returns an evaluator for the arithmetic negation `-e`, the one unary arithmetic operator,
+  /// whose null operand is an error as those of the binary ones are ([arithmetic]).
   fn build_neg(&mut self, lhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     Box::new(move |scope: &FeelScope| {
       let lhv = lhe(scope);
+      if let Some(null) = Arithmetic::Negation.null_operand(&[&lhv]) {
+        return null;
+      }
       match lhv {
         Value::Number(lh) => Value::Number(-lh),
         Value::DaysAndTimeDuration(lh) => Value::DaysAndTimeDuration(-lh),
@@ -1772,9 +1760,7 @@ impl<'b> EvaluatorBuilder<'b> {
   fn build_sub(&mut self, lhs: &'b AstNode, rhs: &'b AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
+    arithmetic(Arithmetic::Subtraction, lhe, rhe, |lhv, rhv| {
       // the operands stay available for the message below: temporal values are copied only in
       // the arm that subtracts them
       match &lhv {
@@ -1862,7 +1848,7 @@ impl<'b> EvaluatorBuilder<'b> {
       }
       // the operands as evaluated above: evaluating them again would repeat their diagnostics
       // and take exponential time in a chain of failing subtractions
-      value_null!("[subtraction] incompatible types: {} - {}", arg(&lhv), arg(&rhv))
+      Arithmetic::Subtraction.incompatible(&[&lhv, &rhv])
     })
   }
 
@@ -1919,6 +1905,99 @@ impl<'b> EvaluatorBuilder<'b> {
       other => Value::UnaryGreaterOrEqual(other.into()),
     })
   }
+}
+
+/// The arithmetic operators, named and written as their errors name and write them.
+#[derive(Clone, Copy)]
+enum Arithmetic {
+  Addition,
+  Subtraction,
+  Multiplication,
+  Division,
+  Exponentiation,
+  Negation,
+}
+
+impl Arithmetic {
+  fn name(self) -> &'static str {
+    match self {
+      Arithmetic::Addition => "addition",
+      Arithmetic::Subtraction => "subtraction",
+      Arithmetic::Multiplication => "multiplication",
+      Arithmetic::Division => "division",
+      Arithmetic::Exponentiation => "exponentiation",
+      Arithmetic::Negation => "negation",
+    }
+  }
+
+  fn symbol(self) -> &'static str {
+    match self {
+      Arithmetic::Addition => "+",
+      Arithmetic::Subtraction | Arithmetic::Negation => "-",
+      Arithmetic::Multiplication => "*",
+      Arithmetic::Division => "/",
+      Arithmetic::Exponentiation => "**",
+    }
+  }
+
+  /// The rule of a null operand, for every arithmetic operator and on either side: DMN 1.6, before
+  /// Table 57 and before Table 59, "if input values are not of the listed types, the result is
+  /// null", and the official TCK expects an error result for every arithmetic operation with a null
+  /// operand (compliance-level-3/0100-arithmetic). With a null among `operands`, the result is
+  /// [Arithmetic::incompatible], an error of the operator's own; a null that stands for an error
+  /// of its own has counted it where it was created (§7.3.8). `None` when no operand is null.
+  fn null_operand(self, operands: &[&Value]) -> Option<Value> {
+    operands.iter().any(|operand| operand.is_null()).then(|| self.incompatible(operands))
+  }
+
+  /// The null of this operator on `operands` it does not take, with the error
+  /// `[<name>] incompatible types: <operation>`, the operation written with its operands as
+  /// evaluated (`1 - null`, `-null`).
+  fn incompatible(self, operands: &[&Value]) -> Value {
+    value_null!("[{}] incompatible types: {}", self.name(), Written(self, operands))
+  }
+}
+
+/// An arithmetic operation as its error writes it: the operands infix, or after the symbol for a
+/// single one.
+struct Written<'a>(Arithmetic, &'a [&'a Value]);
+
+impl std::fmt::Display for Written<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let Written(operator, operands) = self;
+    let symbol = operator.symbol();
+    if let [operand] = operands {
+      return write!(f, "{symbol}{}", arg(*operand));
+    }
+    for (index, operand) in operands.iter().enumerate() {
+      if index > 0 {
+        write!(f, " {symbol} ")?;
+      }
+      write!(f, "{}", arg(*operand))?;
+    }
+    Ok(())
+  }
+}
+
+/// An evaluator of the binary arithmetic `operator` on the values of `lhe` and `rhe`, evaluated in
+/// that order: `operation` gets them when [Arithmetic::null_operand] gives no null.
+fn arithmetic(operator: Arithmetic, lhe: Evaluator, rhe: Evaluator, operation: impl Fn(Value, Value) -> Value + Send + Sync + 'static) -> Evaluator {
+  Box::new(move |scope: &FeelScope| {
+    let lhv = lhe(scope);
+    let rhv = rhe(scope);
+    operate(operator, &operation, lhv, rhv)
+  })
+}
+
+/// The null rule of [arithmetic] and the operation, out of line: the evaluator's frame is on the
+/// stack while an operand nested in it evaluates, so it holds the two operands and no locals of
+/// the operation, and a deep chain of operators keeps a small frame per level.
+#[inline(never)]
+fn operate(operator: Arithmetic, operation: &impl Fn(Value, Value) -> Value, lhv: Value, rhv: Value) -> Value {
+  if let Some(null) = operator.null_operand(&[&lhv, &rhv]) {
+    return null;
+  }
+  operation(lhv, rhv)
 }
 
 /// FEEL `lhs = rhs` (DMN 1.6 Table 53, Table 54): a boolean, or null with an error when the operands

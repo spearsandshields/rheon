@@ -65,8 +65,9 @@ fn _0007() {
 #[test]
 fn a_missing_context_entry_is_a_null_with_a_note() {
   te_errors("{a: 1}.b", "null(build_path: no entry b in context: {a: 1})", &[]);
-  // the null is passed on by the addition
-  te_errors("({a: {b: 1}}.a.c) + 1", "null(build_path: no entry c in context: {b: 1})", &[]);
+  // a null operand of an addition is an error of the addition's own
+  let reason = "[addition] incompatible types: null(build_path: no entry c in context: {b: 1}) + 1";
+  te_errors("({a: {b: 1}}.a.c) + 1", &format!("null({reason})"), &[reason]);
   // an error beside it is still counted
   te_errors(
     "if {a: 1}.b = null then 1 / 0 else 0",

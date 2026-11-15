@@ -350,3 +350,11 @@ fn _0046() {
   te_date(false, scope, r#"date("2020-01-02") - duration("-PT23H59M59.999999999S")"#, 2020, 1, 2);
   te_date(false, scope, r#"date("2020-01-02") - duration("-P1DT0.5S")"#, 2020, 1, 3);
 }
+
+#[test]
+fn a_null_operand_of_a_subtraction_is_an_error() {
+  // DMN 1.6, before Table 57: "if input values are not of the listed types, the result is null";
+  // the official TCK expects an error result for a null operand on either side
+  // (compliance-level-3/0100-arithmetic, error_when_subtract_lhs_null_minus_rhs_number and the others)
+  te_null_operands("subtraction", "-");
+}
