@@ -1,7 +1,7 @@
 //! What a function of the host sees when the flat evaluator invokes it: the binders of the
 //! invocation's position, as the scopes of the evaluator of closures hold them.
 
-use super::agree_node;
+use super::agree_text;
 use crate::Dialect;
 use rheon_feel::closure::Closure;
 use rheon_feel::context::FeelContext;
@@ -47,9 +47,7 @@ fn host() -> FeelScope {
 
 #[track_caller]
 fn agree(text: &str) {
-  let scope = host();
-  let node = rheon_feel_parser::parse_expression(&scope, text, false).unwrap_or_else(|e| panic!("{text}: {e}"));
-  agree_node(Dialect::Feel, &scope, &node);
+  agree_text(Dialect::Feel, &host(), text);
 }
 
 #[test]

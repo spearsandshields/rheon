@@ -33,17 +33,8 @@ fn literals() {
 
 #[test]
 fn a_number_without_a_value_is_an_error_at_every_evaluation() {
-  use crate::Dialect;
-  use crate::flat::lower::lower;
-  use crate::flat::resolve::resolve;
-  use rheon_feel::FeelScope;
-  use rheon_feel_parser::AstNode;
   let node = AstNode::Numeric("1x".into(), "".into(), '+', "".into());
-  let old = crate::builders::build_evaluator_with_dialect(&node, Dialect::Feel);
-  let program = lower(resolve(&node), Dialect::Feel).unwrap_or_else(|_| panic!("refused"));
-  let scope = FeelScope::default();
-  let flat: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| program.run(scope));
-  assert_eq!(super::outcome(old, &scope), super::outcome(flat, &scope));
+  agree_node(Dialect::Feel, &scope(""), &node);
 }
 
 #[test]
