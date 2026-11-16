@@ -133,6 +133,27 @@ fn reference_run(mut parser: oracle::parser::Parser<'_>, input: &str) -> Run {
 /// and the production behaviour. Returns the name of the fix when the difference between
 /// `reference` and `production` is one of them.
 fn registered_difference(start: &str, input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
+  // A unary comparison (`> a + b`, `= x in y`):
+  // - reference: the comparison takes the operand next to it, `(? > a) + b`;
+  // - production: its endpoint binds like the right side of a comparison, `? > (a + b)`; another
+  //   tree, or a syntax error where a comparison follows the endpoint (`> a < b`).
+  // The parsers then read on differently (one stops at its error before the other, or another
+  // registered difference follows), so only the tokens up to the first difference are compared:
+  // a text with a unary comparison among them is not compared further. This is the weakest of
+  // the registered differences; the tests of `expr::unary_tests` state the trees.
+  let same = reference.tokens.iter().zip(&production.tokens).take_while(|(a, b)| a == b).count();
+  if matches!(&production.outcome, Outcome::Ast(_) | Outcome::Error(_)) && has_unary_comparison(&production.tokens[..same]) {
+    return Some("the endpoint of a unary comparison");
+  }
+  // The same syntax error, found one token earlier or later after a comparison operator (the
+  // tables decide when a comparison that cannot continue is refused: `]<a<`).
+  let comparisons = [TokenType::Eq, TokenType::Ne, TokenType::Lt, TokenType::Le, TokenType::Gt, TokenType::Ge].map(|tt| tt as i16);
+  if matches!((&reference.outcome, &production.outcome), (Outcome::Error(a), Outcome::Error(b)) if a == b)
+    && (reference.tokens.starts_with(&production.tokens[..same]) && same + 2 >= reference.tokens.len().min(production.tokens.len()))
+    && production.tokens[..same].iter().any(|token| comparisons.contains(&token.0))
+  {
+    return Some("the endpoint of a unary comparison");
+  }
   // A number followed by an exponent letter without exponent digits (`1e`, `1.5E+`, `2e x`):
   // - reference: the letter and a sign after it are part of the number, whose exponent is empty;
   // - production: the number ends before the letter (DMN 1.6 grammar rule 35), and the letter
@@ -212,6 +233,30 @@ fn registered_difference(start: &str, input: &str, reference: &Run, production: 
     return Some("a named temporal parameter in a range literal");
   }
   None
+}
+
+/// Returns `true` when the tokens have a comparison operator where an operand starts: not after
+/// a name, a literal or a closing bracket, or after a parenthesis that may close the parameters
+/// of a function definition.
+fn has_unary_comparison(tokens: &[(i16, String, usize)]) -> bool {
+  let comparisons = [TokenType::Eq, TokenType::Ne, TokenType::Lt, TokenType::Le, TokenType::Gt, TokenType::Ge].map(|tt| tt as i16);
+  let operand_ends = [
+    TokenType::Name,
+    TokenType::NameDateTime,
+    TokenType::BuiltInTypeName,
+    TokenType::Numeric,
+    TokenType::String,
+    TokenType::Boolean,
+    TokenType::Null,
+    TokenType::RightParen,
+    TokenType::RightBracket,
+    TokenType::RightBrace,
+  ]
+  .map(|tt| tt as i16);
+  // the body of a function definition starts after the parenthesis of its parameters
+  let function = TokenType::Function as i16;
+  let after_parameters = |index: usize| tokens[index].0 == TokenType::RightParen as i16 && tokens[..index].iter().any(|token| token.0 == function);
+  (1..tokens.len()).any(|index| comparisons.contains(&tokens[index].0) && (!operand_ends.contains(&tokens[index - 1].0) || after_parameters(index - 1)))
 }
 
 /// Returns `true` when the tokens have an iteration variable `item`: a name `item` right after
@@ -419,6 +464,7 @@ fn registered_fixes_differ_as_registered() {
     r#"(date and time(from: "2012-01-01T10:00:00")..10]"#,
     r#"]"a"..duration(from: "P1D\"x")["#,
   ];
+  let endpoints = ["> 1 + 2", "< a * 2", "[>= 1 - 1, 5]", "= 1 in [1]", "f(> 1 + 1)", "!= 2 ** 2"];
   let exponents = ["1e", "1e+", "1E-", "1.5e", "2e x", "1e + 2", "1else", "[1e, 2]", "1e+ 3"];
   let unclosed = ["1 + 2 \"abc", "\"", "1 \"a\\\"b", "1 /* abc", "/*", "1 /* a */ + 2 /* b *", "1 /*/"];
   for (inputs, rule, fix) in [
@@ -426,6 +472,7 @@ fn registered_fixes_differ_as_registered() {
     (&range_literals[..], 8, "a named temporal parameter in a range literal"),
     (&unclosed[..], 0, "a string literal or a block comment that is not closed"),
     (&exponents[..], 0, "an exponent letter without exponent digits"),
+    (&endpoints[..], 0, "the endpoint of a unary comparison"),
   ] {
     let (name, start, reference_start) = &START_RULES[rule];
     for input in inputs {

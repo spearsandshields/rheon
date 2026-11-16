@@ -56,8 +56,6 @@ was written.
   panics.
 - **Nanosecond rule** `[fork]` (2026-10-18). Time/date-time equality drops nanoseconds, ordering
   keeps them, so `=` and `<` can both hold.
-- **Grammar precedence for unary endpoints** `[fork]` (2026-10-17). `> 0.1 + 0.2` parses as
-  `(? > 0.1) + 0.2` (`feel-grammar/src/feel.y`).
 - **Zoned `now()`** `[fork]` (2026-10-17). `now()` is zone-less, so
   `now() - date and time("…Z")` is null.
 - **`sort` reads a non-boolean answer as "does not precede"** `[fork]` (2026-10-18). A

@@ -103,12 +103,12 @@ textual_expression:
   | expression DIV expression {/* division */}
   | expression EXP expression {/* exponentiation */}
   | MINUS expression %prec PREC_NEG {/* negation */}
-  | LT expression %prec PREC_NEG {/* comparison_unary_lt */}
-  | LE expression %prec PREC_NEG {/* comparison_unary_le */}
-  | GT expression %prec PREC_NEG {/* comparison_unary_gt */}
-  | GE expression %prec PREC_NEG {/* comparison_unary_ge */}
-  | EQ expression %prec PREC_NEG {/* comparison_unary_eq */}
-  | NE expression %prec PREC_NEG {/* comparison_unary_ne */}
+  | LT expression %prec IN {/* comparison_unary_lt */}
+  | LE expression %prec IN {/* comparison_unary_le */}
+  | GT expression %prec IN {/* comparison_unary_gt */}
+  | GE expression %prec IN {/* comparison_unary_ge */}
+  | EQ expression %prec IN {/* comparison_unary_eq */}
+  | NE expression %prec IN {/* comparison_unary_ne */}
   | expression INSTANCE OF {/* type_name */} type {/* instance_of */}
   | expression DOT {/* after_dot */} NAME {/* path */}
   | expression DESCENDANT {/* after_dot */} NAME {/* descendant */}

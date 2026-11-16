@@ -300,3 +300,47 @@ fn _0016() {
     false,
   );
 }
+
+/// The endpoint of a unary comparison takes the arithmetic and the `in` after it; `and`, `or`,
+/// a comparison and `between` end it.
+#[test]
+fn unary_comparison_endpoint_binds_like_a_comparison() {
+  let scope = scope!();
+  for name in ["a", "b", "x"] {
+    scope.set_entry_name(name.into());
+  }
+  let tree = |start: TokenType, input: &str| match Parser::new(&scope, start, input, false).parse() {
+    Ok(node) => node.trace(),
+    Err(reason) => reason.to_string(),
+  };
+  // the same tree as with the endpoint in parentheses
+  for (input, with_parentheses) in [
+    ("> a + b", "> (a + b)"),
+    ("< a * 2 - 1", "< (a * 2 - 1)"),
+    (">= a ** 2", ">= (a ** 2)"),
+    ("<= -a", "<= (-a)"),
+    ("= a + 1", "= (a + 1)"),
+    ("!= a / b", "!= (a / b)"),
+    ("> a.b + 1", "> (a.b + 1)"),
+    ("> a + 1, < b - 1", "> (a + 1), < (b - 1)"),
+    ("not(> a + b)", "not(> (a + b))"),
+    ("> x in [1, 2]", "> (x in [1, 2])"),
+  ] {
+    assert_eq!(tree(StartUnaryTests, with_parentheses), tree(StartUnaryTests, input), "{input}");
+    assert!(!tree(StartUnaryTests, input).contains("syntax error"), "{input}");
+  }
+  // lower than a comparison: not part of the endpoint
+  assert_eq!(tree(StartExpression, "(> a) and b"), tree(StartExpression, "> a and b"));
+  assert_eq!(tree(StartExpression, "(< a) or (> b)"), tree(StartExpression, "< a or > b"));
+  // unchanged: literal, name and path endpoints
+  for input in ["> 5", "< a", ">= a.b", "= \"x\"", "!= null"] {
+    assert!(!tree(StartUnaryTests, input).contains("syntax error"), "{input}");
+  }
+  // a comparison or `between` after the endpoint ends it: the unary comparison is its operand
+  assert_eq!(tree(StartExpression, "(> a) < b"), tree(StartExpression, "> a < b"));
+  assert_eq!(tree(StartExpression, "(<= 10) = (null..10]"), tree(StartExpression, "<= 10 = (null..10]"));
+  assert_eq!(tree(StartExpression, "(> a) between 1 and 2"), tree(StartExpression, "> a between 1 and 2"));
+  for input in ["> a < b", "<= 10 = (null..10]", "> a between 1 and 2"] {
+    assert!(!tree(StartExpression, input).contains("syntax error"), "{input}");
+  }
+}
