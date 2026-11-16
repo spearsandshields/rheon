@@ -1,11 +1,10 @@
 //! Request handling: `docs/CONTRACT.md` §2 (request) and §3 (response).
 
-use crate::display::display;
 use crate::input::{Path, feel_context, json_into_value, json_object_into_context};
 use crate::json::{self, Field};
+use crate::output::write_result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, ErrorMode};
-use rheon_feel::dto::ValueDto;
 use rheon_feel::message::{arg, compose};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, Name};
@@ -78,7 +77,9 @@ pub fn call(request: &str) -> String {
   // Never leave a request's offset behind for the next one.
   rheon_feel_temporal::set_local_offset_override(None);
   let response = match result {
-    Ok(Ok(response)) => response,
+    // the response of an evaluation is written as text already
+    Ok(Ok(Response::Text(text))) => return text,
+    Ok(Ok(Response::Tree(response))) => response,
     Ok(Err(Failure(kind, message))) => error_response(kind, &message),
     Err(panic) => {
       let message = panic
@@ -165,7 +166,13 @@ fn into_tree(req: &mut Map<String, Json>, field: &str, text: &str) -> Result<(),
   }
 }
 
-fn handle(request: &str) -> Result<Json, Failure> {
+/// A response: as a tree of JSON values, or as its text.
+enum Response {
+  Tree(Json),
+  Text(String),
+}
+
+fn handle(request: &str) -> Result<Response, Failure> {
   let started = Instant::now();
   let (req, unread) = request_fields(request)?;
   enum Op {
@@ -185,9 +192,9 @@ fn handle(request: &str) -> Result<Json, Failure> {
   };
   // the request is handed over: its context and input are converted by value
   match op {
-    Op::Info => Ok(info()),
-    Op::Evaluate => evaluate(req, unread, started),
-    Op::Parse => parse(req, unread, started),
+    Op::Info => Ok(Response::Tree(info())),
+    Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
+    Op::Parse => parse(req, unread, started).map(Response::Tree),
   }
 }
 
@@ -425,7 +432,10 @@ fn uses_question_mark(node: &AstNode) -> bool {
   false
 }
 
-fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
+/// Evaluates the request and returns the text of its response: the result is written straight
+/// from its value ([write_result]), and the small parts around it as `serde_json` writes them,
+/// with the keys in alphabetical order as in every response.
+fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<String, Failure> {
   let dialect = dialect(&req)?;
   let language = language(&req)?;
   let error_mode = error_mode(&req)?;
@@ -460,13 +470,26 @@ fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Res
   }
   // the warnings of the input and the unary tests come first, then those of the evaluation
   warnings.extend_from_slice(diagnostics.warnings());
-  Ok(json!({
-    "ok": true,
-    "result": result_json(&value),
-    "warnings": warnings.into_iter().map(|message| json!({ "message": compose(format_args!("{message}")) })).collect::<Vec<_>>(),
-    "diagnostics": { "count": diagnostics.count, "messages": diagnostics.messages },
-    "elapsedMicros": elapsed_micros(started),
-  }))
+  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")));
+  let mut result = String::new();
+  write_result(&value, &mut result);
+  let warnings = text_of(Json::Array(
+    warnings.into_iter().map(|message| json!({ "message": compose(format_args!("{message}")) })).collect(),
+  ))?;
+  let diagnostics = text_of(json!({ "count": diagnostics.count, "messages": diagnostics.messages }))?;
+  // the time includes the writing of the result, as it did when the result was a tree
+  let elapsed = elapsed_micros(started);
+  let mut response = String::with_capacity(result.len() + warnings.len() + diagnostics.len() + 80);
+  response.push_str("{\"diagnostics\":");
+  response.push_str(&diagnostics);
+  response.push_str(",\"elapsedMicros\":");
+  response.push_str(&elapsed.to_string());
+  response.push_str(",\"ok\":true,\"result\":");
+  response.push_str(&result);
+  response.push_str(",\"warnings\":");
+  response.push_str(&warnings);
+  response.push('}');
+  Ok(response)
 }
 
 fn parse(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
@@ -480,20 +503,4 @@ fn parse(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result
     "tree": node.to_string(),
     "elapsedMicros": elapsed_micros(started),
   }))
-}
-
-/// Builds the `result` object of a successful evaluation (CONTRACT §3).
-pub(crate) fn result_json(value: &Value) -> Json {
-  let typed = ValueDto::try_from(value).ok().and_then(|dto| serde_json::to_value(dto).ok()).unwrap_or(Json::Null);
-  let mut result = json!({
-    "display": display(value),
-    "feel": value.to_string(),
-    "type": value.type_of().to_string(),
-    "typed": typed,
-    "isNull": value.is_null(),
-  });
-  if let Value::Null(Some(reason)) = value {
-    result["nullReason"] = Json::String(reason.clone());
-  }
-  result
 }

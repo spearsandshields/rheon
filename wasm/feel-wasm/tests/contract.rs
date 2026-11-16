@@ -1722,3 +1722,31 @@ fn context_and_input_read_from_the_text_answer_as_read_through_a_tree() {
   let warnings: Vec<&str> = response["warnings"].as_array().unwrap().iter().map(|w| w["message"].as_str().unwrap()).collect();
   assert!(warnings.len() == 2 && warnings[0].starts_with("a: ") && warnings[1].starts_with("z: "), "{response}");
 }
+
+/// The text of a response is what `serde_json` writes for the response as a tree: the keys of
+/// every object in alphabetical order, no white space, its escapes. The response of an
+/// evaluation is written without that tree, so its text is read back and written again here.
+#[test]
+fn response_text_is_the_text_of_its_tree() {
+  let long = "1234567890123456789012345678901234567890";
+  let requests = [
+    r#"{"op":"evaluate","expression":"1 + 2"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"missing + 1"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"null"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"[1, \"a\\n\\\"b\\\"\", {\"k \\\\ é\": date(\"2026-01-31\")}, [1..2], abs]"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"for i in 1..50 return {n: i, t: string(i) + \"\\t\"}"}"#.to_string(),
+    format!(r#"{{"op":"evaluate","expression":"[a, b + 1, \"x\" + 1]","context":{{"a":{long},"b":"text \"quoted\"\n"}}}}"#),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5"}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"true","input":[1,{"a":null}]}"#.to_string(),
+    r#"{"op":"evaluate","expression":"1 +"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"1 + \"a\"","errorMode":"strict"}"#.to_string(),
+    r#"{"op":"parse","expression":"a + 1"}"#.to_string(),
+    r#"{"op":"info"}"#.to_string(),
+    "not json".to_string(),
+  ];
+  for request in requests {
+    let text = feel_wasm::call(&request);
+    let tree: Json = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{request}: {e}: {text}"));
+    assert_eq!(serde_json::to_string(&tree).unwrap(), text, "{request}");
+  }
+}

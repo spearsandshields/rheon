@@ -270,7 +270,7 @@ fn skip_number(bytes: &[u8], mut at: usize) -> Option<usize> {
 /// Returns the position of the first byte from `at` on that a JSON string cannot hold as it is
 /// (a quote, a backslash or a control character), or the length of `bytes`: eight bytes at a
 /// time while none of them is one.
-fn string_stop(bytes: &[u8], mut at: usize) -> usize {
+pub(crate) fn string_stop(bytes: &[u8], mut at: usize) -> usize {
   const ONES: u64 = 0x0101_0101_0101_0101;
   const HIGHS: u64 = 0x8080_8080_8080_8080;
   // the high bit of each byte of the result is set when the byte of `word` is zero
