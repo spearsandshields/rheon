@@ -48,7 +48,7 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 
 #[test]
 fn constructs_not_lowered_yet_are_refused() {
-  for text in ["{a: function(x) x}", "for i in [1] return [1][i]", "[1][1]", "function(x) x"] {
+  for text in ["{a: function(x) x}", "for i in [1] return function(x) i", "[1][function(x) x]", "function(x) x"] {
     refused(text);
   }
 }
@@ -576,6 +576,96 @@ fn qualified_names_search_the_variables_of_a_walk() {
     let scope = scope(input);
     for names in [&["c", "b"][..], &["c"], &["c", "c"], &["partial"]] {
       agree_node(Dialect::Feel, &scope, &AstNode::For(contexts.clone(), Box::new(segments(names))));
+    }
+  }
+}
+
+#[test]
+fn filters_select_by_index_or_keep_the_items_of_their_predicate() {
+  for text in [
+    "[1, 2, 3][item > 1]",
+    "[1, 2, 3][1]",
+    "[1, 2, 3][-1]",
+    "[1, 2, 3][0]",
+    "[1, 2, 3][4]",
+    "[1, 2, 3][-4]",
+    "[1, 2, 3][1.5]",
+    "[1, 2, 3][100000000000000000000]",
+    "[][1]",
+    "[][item > 1]",
+    "[1, 2, 3][true]",
+    "[1, 2, 3][false]",
+    "[1, 2, 3][null]",
+    "[1, 2, 3][\"x\"]",
+    "[1, 2, 3][item]",
+    "[1, \"a\", 3][item > 1]",
+    "[1, \"a\", 3][if item = 1 then \"x\" else true]",
+    "null[item > 1]",
+    "null[1]",
+    "5[item > 1]",
+    "5[1]",
+    "5[2]",
+    "{a: 1}[a = 1]",
+    "{a: 1}[item.a = 1]",
+    "[{a: 1}, {a: 2}][a > 1]",
+    "[{a: 1, item: 5}, {a: 2}][item > 1]",
+    "[{item: 1}, {item: 2}][item = 2]",
+    "[{a: {b: 1}}, {a: 2}][a.b = 1]",
+    "[[1, 2], [3]][count(item[item > 1]) > 0]",
+    "[{a: [1, 2]}][count(a[item > 1]) = 1]",
+    "[{a: 1}, {a: 3}][[{b: 2}][b > a] = []]",
+    "[[[1]]][1][1]",
+    "{a: 2, r: [1, 2, 3][item > a]}.r",
+    "{l: [1, 2], r: l[1]}.r",
+    "{amount: 5, r: [{amount: 1}, {b: 2}][amount > 2]}.r",
+    "for i in 1..3 return [1, 2, 3][item < i]",
+    "for i in 1..4 return if i = 1 then 1 else partial[-1] + 1",
+    "for item in [5] return [1, 2][item > 1]",
+    "[1, 2, 3][abs(item) > 1]",
+    "[{abs: 1}][abs = 1]",
+    "[1, 2][x(item)]",
+    "count([1, 2, 3][item > 1])",
+  ] {
+    agree(text);
+    agree_in(Dialect::BFeel, "", text);
+  }
+  for (input, text) in [
+    ("{x: 2}", "[1, 2, 3][x]"),
+    ("{x: 2}", "[{x: 1}, {x: 3}][x]"),
+    ("{x: 2}", "[{x: 1}, {x: 3}][x > 2]"),
+    ("{item: 2}", "[1, 2, 3][item]"),
+    ("{l: [1, 2, 3]}", "l[item > 1][-1]"),
+  ] {
+    agree_with(input, text);
+  }
+}
+
+#[test]
+fn a_function_of_the_host_sees_the_item_of_a_filter() {
+  // the bodies read `amount` and `item`, which only the scope of the invocation has
+  let input = "{f: function(x) x + amount, g: function(x) item, h: function(x) item.amount}";
+  for text in [
+    "[{amount: 1}, {amount: 5}][f(0) > 2]",
+    "[1, 2, 3][g(0) > 1]",
+    "[1, 2, 3][g(0)]",
+    "[{amount: 1}, {amount: 5, item: {amount: 9}}][h(0) > 2]",
+    "for i in [1, 2] return [{amount: i}][f(i) > 2]",
+  ] {
+    agree_with(input, text);
+  }
+}
+
+#[test]
+fn qualified_names_search_the_item_of_a_filter() {
+  let segments = |names: &[&str]| AstNode::QualifiedName(names.iter().map(|name| AstNode::QualifiedNameSegment(Name::from(*name))).collect());
+  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  for input in ["", "{a: {b: 5}}", "{item: {b: 6}}"] {
+    let scope = scope(input);
+    for list in ["[{a: {b: 1}}, {a: 2}, 3, {item: {b: 4}}]", "[{b: 1}]", "[]"] {
+      for names in [&["item", "b"][..], &["item", "a", "b"], &["a", "b"], &["a"], &["item"]] {
+        let node = AstNode::Filter(Box::new(parse(list)), Box::new(AstNode::Eq(Box::new(segments(names)), Box::new(parse("1")))));
+        agree_node(Dialect::Feel, &scope, &node);
+      }
     }
   }
 }

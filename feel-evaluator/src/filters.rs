@@ -9,11 +9,11 @@ use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name, value_null};
 use std::sync::{Arc, LazyLock};
 
 /// Name of the special context entry holding the item of a filtered list.
-static ITEM: LazyLock<Name> = LazyLock::new(|| Name::from("item"));
+pub(crate) static ITEM: LazyLock<Name> = LazyLock::new(|| Name::from("item"));
 
 /// The outcome of the predicate for one item: `Ok(true)` when the item is kept; `Err` (a null)
 /// when the predicate is neither a boolean, a number nor null.
-fn outcome(predicate: Value) -> Result<bool, Value> {
+pub(crate) fn outcome(predicate: Value) -> Result<bool, Value> {
   match predicate {
     Value::Boolean(true) => Ok(true),
     Value::Boolean(false) | Value::Number(_) | Value::Null(_) => Ok(false),
@@ -105,7 +105,7 @@ fn evaluate_in_own_frame(scope: &FeelScope, evaluator: &Evaluator) -> Result<(Va
 /// integer"): counted from the first item when it is positive and from the last when it is
 /// negative. Null when the list is empty, whatever the index is; otherwise null with its reason
 /// when the index is no integer, beyond 2⁶⁴ in magnitude, 0, or past the end of the list.
-fn item_at(items: &[Value], index: FeelNumber) -> Value {
+pub(crate) fn item_at(items: &[Value], index: FeelNumber) -> Value {
   if !index.is_integer() {
     return value_null!("index in filter must be an integer value, actual value is {}", arg(&index));
   }

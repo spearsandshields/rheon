@@ -9,6 +9,7 @@ use super::program::{Compare, Domain, Kernel1, Kernel2, ListKind, LoopKind, NONE
 use super::resolve::{Place, RegionKind};
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
+use crate::filters::{ITEM, item_at, outcome};
 use crate::invocation::{Arguments, invoke};
 use crate::iterations::Sequence;
 use crate::kernels::{self, Arithmetic, finite};
@@ -52,10 +53,35 @@ struct Vm<'p> {
   domains: Vec<Sequence>,
 }
 
-/// An open walk.
+/// An open walk or filter.
 enum Record {
   /// The walk of a `for`, `some` or `every` expression.
   Walk(Walk),
+  /// The items of a filter.
+  Filter(Filter),
+}
+
+/// The items of a filter: while its predicate is evaluated in the scope around it (`mark` holds
+/// the mark of what was recorded before), then while it visits them, the item at `at`, whether it
+/// is a context with an entry `item`, the items kept, and the filter's value when it is decided.
+struct Filter {
+  info: u32,
+  items: FeelList,
+  /// A value that is no list is filtered as the list of it, and the result is one level deeper.
+  wrap: bool,
+  mark: Option<diagnostics::Tentative>,
+  visiting: bool,
+  at: usize,
+  item_entry: bool,
+  kept: Vec<Value>,
+  value: Option<Value>,
+}
+
+impl Filter {
+  /// The item visited, while the filter visits its items.
+  fn item(&self) -> Option<&Value> {
+    if self.visiting { self.items.get(self.at) } else { None }
+  }
 }
 
 /// The walk of an iteration: the domains from `base` in [Vm::domains] are those of its variables
@@ -92,10 +118,27 @@ impl<'p> Vm<'p> {
     }
   }
 
-  /// The walk of `record`, open by the structure of the code.
+  /// The walk of `record`, open by the structure of the code ([Program::verify]).
   fn walk(&mut self, record: u32) -> &mut Walk {
     match &mut self.records[record as usize] {
       Record::Walk(walk) => walk,
+      Record::Filter(_) => unreachable!("the record of a walk is a filter"),
+    }
+  }
+
+  /// The filter of `record`, open by the structure of the code ([Program::verify]).
+  fn filter(&self, record: u32) -> &Filter {
+    match &self.records[record as usize] {
+      Record::Filter(filter) => filter,
+      Record::Walk(_) => unreachable!("the record of a filter is a walk"),
+    }
+  }
+
+  /// The filter of `record`, to change.
+  fn filter_mut(&mut self, record: u32) -> &mut Filter {
+    match &mut self.records[record as usize] {
+      Record::Filter(filter) => filter,
+      Record::Walk(_) => unreachable!("the record of a filter is a walk"),
     }
   }
 
@@ -378,6 +421,60 @@ impl<'p> Vm<'p> {
             }
           } as usize;
         }
+        Op::FilterOpen { record: _, info, list } => {
+          let (items, wrap) = match self.read(list) {
+            Value::List(items) => (items, false),
+            Value::Null(_) => {
+              let filter = &program.filters[info as usize];
+              self.slots[filter.dst as usize] = value_null!();
+              pc = filter.after as usize;
+              continue;
+            }
+            other => (FeelList::from(vec![other]), true),
+          };
+          self.records.push(Record::Filter(Filter {
+            info,
+            items,
+            wrap,
+            mark: Some(diagnostics::tentative_mark()),
+            visiting: false,
+            at: 0,
+            item_entry: false,
+            kept: vec![],
+            value: None,
+          }));
+        }
+        Op::FilterStep { record, c } => {
+          let c = self.read(c);
+          pc = self.filter_step(record, c) as usize;
+        }
+        Op::FilterClose { record: _ } => {
+          if let Some(Record::Filter(filter)) = self.records.pop() {
+            let info = &program.filters[filter.info as usize];
+            let value = filter.value.unwrap_or(Value::Null(None));
+            self.slots[info.dst as usize] = if filter.wrap { diagnostics::bound_depth(value) } else { value };
+          }
+        }
+        Op::ProbeItem { dst, probe, found } => {
+          let probe = program.probes[probe as usize];
+          if let Some(Value::Context(item)) = self.filter(probe.record).item()
+            && let Some(value) = item.get_entry(&program.names[probe.name as usize])
+          {
+            self.slots[dst as usize] = value.clone();
+            pc = found as usize;
+          }
+        }
+        Op::ItemSelf { dst, record, found } => {
+          let filter = self.filter(record);
+          if let Some(item) = filter.item() {
+            let value = match item {
+              Value::Context(context) if filter.item_entry => context.get_entry(&ITEM).cloned().unwrap_or(Value::Null(None)),
+              item => item.clone(),
+            };
+            self.slots[dst as usize] = value;
+            pc = found as usize;
+          }
+        }
         Op::LoopClose { record: _, dst } => {
           if let Some(Record::Walk(walk)) = self.records.pop() {
             let info = &program.loops[walk.info as usize];
@@ -398,6 +495,59 @@ impl<'p> Vm<'p> {
     }
   }
 
+  /// The step of the filter of `record` after its predicate gave `c`, as the filter of the
+  /// evaluator of closures takes it: evaluated in the scope around the filter, a number selects
+  /// the item at that index; any other value is not counted (what it recorded is removed) and the
+  /// predicate is evaluated for each item, unless the evaluation was stopped, keeping the items
+  /// for which it is `true`, up to a value that is no boolean, number or null, which ends the
+  /// filter with its null. Returns where the run continues: the predicate, or the filter's close.
+  fn filter_step(&mut self, record: u32, c: Value) -> Pc {
+    let info = &self.program.filters[self.filter(record).info as usize];
+    let filter = self.filter_mut(record);
+    if filter.visiting {
+      match outcome(c) {
+        Ok(true) => {
+          let item = filter.items[filter.at].clone();
+          filter.kept.push(item);
+        }
+        Ok(false) => {}
+        Err(null) => {
+          filter.value = Some(null);
+          return info.close;
+        }
+      }
+      filter.at += 1;
+    } else {
+      match c {
+        Value::Number(index) => {
+          filter.mark = None;
+          filter.value = Some(if diagnostics::stopped() { Value::Null(None) } else { item_at(&filter.items, index) });
+          return info.close;
+        }
+        _ => {
+          if let Some(mark) = filter.mark.take() {
+            mark.discard();
+          }
+          filter.visiting = true;
+        }
+      }
+    }
+    if diagnostics::stopped() {
+      filter.value = Some(Value::Null(None));
+      return info.close;
+    }
+    match filter.items.get(filter.at) {
+      Some(item) => {
+        filter.item_entry = matches!(item, Value::Context(context) if context.contains_entry(&*ITEM));
+        info.body
+      }
+      None => {
+        filter.value = Some(Value::List(std::mem::take(&mut filter.kept).into()));
+        info.close
+      }
+    }
+  }
+
   /// The next step of the walk of `record`, as the walk of the evaluator of closures takes it:
   /// while a variable has a domain, unless the evaluation was stopped, the next value of the
   /// innermost one, where the code that follows it starts; a domain that has no value left is
@@ -405,7 +555,9 @@ impl<'p> Vm<'p> {
   fn step(&mut self, record: u32) -> Pc {
     let program = self.program;
     let Self { records, domains, slots, .. } = self;
-    let Record::Walk(walk) = &mut records[record as usize];
+    let Record::Walk(walk) = &mut records[record as usize] else {
+      unreachable!("the record of a walk is a filter");
+    };
     let info = &program.loops[walk.info as usize];
     loop {
       let Some(level) = (domains.len() - walk.base).checked_sub(1) else {
@@ -435,6 +587,7 @@ impl<'p> Vm<'p> {
       Place::Slot(slot) => self.slots[slot as usize].clone(),
       Place::Partial(record) => match &self.records[record as usize] {
         Record::Walk(walk) => Value::List(walk.results.clone()),
+        Record::Filter(_) => Value::Null(None),
       },
     }
   }
@@ -463,7 +616,21 @@ impl<'p> Vm<'p> {
             self.host.push(context);
           }
         }
-        RegionKind::Item { .. } | RegionKind::Closure => {}
+        // while the filter visits its items: the item's entries, then the item
+        RegionKind::Item { record } => {
+          let filter = self.filter(record);
+          if let Some(item) = filter.item() {
+            if let Value::Context(context) = item {
+              self.host.push_shared(context.clone());
+            }
+            if !filter.item_entry {
+              let mut context = FeelContext::default();
+              context.set_entry(&ITEM, item.clone());
+              self.host.push(context);
+            }
+          }
+        }
+        RegionKind::Closure => {}
       }
     }
     depth
@@ -481,11 +648,25 @@ impl<'p> Vm<'p> {
     let mut at = if info.first == NONE { NONE } else { info.region };
     while at != NONE {
       let region = self.program.regions[at as usize];
-      if let RegionKind::Layout { layout, visible } = region.kind
-        && let Some(place) = self.program.layouts[layout as usize].find(info.first, visible)
-        && let Some(value) = search_in(&self.place(place), &segments[1..])
-      {
-        return Some(value);
+      let found = match region.kind {
+        RegionKind::Layout { layout, visible } => self.program.layouts[layout as usize]
+          .find(info.first, visible)
+          .and_then(|place| search_in(&self.place(place), &segments[1..])),
+        // while the filter visits its items: the item, then the item's entries
+        RegionKind::Item { record } => {
+          let filter = self.filter(record);
+          filter.item().and_then(|item| {
+            let special = (!filter.item_entry && segments[0] == *ITEM).then(|| search_in(item, &segments[1..])).flatten();
+            special.or_else(|| match item {
+              Value::Context(context) => context.search_deep(segments).cloned(),
+              _ => None,
+            })
+          })
+        }
+        RegionKind::Closure => None,
+      };
+      if found.is_some() {
+        return found;
       }
       at = region.parent;
     }

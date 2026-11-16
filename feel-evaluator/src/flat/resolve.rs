@@ -107,6 +107,8 @@ pub(crate) enum Stop {
 
 /// What a name reads.
 pub(crate) struct Read {
+  /// The name read: the first segment of a qualified name ([NONE] for one without segments).
+  pub(crate) name: u32,
   /// The records of the filters whose items are probed first, innermost first.
   pub(crate) probes: Box<[u32]>,
   /// What it reads when no item has it.
@@ -120,9 +122,9 @@ pub(crate) enum Target {
   Place(Place),
   /// A free name ([Free]).
   Free(u32),
-  /// The chain of the position, searched at run time (a qualified name of several segments, the
-  /// first of which is `first`, or of none: [NONE]).
-  Search { first: u32 },
+  /// The chain of the position, searched at run time (a qualified name of several segments, or
+  /// of none).
+  Search,
 }
 
 /// Where a binder is kept while the code that sees it runs.
@@ -410,6 +412,7 @@ impl<'a> Resolver<'a> {
         RegionKind::Layout { layout, visible } => {
           if let Some(place) = self.out.layouts[layout as usize].find(name, visible) {
             return Read {
+              name,
               probes: probes.into(),
               target: Target::Place(place),
             };
@@ -428,6 +431,7 @@ impl<'a> Resolver<'a> {
       used |= uses::CALLEE;
     }
     Read {
+      name,
       probes: probes.into(),
       target: Target::Free(self.free(name, qualified, used)),
     }
@@ -576,8 +580,9 @@ impl<'a> Resolver<'a> {
           None => NONE,
         };
         let read = Read {
+          name: first,
           probes: Box::new([]),
-          target: Target::Search { first },
+          target: Target::Search,
         };
         self.add(ast, Info::Read(read), &[])
       }
@@ -943,7 +948,7 @@ impl Resolved<'_> {
     parts.push(match read.target {
       Target::Place(place) => place_text(place),
       Target::Free(free) => format!("free {free}"),
-      Target::Search { .. } => "search".to_string(),
+      Target::Search => "search".to_string(),
     });
     parts.join(", ")
   }

@@ -8,8 +8,9 @@
 //! A node that is not lowered yet refuses the whole expression ([NotYet]).
 
 use super::NotYet;
-use super::program::{CallInfo, Compare, Domain, Kernel1, Kernel2, ListKind, LoopInfo, LoopKind, NONE, Op, Opnd, Program, ProgramBuilder, SearchInfo, Slot};
+use super::program::{CallInfo, Compare, Domain, FilterInfo, Kernel1, Kernel2, ListKind, LoopInfo, LoopKind, NONE, Op, Opnd, ProbeInfo, Program, ProgramBuilder, SearchInfo, Slot};
 use super::resolve::{Info, Place, Resolved, Stop, Target, variables};
+use crate::filters::ITEM;
 use crate::kernels::{self, Arithmetic};
 use crate::{Dialect, builders};
 use rheon_feel::Name;
@@ -251,6 +252,7 @@ impl<'a> Lower<'_, 'a> {
       AstNode::FunctionInvocation(_, arguments) => self.invocation(node, arguments, dst)?,
       AstNode::Context(_) => self.context(node, dst)?,
       AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) => self.iteration(node, dst)?,
+      AstNode::Filter(..) => self.filter(node, dst)?,
       AstNode::EvaluatedExpression(_) => self.into(self.resolved.kids(node)[0], dst)?,
       _ => return Err(NotYet { at: ast }),
     }
@@ -349,6 +351,33 @@ impl<'a> Lower<'_, 'a> {
       // an entry whose value may bind any name
       Stop::Irregular(_) => return Err(NotYet { at: rnode.ast }),
     }
+    Ok(())
+  }
+
+  /// A filter: the list, then the predicate, evaluated in the scope around the filter and then,
+  /// unless it selected an item by its index, for each item.
+  fn filter(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+    let resolved = self.resolved;
+    let rnode = &resolved.nodes[node as usize];
+    let Info::Filter { record } = rnode.info else {
+      return Err(NotYet { at: rnode.ast });
+    };
+    let kids = resolved.kids(node);
+    let mark = self.next;
+    let list = self.value(kids[0], None)?;
+    let info = self.builder.filter(FilterInfo { dst, body: 0, close: 0, after: 0 });
+    self.builder.emit(Op::FilterOpen { record, info, list });
+    self.next = mark;
+    let body = self.builder.here();
+    let c = self.value(kids[1], None)?;
+    self.builder.emit(Op::FilterStep { record, c });
+    self.next = mark;
+    let close = self.builder.emit(Op::FilterClose { record });
+    let after = self.builder.here();
+    let info = self.builder.filter_mut(info);
+    info.body = body;
+    info.close = close;
+    info.after = after;
     Ok(())
   }
 
@@ -517,10 +546,21 @@ impl<'a> Lower<'_, 'a> {
       // a qualified name with a part that is no segment
       return Err(NotYet { at: rnode.ast });
     };
-    if !read.probes.is_empty() {
-      return Err(NotYet { at: rnode.ast });
+    // the items of the filters around it first, innermost first: `item`, or an entry of the name
+    let item = read.name != NONE && *self.resolved.names[read.name as usize] == *ITEM;
+    let mut found = Vec::with_capacity(read.probes.len());
+    for &record in read.probes.iter() {
+      found.push(if item {
+        self.builder.emit(Op::ItemSelf { dst, record, found: 0 })
+      } else {
+        let probe = self.builder.probe(ProbeInfo { record, name: read.name });
+        self.builder.emit(Op::ProbeItem { dst, probe, found: 0 })
+      });
     }
     match (rnode.ast, read.target) {
+      (_, Target::Place(Place::Slot(slot))) => {
+        self.builder.emit(Op::Move { dst, src: Opnd::slot(slot) });
+      }
       (_, Target::Place(Place::Partial(record))) => {
         self.builder.emit(Op::LoadPartial { dst, record });
       }
@@ -528,7 +568,7 @@ impl<'a> Lower<'_, 'a> {
         let name = self.resolved.frees[free as usize].name;
         self.builder.emit(Op::LoadName { dst, name });
       }
-      (AstNode::QualifiedName(segments), Target::Free(_) | Target::Search { .. }) => {
+      (AstNode::QualifiedName(segments), Target::Free(_) | Target::Search) => {
         let segments = segments
           .iter()
           .filter_map(|segment| match segment {
@@ -539,13 +579,16 @@ impl<'a> Lower<'_, 'a> {
         let segments = self.builder.name_list(segments);
         // a free name is in no scope of the position; a search may be in any
         let (first, region) = match read.target {
-          Target::Search { first } => (first, rnode.region),
+          Target::Search => (read.name, rnode.region),
           _ => (NONE, NONE),
         };
         let search = self.builder.search(SearchInfo { segments, first, region });
         self.builder.emit(Op::Search { dst, search });
       }
       _ => return Err(NotYet { at: rnode.ast }),
+    }
+    for at in found {
+      self.builder.patch(at);
     }
     Ok(())
   }

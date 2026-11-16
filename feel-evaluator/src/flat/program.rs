@@ -246,6 +246,22 @@ pub(crate) enum Op {
   LoopClose { record: u32, dst: Slot },
   /// `dst` is the results so far of the `for` whose walk is `record` (`partial`).
   LoadPartial { dst: Slot, record: u32 },
+  /// Opens the filter `filters[info]` of the value of `list`, whose items are the record
+  /// `record`: a null is the filter's value at once; otherwise the predicate that follows is
+  /// evaluated in the scope around the filter, tentatively.
+  FilterOpen { record: u32, info: Ix, list: Opnd },
+  /// The value of `c` of the predicate of the filter of `record`: a number evaluated around the
+  /// filter selects an item; otherwise the predicate is evaluated for each item, which `c` keeps
+  /// or not, until the items end or a value that is no boolean, number or null ends the filter.
+  FilterStep { record: u32, c: Opnd },
+  /// Closes the filter of `record`: `dst` of its info is the filter's value.
+  FilterClose { record: u32 },
+  /// While the filter of the record of `probes[probe]` visits its items: when the item is a
+  /// context with the entry of its name, `dst` is its value and the run continues at `found`.
+  ProbeItem { dst: Slot, probe: Ix, found: Pc },
+  /// While the filter of `record` visits its items: `dst` is the item (its entry `item`, when it
+  /// is a context that has one) and the run continues at `found`.
+  ItemSelf { dst: Slot, record: u32, found: Pc },
   /// Ends the run with the value of `src`.
   Return { src: Opnd },
 }
@@ -274,6 +290,23 @@ pub(crate) struct LoopInfo {
   pub(crate) step: Pc,
   pub(crate) exit: Pc,
   pub(crate) levels: Box<[(Slot, Pc)]>,
+}
+
+/// A name read first from the item of the filter whose items are the record `record`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ProbeInfo {
+  pub(crate) record: u32,
+  pub(crate) name: Ix,
+}
+
+/// A filter: where its value goes, where its predicate starts, and where it closes (at its
+/// [Op::FilterClose]) and ends.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct FilterInfo {
+  pub(crate) dst: Slot,
+  pub(crate) body: Pc,
+  pub(crate) close: Pc,
+  pub(crate) after: Pc,
 }
 
 /// A qualified-name search: the segments in [Program::name_lists], the index of the first one in
@@ -305,6 +338,10 @@ pub(crate) struct Program {
   pub(crate) searches: Vec<SearchInfo>,
   /// The iterations.
   pub(crate) loops: Vec<LoopInfo>,
+  /// The filters.
+  pub(crate) filters: Vec<FilterInfo>,
+  /// The names read first from the items of filters.
+  pub(crate) probes: Vec<ProbeInfo>,
   /// The binders of each binding construct, as name resolution placed them.
   pub(crate) layouts: Vec<Layout>,
   /// The scopes at the positions of the code, as name resolution found them.
@@ -427,7 +464,19 @@ impl Program {
         }
         Op::Visit { src, .. } => check.opnd(src)?,
         Op::Step { .. } => {}
-        Op::LoopClose { dst, .. } | Op::LoadPartial { dst, .. } => check.slot(dst)?,
+        Op::LoopClose { dst, .. } | Op::LoadPartial { dst, .. } | Op::ItemSelf { dst, .. } => check.slot(dst)?,
+        Op::FilterOpen { info, list, .. } => {
+          check.index(info, self.filters.len(), "filter out of range")?;
+          check.slot(self.filters[info as usize].dst)?;
+          check.opnd(list)?;
+        }
+        Op::FilterStep { c, .. } => check.opnd(c)?,
+        Op::FilterClose { .. } => {}
+        Op::ProbeItem { dst, probe, .. } => {
+          check.slot(dst)?;
+          check.index(probe, self.probes.len(), "probe out of range")?;
+          check.index(self.probes[probe as usize].name, self.names.len(), "name out of range")?;
+        }
         Op::Return { src } => check.opnd(src)?,
       }
     }
@@ -458,32 +507,54 @@ impl Program {
     // the open lists, invocations, context types and walks before each instruction
     let mut open = Vec::with_capacity(self.code.len() + 1);
     let (mut lists, mut calls, mut types) = (0_u32, 0_u32, 0_u32);
-    let mut records: Vec<(u32, Pc)> = vec![];
+    // the open walks and filters: whether a walk, the index of its info, where it opens
+    let mut records: Vec<(bool, u32, Pc)> = vec![];
     for (at, op) in self.code.iter().enumerate() {
       open.push((lists, calls, types, records.len() as u32));
       let fail = |what| Err(VerifyError { at: at as Pc, what });
       match *op {
-        Op::LoopOpen { record, info } => {
-          if info as usize >= self.loops.len() {
-            return fail("iteration out of range");
+        Op::LoopOpen { record, info } | Op::FilterOpen { record, info, .. } => {
+          let walk = matches!(op, Op::LoopOpen { .. });
+          if info as usize >= if walk { self.loops.len() } else { self.filters.len() } {
+            return fail("iteration or filter out of range");
           }
           if record as usize != records.len() {
-            return fail("a walk that is not the record of its depth");
+            return fail("a walk or a filter that is not the record of its depth");
           }
-          records.push((info, at as Pc));
+          records.push((walk, info, at as Pc));
         }
-        Op::LevelPush { record, .. } | Op::Step { record } | Op::Visit { record, .. } | Op::LoadPartial { record, .. } if record as usize >= records.len() => {
+        Op::LevelPush { record, .. } | Op::Step { record } | Op::Visit { record, .. } | Op::LoadPartial { record, .. }
+          if records.get(record as usize).is_none_or(|record| !record.0) =>
+        {
           return fail("no walk of the record is open");
         }
-        Op::LoopClose { record, .. } => {
-          if records.len() != record as usize + 1 {
-            return fail("a walk closed out of order");
+        Op::FilterStep { record, .. } | Op::ItemSelf { record, .. } if records.get(record as usize).is_none_or(|record| record.0) => {
+          return fail("no filter of the record is open");
+        }
+        Op::ProbeItem { probe, .. }
+          if self
+            .probes
+            .get(probe as usize)
+            .is_none_or(|probe| records.get(probe.record as usize).is_none_or(|record| record.0)) =>
+        {
+          return fail("no filter of the record is open");
+        }
+        Op::LoopClose { record, .. } | Op::FilterClose { record } => {
+          let walk = matches!(op, Op::LoopClose { .. });
+          if records.len() != record as usize + 1 || records[record as usize].0 != walk {
+            return fail("a walk or a filter closed out of order");
           }
-          let (info, opened) = records.pop().unwrap_or_default();
-          let info = &self.loops[info as usize];
+          let (_, info, opened) = records.pop().unwrap_or_default();
           let inside = |pc: Pc| pc > opened && pc <= at as Pc;
-          if info.exit != at as Pc || !inside(info.step) || info.levels.iter().any(|&(_, bind)| !inside(bind)) {
-            return fail("a walk whose steps are not inside it");
+          let inside = if walk {
+            let info = &self.loops[info as usize];
+            info.exit == at as Pc && inside(info.step) && info.levels.iter().all(|&(_, bind)| inside(bind))
+          } else {
+            let info = &self.filters[info as usize];
+            info.close == at as Pc && info.after == at as Pc + 1 && info.body == opened + 1
+          };
+          if !inside {
+            return fail("a walk or a filter whose steps are not inside it");
           }
         }
         Op::ListNew { .. } => lists += 1,
@@ -507,28 +578,33 @@ impl Program {
         what: "a walk is not closed",
       });
     }
-    // the targets of the walks: what is open there is what is open inside the walk
+    // the targets of the walks and filters: what is open there is what is open inside them
     for (at, op) in self.code.iter().enumerate() {
-      if let Op::LoopOpen { info, .. } = *op {
-        let info = &self.loops[info as usize];
-        let inside = open[at + 1];
-        for target in std::iter::once(info.step)
-          .chain(info.levels.iter().map(|&(_, bind)| bind))
-          .chain(std::iter::once(info.exit))
-        {
-          if open.get(target as usize) != Some(&inside) {
-            return Err(VerifyError {
-              at: at as Pc,
-              what: "a walk that jumps across a list, an invocation or a context type",
-            });
-          }
+      let targets: Vec<Pc> = match *op {
+        Op::LoopOpen { info, .. } => {
+          let info = &self.loops[info as usize];
+          std::iter::once(info.step)
+            .chain(info.levels.iter().map(|&(_, bind)| bind))
+            .chain(std::iter::once(info.exit))
+            .collect()
         }
+        Op::FilterOpen { info, .. } => vec![self.filters[info as usize].close],
+        _ => continue,
+      };
+      if targets.iter().any(|&target| open.get(target as usize) != Some(&open[at + 1])) {
+        return Err(VerifyError {
+          at: at as Pc,
+          what: "a walk or a filter that jumps across a list, an invocation or a context type",
+        });
       }
     }
     for (at, op) in self.code.iter().enumerate() {
       let (target, state) = match *op {
         Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => (to, open.get(at + 1).copied()),
         Op::Enter { skip, .. } => (skip, Some(open[at])),
+        Op::ProbeItem { found, .. } | Op::ItemSelf { found, .. } => (found, open.get(at + 1).copied()),
+        // a null list skips the filter
+        Op::FilterOpen { info, .. } => (self.filters[info as usize].after, Some(open[at])),
         // a failure closes the context type
         Op::TypeAdd { fail, .. } => (fail, Some((open[at].0, open[at].1, open[at].2 - 1, open[at].3))),
         _ => continue,
@@ -609,6 +685,8 @@ pub(crate) struct ProgramBuilder {
   calls: Vec<CallInfo>,
   searches: Vec<SearchInfo>,
   loops: Vec<LoopInfo>,
+  filters: Vec<FilterInfo>,
+  probes: Vec<ProbeInfo>,
 }
 
 impl ProgramBuilder {
@@ -621,7 +699,14 @@ impl ProgramBuilder {
   pub(crate) fn patch(&mut self, at: Pc) {
     let here = self.code.len() as Pc;
     match &mut self.code[at as usize] {
-      Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } | Op::Enter { skip: to, .. } | Op::TypeAdd { fail: to, .. } => *to = here,
+      Op::Jump { to }
+      | Op::JumpUnlessTrue { to, .. }
+      | Op::AndLeft { to, .. }
+      | Op::OrLeft { to, .. }
+      | Op::Enter { skip: to, .. }
+      | Op::TypeAdd { fail: to, .. }
+      | Op::ProbeItem { found: to, .. }
+      | Op::ItemSelf { found: to, .. } => *to = here,
       _ => {}
     }
   }
@@ -672,6 +757,23 @@ impl ProgramBuilder {
     &mut self.loops[info as usize]
   }
 
+  /// The index of the filter `info` in the program.
+  pub(crate) fn filter(&mut self, info: FilterInfo) -> Ix {
+    self.filters.push(info);
+    self.filters.len() as Ix - 1
+  }
+
+  /// The index of the probe `probe` in the program.
+  pub(crate) fn probe(&mut self, probe: ProbeInfo) -> Ix {
+    self.probes.push(probe);
+    self.probes.len() as Ix - 1
+  }
+
+  /// The filter `info`, as built so far.
+  pub(crate) fn filter_mut(&mut self, info: Ix) -> &mut FilterInfo {
+    &mut self.filters[info as usize]
+  }
+
   /// The position of the next instruction.
   pub(crate) fn here(&self) -> Pc {
     self.code.len() as Pc
@@ -695,6 +797,8 @@ impl ProgramBuilder {
       calls: self.calls,
       searches: self.searches,
       loops: self.loops,
+      filters: self.filters,
+      probes: self.probes,
       layouts,
       regions,
       slots,

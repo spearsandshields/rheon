@@ -15,6 +15,8 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
     calls: vec![],
     searches: vec![],
     loops: vec![],
+    filters: vec![],
+    probes: vec![],
     layouts: vec![],
     regions: vec![],
     slots,
