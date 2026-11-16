@@ -3064,6 +3064,55 @@ their items with both answers. The totals are under "Verification" below.
     commit is kept as a robustness fix, the figure reported. Against 0.5.0 at the end of items
     168 to 173 (two alternating rounds) the `sort` stands at 1.099x and 1.075x and the `list
     replace` at 1.055x and 1.049x: the shared scope of item 171 gains more than the guard costs.
+173. **Arithmetic operators are named kernels behind one entry.** Each of the five binary
+    arithmetic operators and the negation was a closure in its builder, wrapped by `operate` (the
+    null-operand rule) and, for all but `**`, by a second evaluator closure (`guard_finite`).
+    B-FEEL could not call them on two values, so for every B-FEEL arithmetic node it built a
+    second FEEL evaluator of `⟦lhs⟧ op ⟦rhs⟧` (`bfeel::feel_operator_evaluator`) and ran it on a
+    context of two entries pushed for each evaluation, once more for each converted pair of
+    operands. The operators are now named functions of two values (`add`, `subtract`,
+    `multiply`, `divide`, `exponentiate`, and `negate` of one), free of scopes and evaluators,
+    and `Arithmetic::apply` is the one entry: the null-operand rule, the kernel, and the finite
+    check for the operators that had it (`**` reports a non-finite power itself). The FEEL
+    nodes and B-FEEL call it on the operand values; `guard_finite`, `bfeel::Operator`, the operand
+    names and nodes, `feel_operator_evaluator` and `bfeel::apply` are gone, and the frame of an
+    operator's evaluator still holds only its two operands (`apply` stays out of line). Identity
+    step: the same kernels on the same operand values record the same errors in the same order,
+    and the B-FEEL attempt still records its FEEL error first; the requests of
+    `tools/identity/requests/bfeel-arithmetic.json` (2,235: every operator on each pair of
+    operand kinds, nulls and mismatches, lenient and strict) and the tests of
+    `feel-evaluator/src/tests/bfeel.rs` answer as before. The stack report (`npm run stack --
+    --report`, a body of nested additions in 190 nested calls) reaches about twice as deep, as
+    each level of the body runs one evaluator closure fewer: the Node worker with 4 MiB 104 to 209
+    levels (Liftoff) and 114 to 210 (TurboFan), Node's main thread 22 to 45 and 24 to 46,
+    Wasmtime with 4 MiB 120 to 220 and with 512 KiB 10 to 19 (`docs/CONTRACT.md` section 1 and
+    the comment of `scripts/stack-headroom.mjs` state the new figures; theirs were older than
+    0.5.0). No API change. Measured (wasm, Node 26, Apple M2, two alternating rounds) on the
+    module of this commit against that of item 167: `sum(for i in 1..10000 return i * 2 + 1)`
+    in B-FEEL 2.001x and 2.006x, `count(for i in 1..10000 return "n" + i)` 2.002x and 2.115x.
+    Items 168 to 173 together, against the module of item 167: geomean 1.220x and 1.233x over
+    the 39 workloads of the speed suite and 1.009x and 1.013x over the 86 parse workloads, none
+    below 0.97x in both rounds; `count(for i in 1..10000 return i < 0 and (i * i + 1) / 3 > 5)`
+    7.291x and 7.413x, the index loop of item 170 over 1,000 contexts 64.9x and 63.5x, the
+    `sort` of item 171 1.096x and 1.114x, its `list replace` 1.058x and 1.070x, `fib15` 1.071x
+    and 1.054x. Against 0.5.0: geomean 1.336x and 1.331x over the suite, none below 0.97x in
+    both rounds (`loop-count-1k` 1.011x and 0.988x, `bif-loop-10k` 0.974x and 0.990x, `fib15`
+    1.036x and 1.032x, `loop-nested-100x100` 0.984x and 0.986x), and 1.067x and 1.070x over the
+    parse set, below 0.97x in both rounds only the list literal nested 297 levels (0.931x and
+    0.924x, item 154). The two filters of item 163 answer with fewer errors (item 170) at 1.308x
+    to 1.335x. Allocations per call (native) against the module of item 167: fewer for 20 of
+    the 39 suite workloads and 49 of the 86 parse workloads, more for none, the others equal; the
+    `and` loop above 39,139 to 174, the `sort` 625,358 allocations and 121,052 reallocations to
+    504,336 and 31, the `list replace` 50,212 and 10,035 to 40,213 and 36, the two B-FEEL loops
+    60,165 to 153 and 120,154 to 60,148, the index loop 20,161 to 17,161. The string doubling to
+    n = 26 grows the memory exactly as with the module of item 167 (267.38 MiB at 26, twice the
+    string). The depth margin, the deepest nesting each walker of a value reaches before the
+    stack of the host runs out (five hosts: Node's main thread and a 4 MiB worker, each with
+    Liftoff and TurboFan, and Wasmtime with 4 MiB), is unchanged for every walker of a list or a
+    context nested in one line, at least 1,265 levels on every host; on a list that holds the
+    same list twice at every level, or that list beside a list of one item, `instance of
+    list<boolean>` and the type of the value (as a response states it) reach 1,452 levels, the
+    check of a typed parameter 2,218 and equality 2,062, all above the limit of 500.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
