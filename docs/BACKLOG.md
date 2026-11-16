@@ -99,11 +99,21 @@ was written.
   is a boxed context with an entry named `partial`, that entry overwrites the iteration's
   `partial` and the results of the earlier iterations are lost (§10.3.2.14). Functions returned
   by boxed function bodies depend on these writes (*Closures are not lexical* below), so the two
-  change together.
-- **Values are cloned on lookup** `[fork]`. Function definitions and strings are shared
-  (`Arc<FunctionDefinition>`, `FeelString`), and FEEL loops and filters move their contexts and
-  items instead of cloning them. Contexts and lists are still cloned on every scope lookup, and a
-  function's closure context on every call.
+  change together. These writes are also why a loop and a filter push their contexts shared and
+  read `partial` back from the frame the body ran in (`feel-evaluator/src/iterations.rs`,
+  `filters.rs`): no FEEL expression writes into a frame it did not push, so both would go with
+  the writes.
+- **Rust `==` on values is a tree walk** `[fork]`. The derived `PartialEq` of `Value` follows
+  every path, so two values built apart that hold the same lists or contexts on many paths take
+  time exponential in the sharing. FEEL equality visits each shared pair once, but the native
+  DMN decision tables compare output values with `==` for the ANY and PRIORITY hit policies
+  (`model-evaluator/src/decision_table.rs`, the output-value positions and the check that all
+  results agree); no FEEL request reaches them. A pointer shortcut needs `==` to be reflexive for
+  every value, which was not checked; routing them through FEEL equality changes answers.
+- **List built-ins copy the items of their argument** `[fork]`. `insert before`, `insert after`,
+  `remove`, `reverse`, `list replace` and `sublist` take their list by reference and copy its
+  items into the new list, also when the caller held the only reference and the items could have
+  been reused (`append(for i in 1..n return i, 0)` copies `n` items).
 - **Loop variables are looked up by name** `[fork]`: every iteration resolves the variable
   through the scope stack (`FeelScope::get_value`).
 - **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),

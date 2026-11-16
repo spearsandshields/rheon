@@ -2891,6 +2891,47 @@ their items with both answers. The totals are under "Verification" below.
     anew. Identity step: no answer changes. Rust API (`rheon-feel-evaluator`):
     `FilterExpressionEvaluator::for_feel` is removed; `FilterExpressionEvaluator` is a unit
     struct that only `new` and `Default` build.
+167. **Shared values, the nesting limit and their measured effect.** `docs/CONTRACT.md` states
+    what sharing means for a consumer: lists and contexts are shared when they are bound, passed,
+    read from the input, iterated, filtered or put into another value; the operations that
+    compare or test values visit each shared list or context once, so they take time linear in
+    the distinct parts of a value (equality at most quadratic); and writing such a value out
+    follows every path, so a value doubled 30 times still ends at the memory cap when it is
+    displayed, rendered by `string()`, flattened or spread. `docs/BACKLOG.md` loses "values are
+    cloned on lookup", which items 154 to 166 removed, and gains the derived Rust `==` that the
+    ANY and PRIORITY hit policies of native decision tables use (a tree walk), the list built-ins
+    that copy the items of their argument (`count(append(for i in 1..10000 return i, 0))`
+    allocates 641,162 bytes more than the loop alone, a copy of the 10,000 items), and why loops
+    and filters push their contexts shared (the writes of boxed contexts). Docs only; the API
+    breaks of items 147 to 166 are listed in their items. Measured on the module of items 164 to
+    166 (wasm, Node 26, Apple M2, two alternating rounds; a first run against the module of item
+    163 had a build running beside its first round and was measured again): against the module of
+    item 163, geomean 1.001x and 1.009x over the 39 workloads of the speed suite, none below 0.97x
+    in both rounds; `count(for i in 1..count(items) return items[i].amount)` over 1,000 contexts
+    1.237x and 1.234x (the index filter no longer copies the list), the two filters of item 163
+    1.015x to 1.026x, the loops 0.982x to 1.012x except one round each of `count(for i in
+    1..10000 return i > 0 and i < 20000)` (0.910x; 1.007x in the other round, 0.977x and 1.136x
+    in the first run) and of the B-FEEL `count(for i in 1..10000 return "n" + i)` (0.950x;
+    1.014x); the parse set 1.020x and 1.001x over 86 workloads. Against 0.5.0, the value
+    rework as a whole (items 147 to 166): geomean 1.086x and 1.086x over the suite and 1.054x and
+    1.063x over the parse set; `count(for i in 1..count(items) return items[i].amount)` over
+    1,000 contexts 5.456x and 5.521x; `sum(items[amount > 100].amount)` 1.317x and
+    `count(items[status = "open"])` 1.313x; `f(items)` passing 10,000 items 1.409x;
+    `count(for x in items return x.amount)` 1.229x; `count(items)` over 10,000 contexts 1.167x
+    and 1.175x; the path `a.a.a…` of 100 names 5.237x and 5.282x, of 100 distinct names 4.948x and
+    4.972x, a context literal nested 149 levels 2.732x and 2.742x; the input of 10,000 contexts
+    parsed for `1 + 2` 0.979x and 0.967x (the owner's floor is 0.88x); below 0.97x in both rounds
+    only a list literal nested 297 levels (0.923x and 0.928x, one box per list since item 154);
+    `fib15` 0.973x and 0.967x, `count(for i in 1..10000 return abs(i))` 0.964x and 0.977x.
+    Allocations per call (native) against the module of item 163: one more per loop evaluation
+    (the shared iteration context: `count(for i in 1..10000 return i)` 131 to 132, the nested
+    loop of 100 by 100 1,066 to 1,167), the index loop over 1,000 contexts 21,160 to 20,161 and
+    68,123,055 to 3,171,095 bytes, the two filters equal in count with 10 and 11 more
+    reallocations (the kept items grow one by one instead of in the list taken apart); every
+    other workload equal in allocations and reallocations. The native peak of
+    `count(items[status = "open"])` is 12,671,845 B (22,459,853 B on 0.5.0). The string
+    doubling's peak memory (n = 17 to 26, 267.38 MiB at 26, growth 2.00x the result) equals that
+    of 0.5.0. Module size 3,761,500 B (3,737,388 B on 0.5.0, 3,763,638 B after item 163).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
