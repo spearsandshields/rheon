@@ -180,6 +180,49 @@ Rules:
 | 132 | `a4d650d` | regex: replace and split reject a pattern that matches the zero-length string | upstream bug |
 | 133 | `0590e61` | ci: document the published crates with warnings denied | fork |
 | 134 | `f5c2713` | ci: run on Node 24 | fork |
+| 135 | `7a8c066` | benches: remove the benchmarks that need a nightly toolchain | fork |
+| 136 | `2dd5fde` | tools/identity: a ledger entry can state a rule | fork |
+| 137 | `d421dcc` | tools/identity: request sources and a ledger for the release tier | fork |
+| 138 | `c9023e9` | scripts: the TCK run uses pinned inputs and fails on a changed result | fork |
+| 139 | `8d22825` | scripts: the three test tiers as commands with measured times and budgets | fork |
+| 140 | `5d1944e` | ci: the group tier on pull requests, the release tier before a release | fork |
+| 141 | `ec5dc38` | tools/identity: the Node requirement and the times against the current baseline | fork |
+| 142 | `0b09875` | tools/identity: requests on values that are used again after they were passed on | fork |
+| 143 | `234ac81` | model-evaluator: pin what a boxed context writes into an iteration or an item frame | fork |
+| 144 | `0583407` | feel-evaluator: the ordering of sort takes a predicate that can stop | fork |
+| 145 | `c6252c8` | tools/identity: the cache test holds when the differences trap the reference | fork |
+| 146 | `3475456` | feel-evaluator: an abort stops every loop | fork |
+| 147 | `0991817` | feel: a context has its own read API and no longer derefs to its map | fork |
+| 148 | `7b58453` | feel: remove the named-parameter and positional-parameters values that nothing builds | fork |
+| 149 | `41e9a2a` | feel: assign_entry returns the value it replaces | fork |
+| 150 | `eedf7f8` | feel: a list value is a type of its own | fork |
+| 151 | `c108d47` | feel: lists and contexts keep their nesting depth | fork |
+| 152 | `ab97b62` | feel: values nest at most 500 levels within an evaluation | fork |
+| 153 | `d969f14` | scripts: the stack check nests a value to the depth limit | fork |
+| 154 | `a9d6506` | feel: lists share their items | fork |
+| 155 | `cf2af1f` | feel-evaluator: equality visits each pair of shared values once | fork |
+| 156 | `449ea2a` | feel-evaluator: the list built-ins that compare items share one equality walk per call | fork |
+| 157 | `69cb975` | feel: instance of is decided on the value, without building its type | fork |
+| 158 | `d3ce115` | feel: the parameters and the result type of a function definition are read through accessors | fork |
+| 159 | `120b9eb` | feel: context values are shared | fork |
+| 160 | `725faab` | feel: a scope frame is an owned context or a shared one | fork |
+| 161 | `3b8615a` | feel: a function definition shares its closure context | fork |
+| 162 | `d19c7fd` | feel-parser: the name index visits a shared context once | fork |
+| 163 | `034fe04` | feel-parser: the item names of a list are read from its items | fork |
+| 164 | `85d098e` | tools/identity: requests for filters by index, logic operators, callbacks, B-FEEL arithmetic and context literals | fork |
+| 165 | `3fa2ee9` | feel-evaluator: one iteration path for FEEL and boxed expressions | fork |
+| 166 | `ab7412b` | feel-evaluator: one filter path for FEEL and boxed expressions | fork |
+| 167 | `3fbae27` | docs: shared values, the nesting limit and their measured effect | fork |
+| 168 | `7f5baaf` | feel: the conformance of a value to a type visits a shared list or context once | fork |
+| 169 | `3572bf4` | feel-evaluator: and / or evaluate the right operand only when the left does not decide | DMN 1.6 |
+| 170 | `ccb89c4` | feel-evaluator: the item at an index of a filter is one function | fork |
+| 171 | `33fb6ad` | feel-evaluator: a filter expression is evaluated once in the enclosing scope, and a number selects | DMN 1.6 |
+| 172 | `05d5f49` | feel-evaluator: sort and list replace call their function in one scope | fork |
+| 173 | `1436889` | feel-evaluator: the function called by sort and list replace is a counted call | fork |
+| 174 | `1e23fe8` | feel-evaluator: arithmetic operators are named kernels behind one entry | fork |
+| 175 | `947ff20` | tools/identity: a ledger outcome can be the digest of a long response | fork |
+| 176 | `047ee58` | tools/identity: the depth probes of the large sets that 0.5.0 answers are committed | fork |
+| 177 | `40c7ec5` | tools/identity: the large-set run leaves out two chains by name | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -2140,6 +2183,22 @@ their items with both answers. The totals are under "Verification" below.
     memory of this module (a list doubled 30 times) ends as a trap on Node 22 as well. For
     hosts: a 0.4.0 module on Node 22 can take the whole process down on such a request, not only
     its worker. No API change.
+Commits 135-177 make the engine robust on values that hold the same list or context on many paths,
+and faster on loops, filters and calls, with tools first. The identity check gains rule entries, the
+release tier's request sources and ledger and a cache test, the TCK run pinned inputs, and the three
+test tiers become commands with budgets that CI runs (135-145); an abort stops every loop (146). The
+value rework gives contexts and lists a type and a read API of their own, keeps their nesting depth
+and bounds it at 500 levels, shares lists, contexts, scope frames and closures, and makes every walk
+that compares, tests, types or indexes a value visit a shared list or context once, with request
+sets, one iteration path and one filter path for FEEL and boxed expressions on the way (147-168).
+Then `and` and `or` evaluate the right operand only when the left does not decide, a filter
+evaluates its expression once in the enclosing scope, `sort` and `list replace` call their function
+in one scope as a counted call, and the arithmetic operators are named kernels (169-174); the last
+commits commit the depth probes of the large request sets that 0.5.0 answers (175-177). Each change
+of a wasm answer against 0.5.0 that the identity check finds is registered with both answers or
+explained by a rule entry, and counted in its item; changes that only DMN or the Rust API show are
+stated in their items. The totals are under "Verification" below.
+
 135. **The benchmarks that need a nightly toolchain are removed.** Five crates had a `benches/`
     directory (model-evaluator 156 files, feel-number 11, feel-parser 6, feel-evaluator 4, feel 3;
     36,510 lines), and every file needed `#![feature(test)]`. `rust-toolchain.toml` pins a stable
@@ -2318,40 +2377,39 @@ their items with both answers. The totals are under "Verification" below.
     cache worked as specified. The test now asserts the exact counts: every answer of the cold
     run comes from the cache except the traps, which are evaluated again. With the ledger empty
     the test is skipped as before. No API change.
-146. **An abort stops every loop.** An evaluation stopped by a limit (the call depth, a regex
-    engine limit) refused every further call, but a loop went on through its items: a `for` over
-    10,000,000 items held a null for each and exhausted the module's memory (a trap where the
-    evaluation error was due), an `every` over 10,000,000,000 combinations ran for minutes, and
-    the work after the abort also recorded errors no one reads. `rheon_feel::diagnostics::stopped()` (new, public; its callers are in
-    rheon-feel-evaluator) tells whether the running evaluation was stopped, from the same state
-    the call guard reads, and is `false` outside an evaluation. The walk of `for`, `some` and
-    `every` (`Iteration::walk`, also the boxed forms) reads it before each further item, a filter
-    before each item and before it evaluates its expression once more for an index, `sort`
-    before each comparison (its ordering then ends, item 144) and `list replace` after each call
-    of its function; each then ends with a null, which is never observed, because the abort is
-    the outcome. An evaluation that ends answers as before. Two answers change, registered in
+146. **An abort stops every loop.** An evaluation stopped by a limit (the call depth, a regex engine
+    limit) refused every further call, but a loop went on through its items: a `for` over 10,000,000
+    items held a null for each and exhausted the module's memory (a trap where the evaluation error
+    was due), an `every` over 10,000,000,000 combinations ran for minutes, and the work after the
+    abort also recorded errors no one reads. `rheon_feel::diagnostics::stopped()` (new, public; its
+    callers are in rheon-feel-evaluator) tells whether the running evaluation was stopped, from the
+    same state the call guard reads, and is `false` outside an evaluation. The walk of `for`, `some`
+    and `every` (`Iteration::walk`, also the boxed forms) reads it before each further item, a
+    filter before each item and before it evaluates its expression once more for an index, `sort`
+    before each comparison (its ordering then ends, item 144) and `list replace` after each call of
+    its function; each then ends with a null, which is never observed, because the abort is the
+    outcome. An evaluation that ends answers as before. Two answers change, registered in
     `tools/identity/registered/abort-stops-loops.json` with their requests in
-    `wasm/feel-wasm/tests/corpus/no-trap.json`: `for i in 1..10000000 return f(i)` and
-    `for i in 1..100, j in 1..100000 return f(j)` with a runaway `f` trapped 0.5.0 after 0.4 s
-    and are now the call-depth `evaluation` error (DMN 1.6 §7.3.8: the evaluation "MUST report or
-    log diagnostic information"; CONTRACT §2). The corpus also gains the same loops, filters, `sort`
-    and `list replace` over 100,000 items, which 0.5.0 already answered with that error, and the
-    contract test asserts the error for each kind of loop. Natively, `diagnostics::collect` around
-    an aborted evaluation now sees the errors recorded up to the abort only: in the tests, a loop
-    over 1,000 items records as many as the same loop over its first item (2 against 1,001 for
-    `for i in 1..1000 return [f(i), 1 + null]`), and `list replace` no longer records "matching
-    function must return boolean value" for the refused call. Measured (wasm, Node 26): the
-    traced `for i in 1..1000000 return f(i)` 107.5 ms on 0.5.0 and 0.4 ms now (a second call on
-    one instance); `every i in l, j in l satisfies f(j) = null` over two lists of 100,000 items
-    397 s on 0.5.0 and 20 ms now (most of it building the list); `sort` and `list replace` over
-    100,000 items 37 ms and 40 ms on 0.5.0, 11 ms each now. The speed suite against 0.5.0 in two
-    alternating rounds: geomean 1.005x and 1.003x over 39 workloads, 1.001x and 1.002x over the 86
-    parse workloads, no workload below 0.97x in both rounds (`loop-count-10k` 1.012x and 1.003x,
-    `list-filter-count` 1.009x and 0.995x, `sort-10k` 1.004x and 1.006x, `list-replace-10k`
-    1.006x and 1.001x, `fib15` 1.051x and 1.002x). Allocations, reallocations and peak live bytes
-    per call are those of 0.5.0 for every workload (native counting harness); the stack report
-    and the string doubling's peak memory (n = 17 to 26) are identical. Rust API: the added
-    function `rheon_feel::diagnostics::stopped`.
+    `wasm/feel-wasm/tests/corpus/no-trap.json`: `for i in 1..10000000 return f(i)` and `for i in
+    1..100, j in 1..100000 return f(j)` with a runaway `f` trapped 0.5.0 after 0.4 s and are now the
+    call-depth `evaluation` error (DMN 1.6 §7.3.8: the evaluation "MUST report or log diagnostic
+    information"; CONTRACT §2). The corpus also gains the same loops, filters, `sort` and `list
+    replace` over 100,000 items, which 0.5.0 already answered with that error, and the contract test
+    asserts the error for each kind of loop. Natively, `diagnostics::collect` around an aborted
+    evaluation now sees the errors recorded up to the abort only: in the tests, a loop over 1,000
+    items records as many as the same loop over its first item (2 against 1,001 for `for i in
+    1..1000 return [f(i), 1 + null]`), and `list replace` no longer records "matching function must
+    return boolean value" for the refused call. Measured (wasm, Node 26): the traced `for i in
+    1..1000000 return f(i)` 107.5 ms on 0.5.0 and 0.4 ms now (a second call on one instance); `every
+    i in l, j in l satisfies f(j) = null` over two lists of 100,000 items 397 s on 0.5.0 and 20 ms
+    now (most of it building the list); `sort` and `list replace` over 100,000 items 37 ms and 40 ms
+    on 0.5.0, 11 ms each now. The speed suite against 0.5.0 in two alternating rounds: geomean
+    1.005x and 1.003x over 39 workloads, 1.001x and 1.002x over the 86 parse workloads, no workload
+    below 0.97x in both rounds (`loop-count-10k` 1.012x and 1.003x, `list-filter-count` 1.009x and
+    0.995x, `sort-10k` 1.004x and 1.006x, `list-replace-10k` 1.006x and 1.001x, `fib15` 1.051x and
+    1.002x). Allocations, reallocations and peak live bytes per call are those of 0.5.0 for every
+    workload (native counting harness); the stack report and the string doubling's peak memory (n =
+    17 to 26) are identical. Rust API: the added function `rheon_feel::diagnostics::stopped`.
 147. **A context has its own read API and no longer derefs to its map.** `FeelContext`
     dereferenced to the `BTreeMap` that holds its entries, so every caller could read the map
     directly and the way a context stores its entries was part of the API. The context now reads
@@ -2365,11 +2423,11 @@ their items with both answers. The totals are under "Verification" below.
     `std::collections::btree_map::Iter`; `contains_entry` is generic over `Q` with `Name: Borrow<Q>`
     (a `&Name` argument compiles as before); `keys_from` is added.
 148. **The named-parameter and positional-parameters values that nothing builds are removed.**
-    `Value::NamedParameter` and `Value::PositionalParameters` came from upstream, but no code
-    builds either value (the evaluator binds an invocation's arguments from the syntax tree), so
-    they were matched only to display them and to give their type `Any`. Identity step: no answer changes. Rust API (`rheon-feel`): the variants
-    `Value::NamedParameter` and `Value::PositionalParameters` are removed (`Value::NamedParameters`
-    stays).
+    `Value::NamedParameter` and `Value::PositionalParameters` came from upstream, but no code builds
+    either value (the evaluator binds an invocation's arguments from the syntax tree), so they were
+    matched only to display them and to give their type `Any`. Identity step: no answer changes.
+    Rust API (`rheon-feel`): the variants `Value::NamedParameter` and `Value::PositionalParameters`
+    are removed (`Value::NamedParameters` stays).
 149. **`assign_entry` returns the value it replaces.** `FeelContext::get_entry_mut` handed out a
     `&mut Value` into a context, a write that the context cannot see; the next commits keep the
     nesting depth of a context, which such a write would bypass. `FeelContext::assign_entry` now
@@ -2399,65 +2457,65 @@ their items with both answers. The totals are under "Verification" below.
 151. **Lists and contexts keep their nesting depth.** A limit on how deeply values nest needs the
     depth of a value where it is produced, and a walk over the whole value there would make every
     loop quadratic. A list now keeps the nesting depth of its deepest item: a push raises it in
-    constant time and a list built from its items computes it in the same pass (a list has no
-    other way to change). A context remembers its depth once it was read, until an entry changes:
-    every method that changes an entry (`set_entry`, `insert`, `assign_entry`, `remove_entry`,
-    `set_null`, `zip`, `overwrite`, `move_entry`, `create_entries`, `create_entry`,
-    `apply_entries`) goes through one accessor that forgets it, so a write costs one store, and a
-    context that is only written, such as the iteration context of a loop, never computes it; the
-    next read looks at each entry once. The remembered depth is no cache: it is derived from the
-    entries alone, it is exact whenever it is set (it goes from not known to the depth on a read,
-    and back on a change), a clone copies it with the identical entries, and two reads of one
-    context, through any handles and on any threads, store the same number. A context kept exact on every write instead, as a list is,
-    made `count(for i in 1..10000 return i)` 0.70x as fast as 0.5.0 (three writes of the iteration
-    context per item), and 0.88x with the depth of a scalar read inline. The depth of a scalar is 0;
-    a list or a context is one level deeper than the deepest value it holds, so an empty one is
-    1 level deep; a function is one level deeper than its closure context, so 2 when it captures
-    nothing; a range, an interval end, a unary test and the other values that hold values are one
-    level deeper than what they hold. Nothing reads it yet. The
-    tests in `feel/src/tests/depth.rs` change random contexts 60,000 times through every method
-    that writes an entry, build random lists by push, from a vector and from an iterator, and
-    compare each depth with a walk of the whole value, the changes that make a value shallower
-    included. Equality, cloning and the debug forms are unchanged; `Value` stays `Send + Sync`
-    (the remembered depth is an atomic). Identity step: no answer changes; no API change (the
-    depth is read inside `rheon-feel` only).
+    constant time and a list built from its items computes it in the same pass (a list has no other
+    way to change). A context remembers its depth once it was read, until an entry changes: every
+    method that changes an entry (`set_entry`, `insert`, `assign_entry`, `remove_entry`, `set_null`,
+    `zip`, `overwrite`, `move_entry`, `create_entries`, `create_entry`, `apply_entries`) goes
+    through one accessor that forgets it, so a write costs one store, and a context that is only
+    written, such as the iteration context of a loop, never computes it; the next read looks at each
+    entry once. The remembered depth is no cache: it is derived from the entries alone, it is exact
+    whenever it is set (it goes from not known to the depth on a read, and back on a change), a
+    clone copies it with the identical entries, and two reads of one context, through any handles
+    and on any threads, store the same number. A context kept exact on every write instead, as a
+    list is, made `count(for i in 1..10000 return i)` 0.70x as fast as 0.5.0 (three writes of the
+    iteration context per item), and 0.88x with the depth of a scalar read inline. The depth of a
+    scalar is 0; a list or a context is one level deeper than the deepest value it holds, so an
+    empty one is 1 level deep; a function is one level deeper than its closure context, so 2 when it
+    captures nothing; a range, an interval end, a unary test and the other values that hold values
+    are one level deeper than what they hold. Nothing reads it yet. The tests in
+    `feel/src/tests/depth.rs` change random contexts 60,000 times through every method that writes
+    an entry, build random lists by push, from a vector and from an iterator, and compare each depth
+    with a walk of the whole value, the changes that make a value shallower included. Equality,
+    cloning and the debug forms are unchanged; `Value` stays `Send + Sync` (the remembered depth is
+    an atomic). Identity step: no answer changes; no API change (the depth is read inside
+    `rheon-feel` only).
 152. **Values nest at most 500 levels within an evaluation.** Nothing bounded how deeply values
     nest, and every consumer of a value (its drop, display, `string`, `=`, the response JSON, the
-    parser's index of an input context) walks it recursively, so a value deep enough ran out of
-    the stack: a recursion or a loop that wraps a value 9,500 times, and `context put` with a list
-    of 100,000 keys, trapped 0.5.0. A value 501 levels deep now stops the evaluation with
-    `Abort::ValueDepth` ("values are nested too deeply (more than 500 levels); evaluation
-    stopped"), an `evaluation` error, or a `context` error for a FEEL-format input context
-    (CONTRACT §1 to §3). Every consumer on every host walks at least 1,193 levels (measured on
-    0.5.0), twice the limit and more. The depth is that of item 151, and the limit is read where an
-    expression produces a value, by `rheon_feel::diagnostics::bound_depth`: the result of every
-    invocation (`guarded`, so every built-in and user function, FEEL and boxed), a list, range and
-    context literal (each entry, and the result), the results of a `for` after each item (their
-    growth through `partial`; `bound_list_depth` reads the depth the list keeps), a function definition (its closure context), a filter of a value
-    that is no list (the list that holds it is a level deeper), and in `rheon-model-evaluator` the
-    result of every boxed expression (`build_coerced_result_evaluator`, which a boxed list, context
-    or relation passes) and each entry of a boxed context after its coercion (a collection type
-    puts a value that is no list into one). It is not read where a value is bound: a scope frame
-    is a context, and a frame that binds a value 500 levels deep to a parameter, a loop variable,
-    `item` or `partial` is 501 levels deep, which is allowed. `context put` with a key list
-    refuses a list of more keys than the value may still nest (`FeelContext::apply_entries`)
-    before it builds a context, so 100,000 keys stop at once; a key list whose path is blocked by
-    an entry that is not a context builds nothing and gives null whatever its length, as on 0.5.0
-    (the existing part of the path is read first, without recursion). Inside an evaluation the null that
-    takes the place of the deeper value is never observed, because the abort is the outcome;
-    outside one it carries the abort's text. Test first: `feel-evaluator/tests/value_depth.rs`
-    checks each channel at 500 levels (the depth of the answer) and at 501 (the abort, and a clean
-    next evaluation), a 500-level value bound and returned through each kind of frame, and loops
-    and a key list that would nest 100,000 levels; on the parent the 501 cases answer values 501
-    and 502 levels deep. `model-evaluator/src/tests/various/dmn_0009` does the same for a boxed list,
-    a boxed context and a boxed context entry of a collection type, and fails without the boxed
-    checks; the contract test asserts both error kinds with their texts. Answers change, each
-    registered with both answers: `tools/identity/requests/value-depth.json` (54 requests, every
-    channel at 500 and 501 levels, the 500 ones, two blocked key paths and an `instance of` at
-    500 levels identical, and the seven 501-level depth probes of the large sets of item 175) and
-    the two `context put` requests with 100,000 keys in `no-trap.json` in
-    `tools/identity/registered/value-depth.json` (26 entries);
-    the four requests of `tools/identity/release/requests/value-depth-deep.json` (also in
+    parser's index of an input context) walks it recursively, so a value deep enough ran out of the
+    stack: a recursion or a loop that wraps a value 9,500 times, and `context put` with a list of
+    100,000 keys, trapped 0.5.0. A value 501 levels deep now stops the evaluation with
+    `Abort::ValueDepth` ("values are nested too deeply (more than 500 levels); evaluation stopped"),
+    an `evaluation` error, or a `context` error for a FEEL-format input context (CONTRACT §1 to §3).
+    Every consumer on every host walks at least 1,193 levels (measured on 0.5.0), twice the limit
+    and more. The depth is that of item 151, and the limit is read where an expression produces a
+    value, by `rheon_feel::diagnostics::bound_depth`: the result of every invocation (`guarded`, so
+    every built-in and user function, FEEL and boxed), a list, range and context literal (each
+    entry, and the result), the results of a `for` after each item (their growth through `partial`;
+    `bound_list_depth` reads the depth the list keeps), a function definition (its closure context),
+    a filter of a value that is no list (the list that holds it is a level deeper), and in
+    `rheon-model-evaluator` the result of every boxed expression (`build_coerced_result_evaluator`,
+    which a boxed list, context or relation passes) and each entry of a boxed context after its
+    coercion (a collection type puts a value that is no list into one). It is not read where a value
+    is bound: a scope frame is a context, and a frame that binds a value 500 levels deep to a
+    parameter, a loop variable, `item` or `partial` is 501 levels deep, which is allowed. `context
+    put` with a key list refuses a list of more keys than the value may still nest
+    (`FeelContext::apply_entries`) before it builds a context, so 100,000 keys stop at once; a key
+    list whose path is blocked by an entry that is not a context builds nothing and gives null
+    whatever its length, as on 0.5.0 (the existing part of the path is read first, without
+    recursion). Inside an evaluation the null that takes the place of the deeper value is never
+    observed, because the abort is the outcome; outside one it carries the abort's text. Test first:
+    `feel-evaluator/tests/value_depth.rs` checks each channel at 500 levels (the depth of the
+    answer) and at 501 (the abort, and a clean next evaluation), a 500-level value bound and
+    returned through each kind of frame, and loops and a key list that would nest 100,000 levels; on
+    the parent the 501 cases answer values 501 and 502 levels deep.
+    `model-evaluator/src/tests/various/dmn_0009` does the same for a boxed list, a boxed context and
+    a boxed context entry of a collection type, and fails without the boxed checks; the contract
+    test asserts both error kinds with their texts. Answers change, each registered with both
+    answers: `tools/identity/requests/value-depth.json` (54 requests, every channel at 500 and 501
+    levels, the 500 ones, two blocked key paths and an `instance of` at 500 levels identical, and
+    the seven 501-level depth probes of the large sets of item 176) and the two `context put`
+    requests with 100,000 keys in `no-trap.json` in `tools/identity/registered/value-depth.json` (26
+    entries); the four requests of `tools/identity/release/requests/value-depth-deep.json` (also in
     `no-trap.json`), which trapped 0.5.0 after 0.6 to 1.3 s, and the two loops of
     `memory-exhausting.json` that nest a list and a context 100,000 levels deep, which trapped it
     after 158 s and 35 s, in `tools/identity/release/registered/value-depth.json`. Basis: an
@@ -2467,21 +2525,21 @@ their items with both answers. The totals are under "Verification" below.
     Measured (wasm, Node 26, Apple M2) on the module of this commit and the next against 0.5.0, two
     alternating rounds: geomean 0.996x and 0.988x over the 39 workloads of the speed suite, 0.997x
     and 1.000x over the 86 parse workloads; below 0.97x in both rounds `loop-count-1k` (0.964x,
-    0.959x), `bif-loop-10k` (0.963x, 0.952x) and `fib15` (0.955x, 0.939x), the cost of items 149
-    to 152 together (about 1 to 2 % each on a tight loop, measured per item: moving `partial`
-    out through `assign_entry`, the list type, the depth bookkeeping, and the check of every call's
-    result); reading the depth of a loop's results by value instead of from the list cost
-    `count(for i in 1..10000 return i)` 8 %, and this commit reads the field the list keeps.
-    Allocations and reallocations per call are those of 0.5.0 for all 39 suite and 86 parse
-    workloads; the peak of live bytes grows by 8 to 2,048 B (a context is 8 bytes larger natively
-    for its remembered depth; `list-filter-count` 22,459,853 to 22,459,885 B). The string doubling's
-    peak memory (n = 17 to 26), 2,000 calls (0 B) and the stack report are those of 0.5.0. The
-    walkers of a value built natively (drop, display, `string`, JSON, the response's type,
-    `=`, `instance of`, `flatten`, `...`, the parser's index) reach at least 1,265 levels on every
-    host, as on 0.5.0.
-    Rust API: the added variant `rheon_feel::diagnostics::Abort::ValueDepth` and the added functions
-    `rheon_feel::diagnostics::bound_depth` and `bound_list_depth`; `FeelContext::apply_entries` returns an error (and stops
-    a running evaluation) for a path that would nest the value more than 500 levels deep.
+    0.959x), `bif-loop-10k` (0.963x, 0.952x) and `fib15` (0.955x, 0.939x), the cost of items 149 to
+    152 together (about 1 to 2 % each on a tight loop, measured per item: moving `partial` out
+    through `assign_entry`, the list type, the depth bookkeeping, and the check of every call's
+    result); reading the depth of a loop's results by value instead of from the list cost `count(for
+    i in 1..10000 return i)` 8 %, and this commit reads the field the list keeps. Allocations and
+    reallocations per call are those of 0.5.0 for all 39 suite and 86 parse workloads; the peak of
+    live bytes grows by 8 to 2,048 B (a context is 8 bytes larger natively for its remembered depth;
+    `list-filter-count` 22,459,853 to 22,459,885 B). The string doubling's peak memory (n = 17 to
+    26), 2,000 calls (0 B) and the stack report are those of 0.5.0. The walkers of a value built
+    natively (drop, display, `string`, JSON, the response's type, `=`, `instance of`, `flatten`,
+    `...`, the parser's index) reach at least 1,265 levels on every host, as on 0.5.0. Rust API: the
+    added variant `rheon_feel::diagnostics::Abort::ValueDepth` and the added functions
+    `rheon_feel::diagnostics::bound_depth` and `bound_list_depth`; `FeelContext::apply_entries`
+    returns an error (and stops a running evaluation) for a path that would nest the value more than
+    500 levels deep.
 153. **The stack check nests a value to the depth limit.** `npm run stack` evaluated five
     constructs nested to the AST depth limit, but no value nested to the value depth limit of item
     152, so a change that makes the frames of a walk over a value larger could take a host's stack
@@ -2602,23 +2660,6 @@ their items with both answers. The totals are under "Verification" below.
     with items of two kinds 3.78 to 5.89 ms; `instance of` over a context 4.83 to 4.79 ms per
     10,000, a range 2.22 to 2.28 ms, a number 1.24 ms on both. Rust API (`rheon-feel`): the added
     `Value::has_type`, `Value::has_type_of` and `Value::type_instance_of`.
-    The conformance of a value to a type (`Value::is_conformant`: the check of a typed
-    parameter, of the type a boxed context, a decision or a decision service declares, and of the
-    implicit conversions) is a relation of the value, not of its type, and walked the value along
-    every path: a list that a loop doubles 40 times through `partial`, passed to a function whose
-    parameter declares its 40-level type, made 2^40 checks, and so did a list that holds the same
-    context twice at each of 40 levels (`[c, c]` with `c = {a: l}` around the list before it). A
-    context type names the entries it follows, so a context doubled 40 times and checked against
-    `context<a: …>` nested 40 levels was checked along one path. It is now walked by
-    `Conformance` in the same module, which remembers the answer for a shared list or context and
-    a type node by their addresses, for one check (a node held once is reached again only
-    through a shared node above it); the answers are those of the walk before. Tests first:
-    `feel/src/tests/type_relations.rs` checks lists doubled 60 times and lists that hold the
-    same context twice at each of 60 levels against their types; each was stopped after 60 s on
-    the parent, the second also with the answers remembered for shared lists only. Answers
-    change: the invocations over a list doubled 40 times and over a list that holds the same
-    context twice at each of 40 levels, which exhausted the memory of 0.5.0, answer 0
-    (`tools/identity/release/registered/shared-lists.json` and `shared-contexts.json`).
     Measured on the module of items 154 to 157 together (wasm, Node 26, Apple M2, two
     alternating rounds): against the module of item 153, geomean 1.012x and 1.016x over the 39
     workloads of the speed suite, none below 0.97x in either round; `count(items)` over 10,000
@@ -2767,78 +2808,75 @@ their items with both answers. The totals are under "Verification" below.
     rheon-feel, read by this index, by the type relations (item 157) and by FEEL equality (item
     155), which each wrote it out before. Rust API: `Value::is_shared` and `Value::node_address`
     are added.
-163. **The parser reads the names of a list's items from its items.** The names nested in a list
-    of an input context are those of the list's item type when that is a context type, and the
-    parser built the type of the list (`Value::type_of`) to find them, which typed every item and
-    followed every path of a shared value: with `l` a list of two contexts doubled 30 times, the
-    parse of `l.a.leaf + 1` exhausted the memory (the test process was killed). The item type of
-    a list is the type of its first item when the types of the other items conform to it, so the
-    names are now read from the first item: a context (its keys and the names nested in its
-    values, by the rule of every other context of an input context), or a context type held as a
-    value, a context type entry, a formal parameter or an interval end of one; the conformance of
-    the items is decided by the type relations of item 157 without building a type
-    (`FeelList::items_conform_to_first`, the decision `instance of` makes for a list), a pair with
-    a shared list or context once. The index keeps the node of each list for the composite-name
-    search, as it kept the list's item type. A context item may be held by its list alone, and
-    such a list may be held on several paths (in `{a: l, b: l}` the item of `l` is held once,
-    by `l`), so the index remembers the longest prefix of a shared list as it does for a shared
-    context (item 162), and admits the item by the list: without that, a list of one context
-    around two copies of the list before it, doubled 30 times, was indexed once per path (the
-    test of it was still running when it was stopped after 60 s); it now reads at most
-    depth + 2 contexts at 30 and 60 levels. The conversion of an input context into a parsing context
-    reads a list the same way. One case differs from the built type and follows the rule of the
-    other contexts instead: an entry of a list's first item that holds an internal value of a
-    type (a context type, a context type entry, a formal parameter or an interval end, which no
-    request and no DMN input can produce) carries no names, as the same entry outside a list
-    never did. Tests first: in `feel-parser/src/tests/names_index.rs`, the parse of
-    `l.a.leaf + 1` with `l` a list of two contexts doubled 30 and 60 times reads at most
-    depth + 2 contexts, while on the parent the test process was killed after it exhausted the
-    memory; and the names of lists of contexts, of type values and of contexts that nest
-    contexts, types and lists equal the item types that `Value::type_of` builds. The frozen
-    oracle tests of the parser, which type the lists as before, and the parse twins of every
-    committed request answer as before. The type of a list itself (`Value::type_of`, and the
-    type a message quotes) is decided the same way: whether the items after the first conform to
-    it is decided by `FeelList::items_conform_to_first`, and only the first item's type is built.
-    It built the first item's type and then built or checked the type of every other item, so the
-    type of a list that holds the same list on many paths followed every path (2^40 type builds
-    for a list doubled 40 times): the test of it, `feel/src/tests/message.rs`, was stopped after
-    60 s on the parent, and now the type of a list doubled 60 times is written at once. A message
-    quotes `list<Any>` where a later item's type, larger than the 1,000 type nodes a message may
-    build, made it quote `list<…>`, as for `1 + [[1], [{e0: 0, …, e999: 0}]]`
+163. **The parser reads the names of a list's items from its items.** The names nested in a list of
+    an input context are those of the list's item type when that is a context type, and the parser
+    built the type of the list (`Value::type_of`) to find them, which typed every item and followed
+    every path of a shared value: with `l` a list of two contexts doubled 30 times, the parse of
+    `l.a.leaf + 1` exhausted the memory (the test process was killed). The item type of a list is
+    the type of its first item when the types of the other items conform to it, so the names are now
+    read from the first item: a context (its keys and the names nested in its values, by the rule of
+    every other context of an input context), or a context type held as a value, a context type
+    entry, a formal parameter or an interval end of one; the conformance of the items is decided by
+    the type relations of item 157 without building a type (`FeelList::items_conform_to_first`, the
+    decision `instance of` makes for a list), a pair with a shared list or context once. The index
+    keeps the node of each list for the composite-name search, as it kept the list's item type. A
+    context item may be held by its list alone, and such a list may be held on several paths (in
+    `{a: l, b: l}` the item of `l` is held once, by `l`), so the index remembers the longest prefix
+    of a shared list as it does for a shared context (item 162), and admits the item by the list:
+    without that, a list of one context around two copies of the list before it, doubled 30 times,
+    was indexed once per path (the test of it was still running when it was stopped after 60 s); it
+    now reads at most depth + 2 contexts at 30 and 60 levels. The conversion of an input context
+    into a parsing context reads a list the same way. One case differs from the built type and
+    follows the rule of the other contexts instead: an entry of a list's first item that holds an
+    internal value of a type (a context type, a context type entry, a formal parameter or an
+    interval end, which no request and no DMN input can produce) carries no names, as the same entry
+    outside a list never did. Tests first: in `feel-parser/src/tests/names_index.rs`, the parse of
+    `l.a.leaf + 1` with `l` a list of two contexts doubled 30 and 60 times reads at most depth + 2
+    contexts, while on the parent the test process was killed after it exhausted the memory; and the
+    names of lists of contexts, of type values and of contexts that nest contexts, types and lists
+    equal the item types that `Value::type_of` builds. The frozen oracle tests of the parser, which
+    type the lists as before, and the parse twins of every committed request answer as before. The
+    type of a list itself (`Value::type_of`, and the type a message quotes) is decided the same way:
+    whether the items after the first conform to it is decided by
+    `FeelList::items_conform_to_first`, and only the first item's type is built. It built the first
+    item's type and then built or checked the type of every other item, so the type of a list that
+    holds the same list on many paths followed every path (2^40 type builds for a list doubled 40
+    times): the test of it, `feel/src/tests/message.rs`, was stopped after 60 s on the parent, and
+    now the type of a list doubled 60 times is written at once. A message quotes `list<Any>` where a
+    later item's type, larger than the 1,000 type nodes a message may build, made it quote
+    `list<…>`, as for `1 + [[1], [{e0: 0, …, e999: 0}]]`
     (`tools/identity/registered/list-type.json`). Answers change: the message of that addition
     quotes `list<Any>`, and the addition `1 + l` with `l` a list doubled 40 times, which exhausted
     the memory of 0.5.0, is null with the type of the list in its error
-    (`tools/identity/release/registered/shared-lists.json`).
-    Rust API (`rheon-feel`): the added `FeelList::items_conform_to_first`.
-    Measured on the module of items 158 to 163 together (wasm, Node 26, Apple M2, two
-    alternating rounds): against the module of item 157, geomean 1.080x and 1.070x over the 39
-    workloads of the speed suite and 1.057x and 1.065x over the 86 parse workloads, none below
-    0.97x in either round; `sum(items[amount > 100].amount)` 1.301x and 1.301x,
-    `count(items[status = "open"])` 1.323x and 1.336x, `count(for x in items return x.amount)`
-    1.225x, `{b: context put(data, "p", 2), r: [count(get entries(data)), b.p]}.r` 1.371x,
-    `count(for i in 1..count(items) return items[i].amount)` over 1,000 contexts 4.315x and
-    4.260x; of the parse set the path `a.a.a…` of 100 names 5.271x, of 100 distinct names
-    5.020x, of 25 names 1.778x, a context literal nested 149 levels 2.768x. Against 0.5.0:
-    geomean 1.082x and 1.084x over the suite and 1.056x and 1.055x over the parse set; path of
-    100 names 5.256x and 5.222x, of 100 distinct names 4.972x and 4.969x, the context literal
-    nested 149 levels 2.752x and 2.740x, the two filters 1.282x to 1.299x, the input of 10,000
-    contexts parsed for `1 + 2` 0.974x and 0.971x, the inputs of 1,000 and 5,000 entries at least
-    0.970x (`fctx-temporal-200` 0.976x and 0.970x, `fctx-5000` 0.982x and 0.974x), `fib15` 0.982x
-    and 0.971x; below 0.97x in both rounds only a list literal nested 297 levels (0.925x and
-    0.924x) and a flat context literal of 5,000 entries (0.968x and 0.968x), as after item 157.
-    Allocations per call (native): one more per context value built and per function definition
-    (`count(items)` over 10,000 contexts 160,105 to 170,105, `fib15` 6,190 to 6,192,
-    `ctx200-0f` 16,929 to 16,930), fewer where a context was copied (the two filters 260,134 to
-    170,134 and 260,144 to 170,144, `count(for x in items return x.amount)` 260,154 to 170,143,
-    `count(for i in 1..count(items) return items[i].amount)` 10,025,160 to 21,160, the path of
-    100 names 10,789 to 988, the context literal nested 149 levels 30,037 to 8,134);
-    reallocations equal for every workload. The native peak of `count(items[status = "open"])`
-    is 12,798,943 B (22,459,853 B on 0.5.0, 22,459,925 B after item 157). The string doubling's
-    peak memory (n = 17 to 26, 267.38 MiB at 26) and the stack report are those of 0.5.0. The
-    walkers of a value built natively reach at least 1,265 levels on every host, as on 0.5.0
+    (`tools/identity/release/registered/shared-lists.json`). Rust API (`rheon-feel`): the added
+    `FeelList::items_conform_to_first`. Measured on the module of items 158 to 163 together (wasm,
+    Node 26, Apple M2, two alternating rounds): against the module of item 157, geomean 1.080x and
+    1.070x over the 39 workloads of the speed suite and 1.057x and 1.065x over the 86 parse
+    workloads, none below 0.97x in either round; `sum(items[amount > 100].amount)` 1.301x and
+    1.301x, `count(items[status = "open"])` 1.323x and 1.336x, `count(for x in items return
+    x.amount)` 1.225x, `{b: context put(data, "p", 2), r: [count(get entries(data)), b.p]}.r`
+    1.371x, `count(for i in 1..count(items) return items[i].amount)` over 1,000 contexts 4.315x and
+    4.260x; of the parse set the path `a.a.a…` of 100 names 5.271x, of 100 distinct names 5.020x, of
+    25 names 1.778x, a context literal nested 149 levels 2.768x. Against 0.5.0: geomean 1.082x and
+    1.084x over the suite and 1.056x and 1.055x over the parse set; path of 100 names 5.256x and
+    5.222x, of 100 distinct names 4.972x and 4.969x, the context literal nested 149 levels 2.752x
+    and 2.740x, the two filters 1.282x to 1.299x, the input of 10,000 contexts parsed for `1 + 2`
+    0.974x and 0.971x, the inputs of 1,000 and 5,000 entries at least 0.970x (`fctx-temporal-200`
+    0.976x and 0.970x, `fctx-5000` 0.982x and 0.974x), `fib15` 0.982x and 0.971x; below 0.97x in
+    both rounds only a list literal nested 297 levels (0.925x and 0.924x) and a flat context literal
+    of 5,000 entries (0.968x and 0.968x), as after item 157. Allocations per call (native): one more
+    per context value built and per function definition (`count(items)` over 10,000 contexts 160,105
+    to 170,105, `fib15` 6,190 to 6,192, `ctx200-0f` 16,929 to 16,930), fewer where a context was
+    copied (the two filters 260,134 to 170,134 and 260,144 to 170,144, `count(for x in items return
+    x.amount)` 260,154 to 170,143, `count(for i in 1..count(items) return items[i].amount)`
+    10,025,160 to 21,160, the path of 100 names 10,789 to 988, the context literal nested 149 levels
+    30,037 to 8,134); reallocations equal for every workload. The native peak of `count(items[status
+    = "open"])` is 12,798,943 B (22,459,853 B on 0.5.0, 22,459,925 B after item 157). The string
+    doubling's peak memory (n = 17 to 26, 267.38 MiB at 26) and the stack report are those of 0.5.0.
+    The walkers of a value built natively reach at least 1,265 levels on every host, as on 0.5.0
     (dropping a context at least 3,156, 8,562 before; equality of lists at least 2,062, 2,140
-    before); `context put` refuses a key list beyond 500 levels by design. `run.sh --release`:
-    7,890 requests, 37 registered differences, 0 others, 482 s, peak RSS 3.9 GB.
+    before); `context put` refuses a key list beyond 500 levels by design. `run.sh --release`: 7,890
+    requests, 37 registered differences, 0 others, 482 s, peak RSS 3.9 GB.
 164. **Request sets for filters, logic operators, callbacks, B-FEEL arithmetic and context
     literals.** The paths of filters by index and by item, of `and` and `or`, of the functions
     that `sort` and `list replace` call, of the B-FEEL arithmetic and of context literals had few
@@ -2866,26 +2904,26 @@ their items with both answers. The totals are under "Verification" below.
     requests, 37 registered differences, 0 others, 528 s, peak RSS 4.9 GB. Tooling only; no API
     change.
 165. **One iteration path for FEEL and boxed expressions.** A `for`, `some` or `every` expression
-    had two ways to put its iteration context in scope: a FEEL expression moved the context into
-    the scope and back in every iteration, because a FEEL body never writes into the context on
-    the top of the scope, and a boxed one copied it in every iteration, because a boxed context
-    as its body does. The iteration context is now one shared context for the whole walk
-    (`Arc<FeelContext>`), pushed as a shared frame (item 160) in every iteration and for every
-    domain, and changed between iterations only, when the walk holds it alone, so without a copy.
-    What a body writes into the frame goes into a copy that is dropped with the frame, as the
-    copy of the boxed path was; `partial` is moved into the context before the body and read back
-    from the frame the body ran in, so an entry `partial` that a boxed body writes replaces the
-    results as before (the pins of item 143 pass unchanged). A frame that is still the iteration
-    context (its address is that of the shared context) was not written, and the results are
-    then moved out of the context without a further lookup: reading them from the frame first
-    cost loops 5 to 9 % (`count(for i in 1..10000 return i)` 0.917x of the module of item 163). The walk allocates the shared context
-    once per evaluation of the expression. `Iteration::for_feel` and the mode it chose are
-    removed; FEEL expressions build their iteration with a crate-private constructor, and
-    `Iteration::boxed` is unchanged. Test first: in `feel-evaluator/src/tests/for_expression.rs`,
-    a body that reads an entry and writes it into the frame sees no value in every iteration,
-    with one variable and with two, and a body that writes `partial` replaces the results so
-    far; on the parent the FEEL iteration answered `[null, 7]`, the write reaching the next
-    iteration. Identity step: no answer changes. No public API change.
+    had two ways to put its iteration context in scope: a FEEL expression moved the context into the
+    scope and back in every iteration, because a FEEL body never writes into the context on the top
+    of the scope, and a boxed one copied it in every iteration, because a boxed context as its body
+    does. The iteration context is now one shared context for the whole walk (`Arc<FeelContext>`),
+    pushed as a shared frame (item 160) in every iteration and for every domain, and changed between
+    iterations only, when the walk holds it alone, so without a copy. What a body writes into the
+    frame goes into a copy that is dropped with the frame, as the copy of the boxed path was;
+    `partial` is moved into the context before the body and read back from the frame the body ran
+    in, so an entry `partial` that a boxed body writes replaces the results as before (the pins of
+    item 143 pass unchanged). A frame that is still the iteration context (its address is that of
+    the shared context) was not written, and the results are then moved out of the context without a
+    further lookup: reading them from the frame first cost loops 5 to 9 % (`count(for i in 1..10000
+    return i)` 0.917x of the module of item 163). The walk allocates the shared context once per
+    evaluation of the expression. `Iteration::for_feel` and the mode it chose are removed; FEEL
+    expressions build their iteration with a crate-private constructor, and `Iteration::boxed` is
+    unchanged. Test first: in `feel-evaluator/src/tests/for_expression.rs`, a body that reads an
+    entry and writes it into the frame sees no value in every iteration, with one variable and with
+    two, and a body that writes `partial` replaces the results so far; on the parent the FEEL
+    iteration answered `[null, 7]`, the write reaching the next iteration. Identity step: no answer
+    changes. No public API change.
 166. **One filter path for FEEL and boxed expressions.** A filter had two ways to put an item in
     scope: for a FEEL predicate it moved each item into the scope and back, reusing one special
     context `{item: value}` for all items, and for the match of a boxed filter it put a copy of
@@ -2951,7 +2989,26 @@ their items with both answers. The totals are under "Verification" below.
     `count(items[status = "open"])` is 12,671,845 B (22,459,853 B on 0.5.0). The string
     doubling's peak memory (n = 17 to 26, 267.38 MiB at 26, growth 2.00x the result) equals that
     of 0.5.0. Module size 3,761,500 B (3,737,388 B on 0.5.0, 3,763,638 B after item 163).
-168. **`and` and `or` evaluate the right operand only when the left one does not decide.** Both
+168. **The conformance of a value to a type visits a shared list or context once.**
+    `Value::is_conformant`, the conformance of a value to a type (the check of a typed parameter, of
+    the type a boxed context, a decision or a decision service declares, and of the implicit
+    conversions), is a relation of the value, not of its type, and walked the value along every
+    path: a list that a loop doubles 40 times through `partial`, passed to a function whose
+    parameter declares its 40-level type, made 2^40 checks, and so did a list that holds the same
+    context twice at each of 40 levels (`[c, c]` with `c = {a: l}` around the list before it). A
+    context type names the entries it follows, so a context doubled 40 times and checked against
+    `context<a: …>` nested 40 levels was checked along one path. It is now walked by `Conformance`
+    in `feel/src/values/type_relations.rs`, which remembers the answer for a shared list or context
+    and a type node by their addresses, for one check (a node held once is reached again only
+    through a shared node above it); the answers are those of the walk before. Tests first:
+    `feel/src/tests/type_relations.rs` checks lists doubled 60 times and lists that hold the same
+    context twice at each of 60 levels against their types; each was stopped after 60 s on the
+    parent, the second also with the answers remembered for shared lists only. Answers change: the
+    invocations over a list doubled 40 times and over a list that holds the same context twice at
+    each of 40 levels, which exhausted the memory of 0.5.0, answer 0
+    (`tools/identity/release/registered/shared-lists.json` and `shared-contexts.json`). No API
+    change.
+169. **`and` and `or` evaluate the right operand only when the left one does not decide.** Both
     operators evaluated both operands and then applied DMN 1.6 Table 51, so the right operand ran
     even where its value cannot change the result: its errors and warnings were recorded
     (`false and (1 + "a")` was false with one error, and failed in strict mode), and a recursion
@@ -2971,63 +3028,60 @@ their items with both answers. The totals are under "Verification" below.
     recursions answer true or false instead of the call-depth error), and 22 lose only the
     errors or the warnings of the right operand, explained by two rule entries. The official TCK
     is unchanged (its `and` and `or` tests, 0064 and 0065, compare values). No API change.
-169. **The item at an index of a filter is one function.** The index branch of a filter
+170. **The item at an index of a filter is one function.** The index branch of a filter
     (`feel-evaluator/src/filters.rs`) wrote the bounds check twice, once for a positive index
     and once for a negative one. It is now `item_at`: the integer check, the empty list, the
     magnitude beyond 2⁶⁴ and the bounds are checked once, in the order and with the texts of
     before. Identity step: the tests of `feel-evaluator/src/tests/filter.rs` and the index
     requests of `tools/identity/requests/filters.json` (0, a non-integer, beyond 2⁶⁴, on an empty
     and a non-empty list) answer as before. No API change.
-170. **A filter expression is evaluated once in the enclosing scope, and a number selects.** A
-    filter `l[e]` over a list evaluated `e` for every item with the item in scope, then once more
-    in the enclosing scope, and only then looked whether that gave a number. So an index was
-    evaluated once per item (`count(for i in 1..count(items) return items[i].amount)` was
-    quadratic in the list), every error of both passes was recorded (`sum(items[amount > 100].amount)`
-    had two errors for the name `amount` in the enclosing scope and failed in strict mode), and a
-    type error of the per-item pass hid an index that the enclosing scope defines. DMN 1.6
-    Table 69 maps row 1 ("e1 is a list and e2 is an integer") in the enclosing scope and the
-    boolean rows in the scope with the item. The filter now evaluates `e` once in the enclosing
-    scope first: a number selects the item at once (`item_at`, item 169) and its errors stay;
-    anything else selects nothing, so what that evaluation recorded is removed and `e` is
-    evaluated for each item as before. An abort in it is never removed: the evaluation stops. The
-    removal is `rheon_feel::diagnostics::tentative`, which returns a mark of what the running
-    collection held (`Tentative`; dropping it keeps the records, `Tentative::discard` sets the
-    count back and cuts the messages and the warnings to their marked lengths, exact at the cap
-    and after a repeat of the message before the mark, and nothing when no collection runs). The
-    evaluation in the enclosing scope runs in an empty frame of its own, so what a boxed context
-    as the match of a boxed filter writes into the frame on the top (model-evaluator) is dropped
-    with it: on the parent that evaluation came after the items and wrote into the enclosing
-    frame, where a later entry of an enclosing boxed context read it (a new pin of
-    `model-evaluator/src/tests/various/dmn_0008`: `seen` of the match was 1 there and is now
-    null with "context has no value for key 'seen'"; the other pins of that model, an entry
-    reading a later entry among them, answer as before). Tests first:
-    `feel/src/diagnostics.rs` (a discarded mark, at the cap, after a repeat, with a nested
-    collection, outside a collection; a kept mark; an abort survives), and
-    `feel-evaluator/src/tests/filter.rs` (an index evaluator that counts its runs runs once
-    for `list[2]` over 1,000 items, 1,001 times on the parent; the requests below), and
-    `wasm/feel-wasm/tests/contract.rs` (strict mode), failing on the parent; the pins of frames
-    that a caller's evaluator removes or writes are kept, with the evaluation in the enclosing
-    scope added. Answers change (`tools/identity/registered/filter-probe.json`,
-    `docs/CONTRACT.md` section 3, the backlog entry on the outer evaluation removed): 14
-    requests of the committed sets change their result or their error (strict mode passes on
-    filters over item entries and on `[][1 + "a"]`; `{a: 2, r: [{a: "x"}, {a: "y"}][a]}.r` is
-    `{a: "y"}` instead of the null of a string index; an index the enclosing scope defines
-    selects where the items' scope ran a runaway recursion, `5` instead of the call-depth error;
-    and one change for the worse, where the expression is a type error for the items and a
-    runaway recursion in the enclosing scope, `{f: function(n) f(n + 1), r: [{g: "s"}][if g =
-    "s" then "x" else f(1)]}.r`, is now the call-depth error instead of null), and 59 lose only
-    errors or warnings of the enclosing-scope evaluation, explained by one rule entry
-    (`[1, 2, 3][1 + "a"]` has 3 errors instead of 4, `[10, 20, 30][count([1 + "a"])]` 1 instead
-    of 4; the error counts of five rows of `feel-evaluator/src/tests/values_used_again.rs` fall
-    the same way). The official TCK has no filter whose expression is a name or a path, and its boxed
-    filter tests 1151 004 and 005 keep their null. Rust API (`rheon-feel`): the added
-    `diagnostics::tentative` and `diagnostics::Tentative`. Measured (wasm, Node 26, Apple M2,
-    the median of warm calls on one instance): `count(for i in 1..count(items) return
-    items[i].amount)` over 1,000 contexts takes 0.938 ms and over 10,000 contexts 8.65 ms, 9.2
-    times as long, where the module of item 169 took 57.3 ms and 5,591 ms (one cold call each,
-    as the module of item 167: 56.7 ms and 5,548 ms; warm, 56.7 ms and 5,561 ms, 98 times as
-    long), so the index loop is linear in the list.
-171. **`sort` and `list replace` call their function in one scope.** Each call of the ordering
+171. **A filter expression is evaluated once in the enclosing scope, and a number selects.** A
+    filter `l[e]` over a list evaluated `e` for every item with the item in scope, then once more in
+    the enclosing scope, and only then looked whether that gave a number. So an index was evaluated
+    once per item (`count(for i in 1..count(items) return items[i].amount)` was quadratic in the
+    list), every error of both passes was recorded (`sum(items[amount > 100].amount)` had two errors
+    for the name `amount` in the enclosing scope and failed in strict mode), and a type error of the
+    per-item pass hid an index that the enclosing scope defines. DMN 1.6 Table 69 maps row 1 ("e1 is
+    a list and e2 is an integer") in the enclosing scope and the boolean rows in the scope with the
+    item. The filter now evaluates `e` once in the enclosing scope first: a number selects the item
+    at once (`item_at`, item 170) and its errors stay; anything else selects nothing, so what that
+    evaluation recorded is removed and `e` is evaluated for each item as before. An abort in it is
+    never removed: the evaluation stops. The removal is `rheon_feel::diagnostics::tentative`, which
+    returns a mark of what the running collection held (`Tentative`; dropping it keeps the records,
+    `Tentative::discard` sets the count back and cuts the messages and the warnings to their marked
+    lengths, exact at the cap and after a repeat of the message before the mark, and nothing when no
+    collection runs). The evaluation in the enclosing scope runs in an empty frame of its own, so
+    what a boxed context as the match of a boxed filter writes into the frame on the top
+    (model-evaluator) is dropped with it: on the parent that evaluation came after the items and
+    wrote into the enclosing frame, where a later entry of an enclosing boxed context read it (a new
+    pin of `model-evaluator/src/tests/various/dmn_0008`: `seen` of the match was 1 there and is now
+    null with "context has no value for key 'seen'"; the other pins of that model, an entry reading
+    a later entry among them, answer as before). Tests first: `feel/src/diagnostics.rs` (a discarded
+    mark, at the cap, after a repeat, with a nested collection, outside a collection; a kept mark;
+    an abort survives), and `feel-evaluator/src/tests/filter.rs` (an index evaluator that counts its
+    runs runs once for `list[2]` over 1,000 items, 1,001 times on the parent; the requests below),
+    and `wasm/feel-wasm/tests/contract.rs` (strict mode), failing on the parent; the pins of frames
+    that a caller's evaluator removes or writes are kept, with the evaluation in the enclosing scope
+    added. Answers change (`tools/identity/registered/filter-probe.json`, `docs/CONTRACT.md` section
+    3, the backlog entry on the outer evaluation removed): 14 requests of the committed sets change
+    their result or their error (strict mode passes on filters over item entries and on `[][1 +
+    "a"]`; `{a: 2, r: [{a: "x"}, {a: "y"}][a]}.r` is `{a: "y"}` instead of the null of a string
+    index; an index the enclosing scope defines selects where the items' scope ran a runaway
+    recursion, `5` instead of the call-depth error; and one change for the worse, where the
+    expression is a type error for the items and a runaway recursion in the enclosing scope, `{f:
+    function(n) f(n + 1), r: [{g: "s"}][if g = "s" then "x" else f(1)]}.r`, is now the call-depth
+    error instead of null), and 59 lose only errors or warnings of the enclosing-scope evaluation,
+    explained by one rule entry (`[1, 2, 3][1 + "a"]` has 3 errors instead of 4, `[10, 20,
+    30][count([1 + "a"])]` 1 instead of 4; the error counts of five rows of
+    `feel-evaluator/src/tests/values_used_again.rs` fall the same way). The official TCK has no
+    filter whose expression is a name or a path, and its boxed filter tests 1151 004 and 005 keep
+    their null. Rust API (`rheon-feel`): the added `diagnostics::tentative` and
+    `diagnostics::Tentative`. Measured (wasm, Node 26, Apple M2, the median of warm calls on one
+    instance): `count(for i in 1..count(items) return items[i].amount)` over 1,000 contexts takes
+    0.938 ms and over 10,000 contexts 8.65 ms, 9.2 times as long, where the module of item 170 took
+    57.3 ms and 5,591 ms (one cold call each, as the module of item 167: 56.7 ms and 5,548 ms; warm,
+    56.7 ms and 5,561 ms, 98 times as long), so the index loop is linear in the list.
+172. **`sort` and `list replace` call their function in one scope.** Each call of the ordering
     function of `sort` and of the matching function of `list replace` was given a new empty
     scope, whose stack of frames was allocated again for every call. One empty scope now serves
     every call of one `sort` or `list replace`: a call pushes the function's closure and its
@@ -3036,37 +3090,37 @@ their items with both answers. The totals are under "Verification" below.
     what the function's free names find is unchanged. Identity step: the requests of
     `tools/identity/requests/callbacks.json` and the aliasing requests of `values.json` answer as
     before. No API change. Measured (wasm, Node 26, Apple M2, three alternating rounds against
-    the module of item 170): `count(sort(for i in 1..10000 return modulo(i * 7919, 10007),
+    the module of item 171): `count(sort(for i in 1..10000 return modulo(i * 7919, 10007),
     function(a, b) a < b))` 32.07 to 27.72 ms (1.157x), `count(list replace(for i in 1..10000
     return i, function(item, newItem) item > 5000, 0))` 3.43 to 3.08 ms (1.115x).
-172. **The function called by `sort` and `list replace` is a counted call.** The ordering
-    function of `sort` and the matching function of `list replace` were invoked without the
-    call guard, so they did not count toward the 200 nested function calls: a recursion through
-    a callback was 2 calls deep per level (the function and the built-in) and ran 99 levels
-    before the limit, on the native stack of every callback frame besides. Both are now invoked
-    through `call` (`feel-evaluator/src/invocation.rs`), the guard around `invoke` that
-    `evaluate_invocation` uses too, so a recursion through a callback is 3 calls deep per level:
-    levels 1 to 66 answer as before, 67 to 99 are now the call-depth error, and 100 and more
-    stop in both. The invocation nodes keep entering the guard themselves, before they evaluate
-    the function and the arguments. After an abort a callback is not reached at all, because the
-    call of the built-in is refused first, and the loops of both built-ins already stopped at
-    the abort. Test first: `feel-evaluator/tests/evaluators.rs`, a recursion through each
-    callback 66 levels deep answers and 80 levels deep stops at the call-depth limit, while on
-    the parent 80 levels answered. Answers change (`tools/identity/registered/callback-call-depth.json`,
-    `docs/CONTRACT.md` section 2, the backlog entries on the comparator and on call depth
-    counting): the two requests of `callbacks.json` 80 levels deep are now the call-depth error
-    instead of `true`. The official TCK's `sort` and `list replace` tests (0013-sort,
-    1155-list-replace-function) use shallow function literals and business knowledge models.
-    No API change. Measured (wasm, Node 26, Apple M2, against the module of item 171, three runs
-    of three or four alternating rounds): the 10,000-item `sort` of item 171 0.934x, 0.945x and
-    0.936x (27.5 to 29.4 ms), its `list replace` 0.960x, 0.957x and 0.956x, under the floor of
-    0.97x that applied to this step. The cost is the guard on each call of the ordering function,
-    one per comparison: the count of nested calls is entered and left, the abort is checked,
-    and the call's result is checked for a non-finite number and for its nesting depth. The
-    commit is kept as a robustness fix, the figure reported. Against 0.5.0 at the end of items
-    168 to 173 (two alternating rounds) the `sort` stands at 1.099x and 1.075x and the `list
-    replace` at 1.055x and 1.049x: the shared scope of item 171 gains more than the guard costs.
-173. **Arithmetic operators are named kernels behind one entry.** Each of the five binary
+173. **The function called by `sort` and `list replace` is a counted call.** The ordering function
+    of `sort` and the matching function of `list replace` were invoked without the call guard, so
+    they did not count toward the 200 nested function calls: a recursion through a callback was 2
+    calls deep per level (the function and the built-in) and ran 99 levels before the limit, on the
+    native stack of every callback frame besides. Both are now invoked through `call`
+    (`feel-evaluator/src/invocation.rs`), the guard around `invoke` that `evaluate_invocation` uses
+    too, so a recursion through a callback is 3 calls deep per level: levels 1 to 66 answer as
+    before, 67 to 99 are now the call-depth error, and 100 and more stop in both. The invocation
+    nodes keep entering the guard themselves, before they evaluate the function and the arguments.
+    After an abort a callback is not reached at all, because the call of the built-in is refused
+    first, and the loops of both built-ins already stopped at the abort. Test first:
+    `feel-evaluator/tests/evaluators.rs`, a recursion through each callback 66 levels deep answers
+    and 80 levels deep stops at the call-depth limit, while on the parent 80 levels answered.
+    Answers change (`tools/identity/registered/callback-call-depth.json`, `docs/CONTRACT.md` section
+    2, the backlog entries on the comparator and on call depth counting): the two requests of
+    `callbacks.json` 80 levels deep are now the call-depth error instead of `true`. The official
+    TCK's `sort` and `list replace` tests (0013-sort, 1155-list-replace-function) use shallow
+    function literals and business knowledge models. No API change. Measured (wasm, Node 26, Apple
+    M2, against the module of item 172, three runs of three or four alternating rounds): the
+    10,000-item `sort` of item 172 0.934x, 0.945x and 0.936x (27.5 to 29.4 ms), its `list replace`
+    0.960x, 0.957x and 0.956x, under the floor of 0.97x that applied to this step. The cost is the
+    guard on each call of the ordering function, one per comparison: the count of nested calls is
+    entered and left, the abort is checked, and the call's result is checked for a non-finite number
+    and for its nesting depth. The commit is kept as a robustness fix, the figure reported. Against
+    0.5.0 at the end of items 168 to 173 (two alternating rounds) the `sort` stands at 1.099x and
+    1.075x and the `list replace` at 1.055x and 1.049x: the shared scope of item 172 gains more than
+    the guard costs.
+174. **Arithmetic operators are named kernels behind one entry.** Each of the five binary
     arithmetic operators and the negation was a closure in its builder, wrapped by `operate` (the
     null-operand rule) and, for all but `**`, by a second evaluator closure (`guard_finite`).
     B-FEEL could not call them on two values, so for every B-FEEL arithmetic node it built a
@@ -3095,13 +3149,13 @@ their items with both answers. The totals are under "Verification" below.
     Items 168 to 173 together, against the module of item 167: geomean 1.220x and 1.233x over
     the 39 workloads of the speed suite and 1.009x and 1.013x over the 86 parse workloads, none
     below 0.97x in both rounds; `count(for i in 1..10000 return i < 0 and (i * i + 1) / 3 > 5)`
-    7.291x and 7.413x, the index loop of item 170 over 1,000 contexts 64.9x and 63.5x, the
-    `sort` of item 171 1.096x and 1.114x, its `list replace` 1.058x and 1.070x, `fib15` 1.071x
+    7.291x and 7.413x, the index loop of item 171 over 1,000 contexts 64.9x and 63.5x, the
+    `sort` of item 172 1.096x and 1.114x, its `list replace` 1.058x and 1.070x, `fib15` 1.071x
     and 1.054x. Against 0.5.0: geomean 1.336x and 1.331x over the suite, none below 0.97x in
     both rounds (`loop-count-1k` 1.011x and 0.988x, `bif-loop-10k` 0.974x and 0.990x, `fib15`
     1.036x and 1.032x, `loop-nested-100x100` 0.984x and 0.986x), and 1.067x and 1.070x over the
     parse set, below 0.97x in both rounds only the list literal nested 297 levels (0.931x and
-    0.924x, item 154). The two filters of item 163 answer with fewer errors (item 170) at 1.308x
+    0.924x, item 154). The two filters of item 163 answer with fewer errors (item 171) at 1.308x
     to 1.335x. Allocations per call (native) against the module of item 167: fewer for 20 of
     the 39 suite workloads and 49 of the 86 parse workloads, more for none, the others equal; the
     `and` loop above 39,139 to 174, the `sort` 625,358 allocations and 121,052 reallocations to
@@ -3115,7 +3169,7 @@ their items with both answers. The totals are under "Verification" below.
     same list twice at every level, or that list beside a list of one item, `instance of
     list<boolean>` and the type of the value (as a response states it) reach 1,452 levels, the
     check of a typed parameter 2,218 and equality 2,062, all above the limit of 500.
-174. **A ledger outcome of the identity check can be the digest of a long response.** A ledger
+175. **A ledger outcome of the identity check can be the digest of a long response.** A ledger
     entry held its old and new answers as result texts or whole responses, so an answer that
     renders a value nested 500 levels deep (several megabytes for a list grown through `partial`)
     could be registered only by changing the request. `old` and `new` may now also be
@@ -3125,19 +3179,19 @@ their items with both answers. The totals are under "Verification" below.
     form (`tools/identity/README.md`). Test: `npm run test:identity`, a recorded 501-level list
     whose old answer is a digest reproduces, and another digest does not; a malformed digest is
     an input error. Tooling only; no API change.
-175. **The depth probes of the large sets that 0.5.0 answers are committed requests.** Nine depth
+176. **The depth probes of the large sets that 0.5.0 answers are committed requests.** Nine depth
     probes 501 levels deep in the request sets kept outside the repository answer the value-depth
     error of item 152, so the large-set run listed them as unregistered differences. The seven
     that 0.5.0 answers are now in `tools/identity/requests/value-depth.json`, as they are written
     there: a list and a context grown through `partial`, a recursion around list literals that
     nests 501 levels, chains of 501 context literals, of ranges and of closures, and `context
     put` with 501 keys. Their entries in `tools/identity/registered/value-depth.json` hold the old
-    answer whole for the range and the closure chains and as a digest (item 174) for the five
+    answer whole for the range and the closure chains and as a digest (item 175) for the five
     whose rendering is longer than 65,536 characters, and the value-depth error as the new one;
     the basis is that of item 152, the owner's limit of 500 levels. Identity against 0.5.0: the
     committed sources are 12,932 requests, 63 registered differences reproduced, 0 others.
     Tooling only; no API change.
-176. **The large-set run leaves out two chains by name.** The two other depth probes of the large
+177. **The large-set run leaves out two chains by name.** The two other depth probes of the large
     sets, a context literal of 100,000 entries that each hold the entry before (2 MB) and one of
     50,000 closures that each return the closure before (1.3 MB), stop with the value-depth error
     where 0.5.0 exhausts its memory and traps; they are too large to commit with a ledger entry,
@@ -3145,7 +3199,7 @@ their items with both answers. The totals are under "Verification" below.
     them out by name: `tools/identity/large-left-out.json` names each with the sha256 of its
     canonical text and the reason, `equal.mjs --leave-out` drops the named requests from every
     source and counts them, and a name that no source holds is an input error, so the list
-    cannot go stale unseen. Their 501-level forms are registered (item 175). Test: `npm run
+    cannot go stale unseen. Their 501-level forms are registered (item 176). Test: `npm run
     test:identity` (a named request is left out and counted, a stale or malformed name is an
     input error, and `run.sh` passes the list only with `--large`). The large-set run against
     0.5.0: 13,109 requests, 2 left out by name, 63 registered differences reproduced, 0 others,
@@ -3191,6 +3245,34 @@ existed.
   of such results (`exp(74.971090)`, `exp(log(2.5))`, `log(exp(7))`).
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
+
+Commits 135-177 (2026-11-16), on the tree of commit 177, by the release tier (`npm run
+tier:release`, 1,320 s of run time and 77 s of builds, budget 1,800 s): workspace 8,798 passed, 0
+failed, 24 ignored (CI's skips: the Rust TCK copies 3,555, the model evaluator 167, the other crates
+5,076); clippy on the workspace without warnings, also on every one of commits 135-177 on its own,
+each of which passes `cargo check --workspace --all-targets`; the API documentation builds with
+rustdoc's warnings denied; feel.wasm tests 81 native and 82 under Wasmtime; runtime 33; the identity
+tool's tests 22; smoke passes, with its two memory checks growing by 12.0 MiB and 26.5 MiB (bound 32
+MiB) and the 26 string doublings by 256.0 MiB (at most 281.6); the randomized and exhaustive tests
+at full size 1,024 passed and the parser corpus 502; the playground builds. The number oracle judges
+every case right with no exemption: 35,939 cases quick and 2,896,591 at full size, in 188 families.
+DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, every per-test
+result identical to 0.5.0's. Full responses against the 0.5.0 release module, each evaluate request
+also sent as parse, every cached reference answer equal to a live one (`--verify-cache`): the
+committed sources 12,934 requests, 64 registered differences reproduced and 80 explained by the
+three rules of items 169 and 171 (59, 16 and 5); with the release sources 13,007 requests, 85
+registered differences reproduced, 30 of them trapping 0.5.0; with the two sets kept outside the
+repository 13,111 requests, 2 of them left out by name (item 177); none unregistered in any run. The
+stack report, against 0.5.0: the recursion reaches depth 45 and 46 on Node's main thread with
+Liftoff and TurboFan (22 and 24), 94, 152 and 209 in workers of 2, 3 and 4 MiB with Liftoff (46, 75,
+104) and 95, 153 and 210 with TurboFan (51, 83, 114), and 19, 48, 105, 220 and 289 under Wasmtime
+with 512 KiB, 1, 2, 4 and 16 MiB (10, 26, 57, 120, 289); the parse op's nesting limits and the value
+depth limit of 500 are unchanged. The string doubling's peak memory (n = 17 to 26, 267.38 MiB at 26,
+growth 2.00x the result) equals that of 0.5.0. Speed against 0.5.0 (the speed suite, one round,
+wasm, Node 26, Apple M2): geomean 1.32x over 39 workloads, every result equal; the index loop over
+1,000 contexts 351x, `and` / `or` that stop early 7.31x, the B-FEEL loops 1.99x and 1.97x, `sort`
+1.10x, `list replace` 1.06x; below 0.97x only `tiny` (0.96x, 5.1 µs against 4.9 µs). Module size
+3,759,555 B (3,737,388 B on 0.5.0). The publish dry run needs the crates.io index and was not run.
 
 Commits 85-133 (2026-11-15), on the tree of commit 133: workspace 8,724 passed, 0 failed, 24
 ignored (CI's skips), the same with `RHEON_FULL_TESTS=1`, and the README's full-size run
@@ -3562,6 +3644,42 @@ The API changes of commits 85-133 (the item of each change is in parentheses):
   and `rheon-model` change only by the removed features (95). The wasm module's ABI and its
   request and response JSON are unchanged; what changes there are answers, registered with both
   answers as "Verification" states.
+
+The API changes of commits 135-177 (the item of each change is in parentheses):
+
+- Changed:
+  - `rheon-feel`: `FeelContext::iter` returns `impl ExactSizeIterator<Item = (&Name, &Value)>`
+    and `contains_entry` is generic over `Q` with `Name: Borrow<Q>` (147);
+    `FeelContext::assign_entry` returns `Option<Value>` (149); `Value::List` holds `FeelList` instead of `Vec<Value>`, and
+    `values_to_string`, `values_to_feel_string` and `values_to_jsonify` take `&[Value]` (150);
+    `FeelList`'s `IntoIterator` by value yields `ListItems` (154); the fields
+    `FunctionDefinition::parameters` and `result_type` are private (158); `Value::Context` holds
+    `Arc<FeelContext>` (159); `FeelScope::frames` returns `Ref<[ScopeFrame]>` and
+    `FeelScope::pop_frame` `Option<ScopeFrame>` (160); `FunctionDefinition::closure_ctx` is an
+    `Arc<FeelContext>` (161). Behaviour: a value nested more than 500 levels deep stops the
+    evaluation with `Abort::ValueDepth`, and `FeelContext::apply_entries` returns an error for a
+    path that would nest it deeper (152).
+  - `rheon-feel-evaluator`: `FilterExpressionEvaluator` is a unit struct that only `new` and
+    `Default` build (166). Behaviour: an abort stops every loop (146); `and` and `or` evaluate the
+    right operand only when the left does not decide (169); a filter evaluates its expression once
+    in the enclosing scope first (171); the function that `sort` and `list replace` call is a
+    counted call in one scope (172, 173).
+- Removed:
+  - `rheon-feel`: `impl Deref for FeelContext` (147); `Value::NamedParameter` and
+    `Value::PositionalParameters` (148); `FeelContext::get_entry_mut` (149).
+  - `rheon-feel-evaluator`: `FilterExpressionEvaluator::for_feel` (166).
+- Added:
+  - `rheon-feel`: `diagnostics::stopped` (146); `FeelContext::keys_from` (147); `FeelList` (150);
+    `Abort::ValueDepth`, `diagnostics::bound_depth` and `bound_list_depth` (152);
+    `values::ListItems` (154); `FeelList::address` and `FeelList::is_shared` (155);
+    `Value::has_type`, `Value::has_type_of` and `Value::type_instance_of` (157);
+    `FunctionDefinition::parameters()` and `result_type()` (158); `MessageArg` for `Arc<T>` (159);
+    `ScopeFrame` and `FeelScope::push_shared` (160); `Value::is_shared` and `Value::node_address`
+    (162); `FeelList::items_conform_to_first` (163); `diagnostics::tentative` and
+    `diagnostics::Tentative` (171).
+- Kept: the other crates have no API change. `Value`, `FeelList`, `ListItems` and `ScopeFrame`
+  are `Send + Sync`. The wasm module's ABI and its request and response JSON are unchanged; what
+  changes there are answers, registered with both answers as "Verification" states.
 
 ### The pre-rename procedure (historical)
 
