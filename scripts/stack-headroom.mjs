@@ -52,9 +52,11 @@
 // depends on the platform and on the V8 and Wasmtime versions. A change that alters the measured
 // depths on purpose updates the floors with them.
 //
-// --report checks nothing: it prints the deepest recursion each host reaches (Node main thread, and
-// workers with 2, 3 and 4 MiB stacks, with each compiler; Wasmtime with a wasm stack of 512 KiB, 1,
-// 2, 4 and 16 MiB) and the outcome of the flat nesting there. Exit status: 0 when every check passed (with --report: when
+// --report checks nothing: it prints the deepest body of each recursion that each host reaches
+// (the recursion of 190 calls, one of 200 calls, the call depth limit, and one of 66 levels
+// through a `sort` callback; Node main thread, and workers with 2, 3 and 4 MiB stacks, with each
+// compiler; Wasmtime with a wasm stack of 512 KiB, 1, 2, 4 and 16 MiB) and the outcome of the flat
+// nesting there. Exit status: 0 when every check passed (with --report: when
 // every host ran), 1 when a check failed, 2 when a host could not be run.
 import { readFile, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -78,6 +80,10 @@ const V8_COMPILERS = [
 // Upper bound of the search for the AST depth limit: the parse op must reject this nesting.
 const MAX_NESTING = 400;
 const RECURSION_CALLS = 190;
+// The call depth limit (docs/CONTRACT.md §2) and the levels of a recursion through a `sort`
+// callback that it allows.
+const MAX_CALLS = 200;
+const SORT_LEVELS = 66;
 // The value depth limit (docs/CONTRACT.md §2).
 const VALUE_DEPTH = 500;
 // Internal option: run the Node hosts in this process and print their results as JSON.
@@ -103,6 +109,25 @@ const recursion = {
   expression: (d) => `{f: function(n) if n = 0 then 0 else ${'0 + ('.repeat(d)}1 + f(n-1)${')'.repeat(d)}, r: f(${RECURSION_CALLS})}.r`,
   display: () => `${RECURSION_CALLS}`,
 };
+// The recursions that --report measures besides `recursion`, each to the deepest body it reaches:
+// 200 nested calls, the call depth limit, with a body nested d levels; and 66 levels of recursion
+// through the function `sort` calls (3 nested calls a level: the function, `sort` and its callback,
+// 199 in all), the callback's body nested d levels, which shows the native stack a host re-entry
+// takes.
+const reported = [
+  recursion,
+  {
+    name: 'recursion of 200 calls',
+    expression: (d) => `{f: function(n) if n = 0 then 0 else ${'0 + ('.repeat(d)}1 + f(n-1)${')'.repeat(d)}, r: f(${MAX_CALLS - 1})}.r`,
+    display: () => `${MAX_CALLS - 1}`,
+  },
+  {
+    name: 'recursion through sort',
+    expression: (d) =>
+      `{f: function(n) if n = 0 then true else sort([1, 2], function(a, b) ${'if true then '.repeat(d)}f(n - 1)${' else false'.repeat(d)})[1] > 0, r: f(${SORT_LEVELS})}.r`,
+    display: () => 'true',
+  },
+];
 
 const evaluate = (construct, d) => JSON.stringify({ op: 'evaluate', expression: construct.expression(d) });
 
@@ -131,7 +156,7 @@ async function nodeHost(module) {
 // MAX_NESTING, which must be rejected).
 async function astLimits(call) {
   const limits = {};
-  for (const construct of [...flat, recursion]) {
+  for (const construct of [...flat, ...reported]) {
     if (construct.depth !== undefined) {
       limits[construct.name] = construct.depth;
       continue;
@@ -186,9 +211,11 @@ async function runThread(modulePath, limits, floor, report) {
     const d = limits[construct.name];
     result.flat[construct.name] = outcome(construct, d, await call(evaluate(construct, d)));
   }
-  const attempt = async (d) => outcome(recursion, d, await call(evaluate(recursion, d)));
-  if (report) result.deepest = await deepestRecursion(attempt, limits[recursion.name]);
-  else if (floor !== null) result.recursion = await attempt(floor);
+  const attempt = (construct) => async (d) => outcome(construct, d, await call(evaluate(construct, d)));
+  if (report) {
+    result.deepest = {};
+    for (const construct of reported) result.deepest[construct.name] = await deepestRecursion(attempt(construct), limits[construct.name]);
+  } else if (floor !== null) result.recursion = await attempt(recursion)(floor);
   return result;
 }
 
@@ -319,8 +346,9 @@ async function runWasmtime(host, limits, stackBytes, floor, report) {
       const d = limits[construct.name];
       result.flat[construct.name] = outcome(construct, d, (await host.run([evaluate(construct, d)], stackBytes))[0]);
     }
-    const attempt = async (d) => outcome(recursion, d, (await host.run([evaluate(recursion, d)], stackBytes))[0]);
-    result.deepest = await deepestRecursion(attempt, limits[recursion.name]);
+    const attempt = (construct) => async (d) => outcome(construct, d, (await host.run([evaluate(construct, d)], stackBytes))[0]);
+    result.deepest = {};
+    for (const construct of reported) result.deepest[construct.name] = await deepestRecursion(attempt(construct), limits[construct.name]);
   } else {
     const requests = [...flat.map((c) => evaluate(c, limits[c.name])), evaluate(recursion, floor)];
     const responses = await host.run(requests, stackBytes);
@@ -343,9 +371,8 @@ function summary(label, result, floor) {
     line += `, recursion at depth ${floor} ${result.recursion === 'ok' ? 'ok' : 'FAILED'}`;
     if (result.recursion !== 'ok') failures.push(`${label}: recursion at depth ${floor}: ${result.recursion}`);
   }
-  if (result.deepest !== undefined) {
-    const { depth, failure } = result.deepest;
-    line += `; recursion reaches depth ${depth}${failure ? ` (at ${depth + 1}: ${failure})` : ' (the AST limit)'}`;
+  for (const [name, { depth, failure }] of Object.entries(result.deepest ?? {})) {
+    line += `; ${name} reaches depth ${depth}${failure ? ` (at ${depth + 1}: ${failure})` : ' (the AST limit)'}`;
   }
   return { line, failures };
 }
@@ -358,7 +385,7 @@ async function main(args) {
   console.log(`stack headroom${report ? ' report' : ''}: ${modulePath}`);
 
   const limits = await astLimits(await nodeHost(await WebAssembly.compile(await readFile(modulePath))));
-  const parsed = [...flat, recursion].filter((c) => c.depth === undefined);
+  const parsed = [...flat, ...reported].filter((c) => c.depth === undefined);
   console.log(`deepest nesting the parse op accepts: ${parsed.map((c) => `${c.name} ${limits[c.name]}`).join(', ')}; value depth limit ${VALUE_DEPTH}`);
   for (const [host, floor] of [['worker', WORKER_FLOOR], ['Wasmtime', WASMTIME_FLOOR]]) {
     if (floor > limits[recursion.name]) throw new Error(`the ${host} floor ${floor} is above the AST limit of the recursion (${limits[recursion.name]})`);
