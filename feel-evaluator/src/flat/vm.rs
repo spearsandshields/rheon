@@ -5,9 +5,11 @@
 //! order it calls them, and every error, warning and limit is recorded in the evaluation's
 //! diagnostics as that evaluator records it.
 
-use super::program::{Compare, Kernel1, Kernel2, ListKind, Op, Operand, Opnd, Program};
+use super::program::{Compare, Kernel1, Kernel2, ListKind, NONE, Op, Operand, Opnd, Program};
+use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
-use crate::kernels::{self, Arithmetic};
+use crate::invocation::{Arguments, invoke};
+use crate::kernels::{self, Arithmetic, finite};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, diagnostics, value_null};
 use std::sync::Arc;
@@ -26,6 +28,18 @@ struct Vm<'p> {
   slots: Vec<Value>,
   /// The lists being built, innermost last.
   lists: Vec<Vec<Value>>,
+  /// The invocations entered, innermost last.
+  calls: Vec<diagnostics::Call>,
+}
+
+impl Drop for Vm<'_> {
+  /// Leaves the invocations still entered (when a run ends early), innermost first, as their
+  /// nesting requires.
+  fn drop(&mut self) {
+    while let Some(call) = self.calls.pop() {
+      drop(call);
+    }
+  }
 }
 
 impl<'p> Vm<'p> {
@@ -35,6 +49,7 @@ impl<'p> Vm<'p> {
       host,
       slots: vec![Value::Null(None); program.slots as usize],
       lists: vec![],
+      calls: vec![],
     }
   }
 
@@ -65,7 +80,7 @@ impl<'p> Vm<'p> {
           let name = &program.names[name as usize];
           self.slots[dst as usize] = self.host.get_value(name).unwrap_or_else(|| kernels::free_name(name));
         }
-        Op::Search { dst, search } => self.slots[dst as usize] = self.host.search(&program.searches[search as usize]).unwrap_or_else(kernels::free_qualified_name),
+        Op::Search { dst, search } => self.slots[dst as usize] = self.host.search(&program.name_lists[search as usize]).unwrap_or_else(kernels::free_qualified_name),
         Op::Path { dst, a, name } => {
           let a = self.read(a);
           self.slots[dst as usize] = kernels::path(a, &program.names[name as usize]);
@@ -180,6 +195,30 @@ impl<'p> Vm<'p> {
             ListKind::ExpressionList => Value::ExpressionList(items),
             ListKind::NegatedList => Value::NegatedCommaList(items),
           };
+        }
+        Op::Enter { dst, skip } => match diagnostics::enter_call(MAX_CALL_DEPTH) {
+          Some(call) => self.calls.push(call),
+          None => {
+            self.slots[dst as usize] = Value::Null(None);
+            pc = skip as usize;
+          }
+        },
+        Op::Call { dst, call } => {
+          let call = &program.calls[call as usize];
+          let function = self.read(call.function);
+          let values: Vec<Value> = (call.args..call.args + call.argc).map(|slot| self.take(slot as usize)).collect();
+          let arguments = if call.names == NONE {
+            Arguments::Positional(values)
+          } else {
+            Arguments::Named(program.name_lists[call.names as usize].iter().cloned().zip(values).collect())
+          };
+          self.slots[dst as usize] = invoke(self.host, function, arguments, program.dialect);
+        }
+        Op::Leave { dst } => {
+          let value = diagnostics::bound_depth(finite(self.take(dst as usize)));
+          if let Some(call) = self.calls.pop() {
+            self.slots[dst as usize] = call.finish(value);
+          }
         }
         Op::Return { src } => return self.read(src),
       }

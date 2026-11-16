@@ -5,6 +5,7 @@
 //! by [ProgramBuilder] and checked by [Program::verify], and shared by every evaluation of the
 //! expression.
 
+use crate::Dialect;
 use crate::kernels::Arithmetic;
 use rheon_feel::values::Value;
 use rheon_feel::{IntervalType, Name};
@@ -122,7 +123,7 @@ pub(crate) enum Op {
   /// `dst` is the value of the free name `names[name]` in the scope of the host, else the
   /// built-in function of that name, else null with an error.
   LoadName { dst: Slot, name: Ix },
-  /// `dst` is the value of the qualified name `searches[search]` in the scope of the host, else
+  /// `dst` is the value of the qualified name `name_lists[search]` in the scope of the host, else
   /// null with an error.
   Search { dst: Slot, search: Ix },
   /// `dst` is the entry `names[name]` of the value of `a` (`a.name`).
@@ -167,11 +168,34 @@ pub(crate) enum Op {
   ListPush { src: Opnd },
   /// `dst` is the innermost open list, closed, as a value of `kind`.
   ListEnd { kind: ListKind, dst: Slot },
+  /// Enters an invocation ([rheon_feel::diagnostics::enter_call]): beyond the call depth limit `dst` is null
+  /// and the run continues at `skip`, past the matching [Op::Leave], so nothing of the
+  /// invocation is evaluated.
+  Enter { dst: Slot, skip: Pc },
+  /// `dst` is the invocation `calls[call]`.
+  Call { dst: Slot, call: Ix },
+  /// Leaves the innermost invocation: its value in `dst` is made finite and nested no deeper
+  /// than values may nest.
+  Leave { dst: Slot },
   /// Ends the run with the value of `src`.
   Return { src: Opnd },
 }
 
 const _: () = assert!(std::mem::size_of::<Op>() <= 16);
+
+/// An invocation: the function, the arguments in the temporaries `args .. args + argc`, in the
+/// order written, and for named arguments the index of their names in [Program::name_lists]
+/// ([NONE] for positional arguments).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct CallInfo {
+  pub(crate) function: Opnd,
+  pub(crate) args: Slot,
+  pub(crate) argc: u32,
+  pub(crate) names: Ix,
+}
+
+/// No index: positional arguments.
+pub(crate) const NONE: Ix = Ix::MAX;
 
 /// The code of an expression and its tables.
 pub(crate) struct Program {
@@ -181,8 +205,13 @@ pub(crate) struct Program {
   pub(crate) messages: Box<[Box<str>]>,
   /// The names that instructions read.
   pub(crate) names: Box<[Name]>,
-  /// The segments of the qualified names that instructions search.
-  pub(crate) searches: Box<[Box<[Name]>]>,
+  /// The lists of names that instructions read: the segments of qualified names and the names
+  /// of arguments.
+  pub(crate) name_lists: Box<[Box<[Name]>]>,
+  /// The invocations.
+  pub(crate) calls: Box<[CallInfo]>,
+  /// FEEL or B-FEEL.
+  pub(crate) dialect: Dialect,
   /// The slots of the frame.
   pub(crate) slots: u32,
 }
@@ -213,7 +242,7 @@ impl Program {
         }
         Op::Search { dst, search } => {
           check.slot(dst)?;
-          check.index(search, self.searches.len(), "search out of range")?;
+          check.index(search, self.name_lists.len(), "name list out of range")?;
         }
         Op::Path { dst, a, name } | Op::Descendant { dst, a, name } => {
           check.slot(dst)?;
@@ -247,6 +276,23 @@ impl Program {
         Op::JumpUnlessTrue { c, .. } => check.opnd(c)?,
         Op::Jump { .. } | Op::ListNew { .. } => {}
         Op::ListPush { src } => check.opnd(src)?,
+        Op::Enter { dst, .. } | Op::Leave { dst } => check.slot(dst)?,
+        Op::Call { dst, call } => {
+          check.slot(dst)?;
+          check.index(call, self.calls.len(), "invocation out of range")?;
+          let info = self.calls[call as usize];
+          check.opnd(info.function)?;
+          if info.argc > 0 {
+            check.slot(info.args)?;
+            check.slot(info.args + (info.argc - 1))?;
+          }
+          if info.names != NONE {
+            check.index(info.names, self.name_lists.len(), "name list out of range")?;
+            if self.name_lists[info.names as usize].len() != info.argc as usize {
+              return check.fail("names and arguments differ in number");
+            }
+          }
+        }
         Op::Return { src } => check.opnd(src)?,
       }
     }
@@ -261,37 +307,45 @@ impl Program {
 }
 
 impl Program {
-  /// Checks that every jump goes forward to an instruction of the code, and that lists are
-  /// opened and closed in nesting order on every path: the code is structured, so the lists open
-  /// at an instruction are those open there in the order of the code, the same from every jump.
+  /// Checks that every jump goes forward to an instruction of the code, and that lists and
+  /// invocations are opened and closed in nesting order on every path: the code is structured,
+  /// so what is open at an instruction is what is open there in the order of the code, the same
+  /// from every jump. An [Op::Enter] that refuses continues past its [Op::Leave], with what was
+  /// open before it.
   fn verify_structure(&self) -> Result<(), VerifyError> {
+    // the open lists and the open invocations before each instruction
     let mut open = Vec::with_capacity(self.code.len() + 1);
-    let mut lists = 0_u32;
+    let (mut lists, mut calls) = (0_u32, 0_u32);
     for (at, op) in self.code.iter().enumerate() {
-      open.push(lists);
+      open.push((lists, calls));
       let fail = |what| Err(VerifyError { at: at as Pc, what });
       match *op {
         Op::ListNew { .. } => lists += 1,
         Op::ListPush { .. } if lists == 0 => return fail("no list is open"),
         Op::ListEnd { .. } if lists == 0 => return fail("no list is open"),
         Op::ListEnd { .. } => lists -= 1,
-        Op::Return { .. } if lists != 0 => return fail("a list is open at the return"),
+        Op::Enter { .. } => calls += 1,
+        Op::Leave { .. } if calls == 0 => return fail("no invocation is open"),
+        Op::Leave { .. } => calls -= 1,
+        Op::Return { .. } if lists != 0 || calls != 0 => return fail("a list or an invocation is open at the return"),
         _ => {}
       }
     }
     for (at, op) in self.code.iter().enumerate() {
-      let target = match *op {
-        Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => to,
+      let (target, state) = match *op {
+        Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => (to, open.get(at + 1).copied()),
+        Op::Enter { skip, .. } => (skip, Some(open[at])),
         _ => continue,
       };
       let fail = |what| Err(VerifyError { at: at as Pc, what });
       if target as usize <= at || target as usize >= self.code.len() {
         return fail("jump out of range");
       }
-      // the state after the jump is the state before the instruction after it
-      let after = open.get(at + 1).copied().unwrap_or(0);
-      if open[target as usize] != after {
-        return fail("jump across a list");
+      if Some(open[target as usize]) != state {
+        return fail("jump across a list or an invocation");
+      }
+      if matches!(op, Op::Enter { .. }) && !matches!(self.code[target as usize - 1], Op::Leave { .. }) {
+        return fail("an invocation that refuses does not continue past a leave");
       }
     }
     Ok(())
@@ -333,7 +387,8 @@ pub(crate) struct ProgramBuilder {
   messages: Vec<Box<str>>,
   names: Vec<Name>,
   named: HashMap<Name, Ix>,
-  searches: Vec<Box<[Name]>>,
+  name_lists: Vec<Box<[Name]>>,
+  calls: Vec<CallInfo>,
 }
 
 impl ProgramBuilder {
@@ -346,7 +401,7 @@ impl ProgramBuilder {
   pub(crate) fn patch(&mut self, at: Pc) {
     let here = self.code.len() as Pc;
     match &mut self.code[at as usize] {
-      Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => *to = here,
+      Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } | Op::Enter { skip: to, .. } => *to = here,
       _ => {}
     }
   }
@@ -372,21 +427,30 @@ impl ProgramBuilder {
     index
   }
 
-  /// The index of the qualified name of `segments` in the searches of the program.
-  pub(crate) fn search(&mut self, segments: Box<[Name]>) -> Ix {
-    self.searches.push(segments);
-    self.searches.len() as Ix - 1
+  /// The index of the list of names `names` in the program.
+  pub(crate) fn name_list(&mut self, names: Box<[Name]>) -> Ix {
+    self.name_lists.push(names);
+    self.name_lists.len() as Ix - 1
   }
 
-  /// The program, with a frame of `slots` slots; checked in builds with debug assertions.
-  pub(crate) fn finish(self, slots: u32) -> Arc<Program> {
+  /// The index of the invocation `call` in the program.
+  pub(crate) fn call(&mut self, call: CallInfo) -> Ix {
+    self.calls.push(call);
+    self.calls.len() as Ix - 1
+  }
+
+  /// The program in `dialect`, with a frame of `slots` slots; checked in builds with debug
+  /// assertions.
+  pub(crate) fn finish(self, slots: u32, dialect: Dialect) -> Arc<Program> {
     let program = Program {
       code: self.code.into(),
       consts: self.consts.into(),
       messages: self.messages.into(),
       names: self.names.into(),
-      searches: self.searches.into(),
+      name_lists: self.name_lists.into(),
+      calls: self.calls.into(),
       slots,
+      dialect,
     };
     #[cfg(debug_assertions)]
     if let Err(error) = program.verify() {

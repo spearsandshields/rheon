@@ -11,8 +11,10 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
     consts: consts.into(),
     messages: messages.into_iter().map(Into::into).collect(),
     names: Box::new([]),
-    searches: Box::new([]),
+    name_lists: Box::new([]),
+    calls: Box::new([]),
     slots,
+    dialect: crate::Dialect::Feel,
   }
 }
 
@@ -62,11 +64,17 @@ fn verify_rejects_unstructured_code() {
     program(vec![Op::ListPush { src: Opnd::konst(0) }, ret], null(), vec![], 0).verify()
   );
   assert_eq!(
-    at(1, "a list is open at the return"),
+    at(1, "a list or an invocation is open at the return"),
     program(vec![Op::ListNew { len: 0 }, ret], null(), vec![], 0).verify()
   );
   let across = vec![Op::Jump { to: 2 }, Op::ListNew { len: 0 }, Op::ListEnd { kind: ListKind::List, dst: 0 }, ret];
-  assert_eq!(at(0, "jump across a list"), program(across, null(), vec![], 1).verify());
+  assert_eq!(at(0, "jump across a list or an invocation"), program(across, null(), vec![], 1).verify());
+  let leave = Op::Leave { dst: 0 };
+  assert_eq!(at(0, "no invocation is open"), program(vec![leave, ret], null(), vec![], 1).verify());
+  let past = vec![Op::Enter { dst: 0, skip: 2 }, leave, ret];
+  assert_eq!(Ok(()), program(past, null(), vec![], 1).verify());
+  let into = vec![Op::Enter { dst: 0, skip: 1 }, leave, ret];
+  assert_eq!(at(0, "jump across a list or an invocation"), program(into, null(), vec![], 1).verify());
 }
 
 #[test]
@@ -77,7 +85,7 @@ fn a_run_records_errors_and_warnings_in_order() {
   builder.emit(Op::Warn { msg: warning });
   builder.emit(Op::Fail { dst: 0, msg: error });
   builder.emit(Op::Return { src: Opnd::take(0) });
-  let program = builder.finish(1);
+  let program = builder.finish(1, crate::Dialect::Feel);
   let (value, recorded) = diagnostics::collect(|| program.run(&FeelScope::default()));
   let (expected, expected_recorded) = diagnostics::collect(|| {
     diagnostics::warn("w");

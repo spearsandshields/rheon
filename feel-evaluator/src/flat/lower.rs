@@ -8,10 +8,11 @@
 //! A node that is not lowered yet refuses the whole expression ([NotYet]).
 
 use super::NotYet;
-use super::program::{Compare, Kernel1, Kernel2, ListKind, Op, Opnd, Program, ProgramBuilder, Slot};
+use super::program::{CallInfo, Compare, Kernel1, Kernel2, ListKind, NONE, Op, Opnd, Program, ProgramBuilder, Slot};
 use super::resolve::{Info, Resolved, Target};
-use crate::Dialect;
 use crate::kernels::{self, Arithmetic};
+use crate::{Dialect, builders};
+use rheon_feel::Name;
 use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
@@ -27,7 +28,7 @@ pub(crate) fn lower<'a>(resolved: &Resolved<'a>, dialect: Dialect) -> Result<Arc
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
-  Ok(lower.builder.finish(lower.max))
+  Ok(lower.builder.finish(lower.max, dialect))
 }
 
 struct Lower<'r, 'a> {
@@ -214,11 +215,59 @@ impl<'a> Lower<'_, 'a> {
         let a = self.value(self.resolved.kids(node)[0], None)?;
         self.builder.emit(Op::Kernel1 { kernel, dst, a });
       }
+      AstNode::FunctionInvocation(_, arguments) => self.invocation(node, arguments, dst)?,
       AstNode::EvaluatedExpression(_) => self.into(self.resolved.kids(node)[0], dst)?,
       _ => return Err(NotYet { at: ast }),
     }
     self.next = mark;
     Ok(Opnd::take(dst))
+  }
+
+  /// An invocation, between the instructions that enter and leave it: the function, then the
+  /// arguments in the order written; a malformed invocation is the builder's error, which a call
+  /// beyond the call depth limit does not record either.
+  fn invocation(&mut self, node: u32, arguments: &AstNode, dst: Slot) -> Result<(), NotYet<'a>> {
+    let enter = self.builder.emit(Op::Enter { dst, skip: 0 });
+    let names: Result<Option<Box<[Name]>>, String> = match arguments {
+      AstNode::PositionalParameters(_) => Ok(None),
+      AstNode::NamedParameters(items) => items
+        .iter()
+        .map(|item| match item {
+          AstNode::NamedParameter(name, _) => match name.as_ref() {
+            AstNode::ParameterName(name) => Ok(name.clone()),
+            other => Err(builders::err_expected_parameter_name(other)),
+          },
+          other => Err(builders::err_msg_expected_node("NamedParameter", other)),
+        })
+        .collect::<Result<_, _>>()
+        .map(Some),
+      other => Err(builders::err_msg_expected_positional_or_named_parameter(other)),
+    };
+    match names {
+      Ok(names) => {
+        let resolved = self.resolved;
+        let kids = resolved.kids(node);
+        let function = self.value(kids[0], None)?;
+        let args = self.next;
+        let argc = kids.len() as u32 - 1;
+        for _ in 0..argc {
+          self.temporary();
+        }
+        for (slot, &kid) in (args..).zip(&kids[1..]) {
+          self.into(kid, slot)?;
+        }
+        let names = match names {
+          Some(names) => self.builder.name_list(names),
+          None => NONE,
+        };
+        let call = self.builder.call(CallInfo { function, args, argc, names });
+        self.builder.emit(Op::Call { dst, call });
+      }
+      Err(text) => self.fail(dst, text),
+    }
+    self.builder.emit(Op::Leave { dst });
+    self.builder.patch(enter);
+    Ok(())
   }
 
   /// The value of `node` into the slot `dst`.
@@ -273,7 +322,7 @@ impl<'a> Lower<'_, 'a> {
             _ => None,
           })
           .collect();
-        let search = self.builder.search(segments);
+        let search = self.builder.name_list(segments);
         self.builder.emit(Op::Search { dst, search });
       }
       _ => return Err(NotYet { at: rnode.ast }),

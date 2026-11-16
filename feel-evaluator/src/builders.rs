@@ -968,17 +968,17 @@ fn err_msg_unexpected_node(node: &AstNode) -> String {
 }
 
 /// Returns an error message when other AST node was expected.
-fn err_msg_expected_node(expected: &str, actual: &AstNode) -> String {
+pub(crate) fn err_msg_expected_node(expected: &str, actual: &AstNode) -> String {
   format!("expected AST node {expected}, actual AST node is {actual:?}")
 }
 
 /// Returns an error message when expected only a named or positional parameter.
-fn err_msg_expected_positional_or_named_parameter(actual: &AstNode) -> String {
+pub(crate) fn err_msg_expected_positional_or_named_parameter(actual: &AstNode) -> String {
   format!("expected positional or named parameter, actual AST node is {actual:?}")
 }
 
 /// Returns an error message when expected only a parameter name.
-fn err_expected_parameter_name(actual: &AstNode) -> String {
+pub(crate) fn err_expected_parameter_name(actual: &AstNode) -> String {
   format!("expected AST node ParameterName, actual node is {actual:?}")
 }
 

@@ -48,7 +48,7 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 
 #[test]
 fn constructs_not_lowered_yet_are_refused() {
-  for text in ["{a: 1}", "abs(1)", "1 + [{a: 1}]", "for i in [1] return i", "[1][1]"] {
+  for text in ["{a: 1}", "abs({a: 1})", "1 + [{a: 1}]", "for i in [1] return i", "[1][1]", "function(x) x"] {
     refused(text);
   }
 }
@@ -242,5 +242,69 @@ fn unary_tests_read_the_input_value() {
       agree_node(Dialect::Feel, &scope, &node);
       agree_node(Dialect::BFeel, &scope, &node);
     }
+  }
+}
+
+#[test]
+fn invocations_of_built_in_functions() {
+  for text in [
+    "abs(-1)",
+    "abs(x)",
+    "abs()",
+    "abs(1, 2)",
+    "abs(n: -1)",
+    "abs(m: 1)",
+    "string length(\"abc\")",
+    "sum(1, 2, \"a\")",
+    "sum([1, 2], 3)",
+    "not(true)",
+    "1(2)",
+    "x(1)",
+    "\"f\"(1)",
+    "max([1, 2]) + min(3, 4)",
+    "substring(\"abc\", 2)",
+    "substring(string: \"abc\", start position: 2)",
+    "date(\"2024-01-01\")",
+    "matches(\"a\", \"[\")",
+    "abs(abs(abs(-1)))",
+    "before(1, [2..3])",
+    "before(range: [2..3], point: 1)",
+    "1 / 0 + abs(1e6000 * 10)",
+  ] {
+    agree_in(Dialect::Feel, "", text);
+    agree_in(Dialect::BFeel, "", text);
+  }
+}
+
+#[test]
+fn invocations_count_against_the_call_depth_limit() {
+  for depth in [199, 200, 201, 250] {
+    let text = format!("{}1{}", "abs(".repeat(depth), ")".repeat(depth));
+    agree(&text);
+    // after the abort no further invocation is made and nothing it would evaluate is recorded
+    agree(&format!("[{text}, abs(x), x]"));
+  }
+}
+
+#[test]
+fn invocations_of_functions_of_the_host() {
+  let input = "{f: function(x) x + 1, g: function(a, b) a < b, h: function(n: number) n}";
+  for text in ["f(2)", "f(x: 2)", "f()", "f(y: 1)", "sort([3, 1, 2], g)", "f(f(1))", "h(\"a\")", "h(n: 2)", "g(1, x)"] {
+    agree_with(input, text);
+  }
+}
+
+#[test]
+fn malformed_invocations_are_errors_inside_the_invocation() {
+  let scope = scope("");
+  let abs = || Box::new(AstNode::Name(Name::from("abs")));
+  let one = || Box::new(AstNode::Numeric("1".into(), "".into(), '+', "".into()));
+  for arguments in [
+    AstNode::Null,
+    AstNode::NamedParameters(vec![AstNode::Null]),
+    AstNode::NamedParameters(vec![AstNode::NamedParameter(Box::new(AstNode::Name(Name::from("n"))), one())]),
+    AstNode::NamedParameters(vec![AstNode::NamedParameter(Box::new(AstNode::ParameterName(Name::from("n"))), one())]),
+  ] {
+    agree_node(Dialect::Feel, &scope, &AstNode::FunctionInvocation(abs(), Box::new(arguments)));
   }
 }
