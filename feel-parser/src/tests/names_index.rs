@@ -631,7 +631,8 @@ fn nested(key: &str, value: Value) -> Value {
 }
 
 /// The names nested in a list of contexts doubled 60 times are read from its first item, with
-/// the context read once per level, and the conformance of its items is decided at once.
+/// the context read once per level by the index that does not decide the list and once more by
+/// the index that does, and the conformance of its items is decided at once.
 #[test]
 fn a_list_of_shared_contexts_is_indexed_once() {
   for depth in [30, 60] {
@@ -643,7 +644,9 @@ fn a_list_of_shared_contexts_is_indexed_once() {
     let work = super::work::take();
     assert!(node.trace().contains("`leaf`"), "{}", node.trace());
     let contexts = work.get("index contexts").copied().unwrap_or(0);
-    assert!(contexts > depth && contexts <= depth + 2, "depth {depth}: {contexts} contexts read: {work:?}");
+    assert_eq!(Some(&2), work.get("index builds"), "depth {depth}: {work:?}");
+    assert_eq!(Some(&1), work.get("lists decided"), "depth {depth}: {work:?}");
+    assert!(contexts > 2 * depth && contexts <= 2 * (depth + 2), "depth {depth}: {contexts} contexts read: {work:?}");
   }
 }
 

@@ -924,26 +924,42 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   /// Returns the index after the last part of the name that starts at part `first` of the chain
   /// when no name in scope starts there: the index of the first later part that is one of the
-  /// [NAME_ENDING_KEYWORDS] as a word of its own (white space before it, and white space or the
-  /// end of the input after it, as where the keyword starts a token), or the length of the chain.
-  /// The words of one of the [BUILT_IN_NAMES_WITH_KEYWORDS] at the start of the name are skipped.
+  /// [NAME_ENDING_KEYWORDS] as a word of its own ([Lexer::is_name_ending_keyword]), or the length
+  /// of the chain. The words of one of the [BUILT_IN_NAMES_WITH_KEYWORDS] at the start of the
+  /// name are skipped.
   fn unknown_name_end(&self, first: usize) -> usize {
-    let input = self.input;
-    let parts = &self.chain_parts[first..];
-    // the words of a built-in name at the start of the name are no keywords
-    let built_in = BUILT_IN_NAMES_WITH_KEYWORDS
-      .iter()
-      .find(|words| parts.len() >= words.len() && words.iter().zip(parts).all(|(word, part)| &input[part.trimmed.clone()] == *word))
-      .map_or(1, |words| words.len());
-    (first + built_in..self.chain_parts.len())
-      .find(|&index| {
-        let start = self.chain_parts[index].start;
-        input[..start].chars().next_back().is_some_and(is_whitespace)
-          && NAME_ENDING_KEYWORDS
-            .iter()
-            .any(|keyword| input[start..].strip_prefix(keyword).is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace)))
-      })
+    (first + self.built_in_words(first)..self.chain_parts.len())
+      .find(|&index| self.is_name_ending_keyword(index))
       .unwrap_or(self.chain_parts.len())
+  }
+
+  /// Returns the number of parts from part `first` of the chain that are no keywords whatever
+  /// they are: the words of one of the [BUILT_IN_NAMES_WITH_KEYWORDS] when the parts start with
+  /// them, otherwise the first part.
+  fn built_in_words(&self, first: usize) -> usize {
+    let parts = &self.chain_parts[first..];
+    BUILT_IN_NAMES_WITH_KEYWORDS
+      .iter()
+      .find(|words| parts.len() >= words.len() && words.iter().zip(parts).all(|(word, part)| &self.input[part.trimmed.clone()] == *word))
+      .map_or(1, |words| words.len())
+  }
+
+  /// Returns `true` when the part `index` of the chain is one of the [NAME_ENDING_KEYWORDS] as a
+  /// word of its own: white space before it, and white space or the end of the input after it,
+  /// as where the keyword starts a token.
+  fn is_name_ending_keyword(&self, index: usize) -> bool {
+    let start = self.chain_parts[index].start;
+    self.input[..start].chars().next_back().is_some_and(is_whitespace)
+      && NAME_ENDING_KEYWORDS
+        .iter()
+        .any(|keyword| self.input[start..].strip_prefix(keyword).is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace)))
+  }
+
+  /// Returns `true` when the name that starts at part `first` of the chain is this part alone
+  /// when no name in scope starts there: a name-ending keyword follows it. A name in scope of
+  /// this one part is then the same token, so the scope need not be asked for it.
+  fn is_one_part_before_keyword(&self, first: usize) -> bool {
+    first + 1 < self.chain_parts.len() && self.built_in_words(first) == 1 && self.is_name_ending_keyword(first + 1)
   }
 
   /// Returns the number of leading name parts (from part `first` of the chain) that form the
@@ -978,6 +994,19 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       part_count = part_count.min(admitted_parts(parts, group_bound));
     }
     while part_count > 0 {
+      // The last candidate, the first part alone, is the token whether it is a name in scope or
+      // not when a keyword ends the name after it (as the name of a chain of one part is), so
+      // it is not looked up: except a built-in property name after a dot, and a built-in type
+      // name where a type is read, which is another token when it is no name in scope.
+      if part_count == 1 && !has_empty_part {
+        let word = &self.input[parts[0].trimmed.clone()];
+        if self.after_dot && is_built_in_property_name(word) {
+          return Some((1, true));
+        }
+        if !(self.type_name && is_built_in_type_name(word)) && self.is_one_part_before_keyword(first) {
+          return Some((1, false));
+        }
+      }
       work!(Candidates, 1);
       // flatten the name parts to compare it with built-in names and keys in current scope
       let texts = parts[..part_count].iter().map(|part| &self.input[part.trimmed.clone()]);

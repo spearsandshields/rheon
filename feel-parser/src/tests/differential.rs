@@ -1145,6 +1145,103 @@ fn names_after_an_item_variable_equal_reference() {
   println!("after an item variable: {stats:?}");
 }
 
+/// The input contexts of the tests of lists: `rows` holds contexts of the same type, `mixed`
+/// contexts of different types (so its item keys are no names in scope), `one` a single
+/// context, `deep` lists in the items of a list.
+fn contexts_with_lists() -> [FeelContext; 1] {
+  let row = |keys: &[&str]| Value::from(ctx(&keys.iter().map(|key| (*key, number(1))).collect::<Vec<_>>()));
+  let list = |items: Vec<Value>| Value::List(items.into());
+  let lines = |key: &str| Value::from(ctx(&[("id", number(1)), ("lines", list(vec![row(&[key, "qty"]), row(&[key, "qty"])]))]));
+  [ctx(&[
+    (
+      "rows",
+      list(vec![
+        row(&["amount", "unit price", "n"]),
+        row(&["amount", "unit price", "n"]),
+        row(&["amount", "unit price", "n"]),
+      ]),
+    ),
+    ("mixed", list(vec![row(&["net value", "m"]), row(&["gross value", "m"])])),
+    ("one", list(vec![row(&["only one"])])),
+    ("deep", list(vec![lines("line total"), lines("line total")])),
+    ("uneven", list(vec![lines("part total"), lines("other total")])),
+    ("total", number(1)),
+    ("grand total", number(2)),
+  ])]
+}
+
+/// The index of an input context compares the items of its lists with their first item only
+/// when a name is looked up that the items alone can hold. No list is decided by an expression
+/// whose names are keys of the input context itself, of nested contexts or of a list of one
+/// item, or names that are not looked up: a name of one word at the end of its chain or before
+/// a keyword that ends a name, such as the list of a `for` and the operands of `and`.
+#[test]
+fn lists_are_decided_when_a_lookup_needs_them() {
+  let frames = contexts_with_lists();
+  for (text, decided) in [
+    ("sum(rows.amount)", false),
+    ("sum(for r in rows return r.amount) + total", false),
+    ("grand total + total + count(rows)", false),
+    ("one[1].only one + grand total", false),
+    ("grand total + unknown name + rows", false),
+    ("for m in deep return sum(for s in m.lines return s.qty)", false),
+    ("for r in rows return if r.n in [1, 2] and r.amount between 1 and 2 then r.n else r.amount", false),
+    ("some r in rows satisfies r.n instance of number or r.amount", false),
+    ("rows . amount", false),
+    ("rows[n > 1].amount + grand total", true),
+    ("rows[unit price > 1]", true),
+    ("grand total + unit price", true),
+    ("mixed[net value > 1]", true),
+    ("deep[1].lines[line total > 1]", true),
+    ("uneven[1].lines[part total > 1]", true),
+  ] {
+    let work = work_of(&frames, text);
+    assert_eq!(decided, work.contains_key("lists decided"), "{text}: {work:?}");
+  }
+}
+
+/// With lists in the input context, the tokens and trees equal the reference's, which compares
+/// the items of every list: the keys of items of one type are names in scope, the keys of
+/// items of different types are not.
+#[test]
+fn names_of_list_items_equal_reference() {
+  let frames = contexts_with_lists();
+  let mut stats = Stats::default();
+  for text in [
+    "sum(rows.amount)",
+    "rows[unit price > 1]",
+    "unit price + 1",
+    "unit price x + grand total",
+    "net value + 1",
+    "net value x",
+    "gross value x + net value",
+    "mixed[net value > 1 and gross value < 2]",
+    "only one + only one x",
+    "line total x + qty",
+    "part total x + other total x",
+    "deep.lines.line total + deep . lines . line total",
+    "uneven.lines.part total + uneven . lines . part total",
+    "rows . unit price + rows.unit price + mixed . net value + one . only one",
+    "grand total + total + unit price + net value + only one + line total + part total",
+    "grand total x + unit price",
+    "for unit price in rows return unit price x",
+    "for m in deep return sum(for s in m.lines return s.qty)",
+    "for r in rows return if r.n in [1, 2] and r.amount between 1 and 2 then r.n else r.amount",
+    "amount and n or m and qty then id else lines in total between m and m return m satisfies m instance of m",
+    "rows[1].amount instance of number and x instance of date and time and y",
+    "x instance of n and y instance of amount",
+    "rows[1].amount.year and deep.lines.qty.value or one.only one.month",
+    "date and time and amount",
+    "years and months duration and n",
+  ] {
+    stats.check(&frames, text);
+    // the names in another order of the lookups
+    stats.check(&frames, &format!("net value + {text} + unit price"));
+  }
+  println!("names of list items: {stats:?}");
+  assert!(stats.asts > 20, "{stats:?}");
+}
+
 /// The bound of the candidate names by the first word of the token (`ParsingScope::group_bound`):
 /// keys that share their first word, keys with a byte below `0` after a word, more keys with
 /// the same first word than the window looks at, long multi-word keys, list item keys, nested

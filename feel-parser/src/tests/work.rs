@@ -19,11 +19,21 @@ pub(crate) enum Work {
   IndexBuilds,
   /// Contexts of input contexts whose entries an index read.
   IndexContexts,
+  /// Lists of input contexts whose items an index compared with their first item.
+  ListsDecided,
 }
 
 impl Work {
   /// Every unit, in the order of the discriminants.
-  const ALL: [Work; 6] = [Work::Parts, Work::Candidates, Work::InParts, Work::CompositeStates, Work::IndexBuilds, Work::IndexContexts];
+  const ALL: [Work; 7] = [
+    Work::Parts,
+    Work::Candidates,
+    Work::InParts,
+    Work::CompositeStates,
+    Work::IndexBuilds,
+    Work::IndexContexts,
+    Work::ListsDecided,
+  ];
 
   /// The name of the unit in the counts returned by [take].
   fn name(self) -> &'static str {
@@ -34,6 +44,7 @@ impl Work {
       Work::CompositeStates => "composite states",
       Work::IndexBuilds => "index builds",
       Work::IndexContexts => "index contexts",
+      Work::ListsDecided => "lists decided",
     }
   }
 }
