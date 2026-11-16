@@ -105,22 +105,47 @@ pub fn committed(product: Vec<String>) -> Vec<String> {
 /// The release tier's requests that stop at the module's memory cap.
 const MEMORY_EXHAUSTING: &str = "memory-exhausting.json";
 
-/// A response without the fields that name the build or the time it took.
-fn comparable(response: &str) -> Json {
-  let mut response: Json = serde_json::from_str(response).unwrap_or_else(|e| panic!("response is not JSON ({e}): {response}"));
-  if let Some(fields) = response.as_object_mut() {
-    for field in ["elapsedMicros", "engineCommit", "version"] {
-      fields.remove(field);
+/// The text of a response without the members that name the build or the time it took. The
+/// response is read without recursion, so a response of any depth is compared.
+fn comparable(response: &str) -> String {
+  const VOLATILE: [&str; 3] = ["\"elapsedMicros\"", "\"engineCommit\"", "\"version\""];
+  assert!(response.starts_with('{') && response.ends_with('}'), "response is not a JSON object: {response}");
+  let mut members: Vec<&str> = vec![];
+  let (mut depth, mut in_string, mut escaped, mut start) = (0_usize, false, false, 1);
+  for (at, byte) in response.bytes().enumerate() {
+    if in_string {
+      match byte {
+        _ if escaped => escaped = false,
+        b'\\' => escaped = true,
+        b'"' => in_string = false,
+        _ => {}
+      }
+      continue;
+    }
+    match byte {
+      b'"' => in_string = true,
+      b'{' | b'[' => depth += 1,
+      b'}' | b']' => depth -= 1,
+      _ => {}
+    }
+    // a member of the response ends at a comma between its members or at its end
+    if (byte == b',' && depth == 1) || depth == 0 {
+      members.push(response[start..at].trim());
+      start = at + 1;
     }
   }
-  response
+  let kept: Vec<&str> = members
+    .into_iter()
+    .filter(|member| !member.is_empty() && !VOLATILE.iter().any(|key| member.starts_with(key)))
+    .collect();
+  format!("{{{}}}", kept.join(","))
 }
 
 /// Two different responses to one request.
 pub struct Difference {
   pub request: String,
-  pub first: Json,
-  pub second: Json,
+  pub first: String,
+  pub second: String,
 }
 
 /// What a comparison of two evaluators found.
