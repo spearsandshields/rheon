@@ -61,7 +61,8 @@ const plain = [
   { op: 'parse', expression: 'a + b' },
   { op: 'evaluate', expression: 'today()' },
 ];
-// A recursion that exhausts the native stack of Node's main thread: it traps every module there.
+// A recursion that exhausts the native stack of Node's main thread under the reference module. A candidate
+// that needs less stack for a call may answer it on some hosts, so no test relies on the candidate trapping.
 const depth = 60;
 const trapping = {
   op: 'evaluate',
@@ -256,7 +257,13 @@ test('the reference answers each source on its own instance: the order of the so
   const forward = equal(reference, candidate, a, b, '--parse-too', '--ledger', recorded);
   const backward = equal(reference, candidate, b, a, '--parse-too', '--ledger', recorded);
   assert.equal(forward.status, backward.status);
-  const lines = (run) => run.out.split('\n').filter((l) => /^(DIFF|NOT REPRODUCED|MALFORMED) /.test(l)).sort();
+  // a request held by both sources is reported under the one that comes first, so the lines are compared without the source
+  const lines = (run) =>
+    run.out
+      .split('\n')
+      .filter((l) => /^(DIFF|NOT REPRODUCED|MALFORMED) /.test(l))
+      .map((l) => l.replace(/^(DIFF|MALFORMED) \S+ /, '$1 '))
+      .sort();
   assert.deepEqual(lines(forward), lines(backward));
   assert.equal(summary(forward), summary(backward));
 });
