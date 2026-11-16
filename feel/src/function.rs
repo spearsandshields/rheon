@@ -20,8 +20,9 @@ pub struct FunctionDefinition {
   pub external: bool,
   /// Closed names from function context (closure names).
   pub closure: Closure,
-  /// Values of the closed names (closure values).
-  pub closure_ctx: FeelContext,
+  /// Values of the closed names (closure values), shared: a call puts them in scope without a
+  /// copy, and a change copies them first when they are shared ([Arc::make_mut]).
+  pub closure_ctx: Arc<FeelContext>,
   /// Return type of the function.
   result_type: FeelType,
 }
@@ -34,7 +35,7 @@ impl FunctionDefinition {
       body,
       external,
       closure,
-      closure_ctx,
+      closure_ctx: Arc::new(closure_ctx),
       result_type,
     }
   }

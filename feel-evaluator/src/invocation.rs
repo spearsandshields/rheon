@@ -107,7 +107,7 @@ fn apply_body(scope: &FeelScope, function: &FunctionDefinition, values: Vec<Valu
   }
   // parameters innermost: a decision service body reads its inputs from the top (decision_service.rs)
   let depth = scope.depth();
-  scope.push(function.closure_ctx.clone());
+  scope.push_shared(Arc::clone(&function.closure_ctx));
   scope.push(params_ctx);
   let result = closed_over(scope, function.body.evaluate(scope));
   scope.truncate(depth);
@@ -125,10 +125,11 @@ fn closed_over(scope: &FeelScope, result: Value) -> Value {
         .filter_map(|name| scope.search_entry(name).map(|value| (name.clone(), value)))
         .collect();
       if !closed.is_empty() {
-        // a copy of the definition when it is shared (the function value has value semantics)
-        let function = Arc::make_mut(&mut function);
+        // a copy of the definition and of its closure context when they are shared (the function
+        // value has value semantics)
+        let closure_ctx = Arc::make_mut(&mut Arc::make_mut(&mut function).closure_ctx);
         for (name, value) in closed {
-          function.closure_ctx.create_entry(&name, value);
+          closure_ctx.create_entry(&name, value);
         }
       }
       Value::FunctionDefinition(function)

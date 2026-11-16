@@ -196,3 +196,26 @@ fn a_context_read_by_name_and_passed_on_is_not_copied() {
     );
   }
 }
+
+/// The allocations of `calls` calls of a function that closes over `names` names of a context
+/// literal and answers 0 without reading them.
+fn calls_of_a_closure(names: usize, calls: usize) -> i64 {
+  let entries: Vec<String> = (0..names).map(|i| format!("a{i}: {i}")).collect();
+  let read: Vec<String> = (0..names).map(|i| format!("a{i}")).collect();
+  let expression = format!(
+    "{{{}, f: function() if false then [{}] else 0, r: count(for i in 1..{calls} return f())}}.r",
+    entries.join(", "),
+    read.join(", ")
+  );
+  let (value, allocations) = evaluate_counting(&scope!(), &expression);
+  assert_eq!(Value::Number(calls.into()), value, "{expression}");
+  allocations as i64
+}
+
+/// The allocations that 1,000 more calls cost do not grow with the closure.
+#[test]
+fn a_call_puts_the_closure_in_scope_without_a_copy() {
+  let more_calls = |names: usize| calls_of_a_closure(names, 2_000) - calls_of_a_closure(names, 1_000);
+  let (many, one) = (more_calls(50), more_calls(1));
+  assert!(many <= one + 8, "1,000 more calls closing over 50 names: {many} allocations more, over 1 name: {one}");
+}

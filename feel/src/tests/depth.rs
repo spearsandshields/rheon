@@ -14,7 +14,7 @@ fn reference(value: &Value) -> u32 {
   match value {
     Value::List(items) => deepest(items.iter()),
     Value::Context(ctx) => deepest(ctx.iter().map(|(_, value)| value)),
-    Value::FunctionDefinition(function) => reference(&Value::from(function.closure_ctx.clone())) + 1,
+    Value::FunctionDefinition(function) => reference(&Value::Context(function.closure_ctx.clone())) + 1,
     Value::Range(start, _, end, _) => deepest([start.as_ref(), end.as_ref()].into_iter()),
     Value::UnaryLess(operand) | Value::IntervalStart(operand, _) => reference(operand) + 1,
     _ => 0,

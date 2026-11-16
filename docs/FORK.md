@@ -2708,6 +2708,19 @@ their items with both answers. The totals are under "Verification" below.
     added; `FeelScope::frames` returns `Ref<[ScopeFrame]>` instead of `Ref<[FeelContext]>`;
     `FeelScope::pop_frame` returns `Option<ScopeFrame>` instead of `Option<FeelContext>`;
     `pop`, `peek` and `contexts` return their contexts as before, a shared one copied.
+161. **A function definition shares its closure context.** A call put the closure context of
+    the function in scope as a copy, so every call copied the values the function closes over:
+    1,000 more calls of a function that closes over 50 names of a context literal cost 58,001
+    allocations more, against 2,001 for a function that closes over one name. The closure
+    context is now shared (`FunctionDefinition::closure_ctx: Arc<FeelContext>`): a call pushes it
+    as a shared frame (item 160), a copy of the definition shares it, and closing over the names
+    a function returned by a body uses (`closed_over`) writes into a copy of the definition and
+    of its closure context when they are shared. `FunctionDefinition::new` takes the closure
+    context as before and holds it alone. Test first: in `feel-evaluator/tests/allocations.rs`,
+    1,000 more calls of a function that closes over 50 names cost at most 8 allocations more
+    than over one name (on the parent 58,001 against 2,001). Identity step: no answer changes.
+    Rust API (`rheon-feel`): `FunctionDefinition::closure_ctx` is an `Arc<FeelContext>` instead
+    of a `FeelContext` (change it through `Arc::make_mut`).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
