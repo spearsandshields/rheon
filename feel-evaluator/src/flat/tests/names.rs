@@ -85,7 +85,7 @@ fn a_context_stops_at_a_repeated_key() {
   let resolved = resolve(&ast);
   assert!(matches!(resolved.nodes[resolved.root() as usize].info, Info::Context { stop: Stop::Duplicate(1), .. }));
   assert_eq!(vec!["a: slot 0", "a: slot 0"], reads_of(&resolved));
-  assert_eq!(1, resolved.protos[0].binders);
+  assert_eq!(1, resolved.root.binders);
 }
 
 #[test]
@@ -97,6 +97,23 @@ fn a_context_of_other_entries_stops_at_the_first() {
   let resolved = resolve(&ast);
   assert!(matches!(resolved.nodes[resolved.root() as usize].info, Info::Context { stop: Stop::Irregular(1), .. }));
   assert_eq!(vec!["a: slot 0"], reads_of(&resolved));
+}
+
+#[test]
+fn a_name_has_one_index_however_many_names_come_before_it() {
+  // `partial` is the 17th name and `z` the first after it: the names before them are still found
+  let keys: Vec<String> = (1..=14).map(|k| format!("k{k}: {k}")).collect();
+  let text = format!("{{{}, r: for i in [1] return [z, k2]}}", keys.join(", "));
+  assert_eq!(vec!["z: free 0", "k2: slot 1"], reads(&text));
+  // a key repeated after `partial` and a new name is still a repeated key
+  let keys: Vec<String> = (1..=16).map(|k| format!("k{k}: {k}")).collect();
+  let ast = parse(&format!("{{{}, partial: 0, k17: 0, k1: 2}}", keys.join(", ")));
+  let resolved = resolve(&ast);
+  assert!(matches!(resolved.nodes[resolved.root() as usize].info, Info::Context { stop: Stop::Duplicate(18), .. }));
+  // a free name read before and after `partial` is reported once
+  let names: Vec<String> = (1..=16).map(|k| format!("a{k}")).collect();
+  let text = format!("[{}, partial, b, a1]", names.join(", "));
+  assert_eq!(18, frees(&text).len(), "{:?}", frees(&text));
 }
 
 #[test]
@@ -138,7 +155,7 @@ fn parameters_of_one_name_share_a_slot() {
   let ast = parse("function(a, b, a) a + b + c");
   let resolved = resolve(&ast);
   assert_eq!(vec!["a: slot 0", "b: slot 1", "c: free 0"], reads_of(&resolved));
-  assert_eq!([0, 1, 0], *resolved.protos[1].params);
+  assert_eq!([0, 1, 0], *resolved.functions[0].params);
   assert_eq!(vec!["c body"], frees("function(a, b, a) a + b + c"));
 }
 
@@ -215,11 +232,11 @@ fn iteration_variables_named_twice_are_reported() {
 fn the_dump_shows_nodes_and_tables() {
   let ast = parse("{f: function(x) x + y, y: 10, r: f(2)}.r");
   let expected = "\
-Path @-
+Path: entry r @-
   Context: layout 0, stop None @-
     ContextEntry @0
       ContextEntryKey @0
-      FunctionDefinition: proto 1 @0
+      FunctionDefinition: proto 0 @0
         FormalParameters @0
           FormalParameter @0
             ParameterName @0
@@ -236,7 +253,7 @@ Path @-
       FunctionInvocation @4
         Name f: slot 0 @4
         Numeric @4
-proto 1: params [0], binders 1, region 2, closure [y]
+proto 0: params [0], binders 1, region 2, closure [y]
   Add @2
     Name x: slot 0 @2
     Name y: free 0 @2

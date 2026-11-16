@@ -15,10 +15,20 @@ use rheon_feel::{FeelScope, FeelType, Name, diagnostics, value_null};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+/// The slots of a frame that a run keeps on the stack of the host instead of allocating them.
+const INLINE_SLOTS: usize = 4;
+
 impl Program {
   /// Evaluates the program in `scope`.
   pub(crate) fn run(self: &Arc<Self>, scope: &FeelScope) -> Value {
-    Vm::new(self, scope).execute()
+    let size = self.slots as usize;
+    if size <= INLINE_SLOTS {
+      let mut slots: [Value; INLINE_SLOTS] = std::array::from_fn(|_| Value::Null(None));
+      Vm::new(self, scope, &mut slots[..size]).execute()
+    } else {
+      let mut slots = vec![Value::Null(None); size];
+      Vm::new(self, scope, &mut slots).execute()
+    }
   }
 }
 
@@ -26,7 +36,7 @@ impl Program {
 struct Vm<'p> {
   program: &'p Program,
   host: &'p FeelScope,
-  slots: Vec<Value>,
+  slots: &'p mut [Value],
   /// The lists being built, innermost last.
   lists: Vec<Vec<Value>>,
   /// The context types being built, innermost last.
@@ -46,11 +56,11 @@ impl Drop for Vm<'_> {
 }
 
 impl<'p> Vm<'p> {
-  fn new(program: &'p Program, host: &'p FeelScope) -> Self {
+  fn new(program: &'p Program, host: &'p FeelScope, slots: &'p mut [Value]) -> Self {
     Self {
       program,
       host,
-      slots: vec![Value::Null(None); program.slots as usize],
+      slots,
       lists: vec![],
       types: vec![],
       calls: vec![],

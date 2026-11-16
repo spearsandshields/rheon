@@ -22,12 +22,13 @@ pub(crate) fn lower<'a>(resolved: &Resolved<'a>, dialect: Dialect) -> Result<Arc
   let mut lower = Lower {
     resolved,
     dialect,
-    builder: ProgramBuilder::default(),
+    builder: ProgramBuilder::with_capacity(resolved.nodes.len()),
     next: 0,
     max: 0,
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
+  lower.builder.names(resolved.names.iter().map(|name| name.as_ref().clone()).collect());
   Ok(lower.builder.finish(lower.max, dialect))
 }
 
@@ -66,16 +67,15 @@ impl<'a> Lower<'_, 'a> {
         }
       }
       AstNode::Name(_) | AstNode::QualifiedName(_) => self.read(node, dst)?,
-      AstNode::Path(_, name) | AstNode::Descendant(_, name) => match name.as_ref() {
-        AstNode::Name(name) => {
+      AstNode::Path(_, entry) | AstNode::Descendant(_, entry) => match self.resolved.nodes[node as usize].info {
+        Info::Entry { name } => {
           let a = self.value(self.resolved.kids(node)[0], None)?;
-          let name = self.builder.name(name);
           self.builder.emit(match ast {
             AstNode::Path(..) => Op::Path { dst, a, name },
             _ => Op::Descendant { dst, a, name },
           });
         }
-        other => self.fail(dst, crate::builders::err_expected_name(other)),
+        _ => self.fail(dst, crate::builders::err_expected_name(entry)),
       },
       AstNode::Add(..) | AstNode::Sub(..) | AstNode::Mul(..) | AstNode::Div(..) | AstNode::Exp(..) => {
         let op = match ast {
@@ -336,8 +336,8 @@ impl<'a> Lower<'_, 'a> {
       return Err(NotYet { at: rnode.ast });
     }
     match (rnode.ast, read.target) {
-      (AstNode::Name(name), Target::Free(_)) => {
-        let name = self.builder.name(name);
+      (AstNode::Name(_), Target::Free(free)) => {
+        let name = self.resolved.frees[free as usize].name;
         self.builder.emit(Op::LoadName { dst, name });
       }
       (AstNode::QualifiedName(segments), Target::Free(_) | Target::Search) => {

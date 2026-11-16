@@ -9,7 +9,6 @@ use crate::Dialect;
 use crate::kernels::Arithmetic;
 use rheon_feel::values::Value;
 use rheon_feel::{IntervalType, Name};
-use std::collections::HashMap;
 use std::sync::Arc;
 
 /// A slot of a frame.
@@ -215,19 +214,21 @@ pub(crate) struct CallInfo {
 /// No index: positional arguments.
 pub(crate) const NONE: Ix = Ix::MAX;
 
-/// The code of an expression and its tables.
+/// The code of an expression and its tables (vectors as they were built: a program is built once
+/// per expression, and copying each table into an allocation of its exact size would cost more
+/// than the space it saves).
 pub(crate) struct Program {
-  pub(crate) code: Box<[Op]>,
-  pub(crate) consts: Box<[Value]>,
+  pub(crate) code: Vec<Op>,
+  pub(crate) consts: Vec<Value>,
   /// The texts of the errors and warnings that instructions record.
-  pub(crate) messages: Box<[Box<str>]>,
-  /// The names that instructions read.
-  pub(crate) names: Box<[Name]>,
+  pub(crate) messages: Vec<Box<str>>,
+  /// The names of the expression.
+  pub(crate) names: Vec<Name>,
   /// The lists of names that instructions read: the segments of qualified names and the names
   /// of arguments.
-  pub(crate) name_lists: Box<[Box<[Name]>]>,
+  pub(crate) name_lists: Vec<Box<[Name]>>,
   /// The invocations.
-  pub(crate) calls: Box<[CallInfo]>,
+  pub(crate) calls: Vec<CallInfo>,
   /// FEEL or B-FEEL.
   pub(crate) dialect: Dialect,
   /// The slots of the frame.
@@ -415,7 +416,6 @@ pub(crate) struct ProgramBuilder {
   consts: Vec<Value>,
   messages: Vec<Box<str>>,
   names: Vec<Name>,
-  named: HashMap<Name, Ix>,
   name_lists: Vec<Box<[Name]>>,
   calls: Vec<CallInfo>,
 }
@@ -445,15 +445,17 @@ impl ProgramBuilder {
     self.messages.len() as Ix - 1
   }
 
-  /// The index of `name` in the names of the program.
-  pub(crate) fn name(&mut self, name: &Name) -> Ix {
-    if let Some(&index) = self.named.get(name) {
-      return index;
+  /// A builder for the program of an expression of `nodes` nodes: about one instruction per node.
+  pub(crate) fn with_capacity(nodes: usize) -> Self {
+    Self {
+      code: Vec::with_capacity(nodes + 1),
+      ..Self::default()
     }
-    self.names.push(name.clone());
-    let index = self.names.len() as Ix - 1;
-    self.named.insert(name.clone(), index);
-    index
+  }
+
+  /// The names of the expression, which instructions refer to by their index.
+  pub(crate) fn names(&mut self, names: Vec<Name>) {
+    self.names = names;
   }
 
   /// The index of the list of names `names` in the program.
@@ -472,12 +474,12 @@ impl ProgramBuilder {
   /// assertions.
   pub(crate) fn finish(self, slots: u32, dialect: Dialect) -> Arc<Program> {
     let program = Program {
-      code: self.code.into(),
-      consts: self.consts.into(),
-      messages: self.messages.into(),
-      names: self.names.into(),
-      name_lists: self.name_lists.into(),
-      calls: self.calls.into(),
+      code: self.code,
+      consts: self.consts,
+      messages: self.messages,
+      names: self.names,
+      name_lists: self.name_lists,
+      calls: self.calls,
       slots,
       dialect,
     };

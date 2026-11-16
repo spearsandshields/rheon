@@ -25,10 +25,17 @@
 use rheon_feel::Name;
 use rheon_feel::closure::Closure;
 use rheon_feel_parser::{AstNode, ClosureBuilder};
-use std::collections::{HashMap, HashSet};
+use std::borrow::{Borrow, Cow};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// No region, record or proto: the bottom of a chain of regions.
 pub(crate) const NONE: u32 = u32::MAX;
+
+/// The results so far of a `for`.
+const PARTIAL: &str = "partial";
+
+/// The number of names up to which a name is looked up by comparing it with each.
+const FEW_NAMES: usize = 16;
 
 /// An expression after name resolution: its nodes with their bindings, and the tables they refer
 /// to. Indices are `u32`, so the pass sets no limit of its own on the size of an expression.
@@ -37,14 +44,16 @@ pub(crate) struct Resolved<'a> {
   pub(crate) nodes: Vec<RNode<'a>>,
   /// The children of the nodes, a range per node.
   kids: Vec<u32>,
-  /// The names that binders bind and that names read, each once.
-  pub(crate) names: Vec<Name>,
+  /// The names that binders bind and that names and paths read, each once.
+  pub(crate) names: Vec<Cow<'a, Name>>,
   /// The binders of each binding construct.
   pub(crate) layouts: Vec<Layout>,
   /// The scopes at the positions of the code.
   pub(crate) regions: Vec<Region>,
-  /// The root expression (first) and the body of every function definition.
-  pub(crate) protos: Vec<Proto>,
+  /// The root expression.
+  pub(crate) root: Proto,
+  /// The body of every function definition.
+  pub(crate) functions: Vec<Proto>,
   /// The names read from outside the bodies that read them, in the order of their first read:
   /// the report of free names.
   pub(crate) frees: Vec<Free>,
@@ -78,9 +87,11 @@ pub(crate) enum Info {
   Iteration { layout: u32, record: u32, duplicate: u32 },
   /// A filter: the record that holds its item.
   Filter { record: u32 },
-  /// A function definition: the proto of its parameters and body, [NONE] when its shape is not
-  /// the one of a definition.
+  /// A function definition: the proto of its parameters and body (in [Resolved::functions]),
+  /// [NONE] when its shape is not the one of a definition.
   Function { proto: u32 },
+  /// A path or a descendant: the name of the entries it reads.
+  Entry { name: u32 },
 }
 
 /// Where a context literal stops for a reason the tree shows.
@@ -233,32 +244,36 @@ impl<'a> Resolved<'a> {
 
   /// The node of the root expression.
   pub(crate) fn root(&self) -> u32 {
-    self.protos[0].body
+    self.root.body
   }
 }
 
 /// Resolves the names of the expression `ast`.
 pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
+  // every node of the tree is resolved once, and is the child of at most one
+  let size = count(ast);
   let mut resolver = Resolver {
     out: Resolved {
-      nodes: vec![],
-      kids: vec![],
+      nodes: Vec::with_capacity(size),
+      kids: Vec::with_capacity(size - 1),
       names: vec![],
       layouts: vec![],
       regions: vec![],
-      protos: vec![Proto {
+      root: Proto {
         params: Box::new([]),
         binders: 0,
         region: NONE,
         closure: Closure::default(),
         body: NONE,
-      }],
+      },
+      functions: vec![],
       frees: vec![],
     },
     interned: HashMap::new(),
-    free_names: HashMap::new(),
+    partial: NONE,
+    free_names: vec![],
     body: Body {
-      proto: 0,
+      proto: NONE,
       region: NONE,
       records: 0,
       next: 0,
@@ -266,14 +281,22 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
     },
   };
   let root = resolver.node(ast);
-  resolver.out.protos[0].body = root;
-  resolver.out.protos[0].binders = resolver.body.max;
+  resolver.out.root.body = root;
+  resolver.out.root.binders = resolver.body.max;
   resolver.out
+}
+
+/// The number of nodes of the tree `ast`.
+fn count(ast: &AstNode) -> usize {
+  let mut nodes = 1;
+  ast.for_each_child(|child| nodes += count(child));
+  nodes
 }
 
 /// The state of the body being resolved.
 #[derive(Clone, Copy)]
 struct Body {
+  /// The function whose body it is, [NONE] for the root expression.
   proto: u32,
   /// The innermost region at the position being resolved.
   region: u32,
@@ -287,19 +310,54 @@ struct Body {
 
 struct Resolver<'a> {
   out: Resolved<'a>,
-  interned: HashMap<Name, u32>,
-  free_names: HashMap<(u32, bool), u32>,
+  /// The names of the tree, each with its index, once there are more than a few (the standard
+  /// map, whose hasher is keyed at random, so no input makes its lookups slow).
+  interned: HashMap<&'a Name, u32>,
+  /// The index of `partial`, which a `for` binds without a node of the tree, or [NONE].
+  partial: u32,
+  /// The free name of each name, read as a name and as a qualified name, or [NONE].
+  free_names: Vec<[u32; 2]>,
   body: Body,
 }
 
 impl<'a> Resolver<'a> {
-  fn name(&mut self, name: &Name) -> u32 {
-    if let Some(&index) = self.interned.get(name) {
-      return index;
+  fn name(&mut self, name: &'a Name) -> u32 {
+    if Borrow::<str>::borrow(name) == PARTIAL {
+      return self.partial();
     }
+    // a few names are found by comparing them with each, more in a map ([Resolver::add_name])
+    let known = if self.interned.is_empty() {
+      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
+    } else {
+      self.interned.get(name).copied()
+    };
+    known.unwrap_or_else(|| self.add_name(Cow::Borrowed(name)))
+  }
+
+  /// The index of `partial`.
+  fn partial(&mut self) -> u32 {
+    if self.partial == NONE {
+      self.partial = self.add_name(Cow::Owned(Name::from(PARTIAL)));
+    }
+    self.partial
+  }
+
+  /// Adds a name; beyond a few names, every name of the tree is in the map too (`partial`, which
+  /// is not, is never looked up by [Resolver::name]).
+  fn add_name(&mut self, name: Cow<'a, Name>) -> u32 {
     let index = self.out.names.len() as u32;
-    self.out.names.push(name.clone());
-    self.interned.insert(name.clone(), index);
+    self.out.names.push(name);
+    self.free_names.push([NONE; 2]);
+    if self.out.names.len() > FEW_NAMES {
+      let interned = &mut self.interned;
+      let names = &self.out.names;
+      let new = if interned.is_empty() { 0 } else { index as usize };
+      for (index, known) in names.iter().enumerate().skip(new) {
+        if let Cow::Borrowed(known) = known {
+          interned.insert(known, index as u32);
+        }
+      }
+    }
     index
   }
 
@@ -334,7 +392,7 @@ impl<'a> Resolver<'a> {
   }
 
   /// What `name` reads at the position being resolved.
-  fn read(&mut self, name: &Name, qualified: bool, callee: bool) -> Read {
+  fn read(&mut self, name: &'a Name, qualified: bool, callee: bool) -> Read {
     let name = self.name(name);
     let mut probes = vec![];
     let mut region = self.body.region;
@@ -354,7 +412,7 @@ impl<'a> Resolver<'a> {
       }
       region = parent;
     }
-    let mut used = if self.body.proto == 0 { uses::ROOT } else { uses::FUNCTION_BODY };
+    let mut used = if self.body.proto == NONE { uses::ROOT } else { uses::FUNCTION_BODY };
     if !probes.is_empty() {
       used |= uses::FILTER_PREDICATE;
     }
@@ -368,9 +426,10 @@ impl<'a> Resolver<'a> {
   }
 
   fn free(&mut self, name: u32, qualified: bool, used: u8) -> u32 {
-    let next = self.out.frees.len() as u32;
-    let index = *self.free_names.entry((name, qualified)).or_insert(next);
-    if index == next {
+    let mut index = self.free_names[name as usize][qualified as usize];
+    if index == NONE {
+      index = self.out.frees.len() as u32;
+      self.free_names[name as usize][qualified as usize] = index;
       self.out.frees.push(Free { name, qualified, uses: 0 });
     }
     self.out.frees[index as usize].uses |= used;
@@ -397,9 +456,10 @@ impl<'a> Resolver<'a> {
       FunctionInvocation(callee, arguments) => self.invocation(ast, callee, arguments),
       // the name after the dot is the name of an entry, not a name read
       Path(base, name) | Descendant(base, name) => {
-        if matches!(name.as_ref(), Name(_)) {
+        if let Name(name) = name.as_ref() {
+          let name = self.name(name);
           let base = self.node(base);
-          self.add(ast, Info::None, &[base])
+          self.add(ast, Info::Entry { name }, &[base])
         } else {
           self.add(ast, Info::None, &[])
         }
@@ -500,7 +560,7 @@ impl<'a> Resolver<'a> {
       Some(names) => {
         if let Some(first) = names.first() {
           let first = self.name(first);
-          let used = if self.body.proto == 0 { uses::ROOT } else { uses::FUNCTION_BODY };
+          let used = if self.body.proto == NONE { uses::ROOT } else { uses::FUNCTION_BODY };
           self.free(first, true, used);
         }
         let read = Read {
@@ -519,7 +579,7 @@ impl<'a> Resolver<'a> {
   /// A context literal: an entry's key is seen by the entries after it, not by its own value.
   fn context(&mut self, ast: &'a AstNode, entries: &'a [AstNode]) -> u32 {
     let mark = self.body.next;
-    let mut seen = HashSet::new();
+    let mut seen = BTreeSet::new();
     let mut bound = vec![];
     let mut stop = Stop::None;
     for (index, entry) in entries.iter().enumerate() {
@@ -599,7 +659,7 @@ impl<'a> Resolver<'a> {
   fn iteration(&mut self, ast: &'a AstNode, variables: Vec<(&'a Name, Vec<&'a AstNode>)>, body: &'a AstNode, kind: LayoutKind) -> u32 {
     let mark = self.body.next;
     let record = self.body.records;
-    let mut slots: HashMap<u32, u32> = HashMap::new();
+    let mut slots: BTreeMap<u32, u32> = BTreeMap::new();
     let mut entries = vec![];
     let mut duplicate = NONE;
     for (name, _) in &variables {
@@ -620,7 +680,7 @@ impl<'a> Resolver<'a> {
       entries.push((name, Place::Slot(slot)));
     }
     let hidden = if kind == LayoutKind::For {
-      let partial = self.name(&Name::from("partial"));
+      let partial = self.partial();
       entries.push((partial, Place::Partial(record)));
       partial
     } else {
@@ -699,8 +759,8 @@ impl<'a> Resolver<'a> {
     let parameters_kid = self.node(parameters);
     let (proto, body_kid) = match (names, body) {
       (Some(names), AstNode::FunctionBody(expression, external)) => {
-        let proto = self.out.protos.len() as u32;
-        self.out.protos.push(Proto {
+        let proto = self.out.functions.len() as u32;
+        self.out.functions.push(Proto {
           params: Box::new([]),
           binders: 0,
           region: NONE,
@@ -718,7 +778,7 @@ impl<'a> Resolver<'a> {
             next: 0,
             max: 0,
           };
-          let mut slots: HashMap<u32, u32> = HashMap::new();
+          let mut slots: BTreeMap<u32, u32> = BTreeMap::new();
           let mut entries = vec![];
           let mut params = vec![];
           for name in names {
@@ -740,7 +800,7 @@ impl<'a> Resolver<'a> {
           let region = self.region(closure, RegionKind::Layout { layout, visible });
           self.body.region = region;
           let expression = self.node(expression);
-          let proto_entry = &mut self.out.protos[proto as usize];
+          let proto_entry = &mut self.out.functions[proto as usize];
           proto_entry.params = params.into();
           proto_entry.binders = self.body.max;
           proto_entry.region = region;
@@ -787,7 +847,7 @@ impl Resolved<'_> {
     use std::fmt::Write;
     let mut text = String::new();
     self.dump_node(&mut text, self.root(), 0);
-    for (index, proto) in self.protos.iter().enumerate().skip(1) {
+    for (index, proto) in self.functions.iter().enumerate() {
       let _ = writeln!(
         text,
         "proto {index}: params {:?}, binders {}, region {}, closure {}",
@@ -800,7 +860,7 @@ impl Resolved<'_> {
         self.dump_node(&mut text, proto.body, 1);
       }
     }
-    let _ = writeln!(text, "root binders {}", self.protos[0].binders);
+    let _ = writeln!(text, "root binders {}", self.root.binders);
     for (index, layout) in self.layouts.iter().enumerate() {
       let entries: Vec<String> = layout
         .entries
@@ -856,6 +916,7 @@ impl Resolved<'_> {
       Info::Iteration { layout, record, duplicate } => write!(text, ": layout {layout}, record r{record}, duplicate {}", self.index(*duplicate)),
       Info::Filter { record } => write!(text, ": record r{record}"),
       Info::Function { proto } => write!(text, ": proto {}", self.index(*proto)),
+      Info::Entry { name } => write!(text, ": entry {}", self.names[*name as usize]),
     };
     let _ = writeln!(text, " @{}", self.index(rnode.region));
     for &kid in self.kids(node) {

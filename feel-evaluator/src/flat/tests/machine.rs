@@ -7,12 +7,12 @@ use rheon_feel::{FeelScope, value_null};
 
 fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -> Program {
   Program {
-    code: code.into(),
-    consts: consts.into(),
+    code,
+    consts,
     messages: messages.into_iter().map(Into::into).collect(),
-    names: Box::new([]),
-    name_lists: Box::new([]),
-    calls: Box::new([]),
+    names: vec![],
+    name_lists: vec![],
+    calls: vec![],
     slots,
     dialect: crate::Dialect::Feel,
   }
