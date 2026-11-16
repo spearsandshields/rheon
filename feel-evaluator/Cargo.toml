@@ -10,6 +10,8 @@ repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
+# the recorded answers that the tests of the flat evaluator read are not part of the package
+exclude = ["src/flat/tests/expected/"]
 
 [dependencies]
 serde = { workspace = true }
