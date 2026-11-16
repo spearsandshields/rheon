@@ -430,6 +430,33 @@ impl Value {
     matches!(self, Value::List(_))
   }
 
+  /// Whether this value is a node that a value can hold on several paths: a list whose items
+  /// another list holds too ([FeelList::is_shared]), or a context held more than once.
+  ///
+  /// A node held once is reached on one path only from a value that holds it, unless that value
+  /// is itself reached on several paths; a walk that remembers the shared nodes it visited, by
+  /// their [node_address](Self::node_address), therefore visits every node once.
+  pub fn is_shared(&self) -> bool {
+    match self {
+      Value::List(list) => list.is_shared(),
+      Value::Context(ctx) => Arc::strong_count(ctx) > 1,
+      _ => false,
+    }
+  }
+
+  /// The address of the node of a list or a context, the key under which a walk remembers it:
+  /// that of the items of a non-empty list ([FeelList::address]) or of a context; `None` for any
+  /// other value. Every value that holds the node has its address, and while the values are
+  /// borrowed, no other node is stored there; the items of a list and a context are never at one
+  /// address.
+  pub fn node_address(&self) -> Option<usize> {
+    match self {
+      Value::List(list) => list.address(),
+      Value::Context(ctx) => Some(Arc::as_ptr(ctx).addr()),
+      _ => None,
+    }
+  }
+
   /// The nesting depth of this value: 0 for a scalar; a list or a context is one level deeper
   /// than the deepest value it holds, so an empty one is 1 level deep (a list keeps its depth, and
   /// a context remembers it from its first read until its next write); a function is one level

@@ -25,7 +25,6 @@ use crate::types::FeelType;
 use crate::values::{FeelList, Value};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
-use std::sync::Arc;
 
 const ANY: &FeelType = &FeelType::Any;
 const NULL: &FeelType = &FeelType::Null;
@@ -190,33 +189,26 @@ impl<'a> Ty<'a> {
     }
   }
 
-  /// This type as a key of the memory: a non-empty list value by the address of its items, a
-  /// context value by the address of its context, a type by its own address; `None` for any
-  /// other type, whose relations are decided without walking a value.
+  /// This type as a key of the memory: a list or a context value by the address of its node
+  /// ([Value::node_address]), a type by its own address; `None` for any other type, whose
+  /// relations are decided without walking a value.
   fn node(self) -> Option<Node> {
     match self {
-      Ty::Of(Value::List(items)) => items.address().map(Node::Items),
-      Ty::Of(Value::Context(ctx)) => Some(Node::Context(Arc::as_ptr(ctx).addr())),
+      Ty::Of(value) => value.node_address().map(Node::Value),
       Ty::Is(feel_type) => Some(Node::Type(std::ptr::from_ref(feel_type).addr())),
-      Ty::Of(_) => None,
     }
   }
 
-  /// Whether this is the type of a list that shares its items or of a shared context.
+  /// Whether this is the type of a shared list or context ([Value::is_shared]).
   fn is_shared(self) -> bool {
-    match self {
-      Ty::Of(Value::List(items)) => items.is_shared(),
-      Ty::Of(Value::Context(ctx)) => Arc::strong_count(ctx) > 1,
-      _ => false,
-    }
+    matches!(self, Ty::Of(value) if value.is_shared())
   }
 }
 
 /// A node of a memory key ([Ty::node]).
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 enum Node {
-  Items(usize),
-  Context(usize),
+  Value(usize),
   Type(usize),
 }
 

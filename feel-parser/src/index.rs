@@ -19,7 +19,10 @@ use std::ptr;
 /// searched, see [FrameIndex::contains_composite].
 ///
 /// Neither the index nor the composite search recurses over the nesting of the input context,
-/// so a deeply nested input context does not overflow the stack of a parse. Two steps do
+/// so a deeply nested input context does not overflow the stack of a parse. Neither follows
+/// every path to a context that the input context holds on several paths (a shared context
+/// value, such as `{a: x, b: x}`): the index reads it again only when it is reached with a
+/// longer composite-name prefix, and the composite search visits each state once. Two steps do
 /// recurse: typing the items of a list ([list_item_context_type]), over the nesting of the
 /// items; and the conversion of an input context into a parsing context, which the parsing
 /// scope does only for its text and to set a name in the top input context when no context
@@ -182,7 +185,9 @@ impl<'s> NameTree for InputNode<'s> {
     }
   }
 
-  /// Input nodes are never shared, so the address identifies the node.
+  /// The address of the node: a context held on several paths has one address on all of them,
+  /// and a state of the search depends only on the node and the offset, so a state is decided
+  /// once whichever path reaches it.
   fn address(self) -> usize {
     match self.node {
       Node::Context(ctx) => ptr::from_ref(ctx).addr(),
@@ -252,6 +257,12 @@ impl<'a> Keys<'a> {
   /// The traversal uses an explicit stack, so a deeply nested input context does not overflow the
   /// stack. Typing the items of a list ([list_item_context_type]) is the exception: it recurses
   /// over the nesting of the items, as [Value::type_of] does.
+  ///
+  /// A context that the input context holds on several paths is read again only when it is
+  /// reached with a longer composite-name prefix than before: its keys are the same on every
+  /// path, so with a prefix no longer it adds no key and no longer composite name, and neither
+  /// do the nodes below it, whose prefixes are shorter then too. A context held on one path only
+  /// is read as often as the context that holds it.
   fn new(top: &'a FeelContext) -> Self {
     work!(IndexBuilds, 1);
     let mut index = Self {
@@ -263,22 +274,25 @@ impl<'a> Keys<'a> {
     };
     // nodes to visit, with the length of the composite name prefix `k1 . … . ki . ` leading to them
     let mut stack: Vec<(Node<'a>, usize)> = vec![];
+    // the longest prefix each shared context was scheduled with, by its address
+    let mut scheduled = Scheduled::default();
     // list item types to visit (computed, so their keys are owned), with the address of the list
     // and the same prefix length
     let mut item_types: Vec<(usize, FeelType, usize)> = vec![];
     for (name, value) in top.iter() {
       let key = name.as_str();
       index.add_key_length(key.len(), 0);
-      push_value(value, nested_prefix(0, key), &mut stack, &mut item_types);
+      push_value(value, nested_prefix(0, key), &mut stack, &mut item_types, &mut scheduled);
     }
     while let Some((node, prefix)) = stack.pop() {
       match node {
         Node::Context(ctx) => {
+          work!(IndexContexts, 1);
           for (name, value) in ctx.iter() {
             let key = name.as_str();
             index.names.insert(Cow::Borrowed(key));
             index.add_nested_key_length(key, prefix);
-            push_value(value, nested_prefix(prefix, key), &mut stack, &mut item_types);
+            push_value(value, nested_prefix(prefix, key), &mut stack, &mut item_types, &mut scheduled);
           }
         }
         Node::Type(entries) => index.add_type_entries(entries, prefix, Cow::Borrowed),
@@ -324,9 +338,33 @@ impl<'a> Keys<'a> {
   }
 }
 
+/// The longest composite-name prefix each shared context of an input context was scheduled with
+/// ([Keys::new]), by the address of the context; created when the first shared context is met.
+#[derive(Default)]
+struct Scheduled(Option<HashMap<usize, usize>>);
+
+impl Scheduled {
+  /// Whether the context of `value` is to be read with `prefix`: always for a context held on
+  /// one path, and for a shared one when it was not scheduled with this prefix or a longer one.
+  fn admits(&mut self, value: &Value, prefix: usize) -> bool {
+    let Some(address) = value.node_address().filter(|_| value.is_shared()) else {
+      return true;
+    };
+    let longest = self.0.get_or_insert_with(HashMap::new).entry(address).or_insert(0);
+    if *longest != 0 && *longest >= prefix {
+      return false;
+    }
+    *longest = prefix;
+    true
+  }
+}
+
 /// Schedules the nodes of the names nested in a value of an input context ([nested_names]): a
 /// context or the entries of a context type are visited, the item type of a list is computed.
-fn push_value<'a>(value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, usize)>, item_types: &mut Vec<(usize, FeelType, usize)>) {
+fn push_value<'a>(value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, usize)>, item_types: &mut Vec<(usize, FeelType, usize)>, scheduled: &mut Scheduled) {
+  if !scheduled.admits(value, prefix) {
+    return;
+  }
   match nested_names(value) {
     Some(Nested::Context(ctx)) => stack.push((Node::Context(ctx), prefix)),
     Some(Nested::Type(entries)) => stack.push((Node::Type(entries), prefix)),

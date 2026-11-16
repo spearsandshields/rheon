@@ -2721,6 +2721,33 @@ their items with both answers. The totals are under "Verification" below.
     than over one name (on the parent 58,001 against 2,001). Identity step: no answer changes.
     Rust API (`rheon-feel`): `FunctionDefinition::closure_ctx` is an `Arc<FeelContext>` instead
     of a `FeelContext` (change it through `Arc::make_mut`).
+162. **The parser's index of an input context reads a shared context once.** The index of the
+    names of an input context (`feel-parser/src/index.rs`, `Keys::new`) followed every path, so
+    after item 159 an input context that holds the same context on many paths was indexed once per
+    path: the parse of `x.a.a` and of `{r: x.a}` with `x` a context doubled 30 times through
+    `partial` took 52 s and 37 s. A context held on several paths (its reference count is above
+    one) is now read again only when it is reached with a longer composite-name prefix than
+    before: its keys are the same on every path, so with a prefix no longer it adds no key and no
+    longer composite name, and neither do the contexts below it, whose prefixes are shorter then
+    too; the longest prefix of each shared context is kept by its address for the one index, and
+    the memory is created when the first shared context is met. A context held on one path is
+    read as often as the context that holds it, as before. The composite-name search already
+    visited each state (node, offset) once, and a shared context has one address on all its
+    paths, so it needs no change; the comments that said nodes are never shared now say why a
+    shared node is exact. Tests first: in `feel-parser/src/tests/names_index.rs`, the parse of
+    `x.a.leaf + 1` with `x` a context doubled 30 and 60 times reads at most depth + 2 contexts
+    (counted by the work counter `index contexts`), while on the parent the test was still
+    running when it was stopped after 60 s; composite names into a context held under three keys
+    equal the flattened-key search (a pin, as on the parent); and the random comparison of the
+    name lookup with the flattened-key search now also builds contexts held under two keys.
+    Identity step: no answer changes, since the answers of the two parse requests were
+    registered with item 159. The requests of
+    `tools/identity/release/registered/shared-contexts.json` now take 8 ms, 1.6 ms and 0.4 ms on
+    this module, and the ledger file 4.8 s (94.1 s before, the reference's traps included). Whether
+    a list or a context is shared, and the address a walk remembers it by, are one rule in
+    rheon-feel, read by this index, by the type relations (item 157) and by FEEL equality (item
+    155), which each wrote it out before. Rust API: `Value::is_shared` and `Value::node_address`
+    are added.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

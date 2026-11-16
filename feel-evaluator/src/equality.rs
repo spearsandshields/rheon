@@ -8,19 +8,21 @@
 
 use rheon_feel::values::Value;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 /// The key of a pair of lists of one length or of contexts with as many entries, when either side
-/// is shared: the addresses of their items or of the contexts. `None` for any other pair, which is
-/// compared without being remembered (a pair of lists of different lengths or of contexts of
-/// different sizes is decided at once).
+/// is shared ([Value::is_shared]): the addresses of their nodes ([Value::node_address]). `None` for
+/// any other pair, which is compared without being remembered (a pair of lists of different
+/// lengths or of contexts of different sizes is decided at once).
 fn shared_pair(lhs: &Value, rhs: &Value) -> Option<(usize, usize)> {
-  match (lhs, rhs) {
-    (Value::List(ls), Value::List(rs)) if ls.len() == rs.len() && (ls.is_shared() || rs.is_shared()) => ls.address().zip(rs.address()),
-    (Value::Context(lc), Value::Context(rc)) if lc.len() == rc.len() && (Arc::strong_count(lc) > 1 || Arc::strong_count(rc) > 1) => {
-      Some((Arc::as_ptr(lc).addr(), Arc::as_ptr(rc).addr()))
-    }
-    _ => None,
+  let same_size = match (lhs, rhs) {
+    (Value::List(ls), Value::List(rs)) => ls.len() == rs.len(),
+    (Value::Context(lc), Value::Context(rc)) => lc.len() == rc.len(),
+    _ => false,
+  };
+  if same_size && (lhs.is_shared() || rhs.is_shared()) {
+    lhs.node_address().zip(rhs.node_address())
+  } else {
+    None
   }
 }
 

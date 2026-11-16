@@ -123,7 +123,7 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
   if depth >= 3 {
     return number(1);
   }
-  match rng.below(14) {
+  match rng.below(15) {
     0..=3 => number(rng.below(10) as i64),
     4 => Value::String("s".into()),
     5 => Value::Null(None),
@@ -158,6 +158,14 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
     }
     11 => Value::FeelType(context_type(rng, depth)),
     12 => Value::FeelType(FeelType::List(Box::new(context_type(rng, depth)))),
+    13 => {
+      // one context held under two keys, without a copy
+      let shared = Value::from(context(rng, depth + 1));
+      let mut ctx = FeelContext::default();
+      ctx.set_entry(&Name::from(*rng.pick(KEYS)), shared.clone());
+      ctx.set_entry(&Name::from(*rng.pick(KEYS)), shared);
+      Value::from(ctx)
+    }
     _ => Value::FeelType(FeelType::Number),
   }
 }
@@ -586,4 +594,65 @@ fn list_item_context_types() {
     assert_eq!(has_context_items, expected.is_some(), "{list:?}");
     assert_eq!(expected, list_item_context_type(&list), "{list:?}");
   }
+}
+
+/// The context `{a: c, b: c}` around the one before it, `depth` times, around `{leaf: 1}`: every
+/// level holds the level below on two paths without a copy, so the context has 2^depth paths to
+/// its leaf in a linear size.
+fn doubled(depth: usize) -> Value {
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&Name::from("leaf"), number(1));
+  let mut value = Value::from(ctx);
+  for _ in 0..depth {
+    let mut parent = FeelContext::default();
+    parent.set_entry(&Name::from("a"), value.clone());
+    parent.set_entry(&Name::from("b"), value);
+    value = Value::from(parent);
+  }
+  value
+}
+
+/// The index of an input context reads a context held on several paths once for each longer
+/// composite-name prefix it is reached with, so a context doubled 60 times is read once per level.
+#[test]
+fn a_shared_context_is_indexed_once() {
+  for depth in [30, 60] {
+    let mut input = FeelContext::default();
+    input.set_entry(&Name::from("x"), doubled(depth));
+    let scope = FeelScope::from(input);
+    super::work::take();
+    let node = crate::parse_expression(&scope, "x.a.leaf + 1", false).unwrap();
+    let work = super::work::take();
+    assert!(node.trace().contains("`leaf`"), "{}", node.trace());
+    let contexts = work.get("index contexts").copied().unwrap_or(0);
+    assert!(contexts > depth && contexts <= depth + 2, "depth {depth}: {contexts} contexts read: {work:?}");
+  }
+}
+
+/// A composite name into a context held under three keys is found as the flattened-key search
+/// finds it, through each of the keys.
+#[test]
+fn composite_names_into_a_shared_context_equal_flattened_keys_search() {
+  let mut p = FeelContext::default();
+  p.set_entry(&Name::from("q"), number(1));
+  let mut x = FeelContext::default();
+  x.set_entry(&Name::from("p./"), Value::from(p));
+  let x = Value::from(x);
+  let mut top = FeelContext::default();
+  for key in ["x", "a./", "b./"] {
+    top.set_entry(&Name::from(key), x.clone());
+  }
+  top.set_entry(&Name::from("y"), number(1));
+  let frames = vec![top];
+  for input in [
+    format!("a./{OGHAM}.{OGHAM} p./{OGHAM}.{OGHAM} q + 1"),
+    format!("b./{OGHAM}.{OGHAM} p./ - y"),
+    format!("x.p./{OGHAM}.{OGHAM} q"),
+    format!("a./{OGHAM}.{OGHAM} q"),
+    "x.p./.q".to_string(),
+  ] {
+    assert_eq!(parse(&frames, &input, true), parse(&frames, &input, false), "{input:?}");
+  }
+  let trace = parse(&frames, &format!("a./{OGHAM}.{OGHAM} p./{OGHAM}.{OGHAM} q + 1"), false);
+  assert!(trace.contains("`a./. p./. q`") && !trace.contains("Path"), "{trace}");
 }
