@@ -6,8 +6,8 @@
 //! expression.
 
 use crate::kernels::Arithmetic;
-use rheon_feel::Name;
 use rheon_feel::values::Value;
+use rheon_feel::{IntervalType, Name};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -73,6 +73,43 @@ pub(crate) enum Compare {
   Ge,
 }
 
+/// The kernels of one operand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Kernel1 {
+  /// The unary tests `= e`, `!= e`, `< e`, `<= e`, `> e`, `>= e`.
+  UnaryEq,
+  UnaryNe,
+  UnaryLt,
+  UnaryLe,
+  UnaryGt,
+  UnaryGe,
+  /// The start and the end of a range literal.
+  IntervalStart(IntervalType),
+  IntervalEnd(IntervalType),
+}
+
+/// The kernels of two operands.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Kernel2 {
+  /// `a in b`.
+  In,
+  /// `a not in b`: `a` when the first operand (the value of `a in b`) is `true`, else null.
+  Out,
+  /// The range of a range literal from its start and end.
+  Range,
+}
+
+/// The kinds of lists that [Op::ListEnd] makes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ListKind {
+  /// A list literal, nested no deeper than values may nest.
+  List,
+  /// The unary tests of a comma list.
+  ExpressionList,
+  /// The unary tests of a negated comma list, `not(...)`.
+  NegatedList,
+}
+
 /// An instruction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Op {
@@ -106,6 +143,30 @@ pub(crate) enum Op {
   Between { dst: Slot, args: Slot },
   /// B-FEEL: a null in `dst` becomes `ne` (`false` for `=` and the others, `true` for `!=`).
   BoolDefault { dst: Slot, ne: bool },
+  /// `dst` is the kernel `kernel` on the value of `a`.
+  Kernel1 { kernel: Kernel1, dst: Slot, a: Opnd },
+  /// `dst` is the kernel `kernel` on the values of `a` and `b`.
+  Kernel2 { kernel: Kernel2, dst: Slot, a: Opnd, b: Opnd },
+  /// Continues at `to`.
+  Jump { to: Pc },
+  /// Continues at `to` unless the value of `c` is `true`.
+  JumpUnlessTrue { c: Opnd, to: Pc },
+  /// The left operand of `and`: when its value is `false`, `dst` is `false` and the run continues
+  /// at `to`; otherwise `dst` holds it.
+  AndLeft { dst: Slot, a: Opnd, to: Pc },
+  /// The right operand of `and`: `dst` is the conjunction of the left operand in `dst` and `b`.
+  AndRight { dst: Slot, b: Opnd },
+  /// The left operand of `or`: when its value is `true`, `dst` is `true` and the run continues at
+  /// `to`; otherwise `dst` holds it.
+  OrLeft { dst: Slot, a: Opnd, to: Pc },
+  /// The right operand of `or`: `dst` is the disjunction of the left operand in `dst` and `b`.
+  OrRight { dst: Slot, b: Opnd },
+  /// Opens a list of `len` items.
+  ListNew { len: u32 },
+  /// Adds the value of `src` to the innermost open list.
+  ListPush { src: Opnd },
+  /// `dst` is the innermost open list, closed, as a value of `kind`.
+  ListEnd { kind: ListKind, dst: Slot },
   /// Ends the run with the value of `src`.
   Return { src: Opnd },
 }
@@ -137,6 +198,7 @@ impl Program {
   /// Checks that every operand, slot and index of every instruction is in range and that the
   /// code ends with a return, so that the run loop never indexes out of range.
   pub(crate) fn verify(&self) -> Result<(), VerifyError> {
+    self.verify_structure()?;
     for (at, op) in self.code.iter().enumerate() {
       let check = Check { program: self, at: at as Pc };
       match *op {
@@ -172,7 +234,19 @@ impl Program {
           check.slot(args)?;
           check.slot(args + 2)?;
         }
-        Op::BoolDefault { dst, .. } => check.slot(dst)?,
+        Op::BoolDefault { dst, .. } | Op::ListEnd { dst, .. } => check.slot(dst)?,
+        Op::Kernel1 { dst, a, .. } | Op::AndLeft { dst, a, .. } | Op::OrLeft { dst, a, .. } | Op::AndRight { dst, b: a } | Op::OrRight { dst, b: a } => {
+          check.slot(dst)?;
+          check.opnd(a)?;
+        }
+        Op::Kernel2 { dst, a, b, .. } => {
+          check.slot(dst)?;
+          check.opnd(a)?;
+          check.opnd(b)?;
+        }
+        Op::JumpUnlessTrue { c, .. } => check.opnd(c)?,
+        Op::Jump { .. } | Op::ListNew { .. } => {}
+        Op::ListPush { src } => check.opnd(src)?,
         Op::Return { src } => check.opnd(src)?,
       }
     }
@@ -183,6 +257,44 @@ impl Program {
         what: "the code does not end with a return",
       }),
     }
+  }
+}
+
+impl Program {
+  /// Checks that every jump goes forward to an instruction of the code, and that lists are
+  /// opened and closed in nesting order on every path: the code is structured, so the lists open
+  /// at an instruction are those open there in the order of the code, the same from every jump.
+  fn verify_structure(&self) -> Result<(), VerifyError> {
+    let mut open = Vec::with_capacity(self.code.len() + 1);
+    let mut lists = 0_u32;
+    for (at, op) in self.code.iter().enumerate() {
+      open.push(lists);
+      let fail = |what| Err(VerifyError { at: at as Pc, what });
+      match *op {
+        Op::ListNew { .. } => lists += 1,
+        Op::ListPush { .. } if lists == 0 => return fail("no list is open"),
+        Op::ListEnd { .. } if lists == 0 => return fail("no list is open"),
+        Op::ListEnd { .. } => lists -= 1,
+        Op::Return { .. } if lists != 0 => return fail("a list is open at the return"),
+        _ => {}
+      }
+    }
+    for (at, op) in self.code.iter().enumerate() {
+      let target = match *op {
+        Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => to,
+        _ => continue,
+      };
+      let fail = |what| Err(VerifyError { at: at as Pc, what });
+      if target as usize <= at || target as usize >= self.code.len() {
+        return fail("jump out of range");
+      }
+      // the state after the jump is the state before the instruction after it
+      let after = open.get(at + 1).copied().unwrap_or(0);
+      if open[target as usize] != after {
+        return fail("jump across a list");
+      }
+    }
+    Ok(())
   }
 }
 
@@ -228,6 +340,15 @@ impl ProgramBuilder {
   pub(crate) fn emit(&mut self, op: Op) -> Pc {
     self.code.push(op);
     self.code.len() as Pc - 1
+  }
+
+  /// Points the jump at `at` to the next instruction.
+  pub(crate) fn patch(&mut self, at: Pc) {
+    let here = self.code.len() as Pc;
+    match &mut self.code[at as usize] {
+      Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => *to = here,
+      _ => {}
+    }
   }
 
   pub(crate) fn konst(&mut self, value: Value) -> Opnd {

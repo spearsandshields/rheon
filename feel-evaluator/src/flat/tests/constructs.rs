@@ -48,7 +48,7 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 
 #[test]
 fn constructs_not_lowered_yet_are_refused() {
-  for text in ["[1]", "{a: 1}", "abs(1)", "1 + [1]"] {
+  for text in ["{a: 1}", "abs(1)", "1 + [{a: 1}]", "for i in [1] return i", "[1][1]"] {
     refused(text);
   }
 }
@@ -153,4 +153,94 @@ fn operators_nest() {
   agree_with("{a: 2, b: 3}", "(a + b) * (a - b) / b ** a");
   agree_with("{a: 2, b: 3}", "a + b = 5");
   agree("1 + 2 * 3 - 4 / 5 ** 6 < 7");
+}
+
+const LOGIC: [&str; 6] = ["true", "false", "null", "\"a\"", "1", "x"];
+
+#[test]
+fn conjunction_and_disjunction_evaluate_the_right_operand_when_it_decides() {
+  for operator in ["and", "or"] {
+    for a in LOGIC {
+      for b in LOGIC {
+        // `x` and `y` record their errors only when they are evaluated
+        let b = if b == "x" { "y" } else { b };
+        let text = format!("({a}) {operator} ({b})");
+        agree_in(Dialect::Feel, "", &text);
+        agree_in(Dialect::BFeel, "", &text);
+      }
+    }
+  }
+  agree("true and true and x or false");
+}
+
+#[test]
+fn if_takes_the_then_branch_only_when_the_condition_is_true() {
+  for condition in LOGIC {
+    agree_in(Dialect::Feel, "", &format!("if ({condition}) then (y) else (z)"));
+    agree_in(Dialect::BFeel, "", &format!("if ({condition}) then (1 + y) else \"a\""));
+  }
+  agree("if true then if false then 1 else 2 else 3");
+}
+
+#[test]
+fn lists_and_ranges() {
+  for text in [
+    "[]",
+    "[1, x, \"a\", [2, [3, y]], null]",
+    "[1..2]",
+    "(1..2]",
+    "[\"a\"..\"z\")",
+    "](x)..(y)[",
+    "[1..\"a\"]",
+    "[@\"2024-01-01\"..@\"2024-12-31\"]",
+    "[1..2] = [1..2]",
+  ] {
+    agree(text);
+    agree_in(Dialect::BFeel, "", text);
+  }
+}
+
+#[test]
+fn in_and_not_in_with_every_right_hand_form() {
+  for a in ["1", "5", "null", "\"b\"", "x", "@\"2024-02-01\""] {
+    for right in [
+      "[1, 2]",
+      "[1..10]",
+      "(> 3)",
+      "(1, > 3, [4..5], null, x)",
+      "(\"a\"..\"c\")",
+      "(= 5)",
+      "(!= 5)",
+      "(<= 5, >= 9)",
+    ] {
+      let text = format!("({a}) in {right}");
+      agree_in(Dialect::Feel, "", &text);
+      agree_in(Dialect::BFeel, "", &text);
+    }
+  }
+}
+
+#[test]
+fn not_in_evaluates_its_left_operand_twice() {
+  for (input, left) in [("", "x"), ("{a: 1}", "a"), ("", "1")] {
+    let scope = scope(input);
+    let left = rheon_feel_parser::parse_expression(&scope, left, false).unwrap();
+    let right = rheon_feel_parser::parse_unary_tests(&scope, "> 3, 1", false).unwrap();
+    let node = AstNode::Out(Box::new(left), Box::new(right));
+    agree_node(Dialect::Feel, &scope, &node);
+    agree_node(Dialect::BFeel, &scope, &node);
+  }
+}
+
+#[test]
+fn unary_tests_read_the_input_value() {
+  for input in ["{?: 5}", "{?: null}", "{?: \"b\"}", "{?: [1, 2]}", "{}"] {
+    let scope = scope(input);
+    for tests in ["> 3", "< 3, = 5", "not(5)", "-", "[1..10]", "? > 4", "\"a\", \"b\"", "null", "[1, 2]", "x"] {
+      let tests = rheon_feel_parser::parse_unary_tests(&scope, tests, false).unwrap();
+      let node = AstNode::In(Box::new(AstNode::Name(Name::from("?"))), Box::new(tests));
+      agree_node(Dialect::Feel, &scope, &node);
+      agree_node(Dialect::BFeel, &scope, &node);
+    }
+  }
 }

@@ -50,6 +50,26 @@ fn verify_rejects_indices_out_of_range() {
 }
 
 #[test]
+fn verify_rejects_unstructured_code() {
+  use crate::flat::program::ListKind;
+  let at = |at, what| Err(VerifyError { at, what });
+  let null = || vec![Value::Null(None)];
+  let ret = Op::Return { src: Opnd::konst(0) };
+  assert_eq!(at(0, "jump out of range"), program(vec![Op::Jump { to: 0 }, ret], null(), vec![], 0).verify());
+  assert_eq!(at(0, "jump out of range"), program(vec![Op::Jump { to: 2 }, ret], null(), vec![], 0).verify());
+  assert_eq!(
+    at(0, "no list is open"),
+    program(vec![Op::ListPush { src: Opnd::konst(0) }, ret], null(), vec![], 0).verify()
+  );
+  assert_eq!(
+    at(1, "a list is open at the return"),
+    program(vec![Op::ListNew { len: 0 }, ret], null(), vec![], 0).verify()
+  );
+  let across = vec![Op::Jump { to: 2 }, Op::ListNew { len: 0 }, Op::ListEnd { kind: ListKind::List, dst: 0 }, ret];
+  assert_eq!(at(0, "jump across a list"), program(across, null(), vec![], 1).verify());
+}
+
+#[test]
 fn a_run_records_errors_and_warnings_in_order() {
   let mut builder = ProgramBuilder::default();
   let warning = builder.message("w");

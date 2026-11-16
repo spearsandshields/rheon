@@ -8,7 +8,7 @@
 //! A node that is not lowered yet refuses the whole expression ([NotYet]).
 
 use super::NotYet;
-use super::program::{Compare, Op, Opnd, Program, ProgramBuilder, Slot};
+use super::program::{Compare, Kernel1, Kernel2, ListKind, Op, Opnd, Program, ProgramBuilder, Slot};
 use super::resolve::{Info, Resolved, Target};
 use crate::Dialect;
 use crate::kernels::{self, Arithmetic};
@@ -119,6 +119,102 @@ impl<'a> Lower<'_, 'a> {
         self.builder.emit(Op::Between { dst, args });
         self.boolean_default(dst, false);
       }
+      AstNode::And(..) | AstNode::Or(..) => {
+        // the right operand only when the left one does not decide (DMN 1.6, Table 51)
+        let kids = self.resolved.kids(node);
+        let (lhs, rhs) = (kids[0], kids[1]);
+        let a = self.value(lhs, None)?;
+        let left = self.builder.emit(match ast {
+          AstNode::And(..) => Op::AndLeft { dst, a, to: 0 },
+          _ => Op::OrLeft { dst, a, to: 0 },
+        });
+        self.next = mark;
+        let b = self.value(rhs, None)?;
+        self.builder.emit(match ast {
+          AstNode::And(..) => Op::AndRight { dst, b },
+          _ => Op::OrRight { dst, b },
+        });
+        self.builder.patch(left);
+        self.boolean_default(dst, false);
+      }
+      AstNode::If(..) => {
+        let kids = self.resolved.kids(node);
+        let (condition, then, otherwise) = (kids[0], kids[1], kids[2]);
+        let c = self.value(condition, None)?;
+        let test = self.builder.emit(Op::JumpUnlessTrue { c, to: 0 });
+        self.next = mark;
+        self.into(then, dst)?;
+        self.next = mark;
+        let skip = self.builder.emit(Op::Jump { to: 0 });
+        self.builder.patch(test);
+        self.into(otherwise, dst)?;
+        self.builder.patch(skip);
+      }
+      AstNode::List(_) | AstNode::ExpressionList(_) | AstNode::NegatedList(_) => {
+        let kind = match ast {
+          AstNode::List(_) => ListKind::List,
+          AstNode::ExpressionList(_) => ListKind::ExpressionList,
+          _ => ListKind::NegatedList,
+        };
+        let resolved = self.resolved;
+        let items = resolved.kids(node);
+        self.builder.emit(Op::ListNew { len: items.len() as u32 });
+        for &item in items {
+          let src = self.value(item, None)?;
+          self.builder.emit(Op::ListPush { src });
+          self.next = mark;
+        }
+        self.builder.emit(Op::ListEnd { kind, dst });
+      }
+      AstNode::In(..) | AstNode::Range(..) => {
+        let (a, b) = self.operands(node)?;
+        let kernel = if matches!(ast, AstNode::In(..)) { Kernel2::In } else { Kernel2::Range };
+        self.builder.emit(Op::Kernel2 { kernel, dst, a, b });
+        if kernel == Kernel2::In {
+          self.boolean_default(dst, false);
+        }
+      }
+      AstNode::Out(..) => {
+        // the whole `in` (never with the B-FEEL default), then the left operand again
+        let (a, b) = self.operands(node)?;
+        let test = self.temporary();
+        self.builder.emit(Op::Kernel2 {
+          kernel: Kernel2::In,
+          dst: test,
+          a,
+          b,
+        });
+        let lhs = self.value(self.resolved.kids(node)[0], None)?;
+        self.builder.emit(Op::Kernel2 {
+          kernel: Kernel2::Out,
+          dst,
+          a: Opnd::take(test),
+          b: lhs,
+        });
+      }
+      AstNode::UnaryEq(_)
+      | AstNode::UnaryNe(_)
+      | AstNode::UnaryLt(_)
+      | AstNode::UnaryLe(_)
+      | AstNode::UnaryGt(_)
+      | AstNode::UnaryGe(_)
+      | AstNode::IntervalStart(..)
+      | AstNode::IntervalEnd(..) => {
+        let kernel = match ast {
+          AstNode::UnaryEq(_) => Kernel1::UnaryEq,
+          AstNode::UnaryNe(_) => Kernel1::UnaryNe,
+          AstNode::UnaryLt(_) => Kernel1::UnaryLt,
+          AstNode::UnaryLe(_) => Kernel1::UnaryLe,
+          AstNode::UnaryGt(_) => Kernel1::UnaryGt,
+          AstNode::UnaryGe(_) => Kernel1::UnaryGe,
+          AstNode::IntervalStart(_, closed) => Kernel1::IntervalStart(*closed),
+          AstNode::IntervalEnd(_, closed) => Kernel1::IntervalEnd(*closed),
+          _ => return Err(NotYet { at: ast }),
+        };
+        let a = self.value(self.resolved.kids(node)[0], None)?;
+        self.builder.emit(Op::Kernel1 { kernel, dst, a });
+      }
+      AstNode::EvaluatedExpression(_) => self.into(self.resolved.kids(node)[0], dst)?,
       _ => return Err(NotYet { at: ast }),
     }
     self.next = mark;
@@ -192,6 +288,7 @@ impl<'a> Lower<'_, 'a> {
       AstNode::Boolean(value) => Value::Boolean(*value),
       AstNode::Null => Value::Null(None),
       AstNode::String(text) => Value::String(text.as_str().into()),
+      AstNode::Irrelevant => Value::Irrelevant,
       AstNode::Numeric(..) | AstNode::At(_) => {
         let (value, warning) = literal(ast)?.ok()?;
         if let Some(warning) = warning {

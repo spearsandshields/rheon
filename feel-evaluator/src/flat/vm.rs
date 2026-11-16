@@ -5,7 +5,7 @@
 //! order it calls them, and every error, warning and limit is recorded in the evaluation's
 //! diagnostics as that evaluator records it.
 
-use super::program::{Compare, Op, Operand, Opnd, Program};
+use super::program::{Compare, Kernel1, Kernel2, ListKind, Op, Operand, Opnd, Program};
 use crate::bfeel;
 use crate::kernels::{self, Arithmetic};
 use rheon_feel::values::Value;
@@ -24,6 +24,8 @@ struct Vm<'p> {
   program: &'p Program,
   host: &'p FeelScope,
   slots: Vec<Value>,
+  /// The lists being built, innermost last.
+  lists: Vec<Vec<Value>>,
 }
 
 impl<'p> Vm<'p> {
@@ -32,6 +34,7 @@ impl<'p> Vm<'p> {
       program,
       host,
       slots: vec![Value::Null(None); program.slots as usize],
+      lists: vec![],
     }
   }
 
@@ -100,6 +103,83 @@ impl<'p> Vm<'p> {
         Op::BoolDefault { dst, ne } => {
           let value = self.take(dst as usize);
           self.slots[dst as usize] = bfeel::boolean_result(value, ne);
+        }
+        Op::Kernel1 { kernel, dst, a } => {
+          let a = self.read(a);
+          self.slots[dst as usize] = match kernel {
+            Kernel1::UnaryEq => Value::UnaryEqual(Box::new(a)),
+            Kernel1::UnaryNe => Value::UnaryNotEqual(Box::new(a)),
+            Kernel1::UnaryLt => Value::UnaryLess(Box::new(a)),
+            Kernel1::UnaryLe => Value::UnaryLessOrEqual(Box::new(a)),
+            Kernel1::UnaryGt => Value::UnaryGreater(Box::new(a)),
+            Kernel1::UnaryGe => Value::UnaryGreaterOrEqual(Box::new(a)),
+            Kernel1::IntervalStart(closed) => Value::IntervalStart(Box::new(a), closed),
+            Kernel1::IntervalEnd(closed) => Value::IntervalEnd(Box::new(a), closed),
+          };
+        }
+        Op::Kernel2 { kernel, dst, a, b } => {
+          let (a, b) = (self.read(a), self.read(b));
+          self.slots[dst as usize] = match kernel {
+            Kernel2::In => kernels::in_operator(a, b),
+            Kernel2::Out => match a {
+              Value::Boolean(true) => b,
+              _ => value_null!(),
+            },
+            Kernel2::Range => kernels::range_of(a, b),
+          };
+        }
+        Op::Jump { to } => pc = to as usize,
+        Op::JumpUnlessTrue { c, to } => {
+          if !matches!(self.read(c), Value::Boolean(true)) {
+            pc = to as usize;
+          }
+        }
+        Op::AndLeft { dst, a, to } => {
+          let a = self.read(a);
+          if matches!(a, Value::Boolean(false)) {
+            pc = to as usize;
+          }
+          self.slots[dst as usize] = a;
+        }
+        Op::AndRight { dst, b } => {
+          let (a, b) = (self.take(dst as usize), self.read(b));
+          self.slots[dst as usize] = match (a, b) {
+            (Value::Boolean(true), b @ Value::Boolean(_)) => b,
+            (Value::Boolean(true), _) => value_null!(),
+            (_, Value::Boolean(false)) => Value::Boolean(false),
+            _ => value_null!(),
+          };
+        }
+        Op::OrLeft { dst, a, to } => {
+          let a = self.read(a);
+          if matches!(a, Value::Boolean(true)) {
+            pc = to as usize;
+          }
+          self.slots[dst as usize] = a;
+        }
+        Op::OrRight { dst, b } => {
+          let (a, b) = (self.take(dst as usize), self.read(b));
+          self.slots[dst as usize] = match (a, b) {
+            (Value::Boolean(false), b @ Value::Boolean(_)) => b,
+            (Value::Boolean(false), _) => value_null!(),
+            (_, Value::Boolean(true)) => Value::Boolean(true),
+            _ => value_null!(),
+          };
+        }
+        Op::ListNew { len } => self.lists.push(Vec::with_capacity(len as usize)),
+        Op::ListPush { src } => {
+          let value = self.read(src);
+          if let Some(list) = self.lists.last_mut() {
+            list.push(value);
+          }
+        }
+        Op::ListEnd { kind, dst } => {
+          let items = self.lists.pop().unwrap_or_default();
+          self.slots[dst as usize] = match kind {
+            ListKind::List => kernels::list_of(items),
+            ListKind::ExpressionList => Value::ExpressionList(items),
+            ListKind::NegatedList => Value::NegatedCommaList(items),
+          };
         }
         Op::Return { src } => return self.read(src),
       }
