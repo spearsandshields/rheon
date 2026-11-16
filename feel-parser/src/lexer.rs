@@ -18,6 +18,18 @@ const BUF_SIZE: usize = 12;
 /// Definition of decimal separator.
 const DECIMAL_SEPARATOR: char = '.';
 
+/// The keywords that can follow an operand. A name that is not in scope ends before a word of
+/// its chain that is one of them: `for s in x return s` and `x and y` have their keywords also
+/// when `x` is no name in scope. A name in scope is matched first, so it may hold these words
+/// (`tax return`). The other keywords never follow an operand, so a name ending before them
+/// would only be a syntax error.
+const NAME_ENDING_KEYWORDS: [&str; 9] = ["and", "between", "else", "in", "instance", "or", "return", "satisfies", "then"];
+
+/// The built-in names that have one of the [NAME_ENDING_KEYWORDS], as their words. They are
+/// names of functions and types, which are never in the parsing scope, so a name that starts
+/// with their words holds them whole.
+const BUILT_IN_NAMES_WITH_KEYWORDS: [&[&str]; 3] = [&["date", "and", "time"], &["years", "and", "months", "duration"], &["days", "and", "time", "duration"]];
+
 /// Length in bytes of the longest built-in property name: after a dot, a candidate name that is
 /// longer than this and than every name in scope can match nothing.
 const MAX_BUILT_IN_PROPERTY_NAME_LEN: usize = longest(&BUILT_IN_PROPERTY_NAMES);
@@ -763,9 +775,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     }
 
     //------------------------------------------------------------------------------
-    // Build the name from name parts.
+    // No name in scope starts here. Build the name from the name parts up to the first
+    // word that is a keyword which can follow an operand: the rest of the chain is
+    // read as the following tokens, as it is after a name in scope.
     //------------------------------------------------------------------------------
-    let name = self.chain_name(first, self.chain_parts.len());
+    let end = self.unknown_name_end(first);
+    if end < self.chain_parts.len() {
+      self.position = self.chain_parts[end - 1].end;
+    }
+    let name = self.chain_name(first, end);
 
     //------------------------------------------------------------------------------
     // Tweak with the names of built-in types.
@@ -875,6 +893,30 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// Returns the name made of the parts `from..to` of the chain.
   fn chain_name(&self, from: usize, to: usize) -> Name {
     Name::from_parts(self.chain_parts[from..to].iter().map(|part| &self.input[part.trimmed.clone()]))
+  }
+
+  /// Returns the index after the last part of the name that starts at part `first` of the chain
+  /// when no name in scope starts there: the index of the first later part that is one of the
+  /// [NAME_ENDING_KEYWORDS] as a word of its own (white space before it, and white space or the
+  /// end of the input after it, as where the keyword starts a token), or the length of the chain.
+  /// The words of one of the [BUILT_IN_NAMES_WITH_KEYWORDS] at the start of the name are skipped.
+  fn unknown_name_end(&self, first: usize) -> usize {
+    let input = self.input;
+    let parts = &self.chain_parts[first..];
+    // the words of a built-in name at the start of the name are no keywords
+    let built_in = BUILT_IN_NAMES_WITH_KEYWORDS
+      .iter()
+      .find(|words| parts.len() >= words.len() && words.iter().zip(parts).all(|(word, part)| &input[part.trimmed.clone()] == *word))
+      .map_or(1, |words| words.len());
+    (first + built_in..self.chain_parts.len())
+      .find(|&index| {
+        let start = self.chain_parts[index].start;
+        input[..start].chars().next_back().is_some_and(is_whitespace)
+          && NAME_ENDING_KEYWORDS
+            .iter()
+            .any(|keyword| input[start..].strip_prefix(keyword).is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace)))
+      })
+      .unwrap_or(self.chain_parts.len())
   }
 
   /// Returns the number of leading name parts (from part `first` of the chain) that form the

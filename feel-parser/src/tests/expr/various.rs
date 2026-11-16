@@ -192,7 +192,22 @@ fn _0002() {
 #[test]
 fn _0003() {
   let input = r#"Flights[ From = Original Flight.From and To = Original Flight.To and Departure > Original Flight.Departure and Status = "scheduled" and has capacity(item, Reassigned Passengers List)][1]"#;
-  // this test should fail without properly set scope
-  let node = Parser::new(&scope!(), StartExpression, input, false).parse();
-  assert!(node.is_err());
+  // without the names in scope, every name ends before the next `and`, and a path is one name
+  let node = Parser::new(&scope!(), StartExpression, input, false).parse().unwrap();
+  let tree = node.trace();
+  for name in [
+    "Flights",
+    "From",
+    "Original Flight.From",
+    "To",
+    "Original Flight.To",
+    "Departure",
+    "Original Flight.Departure",
+    "Status",
+    "has capacity",
+    "Reassigned Passengers List",
+  ] {
+    assert!(tree.contains(&format!("`{name}`\n")), "{name}: {tree}");
+  }
+  assert_eq!(4, tree.matches("And\n").count(), "{tree}");
 }

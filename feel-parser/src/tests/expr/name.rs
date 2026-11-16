@@ -224,3 +224,90 @@ fn _0013() {
     false,
   );
 }
+
+/// Returns the tree of `input` parsed with the `names` in scope.
+fn tree(names: &[&str], input: &str) -> std::string::String {
+  let scope = scope!();
+  for name in names {
+    scope.set_entry_name((*name).into());
+  }
+  match Parser::new(&scope, StartExpression, input, false).parse() {
+    Ok(node) => node.trace(),
+    Err(reason) => format!("{reason}"),
+  }
+}
+
+/// A name that is not in scope ends before a word that is a keyword which can follow an operand
+/// (`return`, `then`, `else`, `satisfies`, `instance`, `in`, `and`, `or`, `between`), so the
+/// expression has the tree it has when the name is in scope.
+#[test]
+fn unknown_name_ends_before_a_keyword() {
+  for (input, names) in [
+    ("for s in x return 1", &["x"][..]),
+    ("for s in x y return s", &["x y"]),
+    ("for s in x.y return s.z", &["x.y"]),
+    ("for s in x, t in y return s", &["x", "y"]),
+    ("some s in x satisfies s.z", &["x"]),
+    ("every s in x satisfies s", &["x"]),
+    ("if x then y else z", &["x", "y", "z"]),
+    ("if a b then c d else e f", &["a b", "c d", "e f"]),
+    ("x and y", &["x", "y"]),
+    ("x or y", &["x", "y"]),
+    ("x and y or z", &["x", "y", "z"]),
+    ("x in y", &["x", "y"]),
+    ("x between y and z", &["x", "y", "z"]),
+    ("x instance of number", &["x"]),
+    ("x and", &["x"]),
+    ("x return", &["x"]),
+    ("x\tand\ny", &["x", "y"]),
+  ] {
+    assert_eq!(tree(names, input), tree(&[], input), "{input}");
+    // with some of the names in scope
+    for name in names {
+      assert_eq!(tree(names, input), tree(&[name], input), "{input} with {name}");
+    }
+  }
+}
+
+/// A name in scope that has a keyword is still read whole, also before another keyword.
+#[test]
+fn name_in_scope_with_a_keyword_is_read_whole() {
+  let names = ["tax return", "x and y", "go in then out"];
+  assert_eq!("\n       Name\n       └─ `tax return`\n    ", tree(&names, "tax return"));
+  assert_eq!("\n       Name\n       └─ `x and y`\n    ", tree(&names, "x and y"));
+  assert_eq!("\n       Name\n       └─ `go in then out`\n    ", tree(&names, "go in then out"));
+  assert_eq!(
+    tree(&["a", "b"], "for t in a return b").replace("`a`", "`tax return`"),
+    tree(&names, "for t in tax return return b")
+  );
+  assert_eq!(tree(&["a", "b"], "a and b").replace("`a`", "`tax return`"), tree(&names, "tax return and b"));
+  assert_eq!(tree(&["a", "b"], "a and b").replace("`a`", "`x and y`"), tree(&names, "x and y and b"));
+}
+
+/// An unknown name keeps the words that are no keyword where they stand: a keyword that never
+/// follows an operand, a keyword without white space on both sides, and a longer word.
+#[test]
+fn unknown_name_keeps_other_words() {
+  for input in [
+    "price list",
+    "x for y",
+    "x if y",
+    "x of y",
+    "x true",
+    "x null",
+    "opt-in rate",
+    "x and-y",
+    "x and(y)",
+    "x android",
+    "x band y",
+    "returns x",
+  ] {
+    let tree = tree(&[], input);
+    assert!(
+      tree.starts_with("\n       Name\n       └─ `") || tree.starts_with("\n       FunctionInvocation\n       ├─ Name\n       │  └─ `x and`"),
+      "{input}: {tree}"
+    );
+  }
+  assert_eq!("\n       Name\n       └─ `price list`\n    ", tree(&[], "price list"));
+  assert_eq!("\n       Name\n       └─ `opt-in rate`\n    ", tree(&[], "opt-in rate"));
+}

@@ -14068,7 +14068,7 @@ Diagnostics { count: 2, messages: ["context has no value for key 'x'", "context 
 
 conjunction_and_disjunction_evaluate_the_right_operand_when_it_decides #145 "true and true and x or false"
 Null(None)
-Diagnostics { count: 1, messages: ["context has no value for key 'x or false'"], warnings: [] }
+Diagnostics { count: 1, messages: ["context has no value for key 'x'"], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #1 "{}"
 Context(FeelContext({}))

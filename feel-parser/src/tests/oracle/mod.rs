@@ -12,6 +12,11 @@
 //! `list_item_context_type` in `index.rs`, which takes the item type of a list from
 //! `Value::type_of`.
 //!
+//! One change of behaviour is written into the reference lexer as well (marked `oracle:`): a name
+//! that is not in scope ends before a keyword that can follow an operand. It changes the tokens
+//! after the name in most texts with such a name, so as a registered difference it would leave the
+//! rest of these texts uncompared. The tests of `super::expr::name` state the behaviour itself.
+//!
 //! The reference shares code with the production front end, which the differential tests therefore
 //! do not compare and which its own unit tests cover: from rheon-feel, `Name` and the joining of
 //! name parts, the built-in property and function names and `Value::type_of`; from this crate,

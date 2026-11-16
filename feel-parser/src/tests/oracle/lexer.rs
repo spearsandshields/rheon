@@ -765,6 +765,30 @@ impl<'lexer> Lexer<'lexer> {
     }
 
     //------------------------------------------------------------------------------
+    // oracle: a name that is not in scope ends before a keyword that can follow an
+    // operand (see `NAME_ENDING_KEYWORDS` in the production lexer). This is a change of
+    // behaviour, written here again in the terms of this lexer.
+    //------------------------------------------------------------------------------
+    let built_in_words = [&["date", "and", "time"][..], &["years", "and", "months", "duration"], &["days", "and", "time", "duration"]]
+      .iter()
+      .find(|words| parts.len() >= words.len() && words.iter().zip(&parts).all(|(word, part)| part.trim() == *word))
+      .map_or(1, |words| words.len());
+    for index in built_in_words..parts.len() {
+      // the part is the characters `start..=last` of the input
+      let last = consumed_positions[index];
+      let start = last + 1 - parts[index].chars().count();
+      let is_keyword = ["and", "between", "else", "in", "instance", "or", "return", "satisfies", "then"].iter().any(|keyword| {
+        let after = start + keyword.len();
+        self.input[start..].iter().take(keyword.len()).copied().eq(keyword.chars()) && self.input.get(after).is_none_or(|ch| is_whitespace(*ch))
+      });
+      if is_keyword && is_whitespace(self.input[start - 1]) {
+        parts.truncate(index);
+        self.position = consumed_positions[index - 1] + 1;
+        break;
+      }
+    }
+
+    //------------------------------------------------------------------------------
     // Build the name from name parts.
     //------------------------------------------------------------------------------
     let name = Name::from_parts(&parts);
