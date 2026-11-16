@@ -145,6 +145,32 @@ test('--record writes entries that pass as a ledger, numbers as written', (t) =>
   assert.match(summary(run), new RegExp(`: ${entries.length} registered differences reproduced, 0 unregistered differences, 0 registered entries not reproduced`));
 });
 
+test('--record writes a long response as its digest, and a digest entry is compared with the whole response', (t) => {
+  // A list nested 501 levels deep: the reference renders it in more than 65,536 characters, the
+  // candidate stops at its value-depth limit. Before that limit both modules answer it alike.
+  const deep = file([{ op: 'evaluate', expression: '(for i in 1..501 return if i = 1 then [] else [partial[-1]])[-1]' }]);
+  const out = path.join(dir, 'recorded-deep.json');
+  const run = equal(reference, candidate, deep, '--record', out, '--why', 'the basis');
+  if (run.status === 0) {
+    t.skip('the two modules answer the deep list alike');
+    return;
+  }
+  assert.equal(run.status, 1, run.out + run.err);
+  const [entry] = JSON.parse(readFileSync(out, 'utf8'));
+  assert.deepEqual(Object.keys(entry.old), ['sha256']);
+  assert.match(entry.old.sha256, /^[0-9a-f]{64}$/);
+  assert.ok(!('sha256' in entry.new), JSON.stringify(entry.new));
+  const reproduced = equal(reference, candidate, deep, '--ledger', out);
+  assert.equal(reproduced.status, 0, reproduced.out + reproduced.err);
+  assert.match(summary(reproduced), /: 1 registered differences reproduced, 0 unregistered differences/);
+  // another digest is another response
+  const other = file([{ ...entry, old: { sha256: entry.old.sha256.replace(/^./, (c) => (c === '0' ? '1' : '0')) } }]);
+  const wrong = equal(reference, candidate, deep, '--ledger', other);
+  assert.equal(wrong.status, 1, wrong.out + wrong.err);
+  assert.match(wrong.out, /reference answered/);
+  assert.doesNotMatch(wrong.out, /candidate answered/);
+});
+
 test('a registered change that one side does not make fails the run', (t) => {
   if (needsDifference(t)) return;
   // the candidate answers `old`: the change is not made
@@ -195,6 +221,8 @@ test('a malformed ledger is an input error', () => {
     [[{ expression: '1', why: 'test', old: '1' }], '`old` and `new` are required'],
     [[{ ...ok, old: 2 }], '`old` must be a string or a response object'],
     [[{ ...ok, old: { trap: false }, new: { ok: true } }], 'a trap is exactly {"trap": true}'],
+    [[{ ...ok, old: { sha256: 'ab' }, new: { ok: true } }], 'a digest is exactly {"sha256": <64 lowercase hex digits>}'],
+    [[{ ...ok, old: { sha256: '0'.repeat(64), ok: true }, new: { ok: true } }], 'a digest is exactly'],
     [[{ ...ok, old: { ok: true } }], '`old` and `new` are both result texts or both responses'],
     [[{ ...ok, new: '2' }], '`old` and `new` are the same'],
     [[{ ...ok, expression: 'now()' }], 'a request that calls now() or today() has no fixed answer'],

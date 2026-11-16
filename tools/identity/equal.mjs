@@ -27,8 +27,9 @@
 //
 // --record writes the unregistered differences of the run to <out.json> as ledger entries in the
 // full-response form, each with the given `why`, as a draft to check against the spec; a
-// difference that a rule explains is not one of them. --explained writes every difference that a
-// rule explains, with the rule's name, to <out.json> for review.
+// response whose canonical text is longer than 65,536 characters is written as the sha256 of that
+// text. A difference that a rule explains is not one of them. --explained writes every difference
+// that a rule explains, with the rule's name, to <out.json> for review.
 //
 // --cache keeps the reference's answers to each source file and ledger file in <dir> and reuses
 // them while the module, the file, the options and the host are the same (README.md, "The cache
@@ -188,7 +189,11 @@ function checkOutcome(outcome, field) {
   if (typeof outcome === 'string') return;
   if (!isObject(outcome)) throw new Error(`\`${field}\` must be a string or a response object`);
   if ('trap' in outcome && canonical(outcome) !== '{"trap":true}') throw new Error(`\`${field}\`: a trap is exactly {"trap": true}`);
+  if ('sha256' in outcome && !isDigest(outcome)) throw new Error(`\`${field}\`: a digest is exactly {"sha256": <64 lowercase hex digits>}`);
 }
+
+/** Whether a ledger outcome is the digest form, `{"sha256": …}`: the sha256 of the response's canonical text. */
+const isDigest = (outcome) => Object.keys(outcome).length === 1 && typeof outcome.sha256 === 'string' && /^[0-9a-f]{64}$/.test(outcome.sha256);
 
 /**
  * The ledger: the registered entries by request key, the rule entries in ledger order, and the
@@ -310,7 +315,14 @@ function resultText(response) {
   return result.type === 'string' ? JSON.parse(result.display) : result.display;
 }
 
-const matches = (answer, expected) => (typeof expected === 'string' ? resultText(answer.value) === expected : answer.text === canonical(expected));
+const matches = (answer, expected) =>
+  typeof expected === 'string' ? resultText(answer.value) === expected : isDigest(expected) ? sha256(answer.text) === expected.sha256 : answer.text === canonical(expected);
+
+/** The longest response that --record writes whole; a longer one is written as its digest. */
+const RECORDED_WHOLE = 64 * 1024;
+
+/** A response as --record writes it: whole, or as the digest of its canonical text when it is long. */
+const recordedOutcome = (answer) => (answer.text.length > RECORDED_WHOLE ? { sha256: sha256(answer.text) } : answer.value);
 
 /** In the result-text form, what besides the text both responses must still agree on. */
 const besidesText = (response) => canonical([response.ok, response.result && response.result.type, response.warnings, response.diagnostics]);
@@ -566,7 +578,7 @@ async function main() {
         continue;
       }
       failures.push(`DIFF ${labelOf(label, request)}\n  ref : ${short(a)}\n  cand: ${short(b)}`);
-      if (options.record) recorded.push({ ...asEntry(request), why: options.why, old: a.value, new: b.value });
+      if (options.record) recorded.push({ ...asEntry(request), why: options.why, old: recordedOutcome(a), new: recordedOutcome(b) });
     }
   }
 

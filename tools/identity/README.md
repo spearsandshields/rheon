@@ -176,11 +176,14 @@ A ledger file is a JSON array of entries:
   `result.type`, `warnings` and `diagnostics`.
 - An object: the whole response, without the fields of rule 1.
 - `{"trap": true}`: the instance traps.
+- `{"sha256": "<64 lowercase hex digits>"}`: the whole response, without the fields of rule 1, by
+  the sha256 of its canonical text (the text the cache stores). It keeps a ledger small where a
+  response is long, such as the rendering of a value nested 500 levels deep.
 
 `why` is timeless and self-contained: it states the basis, not a plan or a tracker. Draft a file
 with `run.sh … --record <out.json> --why "<basis>"`, which writes the run's unregistered
-differences as entries in the whole-response form; then check every `new` against the spec before
-committing it.
+differences as entries in the whole-response form, a response longer than 65,536 characters as
+its digest; then check every `new` against the spec before committing it.
 
 ## Rule entries
 

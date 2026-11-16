@@ -3113,6 +3113,16 @@ their items with both answers. The totals are under "Verification" below.
     same list twice at every level, or that list beside a list of one item, `instance of
     list<boolean>` and the type of the value (as a response states it) reach 1,452 levels, the
     check of a typed parameter 2,218 and equality 2,062, all above the limit of 500.
+174. **A ledger outcome of the identity check can be the digest of a long response.** A ledger
+    entry held its old and new answers as result texts or whole responses, so an answer that
+    renders a value nested 500 levels deep (several megabytes for a list grown through `partial`)
+    could be registered only by changing the request. `old` and `new` may now also be
+    `{"sha256": …}`, the sha256 of the response's canonical text without the fields that identify
+    the build (the text the cache of reference answers stores); the response is compared whole,
+    as in the response form. `--record` writes a response longer than 65,536 characters in this
+    form (`tools/identity/README.md`). Test: `npm run test:identity`, a recorded 501-level list
+    whose old answer is a digest reproduces, and another digest does not; a malformed digest is
+    an input error. Tooling only; no API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
