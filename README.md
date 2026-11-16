@@ -121,7 +121,7 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `npm run dev` | Playground dev server (arguments after `--` go to Vite) |
 | `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
-| `npm run stack` | `scripts/stack-headroom.mjs`: five constructs nested to the AST depth limit and a value nested to the value depth limit (500) must evaluate on Node's main thread, in a 4 MiB Node worker and in Wasmtime with a 4 MiB wasm stack, and a recursion of 190 calls with a body nested 60 levels in the worker and in Wasmtime; `npm run stack -- --report` prints the depths each host reaches, also for a recursion of 200 calls and one of 66 levels through a `sort` callback |
+| `npm run stack` | `scripts/stack-headroom.mjs`: five constructs nested to the AST depth limit, a value nested to the value depth limit (500) and a recursion of 200 calls with a body nested to the AST limit must evaluate on Node's main thread, in a 4 MiB Node worker and in Wasmtime with its default 512 KiB and with a 4 MiB wasm stack, and a recursion of 66 levels through a `sort` callback with a body nested to the AST limit in the worker and in Wasmtime with 4 MiB; `npm run stack -- --report` prints the depths each host reaches |
 | `bash tools/identity/run.sh <reference.wasm> dist/feel.wasm` | Every committed request through the previous release (`tools/identity/fetch-baseline.sh` puts it in `.tools/baseline/`) and the build; the full responses must be identical except the differences registered in `tools/identity/registered/` (see `tools/identity/README.md`) |
 | `npm run tier:fix`, `tier:group`, `tier:release` | The test tiers (see below) |
 | `npm run test:identity` | `tools/identity/test.mjs` (`node --test`): the identity check's own behaviour on the previous release and the build (identical runs, unregistered and unreproduced differences, malformed ledgers, traps, `--record`, numbers kept as written) |
@@ -239,12 +239,12 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   after a 100 ms grace period), so typing never queues up behind a runaway one.
 - **Nesting and recursion limits.** Expressions nested deeper than 300 AST levels are a `syntax`
   error, and more than 200 nested function calls (e.g. runaway recursion) stop the evaluation with
-  an `evaluation` error (CONTRACT §2). Both are sized for a browser worker's stack. A recursion
-  whose function body is itself deeply nested can still exhaust the stack below 200 calls;
-  that is reported as `crash` and the worker is replaced. Measured (`npm run stack -- --report`):
-  190 nested calls run with a body nested 69 levels (TurboFan; 89 with Liftoff) in a 4 MiB Node
-  worker and 98 levels in Wasmtime with a 4 MiB wasm stack, 14 to 18 levels on Node's main thread,
-  10 levels with Wasmtime's default 512 KiB wasm stack (CONTRACT §1).
+  an `evaluation` error (CONTRACT §2). FEEL calls take no native stack, so 200 nested calls run
+  with a body nested to the AST limit on Node's main thread, in a worker and with Wasmtime's
+  default 512 KiB wasm stack; a recursion through a callback of the engine (the comparison of
+  `sort`) takes native stack per level, and a host that runs out of it reports `crash` and the
+  worker is replaced. Measured (`npm run stack -- --report`): 66 levels through a `sort`
+  comparison with a body nested to the AST limit run on every host measured (CONTRACT §1).
 - **Memory.** Linear memory is capped at 512 MiB, so a runaway allocation traps early (`crash`).
   A list element costs about 130 B while the list grows (a 64-byte value plus the spare
   capacity of the list; `count(for i in 1..1000000 return i)` grows memory by 128 MiB) and a

@@ -3,17 +3,20 @@
 //
 //   node scripts/stack-headroom.mjs [path/to/feel.wasm] [--report]
 //
-// Parsing and evaluation recurse, and the frames of a call into the module take space in two
-// stacks: the module's shadow stack in linear memory (10 MiB, set in wasm/feel-wasm/build.rs) and
-// the native stack the host runs wasm code on (V8: the thread's stack; Wasmtime: at most
-// max-wasm-stack bytes). Running out of either is a trap. The engine bounds what a request can
-// nest: ASTs deeper than 300 levels are rejected, evaluations stop after 200 nested function
-// calls and at a value nested more than 500 levels deep. This check asserts that five constructs
-// nested to the AST depth limit and a value nested to the value depth limit evaluate on every
-// host, and that a recursion of 190 calls with a body nested to the floor evaluates in the worker
-// and in Wasmtime (the main thread's recursion depth is only shown by --report), so that a change
-// that makes stack frames larger (a compiler setting, more inlining, larger locals) fails here and
-// not in a host.
+// Parsing recurses, and the frames of a call into the module take space in two stacks: the
+// module's shadow stack in linear memory (10 MiB, set in wasm/feel-wasm/build.rs) and the native
+// stack the host runs wasm code on (V8: the thread's stack; Wasmtime: at most max-wasm-stack
+// bytes). Running out of either is a trap. The engine bounds what a request can nest: ASTs deeper
+// than 300 levels are rejected, evaluations stop after 200 nested function calls and at a value
+// nested more than 500 levels deep. The evaluator runs FEEL calls, loops and nesting on the heap,
+// so a FEEL recursion takes no stack per call; a function that the engine calls back (the
+// comparison of `sort`, the function of `list replace`, a DMN body) is a run of its own and takes
+// stack per level. This check asserts that every host evaluates five constructs nested to the AST
+// depth limit, a value nested to the value depth limit and a recursion of 200 calls whose body is
+// nested to the AST limit, and that the hosts the contract requires for callbacks (a Node worker
+// with a 4 MiB stack, Wasmtime with a 4 MiB wasm stack) evaluate a recursion of 66 levels through
+// a `sort` callback whose body is nested to the AST limit, so that a change that makes stack
+// frames larger, or that takes stack per FEEL call again, fails here and not in a host.
 //
 // Requests:
 //   - flat nesting: five constructs (a right-nested addition chain, nested lists, nested contexts,
@@ -21,9 +24,11 @@
 //     depth limit, and a value nested 500 levels deep, the value depth limit: a `for` builds it
 //     through `partial` (the results 500 levels deep, `partial` in a scope frame one level deeper),
 //     and it is passed to a function, compared with itself, returned, rendered and dropped;
-//   - recursion: `{f: function(n) if n = 0 then 0 else 0 + (0 + (... (1 + f(n-1)) ...)), r: f(190)}.r`
-//     with the body nested d levels: 190 nested calls, each evaluating a d-level-deep body. It must
-//     return 190.
+//   - recursion: `{f: function(n) if n = 0 then 0 else 0 + (0 + (... (1 + f(n-1)) ...)), r: f(199)}.r`
+//     with the body nested to the AST limit: 200 nested calls, the call depth limit. It must
+//     return 199;
+//   - recursion through sort: 66 levels of `f`, each calling `sort` with a comparison that calls
+//     `f` (3 nested calls a level, 199 in all), the comparison's body nested to the AST limit.
 //
 // Hosts:
 //   - Node, once per V8 wasm compiler (Liftoff, the baseline compiler, and TurboFan, the
@@ -31,33 +36,28 @@
 //     starts with Liftoff and moves hot functions to TurboFan while a request runs, and the two
 //     use stack frames of different sizes, so an unpinned run reaches a depth that depends on
 //     timing; a pinned run is deterministic. In each process:
-//     - the main thread (V8's default stack, about 1 MiB): flat nesting. Its recursion depth is
-//       reported but not asserted, because an application's main thread has an unknown part of
-//       that stack in use already;
-//     - a worker_threads worker with a 4 MiB stack (Node's default for workers): flat nesting, and
-//       the recursion at d = WORKER_FLOOR; --report also runs workers with 2 and 3 MiB stacks, where
-//       the native stack runs out before the shadow stack, to show the native margin;
-//   - Wasmtime (.tools/wasmtime, installed by scripts/bootstrap.sh) with a 4 MiB wasm stack
-//     (max-wasm-stack; Wasmtime's default is 512 KiB): flat nesting, and the recursion at
-//     d = WASMTIME_FLOOR. The module is preloaded as `feel`, which makes Wasmtime instantiate the
-//     reactor and call its `_initialize` (confirmed here: a second `_initialize` must trap), and is
-//     driven by a generated command module that copies each request into feel's memory, calls
-//     `feel_call` and writes the response to stdout.
+//     - the main thread (V8's default stack, about 1 MiB): flat nesting and the recursion;
+//     - a worker_threads worker with a 4 MiB stack (Node's default for workers): flat nesting,
+//       the recursion and the recursion through sort; --report also runs workers with 2 and 3 MiB
+//       stacks;
+//   - Wasmtime (.tools/wasmtime, installed by scripts/bootstrap.sh) with its default 512 KiB wasm
+//     stack (max-wasm-stack): flat nesting and the recursion; and with a 4 MiB wasm stack: flat
+//     nesting, the recursion and the recursion through sort. The module is preloaded as `feel`,
+//     which makes Wasmtime instantiate the reactor and call its `_initialize` (confirmed here: a
+//     second `_initialize` must trap), and is driven by a generated command module that copies
+//     each request into feel's memory, calls `feel_call` and writes the response to stdout.
 //
-// The floors are 60, the depth release 0.3.0 reaches in the TurboFan worker and in Wasmtime on
-// macOS arm64 (its Liftoff worker reaches 49), so a change that leaves less headroom than the
-// release had fails here. On macOS arm64 the 4 MiB worker reaches 209 with Liftoff and 210 with
-// TurboFan, and Wasmtime reaches 220, where their native stacks run out. The shadow stack is in
-// linear memory and the same on every host, so the floors guard the native stack, whose use
-// depends on the platform and on the V8 and Wasmtime versions. A change that alters the measured
-// depths on purpose updates the floors with them.
+// Measured on macOS arm64 (Node 26, Wasmtime 49.0.3, `--report`): every host listed, Wasmtime with
+// 512 KiB included, evaluates both recursions with their bodies nested to the AST limit (289
+// levels for the recursion, 284 for the comparison of `sort`). The shadow stack is in linear
+// memory and the same on every host; the native stack a callback takes depends on the platform
+// and on the V8 and Wasmtime versions.
 //
 // --report checks nothing: it prints the deepest body of each recursion that each host reaches
-// (the recursion of 190 calls, one of 200 calls, the call depth limit, and one of 66 levels
-// through a `sort` callback; Node main thread, and workers with 2, 3 and 4 MiB stacks, with each
-// compiler; Wasmtime with a wasm stack of 512 KiB, 1, 2, 4 and 16 MiB) and the outcome of the flat
-// nesting there. Exit status: 0 when every check passed (with --report: when
-// every host ran), 1 when a check failed, 2 when a host could not be run.
+// (Node main thread, and workers with 2, 3 and 4 MiB stacks, with each compiler; Wasmtime with a
+// wasm stack of 512 KiB, 1, 2, 4 and 16 MiB) and the outcome of the flat nesting there. Exit
+// status: 0 when every check passed (with --report: when every host ran), 1 when a check failed,
+// 2 when a host could not be run.
 import { readFile, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -68,10 +68,10 @@ import path from 'node:path';
 import * as abi from './feel-abi.mjs';
 
 const WORKER_STACK_MB = 4;
-const WORKER_FLOOR = 60;
 const REPORT_WORKER_STACKS_MB = [2, 3, WORKER_STACK_MB];
+// Wasmtime's default wasm stack, and the one the contract requires of a host
+const WASMTIME_DEFAULT_STACK = 512 * 1024;
 const WASMTIME_STACK = 4 * 1024 * 1024;
-const WASMTIME_FLOOR = 60;
 const REPORT_WASMTIME_STACKS = [512 * 1024, 1024 * 1024, 2 * 1024 * 1024, 4 * 1024 * 1024, 16 * 1024 * 1024];
 const V8_COMPILERS = [
   { name: 'Liftoff', flag: '--liftoff-only' },
@@ -79,7 +79,6 @@ const V8_COMPILERS = [
 ];
 // Upper bound of the search for the AST depth limit: the parse op must reject this nesting.
 const MAX_NESTING = 400;
-const RECURSION_CALLS = 190;
 // The call depth limit (docs/CONTRACT.md §2) and the levels of a recursion through a `sort`
 // callback that it allows.
 const MAX_CALLS = 200;
@@ -104,30 +103,28 @@ const flat = [
     display: (d) => `${'['.repeat(d)}${']'.repeat(d)}`,
   },
 ];
+// 200 nested calls, the call depth limit, with a body nested d levels
 const recursion = {
-  name: 'recursion',
-  expression: (d) => `{f: function(n) if n = 0 then 0 else ${'0 + ('.repeat(d)}1 + f(n-1)${')'.repeat(d)}, r: f(${RECURSION_CALLS})}.r`,
-  display: () => `${RECURSION_CALLS}`,
+  name: 'recursion of 200 calls',
+  expression: (d) => `{f: function(n) if n = 0 then 0 else ${'0 + ('.repeat(d)}1 + f(n-1)${')'.repeat(d)}, r: f(${MAX_CALLS - 1})}.r`,
+  display: () => `${MAX_CALLS - 1}`,
 };
-// The recursions that --report measures besides `recursion`, each to the deepest body it reaches:
-// 200 nested calls, the call depth limit, with a body nested d levels; and 66 levels of recursion
-// through the function `sort` calls (3 nested calls a level: the function, `sort` and its callback,
-// 199 in all), the callback's body nested d levels, which shows the native stack a host re-entry
-// takes.
-const reported = [
-  recursion,
-  {
-    name: 'recursion of 200 calls',
-    expression: (d) => `{f: function(n) if n = 0 then 0 else ${'0 + ('.repeat(d)}1 + f(n-1)${')'.repeat(d)}, r: f(${MAX_CALLS - 1})}.r`,
-    display: () => `${MAX_CALLS - 1}`,
-  },
-  {
-    name: 'recursion through sort',
-    expression: (d) =>
-      `{f: function(n) if n = 0 then true else sort([1, 2], function(a, b) ${'if true then '.repeat(d)}f(n - 1)${' else false'.repeat(d)})[1] > 0, r: f(${SORT_LEVELS})}.r`,
-    display: () => 'true',
-  },
-];
+// 66 levels of recursion through the function `sort` calls (3 nested calls a level: the function,
+// `sort` and its callback, 199 in all), the callback's body nested d levels: the native stack a
+// callback takes
+const callback = {
+  name: 'recursion through sort',
+  expression: (d) =>
+    `{f: function(n) if n = 0 then true else sort([1, 2], function(a, b) ${'if true then '.repeat(d)}f(n - 1)${' else false'.repeat(d)})[1] > 0, r: f(${SORT_LEVELS})}.r`,
+  display: () => 'true',
+};
+// The recursions, each evaluated with its body nested to the AST limit, or for --report to the
+// deepest body it reaches.
+const reported = [recursion, callback];
+// The recursions every host evaluates, and those the hosts that the contract requires for
+// callbacks evaluate.
+const EVERY_HOST = [recursion.name];
+const CALLBACK_HOSTS = [recursion.name, callback.name];
 
 const evaluate = (construct, d) => JSON.stringify({ op: 'evaluate', expression: construct.expression(d) });
 
@@ -202,9 +199,9 @@ async function deepestRecursion(attempt, max) {
   return { depth: lo, failure };
 }
 
-// One Node thread: flat nesting at the AST limit, then the recursion at `floor` (when given) or,
-// for a report, its deepest reachable depth.
-async function runThread(modulePath, limits, floor, report) {
+// One Node thread: flat nesting at the AST limit, then the recursions named in `checked` at the
+// AST limit or, for a report, each at its deepest reachable depth.
+async function runThread(modulePath, limits, checked, report) {
   const call = await nodeHost(await WebAssembly.compile(await readFile(modulePath)));
   const result = { flat: {} };
   for (const construct of flat) {
@@ -215,14 +212,17 @@ async function runThread(modulePath, limits, floor, report) {
   if (report) {
     result.deepest = {};
     for (const construct of reported) result.deepest[construct.name] = await deepestRecursion(attempt(construct), limits[construct.name]);
-  } else if (floor !== null) result.recursion = await attempt(recursion)(floor);
+  } else {
+    result.checked = {};
+    for (const construct of reported.filter((c) => checked.includes(c.name))) result.checked[construct.name] = await attempt(construct)(limits[construct.name]);
+  }
   return result;
 }
 
-function runWorker(modulePath, limits, floor, report, stackMb) {
+function runWorker(modulePath, limits, checked, report, stackMb) {
   return new Promise((resolve, reject) => {
     const worker = new Worker(fileURLToPath(import.meta.url), {
-      workerData: { modulePath, limits, floor, report },
+      workerData: { modulePath, limits, checked, report },
       resourceLimits: { stackSizeMb: stackMb },
     });
     worker.once('message', resolve);
@@ -339,7 +339,7 @@ async function wasmtimeHost(modulePath) {
   return { run, close };
 }
 
-async function runWasmtime(host, limits, stackBytes, floor, report) {
+async function runWasmtime(host, limits, stackBytes, checked, report) {
   const result = { flat: {} };
   if (report) {
     for (const construct of flat) {
@@ -350,11 +350,13 @@ async function runWasmtime(host, limits, stackBytes, floor, report) {
     result.deepest = {};
     for (const construct of reported) result.deepest[construct.name] = await deepestRecursion(attempt(construct), limits[construct.name]);
   } else {
-    const requests = [...flat.map((c) => evaluate(c, limits[c.name])), evaluate(recursion, floor)];
+    const recursions = reported.filter((c) => checked.includes(c.name));
+    const requests = [...flat, ...recursions].map((c) => evaluate(c, limits[c.name]));
     const responses = await host.run(requests, stackBytes);
     const sent = (i) => responses[i] ?? { trap: 'not sent (an earlier request trapped)' };
-    flat.forEach((c, i) => (result.flat[c.name] = outcome(c, limits[c.name], sent(i))))
-    result.recursion = outcome(recursion, floor, sent(flat.length));
+    flat.forEach((c, i) => (result.flat[c.name] = outcome(c, limits[c.name], sent(i))));
+    result.checked = {};
+    recursions.forEach((c, i) => (result.checked[c.name] = outcome(c, limits[c.name], sent(flat.length + i))));
   }
   return result;
 }
@@ -362,14 +364,14 @@ async function runWasmtime(host, limits, stackBytes, floor, report) {
 // ------------------------------------------------------------------ main
 
 // One line per host, and the failed attempts with their outcomes.
-function summary(label, result, floor) {
+function summary(label, result) {
   const failures = [];
   const flatFailed = Object.entries(result.flat).filter(([, o]) => o !== 'ok');
   for (const [name, o] of flatFailed) failures.push(`${label}: ${name} at the AST limit: ${o}`);
   let line = `${label}: flat nesting at the AST limit ${flatFailed.length ? `FAILED (${flatFailed.map(([n]) => n).join(', ')})` : 'ok'}`;
-  if (result.recursion !== undefined) {
-    line += `, recursion at depth ${floor} ${result.recursion === 'ok' ? 'ok' : 'FAILED'}`;
-    if (result.recursion !== 'ok') failures.push(`${label}: recursion at depth ${floor}: ${result.recursion}`);
+  for (const [name, o] of Object.entries(result.checked ?? {})) {
+    line += `, ${name} at the AST limit ${o === 'ok' ? 'ok' : 'FAILED'}`;
+    if (o !== 'ok') failures.push(`${label}: ${name} at the AST limit: ${o}`);
   }
   for (const [name, { depth, failure }] of Object.entries(result.deepest ?? {})) {
     line += `; ${name} reaches depth ${depth}${failure ? ` (at ${depth + 1}: ${failure})` : ' (the AST limit)'}`;
@@ -387,13 +389,10 @@ async function main(args) {
   const limits = await astLimits(await nodeHost(await WebAssembly.compile(await readFile(modulePath))));
   const parsed = [...flat, ...reported].filter((c) => c.depth === undefined);
   console.log(`deepest nesting the parse op accepts: ${parsed.map((c) => `${c.name} ${limits[c.name]}`).join(', ')}; value depth limit ${VALUE_DEPTH}`);
-  for (const [host, floor] of [['worker', WORKER_FLOOR], ['Wasmtime', WASMTIME_FLOOR]]) {
-    if (floor > limits[recursion.name]) throw new Error(`the ${host} floor ${floor} is above the AST limit of the recursion (${limits[recursion.name]})`);
-  }
 
   const failures = [];
-  const show = (label, result, floor = null) => {
-    const s = summary(label, result, floor);
+  const show = (label, result) => {
+    const s = summary(label, result);
     console.log(s.line);
     if (report) s.failures.forEach((f) => console.log(`  ${f}`));
     failures.push(...s.failures);
@@ -401,12 +400,13 @@ async function main(args) {
   for (const compiler of V8_COMPILERS) {
     const { main, workers } = runNodeProcess(compiler, modulePath, limits, report);
     show(`Node main thread, ${compiler.name}`, main);
-    for (const { stackMb, result } of workers) show(`Node worker (${stackMb} MiB stack), ${compiler.name}`, result, WORKER_FLOOR);
+    for (const { stackMb, result } of workers) show(`Node worker (${stackMb} MiB stack), ${compiler.name}`, result);
   }
   const host = await wasmtimeHost(modulePath);
   try {
-    for (const stack of report ? REPORT_WASMTIME_STACKS : [WASMTIME_STACK]) {
-      show(`Wasmtime (max-wasm-stack ${mib(stack)})`, await runWasmtime(host, limits, stack, WASMTIME_FLOOR, report), WASMTIME_FLOOR);
+    for (const stack of report ? REPORT_WASMTIME_STACKS : [WASMTIME_DEFAULT_STACK, WASMTIME_STACK]) {
+      const checked = stack >= WASMTIME_STACK ? CALLBACK_HOSTS : EVERY_HOST;
+      show(`Wasmtime (max-wasm-stack ${mib(stack)})`, await runWasmtime(host, limits, stack, checked, report));
     }
   } finally {
     await host.close();
@@ -421,17 +421,17 @@ async function main(args) {
 // The Node hosts of one process (see runNodeProcess): main thread, then the workers one after
 // another.
 async function nodeHosts({ modulePath, limits, report }) {
-  const main = await runThread(modulePath, limits, null, report);
+  const main = await runThread(modulePath, limits, EVERY_HOST, report);
   const workers = [];
   for (const stackMb of report ? REPORT_WORKER_STACKS_MB : [WORKER_STACK_MB]) {
-    workers.push({ stackMb, result: await runWorker(modulePath, limits, WORKER_FLOOR, report, stackMb) });
+    workers.push({ stackMb, result: await runWorker(modulePath, limits, CALLBACK_HOSTS, report, stackMb) });
   }
   return { main, workers };
 }
 
 if (!isMainThread) {
-  const { modulePath, limits, floor, report } = workerData;
-  parentPort.postMessage(await runThread(modulePath, limits, floor, report));
+  const { modulePath, limits, checked, report } = workerData;
+  parentPort.postMessage(await runThread(modulePath, limits, checked, report));
 } else {
   const args = process.argv.slice(2);
   const hostsAt = args.indexOf(NODE_HOSTS_OPTION);
