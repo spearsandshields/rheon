@@ -267,6 +267,11 @@ Rules:
 | 219 | `56b24c9` | feel-evaluator tests: the end of a time range is found by adding a duration | fork |
 | 220 | `8cea6e1` | feel-evaluator: the recorded answers of the tests are not part of the package | fork |
 | 221 | `360df97` | feel, feel-evaluator, feel-wasm: an evaluation can have a budget of steps | fork |
+| 222 | `5c052cb` | feel-parser: a name that is not in scope ends before a keyword | fork |
+| 223 | `d01efb7` | feel-parser: a string literal or a block comment that is not closed is a syntax error | fork |
+| 224 | `6d233e3` | feel-parser: the name tokens after an iteration variable `item` compare each part with `in` once | fork |
+| 225 | `d3e6945` | feel, feel-wasm: a JSON input context of more than 11 entries is built in one pass | fork |
+| 226 | `d5bfeab` | feel-parser: the name index compares the items of a list only when a lookup depends on it | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -3267,6 +3272,15 @@ for, some, every, filter, context) are composed by the DMN layer from evaluators
 share the sequence, item and outcome kernels with the run loop and are not lowered to programs. The
 totals are under "Verification" below.
 
+Commits 222-226 are five changes of the lexer, the parser's name index and the input conversion.
+Two change answers, each registered with its basis: a name that is not in scope ends before a
+keyword that can follow an operand, so `for s in x return 1` and `x and y` have their keywords when
+`x` is no name in scope (222), and a string literal or a block comment that the input does not close
+is a syntax error instead of the end of the input (223). Three change no answer: the name tokens
+after an iteration variable `item` no longer search their chain again and again (224), a JSON input
+context of more than 11 entries is built in one pass (225), and the name index compares the items
+of a list only when a lookup depends on it (226).
+
 179. **The identity check compares with 0.6.0.** The baseline moves to the v0.6.0 release module,
     and the ledgers of registered differences against 0.5.0 are emptied: 0.6.0 answers every
     committed request as registered. The 61 entries and 3 rule entries of `registered/` and the 21
@@ -3814,6 +3828,95 @@ totals are under "Verification" below.
     `@rheon/feel-runtime` (`EvaluateRequest.maxSteps`). Rust API:
     `diagnostics::evaluation_within`, `diagnostics::step`, `Abort::Steps` and
     `Session::with_step_budget` are new.
+222. **A name that is not in scope ends before a keyword.** When no name in scope starts at a
+    name token, the name took every word up to the next punctuation, keywords included: `for s in
+    x return 1`, `if x then y else z` and `some s in x satisfies s.z` were syntax errors when `x`
+    was no name in scope, and `x and y` was one unknown name. Such a name now ends before the
+    first of its words that is a keyword which can follow an operand (`and`, `between`, `else`,
+    `in`, `instance`, `or`, `return`, `satisfies`, `then`), written as a word of its own: white
+    space before it, and white space or the end of the input after it, as where the keyword
+    starts a token. The rest is read as the following tokens, as after a name in scope (DMN 1.6
+    §10.3.1.6 resolves a keyword inside a name by the names in scope, and here no name in scope
+    has it). Unchanged: a name in scope is matched first, so it holds its keywords (`tax
+    return`); the built-in names `date and time`, `years and months duration` and `days and time
+    duration` are read whole; the other keywords never follow an operand, so `price list` stays
+    one name; `opt-in rate` and `x and(y)` have no keyword as a word of its own. **Behaviour
+    change beyond the fix:** a name that is not in scope and has one of the nine keywords as a
+    word (`Is in range`) was null with an error and is another expression now, often a syntax
+    error. The frozen reference lexer of the differential tests has the same rule, written in
+    its own terms: as a registered difference it would leave the tokens after every such name
+    uncompared. Tests: `expr::name` (the tree without the names in scope equals the tree with
+    them; names in scope with keywords; the words that stay), `expr::various` (a filter of four
+    conjunctions parses without its names in scope). Identity: the 10 requests of the committed
+    sets whose answers change and those of 72 new requests of `names.json`, each with its parse
+    twin, 104 entries in `registered/unknown-name-ends-before-keyword.json`; every changed
+    answer of the 10 equals what 0.6.0 answers for the form with the name in parentheses. The
+    official TCK is unchanged, test by test. `docs/BACKLOG.md` states what remains (a name that
+    is not in scope still takes the symbols and other words after it). Rust API: none; the
+    tokens and trees of `rheon-feel-parser` change as above.
+223. **A string literal or a block comment that is not closed is a syntax error.** The lexer
+    read the end of the input where the text ended inside a string literal or a block comment,
+    and the parser accepted what came before: `1 + 2 "never closed` was 3 and `1 /* never
+    closed` was 1. The token at the quote or at the `/*` is now an undefined token, so the input
+    is a syntax error, as a string literal with a line break already was (DMN 1.6 §10.3.1.2:
+    grammar rule 33 ends a string literal with its quote, and a block comment is `/* ... */`). A
+    line comment still ends with the input. The differential tests register the difference with
+    the reference: the same tokens, then the undefined token where the reference reads the end
+    of the input. Tests: `expr::invalid` (21 texts under every start rule; closed forms).
+    Identity: the new request set `syntax.json` (57 requests) and the 38 entries of
+    `registered/unclosed-string-or-comment.json` (10 requests, lenient and strict, with their
+    parse twins, and a FEEL-format input context). Rust API: none.
+224. **The name tokens after an iteration variable `item` compare each part with `in` once.**
+    The mode of the iteration variable (the name ends before a part `in`) stays set after a
+    variable `item`, which is read before the mode is looked at (`docs/BACKLOG.md`,
+    *Iteration-variable mode outlives `item`*). Every later name token then searched the rest of
+    its chain for a part `in`: 1,000,000 comparisons for a chain of 1,000 names. The lexer
+    remembers the last search of the chain, and a name token inside its range takes the answer.
+    The tokens are the same, also where the mode shows. Tests:
+    `parts_compared_with_in_grow_linearly_with_the_chain` (a work counter),
+    `names_after_an_item_variable_equal_reference`. Measured (wasm, V8, best of 5, `for item in
+    [1] return a + a + ...`): 1,000 terms 2.28 ms to 0.94 ms, 4,000 terms 30.4 ms to 1.64 ms,
+    16,000 terms 463 ms to 6.2 ms, as with any other variable name. No answer changes. Rust API:
+    none.
+225. **A JSON input context of more than 11 entries is built in one pass.** Every entry of a
+    JSON object was inserted into its context with a search of the map, though the entries come
+    in the order of their keys, which is the order of the names unless a key was trimmed.
+    `FeelContext` can be collected from entries: those in ascending order of their names,
+    without a repeated name, build the map in one pass, and from the first entry out of that
+    order on each is inserted, so an entry with the name of an earlier one replaces it as
+    before. The input conversion collects an object of more than 11 entries this way; a smaller
+    one, whose entries are one node of the map, is inserted as before, which is cheaper there.
+    Of two keys that are one name after trimming, the later one in key order still gives the
+    entry. Tests: `test_context_collected_from_entries` (equal to inserting, in every order),
+    `context_keys_are_trimmed_but_inner_whitespace_is_kept` (both orders, nested contexts, a
+    context of 44 keys). Measured (wasm, V8, whole requests): a context of 100 names 0.032 ms to
+    0.028 ms, 1,000 names 0.310 ms to 0.247 ms, 5,000 names 1.69 ms to 1.31 ms, 100,000 names
+    39.8 ms to 29.7 ms; rows of 24 keys 0.94x the time, of 64 keys 0.87x, of 128 keys 0.82x, of
+    1 to 16 keys within 3% either way. The memory of the instance after a context of 100,000
+    names is 33.3 MiB (30.8 MiB before: the entries are held once more while the map is built).
+    No answer changes. Rust API: `impl FromIterator<(Name, Value)> for FeelContext` is new.
+226. **The name index compares the items of a list only when a lookup depends on it.** The keys
+    of the items of a list are names in scope when the items conform to the first one, and the
+    index of an input context decided that for every list when it was built, which reads every
+    item of every list; a parse that looked up one name of two parts paid for it. The index is
+    now built without the comparison: the keys of the first item of a list of two or more items
+    are held as not decided. It answers every lookup that these keys do not decide: a name it
+    does not hold is no name in scope, a name held without such a list on the way is one, and
+    its lengths are upper bounds of the lengths of the names in scope (a larger bound admits
+    more candidate names, and each is looked up). A lookup of a name that only such lists hold
+    builds the index with every list decided, which answers from then on; a composite name found
+    through such a list is searched again there. The lexer does not look up the last candidate
+    of a name token, its first part alone, when a keyword that ends a name follows it (item
+    222): the token is this part whether it is a name in scope or not, so the list of a `for`
+    and the operands of `and` decide no list (`for s in m.lines return s.qty`); a built-in
+    property after a dot and a built-in type name where a type is read are still recognised.
+    Tests: `lists_are_decided_when_a_lookup_needs_them` (a work counter),
+    `names_of_list_items_equal_reference` (lists of items of one and of several types), and the
+    random texts and contexts of the differential tests. Measured (wasm, V8, best of 60 whole
+    requests): `sum(items.amount)` over 10,000 rows 8.85 ms to 7.76 ms; a `for` over the same
+    rows 9.09 ms to 7.92 ms; a nested `for` over 200 lists of 50 rows 6.32 ms to 5.09 ms; a
+    filter by a key of two words, which decides its list, 9.18 ms and 9.18 ms. No answer
+    changes. Rust API: none.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -3855,6 +3958,31 @@ existed.
   of such results (`exp(74.971090)`, `exp(log(2.5))`, `log(exp(7))`).
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
+
+Commits 222-226 (2026-11-16), on the code of commit 226 (two corrections of documentation were
+folded into commits 222 and 223 after the run), by the release tier (`npm run tier:release`, 803 s
+of run time and 48 s of builds, budget 1,800 s; 32 of 32 steps): workspace 8,891 passed, 0 failed,
+24 ignored (CI's skips: the Rust TCK copies 3,555, the model evaluator 168, the other crates 5,168);
+clippy on the workspace without warnings, also on every one of commits 222-226 on its own, each of
+which passes `cargo check --workspace --all-targets`; the API documentation builds with rustdoc's
+warnings denied; feel.wasm tests 83 native and 84 under Wasmtime; runtime 34; the identity tool's
+tests pass; smoke passes, with its two memory checks growing by 12.0 MiB and 27.3 MiB (bound 32
+MiB) and the 26 string doublings by 256.0 MiB (at most 281.6); the randomized and exhaustive tests
+at full size 1,039 passed and the parser corpus 511; the playground builds. The number oracle judges
+every case right with no exemption: 35,939 cases quick and 2,896,591 at full size, in 188 families.
+DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, and the result of
+every test equal to that on the tree of commit 221. Full responses against the 0.6.0 release
+module, every cached reference answer equal to a live one: the committed sources 14,976 requests,
+142 registered differences reproduced (items 222 and 223: 104 and 38); with the release sources
+14,988 requests, 143 reproduced (with item 215), 6 trapping 0.6.0; with the two sets kept outside
+the repository 15,153 requests, 142 reproduced; none unregistered in any run. Speed against 0.6.0
+(the speed suite of 58 workloads, wasm, Node 26, Apple M2, two alternating rounds): geomean 1.20x
+and 1.20x (1.18x on the tree of commit 221). Against that tree, in both rounds: a formula over
+1,000 input names 1.00x to 1.16x, over 5,000 names 1.00x to 1.20x, a `for` over an input list of
+10,000 contexts 1.04x to 1.19x, a deep path with 1,000 input names 1.01x to 1.17x, a filter that
+calls a function 1.01x to 1.13x, `context put` on the input context 1.01x to 1.12x; no workload
+is slower than on that tree beyond the difference between two rounds (0.03x). The module is
+3,849,528 bytes (commit 221: 3,830,095; +0.5%). Not run: CI, Node 24 and Node 22.
 
 Commits 179-221 (2026-11-16), on the tree of commit 221, by the release tier (`npm run
 tier:release`, 904 s of run time and 95 s of builds, budget 1,800 s; 32 of 32 steps): workspace
@@ -4290,6 +4418,17 @@ The API changes of commits 85-133 (the item of each change is in parentheses):
   and `rheon-model` change only by the removed features (95). The wasm module's ABI and its
   request and response JSON are unchanged; what changes there are answers, registered with both
   answers as "Verification" states.
+
+The API changes of commits 222-226 (the item of each change is in parentheses):
+
+- Changed:
+  - `rheon-feel-parser`: behaviour: a name that is not in scope ends before a keyword that can
+    follow an operand (222); a string literal or a block comment that is not closed is a syntax
+    error (223).
+- Added:
+  - `rheon-feel`: `impl FromIterator<(Name, Value)> for FeelContext` (225).
+- The wasm ABI and its request and response JSON are unchanged; the answers that change (222,
+  223) are registered with both answers as "Verification" states.
 
 The API changes of commits 179-221 (the item of each change is in parentheses):
 
