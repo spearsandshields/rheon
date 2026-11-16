@@ -184,6 +184,11 @@ fn qualified_names_of_several_segments_are_searched() {
   let ast = AstNode::QualifiedName(vec![segment("a"), segment("b")]);
   assert_eq!(vec!["a.b: search"], reads_of(&resolve(&ast)));
   assert_eq!(vec!["a.b: search"], reads("for a in [{b: 1}] return 2 instance of a.b"));
+  // the report says where the first segment is read
+  assert_eq!(vec!["a qualified root+filter"], frees("[{a: {b: 1}}][2 instance of a.b]"));
+  let callee = AstNode::FunctionInvocation(Box::new(ast), Box::new(AstNode::PositionalParameters(vec![])));
+  let resolved = resolve(&callee);
+  assert_eq!(uses::ROOT | uses::CALLEE, resolved.frees[0].uses);
 }
 
 #[test]

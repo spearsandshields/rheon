@@ -423,18 +423,40 @@ impl<'a> Resolver<'a> {
       }
       region = parent;
     }
-    let mut used = if self.body.proto == NONE { uses::ROOT } else { uses::FUNCTION_BODY };
-    if !probes.is_empty() {
-      used |= uses::FILTER_PREDICATE;
-    }
-    if callee {
-      used |= uses::CALLEE;
-    }
+    let used = self.uses(!probes.is_empty(), callee);
     Read {
       name,
       probes: probes.into(),
       target: Target::Free(self.free(name, qualified, used)),
     }
+  }
+
+  /// Where a free name is read at the position being resolved: in the root expression or in a
+  /// body, in the predicate of a filter (`in_filter`) or not, as the function of an invocation
+  /// (`callee`) or not.
+  fn uses(&self, in_filter: bool, callee: bool) -> u8 {
+    let mut used = if self.body.proto == NONE { uses::ROOT } else { uses::FUNCTION_BODY };
+    if in_filter {
+      used |= uses::FILTER_PREDICATE;
+    }
+    if callee {
+      used |= uses::CALLEE;
+    }
+    used
+  }
+
+  /// Whether the position being resolved is in the predicate of a filter of its body.
+  fn in_filter(&self) -> bool {
+    let mut region = self.body.region;
+    while region != NONE {
+      let Region { parent, kind } = self.out.regions[region as usize];
+      match kind {
+        RegionKind::Item { .. } => return true,
+        RegionKind::Closure => return false,
+        RegionKind::Layout { .. } => region = parent,
+      }
+    }
+    false
   }
 
   fn free(&mut self, name: u32, qualified: bool, used: u8) -> u32 {
@@ -459,7 +481,7 @@ impl<'a> Resolver<'a> {
         let read = self.read(name, false, false);
         self.add(ast, Info::Read(read), &[])
       }
-      QualifiedName(segments) => self.qualified_name(ast, segments),
+      QualifiedName(segments) => self.qualified_name(ast, segments, false),
       Context(entries) => self.context(ast, entries),
       For(contexts, body) => self.for_expression(ast, contexts, body),
       Some(contexts, satisfies) | Every(contexts, satisfies) => self.quantified(ast, contexts, satisfies),
@@ -556,7 +578,7 @@ impl<'a> Resolver<'a> {
   /// A qualified name: of one segment it reads as a name, of several it is searched along the
   /// chain of its position at run time. A segment that is no segment is kept as a child: the
   /// evaluator of closures evaluates it.
-  fn qualified_name(&mut self, ast: &'a AstNode, segments: &'a [AstNode]) -> u32 {
+  fn qualified_name(&mut self, ast: &'a AstNode, segments: &'a [AstNode], callee: bool) -> u32 {
     let names: Option<Vec<&Name>> = segments
       .iter()
       .map(|segment| match segment {
@@ -566,14 +588,14 @@ impl<'a> Resolver<'a> {
       .collect();
     match names.as_deref() {
       Some([name]) => {
-        let read = self.read(name, true, false);
+        let read = self.read(name, true, callee);
         self.add(ast, Info::Read(read), &[])
       }
       Some(names) => {
         let first = match names.first() {
           Some(first) => {
             let first = self.name(first);
-            let used = if self.body.proto == NONE { uses::ROOT } else { uses::FUNCTION_BODY };
+            let used = self.uses(self.in_filter(), callee);
             self.free(first, true, used);
             first
           }
@@ -804,6 +826,7 @@ impl<'a> Resolver<'a> {
         let read = self.read(name, false, true);
         self.add(callee, Info::Read(read), &[])
       }
+      AstNode::QualifiedName(segments) => self.qualified_name(callee, segments, true),
       _ => self.node(callee),
     }];
     match arguments {
