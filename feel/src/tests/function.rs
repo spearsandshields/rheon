@@ -159,3 +159,31 @@ fn test_function_body_some() {
   assert_eq!(fun_body, fun_body_a);
   assert_eq!(fun_body, fun_body.clone());
 }
+
+/// Code whose bodies give a number plus their index.
+struct Code(i32);
+
+impl crate::FeelCode for Code {
+  fn evaluate(self: Arc<Self>, body: u32, _: &FeelScope) -> Value {
+    value_number!(self.0 + body as i32)
+  }
+
+  fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync> {
+    self
+  }
+}
+
+#[test]
+fn a_feel_body_compares_and_prints_like_a_literal_expression() {
+  let scope = &FeelScope::default();
+  let feel = FunctionBody::Feel(Arc::new(Code(3)), 1);
+  let literal = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(4))));
+  assert_eq!(value_number!(4), feel.evaluate(scope));
+  assert_eq!("FunctionBodyLiteralExpression", format!("{feel:?}"));
+  assert_eq!(feel, literal);
+  assert_eq!(literal, feel);
+  assert_eq!(feel, FunctionBody::Feel(Arc::new(Code(5)), 0));
+  assert_ne!(feel, FunctionBody::Context(Arc::new(Box::new(|_: &FeelScope| value_number!(3)))));
+  let FunctionBody::Feel(code, _) = &feel else { unreachable!() };
+  assert!(Arc::clone(code).into_any().downcast::<Code>().is_ok());
+}

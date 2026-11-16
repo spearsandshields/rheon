@@ -1,14 +1,12 @@
 //! # The flat evaluator
 //!
 //! Register instructions over numbered slots, run by one loop, built from the parser's tree after
-//! name resolution. It is built beside the evaluator of closures ([crate::builders]): every
-//! expression it does not lower yet is refused ([NotYet]) and built as closures, whole, so no
-//! expression mixes the two.
+//! name resolution. It is built beside the evaluator of closures ([crate::builders]): an
+//! expression of a shape it does not lower (only a tree built by hand has one) is refused
+//! ([NotYet]) and built as closures, whole, so no expression mixes the two.
 //!
 //! An expression is resolved ([resolve]: what every name reads, where every binder is kept),
 //! lowered to a [program::Program] ([lower]) and run by the loop of [vm], one run per evaluation.
-
-#![cfg_attr(not(test), allow(dead_code))]
 
 mod lower;
 mod program;
@@ -16,6 +14,8 @@ mod resolve;
 #[cfg(test)]
 mod tests;
 mod vm;
+
+pub(crate) use vm::{code_of, run_function};
 
 use crate::Dialect;
 use rheon_feel::{Evaluator, FeelScope};

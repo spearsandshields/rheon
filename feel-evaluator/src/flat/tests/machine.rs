@@ -7,6 +7,7 @@ use rheon_feel::{FeelScope, value_null};
 
 fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -> Program {
   Program {
+    root_end: code.len() as u32,
     code,
     consts,
     messages: messages.into_iter().map(Into::into).collect(),
@@ -17,6 +18,8 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
     loops: vec![],
     filters: vec![],
     probes: vec![],
+    closures: vec![],
+    protos: vec![],
     layouts: vec![],
     regions: vec![],
     slots,
@@ -47,7 +50,7 @@ fn verify_rejects_indices_out_of_range() {
     program(vec![Op::Return { src: Opnd::konst(1) }], vec![Value::Null(None)], vec![], 0).verify()
   );
   assert_eq!(
-    at(1, "the code does not end with a return"),
+    at(1, "the code of a body does not end with a return"),
     program(vec![Op::Warn { msg: 0 }], vec![], vec!["w"], 0).verify()
   );
 }
@@ -65,17 +68,17 @@ fn verify_rejects_unstructured_code() {
     program(vec![Op::ListPush { src: Opnd::konst(0) }, ret], null(), vec![], 0).verify()
   );
   assert_eq!(
-    at(1, "a list, an invocation, a context type or a walk is open at the return"),
+    at(1, "a list, an invocation, a fold or a walk is open at the return"),
     program(vec![Op::ListNew { len: 0 }, ret], null(), vec![], 0).verify()
   );
   let across = vec![Op::Jump { to: 2 }, Op::ListNew { len: 0 }, Op::ListEnd { kind: ListKind::List, dst: 0 }, ret];
-  assert_eq!(at(0, "jump across a list, an invocation or a context type"), program(across, null(), vec![], 1).verify());
+  assert_eq!(at(0, "jump across a list, an invocation or a fold"), program(across, null(), vec![], 1).verify());
   let leave = Op::Leave { dst: 0 };
   assert_eq!(at(0, "no invocation is open"), program(vec![leave, ret], null(), vec![], 1).verify());
   let past = vec![Op::Enter { dst: 0, skip: 2 }, leave, ret];
   assert_eq!(Ok(()), program(past, null(), vec![], 1).verify());
   let into = vec![Op::Enter { dst: 0, skip: 1 }, leave, ret];
-  assert_eq!(at(0, "jump across a list, an invocation or a context type"), program(into, null(), vec![], 1).verify());
+  assert_eq!(at(0, "jump across a list, an invocation or a fold"), program(into, null(), vec![], 1).verify());
 }
 
 #[test]
@@ -86,7 +89,8 @@ fn a_run_records_errors_and_warnings_in_order() {
   builder.emit(Op::Warn { msg: warning });
   builder.emit(Op::Fail { dst: 0, msg: error });
   builder.emit(Op::Return { src: Opnd::take(0) });
-  let program = builder.finish(1, crate::Dialect::Feel, vec![], vec![]);
+  let end = builder.here();
+  let program = builder.finish(1, end, crate::Dialect::Feel, vec![], vec![]);
   let (value, recorded) = diagnostics::collect(|| program.run(&FeelScope::default()));
   let (expected, expected_recorded) = diagnostics::collect(|| {
     diagnostics::warn("w");

@@ -47,10 +47,3 @@ pub(super) fn agree_node(dialect: Dialect, scope: &FeelScope, node: &AstNode) {
 pub(super) fn agree(text: &str) {
   agree_in(Dialect::Feel, "", text);
 }
-
-/// Asserts that the flat evaluator does not lower `text` yet.
-#[track_caller]
-pub(super) fn refused(text: &str) {
-  let node = rheon_feel_parser::parse_expression(&FeelScope::default(), text, false).unwrap_or_else(|e| panic!("{text}: {e}"));
-  assert!(lower(resolve(&node), Dialect::Feel).is_err(), "{text} is lowered");
-}

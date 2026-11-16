@@ -11,7 +11,7 @@ use std::sync::Arc;
 /// The function that a definition gives from its evaluated formal parameters and body. Its closure
 /// context holds the value of each name of `closure` that `search` finds, in the order of `closure`;
 /// the function is nested no deeper than values may nest.
-pub(crate) fn function_definition(parameters: Value, body: Value, closure: &Closure, search: impl Fn(&QualifiedName) -> Option<Value>) -> Value {
+pub(crate) fn function_definition(parameters: Value, body: Value, closure: &Closure, mut search: impl FnMut(&QualifiedName) -> Option<Value>) -> Value {
   match parameters {
     Value::FormalParameters(parameters) => {
       if let Value::FunctionBody(body, external) = body {

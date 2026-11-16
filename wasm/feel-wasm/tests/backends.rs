@@ -106,7 +106,7 @@ fn shrinking_keeps_a_difference() {
   assert!(smallest.request().len() < generated.request().len(), "{} from {}", smallest.request(), generated.request());
 }
 
-/// Requests whose answers are booleans and others, and one that the flat evaluator refuses.
+/// Requests whose answers are booleans and others.
 const SAMPLE: [&str; 6] = [
   r#"{"op": "evaluate", "expression": "1 < 2"}"#,
   r#"{"op": "evaluate", "expression": "\"a\" = \"b\""}"#,
@@ -126,9 +126,11 @@ fn harness_detects_a_difference() {
   let mutant = compare(&requests, Backend::Old, Backend::Mutant);
   assert_eq!(3, mutant.differences.len(), "{mutant}");
   assert_eq!(r#"{"op": "evaluate", "expression": "1 < 2"}"#, mutant.differences[0].request);
-  // the flat evaluator alone answers what it lowers, and a refusal is counted, not compared
+  // the flat evaluator alone lowers and answers every request
   let flat = compare(&requests, Backend::Old, Backend::FlatOnly);
-  assert_eq!((6, 5, 5, 0), (flat.requests, flat.compared, flat.lowered, flat.differences.len()), "{flat}");
-  assert_eq!(1, flat.refusals(), "{flat}");
-  assert_eq!(Some(&1), flat.refused.get("NotYet").and_then(|nodes| nodes.get("FunctionDefinition")), "{flat}");
+  assert_eq!(
+    (6, 6, 6, 0, 0),
+    (flat.requests, flat.compared, flat.lowered, flat.differences.len(), flat.refusals()),
+    "{flat}"
+  );
 }

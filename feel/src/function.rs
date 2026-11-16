@@ -61,6 +61,19 @@ impl From<FunctionDefinition> for Value {
 /// Type alias of the closure that evaluates FEEL or DMN function body into [Value].
 pub type FunctionBodyEvaluator = Arc<Evaluator>;
 
+/// Code built by an evaluator of FEEL that holds the bodies of FEEL function definitions, each
+/// by its index: the body of [FunctionBody::Feel]. The invocation of the evaluator that built it
+/// runs a body directly; any other caller evaluates it like any other body.
+pub trait FeelCode: std::any::Any + Send + Sync {
+  /// Evaluates the body `body` in a scope that already holds the bound arguments, as
+  /// [FunctionBody::evaluate] evaluates every body: the parameters are the values of their names
+  /// in `scope`.
+  fn evaluate(self: Arc<Self>, body: u32, scope: &FeelScope) -> Value;
+
+  /// The code as [std::any::Any], so that the evaluator that built it can recognize it.
+  fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync>;
+}
+
 /// Function body may be defined multiple ways using FEEL or DMN.
 /// This enum is the representation of all of these cases.
 #[derive(Clone)]
@@ -95,6 +108,10 @@ pub enum FunctionBody {
   Relation(FunctionBodyEvaluator),
   /// Function body created from boxed `some` expression defined in DMN model.
   Some(FunctionBodyEvaluator),
+  /// Function body of a FEEL function definition: code of an evaluator of FEEL and the index of
+  /// the body in it. It compares and prints like [FunctionBody::LiteralExpression], the body that
+  /// an evaluator of closures builds for the same definition.
+  Feel(Arc<dyn FeelCode>, u32),
 }
 
 impl FunctionBody {
@@ -116,6 +133,7 @@ impl FunctionBody {
       FunctionBody::LiteralExpression(evaluator) => evaluator(scope),
       FunctionBody::Relation(evaluator) => evaluator(scope),
       FunctionBody::Some(evaluator) => evaluator(scope),
+      FunctionBody::Feel(code, body) => Arc::clone(code).evaluate(*body, scope),
     }
   }
 }
@@ -134,7 +152,7 @@ impl Debug for FunctionBody {
       FunctionBody::FunctionDefinition(_) => write!(f, "FunctionBodyFunctionDefinition"),
       FunctionBody::Invocation(_) => write!(f, "FunctionBodyInvocation"),
       FunctionBody::List(_) => write!(f, "FunctionBodyList"),
-      FunctionBody::LiteralExpression(_) => write!(f, "FunctionBodyLiteralExpression"),
+      FunctionBody::LiteralExpression(_) | FunctionBody::Feel(..) => write!(f, "FunctionBodyLiteralExpression"),
       FunctionBody::Relation(_) => write!(f, "FunctionBodyRelation"),
       FunctionBody::Some(_) => write!(f, "FunctionBodySome"),
     }
@@ -155,7 +173,7 @@ impl PartialEq for FunctionBody {
       FunctionBody::FunctionDefinition(_) => matches!(other, FunctionBody::FunctionDefinition(_)),
       FunctionBody::Invocation(_) => matches!(other, FunctionBody::Invocation(_)),
       FunctionBody::List(_) => matches!(other, FunctionBody::List(_)),
-      FunctionBody::LiteralExpression(_) => matches!(other, FunctionBody::LiteralExpression(_)),
+      FunctionBody::LiteralExpression(_) | FunctionBody::Feel(..) => matches!(other, FunctionBody::LiteralExpression(_) | FunctionBody::Feel(..)),
       FunctionBody::Relation(_) => matches!(other, FunctionBody::Relation(_)),
       FunctionBody::Some(_) => matches!(other, FunctionBody::Some(_)),
     }

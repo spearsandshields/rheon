@@ -65,6 +65,8 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
       };
       let result = if function.external {
         apply_external(scope, &function.body, &values)
+      } else if let Some((program, proto)) = crate::flat::code_of(&function.body) {
+        crate::flat::run_function(scope, &function, program, proto, values)
       } else {
         apply_body(scope, &function, values)
       };
@@ -82,19 +84,12 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
 fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Value>, String> {
   let mut values = match arguments {
     Arguments::Positional(values) => {
-      if values.len() != parameters.len() {
-        return Err("invalid number of arguments".to_string());
-      }
+      arity(parameters, values.len())?;
       values
     }
     Arguments::Named(arguments) => {
-      let mut values = vec![value_null!(); parameters.len()];
-      for (name, value) in arguments {
-        let Some(index) = parameters.iter().position(|(parameter_name, _)| *parameter_name == name) else {
-          return Err(format!("function has no parameter named '{}'", arg(&name)));
-        };
-        values[index] = value;
-      }
+      let mut values = vec![];
+      in_order(parameters, arguments, &mut values)?;
       values
     }
   };
@@ -102,10 +97,39 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
   Ok(values)
 }
 
+/// Whether `count` positional arguments match `parameters`, or why they do not.
+pub(crate) fn arity(parameters: &[(Name, FeelType)], count: usize) -> Result<(), String> {
+  if count == parameters.len() {
+    Ok(())
+  } else {
+    Err("invalid number of arguments".to_string())
+  }
+}
+
+/// The values of the named `arguments` in `values`, in the order of `parameters` (null for a
+/// parameter that no argument names; an argument of a name that two parameters have goes to the
+/// first), or why they do not match the parameters.
+pub(crate) fn in_order<N: std::borrow::Borrow<Name>>(
+  parameters: &[(Name, FeelType)],
+  arguments: impl IntoIterator<Item = (N, Value)>,
+  values: &mut Vec<Value>,
+) -> Result<(), String> {
+  values.clear();
+  values.resize(parameters.len(), value_null!());
+  for (name, value) in arguments {
+    let name = name.borrow();
+    let Some(index) = parameters.iter().position(|(parameter_name, _)| parameter_name == name) else {
+      return Err(format!("function has no parameter named '{}'", arg(name)));
+    };
+    values[index] = value;
+  }
+  Ok(())
+}
+
 /// Converts the argument values in `values`, one per parameter and in the order of the
 /// parameters, to the types of their parameters in place, up to the first that does not conform,
 /// which gives why.
-fn coerce_arguments(parameters: &[(Name, FeelType)], values: &mut [Value]) -> Result<(), String> {
+pub(crate) fn coerce_arguments(parameters: &[(Name, FeelType)], values: &mut [Value]) -> Result<(), String> {
   for (value, (name, parameter_type)) in values.iter_mut().zip(parameters) {
     let argument = std::mem::replace(value, Value::Null(None));
     *value = argument
@@ -136,7 +160,7 @@ fn apply_body(scope: &FeelScope, function: &FunctionDefinition, values: Vec<Valu
 /// Not inlined, for the reason of [bind]: it runs after the body, whose nested calls would
 /// otherwise carry its frame.
 #[inline(never)]
-fn closed_over(search: impl Fn(&QualifiedName) -> Option<Value>, result: Value) -> Value {
+pub(crate) fn closed_over(search: impl Fn(&QualifiedName) -> Option<Value>, result: Value) -> Value {
   match result {
     Value::FunctionDefinition(mut function) => {
       let closed: Vec<(QualifiedName, Value)> = function.closure.iter().filter_map(|name| search(name).map(|value| (name.clone(), value))).collect();

@@ -9,6 +9,7 @@ pub(crate) use super::resolve::NONE;
 use super::resolve::{Layout, Place, Region};
 use crate::Dialect;
 use crate::kernels::Arithmetic;
+use rheon_feel::closure::Closure;
 use rheon_feel::values::Value;
 use rheon_feel::{IntervalType, Name};
 use std::sync::Arc;
@@ -95,6 +96,8 @@ pub(crate) enum Kernel1 {
   /// The types `list<t>` and `range<t>`.
   ListType,
   RangeType,
+  /// The body of an external function from its mapping.
+  ExternalBody,
 }
 
 /// The kernels of two operands.
@@ -112,6 +115,17 @@ pub(crate) enum Kernel2 {
   ContextTypeEntry,
   /// The type `function<t1, …> -> r`.
   FunctionType,
+  /// A formal parameter of a function definition from its name and its type.
+  FormalParameter,
+}
+
+/// What [Op::FoldNew] opens.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Fold {
+  /// A context type, from its entries.
+  ContextType,
+  /// The formal parameters of a function definition.
+  Parameters,
 }
 
 /// The kinds of lists that [Op::ListEnd] makes.
@@ -158,9 +172,10 @@ pub(crate) enum Op {
   Fail { dst: Slot, msg: Ix },
   /// Records the warning `messages[msg]`.
   Warn { msg: Ix },
-  /// `dst` is the value of the free name `names[name]` in the scope of the host, else the
-  /// built-in function of that name, else null with an error.
-  LoadName { dst: Slot, name: Ix },
+  /// `dst` is the value of the free name `names[name]` below the scopes of the body (in the
+  /// scope of the host for the root expression), else the built-in function of that name, else
+  /// null with an error; in a body, the value is kept in the activation's cell `cell` once read.
+  LoadName { dst: Slot, name: Ix, cell: u32 },
   /// `dst` is the value of the qualified name of `searches[search]`, searched in the scopes of its
   /// position and then in the scope of the host, else null with an error.
   Search { dst: Slot, search: Ix },
@@ -206,13 +221,13 @@ pub(crate) enum Op {
   ListPush { src: Opnd },
   /// `dst` is the innermost open list, closed, as a value of `kind`.
   ListEnd { kind: ListKind, dst: Slot },
-  /// Opens a context type.
-  TypeNew,
-  /// Adds the value of `src`, an entry, to the innermost open context type; a value that is no
-  /// entry closes it, `dst` is its null and the run continues at `fail`.
-  TypeAdd { src: Opnd, dst: Slot, fail: Pc },
-  /// `dst` is the innermost open context type, closed.
-  TypeEnd { dst: Slot },
+  /// Opens a fold of `kind`: a context type or formal parameters.
+  FoldNew { kind: Fold },
+  /// Adds the value of `src`, an entry of a context type or a formal parameter, to the innermost
+  /// open fold; a value that is none closes it, `dst` is its null and the run continues at `fail`.
+  FoldAdd { src: Opnd, dst: Slot, fail: Pc },
+  /// `dst` is the innermost open fold, closed.
+  FoldEnd { dst: Slot },
   /// Enters an invocation ([rheon_feel::diagnostics::enter_call]): beyond the call depth limit `dst` is null
   /// and the run continues at `skip`, past the matching [Op::Leave], so nothing of the
   /// invocation is evaluated.
@@ -262,6 +277,8 @@ pub(crate) enum Op {
   /// While the filter of `record` visits its items: `dst` is the item (its entry `item`, when it
   /// is a context that has one) and the run continues at `found`.
   ItemSelf { dst: Slot, record: u32, found: Pc },
+  /// `dst` is the function of the definition `closures[closure]`.
+  Closure { dst: Slot, closure: Ix },
   /// Ends the run with the value of `src`.
   Return { src: Opnd },
 }
@@ -309,9 +326,38 @@ pub(crate) struct FilterInfo {
   pub(crate) after: Pc,
 }
 
+/// A function definition: the proto of its body, the value of its formal parameters, the value
+/// of its external body (`None` for a body of FEEL), and the innermost region at its position
+/// ([NONE] outside every region), where the names it closes over are searched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ClosureInfo {
+  pub(crate) proto: u32,
+  pub(crate) parameters: Opnd,
+  pub(crate) body: Option<Opnd>,
+  pub(crate) region: u32,
+}
+
+/// The body of a function definition: where its code is, the slots of its frame and the cells of
+/// its free names, the slot of
+/// each parameter in their order, its outermost region, the names it closes over and, for each
+/// of them in their order, the index of its first segment in [Program::names] ([NONE] for a name
+/// that no binder of the program has).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct Proto {
+  pub(crate) entry: Pc,
+  pub(crate) end: Pc,
+  pub(crate) slots: u32,
+  /// The cells of the free names it reads.
+  pub(crate) cells: u32,
+  pub(crate) params: Box<[Slot]>,
+  pub(crate) region: u32,
+  pub(crate) closure: Closure,
+  pub(crate) captures: Box<[u32]>,
+}
+
 /// A qualified-name search: the segments in [Program::name_lists], the index of the first one in
 /// [Program::names] ([NONE] without segments), and the innermost region at its position ([NONE]
-/// outside every region).
+/// outside every region, and for a name that no scope of the body has).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct SearchInfo {
   pub(crate) segments: Ix,
@@ -342,14 +388,20 @@ pub(crate) struct Program {
   pub(crate) filters: Vec<FilterInfo>,
   /// The names read first from the items of filters.
   pub(crate) probes: Vec<ProbeInfo>,
+  /// The function definitions.
+  pub(crate) closures: Vec<ClosureInfo>,
+  /// The bodies of the function definitions, whose code follows that of the root expression.
+  pub(crate) protos: Vec<Proto>,
   /// The binders of each binding construct, as name resolution placed them.
   pub(crate) layouts: Vec<Layout>,
   /// The scopes at the positions of the code, as name resolution found them.
   pub(crate) regions: Vec<Region>,
   /// FEEL or B-FEEL.
   pub(crate) dialect: Dialect,
-  /// The slots of the frame.
+  /// The slots of the frame of the root expression.
   pub(crate) slots: u32,
+  /// The end of the code of the root expression.
+  pub(crate) root_end: Pc,
 }
 
 /// A program that [Program::verify] rejects: what is wrong, at which instruction.
@@ -360,21 +412,88 @@ pub(crate) struct VerifyError {
 }
 
 impl Program {
-  /// Checks that every operand, slot and index of every instruction is in range and that the
+  /// Checks that the code of the root expression and of every body follow each other, that every
+  /// operand, slot and index of every instruction is in range for its body and that every body's
   /// code ends with a return, so that the run loop never indexes out of range.
   pub(crate) fn verify(&self) -> Result<(), VerifyError> {
-    self.verify_structure()?;
-    for (at, op) in self.code.iter().enumerate() {
-      let check = Check { program: self, at: at as Pc };
+    let mut bodies: Vec<(Pc, Pc, u32, u32)> = std::iter::once((0, self.root_end, self.slots, 0))
+      .chain(self.protos.iter().map(|proto| (proto.entry, proto.end, proto.slots, proto.cells)))
+      .collect();
+    bodies.sort_unstable();
+    let mut next = 0;
+    for &(entry, end, ..) in &bodies {
+      if entry != next || end <= entry {
+        return Err(VerifyError {
+          at: entry,
+          what: "the code of a body does not follow the one before",
+        });
+      }
+      next = end;
+    }
+    if next as usize != self.code.len() {
+      return Err(VerifyError {
+        at: next,
+        what: "code after the last body",
+      });
+    }
+    for proto in &self.protos {
+      let check = Check {
+        program: self,
+        at: proto.entry,
+        slots: proto.slots,
+      };
+      for &slot in proto.params.iter() {
+        check.slot(slot)?;
+      }
+      check.region(proto.region)?;
+      if proto.captures.len() != proto.closure.iter().count() {
+        return check.fail("a capture per closed-over name");
+      }
+      for &first in proto.captures.iter() {
+        if first != NONE {
+          check.index(first, self.names.len(), "name out of range")?;
+        }
+      }
+    }
+    for &(entry, end, slots, cells) in &bodies {
+      self.verify_body(entry, end, slots, cells)?;
+    }
+    for (at, region) in self.regions.iter().enumerate() {
+      let check = Check {
+        program: self,
+        at: at as Pc,
+        slots: self.slots,
+      };
+      if region.parent != NONE && region.parent as usize >= at {
+        return check.fail("a region is not held by an earlier one");
+      }
+    }
+    Ok(())
+  }
+
+  /// [Program::verify] for the body whose code is `entry .. end`, whose frame has `slots` slots
+  /// and whose activation `cells` cells (none for the root expression, whose free names are
+  /// read from the scope of the host).
+  fn verify_body(&self, entry: Pc, end: Pc, slots: u32, cells: u32) -> Result<(), VerifyError> {
+    self.verify_structure(entry, end)?;
+    for (at, op) in self.code[entry as usize..end as usize].iter().enumerate() {
+      let check = Check {
+        program: self,
+        at: entry + at as Pc,
+        slots,
+      };
       match *op {
         Op::Fail { dst, msg } => {
           check.slot(dst)?;
           check.index(msg, self.messages.len(), "message out of range")?;
         }
         Op::Warn { msg } => check.index(msg, self.messages.len(), "message out of range")?,
-        Op::LoadName { dst, name } => {
+        Op::LoadName { dst, name, cell } => {
           check.slot(dst)?;
           check.index(name, self.names.len(), "name out of range")?;
+          if entry == 0 && cell != NONE || entry != 0 && cell >= cells {
+            return check.fail("cell out of range");
+          }
         }
         Op::Search { dst, search } => {
           check.slot(dst)?;
@@ -416,12 +535,12 @@ impl Program {
           check.opnd(b)?;
         }
         Op::JumpUnlessTrue { c, .. } => check.opnd(c)?,
-        Op::Jump { .. } | Op::ListNew { .. } | Op::TypeNew => {}
-        Op::TypeAdd { src, dst, .. } => {
+        Op::Jump { .. } | Op::ListNew { .. } | Op::FoldNew { .. } => {}
+        Op::FoldAdd { src, dst, .. } => {
           check.slot(dst)?;
           check.opnd(src)?;
         }
-        Op::TypeEnd { dst } => check.slot(dst)?,
+        Op::FoldEnd { dst } => check.slot(dst)?,
         Op::ListPush { src } => check.opnd(src)?,
         Op::Enter { dst, .. } | Op::Leave { dst } => check.slot(dst)?,
         Op::Call { dst, call } => {
@@ -477,41 +596,49 @@ impl Program {
           check.index(probe, self.probes.len(), "probe out of range")?;
           check.index(self.probes[probe as usize].name, self.names.len(), "name out of range")?;
         }
+        Op::Closure { dst, closure } => {
+          check.slot(dst)?;
+          check.index(closure, self.closures.len(), "function definition out of range")?;
+          let info = self.closures[closure as usize];
+          check.index(info.proto, self.protos.len(), "proto out of range")?;
+          check.opnd(info.parameters)?;
+          if let Some(body) = info.body {
+            check.opnd(body)?;
+          }
+          check.region(info.region)?;
+        }
         Op::Return { src } => check.opnd(src)?,
       }
     }
-    for (at, region) in self.regions.iter().enumerate() {
-      let check = Check { program: self, at: at as Pc };
-      if region.parent != NONE && region.parent as usize >= at {
-        return check.fail("a region is not held by an earlier one");
-      }
-    }
-    match self.code.last() {
+    match self.code[..end as usize].last() {
       Some(Op::Return { .. }) => Ok(()),
       _ => Err(VerifyError {
-        at: self.code.len() as Pc,
-        what: "the code does not end with a return",
+        at: end,
+        what: "the code of a body does not end with a return",
       }),
     }
   }
 }
 
 impl Program {
-  /// Checks that every jump goes forward to an instruction of the code, and that lists,
-  /// invocations, context types and walks are opened and closed in nesting order on every path:
-  /// the code is structured, so what is open at an instruction is what is open there in the
-  /// order of the code, the same from every jump. An [Op::Enter] that refuses continues past its
-  /// [Op::Leave], with what was open before it. A walk is the record of its nesting depth, and the
-  /// only jumps back are those of a walk to its step, inside it.
-  fn verify_structure(&self) -> Result<(), VerifyError> {
-    // the open lists, invocations, context types and walks before each instruction
-    let mut open = Vec::with_capacity(self.code.len() + 1);
-    let (mut lists, mut calls, mut types) = (0_u32, 0_u32, 0_u32);
+  /// Checks that every jump of the body whose code is `entry .. end` goes forward to an
+  /// instruction of the body, and that lists, invocations, folds and walks are opened and closed
+  /// in nesting order on every path: the code is structured, so what is open at an instruction is
+  /// what is open there in the order of the code, the same from every jump. An [Op::Enter] that
+  /// refuses continues past its [Op::Leave], with what was open before it. A walk is the record of
+  /// its nesting depth in the body, and the only jumps back are those of a walk to its step,
+  /// inside it.
+  fn verify_structure(&self, entry: Pc, end: Pc) -> Result<(), VerifyError> {
+    let code = &self.code[entry as usize..end as usize];
+    // the open lists, invocations, folds and walks before each instruction of the body
+    let mut open = Vec::with_capacity(code.len() + 1);
+    let (mut lists, mut calls, mut folds) = (0_u32, 0_u32, 0_u32);
     // the open walks and filters: whether a walk, the index of its info, where it opens
     let mut records: Vec<(bool, u32, Pc)> = vec![];
-    for (at, op) in self.code.iter().enumerate() {
-      open.push((lists, calls, types, records.len() as u32));
-      let fail = |what| Err(VerifyError { at: at as Pc, what });
+    for (at, op) in code.iter().enumerate() {
+      let at = entry + at as Pc;
+      open.push((lists, calls, folds, records.len() as u32));
+      let fail = |what| Err(VerifyError { at, what });
       match *op {
         Op::LoopOpen { record, info } | Op::FilterOpen { record, info, .. } => {
           let walk = matches!(op, Op::LoopOpen { .. });
@@ -521,7 +648,7 @@ impl Program {
           if record as usize != records.len() {
             return fail("a walk or a filter that is not the record of its depth");
           }
-          records.push((walk, info, at as Pc));
+          records.push((walk, info, at));
         }
         Op::LevelPush { record, .. } | Op::Step { record } | Op::Visit { record, .. } | Op::LoadPartial { record, .. }
           if records.get(record as usize).is_none_or(|record| !record.0) =>
@@ -545,13 +672,13 @@ impl Program {
             return fail("a walk or a filter closed out of order");
           }
           let (_, info, opened) = records.pop().unwrap_or_default();
-          let inside = |pc: Pc| pc > opened && pc <= at as Pc;
+          let inside = |pc: Pc| pc > opened && pc <= at;
           let inside = if walk {
             let info = &self.loops[info as usize];
-            info.exit == at as Pc && inside(info.step) && info.levels.iter().all(|&(_, bind)| inside(bind))
+            info.exit == at && inside(info.step) && info.levels.iter().all(|&(_, bind)| inside(bind))
           } else {
             let info = &self.filters[info as usize];
-            info.close == at as Pc && info.after == at as Pc + 1 && info.body == opened + 1
+            info.close == at && info.after == at + 1 && info.body == opened + 1
           };
           if !inside {
             return fail("a walk or a filter whose steps are not inside it");
@@ -564,22 +691,25 @@ impl Program {
         Op::Enter { .. } => calls += 1,
         Op::Leave { .. } if calls == 0 => return fail("no invocation is open"),
         Op::Leave { .. } => calls -= 1,
-        Op::TypeNew => types += 1,
-        Op::TypeAdd { .. } if types == 0 => return fail("no context type is open"),
-        Op::TypeEnd { .. } if types == 0 => return fail("no context type is open"),
-        Op::TypeEnd { .. } => types -= 1,
-        Op::Return { .. } if lists != 0 || calls != 0 || types != 0 || !records.is_empty() => return fail("a list, an invocation, a context type or a walk is open at the return"),
+        Op::FoldNew { .. } => folds += 1,
+        Op::FoldAdd { .. } if folds == 0 => return fail("no fold is open"),
+        Op::FoldEnd { .. } if folds == 0 => return fail("no fold is open"),
+        Op::FoldEnd { .. } => folds -= 1,
+        Op::Return { .. } if lists != 0 || calls != 0 || folds != 0 || !records.is_empty() => return fail("a list, an invocation, a fold or a walk is open at the return"),
         _ => {}
       }
     }
     if !records.is_empty() {
       return Err(VerifyError {
-        at: self.code.len() as Pc,
+        at: end,
         what: "a walk is not closed",
       });
     }
+    // what is open at an instruction of the body
+    let open_at = |pc: Pc| pc.checked_sub(entry).and_then(|index| open.get(index as usize)).copied();
     // the targets of the walks and filters: what is open there is what is open inside them
-    for (at, op) in self.code.iter().enumerate() {
+    for (at, op) in code.iter().enumerate() {
+      let at = entry + at as Pc;
       let targets: Vec<Pc> = match *op {
         Op::LoopOpen { info, .. } => {
           let info = &self.loops[info as usize];
@@ -591,30 +721,31 @@ impl Program {
         Op::FilterOpen { info, .. } => vec![self.filters[info as usize].close],
         _ => continue,
       };
-      if targets.iter().any(|&target| open.get(target as usize) != Some(&open[at + 1])) {
+      if targets.iter().any(|&target| open_at(target).is_none() || open_at(target) != open_at(at + 1)) {
         return Err(VerifyError {
-          at: at as Pc,
-          what: "a walk or a filter that jumps across a list, an invocation or a context type",
+          at,
+          what: "a walk or a filter that jumps across a list, an invocation or a fold",
         });
       }
     }
-    for (at, op) in self.code.iter().enumerate() {
+    for (at, op) in code.iter().enumerate() {
+      let at = entry + at as Pc;
       let (target, state) = match *op {
-        Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => (to, open.get(at + 1).copied()),
-        Op::Enter { skip, .. } => (skip, Some(open[at])),
-        Op::ProbeItem { found, .. } | Op::ItemSelf { found, .. } => (found, open.get(at + 1).copied()),
+        Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => (to, open_at(at + 1)),
+        Op::Enter { skip, .. } => (skip, open_at(at)),
+        Op::ProbeItem { found, .. } | Op::ItemSelf { found, .. } => (found, open_at(at + 1)),
         // a null list skips the filter
-        Op::FilterOpen { info, .. } => (self.filters[info as usize].after, Some(open[at])),
-        // a failure closes the context type
-        Op::TypeAdd { fail, .. } => (fail, Some((open[at].0, open[at].1, open[at].2 - 1, open[at].3))),
+        Op::FilterOpen { info, .. } => (self.filters[info as usize].after, open_at(at)),
+        // a failure closes the fold
+        Op::FoldAdd { fail, .. } => (fail, open_at(at).map(|(lists, calls, folds, records)| (lists, calls, folds - 1, records))),
         _ => continue,
       };
-      let fail = |what| Err(VerifyError { at: at as Pc, what });
-      if target as usize <= at || target as usize >= self.code.len() {
+      let fail = |what| Err(VerifyError { at, what });
+      if target <= at || target >= end {
         return fail("jump out of range");
       }
-      if Some(open[target as usize]) != state {
-        return fail("jump across a list, an invocation or a context type");
+      if open_at(target) != state {
+        return fail("jump across a list, an invocation or a fold");
       }
       if matches!(op, Op::Enter { .. }) && !matches!(self.code[target as usize - 1], Op::Leave { .. }) {
         return fail("an invocation that refuses does not continue past a leave");
@@ -624,10 +755,11 @@ impl Program {
   }
 }
 
-/// The checks of one instruction of a program.
+/// The checks of one instruction of a body of a program whose frame has `slots` slots.
 struct Check<'p> {
   program: &'p Program,
   at: Pc,
+  slots: u32,
 }
 
 impl Check<'_> {
@@ -640,7 +772,7 @@ impl Check<'_> {
   }
 
   fn slot(&self, slot: Slot) -> Result<(), VerifyError> {
-    if slot < self.program.slots { Ok(()) } else { self.fail("slot out of range") }
+    if slot < self.slots { Ok(()) } else { self.fail("slot out of range") }
   }
 
   /// A region, or [NONE].
@@ -687,6 +819,8 @@ pub(crate) struct ProgramBuilder {
   loops: Vec<LoopInfo>,
   filters: Vec<FilterInfo>,
   probes: Vec<ProbeInfo>,
+  closures: Vec<ClosureInfo>,
+  protos: Vec<Proto>,
 }
 
 impl ProgramBuilder {
@@ -704,7 +838,7 @@ impl ProgramBuilder {
       | Op::AndLeft { to, .. }
       | Op::OrLeft { to, .. }
       | Op::Enter { skip: to, .. }
-      | Op::TypeAdd { fail: to, .. }
+      | Op::FoldAdd { fail: to, .. }
       | Op::ProbeItem { found: to, .. }
       | Op::ItemSelf { found: to, .. } => *to = here,
       _ => {}
@@ -779,15 +913,31 @@ impl ProgramBuilder {
     self.code.len() as Pc
   }
 
+  /// The index of the function definition `info` in the program.
+  pub(crate) fn closure(&mut self, info: ClosureInfo) -> Ix {
+    self.closures.push(info);
+    self.closures.len() as Ix - 1
+  }
+
+  /// The body of the function definitions of `proto`, whose code has been emitted.
+  pub(crate) fn proto(&mut self, index: u32, proto: Proto) {
+    let index = index as usize;
+    if self.protos.len() <= index {
+      self.protos.resize(index + 1, Proto::default());
+    }
+    self.protos[index] = proto;
+  }
+
   /// The index of the search `search` in the program.
   pub(crate) fn search(&mut self, search: SearchInfo) -> Ix {
     self.searches.push(search);
     self.searches.len() as Ix - 1
   }
 
-  /// The program in `dialect`, with a frame of `slots` slots and the layouts and regions of its
-  /// name resolution; checked in builds with debug assertions.
-  pub(crate) fn finish(self, slots: u32, dialect: Dialect, layouts: Vec<Layout>, regions: Vec<Region>) -> Arc<Program> {
+  /// The program in `dialect`, whose root expression has a frame of `slots` slots and its code
+  /// up to `root_end`, with the layouts and regions of its name resolution; checked in builds
+  /// with debug assertions.
+  pub(crate) fn finish(self, slots: u32, root_end: Pc, dialect: Dialect, layouts: Vec<Layout>, regions: Vec<Region>) -> Arc<Program> {
     let program = Program {
       code: self.code,
       consts: self.consts,
@@ -799,9 +949,12 @@ impl ProgramBuilder {
       loops: self.loops,
       filters: self.filters,
       probes: self.probes,
+      closures: self.closures,
+      protos: self.protos,
       layouts,
       regions,
       slots,
+      root_end,
       dialect,
     };
     #[cfg(debug_assertions)]

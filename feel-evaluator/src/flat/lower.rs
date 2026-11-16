@@ -8,7 +8,10 @@
 //! A node that is not lowered yet refuses the whole expression ([NotYet]).
 
 use super::NotYet;
-use super::program::{CallInfo, Compare, Domain, FilterInfo, Kernel1, Kernel2, ListKind, LoopInfo, LoopKind, NONE, Op, Opnd, ProbeInfo, Program, ProgramBuilder, SearchInfo, Slot};
+use super::program::{
+  CallInfo, ClosureInfo, Compare, Domain, FilterInfo, Fold, Kernel1, Kernel2, ListKind, LoopInfo, LoopKind, NONE, Op, Opnd, Pc, ProbeInfo, Program, ProgramBuilder, Proto,
+  SearchInfo, Slot,
+};
 use super::resolve::{Info, Place, Resolved, Stop, Target, variables};
 use crate::filters::ITEM;
 use crate::kernels::{self, Arithmetic};
@@ -18,7 +21,8 @@ use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
 
-/// The program of the resolved expression `resolved` in `dialect`.
+/// The program of the resolved expression `resolved` in `dialect`: the code of the root
+/// expression, then that of the body of each function definition in it.
 pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Program>, NotYet<'_>> {
   // the binders first, then the temporaries
   let binders = resolved.root.binders;
@@ -28,13 +32,46 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
     builder: ProgramBuilder::with_capacity(resolved.nodes.len()),
     next: binders,
     max: binders,
+    protos: vec![],
+    bodies: vec![],
+    proto: NONE,
+    cells: vec![],
+    cell_count: 0,
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
-  let Lower { mut builder, max, .. } = lower;
-  let Resolved { names, layouts, regions, .. } = resolved;
+  let root_end = lower.builder.here();
+  let root_slots = lower.max;
+  // the bodies one after the other, so that no body is lowered inside another
+  let mut done = 0;
+  while let Some(&(function, ..)) = lower.bodies.get(done) {
+    lower.body(done, function)?;
+    done += 1;
+  }
+  let Lower { mut builder, bodies, .. } = lower;
+  let Resolved {
+    names,
+    layouts,
+    regions,
+    mut functions,
+    ..
+  } = resolved;
+  for (index, (function, entry, end, slots, cells)) in bodies.into_iter().enumerate() {
+    let function = &mut functions[function as usize];
+    let proto = Proto {
+      entry,
+      end,
+      slots,
+      cells,
+      params: std::mem::take(&mut function.params),
+      region: function.region,
+      closure: std::mem::take(&mut function.closure),
+      captures: std::mem::take(&mut function.captures),
+    };
+    builder.proto(index as u32, proto);
+  }
   builder.names(names.into_iter().map(|name| name.into_owned()).collect());
-  Ok(builder.finish(max, dialect, layouts, regions))
+  Ok(builder.finish(root_slots, root_end, dialect, layouts, regions))
 }
 
 struct Lower<'r, 'a> {
@@ -45,6 +82,18 @@ struct Lower<'r, 'a> {
   next: Slot,
   /// The slots used so far.
   max: u32,
+  /// The index in the program of the proto of each function of the resolution, [NONE] until its
+  /// definition is lowered.
+  protos: Vec<u32>,
+  /// The protos of the program in order: the function of the resolution, and once its body is
+  /// lowered, where its code starts and ends, the slots of its frame and its cells.
+  bodies: Vec<(u32, Pc, Pc, u32, u32)>,
+  /// The proto being lowered, [NONE] for the root expression.
+  proto: u32,
+  /// For each free name, the proto and the cell it has there once read there.
+  cells: Vec<(u32, u32)>,
+  /// The cells of the proto being lowered.
+  cell_count: u32,
 }
 
 impl<'a> Lower<'_, 'a> {
@@ -234,21 +283,27 @@ impl<'a> Lower<'_, 'a> {
         let a = self.value(self.resolved.kids(node)[0], None)?;
         self.builder.emit(Op::Kernel1 { kernel, dst, a });
       }
-      AstNode::ContextType(_) => {
-        // the entries in order, up to the first that is no entry
-        let resolved = self.resolved;
-        self.builder.emit(Op::TypeNew);
-        let mut fails = vec![];
-        for &entry in resolved.kids(node) {
-          let src = self.value(entry, None)?;
-          fails.push(self.builder.emit(Op::TypeAdd { src, dst, fail: 0 }));
-          self.next = mark;
-        }
-        self.builder.emit(Op::TypeEnd { dst });
-        for fail in fails {
-          self.builder.patch(fail);
-        }
+      // the entries or the parameters in order, up to the first that is none
+      AstNode::ContextType(_) => self.fold(node, Fold::ContextType, dst)?,
+      AstNode::FormalParameters(_) => self.fold(node, Fold::Parameters, dst)?,
+      AstNode::FormalParameter(..) => {
+        let (a, b) = self.operands(node)?;
+        self.builder.emit(Op::Kernel2 {
+          kernel: Kernel2::FormalParameter,
+          dst,
+          a,
+          b,
+        });
       }
+      AstNode::FunctionBody(_, true) => {
+        let a = self.value(self.resolved.kids(node)[0], None)?;
+        self.builder.emit(Op::Kernel1 {
+          kernel: Kernel1::ExternalBody,
+          dst,
+          a,
+        });
+      }
+      AstNode::FunctionDefinition(..) => self.function(node, dst)?,
       AstNode::FunctionInvocation(_, arguments) => self.invocation(node, arguments, dst)?,
       AstNode::Context(_) => self.context(node, dst)?,
       AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) => self.iteration(node, dst)?,
@@ -258,6 +313,104 @@ impl<'a> Lower<'_, 'a> {
     }
     self.next = mark;
     Ok(Opnd::take(dst))
+  }
+
+  /// The values of the children of `node` added in order to a fold of `kind`, which stops at the
+  /// first value that is not of its kind.
+  fn fold(&mut self, node: u32, kind: Fold, dst: Slot) -> Result<(), NotYet<'a>> {
+    let resolved = self.resolved;
+    let mark = self.next;
+    self.builder.emit(Op::FoldNew { kind });
+    let mut fails = vec![];
+    for &kid in resolved.kids(node) {
+      let src = self.value(kid, None)?;
+      fails.push(self.builder.emit(Op::FoldAdd { src, dst, fail: 0 }));
+      self.next = mark;
+    }
+    self.builder.emit(Op::FoldEnd { dst });
+    for fail in fails {
+      self.builder.patch(fail);
+    }
+    Ok(())
+  }
+
+  /// A function definition: its formal parameters, then the mapping of an external body (even
+  /// when a parameter failed), then the function; the body of FEEL is lowered after the root
+  /// expression, once however often its definition is lowered.
+  fn function(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+    let resolved = self.resolved;
+    let rnode = &resolved.nodes[node as usize];
+    let (Info::Function { proto: function }, AstNode::FunctionDefinition(_, body)) = (&rnode.info, rnode.ast) else {
+      return Err(NotYet { at: rnode.ast });
+    };
+    if *function == NONE {
+      // a definition whose parts are not of their shapes
+      return Err(NotYet { at: rnode.ast });
+    }
+    let kids = resolved.kids(node);
+    let parameters = self.value(kids[0], None)?;
+    let body = match body.as_ref() {
+      AstNode::FunctionBody(_, true) => Some(self.value(kids[1], None)?),
+      _ => None,
+    };
+    if self.protos.is_empty() {
+      self.protos = vec![NONE; resolved.functions.len()];
+    }
+    let proto = match self.protos[*function as usize] {
+      NONE => {
+        let proto = self.bodies.len() as u32;
+        self.protos[*function as usize] = proto;
+        self.bodies.push((*function, 0, 0, 0, 0));
+        proto
+      }
+      proto => proto,
+    };
+    let closure = self.builder.closure(ClosureInfo {
+      proto,
+      parameters,
+      body,
+      region: rnode.region,
+    });
+    self.builder.emit(Op::Closure { dst, closure });
+    Ok(())
+  }
+
+  /// The code of the body of the proto `proto`, the function `function` of the resolution: its
+  /// value, returned; an external body has no code but a return of null.
+  fn body(&mut self, proto: usize, function: u32) -> Result<(), NotYet<'a>> {
+    let resolved = self.resolved;
+    let function = &resolved.functions[function as usize];
+    self.next = function.binders;
+    self.max = function.binders;
+    self.proto = proto as u32;
+    self.cell_count = 0;
+    let entry = self.builder.here();
+    let result = if function.body == NONE {
+      self.builder.konst(Value::Null(None))
+    } else {
+      self.value(function.body, None)?
+    };
+    self.builder.emit(Op::Return { src: result });
+    let body = &mut self.bodies[proto];
+    (body.1, body.2, body.3, body.4) = (entry, self.builder.here(), self.max, self.cell_count);
+    Ok(())
+  }
+
+  /// The cell of the free name `free` in the proto being lowered ([NONE] in the root
+  /// expression, which reads free names from the scope of the host).
+  fn cell(&mut self, free: u32) -> u32 {
+    if self.proto == NONE {
+      return NONE;
+    }
+    if self.cells.is_empty() {
+      self.cells = vec![(NONE, NONE); self.resolved.frees.len()];
+    }
+    let (proto, cell) = &mut self.cells[free as usize];
+    if *proto != self.proto {
+      (*proto, *cell) = (self.proto, self.cell_count);
+      self.cell_count += 1;
+    }
+    *cell
   }
 
   /// An invocation, between the instructions that enter and leave it: the function, then the
@@ -566,7 +719,8 @@ impl<'a> Lower<'_, 'a> {
       }
       (AstNode::Name(_), Target::Free(free)) => {
         let name = self.resolved.frees[free as usize].name;
-        self.builder.emit(Op::LoadName { dst, name });
+        let cell = self.cell(free);
+        self.builder.emit(Op::LoadName { dst, name, cell });
       }
       (AstNode::QualifiedName(segments), Target::Free(_) | Target::Search) => {
         let segments = segments
@@ -577,12 +731,16 @@ impl<'a> Lower<'_, 'a> {
           })
           .collect();
         let segments = self.builder.name_list(segments);
-        // a free name is in no scope of the position; a search may be in any
-        let (first, region) = match read.target {
-          Target::Search => (read.name, rnode.region),
-          _ => (NONE, NONE),
+        // a free name is in no scope of the body; a search may be in any
+        let region = match read.target {
+          Target::Search => rnode.region,
+          _ => NONE,
         };
-        let search = self.builder.search(SearchInfo { segments, first, region });
+        let search = self.builder.search(SearchInfo {
+          segments,
+          first: read.name,
+          region,
+        });
         self.builder.emit(Op::Search { dst, search });
       }
       _ => return Err(NotYet { at: rnode.ast }),
@@ -603,6 +761,24 @@ impl<'a> Lower<'_, 'a> {
       AstNode::Irrelevant => Value::Irrelevant,
       AstNode::FeelType(feel_type) => Value::FeelType(feel_type.clone()),
       AstNode::ContextTypeEntryKey(name) => Value::ContextTypeEntryKey(name.clone()),
+      AstNode::ParameterName(name) => Value::ParameterName(name.clone()),
+      AstNode::FormalParameter(name, parameter_type) => match (name.as_ref(), parameter_type.as_ref()) {
+        (AstNode::ParameterName(name), AstNode::FeelType(parameter_type)) => Value::FormalParameter(name.clone(), parameter_type.clone()),
+        _ => return None,
+      },
+      // parameters whose types are named types of the grammar
+      AstNode::FormalParameters(items) => Value::FormalParameters(
+        items
+          .iter()
+          .map(|item| match item {
+            AstNode::FormalParameter(name, parameter_type) => match (name.as_ref(), parameter_type.as_ref()) {
+              (AstNode::ParameterName(name), AstNode::FeelType(parameter_type)) => Some((name.clone(), parameter_type.clone())),
+              _ => None,
+            },
+            _ => None,
+          })
+          .collect::<Option<_>>()?,
+      ),
       AstNode::Numeric(..) | AstNode::At(_) => {
         let (value, warning) = literal(ast)?.ok()?;
         if let Some(warning) = warning {

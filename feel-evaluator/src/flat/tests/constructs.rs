@@ -1,7 +1,7 @@
 //! The lowering of each construct: the flat evaluator gives the value and the diagnostics that
 //! the evaluator of closures gives.
 
-use super::{agree, agree_in, agree_node, refused, scope};
+use super::{agree, agree_in, agree_node, scope};
 use crate::Dialect;
 use rheon_feel::Name;
 use rheon_feel_parser::AstNode;
@@ -47,9 +47,22 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 }
 
 #[test]
-fn constructs_not_lowered_yet_are_refused() {
-  for text in ["{a: function(x) x}", "for i in [1] return function(x) i", "[1][function(x) x]", "function(x) x"] {
-    refused(text);
+fn shapes_not_lowered_yet_are_refused() {
+  use crate::flat::lower::lower;
+  use crate::flat::resolve::resolve;
+  let name = |name: &str| Box::new(AstNode::Name(Name::from(name)));
+  let entry = AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(Name::from("a"))), Box::new(AstNode::Null));
+  for node in [
+    // a context with an entry that is no entry
+    AstNode::Context(vec![entry, AstNode::Null]),
+    // a qualified name with a segment that is no segment
+    AstNode::QualifiedName(vec![AstNode::Name(Name::from("x"))]),
+    // a function definition whose parameters are no parameters
+    AstNode::FunctionDefinition(name("x"), Box::new(AstNode::FunctionBody(name("x"), false))),
+    // the body of a function outside a definition
+    AstNode::FunctionBody(name("x"), false),
+  ] {
+    assert!(lower(resolve(&node), Dialect::Feel).is_err(), "{node:?} is lowered");
   }
 }
 
@@ -667,5 +680,70 @@ fn qualified_names_search_the_item_of_a_filter() {
         agree_node(Dialect::Feel, &scope, &node);
       }
     }
+  }
+}
+
+#[test]
+fn function_definitions_and_their_invocations() {
+  for text in [
+    "function(x) x",
+    "function(x, y) x + y",
+    "function(a, a) a",
+    "{f: function(x) x + 1, r: f(2)}.r",
+    "{y: 10, f: function(x) x + y, r: f(2)}",
+    "{f: function(x) x + y, y: 10, r: f(2)}.r",
+    "for i in [1, 2] return {f: function() i}.f()",
+    "{f: function(n) if n = 0 then 0 else n + f(n - 1), r: f(10)}.r",
+    "{f: function(x) function(y) x + y, g: f(1), r: g(2)}.r",
+    "{f: function() function() z, z: 5, r: f()()}.r",
+    "{f: function() function() z, r: f()(), z: 5}",
+    "{f: function(a: number) a + 1, r: [f(1), f(\"a\")]}.r",
+    "{f: function(a, b) a - b, r: f(b: 1, a: 5)}.r",
+    "{f: function(a, a) a, r: [f(a: 1), f(1, 2)]}.r",
+    "{f: function(a) a, r: f(b: 1)}.r",
+    "{f: function(a) a, r: f(1, 2)}.r",
+    "function(x: t) x",
+    "{t: 1, f: function(x: t) x}",
+    "{f: function(x: list<number>, y: context<a: string>) [x, y], r: f([1], {a: \"b\"})}.r",
+    "sort([3, 1, 2], function(a, b) a < b)",
+    "{f: function(a, b) x < 2, x: 1, r: sort([2, 1], f)}.r",
+    "[1, 2, 3][{f: function() item > 1}.f()]",
+    "{g: function() item, r: [1, 2][g() > 1]}.r",
+    "{g: function() partial, r: for i in [1, 2] return g()}.r",
+    "{g: function() k, r: for k in [1, 2] return g()}.r",
+    "function(x) external {java: {class: \"a\", method signature: \"b\"}}",
+    "{f: function(x) external {java: {class: \"a\"}}}",
+    "function(x: t) external {pmml: {document: \"d\"}}",
+    "{a: {b: 1}, f: function() a.b, r: f()}",
+    "{f: function(x) x}.f instance of function<Any> -> Any",
+    "{f: function(n) if n > 0 then f(n - 1) else 0, r: f(150)}.r",
+    "{f: function(n) if n > 0 then f(n - 1) else 0, r: f(250)}.r",
+    "{f: function(n) if n > 0 then [f(n - 1)] else 0, r: f(198)}.r",
+    "{even: function(n) if n = 0 then true else odd(n - 1), odd: function(n) if n = 0 then false else even(n - 1), r: even(30)}.r",
+    "{f: function(x) x + y, g: function(y) f(1), r: g(2)}.r",
+    "{f: function(n) if n = 0 then [] else [count(f(n - 1))], r: f(5)}.r",
+    "{f: function() g(), g: function() h, h: 3, r: f()}.r",
+    "{f: function(l) l[item > k], k: 1, r: f([1, 2, 3])}.r",
+    "{f: function(x) x * 2, r: for i in 1..3 return f(i) + count([i][f(item) > 2])}.r",
+    "{f: function(x) x, r: not(f(1) in (f(2), f(1)))}.r",
+    "{f: function(x) [x, x][item > 1], r: f(2)}.r",
+    "{f: function(x) {a: x, b: a + 1}.b, r: f(2)}.r",
+    "{f: function(x) for i in 1..x return i * x, r: f(3)}.r",
+  ] {
+    agree(text);
+    agree_in(Dialect::BFeel, "", text);
+  }
+  agree_with("{y: 7, t: number}", "{f: function(x: t) x + y, r: f(1)}.r");
+}
+
+#[test]
+fn a_body_searches_the_scopes_of_its_callers() {
+  for text in [
+    "{f: function() 2 instance of t, r: for t in [1] return f()}.r",
+    "{f: function() 2 instance of a.b, r: for a in [{b: 1}] return f()}.r",
+    "{f: function() 2 instance of a.b, r: [{a: {b: 1}}][f()]}.r",
+    "{f: function() 2 instance of item, r: [1][f()]}.r",
+  ] {
+    agree(text);
   }
 }

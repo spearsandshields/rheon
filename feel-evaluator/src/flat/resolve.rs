@@ -138,6 +138,8 @@ pub(crate) enum Place {
 
 /// The binders of one binding construct, in binding order.
 pub(crate) struct Layout {
+  /// The construct (shown by the tests' dump of a resolution).
+  #[cfg_attr(not(test), allow(dead_code))]
   pub(crate) kind: LayoutKind,
   /// The name and the place of each binder.
   pub(crate) entries: Box<[(u32, Place)]>,
@@ -219,6 +221,9 @@ pub(crate) struct Proto {
   pub(crate) region: u32,
   /// The names the function closes over, as the evaluator of closures lists them.
   pub(crate) closure: Closure,
+  /// For each name of `closure`, in its order, the index of its first segment in
+  /// [Resolved::names], [NONE] for a name that no binder binds.
+  pub(crate) captures: Box<[u32]>,
   /// The body, [NONE] for a function whose body is external.
   pub(crate) body: u32,
 }
@@ -227,6 +232,7 @@ pub(crate) struct Proto {
 pub(crate) struct Free {
   pub(crate) name: u32,
   /// Read as a qualified name: no built-in function stands for it.
+  #[cfg_attr(not(test), allow(dead_code))]
   pub(crate) qualified: bool,
   /// Where it is read ([uses]).
   #[cfg_attr(not(test), allow(dead_code))]
@@ -274,6 +280,7 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
         binders: 0,
         region: NONE,
         closure: Closure::default(),
+        captures: Box::new([]),
         body: NONE,
       },
       functions: vec![],
@@ -342,6 +349,19 @@ impl<'a> Resolver<'a> {
       self.interned.get(name).copied()
     };
     known.unwrap_or_else(|| self.add_name(Cow::Borrowed(name)))
+  }
+
+  /// The index of `name` when it is a name of the tree resolved so far, [NONE] otherwise.
+  fn known(&self, name: &Name) -> u32 {
+    if Borrow::<str>::borrow(name) == PARTIAL {
+      return self.partial;
+    }
+    let known = if self.interned.is_empty() {
+      self.out.names.iter().position(|known| **known == *name).map(|index| index as u32)
+    } else {
+      self.interned.get(name).copied()
+    };
+    known.unwrap_or(NONE)
   }
 
   /// The index of `partial`.
@@ -768,6 +788,7 @@ impl<'a> Resolver<'a> {
           binders: 0,
           region: NONE,
           closure: ClosureBuilder::from_function_definition(parameters, body),
+          captures: Box::new([]),
           body: NONE,
         });
         let body_kid = if *external {
@@ -815,6 +836,15 @@ impl<'a> Resolver<'a> {
       }
       _ => (NONE, self.node(body)),
     };
+    if proto != NONE {
+      // every binder's name is known now: those of the definition were resolved
+      let captures = self.out.functions[proto as usize]
+        .closure
+        .iter()
+        .map(|name| name.first().map_or(NONE, |first| self.known(first)))
+        .collect();
+      self.out.functions[proto as usize].captures = captures;
+    }
     self.add(ast, Info::Function { proto }, &[parameters_kid, body_kid])
   }
 
