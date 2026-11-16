@@ -10,6 +10,32 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fmt::Display;
 
+/// A set of lengths of names, which only grows: the lengths below 256 as bits, the others
+/// listed.
+#[derive(Default)]
+pub(crate) struct Lengths {
+  short: [u64; 4],
+  long: Vec<usize>,
+}
+
+impl Lengths {
+  pub(crate) fn insert(&mut self, len: usize) {
+    if len < 256 {
+      self.short[len / 64] |= 1 << (len % 64);
+    } else if !self.long.contains(&len) {
+      self.long.push(len);
+    }
+  }
+
+  pub(crate) fn contains(&self, len: usize) -> bool {
+    if len < 256 {
+      self.short[len / 64] & (1 << (len % 64)) != 0
+    } else {
+      self.long.contains(&len)
+    }
+  }
+}
+
 /// Parsing scope: the names the lexer recognizes as names in scope.
 ///
 /// The scope is a stack of contexts: at the bottom the input contexts (the frames of the
@@ -31,6 +57,9 @@ pub struct ParsingScope<'a> {
   /// number of pushed contexts that have it: a lookup among pushed contexts without nested
   /// ones is one step, however many are pushed (nested binders push one each).
   local_keys: RefCell<HashMap<Name, usize>>,
+  /// The lengths of the keys that pushed contexts themselves had so far and of the parsed
+  /// names; grows only.
+  lengths: RefCell<Lengths>,
   /// Set of parsed names.
   names: RefCell<HashSet<Name>>,
   /// Length of the longest parsed name that is longer than its first word ([first_word]); grows only.
@@ -54,6 +83,7 @@ impl<'a> ParsingScope<'a> {
       input,
       locals: RefCell::new(vec![]),
       local_keys: RefCell::new(HashMap::new()),
+      lengths: RefCell::new(Lengths::default()),
       names: RefCell::new(HashSet::default()),
       max_names_longer: Cell::new(0),
       local_nested: Cell::new(false),
@@ -104,8 +134,10 @@ impl ParsingScope<'_> {
   /// Counts the keys of a context that is pushed.
   fn count_keys(&self, ctx: &ParsingContext) {
     let mut keys = self.local_keys.borrow_mut();
+    let mut lengths = self.lengths.borrow_mut();
     for key in ctx.keys() {
       *keys.entry(key.clone()).or_insert(0) += 1;
+      lengths.insert(key.as_str().len());
     }
   }
 
@@ -130,6 +162,7 @@ impl ParsingScope<'_> {
       if !top.has_key(name.as_str()) {
         *self.local_keys.borrow_mut().entry(name.clone()).or_insert(0) += 1;
       }
+      self.lengths.borrow_mut().insert(name.as_str().len());
       top.set_name(name);
     }
   }
@@ -143,6 +176,7 @@ impl ParsingScope<'_> {
       if !top.has_key(name.as_str()) {
         *self.local_keys.borrow_mut().entry(name.clone()).or_insert(0) += 1;
       }
+      self.lengths.borrow_mut().insert(name.as_str().len());
       top.set_context(name, ctx);
       self.grow_local_lengths(max_plain, max_flattened);
       self.local_nested.set(true);
@@ -156,7 +190,16 @@ impl ParsingScope<'_> {
     if len > self.max_names_longer.get() && first_word(name.as_str()).len() < len {
       self.max_names_longer.set(len);
     }
+    self.lengths.borrow_mut().insert(len);
     self.names.borrow_mut().insert(name);
+  }
+
+  /// Returns `false` only when [contains_plain](Self::contains_plain) accepts no name of `len`
+  /// bytes: no parsed name, no key of a pushed context without nested ones, and no key of an
+  /// input context has this length. The lexer asks before it writes a candidate name.
+  pub(crate) fn may_contain_length(&self, len: usize) -> bool {
+    let live = &self.input[..self.input_live.get()];
+    self.local_nested.get() || self.lengths.borrow().contains(len) || live.iter().any(|frame| frame.has_length(len))
   }
 
   /// Returns `true` when `name` (a flattened name, see the lexer) is in scope: a key at any depth

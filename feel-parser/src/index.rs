@@ -2,7 +2,7 @@
 //! the rule that says which names are nested in a value.
 
 use crate::composite::{NameTree, contains_composite, nested_prefix};
-use crate::scope::{first_word, first_word_bound};
+use crate::scope::{Lengths, first_word, first_word_bound};
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
@@ -57,6 +57,8 @@ struct Keys<'a> {
   /// Whether a list of two or more items was taken as a list of items of one type without
   /// comparing them. Without one, every name is certain and every node of `item_nodes` decided.
   undecided: bool,
+  /// The lengths in bytes of the keys at any depth, those that are not decided included.
+  lengths: Lengths,
   /// Length in bytes of the longest key of `names` that is longer than its first word ([first_word]).
   max_longer: usize,
   /// Length in bytes of the longest key at any depth.
@@ -263,6 +265,11 @@ impl<'a> FrameIndex<'a> {
     self.keys().max_plain
   }
 
+  /// Returns `false` only when no key at any depth has `len` bytes.
+  pub(crate) fn has_length(&self, len: usize) -> bool {
+    self.keys().lengths.contains(len)
+  }
+
   /// Length in bytes of the longest composite name.
   pub(crate) fn max_chain(&self) -> usize {
     self.keys().max_chain
@@ -333,6 +340,7 @@ impl<'a> Keys<'a> {
     let mut index = Self {
       names: HashMap::new(),
       undecided: false,
+      lengths: Lengths::default(),
       max_longer: 0,
       max_plain: 0,
       max_chain: 0,
@@ -421,6 +429,7 @@ impl<'a> Keys<'a> {
   }
 
   fn add_key_length(&mut self, len: usize, prefix: usize) {
+    self.lengths.insert(len);
     self.max_plain = self.max_plain.max(len);
     self.max_chain = self.max_chain.max(prefix + len);
   }

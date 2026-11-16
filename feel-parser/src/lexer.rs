@@ -18,6 +18,14 @@ const BUF_SIZE: usize = 12;
 /// Definition of decimal separator.
 const DECIMAL_SEPARATOR: char = '.';
 
+/// The state of the flattened text of a chain (`Lexer::chain_flat`).
+#[derive(Clone, Copy, PartialEq)]
+enum FlatChain {
+  Unknown,
+  Written,
+  NotRegular,
+}
+
 /// The value of the remembered search for a part `in` (`Lexer::chain_in`) of a chain that was
 /// not searched: no part is in its range.
 const NOT_SEARCHED: (usize, usize) = (usize::MAX, 0);
@@ -150,6 +158,13 @@ pub struct Lexer<'lexer, 'scope> {
   /// The last search for a part `in` of the chain: the part it started at, and the first part
   /// `in` at or after it (the number of parts when there is none). See [Lexer::next_in_part].
   chain_in: (usize, usize),
+  /// The flattened text of the whole chain, written once, when the chain is regular (see
+  /// [Lexer::flat_chain]): the flattened name of the parts `a..=b` is a piece of it.
+  chain_flat: String,
+  /// For each part of the chain, where its text starts and ends in `chain_flat`.
+  chain_flat_parts: Vec<(usize, usize)>,
+  /// Whether `chain_flat` is written for the chain: not yet, written, or the chain is not regular.
+  chain_flat_state: FlatChain,
   /// Start offset of the last token read from input: the hook of the token log of the parser
   /// (`Parser::with_token_log`), which the differential tests compare.
   #[cfg(test)]
@@ -189,6 +204,9 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       chain_end: 0,
       chain_last_empty: None,
       chain_in: NOT_SEARCHED,
+      chain_flat: String::new(),
+      chain_flat_parts: vec![],
+      chain_flat_state: FlatChain::Unknown,
       #[cfg(test)]
       token_start: 0,
     }
@@ -824,6 +842,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.chain_parts.clear();
     self.chain_last_empty = None;
     self.chain_in = NOT_SEARCHED;
+    self.chain_flat_state = FlatChain::Unknown;
     //------------------------------------------------------------------------------
     // The current character on input is already a `name start` character, the first
     // character of the first part.
@@ -993,13 +1012,14 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       }
       part_count = part_count.min(admitted_parts(parts, group_bound));
     }
+    let regular = part_count > 1 && !has_empty_part && self.flat_chain(first);
     while part_count > 0 {
       // The last candidate, the first part alone, is the token whether it is a name in scope or
       // not when a keyword ends the name after it (as the name of a chain of one part is), so
       // it is not looked up: except a built-in property name after a dot, and a built-in type
       // name where a type is read, which is another token when it is no name in scope.
       if part_count == 1 && !has_empty_part {
-        let word = &self.input[parts[0].trimmed.clone()];
+        let word = &self.input[self.chain_parts[first].trimmed.clone()];
         if self.after_dot && is_built_in_property_name(word) {
           return Some((1, true));
         }
@@ -1007,10 +1027,40 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
           return Some((1, false));
         }
       }
+      if regular {
+        // The candidate is a piece of the flattened chain, and its length is known before it is
+        // written: a candidate of a length that no name in scope has is not looked up, so a
+        // long chain costs a step per candidate, not a text.
+        let (start, last) = (self.chain_flat_parts[first].0, first + part_count - 1);
+        let symbol = is_symbol_part(&self.input[self.chain_parts[last].trimmed.clone()]);
+        // a symbol at the end of a name stands after a space: no part follows it
+        let end = if symbol { self.chain_flat_parts[last - 1].1 } else { self.chain_flat_parts[last].1 };
+        let len = end - start + if symbol { 2 } else { 0 };
+        let possible = self.scope.may_contain_length(len) || (self.after_dot && BUILT_IN_PROPERTY_NAMES.iter().any(|name| name.len() == len));
+        if !possible {
+          part_count -= 1;
+          continue;
+        }
+        self.name_buf.clear();
+        self.name_buf.push_str(&self.chain_flat[start..end]);
+        if symbol {
+          self.name_buf.push(WS);
+          self.name_buf.push_str(&self.input[self.chain_parts[last].trimmed.clone()]);
+        }
+        #[cfg(test)]
+        {
+          // the piece is the flattened name of these parts
+          let texts = self.chain_parts[first..first + part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
+          let mut flattened = String::new();
+          flatten_name_parts_into(texts, &mut flattened, &mut self.name_tmp);
+          assert_eq!(flattened, self.name_buf, "the flattened chain {:?}", self.chain_flat);
+        }
+      } else {
+        // flatten the name parts to compare it with built-in names and keys in current scope
+        let texts = self.chain_parts[first..first + part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
+        flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
+      }
       work!(Candidates, 1);
-      // flatten the name parts to compare it with built-in names and keys in current scope
-      let texts = parts[..part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
-      flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
       // check if the name is a built-in property name
       if self.after_dot && is_built_in_property_name(&self.name_buf) {
         return Some((part_count, true));
@@ -1028,6 +1078,41 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       part_count -= 1;
     }
     None
+  }
+
+  /// Writes the flattened text of the whole chain once, when the chain is regular, and returns
+  /// whether the flattened name of parts from `first` on is a piece of it.
+  ///
+  /// A chain is regular when its parts are words and single additional name symbols, no part
+  /// has white space at an end or is empty, the first part is a word and no symbol follows a
+  /// symbol. The flattened name of some of its parts is then their texts, with a space between
+  /// two words and none around a symbol that parts stand on both sides of: the spaces around
+  /// such a symbol are the ones the flattening removes, and no other text of a part has a space.
+  fn flat_chain(&mut self, first: usize) -> bool {
+    if self.chain_flat_state == FlatChain::Unknown {
+      self.chain_flat.clear();
+      self.chain_flat_parts.clear();
+      let mut regular = true;
+      let mut after_symbol = true;
+      for (index, part) in self.chain_parts.iter().enumerate() {
+        let text = &self.input[part.trimmed.clone()];
+        let symbol = is_symbol_part(text);
+        if text.is_empty() || part.trimmed != (part.start..part.end) || (symbol && after_symbol) {
+          regular = false;
+          break;
+        }
+        if index > 0 && !symbol && !after_symbol {
+          self.chain_flat.push(WS);
+        }
+        let start = self.chain_flat.len();
+        self.chain_flat.push_str(text);
+        self.chain_flat_parts.push((start, self.chain_flat.len()));
+        after_symbol = symbol;
+      }
+      self.chain_flat_state = if regular { FlatChain::Written } else { FlatChain::NotRegular };
+    }
+    // a name starts at a word
+    self.chain_flat_state == FlatChain::Written && !is_symbol_part(&self.input[self.chain_parts[first].trimmed.clone()])
   }
 
   /// Consumes a HEX digit from input or reports an error.
@@ -1283,6 +1368,12 @@ fn is_built_in_type_name(name: &str) -> bool {
     name,
     "Any" | "Null" | "boolean" | "number" | "string" | "date" | "date and time" | "time" | "years and months duration" | "days and time duration"
   )
+}
+
+/// Returns `true` when the text of a part of a name chain is one additional name symbol.
+fn is_symbol_part(text: &str) -> bool {
+  let mut chars = text.chars();
+  matches!((chars.next(), chars.next()), (Some(symbol), None) if is_additional_name_symbol(symbol))
 }
 
 /// Returns the length in bytes of the longest of `names`.
