@@ -13,7 +13,7 @@
 //! The evaluator builder applies these rules when it builds an expression in [Dialect::BFeel].
 
 use crate::bifs;
-use crate::builders::Arithmetic;
+use crate::kernels::Arithmetic;
 use rheon_feel::FeelNumber;
 use rheon_feel::bif::Bif;
 use rheon_feel::values::Value;

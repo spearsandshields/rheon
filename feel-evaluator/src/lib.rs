@@ -19,6 +19,7 @@ mod evaluators;
 mod filters;
 mod invocation;
 mod iterations;
+mod kernels;
 mod macros;
 mod session;
 mod tests;
