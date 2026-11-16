@@ -38,22 +38,34 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 }
 
 #[test]
-fn shapes_not_lowered_yet_are_refused() {
-  use crate::flat::lower::lower;
-  use crate::flat::resolve::resolve;
+fn a_malformed_tree_is_null_with_one_error_at_every_evaluation() {
   let name = |name: &str| Box::new(AstNode::Name(Name::from(name)));
   let entry = AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(Name::from("a"))), Box::new(AstNode::Null));
-  for node in [
+  for (node, kind) in [
     // a context with an entry that is no entry
-    AstNode::Context(vec![entry, AstNode::Null]),
+    (AstNode::Context(vec![entry, AstNode::Null]), "Context"),
     // a qualified name with a segment that is no segment
-    AstNode::QualifiedName(vec![AstNode::Name(Name::from("x"))]),
+    (AstNode::QualifiedName(vec![AstNode::Name(Name::from("x"))]), "QualifiedName"),
     // a function definition whose parameters are no parameters
-    AstNode::FunctionDefinition(name("x"), Box::new(AstNode::FunctionBody(name("x"), false))),
+    (
+      AstNode::FunctionDefinition(name("x"), Box::new(AstNode::FunctionBody(name("x"), false))),
+      "FunctionDefinition",
+    ),
     // the body of a function outside a definition
-    AstNode::FunctionBody(name("x"), false),
+    (AstNode::FunctionBody(name("x"), false), "FunctionBody"),
+    // a malformed node inside a well-formed one
+    (AstNode::Add(Box::new(AstNode::Null), Box::new(AstNode::FunctionBody(name("x"), false))), "FunctionBody"),
   ] {
-    assert!(lower(resolve(&node), Dialect::Feel).is_err(), "{node:?} is lowered");
+    let message = format!("malformed expression tree: unexpected {kind} node");
+    let expected = (
+      format!("Null(Some({message:?}))"),
+      format!("Diagnostics {{ count: 1, messages: [{message:?}], warnings: [] }}"),
+    );
+    let evaluator = crate::evaluators::build(&node, Dialect::Feel);
+    for _ in 0..2 {
+      let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope("")));
+      assert_eq!(expected, (format!("{value:?}"), format!("{diagnostics:?}")), "{node:?}");
+    }
   }
 }
 
@@ -438,13 +450,6 @@ fn qualified_names_search_the_entries_of_a_context() {
       agree_node(Dialect::Feel, &scope, &node);
     }
   }
-}
-
-#[test]
-fn a_context_with_an_entry_that_is_no_entry_is_refused() {
-  let entry = |key: &str| AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(Name::from(key))), Box::new(AstNode::Null));
-  let node = AstNode::Context(vec![entry("a"), AstNode::Null]);
-  assert!(crate::flat::lower::lower(crate::flat::resolve::resolve(&node), Dialect::Feel).is_err());
 }
 
 #[test]

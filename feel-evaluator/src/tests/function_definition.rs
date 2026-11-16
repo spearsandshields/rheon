@@ -8,7 +8,7 @@ fn _0001() {
     Box::new(AstNode::FunctionBody(Box::new(AstNode::Numeric("1".into(), "0".into(), '+', "".into())), false)),
   );
   assert_eq!(
-    r#"null(expected formal parameters, actual value type is boolean)"#,
+    r#"null(malformed expression tree: unexpected FunctionDefinition node)"#,
     crate::tests::eval(&scope!(), &node).to_string()
   );
 }

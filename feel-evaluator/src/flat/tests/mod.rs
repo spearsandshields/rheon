@@ -89,7 +89,7 @@ fn agree_case(dialect: Dialect, scope: &FeelScope, node: &AstNode, text: &str) {
   let (module, test, position) = next_case();
   let header = format!("{test} #{position} {text}");
   let resolved = resolve(node);
-  let program = lower(resolved, dialect).unwrap_or_else(|refusal| panic!("{node:?}: refused at {:?}", refusal.at));
+  let program = lower(resolved, dialect).unwrap_or_else(|malformed| panic!("{node:?}: {}", malformed.message()));
   let flat: Evaluator = Box::new(move |scope: &FeelScope| program.run(scope));
   let flat = outcome(flat, scope);
   if std::env::var(RECORD).is_ok_and(|value| value == "1") {

@@ -5,9 +5,9 @@
 //! evaluates the parts of the node, so that errors, warnings and limits are recorded in the same
 //! order. A value known when the expression is built and whose evaluation records nothing is a
 //! constant; any other value is computed into a temporary slot, which its one reader moves out.
-//! A node that is not lowered yet refuses the whole expression ([NotYet]).
+//! A node of a shape that the parser never produces makes the whole tree malformed ([Malformed]).
 
-use super::NotYet;
+use super::Malformed;
 use super::program::{
   CallInfo, ClosureInfo, Compare, Domain, FilterInfo, Fold, Kernel1, Kernel2, ListKind, LoopInfo, LoopKind, NONE, Op, Opnd, Pc, ProbeInfo, Program, ProgramBuilder, Proto,
   SearchInfo, Slot,
@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 /// The program of the resolved expression `resolved` in `dialect`: the code of the root
 /// expression, then that of the body of each function definition in it.
-pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Program>, NotYet<'_>> {
+pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Program>, Malformed<'_>> {
   // the binders first, then the temporaries
   let binders = resolved.root.binders;
   let mut lower = Lower {
@@ -131,7 +131,7 @@ impl<'a> Lower<'_, 'a> {
 
   /// The operand of the value of `node`: a constant, or a temporary that the instructions emitted
   /// here compute (`dst` when given).
-  fn value(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, NotYet<'a>> {
+  fn value(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
     let ast = self.resolved.nodes[node as usize].ast;
     if let Some(constant) = self.constant(ast) {
       return Ok(constant);
@@ -303,7 +303,7 @@ impl<'a> Lower<'_, 'a> {
           AstNode::IntervalEnd(_, closed) => Kernel1::IntervalEnd(*closed),
           AstNode::ListType(_) => Kernel1::ListType,
           AstNode::RangeType(_) => Kernel1::RangeType,
-          _ => return Err(NotYet { at: ast }),
+          _ => return Err(Malformed { at: ast }),
         };
         let a = self.value(self.resolved.kids(node)[0], None)?;
         self.builder.emit(Op::Kernel1 { kernel, dst, a });
@@ -334,7 +334,7 @@ impl<'a> Lower<'_, 'a> {
       AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) => self.iteration(node, dst)?,
       AstNode::Filter(..) => self.filter(node, dst)?,
       AstNode::EvaluatedExpression(_) => self.into(self.resolved.kids(node)[0], dst)?,
-      _ => return Err(NotYet { at: ast }),
+      _ => return Err(Malformed { at: ast }),
     }
     self.next = mark;
     Ok(Opnd::take(dst))
@@ -342,7 +342,7 @@ impl<'a> Lower<'_, 'a> {
 
   /// The values of the children of `node` added in order to a fold of `kind`, which stops at the
   /// first value that is not of its kind.
-  fn fold(&mut self, node: u32, kind: Fold, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn fold(&mut self, node: u32, kind: Fold, dst: Slot) -> Result<(), Malformed<'a>> {
     let resolved = self.resolved;
     let mark = self.next;
     self.builder.emit(Op::FoldNew { kind });
@@ -362,15 +362,15 @@ impl<'a> Lower<'_, 'a> {
   /// A function definition: its formal parameters, then the mapping of an external body (even
   /// when a parameter failed), then the function; the body of FEEL is lowered after the root
   /// expression, once however often its definition is lowered.
-  fn function(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn function(&mut self, node: u32, dst: Slot) -> Result<(), Malformed<'a>> {
     let resolved = self.resolved;
     let rnode = &resolved.nodes[node as usize];
     let (Info::Function { proto: function }, AstNode::FunctionDefinition(_, body)) = (&rnode.info, rnode.ast) else {
-      return Err(NotYet { at: rnode.ast });
+      return Err(Malformed { at: rnode.ast });
     };
     if *function == NONE {
       // a definition whose parts are not of their shapes
-      return Err(NotYet { at: rnode.ast });
+      return Err(Malformed { at: rnode.ast });
     }
     let kids = resolved.kids(node);
     let parameters = self.value(kids[0], None)?;
@@ -408,7 +408,7 @@ impl<'a> Lower<'_, 'a> {
 
   /// The code of the body of the proto `proto`, the function `function` of the resolution: its
   /// value, returned; an external body has no code but a return of null.
-  fn body(&mut self, proto: usize, function: u32) -> Result<(), NotYet<'a>> {
+  fn body(&mut self, proto: usize, function: u32) -> Result<(), Malformed<'a>> {
     let resolved = self.resolved;
     let function = &resolved.functions[function as usize];
     self.next = function.binders;
@@ -445,7 +445,7 @@ impl<'a> Lower<'_, 'a> {
   /// An invocation, between the instructions that enter and leave it: the function, then the
   /// arguments in the order written; a malformed invocation is the builder's error, which a call
   /// beyond the call depth limit does not record either.
-  fn invocation(&mut self, node: u32, arguments: &AstNode, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn invocation(&mut self, node: u32, arguments: &AstNode, dst: Slot) -> Result<(), Malformed<'a>> {
     let enter = self.builder.emit(Op::Enter { dst, skip: 0 });
     let names: Result<Option<Box<[Name]>>, String> = match arguments {
       AstNode::PositionalParameters(_) => Ok(None),
@@ -499,17 +499,17 @@ impl<'a> Lower<'_, 'a> {
   /// A context literal: the value of each entry in the slot of its binder, which the entries after
   /// it read, nested no deeper than values may nest; at a repeated key, after the value of its
   /// entry, the null of the repeated key, and the entries before it are dropped.
-  fn context(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn context(&mut self, node: u32, dst: Slot) -> Result<(), Malformed<'a>> {
     let resolved = self.resolved;
     let rnode = &resolved.nodes[node as usize];
     let Info::Context { layout, stop } = rnode.info else {
-      return Err(NotYet { at: rnode.ast });
+      return Err(Malformed { at: rnode.ast });
     };
     let entries = resolved.kids(node);
     let bound = &resolved.layouts[layout as usize].entries;
     for (&entry, &(_, place)) in entries.iter().zip(bound.iter()) {
       let Place::Slot(slot) = place else {
-        return Err(NotYet { at: rnode.ast });
+        return Err(Malformed { at: rnode.ast });
       };
       self.into(resolved.kids(entry)[1], slot)?;
       self.builder.emit(Op::BoundDepth { s: slot });
@@ -522,27 +522,27 @@ impl<'a> Lower<'_, 'a> {
         let entry = entries[index as usize];
         self.into(resolved.kids(entry)[1], dst)?;
         let AstNode::ContextEntry(key, _) = resolved.nodes[entry as usize].ast else {
-          return Err(NotYet { at: rnode.ast });
+          return Err(Malformed { at: rnode.ast });
         };
         let AstNode::ContextEntryKey(name) = key.as_ref() else {
-          return Err(NotYet { at: rnode.ast });
+          return Err(Malformed { at: rnode.ast });
         };
         self.fail(dst, kernels::err_duplicated_context_entry_key(name));
         self.builder.emit(Op::Clear { layout, visible: index });
       }
       // an entry whose value may bind any name
-      Stop::Irregular(_) => return Err(NotYet { at: rnode.ast }),
+      Stop::Irregular(_) => return Err(Malformed { at: rnode.ast }),
     }
     Ok(())
   }
 
   /// A filter: the list, then the predicate, evaluated in the scope around the filter and then,
   /// unless it selected an item by its index, for each item.
-  fn filter(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn filter(&mut self, node: u32, dst: Slot) -> Result<(), Malformed<'a>> {
     let resolved = self.resolved;
     let rnode = &resolved.nodes[node as usize];
     let Info::Filter { record } = rnode.info else {
-      return Err(NotYet { at: rnode.ast });
+      return Err(Malformed { at: rnode.ast });
     };
     let kids = resolved.kids(node);
     let mark = self.next;
@@ -566,14 +566,14 @@ impl<'a> Lower<'_, 'a> {
   /// A `for`, `some` or `every` expression: the domain of the first variable, then the walk over
   /// the combinations of the values of the variables, in which each new value of a variable is
   /// followed by the domain of the next variable or, for the last, by the body.
-  fn iteration(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn iteration(&mut self, node: u32, dst: Slot) -> Result<(), Malformed<'a>> {
     let resolved = self.resolved;
     let rnode = &resolved.nodes[node as usize];
     let (kind, contexts) = match rnode.ast {
       AstNode::For(contexts, _) => (LoopKind::For, contexts),
       AstNode::Some(contexts, _) => (LoopKind::Some, contexts),
       AstNode::Every(contexts, _) => (LoopKind::Every, contexts),
-      _ => return Err(NotYet { at: rnode.ast }),
+      _ => return Err(Malformed { at: rnode.ast }),
     };
     let Info::Iteration { layout, record, duplicate } = rnode.info else {
       self.malformed_quantified(rnode.ast, dst);
@@ -598,7 +598,7 @@ impl<'a> Lower<'_, 'a> {
     let mut levels = vec![];
     for &(_, place) in &resolved.layouts[layout as usize].entries[..variables.len()] {
       let Place::Slot(slot) = place else {
-        return Err(NotYet { at: rnode.ast });
+        return Err(Malformed { at: rnode.ast });
       };
       levels.push((slot, 0));
     }
@@ -624,7 +624,7 @@ impl<'a> Lower<'_, 'a> {
     }
     let last = levels.len() - 1;
     levels[last].1 = self.builder.here();
-    let body = parts.next().ok_or(NotYet { at: rnode.ast })?;
+    let body = parts.next().ok_or(Malformed { at: rnode.ast })?;
     let src = self.value(body, None)?;
     self.builder.emit(Op::Visit { record, src });
     self.next = mark;
@@ -639,13 +639,13 @@ impl<'a> Lower<'_, 'a> {
   /// The domain of a variable whose domain has `count` parts, the next of `parts`: an interval
   /// from its two parts, a range literal of a `for` from its start and end, or the items of a
   /// value.
-  fn domain(&mut self, kind: LoopKind, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), NotYet<'a>> {
+  fn domain(&mut self, kind: LoopKind, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), Malformed<'a>> {
     let resolved = self.resolved;
-    let first = parts.next().ok_or(NotYet {
+    let first = parts.next().ok_or(Malformed {
       at: resolved.nodes[resolved.root() as usize].ast,
     })?;
     if count == 2 {
-      let second = parts.next().ok_or(NotYet {
+      let second = parts.next().ok_or(Malformed {
         at: resolved.nodes[first as usize].ast,
       })?;
       let a = self.value(first, None)?;
@@ -693,7 +693,7 @@ impl<'a> Lower<'_, 'a> {
   }
 
   /// The value of `node` into the slot `dst`.
-  fn into(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn into(&mut self, node: u32, dst: Slot) -> Result<(), Malformed<'a>> {
     let src = self.value(node, Some(dst))?;
     if src != Opnd::take(dst) {
       self.builder.emit(Op::Move { dst, src });
@@ -702,7 +702,7 @@ impl<'a> Lower<'_, 'a> {
   }
 
   /// The operands of the two children of `node`, evaluated in order.
-  fn operands(&mut self, node: u32) -> Result<(Opnd, Opnd), NotYet<'a>> {
+  fn operands(&mut self, node: u32) -> Result<(Opnd, Opnd), Malformed<'a>> {
     let kids = self.resolved.kids(node);
     let (lhs, rhs) = (kids[0], kids[1]);
     Ok((self.value(lhs, None)?, self.value(rhs, None)?))
@@ -722,11 +722,11 @@ impl<'a> Lower<'_, 'a> {
   }
 
   /// A name read into `dst`: in the root expression, from the scope of the host.
-  fn read(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+  fn read(&mut self, node: u32, dst: Slot) -> Result<(), Malformed<'a>> {
     let rnode = &self.resolved.nodes[node as usize];
     let Info::Read(read) = &rnode.info else {
       // a qualified name with a part that is no segment
-      return Err(NotYet { at: rnode.ast });
+      return Err(Malformed { at: rnode.ast });
     };
     // the items of the filters around it first, innermost first: `item`, or an entry of the name
     let item = read.name != NONE && *self.resolved.names[read.name as usize] == *ITEM;
@@ -772,7 +772,7 @@ impl<'a> Lower<'_, 'a> {
         });
         self.builder.emit(Op::Search { dst, search });
       }
-      _ => return Err(NotYet { at: rnode.ast }),
+      _ => return Err(Malformed { at: rnode.ast }),
     }
     for at in found {
       self.builder.patch(at);

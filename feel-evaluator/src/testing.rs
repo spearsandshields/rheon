@@ -7,7 +7,7 @@
 //! number it lowered with [take_lowered]. Outside [with_backend] nothing is recorded, and nothing
 //! is kept beyond the closure and the refusals and the lowered count not yet taken.
 
-use crate::flat::NotYet;
+use crate::flat::Malformed;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, value_null};
 use std::cell::{Cell, RefCell};
@@ -82,10 +82,9 @@ pub(crate) fn backend() -> Backend {
 
 /// Notes a refusal of the flat evaluator inside [with_backend]; under [Backend::FlatOnly] it gives
 /// the evaluator that stands for the refused expression.
-pub(crate) fn refused(refusal: &NotYet) -> Option<Evaluator> {
+pub(crate) fn refused(refusal: &Malformed) -> Option<Evaluator> {
   BACKEND.with(Cell::get)?;
-  let node = format!("{:?}", refusal.at);
-  let node = node.split(|c: char| !c.is_ascii_alphanumeric()).next().unwrap_or_default().to_string();
+  let node = crate::flat::kind_of(refusal.at);
   let refusal = Refusal { kind: "NotYet", node };
   REFUSALS.with(|refusals| refusals.borrow_mut().push(refusal.clone()));
   (backend() == Backend::FlatOnly).then(|| refused_marker(refusal))

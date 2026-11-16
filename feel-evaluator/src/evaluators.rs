@@ -4,7 +4,7 @@ use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
 use rheon_feel::values::Value;
-use rheon_feel::{Evaluator, FeelScope, Name};
+use rheon_feel::{Evaluator, FeelScope, Name, value_null};
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
 
@@ -28,8 +28,8 @@ pub fn prepare_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluator {
   diagnostics::one_evaluation(build(node, dialect))
 }
 
-/// The evaluator of `node` in `dialect`: the flat evaluator's where it lowers the expression,
-/// otherwise the evaluator of closures, built for the whole expression.
+/// The evaluator of `node` in `dialect`, the flat evaluator's. A malformed tree (of a shape that
+/// the parser never produces) evaluates to null with one error, recorded at every evaluation.
 pub(crate) fn build(node: &AstNode, dialect: Dialect) -> Evaluator {
   #[cfg(feature = "backends")]
   match crate::testing::backend() {
@@ -39,12 +39,13 @@ pub(crate) fn build(node: &AstNode, dialect: Dialect) -> Evaluator {
   }
   match crate::flat::lower(node, dialect) {
     Ok(evaluator) => evaluator,
-    Err(_refusal) => {
+    Err(malformed) => {
       #[cfg(feature = "backends")]
-      if let Some(marker) = crate::testing::refused(&_refusal) {
+      if let Some(marker) = crate::testing::refused(&malformed) {
         return marker;
       }
-      crate::builders::build_evaluator_with_dialect(node, dialect)
+      let message = malformed.message();
+      Box::new(move |_: &FeelScope| value_null!(message))
     }
   }
 }
