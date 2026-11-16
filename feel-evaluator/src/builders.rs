@@ -983,6 +983,6 @@ fn err_expected_parameter_name(actual: &AstNode) -> String {
 }
 
 /// Returns an error message when expected only a parameter name.
-fn err_expected_name(actual: &AstNode) -> String {
+pub(crate) fn err_expected_name(actual: &AstNode) -> String {
   format!("expected name node, actual node is: {actual:?}")
 }

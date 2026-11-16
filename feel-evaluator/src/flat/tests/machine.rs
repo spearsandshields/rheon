@@ -10,6 +10,8 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
     code: code.into(),
     consts: consts.into(),
     messages: messages.into_iter().map(Into::into).collect(),
+    names: Box::new([]),
+    searches: Box::new([]),
     slots,
   }
 }

@@ -6,6 +6,7 @@
 //! diagnostics as that evaluator records it.
 
 use super::program::{Op, Operand, Opnd, Program};
+use crate::kernels;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, diagnostics, value_null};
 use std::sync::Arc;
@@ -20,7 +21,6 @@ impl Program {
 /// The state of one run of a program.
 struct Vm<'p> {
   program: &'p Program,
-  #[allow(dead_code)]
   host: &'p FeelScope,
   slots: Vec<Value>,
 }
@@ -52,6 +52,19 @@ impl<'p> Vm<'p> {
       match op {
         Op::Fail { dst, msg } => self.slots[dst as usize] = value_null!(&*program.messages[msg as usize]),
         Op::Warn { msg } => diagnostics::warn(&program.messages[msg as usize]),
+        Op::LoadName { dst, name } => {
+          let name = &program.names[name as usize];
+          self.slots[dst as usize] = self.host.get_value(name).unwrap_or_else(|| kernels::free_name(name));
+        }
+        Op::Search { dst, search } => self.slots[dst as usize] = self.host.search(&program.searches[search as usize]).unwrap_or_else(kernels::free_qualified_name),
+        Op::Path { dst, a, name } => {
+          let a = self.read(a);
+          self.slots[dst as usize] = kernels::path(a, &program.names[name as usize]);
+        }
+        Op::Descendant { dst, a, name } => {
+          let a = self.read(a);
+          self.slots[dst as usize] = kernels::descendants(a, &program.names[name as usize]);
+        }
         Op::Return { src } => return self.read(src),
       }
     }

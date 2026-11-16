@@ -9,7 +9,7 @@
 
 use super::NotYet;
 use super::program::{Op, Opnd, Program, ProgramBuilder, Slot};
-use super::resolve::Resolved;
+use super::resolve::{Info, Resolved, Target};
 use crate::{Dialect, kernels};
 use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
@@ -58,14 +58,62 @@ impl<'a> Lower<'_, 'a> {
       // a literal without a value (one with a value is a constant)
       AstNode::Numeric(..) | AstNode::At(_) => {
         if let Some(Err(text)) = literal(ast) {
-          let msg = self.builder.message(text);
-          self.builder.emit(Op::Fail { dst, msg });
+          self.fail(dst, text);
         }
       }
+      AstNode::Name(_) | AstNode::QualifiedName(_) => self.read(node, dst)?,
+      AstNode::Path(_, name) | AstNode::Descendant(_, name) => match name.as_ref() {
+        AstNode::Name(name) => {
+          let a = self.value(self.resolved.kids(node)[0], None)?;
+          let name = self.builder.name(name);
+          self.builder.emit(match ast {
+            AstNode::Path(..) => Op::Path { dst, a, name },
+            _ => Op::Descendant { dst, a, name },
+          });
+        }
+        other => self.fail(dst, crate::builders::err_expected_name(other)),
+      },
       _ => return Err(NotYet { at: ast }),
     }
     self.next = mark;
     Ok(Opnd::take(dst))
+  }
+
+  /// `dst` is null with the error `text`, recorded at every evaluation.
+  fn fail(&mut self, dst: Slot, text: String) {
+    let msg = self.builder.message(text);
+    self.builder.emit(Op::Fail { dst, msg });
+  }
+
+  /// A name read into `dst`: in the root expression, from the scope of the host.
+  fn read(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+    let rnode = &self.resolved.nodes[node as usize];
+    let Info::Read(read) = &rnode.info else {
+      // a qualified name with a part that is no segment
+      return Err(NotYet { at: rnode.ast });
+    };
+    if !read.probes.is_empty() {
+      return Err(NotYet { at: rnode.ast });
+    }
+    match (rnode.ast, read.target) {
+      (AstNode::Name(name), Target::Free(_)) => {
+        let name = self.builder.name(name);
+        self.builder.emit(Op::LoadName { dst, name });
+      }
+      (AstNode::QualifiedName(segments), Target::Free(_) | Target::Search) => {
+        let segments = segments
+          .iter()
+          .filter_map(|segment| match segment {
+            AstNode::QualifiedNameSegment(name) => Some(name.clone()),
+            _ => None,
+          })
+          .collect();
+        let search = self.builder.search(segments);
+        self.builder.emit(Op::Search { dst, search });
+      }
+      _ => return Err(NotYet { at: rnode.ast }),
+    }
+    Ok(())
   }
 
   /// The constant of `ast` when its value is known now: a literal whose evaluation records nothing
