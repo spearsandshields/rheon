@@ -1,10 +1,10 @@
-//! Differential tests of the lexer and parser against the frozen reference front end
-//! ([super::oracle]).
+//! Tests of the lexer and parser against their recorded outcomes ([Golden]).
 //!
-//! For every input, start rule and scope, both front ends must read the same tokens (token type,
-//! Debug text of the value, start offset of the token in the input), and give the same AST (tree
-//! and Debug text) or the same error. The only allowed differences are the registered bug fixes
-//! ([registered_difference]).
+//! For every input, start rule and scope, the front end must not panic, and must read the
+//! recorded tokens (Debug text of the value, start offset of the token in the input) and give
+//! the recorded AST (tree and Debug text) or the recorded error. A change of an outcome is a
+//! change of an answer: the recorded outcomes are rewritten in the commit that makes it
+//! (`RHEON_GOLDEN=update`, at the default and at the full size), and the commit says why.
 //!
 //! Generators (default size, and full size with `RHEON_FULL_TESTS` set, see [super::full_size]):
 //! - short strings: every string of up to 2 characters (4) over [ALPHABET] (and over
@@ -23,7 +23,6 @@
 
 use super::full_size;
 use super::names_index::{KEYS, OGHAM, Rng, context, key_text, number};
-use super::oracle;
 use crate::lalr::TokenType;
 use crate::parser::Parser;
 use crate::scope::ParsingScope;
@@ -34,16 +33,16 @@ use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 /// The start rules of the grammar.
-const START_RULES: [(&str, TokenType, oracle::lalr::TokenType); 9] = [
-  ("expression", TokenType::StartExpression, oracle::lalr::TokenType::StartExpression),
-  ("boxed expression", TokenType::StartBoxedExpression, oracle::lalr::TokenType::StartBoxedExpression),
-  ("textual expression", TokenType::StartTextualExpression, oracle::lalr::TokenType::StartTextualExpression),
-  ("textual expressions", TokenType::StartTextualExpressions, oracle::lalr::TokenType::StartTextualExpressions),
-  ("unary tests", TokenType::StartUnaryTests, oracle::lalr::TokenType::StartUnaryTests),
-  ("simple expression", TokenType::StartSimpleExpression, oracle::lalr::TokenType::StartSimpleExpression),
-  ("simple expressions", TokenType::StartSimpleExpressions, oracle::lalr::TokenType::StartSimpleExpressions),
-  ("simple value", TokenType::StartSimpleValue, oracle::lalr::TokenType::StartSimpleValue),
-  ("range literal", TokenType::StartRangeLiteral, oracle::lalr::TokenType::StartRangeLiteral),
+const START_RULES: [(&str, TokenType); 9] = [
+  ("expression", TokenType::StartExpression),
+  ("boxed expression", TokenType::StartBoxedExpression),
+  ("textual expression", TokenType::StartTextualExpression),
+  ("textual expressions", TokenType::StartTextualExpressions),
+  ("unary tests", TokenType::StartUnaryTests),
+  ("simple expression", TokenType::StartSimpleExpression),
+  ("simple expressions", TokenType::StartSimpleExpressions),
+  ("simple value", TokenType::StartSimpleValue),
+  ("range literal", TokenType::StartRangeLiteral),
 ];
 
 /// The characters of the short strings: name characters, keyword letters, white space (U+1680 is a
@@ -98,257 +97,12 @@ pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &
   }
 }
 
-/// Runs the frozen reference front end; a panic is an outcome.
-fn run_reference(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &str) -> Run {
-  let scope = oracle::scope::ParsingScope::new(frames);
-  reference_run(oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log(), input)
-}
-
-/// Runs the frozen reference front end on an expression, with its lexer in the flattened-key mode
-/// (it searches the set of all flattened keys); a panic is an outcome.
-pub(super) fn run_reference_flattened(frames: &[FeelContext], input: &str) -> Run {
-  let scope = oracle::scope::ParsingScope::new(frames);
-  let parser = oracle::parser::Parser::new(&scope, oracle::lalr::TokenType::StartExpression, input, false)
-    .with_token_log()
-    .with_oracle_lexer();
-  reference_run(parser, input)
-}
-
-/// Parses with a reference parser that records its tokens.
-fn reference_run(mut parser: oracle::parser::Parser<'_>, input: &str) -> Run {
-  let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
-  // the reference lexer counts positions in characters, the production lexer in bytes
-  let bytes: Vec<usize> = input.char_indices().map(|(offset, _)| offset).chain([input.len()]).collect();
-  Run {
-    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt, tv, bytes[start.min(bytes.len() - 1)])).collect(),
-    outcome: match outcome {
-      Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
-      Ok(Err(e)) => Outcome::Error(e.to_string()),
-      Err(payload) => Outcome::Panic(panic_message(payload)),
-    },
-  }
-}
-
-/// The registered differences: bug fixes of the production front end, each with the reference's
-/// and the production behaviour. Returns the name of the fix when the difference between
-/// `reference` and `production` is one of them.
-fn registered_difference(start: &str, input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
-  // A range literal with a negative number as an endpoint (`[-1..1]`), or without endpoints
-  // (`(..)`, `]..[`):
-  // - reference: a syntax error at the minus; a range of two missing endpoints;
-  // - production: the range with the negated number (DMN 1.6 grammar rules 66 and 67 with rule
-  //   35's sign); a syntax error, because rule 66 has no range without an endpoint.
-  if start == "range literal" {
-    let minus = TokenType::Minus as i16;
-    // the reference stops at the minus; the production parser reads on
-    let stopped_at_minus = reference.tokens.last().is_some_and(|token| token.0 == minus) && production.tokens.starts_with(&reference.tokens);
-    if stopped_at_minus && matches!(&reference.outcome, Outcome::Error(_)) {
-      return Some("a signed number or no endpoint in a range literal");
-    }
-    let kinds: Vec<i16> = reference.tokens.iter().map(|token| token.0).collect();
-    let brackets = [
-      TokenType::LeftParen as i16,
-      TokenType::RightBracket as i16,
-      TokenType::RightParen as i16,
-      TokenType::LeftBracket as i16,
-    ];
-    // the production parser stops at the bracket that would close a range without endpoints
-    if kinds.len() >= 4
-      && brackets[..2].contains(&kinds[1])
-      && kinds[2] == TokenType::Ellipsis as i16
-      && brackets[2..].contains(&kinds[3])
-      && production.tokens == reference.tokens[..4]
-      && matches!(&production.outcome, Outcome::Error(_))
-    {
-      return Some("a signed number or no endpoint in a range literal");
-    }
-  }
-  // A unary comparison (`> a + b`, `= x in y`):
-  // - reference: the comparison takes the operand next to it, `(? > a) + b`;
-  // - production: its endpoint binds like the right side of a comparison, `? > (a + b)`; another
-  //   tree, or a syntax error where a comparison follows the endpoint (`> a < b`).
-  // The parsers then read on differently (one stops at its error before the other, or another
-  // registered difference follows), so only the tokens up to the first difference are compared:
-  // a text with a unary comparison among them is not compared further. This is the weakest of
-  // the registered differences; the tests of `expr::unary_tests` state the trees.
-  let same = reference.tokens.iter().zip(&production.tokens).take_while(|(a, b)| a == b).count();
-  if matches!(&production.outcome, Outcome::Ast(_) | Outcome::Error(_)) && has_unary_comparison(&production.tokens[..same]) {
-    return Some("the endpoint of a unary comparison");
-  }
-  // The same syntax error, found one token earlier or later after a comparison operator (the
-  // tables decide when a comparison that cannot continue is refused: `]<a<`).
-  let comparisons = [TokenType::Eq, TokenType::Ne, TokenType::Lt, TokenType::Le, TokenType::Gt, TokenType::Ge].map(|tt| tt as i16);
-  if matches!((&reference.outcome, &production.outcome), (Outcome::Error(a), Outcome::Error(b)) if a == b)
-    && (reference.tokens.starts_with(&production.tokens[..same]) && same + 2 >= reference.tokens.len().min(production.tokens.len()))
-    && production.tokens[..same].iter().any(|token| comparisons.contains(&token.0))
-  {
-    return Some("the endpoint of a unary comparison");
-  }
-  // A number followed by an exponent letter without exponent digits (`1e`, `1.5E+`, `2e x`):
-  // - reference: the letter and a sign after it are part of the number, whose exponent is empty;
-  // - production: the number ends before the letter (DMN 1.6 grammar rule 35), and the letter
-  //   starts the next token, a name or a keyword.
-  let numeric = TokenType::Numeric as i16;
-  let common = reference.tokens.iter().zip(&production.tokens).take_while(|(a, b)| a == b).count();
-  // the number is the first token that differs (the reference keeps the sign it read) or the
-  // token before it
-  let is_number = |tokens: &[(i16, String, usize)], index: usize| tokens.get(index).is_some_and(|(tt, _, _)| *tt == numeric);
-  let at_number = if is_number(&reference.tokens, common) && is_number(&production.tokens, common) {
-    Some(common)
-  } else {
-    common.checked_sub(1)
-  };
-  if let Some(index) = at_number
-    && let (Some((_, value, at)), Some((_, reference_value, reference_at))) = (production.tokens.get(index), reference.tokens.get(index))
-    && is_number(&production.tokens, index)
-    && is_number(&reference.tokens, index)
-    && at == reference_at
-    && value.ends_with(r#"'+', "")"#)
-    && reference_value.ends_with(r#"', "")"#)
-    && value[..value.len() - 8] == reference_value[..reference_value.len() - 8]
-  {
-    // the digits of the number and its point, then the letter that no exponent follows
-    let rest = input[*at..].trim_start_matches(|ch: char| ch.is_ascii_digit() || ch == '.');
-    let mut after = rest.chars();
-    if matches!(after.next(), Some('e' | 'E')) {
-      let next = after.next();
-      let digit = if matches!(next, Some('+' | '-')) { after.next() } else { next };
-      if !digit.is_some_and(|ch| ch.is_ascii_digit()) {
-        return Some("an exponent letter without exponent digits");
-      }
-    }
-  }
-  // A string literal or a block comment that the input does not close (`1 + 2 "abc`, `1 /* abc`):
-  // - reference: the end of the input where the literal or the comment starts, so the tokens
-  //   before it are the whole input (`1 + 2 "abc` is the sum);
-  // - production: the same tokens, then an undefined token at the quote or at the `/*`; a
-  //   syntax error.
-  if let (Some(((257, undefined, at), production_head)), Some(((0, _, _), reference_head))) = (production.tokens.split_last(), reference.tokens.split_last())
-    && undefined == "YyUndef"
-    && production_head == reference_head
-    && (input[*at..].starts_with('"') || (input[*at..].starts_with("/*") && !input[*at + 2..].contains("*/")))
-    && matches!(&production.outcome, Outcome::Error(message) if message.starts_with("<ParserError> syntax error"))
-  {
-    return Some("a string literal or a block comment that is not closed");
-  }
-  // A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with `in`:
-  // an iteration variable (`for in+1 in [1] return 1`), or the `in` after an iteration variable
-  // `item`, which leaves the mode set (`for item in[1] return item`):
-  // - reference: `consumed_positions[index - 1]` with index 0 in the lexer, an overflow panic (a
-  //   trap; an index out of bounds without overflow checks);
-  // - production: the tokens read before, then the keyword `in`; a syntax error, unless an
-  //   iteration variable `item` comes before (`for item in[1] return item` is a for expression).
-  if matches!(&reference.outcome, Outcome::Panic(message) if message == "attempt to subtract with overflow" || message.ends_with(&format!("the index is {}", usize::MAX)))
-    && production.tokens.starts_with(&reference.tokens)
-    && production
-      .tokens
-      .get(reference.tokens.len())
-      .is_some_and(|(tt, tv, _)| *tt == TokenType::In as i16 && tv == "In")
-    && (matches!(&production.outcome, Outcome::Error(message) if message.starts_with("<ParserError> syntax error")) || has_item_variable(&reference.tokens))
-  {
-    return Some("a name starting with `in` in iteration-variable mode");
-  }
-  // A named parameter of a temporal function in a range literal (`[date(from: "2012-01-01")..x]`):
-  // - reference: the parameter name was read from the slot of the colon, so the invocation had
-  //   `NamedParameters([String(..)])` (no name; the range() built-in returned null);
-  // - production: `NamedParameters([NamedParameter(ParameterName(..), String(..))])`, with the
-  //   name token before the colon; otherwise the same AST.
-  if start == "range literal"
-    && reference.tokens == production.tokens
-    && let (Outcome::Ast(reference_ast), Outcome::Ast(production_ast)) = (&reference.outcome, &production.outcome)
-    && let (Some((_, reference_debug)), Some((_, production_debug))) = (reference_ast.rsplit_once('\n'), production_ast.rsplit_once('\n'))
-    && reference_debug != production_debug
-    && with_named_parameters(reference_debug, &reference.tokens).is_some_and(|expected| expected == production_debug)
-  {
-    return Some("a named temporal parameter in a range literal");
-  }
-  None
-}
-
-/// Returns `true` when the tokens have a comparison operator where an operand starts: not after
-/// a name, a literal or a closing bracket, or after a parenthesis that may close the parameters
-/// of a function definition.
-fn has_unary_comparison(tokens: &[(i16, String, usize)]) -> bool {
-  let comparisons = [TokenType::Eq, TokenType::Ne, TokenType::Lt, TokenType::Le, TokenType::Gt, TokenType::Ge].map(|tt| tt as i16);
-  let operand_ends = [
-    TokenType::Name,
-    TokenType::NameDateTime,
-    TokenType::BuiltInTypeName,
-    TokenType::Numeric,
-    TokenType::String,
-    TokenType::Boolean,
-    TokenType::Null,
-    TokenType::RightParen,
-    TokenType::RightBracket,
-    TokenType::RightBrace,
-  ]
-  .map(|tt| tt as i16);
-  // the body of a function definition starts after the parenthesis of its parameters
-  let function = TokenType::Function as i16;
-  let after_parameters = |index: usize| tokens[index].0 == TokenType::RightParen as i16 && tokens[..index].iter().any(|token| token.0 == function);
-  (1..tokens.len()).any(|index| comparisons.contains(&tokens[index].0) && (!operand_ends.contains(&tokens[index - 1].0) || after_parameters(index - 1)))
-}
-
-/// Returns `true` when the tokens have an iteration variable `item`: a name `item` right after
-/// `for`, `some`, `every` or a comma.
-fn has_item_variable(tokens: &[(i16, String, usize)]) -> bool {
-  let heads = [TokenType::For, TokenType::Some, TokenType::Every, TokenType::Comma].map(|tt| tt as i16);
-  tokens.windows(2).any(|pair| heads.contains(&pair[0].0) && pair[1].1 == r#"Name(Name("item"))"#)
-}
-
-/// Returns the Debug text of a range literal's AST with the parameter names put into its named
-/// parameters: every `NamedParameters([String(s)])` becomes
-/// `NamedParameters([NamedParameter(ParameterName(name), String(s))])`, with the name of the
-/// name token before the corresponding colon. `None` when the names and parameters do not pair up.
-fn with_named_parameters(debug: &str, tokens: &[(i16, String, usize)]) -> Option<String> {
-  const PARAMETERS: &str = "NamedParameters([String(";
-  let mut names = tokens
-    .windows(2)
-    .filter(|pair| pair[1].0 == TokenType::Colon as i16)
-    .map(|pair| pair[0].1.strip_prefix("Name(").and_then(|name| name.strip_suffix(')')));
-  let mut text = String::new();
-  let mut rest = debug;
-  while let Some(at) = rest.find(PARAMETERS) {
-    let name = names.next()??;
-    text.push_str(&rest[..at]);
-    rest = &rest[at + PARAMETERS.len()..];
-    let literal = debug_string_len(rest)?;
-    text.push_str(&format!("NamedParameters([NamedParameter(ParameterName({name}), String({}))", &rest[..literal]));
-    rest = rest[literal..].strip_prefix(")")?;
-  }
-  if names.next().is_some() {
-    return None;
-  }
-  text.push_str(rest);
-  Some(text)
-}
-
-/// Returns the length in bytes of the Debug text of a string at the start of `text` (quotes
-/// included), or `None` when `text` does not start with one.
-fn debug_string_len(text: &str) -> Option<usize> {
-  let mut chars = text.char_indices();
-  if chars.next()?.1 != '"' {
-    return None;
-  }
-  while let Some((offset, ch)) = chars.next() {
-    match ch {
-      '\\' => {
-        chars.next();
-      }
-      '"' => return Some(offset + 1),
-      _ => {}
-    }
-  }
-  None
-}
-
-/// Statistics of a differential run.
+/// Statistics of a run over a group of cases.
 #[derive(Default, Debug)]
 struct Stats {
   cases: usize,
   asts: usize,
   errors: usize,
-  registered: BTreeMap<&'static str, usize>,
   /// The recorded outcomes of the group of cases, when the run is one ([Stats::golden]).
   golden: Option<Golden>,
 }
@@ -365,7 +119,7 @@ struct Stats {
 /// again. `RHEON_GOLDEN_DUMP=<directory>` writes every case with its whole outcome to
 /// `<directory>/<group>.txt`, to compare two commits case by case.
 #[derive(Default)]
-struct Golden {
+pub(super) struct Golden {
   group: &'static str,
   /// The recorded digests (none when the files are written again or at full size).
   expected: Vec<u64>,
@@ -399,7 +153,7 @@ impl Golden {
     std::env::var("RHEON_GOLDEN").is_ok_and(|value| value == "update")
   }
 
-  fn new(group: &'static str) -> Self {
+  pub(super) fn new(group: &'static str) -> Self {
     let expected = if Self::updating() || full_size() {
       vec![]
     } else {
@@ -419,25 +173,30 @@ impl Golden {
     }
   }
 
-  fn record(&mut self, start: &str, input: &str, run: &Run) {
+  pub(super) fn record(&mut self, start: &str, input: &str, run: &Run) {
     // the tokens by their values and offsets, without the numbers the grammar gives their types
     let tokens: Vec<(&str, usize)> = run.tokens.iter().map(|(_, value, offset)| (value.as_str(), *offset)).collect();
     let outcome = format!("{start}\u{1f}{input}\u{1f}{tokens:?}\u{1f}{:?}", run.outcome);
+    self.record_outcome(start, input, &outcome, &|| format!("{run:#?}"));
+  }
+
+  /// Records the outcome `outcome` of a case; `shown` is its text for a person.
+  pub(super) fn record_outcome(&mut self, start: &str, input: &str, outcome: &str, shown: &dyn Fn() -> String) {
     let index = self.recorded.len();
-    let recorded = digest(&outcome);
+    let recorded = digest(outcome);
     self.recorded.push(recorded);
     if self.expected.get(index).is_some_and(|expected| *expected != recorded) {
       self.changed += 1;
       if self.first_changed.len() < 5 {
-        self.first_changed.push(format!("case {index}, {start}, {input:?}:\n{run:#?}"));
+        self.first_changed.push(format!("case {index}, {start}, {input:?}:\n{}", shown()));
       }
     }
     if let Some(dump) = &mut self.dump {
-      dump.push_str(&format!("case {index}, {start}, {input:?}:\n{run:#?}\n"));
+      dump.push_str(&format!("case {index}, {start}, {input:?}:\n{}\n", shown()));
     }
   }
 
-  fn finish(&self) {
+  pub(super) fn finish(&self) {
     let full = full_size();
     if let (Some(dump), Some(directory)) = (&self.dump, std::env::var_os("RHEON_GOLDEN_DUMP")) {
       let path = std::path::Path::new(&directory).join(format!("{}{}.txt", self.group, if full { ".full" } else { "" }));
@@ -498,19 +257,18 @@ impl Stats {
     }
   }
 
-  /// Compares both front ends on one input; panics on an unregistered difference.
+  /// Parses one input with every start rule; panics when the parser panics, and records the
+  /// outcomes.
   fn check(&mut self, frames: &[FeelContext], input: &str) {
-    for (name, start, reference_start) in &START_RULES {
-      self.check_rule(frames, name, start, reference_start, input);
+    for (name, start) in &START_RULES {
+      self.check_rule(frames, name, start, input);
     }
   }
 
-  fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, reference_start: &oracle::lalr::TokenType, input: &str) {
+  fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, input: &str) {
     let production = run_production(frames, start, input);
-    let reference = run_reference(frames, reference_start, input);
-    // a panic of the production front end fails in compare
-    if let Some(fix) = compare(name, frames, input, &reference, &production) {
-      *self.registered.entry(fix).or_default() += 1;
+    if let Outcome::Panic(message) = &production.outcome {
+      panic!("{name} {input:?} in {frames:?}: the parser panicked: {message}");
     }
     if let Some(golden) = &mut self.golden {
       golden.record(name, input, &production);
@@ -521,24 +279,6 @@ impl Stats {
     } else {
       self.errors += 1;
     }
-  }
-}
-
-/// Compares a run of the production front end with a run of the reference on the same input,
-/// start rule `start` and scope `frames`. Returns `None` when both read the same tokens and have
-/// the same outcome, and the name of the fix when they differ by a registered difference
-/// ([registered_difference]); panics when the production front end panicked or the difference is
-/// not registered.
-pub(super) fn compare(start: &str, frames: &[FeelContext], input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
-  if let Outcome::Panic(message) = &production.outcome {
-    panic!("{start} {input:?} in {frames:?}: the parser panicked: {message}");
-  }
-  if (&production.tokens, &production.outcome) == (&reference.tokens, &reference.outcome) {
-    return None;
-  }
-  match registered_difference(start, input, reference, production) {
-    Some(fix) => Some(fix),
-    None => panic!("{start} {input:?} in {frames:?}:\nreference {reference:#?}\nproduction {production:#?}"),
   }
 }
 
@@ -617,12 +357,13 @@ fn for_each_string(alphabet: &[char], len: usize, mut f: impl FnMut(&str)) {
   }
 }
 
-/// Every registered difference is registered for the inputs of its fix: the reference traps on
-/// a name starting with `in` in iteration-variable mode, drops the name of a named temporal
-/// parameter in a range literal, and ends the input at a string literal or a block comment that
-/// is not closed.
+/// The inputs of the fixes of the front end have their recorded outcomes: names starting with
+/// `in` where an iteration variable is read, named temporal parameters in a range literal,
+/// string literals and block comments that are not closed, exponent letters without digits,
+/// unary comparisons with arithmetic after them, and signed and missing endpoints of a range
+/// literal.
 #[test]
-fn registered_fixes_differ_as_registered() {
+fn inputs_of_the_fixes_have_their_recorded_outcome() {
   let in_names = [
     "for in+1 in [1] return 1",
     "for in+1 in [1] return in+1",
@@ -644,24 +385,34 @@ fn registered_fixes_differ_as_registered() {
     r#"]"a"..duration(from: "P1D\"x")["#,
   ];
   let signed = ["[-1..1]", "(-2.5..-1)", "]-1e3..0[", "[0..-1]", "(..)", "]..[", "(..[", "]..)"];
-  let endpoints = ["> 1 + 2", "< a * 2", "[>= 1 - 1, 5]", "= 1 in [1]", "f(> 1 + 1)", "!= 2 ** 2"];
+  let endpoints = [
+    "> 1 + 2",
+    "< a * 2",
+    "[>= 1 - 1, 5]",
+    "= 1 in [1]",
+    "f(> 1 + 1)",
+    "!= 2 ** 2",
+    "> 1 < 2",
+    "<= 10 = (null..10]",
+  ];
   let exponents = ["1e", "1e+", "1E-", "1.5e", "2e x", "1e + 2", "1else", "[1e, 2]", "1e+ 3"];
   let unclosed = ["1 + 2 \"abc", "\"", "1 \"a\\\"b", "1 /* abc", "/*", "1 /* a */ + 2 /* b *", "1 /*/"];
-  for (inputs, rule, fix) in [
-    (&in_names[..], 0, "a name starting with `in` in iteration-variable mode"),
-    (&range_literals[..], 8, "a named temporal parameter in a range literal"),
-    (&unclosed[..], 0, "a string literal or a block comment that is not closed"),
-    (&exponents[..], 0, "an exponent letter without exponent digits"),
-    (&endpoints[..], 0, "the endpoint of a unary comparison"),
-    (&signed[..], 8, "a signed number or no endpoint in a range literal"),
+  let mut stats = Stats::golden("fixes");
+  for (inputs, rule) in [
+    (&in_names[..], 0),
+    (&range_literals[..], 8),
+    (&unclosed[..], 0),
+    (&exponents[..], 0),
+    (&endpoints[..], 0),
+    (&signed[..], 8),
   ] {
-    let (name, start, reference_start) = &START_RULES[rule];
+    let (name, start) = &START_RULES[rule];
     for input in inputs {
-      let mut stats = Stats::default();
-      stats.check_rule(&[], name, start, reference_start, input);
-      assert_eq!(Some(&1), stats.registered.get(fix), "{input}: {stats:?}");
+      stats.check_rule(&[], name, start, input);
     }
   }
+  println!("fixes: {stats:?}");
+  stats.finish();
 }
 
 /// The length of the longest short strings.
@@ -695,12 +446,12 @@ fn short_strings_after_iteration_heads_equal_reference() {
       for len in 0..=max_len {
         for_each_string(&ALPHABET, len, |text| {
           let input = format!("{head}{text}");
-          for (name, start, reference_start) in &START_RULES[..1] {
-            stats.check_rule(frames, name, start, reference_start, &input);
+          for (name, start) in &START_RULES[..1] {
+            stats.check_rule(frames, name, start, &input);
           }
           let input = format!("{head}{text} in [1] return 1");
-          for (name, start, reference_start) in &START_RULES[..1] {
-            stats.check_rule(frames, name, start, reference_start, &input);
+          for (name, start) in &START_RULES[..1] {
+            stats.check_rule(frames, name, start, &input);
           }
         });
       }
@@ -1256,9 +1007,9 @@ fn lists_keep_source_order() {
     texts.push((0, format!("x instance of {path}")));
     texts.push((7, path));
     for (rule, text) in &texts {
-      let (name, start, reference_start) = &START_RULES[*rule];
+      let (name, start) = &START_RULES[*rule];
       let mut stats = Stats::default();
-      stats.check_rule(&frames, name, start, reference_start, text);
+      stats.check_rule(&frames, name, start, text);
       assert_eq!(1, stats.asts, "{n} items: {text:.80}");
     }
   }

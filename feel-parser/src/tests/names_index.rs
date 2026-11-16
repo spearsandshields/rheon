@@ -1,9 +1,9 @@
 //! Tests of the name lookup in the parsing scope ([ParsingScope::contains], [ParsingScope::bound]):
-//! against the flattened-key search of the frozen reference front end ([super::oracle]), which
-//! builds the set of all flattened keys for every name token, and against an independent model of
-//! the names in scope ([ReferenceScope]). The generators are shared with [super::differential].
+//! against the recorded outcomes of random expressions ([differential::Golden]), and against an
+//! independent model of the names in scope ([ReferenceScope]). The generators are shared with
+//! [super::differential].
 
-use super::{differential, full_size, oracle};
+use super::{differential, full_size};
 use crate::context::ParsingContext;
 use crate::index::{Node, list_item_node};
 use crate::lalr::TokenType;
@@ -241,44 +241,21 @@ fn rng_key(rng: &mut Rng, keys: &[String]) -> String {
   rng.pick(keys).clone()
 }
 
-/// The token stream of a lexer run without the parser (no scope changes); with `reference`, of the
-/// frozen reference lexer in its flattened-key mode (it searches the set of all flattened keys,
-/// built for every name token).
-fn tokens(frames: &[FeelContext], input: &str, reference: bool) -> Vec<String> {
+/// The token stream of a lexer run without the parser (no scope changes).
+fn tokens(frames: &[FeelContext], input: &str) -> Vec<String> {
   let mut tokens = vec![];
-  let mut push = |token: dsntk_common::Result<(i16, String, bool)>| match token {
-    Ok((_, _, true)) => false,
-    Ok((tt, tv, false)) => {
-      tokens.push(format!("{tt} {tv}"));
-      true
-    }
-    Err(e) => {
-      tokens.push(format!("error {e}"));
-      false
-    }
-  };
-  if reference {
-    let scope = oracle::scope::ParsingScope::new(frames);
-    let mut lexer = oracle::lexer::Lexer::new(&scope, oracle::lalr::TokenType::StartExpression, input);
-    lexer.set_oracle();
-    for _ in 0..1000 {
-      let token = lexer.next_token().map(|(tt, tv)| {
-        let tt = tt as i16;
-        (tt, format!("{tv:?}"), tt == 0 || matches!(tv, oracle::lexer::TokenValue::YyEof))
-      });
-      if !push(token) {
-        break;
+  let scope = ParsingScope::new(frames);
+  let mut lexer = Lexer::new(&scope, TokenType::StartExpression, input);
+  for _ in 0..1000 {
+    match lexer.next_token() {
+      Ok((tt, tv)) => {
+        if tt as i16 == 0 || matches!(tv, TokenValue::YyEof) {
+          break;
+        }
+        tokens.push(format!("{tv:?}"));
       }
-    }
-  } else {
-    let scope = ParsingScope::new(frames);
-    let mut lexer = Lexer::new(&scope, TokenType::StartExpression, input);
-    for _ in 0..1000 {
-      let token = lexer.next_token().map(|(tt, tv)| {
-        let tt = tt as i16;
-        (tt, format!("{tv:?}"), tt == 0 || matches!(tv, TokenValue::YyEof))
-      });
-      if !push(token) {
+      Err(e) => {
+        tokens.push(format!("error {e}"));
         break;
       }
     }
@@ -286,61 +263,57 @@ fn tokens(frames: &[FeelContext], input: &str, reference: bool) -> Vec<String> {
   tokens
 }
 
-/// The AST (tree and Debug text) or the error of a parse; with `reference`, of the frozen
-/// reference parser with its lexer in the flattened-key mode.
-fn parse(frames: &[FeelContext], input: &str, reference: bool) -> String {
-  let result = if reference {
-    let scope = oracle::scope::ParsingScope::new(frames);
-    oracle::parser::Parser::new(&scope, oracle::lalr::TokenType::StartExpression, input, false)
-      .with_oracle_lexer()
-      .parse()
-  } else {
-    let scope = ParsingScope::new(frames);
-    Parser::new(&scope, TokenType::StartExpression, input, false).parse()
-  };
-  match result {
+/// The tree (and its Debug text) or the error of a parse.
+fn parse(frames: &[FeelContext], input: &str) -> String {
+  let scope = ParsingScope::new(frames);
+  match Parser::new(&scope, TokenType::StartExpression, input, false).parse() {
     Ok(node) => format!("{}\n{node:?}", node.trace()),
     Err(e) => format!("error {e}"),
   }
 }
 
+/// Records the outcomes of the parses of `inputs` in the group `group`.
+fn record_parses(group: &'static str, frames: &[FeelContext], inputs: &[String]) {
+  let mut golden = differential::Golden::new(group);
+  for input in inputs {
+    let production = differential::run_production(frames, &TokenType::StartExpression, input);
+    if let differential::Outcome::Panic(message) = &production.outcome {
+      panic!("{input:?}: the parser panicked: {message}");
+    }
+    golden.record("expression", input, &production);
+  }
+  golden.finish();
+}
+
+/// Random expressions over random input contexts have their recorded outcomes: the tokens of
+/// the lexer alone (no scope changes by the parser), and the tokens and the tree or error of
+/// the parse.
 #[test]
-fn name_lookup_equals_flattened_keys_search() {
+fn name_lookup_has_its_recorded_outcome() {
   let cases = if full_size() { 4_000 } else { 300 };
   let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
+  let mut golden = differential::Golden::new("name-lookup");
   let mut parsed = 0;
-  let mut composite = 0;
-  for case in 0..cases {
+  for _ in 0..cases {
     let frames: Vec<FeelContext> = (0..1 + rng.below(2)).map(|_| context(&mut rng, 0)).collect();
     let mut keys: Vec<String> = KEYS.iter().map(|k| k.to_string()).collect();
     keys.push("zz".to_string());
     let input = expression(&mut rng, &keys, 0);
-    let actual_tokens = tokens(&frames, &input, false);
-    let expected_tokens = tokens(&frames, &input, true);
-    // the reference ends the input at a string literal or a block comment that is not closed,
-    // where the lexer reads an undefined token (a registered difference of the differential tests)
-    let not_closed = actual_tokens.len() > expected_tokens.len() && actual_tokens[expected_tokens.len()..].iter().all(|token| token == "257 YyUndef");
-    let actual_tokens = if not_closed { actual_tokens[..expected_tokens.len()].to_vec() } else { actual_tokens };
-    assert_eq!(expected_tokens, actual_tokens, "case {case}: tokens of {input:?} in {frames:?}");
-    // names found as composite keys (the only names with a space after an additional symbol)
-    composite += actual_tokens
-      .iter()
-      .filter(|t| t.contains("Name(Name(") && ["./. ", ".. ", ".-. ", "/. "].iter().any(|c| t.contains(c)))
-      .count();
-    // the parse: equal to the reference's (flattened-key search), or a registered fix
+    let lexed = tokens(&frames, &input);
+    golden.record_outcome("lexer", &input, &format!("lexer\u{1f}{input}\u{1f}{lexed:?}"), &|| format!("{lexed:#?}"));
     let production = differential::run_production(&frames, &TokenType::StartExpression, &input);
-    let reference = differential::run_reference_flattened(&frames, &input);
-    differential::compare("expression", &frames, &input, &reference, &production);
+    if let differential::Outcome::Panic(message) = &production.outcome {
+      panic!("{input:?} in {frames:?}: the parser panicked: {message}");
+    }
+    golden.record("expression", &input, &production);
     if matches!(production.outcome, differential::Outcome::Ast(_)) {
       parsed += 1;
     }
   }
-  println!("name lookup: {parsed} of {cases} expressions parsed, {composite} composite names");
-  // enough of the random expressions are valid FEEL for the AST comparison to matter
+  println!("name lookup: {parsed} of {cases} expressions parsed");
+  // enough of the random expressions are valid FEEL for the trees to matter
   assert!(parsed > cases / 4, "only {parsed} of {cases} expressions parsed");
-  // (names with a space after a symbol were mostly names that are not in scope, which end
-  // before a symbol now; the tests of composite names below look composite keys up)
-  let _ = composite;
+  golden.finish();
 }
 
 /// The names in scope by definition: every flattened key of every context on the stack (a key at
@@ -526,9 +499,9 @@ pub(super) fn chain(depth: usize) -> FeelContext {
 }
 
 #[test]
-fn composite_names_in_a_chain_equal_flattened_keys_search() {
+fn composite_names_in_a_chain_have_their_recorded_outcome() {
   let frames = vec![chain(8)];
-  for input in [
+  let inputs = [
     format!("a./{OGHAM}.{OGHAM} k0 + 1"),
     format!("a./{OGHAM}.{OGHAM} k5 - x"),
     format!("a./{OGHAM}.{OGHAM} leaf"),
@@ -537,11 +510,10 @@ fn composite_names_in_a_chain_equal_flattened_keys_search() {
     format!("k0 {OGHAM} . {OGHAM} k1 + 1"),
     "k0.k1.k2.k3.k4.k5.k6.k7.leaf".to_string(),
     "x + 1".to_string(),
-  ] {
-    assert_eq!(parse(&frames, &input, true), parse(&frames, &input, false), "{input:?}");
-  }
+  ];
+  record_parses("composite-chain", &frames, &inputs);
   // the composite names do match (one name, no path)
-  let trace = parse(&frames, &format!("a./{OGHAM}.{OGHAM} k5 - x"), false);
+  let trace = parse(&frames, &format!("a./{OGHAM}.{OGHAM} k5 - x"));
   assert!(trace.contains("`a./. k5`") && !trace.contains("Path"), "{trace}");
 }
 
@@ -721,10 +693,9 @@ fn a_shared_context_is_indexed_once() {
   }
 }
 
-/// A composite name into a context held under three keys is found as the flattened-key search
-/// finds it, through each of the keys.
+/// A composite name into a context held under three keys is found through each of the keys.
 #[test]
-fn composite_names_into_a_shared_context_equal_flattened_keys_search() {
+fn composite_names_into_a_shared_context_have_their_recorded_outcome() {
   let mut p = FeelContext::default();
   p.set_entry(&Name::from("q"), number(1));
   let mut x = FeelContext::default();
@@ -736,15 +707,14 @@ fn composite_names_into_a_shared_context_equal_flattened_keys_search() {
   }
   top.set_entry(&Name::from("y"), number(1));
   let frames = vec![top];
-  for input in [
+  let inputs = [
     format!("a./{OGHAM}.{OGHAM} p./{OGHAM}.{OGHAM} q + 1"),
     format!("b./{OGHAM}.{OGHAM} p./ - y"),
     format!("x.p./{OGHAM}.{OGHAM} q"),
     format!("a./{OGHAM}.{OGHAM} q"),
     "x.p./.q".to_string(),
-  ] {
-    assert_eq!(parse(&frames, &input, true), parse(&frames, &input, false), "{input:?}");
-  }
-  let trace = parse(&frames, &format!("a./{OGHAM}.{OGHAM} p./{OGHAM}.{OGHAM} q + 1"), false);
+  ];
+  record_parses("composite-shared", &frames, &inputs);
+  let trace = parse(&frames, &format!("a./{OGHAM}.{OGHAM} p./{OGHAM}.{OGHAM} q + 1"));
   assert!(trace.contains("`a./. p./. q`") && !trace.contains("Path"), "{trace}");
 }
