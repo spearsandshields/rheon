@@ -2846,6 +2846,27 @@ their items with both answers. The totals are under "Verification" below.
     13,109 requests (the nine known depth probes differ, as before); with `--release` 12,980
     requests, 37 registered differences, 0 others, 528 s, peak RSS 4.9 GB. Tooling only; no API
     change.
+165. **One iteration path for FEEL and boxed expressions.** A `for`, `some` or `every` expression
+    had two ways to put its iteration context in scope: a FEEL expression moved the context into
+    the scope and back in every iteration, because a FEEL body never writes into the context on
+    the top of the scope, and a boxed one copied it in every iteration, because a boxed context
+    as its body does. The iteration context is now one shared context for the whole walk
+    (`Arc<FeelContext>`), pushed as a shared frame (item 160) in every iteration and for every
+    domain, and changed between iterations only, when the walk holds it alone, so without a copy.
+    What a body writes into the frame goes into a copy that is dropped with the frame, as the
+    copy of the boxed path was; `partial` is moved into the context before the body and read back
+    from the frame the body ran in, so an entry `partial` that a boxed body writes replaces the
+    results as before (the pins of item 143 pass unchanged). A frame that is still the iteration
+    context (its address is that of the shared context) was not written, and the results are
+    then moved out of the context without a further lookup: reading them from the frame first
+    cost loops 5 to 9 % (`count(for i in 1..10000 return i)` 0.917x of the module of item 163). The walk allocates the shared context
+    once per evaluation of the expression. `Iteration::for_feel` and the mode it chose are
+    removed; FEEL expressions build their iteration with a crate-private constructor, and
+    `Iteration::boxed` is unchanged. Test first: in `feel-evaluator/src/tests/for_expression.rs`,
+    a body that reads an entry and writes it into the frame sees no value in every iteration,
+    with one variable and with two, and a body that writes `partial` replaces the results so
+    far; on the parent the FEEL iteration answered `[null, 7]`, the write reaching the next
+    iteration. Identity step: no answer changes. No public API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

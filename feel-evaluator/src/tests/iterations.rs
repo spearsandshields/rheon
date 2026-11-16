@@ -38,7 +38,7 @@ fn iteration(states: &[State]) -> Iteration {
       }
     })
     .collect();
-  Iteration::for_feel(variables)
+  Iteration::new(variables)
 }
 
 /// The iteration contexts of the first `limit` iterations of `states`, as text: the body of an

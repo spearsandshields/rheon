@@ -2535,7 +2535,7 @@ fn iteration(variables: Vec<(Name, Domain)>) -> std::result::Result<Iteration, E
     let name = name.clone();
     return Err(Box::new(move |_: &FeelScope| value_null!("duplicate iteration variable '{}'", arg(&name))));
   }
-  Ok(Iteration::for_feel(variables))
+  Ok(Iteration::new(variables))
 }
 
 fn build_err_msg(err_msg: String) -> Evaluator {
