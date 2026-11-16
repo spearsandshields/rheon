@@ -347,8 +347,8 @@ pub(crate) struct Proto {
   pub(crate) entry: Pc,
   pub(crate) end: Pc,
   pub(crate) slots: u32,
-  /// The cells of the free names it reads.
-  pub(crate) cells: u32,
+  /// The name and the cell of each free name it reads, by name.
+  pub(crate) cells: Box<[(u32, u32)]>,
   pub(crate) params: Box<[Slot]>,
   pub(crate) region: u32,
   pub(crate) closure: Closure,
@@ -417,7 +417,7 @@ impl Program {
   /// code ends with a return, so that the run loop never indexes out of range.
   pub(crate) fn verify(&self) -> Result<(), VerifyError> {
     let mut bodies: Vec<(Pc, Pc, u32, u32)> = std::iter::once((0, self.root_end, self.slots, 0))
-      .chain(self.protos.iter().map(|proto| (proto.entry, proto.end, proto.slots, proto.cells)))
+      .chain(self.protos.iter().map(|proto| (proto.entry, proto.end, proto.slots, proto.cells.len() as u32)))
       .collect();
     bodies.sort_unstable();
     let mut next = 0;
@@ -453,6 +453,13 @@ impl Program {
         if first != NONE {
           check.index(first, self.names.len(), "name out of range")?;
         }
+      }
+      for &(name, cell) in proto.cells.iter() {
+        check.index(name, self.names.len(), "name out of range")?;
+        check.index(cell, proto.cells.len(), "cell out of range")?;
+      }
+      if !proto.cells.is_sorted() {
+        return check.fail("cells not by name");
       }
     }
     for &(entry, end, slots, cells) in &bodies {

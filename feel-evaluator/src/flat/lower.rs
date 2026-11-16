@@ -36,7 +36,7 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
     bodies: vec![],
     proto: NONE,
     cells: vec![],
-    cell_count: 0,
+    cell_names: vec![],
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
@@ -44,7 +44,7 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
   let root_slots = lower.max;
   // the bodies one after the other, so that no body is lowered inside another
   let mut done = 0;
-  while let Some(&(function, ..)) = lower.bodies.get(done) {
+  while let Some(function) = lower.bodies.get(done).map(|body| body.function) {
     lower.body(done, function)?;
     done += 1;
   }
@@ -56,7 +56,17 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
     mut functions,
     ..
   } = resolved;
-  for (index, (function, entry, end, slots, cells)) in bodies.into_iter().enumerate() {
+  for (
+    index,
+    Body {
+      function,
+      entry,
+      end,
+      slots,
+      cells,
+    },
+  ) in bodies.into_iter().enumerate()
+  {
     let function = &mut functions[function as usize];
     let proto = Proto {
       entry,
@@ -85,15 +95,25 @@ struct Lower<'r, 'a> {
   /// The index in the program of the proto of each function of the resolution, [NONE] until its
   /// definition is lowered.
   protos: Vec<u32>,
-  /// The protos of the program in order: the function of the resolution, and once its body is
-  /// lowered, where its code starts and ends, the slots of its frame and its cells.
-  bodies: Vec<(u32, Pc, Pc, u32, u32)>,
+  /// The protos of the program in order.
+  bodies: Vec<Body>,
   /// The proto being lowered, [NONE] for the root expression.
   proto: u32,
   /// For each free name, the proto and the cell it has there once read there.
   cells: Vec<(u32, u32)>,
-  /// The cells of the proto being lowered.
-  cell_count: u32,
+  /// The name of each cell of the proto being lowered.
+  cell_names: Vec<u32>,
+}
+
+/// A proto of the program: the function of the resolution, and once its body is lowered, where
+/// its code starts and ends, the slots of its frame, and the name and the cell of each free name
+/// it reads, by name.
+struct Body {
+  function: u32,
+  entry: Pc,
+  end: Pc,
+  slots: u32,
+  cells: Box<[(u32, u32)]>,
 }
 
 impl<'a> Lower<'_, 'a> {
@@ -360,7 +380,13 @@ impl<'a> Lower<'_, 'a> {
       NONE => {
         let proto = self.bodies.len() as u32;
         self.protos[*function as usize] = proto;
-        self.bodies.push((*function, 0, 0, 0, 0));
+        self.bodies.push(Body {
+          function: *function,
+          entry: 0,
+          end: 0,
+          slots: 0,
+          cells: Box::new([]),
+        });
         proto
       }
       proto => proto,
@@ -383,7 +409,7 @@ impl<'a> Lower<'_, 'a> {
     self.next = function.binders;
     self.max = function.binders;
     self.proto = proto as u32;
-    self.cell_count = 0;
+    self.cell_names.clear();
     let entry = self.builder.here();
     let result = if function.body == NONE {
       self.builder.konst(Value::Null(None))
@@ -391,8 +417,10 @@ impl<'a> Lower<'_, 'a> {
       self.value(function.body, None)?
     };
     self.builder.emit(Op::Return { src: result });
+    let mut cells: Vec<(u32, u32)> = self.cell_names.iter().copied().zip(0..).collect();
+    cells.sort_unstable();
     let body = &mut self.bodies[proto];
-    (body.1, body.2, body.3, body.4) = (entry, self.builder.here(), self.max, self.cell_count);
+    (body.entry, body.end, body.slots, body.cells) = (entry, self.builder.here(), self.max, cells.into());
     Ok(())
   }
 
@@ -407,8 +435,8 @@ impl<'a> Lower<'_, 'a> {
     }
     let (proto, cell) = &mut self.cells[free as usize];
     if *proto != self.proto {
-      (*proto, *cell) = (self.proto, self.cell_count);
-      self.cell_count += 1;
+      (*proto, *cell) = (self.proto, self.cell_names.len() as u32);
+      self.cell_names.push(self.resolved.frees[free as usize].name);
     }
     *cell
   }

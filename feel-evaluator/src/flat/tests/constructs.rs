@@ -747,3 +747,17 @@ fn a_body_searches_the_scopes_of_its_callers() {
     agree(text);
   }
 }
+
+#[test]
+fn a_caller_that_has_read_a_name_gives_its_value_below_its_own_scopes() {
+  for text in [
+    "{x: 1, g: function() x, f: function() [x, for x in [2] return g(), g()], r: f()}.r",
+    "{item: 0, g: function() item, f: function() [item, [5][g() > 1], g()], r: f()}.r",
+    "{x: 1, g: function() x, f: function(x) [x, g()], h: function() [x, f(2), g()], r: h()}.r",
+    "{g: function() abs, f: function() [abs, g()], r: f()}.r",
+    "{g: function() nothing, f: function() [nothing, g()], r: f()}.r",
+    "{fib: function(n) if n < 2 then n else fib(n - 1) + fib(n - 2), r: fib(12)}.r",
+  ] {
+    agree(text);
+  }
+}

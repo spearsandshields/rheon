@@ -259,7 +259,7 @@ enum Next {
 
 impl<'p> Vm<'p> {
   fn new(act: Activation, host: &'p FeelScope, bottom: &'p mut [Value]) -> Self {
-    let cells = act.program.protos.get(act.proto as usize).map_or(0, |proto| proto.cells as usize);
+    let cells = act.program.protos.get(act.proto as usize).map_or(0, |proto| proto.cells.len());
     Self {
       host,
       bottom,
@@ -826,7 +826,7 @@ impl<'p> Vm<'p> {
     }
     self.named.clear();
     let cells = self.cells.len();
-    self.cells.resize(cells + body.cells as usize, Cell::Unread);
+    self.cells.resize(cells + body.cells.len(), Cell::Unread);
     let entry = body.entry as usize;
     let same = std::ptr::eq(program, &*callee);
     let activation = Activation::body(callee, Some(function), proto, base, self.records.len(), cells);
@@ -880,38 +880,76 @@ impl<'p> Vm<'p> {
   /// The region below the scopes of the body that runs: its closure, or [NONE] for the root
   /// expression.
   fn bottom_region(&self) -> u32 {
-    let program = &self.act.program;
-    match program.protos.get(self.act.proto as usize) {
-      Some(proto) => program.regions[proto.region as usize].parent,
-      None => NONE,
-    }
+    self.closure_region(&self.act)
   }
 
   /// The value of `name`, `program.names[index]` of the program that runs, below the scopes of
   /// the body that runs: in the closure of its function, then in the scopes of the activations
-  /// below it where each was invoked, then in the scope of the host.
+  /// below it where each was invoked, then in the scope of the host. Where the walk reaches the
+  /// closure of an activation of the same program that has read the name, the value it read
+  /// (found, or the built-in function of that name) is the rest of the walk: it read it from
+  /// there down, and that chain has not changed since.
   #[cold]
   #[inline(never)]
   fn below(&self, index: u32, name: &Name) -> Option<Value> {
     let program = &self.act.program;
+    let mut act = &self.act;
+    let mut at = self.bottom_region();
+    let mut frames = self.frames.iter().rev();
+    let (mut here, mut same) = (index, true);
     let mut other: Option<(*const Program, u32)> = None;
-    self
-      .scopes_below(self.bottom_region(), |vm, act, region| {
-        let index = if Arc::ptr_eq(&act.program, program) {
-          index
-        } else {
-          match other {
-            Some((known, index)) if std::ptr::eq(known, &*act.program) => index,
-            _ => {
-              let found = vm.name_index(&act.program, Some(name));
-              other = Some((&*act.program, found));
-              found
-            }
+    loop {
+      // the activation that runs has not read the name
+      let closure = if same && !std::ptr::eq(act, &self.act) { self.closure_region(act) } else { NONE };
+      while at != NONE {
+        if at == closure
+          && let Some(value) = self.cell_of(act, index)
+        {
+          return Some(value);
+        }
+        let region = act.program.regions[at as usize];
+        if let Some(value) = self.region_value(act, region, name, here) {
+          return Some(value);
+        }
+        at = region.parent;
+      }
+      let Some(frame) = frames.next() else {
+        return self.host.get_value(name);
+      };
+      act = &frame.activation;
+      at = act.program.calls[frame.call as usize].region;
+      same = Arc::ptr_eq(&act.program, program);
+      here = if same {
+        index
+      } else {
+        match other {
+          Some((known, index)) if std::ptr::eq(known, &*act.program) => index,
+          _ => {
+            let found = self.name_index(&act.program, Some(name));
+            other = Some((&*act.program, found));
+            found
           }
-        };
-        vm.region_value(act, region, name, index)
-      })
-      .or_else(|| self.host.get_value(name))
+        }
+      };
+    }
+  }
+
+  /// The closure region of the body of `act`, [NONE] for the root expression.
+  fn closure_region(&self, act: &Activation) -> u32 {
+    match act.program.protos.get(act.proto as usize) {
+      Some(proto) => act.program.regions[proto.region as usize].parent,
+      None => NONE,
+    }
+  }
+
+  /// The value that `act` read for its free name `names[index]`, when it has read it.
+  fn cell_of(&self, act: &Activation, index: u32) -> Option<Value> {
+    let cells = &act.program.protos.get(act.proto as usize)?.cells;
+    let cell = cells.binary_search_by_key(&index, |&(name, _)| name).ok()?;
+    match &self.cells[act.cells + cells[cell].1 as usize] {
+      Cell::Read(value) => Some(value.clone()),
+      Cell::Unread => None,
+    }
   }
 
   /// Visits the scopes from the region `region` of the activation that runs down, innermost
