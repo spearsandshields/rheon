@@ -2820,6 +2820,32 @@ their items with both answers. The totals are under "Verification" below.
     (dropping a context at least 3,156, 8,562 before; equality of lists at least 2,062, 2,140
     before); `context put` refuses a key list beyond 500 levels by design. `run.sh --release`:
     7,890 requests, 37 registered differences, 0 others, 482 s, peak RSS 3.9 GB.
+164. **Request sets for filters, logic operators, callbacks, B-FEEL arithmetic and context
+    literals.** The paths of filters by index and by item, of `and` and `or`, of the functions
+    that `sort` and `list replace` call, of the B-FEEL arithmetic and of context literals had few
+    requests in the committed sources, so a change to them could alter an answer that no identity
+    run compares. Five sources of `tools/identity/requests/` now hold them, with their answers
+    taken from 0.5.0 as for every source: `filters.json` (149 requests: filters over item entries
+    and items, lenient and strict; the index branch with `0`, `-0`, indexes in and out of range
+    from both ends, non-integers, indexes beyond 2⁶⁴ and values that are no number, on an empty
+    and a non-empty list; context items with and without an entry `item`, nested filters, filters
+    of a value that is no list, in loops and over `partial`), `logic.json` (118: an operand with an
+    error, a warning or no boolean on either side, lenient, strict and B-FEEL, and recursions
+    guarded by `and` or `or`), `callbacks.json` (51: callbacks that are function definitions,
+    named functions, built-ins or no function, of the wrong arity, with errors or no boolean,
+    closing over names, and recursing through the callback 66 and 80 levels deep),
+    `bfeel-arithmetic.json` (2,235: `+`, `-`, `*`, `/` and `**` on every pair of twelve operands of
+    every kind, B-FEEL lenient and strict and FEEL, and the numeric edges) and
+    `context-literals.json` (47: repeated keys, entries that read earlier and later entries,
+    nested literals, function entries, 200 entries). No request of them traps 0.5.0 or takes it
+    more than 9 ms. The filter `[{g: f, v: 5}][if g instance of number then 1 else g(1)]` is a
+    syntax error on 0.5.0, as is every `if c instance of number then …`; the set holds it beside
+    the same filter with the condition in parentheses, which recurses until the call limit stops
+    it. Identity against 0.5.0 with the module of item 163: 12,916 requests (7,826 before), 0
+    differences beyond the registered ones; 4.5 s uncached, 2.8 s cached; with the large sets
+    13,109 requests (the nine known depth probes differ, as before); with `--release` 12,980
+    requests, 37 registered differences, 0 others, 528 s, peak RSS 4.9 GB. Tooling only; no API
+    change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
