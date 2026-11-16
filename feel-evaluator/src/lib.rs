@@ -17,11 +17,15 @@ mod evaluator_java;
 mod evaluator_pmml;
 mod evaluators;
 mod filters;
+mod flat;
 mod invocation;
 mod iterations;
 mod kernels;
 mod macros;
 mod session;
+#[cfg(feature = "backends")]
+#[doc(hidden)]
+pub mod testing;
 mod tests;
 
 pub use crate::bfeel::Dialect;

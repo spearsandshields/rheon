@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use crate::builders::build_evaluator;
+use crate::Dialect;
 use rheon_feel::values::Value;
-use rheon_feel::{FeelNumber, FeelScope};
+use rheon_feel::{Evaluator, FeelNumber, FeelScope};
 use rheon_feel_parser::AstNode;
 use rheon_feel_temporal::{Day, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, Month, Year};
 
@@ -66,6 +66,12 @@ mod various;
 const SECONDS_IN_DAY: i64 = 86_400;
 const SECONDS_IN_HOUR: i64 = 3_600;
 const SECONDS_IN_MINUTE: i64 = 60;
+
+/// The evaluator of `node` as [crate::prepare] builds it (the flat evaluator where it lowers the
+/// expression, otherwise the evaluator of closures), without a session of its own.
+pub(crate) fn build_evaluator(node: &AstNode) -> Evaluator {
+  crate::evaluators::build(node, Dialect::Feel)
+}
 
 /// Evaluates `node` in its own session; a stopped evaluation fails the test with its abort.
 pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {

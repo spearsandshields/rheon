@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 /// Evaluates a [Value] from given [AstNode] in its own [Session].
 pub fn evaluate(scope: &FeelScope, node: &AstNode) -> Outcome<Value> {
-  Session::new().run(|| crate::builders::build_evaluator(node)(scope))
+  Session::new().run(|| build(node, Dialect::Feel)(scope))
 }
 
 /// Prepares an evaluator for given [AstNode].
@@ -19,13 +19,34 @@ pub fn evaluate(scope: &FeelScope, node: &AstNode) -> Outcome<Value> {
 /// outside one it is a session of its own. When the evaluation is stopped (see [Outcome]), its
 /// result is null with the reason of the abort, never a value computed after it.
 pub fn prepare(node: &AstNode) -> Evaluator {
-  diagnostics::one_evaluation(crate::builders::build_evaluator(node))
+  diagnostics::one_evaluation(build(node, Dialect::Feel))
 }
 
 /// Builds the evaluator of an expression in the given [Dialect](crate::Dialect) (FEEL or B-FEEL),
 /// run as one evaluation like the evaluators of [prepare].
-pub fn prepare_with_dialect(node: &AstNode, dialect: crate::Dialect) -> Evaluator {
-  diagnostics::one_evaluation(crate::builders::build_evaluator_with_dialect(node, dialect))
+pub fn prepare_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluator {
+  diagnostics::one_evaluation(build(node, dialect))
+}
+
+/// The evaluator of `node` in `dialect`: the flat evaluator's where it lowers the expression,
+/// otherwise the evaluator of closures, built for the whole expression.
+pub(crate) fn build(node: &AstNode, dialect: Dialect) -> Evaluator {
+  #[cfg(feature = "backends")]
+  match crate::testing::backend() {
+    crate::testing::Backend::Old => return crate::builders::build_evaluator_with_dialect(node, dialect),
+    crate::testing::Backend::Mutant => return crate::testing::mutant(crate::builders::build_evaluator_with_dialect(node, dialect)),
+    crate::testing::Backend::Flat | crate::testing::Backend::FlatOnly => {}
+  }
+  match crate::flat::lower(node, dialect) {
+    Ok(evaluator) => evaluator,
+    Err(_refusal) => {
+      #[cfg(feature = "backends")]
+      if let Some(marker) = crate::testing::refused(&_refusal) {
+        return marker;
+      }
+      crate::builders::build_evaluator_with_dialect(node, dialect)
+    }
+  }
 }
 
 /// Evaluates the sum of specified values.

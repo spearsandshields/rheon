@@ -22,5 +22,10 @@ rheon-feel-regex = { workspace = true }
 rheon-feel-temporal = { workspace = true }
 dsntk-macros = { workspace = true }
 
+[features]
+# Test builds only (enabled from the dev-dependencies of rheon-feel-wasm and rheon-model-evaluator):
+# the choice of the evaluator that `prepare` and `evaluate` build, `testing::with_backend`.
+backends = []
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true }

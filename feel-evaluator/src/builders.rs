@@ -21,12 +21,6 @@ fn guard_invocation(evaluator: Evaluator) -> Evaluator {
   Box::new(move |scope: &FeelScope| guarded(|| evaluator(scope)))
 }
 
-/// Builds an evaluator from provided AST node.
-pub fn build_evaluator(node: &AstNode) -> Evaluator {
-  let mut evaluator_builder = EvaluatorBuilder::default();
-  evaluator_builder.build(node)
-}
-
 /// Builds an evaluator for the expression in the given dialect (FEEL or B-FEEL, DMN 1.6 chapter 11).
 pub fn build_evaluator_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluator {
   let mut evaluator_builder = EvaluatorBuilder { dialect };

@@ -34,3 +34,7 @@ rheon-feel-temporal = { path = "../../feel-temporal", version = "=0.6.0" }
 serde = { workspace = true }
 # arbitrary_precision: JSON numbers keep their exact source text and never pass through f64.
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
+
+[dev-dependencies]
+# The choice of the evaluator in the backends harness (tests/backends.rs); a test build only.
+rheon-feel-evaluator = { path = "../../feel-evaluator", features = ["backends"] }

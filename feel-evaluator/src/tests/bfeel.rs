@@ -1,5 +1,6 @@
+use super::build_evaluator;
 use crate::Dialect;
-use crate::builders::{build_evaluator, build_evaluator_with_dialect};
+use crate::evaluators::build;
 use rheon_feel::{FeelScope, scope};
 
 // B-FEEL (DMN 1.6 chapter 11): the spec's own examples, compared with FEEL where they differ.
@@ -9,7 +10,7 @@ use rheon_feel::{FeelScope, scope};
 fn bf(expr: &str, expected: &str, feel: Option<&str>) {
   let scope: FeelScope = scope!();
   let node = rheon_feel_parser::parse_expression(&scope, expr, false).unwrap();
-  let actual = build_evaluator_with_dialect(&node, Dialect::BFeel)(&scope);
+  let actual = build(&node, Dialect::BFeel)(&scope);
   let expected_value = build_evaluator(&rheon_feel_parser::parse_expression(&scope, expected, false).unwrap())(&scope);
   assert_eq!(actual.to_string(), expected_value.to_string(), "B-FEEL {expr}");
   if let Some(feel) = feel {

@@ -1,5 +1,5 @@
 use crate::iterations::{Domain, Iteration, Sequence};
-use crate::tests::te_scope;
+use crate::tests::{build_evaluator, te_scope};
 use rheon_feel::values::{Value, values_to_string};
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name, value_number};
 use rheon_feel_temporal::FeelDate;
@@ -89,7 +89,7 @@ fn collected_in(scope: &str, states: &[State], body: &str) -> String {
   });
   let names = te_scope(&format!("{{{}}}", names.collect::<Vec<_>>().join(", ")));
   let node = rheon_feel_parser::parse_expression(&names, body, false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
+  let evaluator = build_evaluator(&node);
   let Value::List(values) = iteration(states).collect(scope, &evaluator) else {
     panic!("expected a list")
   };
