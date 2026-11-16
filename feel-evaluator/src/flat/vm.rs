@@ -183,10 +183,15 @@ struct Vm<'p> {
   records: Vec<Record>,
   /// The domains of the variables that have a value in the open walks, innermost last.
   domains: Vec<Sequence>,
-  /// For each region of the program the run starts with, the scope that invocations of
-  /// functions of the host in it get, once one was invoked there: its names are the region's, its
-  /// values are set for each invocation and set back to null after it, so it holds no value
-  /// between invocations.
+  /// For each layout of the program the run starts with, the scope that invocations of
+  /// functions of the host get for a region of it, once one was invoked there, and how many
+  /// entries of the layout that region sees: its names are those the region sees, its values are
+  /// set for each invocation and set back to null after it, so it holds no value between
+  /// invocations. One scope serves every region of a layout, so what a run keeps grows with the
+  /// binders of its program, not with the regions that invoked a function.
+  layout_scopes: Vec<Option<(Arc<FeelContext>, u32)>>,
+  /// For each region of the program the run starts with that is the item of a filter, the scope
+  /// that holds `item` for invocations of functions of the host, kept the same way.
   scopes: Vec<Option<Arc<FeelContext>>>,
   /// The scopes of the invocation being made, innermost first: the activation (its depth) and
   /// the region.
@@ -278,6 +283,7 @@ impl<'p> Vm<'p> {
       calls: vec![],
       records: vec![],
       domains: vec![],
+      layout_scopes: vec![],
       scopes: vec![],
       chain: vec![],
     }
@@ -1166,6 +1172,10 @@ impl<'p> Vm<'p> {
     if scopes.is_empty() {
       scopes.resize(bottom.regions.len(), None);
     }
+    let mut layout_scopes = std::mem::take(&mut self.layout_scopes);
+    if layout_scopes.is_empty() {
+      layout_scopes.resize(bottom.layouts.len(), None);
+    }
     let mut chain = std::mem::take(&mut self.chain);
     chain.clear();
     let mut at = region;
@@ -1191,14 +1201,19 @@ impl<'p> Vm<'p> {
           if entries.peek().is_none() {
             continue;
           }
-          let mut scope = if kept { scopes[at as usize].take().unwrap_or_default() } else { Arc::default() };
+          // the scope the layout has from an invocation before, unless that one saw entries
+          // that this region does not see
+          let mut scope = match layout_scopes[layout as usize].take() {
+            Some((scope, seen)) if kept && seen <= visible => scope,
+            _ => Arc::default(),
+          };
           let context = Arc::make_mut(&mut scope);
           for &(name, place) in entries {
             context.assign_entry(&program.names[name as usize], self.place(activation, place));
           }
           self.host.push_shared(Arc::clone(&scope));
           if kept {
-            scopes[at as usize] = Some(scope);
+            layout_scopes[layout as usize] = Some((scope, visible));
           }
         }
         // while the filter visits its items: the item's entries, then the item
@@ -1231,6 +1246,7 @@ impl<'p> Vm<'p> {
     }
     self.chain = chain;
     self.scopes = scopes;
+    self.layout_scopes = layout_scopes;
     depth
   }
 
@@ -1246,19 +1262,21 @@ impl<'p> Vm<'p> {
       if !Arc::ptr_eq(&self.activation(act).program, &bottom) {
         continue;
       }
-      if let Some(scope) = &mut self.scopes[at as usize] {
-        let context = Arc::make_mut(scope);
-        match bottom.regions[at as usize].kind {
-          RegionKind::Layout { layout, visible } => {
+      match bottom.regions[at as usize].kind {
+        RegionKind::Layout { layout, visible } => {
+          if let Some((scope, _)) = &mut self.layout_scopes[layout as usize] {
+            let context = Arc::make_mut(scope);
             for &(name, _) in bottom.layouts[layout as usize].visible(visible) {
               context.assign_entry(&bottom.names[name as usize], Value::Null(None));
             }
           }
-          RegionKind::Item { .. } => {
-            context.assign_entry(&ITEM, Value::Null(None));
-          }
-          RegionKind::Closure => {}
         }
+        RegionKind::Item { .. } => {
+          if let Some(scope) = &mut self.scopes[at as usize] {
+            Arc::make_mut(scope).assign_entry(&ITEM, Value::Null(None));
+          }
+        }
+        RegionKind::Closure => {}
       }
     }
   }

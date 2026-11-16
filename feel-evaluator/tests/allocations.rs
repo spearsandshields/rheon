@@ -356,3 +356,38 @@ fn invocations_of_built_in_functions_allocate_no_arguments() {
     "{allocations} allocations and {bytes} bytes more over 10,000 than over one"
   );
 }
+
+/// Functions of the host invoked from the entries of a context literal get the entries before
+/// them in one scope that the literal keeps and extends: what the invocations allocate grows
+/// with the entries, not with their square.
+#[test]
+fn functions_of_the_host_invoked_from_context_entries_share_one_scope() {
+  use rheon_feel::closure::Closure;
+  use rheon_feel::context::FeelContext;
+  use rheon_feel::{Evaluator, FeelType, FunctionBody, FunctionDefinition, Name};
+  use std::sync::Arc;
+  // a function whose body is the host's: it reads its parameter from the scope it is given
+  let body: Evaluator = Box::new(|scope: &FeelScope| scope.get_value(&Name::from("x")).unwrap_or(Value::Null(None)));
+  let function = FunctionDefinition::new(
+    vec![(Name::from("x"), FeelType::Any)],
+    FunctionBody::Context(Arc::new(body)),
+    false,
+    Closure::default(),
+    FeelContext::default(),
+    FeelType::Any,
+  );
+  let mut input = FeelContext::default();
+  input.set_entry(&Name::from("f"), Value::FunctionDefinition(Arc::new(function)));
+  let scope = FeelScope::from(input);
+  let measure = |n: usize| {
+    let entries: Vec<String> = (1..=n).map(|i| format!("a{i}: f({i})")).collect();
+    let evaluator = prepare(&parse_expression(&scope, &format!("{{{}}}.a{n}", entries.join(", ")), false).expect("the expression parses"));
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    assert_eq!(Value::Number(n.into()), value);
+    bytes as i64
+  };
+  let (small, large) = (measure(200), measure(400));
+  // twice the entries allocate about twice the bytes; a scope for each entry would allocate
+  // about four times as many
+  assert!(large <= 3 * small, "{large} bytes for 400 entries, {small} bytes for 200");
+}
