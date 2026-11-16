@@ -3137,6 +3137,19 @@ their items with both answers. The totals are under "Verification" below.
     the basis is that of item 152, the owner's limit of 500 levels. Identity against 0.5.0: the
     committed sources are 12,932 requests, 63 registered differences reproduced, 0 others.
     Tooling only; no API change.
+176. **The large-set run leaves out two chains by name.** The two other depth probes of the large
+    sets, a context literal of 100,000 entries that each hold the entry before (2 MB) and one of
+    50,000 closures that each return the closure before (1.3 MB), stop with the value-depth error
+    where 0.5.0 exhausts its memory and traps; they are too large to commit with a ledger entry,
+    so the large-set run listed them as unregistered differences. `run.sh --large` now leaves
+    them out by name: `tools/identity/large-left-out.json` names each with the sha256 of its
+    canonical text and the reason, `equal.mjs --leave-out` drops the named requests from every
+    source and counts them, and a name that no source holds is an input error, so the list
+    cannot go stale unseen. Their 501-level forms are registered (item 175). Test: `npm run
+    test:identity` (a named request is left out and counted, a stale or malformed name is an
+    input error, and `run.sh` passes the list only with `--large`). The large-set run against
+    0.5.0: 13,109 requests, 2 left out by name, 63 registered differences reproduced, 0 others,
+    34 s uncached (peak RSS 2.5 GB). Tooling only; no API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

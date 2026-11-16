@@ -15,7 +15,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFile
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseJson } from './json.mjs';
+import { canonical, parseJson } from './json.mjs';
 import { checkRule, explainedBy, explains } from './rules.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -276,6 +276,21 @@ test('--exclude leaves the requests of a source out of every other source and co
   assertInputError(equal(reference, reference, source, '--exclude', path.join(dir, 'missing.json')), 'missing.json: not found');
 });
 
+test('--leave-out leaves the named requests out of every source and counts them; a name that no source holds is an input error', () => {
+  const source = file(plain);
+  const digest = (request) => createHash('sha256').update(canonical(request)).digest('hex');
+  const list = file([{ name: 'one plus one', sha256: digest(plain[0]), why: 'test' }]);
+  const run = equal(reference, reference, source, '--parse-too', '--leave-out', list);
+  assert.equal(run.status, 0, run.out + run.err);
+  // the request itself; its parse twin is still sent
+  assert.match(summary(run), /^10 requests \(10 from sources, 2 left out for now\(\)\/today\(\), 1 left out by name, 0 registered, /);
+  const stale = file([{ name: 'one plus two', sha256: digest({ op: 'evaluate', expression: '1 + 2' }), why: 'test' }]);
+  assertInputError(equal(reference, reference, source, '--leave-out', stale), 'no source holds the request named "one plus two"');
+  for (const malformed of [{ name: 'x', why: 'test' }, { name: ' ', sha256: digest(plain[0]), why: 'test' }, { name: 'x', sha256: 'ab', why: 'test' }]) {
+    assertInputError(equal(reference, reference, source, '--leave-out', file([malformed])), 'a request left out is {"name", "sha256", "why"}');
+  }
+});
+
 test('run.sh reads the release sources and ledger only with --release, and the large sets only with --large', () => {
   // run.sh in a tree of its own, with an equal.mjs that prints the arguments it is given
   const tree = path.join(dir, `tree${++fileCount}`);
@@ -306,6 +321,9 @@ test('run.sh reads the release sources and ledger only with --release, and the l
   assert.equal(large.status, 0, large.err);
   assert.ok(large.args.includes('/sets/a.json') && large.args.includes('/sets/b'), large.args.join(' '));
   assert.deepEqual(after(large.args, '--exclude'), ['tools/identity/release/requests']);
+  assert.deepEqual(after(large.args, '--leave-out'), ['tools/identity/large-left-out.json']);
+  assert.deepEqual(after(plainRun.args, '--leave-out'), []);
+  assert.deepEqual(after(release.args, '--leave-out'), []);
 });
 
 // ------------------------------------------------------------------ rule entries

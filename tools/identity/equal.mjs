@@ -2,7 +2,7 @@
 // Full-response identity of two feel.wasm modules, with a ledger of registered differences.
 //
 //   node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--exclude <file|dir>]…
-//                  [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>]
+//                  [--leave-out <file>]… [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>]
 //                  [--cache <dir> [--verify-cache]]
 //
 // A source is a JSON file holding one request or an array of requests, or a directory whose *.json
@@ -11,7 +11,10 @@
 // today() are left out: their answers depend on the clock. With --parse-too, every evaluate
 // request is also sent as a parse request, the same request with `op` set to "parse". --exclude
 // names a source whose requests (with their parse twins) are left out of every source and
-// counted in the summary; a ledger entry is still run.
+// counted in the summary; a ledger entry is still run. --leave-out names a JSON array of
+// requests, each by a name, the sha256 of its canonical text and the reason, that are left out of
+// every source (their parse twins are still sent) and counted; a named request that no source
+// holds is an input error.
 //
 // JSON is read losslessly: a number keeps its source text, so a number beyond the range or the
 // precision of a double is sent, keyed and compared as written, in requests, responses and the
@@ -50,16 +53,17 @@ import { checkRule, explainedBy } from './rules.mjs';
 class InputError extends Error {}
 
 function usage(message) {
-  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--exclude <file|dir>]… [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>] [--cache <dir> [--verify-cache]]`);
+  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--exclude <file|dir>]… [--leave-out <file>]… [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>] [--cache <dir> [--verify-cache]]`);
 }
 
 function parseArgs(argv) {
-  const options = { positional: [], ledgers: [], excludes: [], parseToo: false, record: null, why: null, explained: null, cache: null, verifyCache: false };
+  const options = { positional: [], ledgers: [], excludes: [], leaveOut: [], parseToo: false, record: null, why: null, explained: null, cache: null, verifyCache: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => (i + 1 < argv.length ? argv[++i] : usage(`${arg} needs a value`));
     if (arg === '--ledger') options.ledgers.push(value());
     else if (arg === '--exclude') options.excludes.push(value());
+    else if (arg === '--leave-out') options.leaveOut.push(value());
     else if (arg === '--parse-too') options.parseToo = true;
     else if (arg === '--record') options.record = value();
     else if (arg === '--why') options.why = value();
@@ -180,6 +184,24 @@ async function loadSources(paths) {
     }
   }
   return units;
+}
+
+/** The requests that --leave-out names: each `{name, sha256, why}`, with the file it is in. */
+async function loadLeftOut(paths) {
+  const named = [];
+  for (const file of paths) {
+    const { content } = await readJson(file);
+    if (!Array.isArray(content)) throw new InputError(`${file}: a list of requests left out is a JSON array`);
+    content.forEach((entry, i) => {
+      const where = `${path.basename(file)}#${i}`;
+      const valid = isObject(entry) && canonical(Object.keys(entry).sort()) === '["name","sha256","why"]';
+      if (!valid || [entry.name, entry.why].some((s) => typeof s !== 'string' || s.trim() === '') || !/^[0-9a-f]{64}$/.test(entry.sha256)) {
+        throw new InputError(`${where}: a request left out is {"name", "sha256", "why"}, a name, the sha256 of its canonical text and the reason`);
+      }
+      named.push({ ...entry, where });
+    });
+  }
+  return named;
 }
 
 const ENTRY_FIELDS = new Set(['expression', 'request', 'why', 'old', 'new']);
@@ -509,16 +531,27 @@ async function main() {
   // The requests of an excluded source, with their parse twins, are left out of every source; a
   // ledger entry is run whatever its request.
   const excludedKeys = new Set((await loadSources(options.excludes)).flatMap((unit) => [...unit.requests, ...twinsOf(unit)]).map(({ request }) => canonical(request)));
+  // The requests that --leave-out names, by the sha256 of their canonical text.
+  const named = new Map((await loadLeftOut(options.leaveOut)).map((entry) => [entry.sha256, entry]));
+  const found = new Set();
   let leftOut = 0;
+  let leftOutByName = 0;
   const kept = (items) =>
     items.filter((item) => {
       item.key = canonical(item.request);
+      const digest = named.size ? sha256(item.key) : null;
+      if (named.has(digest)) {
+        found.add(digest);
+        leftOutByName++;
+        return false;
+      }
       if (!excludedKeys.has(item.key)) return true;
       leftOut++;
       return false;
     });
   const twins = sourceUnits.map((unit) => kept(twinsOf(unit)));
   for (const unit of sourceUnits) unit.requests = kept(unit.requests);
+  for (const [digest, { where, name }] of named) if (!found.has(digest)) throw new InputError(`${where}: no source holds the request named "${name}"`);
   const sourced = [...sourceUnits.flatMap((unit) => unit.requests), ...twins.flat()];
   for (const item of ledgerUnits.flatMap((unit) => unit.requests)) item.key = canonical(item.request);
 
@@ -595,7 +628,7 @@ async function main() {
   }
   const count = (kind) => failures.filter((f) => f.startsWith(kind)).length;
   console.log(
-    `${work.size} requests (${fromSources} from sources, ${excluded} left out for now()/today(), ${options.excludes.length ? `${leftOut} left out by --exclude, ` : ''}${ledger.size} registered, ${trapped} trapping the reference): ` +
+    `${work.size} requests (${fromSources} from sources, ${excluded} left out for now()/today(), ${options.excludes.length ? `${leftOut} left out by --exclude, ` : ''}${options.leaveOut.length ? `${leftOutByName} left out by name, ` : ''}${ledger.size} registered, ${trapped} trapping the reference): ` +
       `${reproduced} registered differences reproduced, ${count('DIFF')} unregistered differences, ` +
       `${count('NOT REPRODUCED')} registered entries not reproduced, ${count('MALFORMED')} malformed responses, ` +
       `${[...byRule.values()].reduce((n, m) => n + m, 0)} differences explained by ${rules.length} rules${rules.length ? ` (${[...byRule].map(([name, n]) => `${name}: ${n}`).join(', ')})` : ''}; ` +
