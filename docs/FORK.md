@@ -2731,7 +2731,7 @@ their items with both answers. The totals are under "Verification" below.
     longer composite name, and neither do the contexts below it, whose prefixes are shorter then
     too; the longest prefix of each shared context is kept by its address for the one index, and
     the memory is created when the first shared context is met. A context held on one path is
-    read as often as the context that holds it, as before. The composite-name search already
+    read as often as the value that holds it, as before. The composite-name search already
     visited each state (node, offset) once, and a shared context has one address on all its
     paths, so it needs no change; the comments that said nodes are never shared now say why a
     shared node is exact. Tests first: in `feel-parser/src/tests/names_index.rs`, the parse of
@@ -2748,6 +2748,78 @@ their items with both answers. The totals are under "Verification" below.
     rheon-feel, read by this index, by the type relations (item 157) and by FEEL equality (item
     155), which each wrote it out before. Rust API: `Value::is_shared` and `Value::node_address`
     are added.
+163. **The parser reads the names of a list's items from its items.** The names nested in a list
+    of an input context are those of the list's item type when that is a context type, and the
+    parser built the type of the list (`Value::type_of`) to find them, which typed every item and
+    followed every path of a shared value: with `l` a list of two contexts doubled 30 times, the
+    parse of `l.a.leaf + 1` exhausted the memory (the test process was killed). The item type of
+    a list is the type of its first item when the types of the other items conform to it, so the
+    names are now read from the first item: a context (its keys and the names nested in its
+    values, by the rule of every other context of an input context), or a context type held as a
+    value, a context type entry, a formal parameter or an interval end of one; the conformance of
+    the items is decided by the type relations of item 157 without building a type
+    (`FeelList::items_conform_to_first`, the decision `instance of` makes for a list), a pair with
+    a shared list or context once. The index keeps the node of each list for the composite-name
+    search, as it kept the list's item type. A context item may be held by its list alone, and
+    such a list may be held on several paths (in `{a: l, b: l}` the item of `l` is held once,
+    by `l`), so the index remembers the longest prefix of a shared list as it does for a shared
+    context (item 162), and admits the item by the list: without that, a list of one context
+    around two copies of the list before it, doubled 30 times, was indexed once per path (the
+    test of it was still running when it was stopped after 60 s); it now reads at most
+    depth + 2 contexts at 30 and 60 levels. The conversion of an input context into a parsing context
+    reads a list the same way. One case differs from the built type and follows the rule of the
+    other contexts instead: an entry of a list's first item that holds an internal value of a
+    type (a context type, a context type entry, a formal parameter or an interval end, which no
+    request and no DMN input can produce) carries no names, as the same entry outside a list
+    never did. Tests first: in `feel-parser/src/tests/names_index.rs`, the parse of
+    `l.a.leaf + 1` with `l` a list of two contexts doubled 30 and 60 times reads at most
+    depth + 2 contexts, while on the parent the test process was killed after it exhausted the
+    memory; and the names of lists of contexts, of type values and of contexts that nest
+    contexts, types and lists equal the item types that `Value::type_of` builds. The frozen
+    oracle tests of the parser, which type the lists as before, and the parse twins of every
+    committed request answer as before. The type of a list itself (`Value::type_of`, and the
+    type a message quotes) is decided the same way: whether the items after the first conform to
+    it is decided by `FeelList::items_conform_to_first`, and only the first item's type is built.
+    It built the first item's type and then built or checked the type of every other item, so the
+    type of a list that holds the same list on many paths followed every path (2^40 type builds
+    for a list doubled 40 times): the test of it, `feel/src/tests/message.rs`, was stopped after
+    60 s on the parent, and now the type of a list doubled 60 times is written at once. A message
+    quotes `list<Any>` where a later item's type, larger than the 1,000 type nodes a message may
+    build, made it quote `list<…>`, as for `1 + [[1], [{e0: 0, …, e999: 0}]]`
+    (`tools/identity/registered/list-type.json`). Answers change: the message of that addition
+    quotes `list<Any>`, and the addition `1 + l` with `l` a list doubled 40 times, which exhausted
+    the memory of 0.5.0, is null with the type of the list in its error
+    (`tools/identity/release/registered/shared-lists.json`).
+    Rust API (`rheon-feel`): the added `FeelList::items_conform_to_first`.
+    Measured on the module of items 158 to 163 together (wasm, Node 26, Apple M2, two
+    alternating rounds): against the module of item 157, geomean 1.080x and 1.070x over the 39
+    workloads of the speed suite and 1.057x and 1.065x over the 86 parse workloads, none below
+    0.97x in either round; `sum(items[amount > 100].amount)` 1.301x and 1.301x,
+    `count(items[status = "open"])` 1.323x and 1.336x, `count(for x in items return x.amount)`
+    1.225x, `{b: context put(data, "p", 2), r: [count(get entries(data)), b.p]}.r` 1.371x,
+    `count(for i in 1..count(items) return items[i].amount)` over 1,000 contexts 4.315x and
+    4.260x; of the parse set the path `a.a.a…` of 100 names 5.271x, of 100 distinct names
+    5.020x, of 25 names 1.778x, a context literal nested 149 levels 2.768x. Against 0.5.0:
+    geomean 1.082x and 1.084x over the suite and 1.056x and 1.055x over the parse set; path of
+    100 names 5.256x and 5.222x, of 100 distinct names 4.972x and 4.969x, the context literal
+    nested 149 levels 2.752x and 2.740x, the two filters 1.282x to 1.299x, the input of 10,000
+    contexts parsed for `1 + 2` 0.974x and 0.971x, the inputs of 1,000 and 5,000 entries at least
+    0.970x (`fctx-temporal-200` 0.976x and 0.970x, `fctx-5000` 0.982x and 0.974x), `fib15` 0.982x
+    and 0.971x; below 0.97x in both rounds only a list literal nested 297 levels (0.925x and
+    0.924x) and a flat context literal of 5,000 entries (0.968x and 0.968x), as after item 157.
+    Allocations per call (native): one more per context value built and per function definition
+    (`count(items)` over 10,000 contexts 160,105 to 170,105, `fib15` 6,190 to 6,192,
+    `ctx200-0f` 16,929 to 16,930), fewer where a context was copied (the two filters 260,134 to
+    170,134 and 260,144 to 170,144, `count(for x in items return x.amount)` 260,154 to 170,143,
+    `count(for i in 1..count(items) return items[i].amount)` 10,025,160 to 21,160, the path of
+    100 names 10,789 to 988, the context literal nested 149 levels 30,037 to 8,134);
+    reallocations equal for every workload. The native peak of `count(items[status = "open"])`
+    is 12,798,943 B (22,459,853 B on 0.5.0, 22,459,925 B after item 157). The string doubling's
+    peak memory (n = 17 to 26, 267.38 MiB at 26) and the stack report are those of 0.5.0. The
+    walkers of a value built natively reach at least 1,265 levels on every host, as on 0.5.0
+    (dropping a context at least 3,156, 8,562 before; equality of lists at least 2,062, 2,140
+    before); `context put` refuses a key list beyond 500 levels by design. `run.sh --release`:
+    7,890 requests, 37 registered differences, 0 others, 482 s, peak RSS 3.9 GB.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

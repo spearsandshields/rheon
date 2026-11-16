@@ -4,6 +4,7 @@
 use crate::closure::Closure;
 use crate::context::FeelContext;
 use crate::message::{arg, compose};
+use crate::tests::type_relations::{doubled, nested_list_type};
 use crate::values::{TypeOf, Value};
 use crate::{FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, IntervalType, Name, value_null, value_number};
 use std::sync::Arc;
@@ -157,10 +158,30 @@ fn the_type_of_a_value_is_quoted_from_the_value() {
   assert_eq!(format!("{}…", full.chars().take(120).collect::<String>()), list_of_contexts);
 }
 
+/// The type of a list that holds the same list on 2^59 paths is written at once, in a message
+/// and by [Value::type_of]: the type of the first item is built, and the other items are related
+/// to it without building theirs.
+#[test]
+fn the_type_of_a_shared_list_is_written_at_once() {
+  let list = doubled(60);
+  let expected = nested_list_type(60, FeelType::Number);
+  assert_eq!(expected, list.type_of());
+  assert_eq!(arg(&expected).to_string(), arg(&TypeOf(&list)).to_string());
+  // the items of a list after the first are not typed, so a large type among them is no cut
+  let huge = Value::from(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
+  let list = Value::List(vec![value_number!(1), huge].into());
+  assert_eq!("list<Any>", arg(&TypeOf(&list)).to_string());
+  assert_eq!("list<Any>", list.type_of().to_string());
+}
+
 #[test]
 fn the_type_of_a_list_whose_first_item_has_a_huge_type_is_not_built() {
   let huge = Value::from(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
-  let list = Value::List(vec![huge, value_number!(1)].into());
+  let list = Value::List(vec![huge.clone(), huge.clone()].into());
   assert_eq!("list<…>", arg(&TypeOf(&list)).to_string());
+  assert!(list.type_of().to_string().starts_with("list<context<entry0: number, "));
+  // the items are not alike, so the first item's type is not needed
+  let list = Value::List(vec![huge, value_number!(1)].into());
+  assert_eq!("list<Any>", arg(&TypeOf(&list)).to_string());
   assert_eq!("list<Any>", list.type_of().to_string());
 }

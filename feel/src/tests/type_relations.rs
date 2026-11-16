@@ -130,7 +130,7 @@ fn the_relations_decided_on_values_are_those_of_the_built_types() {
 
 /// The list `[x, x]` built from the one before it `n - 1` times, starting with `[1]`; its type is
 /// a list nested `n` levels deep around `number`.
-fn doubled(n: u32) -> Value {
+pub(super) fn doubled(n: u32) -> Value {
   let mut list = Value::List(FeelList::from(vec![value_number!(1)]));
   for _ in 1..n {
     list = Value::List(FeelList::from(vec![list.clone(), list]));
@@ -138,7 +138,7 @@ fn doubled(n: u32) -> Value {
   list
 }
 
-fn nested_list_type(levels: u32, item: FeelType) -> FeelType {
+pub(super) fn nested_list_type(levels: u32, item: FeelType) -> FeelType {
   (0..levels).fold(item, |item, _| FeelType::List(Box::new(item)))
 }
 

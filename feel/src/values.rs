@@ -653,39 +653,6 @@ impl Value {
     })
   }
 
-  /// Returns `self.type_of().is_conformant(target_type)` without building the type of a context,
-  /// or `None` when a type it builds would hold more type nodes than `budget` has left.
-  ///
-  /// The type of a context is the context type of its entries' types: it conforms to `Any`, and
-  /// to a context type when every entry of the target type has an entry here whose type conforms
-  /// to the target entry's type (extra entries are allowed); to nothing else
-  /// ([FeelType::is_conformant]). The type of `null` conforms to every type.
-  fn type_is_conformant_within(&self, target_type: &FeelType, budget: &mut impl Budget) -> Option<bool> {
-    match self {
-      Value::Null(_) => Some(true),
-      Value::Context(ctx) => match target_type {
-        FeelType::Any => Some(true),
-        FeelType::Context(target_entries) => {
-          for (name, entry_type) in target_entries {
-            match ctx.get_entry(name) {
-              Some(value) if value.type_is_conformant_within(entry_type, budget)? => {}
-              _ => return Some(false),
-            }
-          }
-          Some(true)
-        }
-        _ => Some(false),
-      },
-      other => {
-        // the type is dropped after the check, so its nodes are given back
-        let mark = budget.mark();
-        let conformant = other.type_of_within(budget)?.is_conformant(target_type);
-        budget.restore(mark);
-        Some(conformant)
-      }
-    }
-  }
-
   /// Checks if a value is conformant with specified target type.
   pub fn is_conformant(&self, target_type: &FeelType) -> bool {
     if matches!(target_type, FeelType::Any) {
@@ -947,22 +914,18 @@ pub fn warn_truncated_fraction(source: &(impl MessageArg + ?Sized), dropped: Opt
 pub type Values = Vec<Value>;
 
 /// The type of the items of a list, `Null` for an empty one: the type of the first item when
-/// every other item conforms to it, `Any` otherwise. The first item's type is built once
-/// (building it twice made the cost exponential in the nesting depth of lists); the other items
-/// are only checked against it, without building their context types.
-fn list_item_type(values: &[Value], budget: &mut impl Budget) -> Option<FeelType> {
-  let Some((first, rest)) = values.split_first() else {
-    budget.take(1)?;
-    return Some(FeelType::Null);
-  };
-  let item_type = first.type_of_within(budget)?;
-  for item in rest {
-    if !item.type_is_conformant_within(&item_type, budget)? {
+/// every other item's type conforms to it, `Any` otherwise. Whether they conform is decided
+/// without building a type ([FeelList::items_conform_to_first]), a pair with a shared list or
+/// context once, so only the first item's type is built: building or checking each item's type
+/// followed every path of a list that holds the same list on several paths.
+fn list_item_type(items: &FeelList, budget: &mut impl Budget) -> Option<FeelType> {
+  match items.first() {
+    Some(first) if items.items_conform_to_first() => first.type_of_within(budget),
+    first => {
       budget.take(1)?;
-      return Some(FeelType::Any);
+      Some(if first.is_some() { FeelType::Any } else { FeelType::Null })
     }
   }
-  Some(item_type)
 }
 
 /// The number of type nodes a type may still build: [Unlimited] for [Value::type_of], [Nodes]
@@ -973,12 +936,6 @@ trait Budget {
 
   /// A copy of `feel_type` when its nodes are left.
   fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType>;
-
-  /// The nodes left, for [restore](Self::restore).
-  fn mark(&self) -> usize;
-
-  /// Gives back the nodes taken since `mark`, of a type that was dropped.
-  fn restore(&mut self, mark: usize);
 }
 
 /// No limit: every check is a constant, so [Value::type_of] pays nothing for the budget.
@@ -992,12 +949,6 @@ impl Budget for Unlimited {
   fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType> {
     Some(feel_type.clone())
   }
-
-  fn mark(&self) -> usize {
-    0
-  }
-
-  fn restore(&mut self, _: usize) {}
 }
 
 /// At most this many type nodes.
@@ -1012,14 +963,6 @@ impl Budget for Nodes {
   fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType> {
     self.take(type_nodes(feel_type))?;
     Some(feel_type.clone())
-  }
-
-  fn mark(&self) -> usize {
-    self.0
-  }
-
-  fn restore(&mut self, mark: usize) {
-    self.0 = mark;
   }
 }
 
@@ -1040,8 +983,9 @@ const TYPE_NODE_BUDGET: usize = 1_000;
 /// value itself, so a message never builds the whole type of a value.
 ///
 /// The type of a context is written entry by entry, so entries past a preview are never visited.
-/// The type of a list builds the type of its first item, of at most 1,000 type nodes, and checks
-/// the other items against it: `list<…>` when it would hold more. Declared types (of functions,
+/// The type of a list is `list<Any>` when the types of its other items do not conform to the type
+/// of its first item (decided without building a type), and otherwise builds the type of its
+/// first item, of at most 1,000 type nodes: `list<…>` when it would hold more. Declared types (of functions,
 /// formal parameters and type values) are written as they are, without a copy.
 pub struct TypeOf<'a>(pub &'a Value);
 

@@ -1,7 +1,7 @@
 //! Implementation of the parsing context.
 
 use crate::composite::{NameTree, nested_prefix};
-use crate::index::{Nested, context_type_entries, list_item_context_type, nested_names};
+use crate::index::{Nested, Node, context_type_entries, list_item_node, nested_names};
 use crate::scope::first_word_bound;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
@@ -55,11 +55,17 @@ impl ParsingEntry {
   /// Converts a value of an input context into parsing entry: a context of the names nested in
   /// the value ([nested_names]), else a variable.
   fn from_value(value: &Value) -> Self {
-    match nested_names(value) {
-      Some(Nested::Context(ctx)) => ParsingEntry::Context(ctx.into()),
-      Some(Nested::Type(entries)) => ParsingEntry::Context(ParsingContext::from_type_entries(entries)),
-      Some(Nested::List(list)) => list_item_context_type(list).map_or(ParsingEntry::Variable, |item_type| ParsingEntry::from(&item_type)),
-      None => ParsingEntry::Variable,
+    let node = match nested_names(value) {
+      Some(Nested::Node(node)) => node,
+      Some(Nested::List(list)) => match list_item_node(list) {
+        Some((node, _)) => node,
+        None => return ParsingEntry::Variable,
+      },
+      None => return ParsingEntry::Variable,
+    };
+    match node {
+      Node::Context(ctx) => ParsingEntry::Context(ctx.into()),
+      Node::Type(entries) => ParsingEntry::Context(ParsingContext::from_type_entries(entries)),
     }
   }
 }

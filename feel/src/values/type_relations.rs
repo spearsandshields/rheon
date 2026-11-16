@@ -58,6 +58,16 @@ impl Value {
   }
 }
 
+impl FeelList {
+  /// Whether the type of each item after the first conforms to the type of the first item, so
+  /// that the type of this list ([Value::type_of]) is a list of the type of its first item;
+  /// `false` for the empty list. Decided without building a type, reading the items only as far
+  /// as their conformance needs, a pair with a shared list or context once.
+  pub fn items_conform_to_first(&self) -> bool {
+    !self.is_empty() && Relations::default().uniform(self)
+  }
+}
+
 /// A type: that of a value ([Value::type_of]), or a type given as such.
 #[derive(Clone, Copy)]
 enum Ty<'a> {
@@ -236,31 +246,42 @@ impl<'a> Relations {
   fn items(&mut self, items: Items<'a>) -> Ty<'a> {
     match items {
       Items::Is(feel_type) => Ty::Is(feel_type),
-      Items::Of(list) => match list.split_first() {
+      Items::Of(list) => match list.first() {
         None => Ty::Is(NULL),
-        Some((first, [])) => Ty::Of(first),
-        Some((first, rest)) => {
-          let alike = |relations: &mut Self| rest.iter().all(|item| relations.conforms(Ty::Of(item), Ty::Of(first)));
-          // a list of scalars, or of containers of scalars, is cheap to decide again when it is
-          // reached again; a deeper one is decided once, so that deciding it never repeats the
-          // decisions below it
-          let uniform = if list.nesting_depth() <= 2 {
-            alike(self)
+        Some(first) => {
+          if self.uniform(list) {
+            Ty::Of(first)
           } else {
-            let address = list.address().expect("a list with items has an address");
-            match self.uniform.as_ref().and_then(|uniform| uniform.get(&address)) {
-              Some(uniform) => *uniform,
-              None => {
-                let uniform = alike(self);
-                self.uniform.get_or_insert_with(HashMap::new).insert(address, uniform);
-                uniform
-              }
-            }
-          };
-          if uniform { Ty::Of(first) } else { Ty::Is(ANY) }
+            Ty::Is(ANY)
+          }
         }
       },
     }
+  }
+
+  /// Whether the types of the items of a list after the first conform to the type of the first
+  /// (`true` for a list of at most one item).
+  fn uniform(&mut self, list: &'a FeelList) -> bool {
+    let Some((first, rest)) = list.split_first() else {
+      return true;
+    };
+    if rest.is_empty() {
+      return true;
+    }
+    let alike = |relations: &mut Self| rest.iter().all(|item| relations.conforms(Ty::Of(item), Ty::Of(first)));
+    // a list of scalars, or of containers of scalars, is cheap to decide again when it is
+    // reached again; a deeper one is decided once, so that deciding it never repeats the
+    // decisions below it
+    if list.nesting_depth() <= 2 {
+      return alike(self);
+    }
+    let address = list.address().expect("a list with items has an address");
+    if let Some(uniform) = self.uniform.as_ref().and_then(|uniform| uniform.get(&address)) {
+      return *uniform;
+    }
+    let uniform = alike(self);
+    self.uniform.get_or_insert_with(HashMap::new).insert(address, uniform);
+    uniform
   }
 
   /// The type of the endpoints of a range type: for a range value, that of its start when its
