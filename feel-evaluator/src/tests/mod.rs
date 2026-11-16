@@ -398,7 +398,8 @@ pub fn te_date_time_local_after(trace: bool, scope: &FeelScope, expression: &str
   let (year, month, day) = date_time.date().as_tuple();
   let (hour, min, sec, nano, _) = date_time.time().as_tuple();
   let range_start = FeelDateTime::local(year, month, day, hour, min, sec, nano).unwrap();
-  let range_end = FeelDateTime::local(year, month, day, hour, min, sec + seconds, nano).unwrap();
+  // the end by adding a duration: the seconds of a time end at 59
+  let range_end = (range_start.clone() + rheon_feel_temporal::FeelDaysAndTimeDuration::from_s(seconds.into())).unwrap();
   match rheon_feel_parser::parse_textual_expression(scope, expression, trace) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
