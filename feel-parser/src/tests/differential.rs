@@ -349,9 +349,155 @@ struct Stats {
   asts: usize,
   errors: usize,
   registered: BTreeMap<&'static str, usize>,
+  /// The recorded outcomes of the group of cases, when the run is one ([Stats::golden]).
+  golden: Option<Golden>,
+}
+
+/// The recorded outcomes of a group of generated cases (the golden data of the front end): for
+/// every case of the group, in the order in which the test makes them, a digest of what the
+/// parser did with it (the start rule, the input, the tokens it read and the tree or the
+/// error). The digests are kept in `src/tests/golden/<group>.txt`, one per line, for the
+/// default size of the tests; for the full size (`RHEON_FULL_TESTS`) one digest of all cases is
+/// kept in `<group>.full.txt`.
+///
+/// A case whose outcome is not the recorded one fails the test, which names the first of them
+/// with their new outcome. After a change that is meant, `RHEON_GOLDEN=update` writes the files
+/// again. `RHEON_GOLDEN_DUMP=<directory>` writes every case with its whole outcome to
+/// `<directory>/<group>.txt`, to compare two commits case by case.
+#[derive(Default)]
+struct Golden {
+  group: &'static str,
+  /// The recorded digests (none when the files are written again or at full size).
+  expected: Vec<u64>,
+  recorded: Vec<u64>,
+  /// The number of cases with another outcome than the recorded one, and the first of them.
+  changed: usize,
+  first_changed: Vec<String>,
+  dump: Option<String>,
+}
+
+impl std::fmt::Debug for Golden {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{} recorded, {} changed", self.recorded.len(), self.changed)
+  }
+}
+
+/// FNV-1a over the bytes of a text: a digest that does not depend on the toolchain.
+fn digest(text: &str) -> u64 {
+  text
+    .bytes()
+    .fold(0xCBF2_9CE4_8422_2325, |hash, byte| (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01B3))
+}
+
+impl Golden {
+  fn file(group: &str, full: bool) -> std::path::PathBuf {
+    let name = if full { format!("{group}.full.txt") } else { format!("{group}.txt") };
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/golden").join(name)
+  }
+
+  fn updating() -> bool {
+    std::env::var("RHEON_GOLDEN").is_ok_and(|value| value == "update")
+  }
+
+  fn new(group: &'static str) -> Self {
+    let expected = if Self::updating() || full_size() {
+      vec![]
+    } else {
+      let path = Self::file(group, false);
+      let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}; write it with RHEON_GOLDEN=update", path.display()));
+      text
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .map(|line| u64::from_str_radix(line, 16).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display())))
+        .collect()
+    };
+    Self {
+      group,
+      expected,
+      dump: std::env::var_os("RHEON_GOLDEN_DUMP").map(|_| String::new()),
+      ..Default::default()
+    }
+  }
+
+  fn record(&mut self, start: &str, input: &str, run: &Run) {
+    // the tokens by their values and offsets, without the numbers the grammar gives their types
+    let tokens: Vec<(&str, usize)> = run.tokens.iter().map(|(_, value, offset)| (value.as_str(), *offset)).collect();
+    let outcome = format!("{start}\u{1f}{input}\u{1f}{tokens:?}\u{1f}{:?}", run.outcome);
+    let index = self.recorded.len();
+    let recorded = digest(&outcome);
+    self.recorded.push(recorded);
+    if self.expected.get(index).is_some_and(|expected| *expected != recorded) {
+      self.changed += 1;
+      if self.first_changed.len() < 5 {
+        self.first_changed.push(format!("case {index}, {start}, {input:?}:\n{run:#?}"));
+      }
+    }
+    if let Some(dump) = &mut self.dump {
+      dump.push_str(&format!("case {index}, {start}, {input:?}:\n{run:#?}\n"));
+    }
+  }
+
+  fn finish(&self) {
+    let full = full_size();
+    if let (Some(dump), Some(directory)) = (&self.dump, std::env::var_os("RHEON_GOLDEN_DUMP")) {
+      let path = std::path::Path::new(&directory).join(format!("{}{}.txt", self.group, if full { ".full" } else { "" }));
+      std::fs::write(&path, dump).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    }
+    // one digest of all cases, for the full size
+    let all = digest(&self.recorded.iter().map(|digest| format!("{digest:016x}")).collect::<String>());
+    let path = Self::file(self.group, full);
+    if Self::updating() {
+      let text = if full {
+        format!("# {}: {} cases at full size, one digest of all\n{all:016x}\n", self.group, self.recorded.len())
+      } else {
+        let digests: String = self.recorded.iter().map(|digest| format!("{digest:016x}\n")).collect();
+        format!("# {}: {} cases, a digest of the outcome of each\n{digests}", self.group, self.recorded.len())
+      };
+      std::fs::write(&path, text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+      return;
+    }
+    if full {
+      // the full size is recorded when it was written once
+      if let Ok(text) = std::fs::read_to_string(&path) {
+        let expected = text.lines().find(|line| !line.starts_with('#')).unwrap_or_default();
+        assert_eq!(
+          expected,
+          format!("{all:016x}"),
+          "{}: the outcomes of the {} cases at full size are not the recorded ones",
+          self.group,
+          self.recorded.len()
+        );
+      }
+      return;
+    }
+    assert!(
+      self.changed == 0 && self.expected.len() == self.recorded.len(),
+      "{}: {} of {} cases have another outcome than the recorded one ({} recorded); after a change that is meant, write the files again with RHEON_GOLDEN=update. The first:\n{}",
+      self.group,
+      self.changed,
+      self.recorded.len(),
+      self.expected.len(),
+      self.first_changed.join("\n")
+    );
+  }
 }
 
 impl Stats {
+  /// The statistics of a group of cases whose outcomes are recorded ([Golden]).
+  fn golden(group: &'static str) -> Self {
+    Self {
+      golden: Some(Golden::new(group)),
+      ..Default::default()
+    }
+  }
+
+  /// Compares the outcomes of the group with the recorded ones.
+  fn finish(&self) {
+    if let Some(golden) = &self.golden {
+      golden.finish();
+    }
+  }
+
   /// Compares both front ends on one input; panics on an unregistered difference.
   fn check(&mut self, frames: &[FeelContext], input: &str) {
     for (name, start, reference_start) in &START_RULES {
@@ -365,6 +511,9 @@ impl Stats {
     // a panic of the production front end fails in compare
     if let Some(fix) = compare(name, frames, input, &reference, &production) {
       *self.registered.entry(fix).or_default() += 1;
+    }
+    if let Some(golden) = &mut self.golden {
+      golden.record(name, input, &production);
     }
     self.cases += 1;
     if matches!(production.outcome, Outcome::Ast(_)) {
@@ -523,7 +672,7 @@ fn short_string_length() -> usize {
 #[test]
 fn short_strings_equal_reference() {
   let alphabets: &[&[char]] = if full_size() { &[&ALPHABET, &ALPHABET_2] } else { &[&ALPHABET] };
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("short-strings");
   for alphabet in alphabets {
     for frames in scopes() {
       for len in 0..=short_string_length() {
@@ -532,6 +681,7 @@ fn short_strings_equal_reference() {
     }
   }
   println!("short strings: {stats:?}");
+  stats.finish();
   assert!(stats.asts > 1000, "{stats:?}");
 }
 
@@ -539,7 +689,7 @@ fn short_strings_equal_reference() {
 fn short_strings_after_iteration_heads_equal_reference() {
   // the heads that set the lexer's `till_in` flag, followed by every short string
   let max_len = short_string_length();
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("short-strings-after-iteration-heads");
   for frames in &scopes()[..3] {
     for head in ["for ", "some ", "every ", "for x in [1], ", "for item in [1] return "] {
       for len in 0..=max_len {
@@ -557,6 +707,7 @@ fn short_strings_after_iteration_heads_equal_reference() {
     }
   }
   println!("short strings after iteration heads: {stats:?}");
+  stats.finish();
 }
 
 /// Random FEEL texts: every construct of the grammar, names of the input contexts written in
@@ -803,7 +954,7 @@ fn random_texts_equal_reference() {
   let count = if full_size() { 20_000 } else { 1_000 };
   let mut rng = Rng(0x853C_49E6_748F_EA9B);
   let keys = random_text_keys();
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("random-texts");
   for _ in 0..count {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
     let input = Feel {
@@ -815,6 +966,7 @@ fn random_texts_equal_reference() {
     stats.check(&frames, &input);
   }
   println!("random texts: {stats:?}");
+  stats.finish();
   assert!(stats.asts > count, "{stats:?}");
 }
 
@@ -850,7 +1002,7 @@ fn edited_and_cut_texts_equal_reference() {
   let count = if full_size() { 3_000 } else { 60 };
   let mut rng = Rng(0xDA94_2042_E4DD_58B5);
   let keys = random_text_keys();
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("edited-and-cut-texts");
   for _ in 0..count {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
     let text = Feel {
@@ -871,6 +1023,7 @@ fn edited_and_cut_texts_equal_reference() {
     }
   }
   println!("edited and cut texts: {stats:?}");
+  stats.finish();
 }
 
 /// An input context with the keys of a FEEL context literal (the values are numbers, nested
@@ -1171,13 +1324,14 @@ fn reused_name_chains_equal_reference() {
   ] {
     inputs.push(text.to_string());
   }
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("reused-chains");
   for frames in scopes() {
     for input in &inputs {
       stats.check(&frames, input);
     }
   }
   println!("reused chains: {stats:?}");
+  stats.finish();
 }
 
 /// A chain of name tokens is scanned once: the parts scanned grow linearly with the length.
@@ -1231,7 +1385,7 @@ fn parts_compared_with_in_grow_linearly_with_the_chain() {
 #[test]
 fn names_after_an_item_variable_equal_reference() {
   let frames = [ctx(&[("a", number(1)), ("x in y", number(2)), ("in", number(3)), ("b in", number(4))])];
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("after-an-item-variable");
   for text in [
     "for item in [1] return a",
     "for item in[1] return item",
@@ -1258,6 +1412,7 @@ fn names_after_an_item_variable_equal_reference() {
     stats.check(&[], text);
   }
   println!("after an item variable: {stats:?}");
+  stats.finish();
 }
 
 /// The input contexts of the tests of lists: `rows` holds contexts of the same type, `mixed`
@@ -1322,7 +1477,7 @@ fn lists_are_decided_when_a_lookup_needs_them() {
 #[test]
 fn names_of_list_items_equal_reference() {
   let frames = contexts_with_lists();
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("names-of-list-items");
   for text in [
     "sum(rows.amount)",
     "rows[unit price > 1]",
@@ -1355,6 +1510,7 @@ fn names_of_list_items_equal_reference() {
     stats.check(&frames, &format!("net value + {text} + unit price"));
   }
   println!("names of list items: {stats:?}");
+  stats.finish();
   assert!(stats.asts > 20, "{stats:?}");
 }
 
@@ -1377,7 +1533,7 @@ fn pushed_contexts_walked_grow_linearly_with_the_nesting() {
     let walked = work_of(&[], &text).get("local contexts").copied().unwrap_or(0);
     assert!(walked <= 40 * levels, "{walked} pushed contexts walked for {levels} levels: {body}");
   }
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("nested-binders");
   let frames = [ctx(&[("a", number(1)), ("a b", number(2)), ("v3 x", number(3))])];
   for levels in [1, 2, 15, 16, 17, 18, 40] {
     for body in [
@@ -1394,6 +1550,7 @@ fn pushed_contexts_walked_grow_linearly_with_the_nesting() {
     }
   }
   println!("nested binders: {stats:?}");
+  stats.finish();
 }
 
 /// The bound of the candidate names by the first word of the token (`ParsingScope::group_bound`):
@@ -1431,13 +1588,14 @@ fn first_word_bounds_equal_reference() {
     "date(\"2012-01-01\").year + d.a.b + time offset",
     "a\u{1680} b + a\u{FEFF} b + a\u{180E}b",
   ];
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("first-word-bounds");
   for frames in [vec![top.clone()], vec![nested.clone()], vec![top, nested], vec![]] {
     for input in inputs {
       stats.check(&frames, input);
     }
   }
   println!("first-word bounds: {stats:?}");
+  stats.finish();
 }
 
 /// The input contexts are indexed only when a name is looked up beyond their own keys.
@@ -1467,7 +1625,7 @@ fn one_part_names_equal_reference() {
     ("date", number(3)),
     ("number", number(4)),
   ])];
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("one-part-names");
   for frames in [vec![], frames_d] {
     for ws in ["\u{1680}", "\u{180E}", "", " "] {
       for input in [
@@ -1487,6 +1645,7 @@ fn one_part_names_equal_reference() {
     }
   }
   println!("one-part names: {stats:?}");
+  stats.finish();
 }
 
 /// String and number literals (taken in one allocation when they need no unescaping): escapes,
@@ -1537,19 +1696,20 @@ fn literals_equal_reference() {
   inputs.push(format!("\"{long}\\n{long}\""));
   inputs.push("9".repeat(10_000));
   inputs.push(format!("1.{}e-{}", "5".repeat(5_000), "3".repeat(5_000)));
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("literals");
   for input in &inputs {
     stats.check(&[], input);
     stats.check(&[], &format!("[{input}, {input}]"));
   }
   println!("literals: {stats:?}");
+  stats.finish();
 }
 
 /// U+1680 between words: after a symbol it starts a part (empty after trimming when alone), after
 /// white space it is white space; so two empty parts never follow each other.
 #[test]
 fn empty_parts_equal_reference() {
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("empty-parts");
   let frames = [ctx(&[("x", number(1)), ("x y", number(2)), ("a", number(3)), (&format!("x {OGHAM} y"), number(4))])];
   for n in [0, 1, 2, 3, 5, 20] {
     let run = format!(" {OGHAM}").repeat(n);
@@ -1566,6 +1726,7 @@ fn empty_parts_equal_reference() {
     }
   }
   println!("empty parts: {stats:?}");
+  stats.finish();
 }
 
 /// Composite names into deep input contexts are searched without recursion: a 2,000-level chain
@@ -1647,10 +1808,129 @@ fn unicode_texts_equal_reference() {
   let count = if full_size() { 20_000 } else { 1_000 };
   let mut rng = Rng(0x6A09_E667_F3BC_C908);
   let frames = [ctx(&[("é", number(1)), ("中 文", number(2)), ("😀", number(3)), ("x é", number(4))])];
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("unicode-texts");
   for _ in 0..count {
     let text: String = (0..1 + rng.below(12)).map(|_| *rng.pick(&PIECES)).collect();
     stats.check(&frames, &text);
   }
   println!("unicode texts: {stats:?}");
+  stats.finish();
+}
+
+/// A chosen set of expressions with their whole outcome, readable: for each, the names in scope,
+/// the tokens the parser reads and the tree or the error (`src/tests/golden/expressions.txt`).
+/// It states what the front end does in words a person can check, where the groups of generated
+/// cases keep digests. After a change that is meant, `RHEON_GOLDEN=update` writes it again.
+#[test]
+fn chosen_expressions_have_their_recorded_outcome() {
+  let cases: &[(&[&str], &str)] = &[
+    (&[], "1 + 2 * 3"),
+    (&[], "-(1 - 2) ** 2 / 4"),
+    (&[], "1e3 + 1.5E-2 + .5"),
+    (&[], "1e"),
+    (&[], "\"a\" + \"b\\n\\\"c\\\"\""),
+    (&[], "\"never closed"),
+    (&[], "1 /* never closed"),
+    (&[], "true and false or null"),
+    (&[], "not(true)"),
+    (&["a", "b"], "a < b and b >= a or a != b"),
+    (&["a"], "a between 1 and 10"),
+    (&["a"], "a in [1..10]"),
+    (&["a"], "a in (< 5, [10..20), 30)"),
+    (&["a"], "a instance of number"),
+    (&["a"], "a instance of list<context<n: number, s: string>>"),
+    (&["a"], "a instance of function<number, string> -> boolean"),
+    (&["a"], "if a then 1 else 2"),
+    (&["items"], "for i in items return i * 2"),
+    (&["items"], "for i in 1..3, j in items return i + j"),
+    (&["items"], "some i in items satisfies i > 2"),
+    (&["items"], "every i in items satisfies i.n > 2"),
+    (&["items"], "items[n > 1].n"),
+    (&["items"], "items[1]"),
+    (&["items"], "items[item > 1]"),
+    (&[], "[1, [2, 3], []]"),
+    (&[], "{a: 1, b: a + 1, \"c d\": {e: b}}.b"),
+    (&[], "{a: 1}.a.b.c"),
+    (&[], "function(a, b: number) a + b"),
+    (&[], "function(a) external {java: {class: \"c\", method signature: \"m\"}}"),
+    (&["f"], "f(1, 2)"),
+    (&["f"], "f(a: 1, b: 2)"),
+    (&[], "date(\"2026-01-31\") + duration(\"P1D\")"),
+    (&[], "date and time(\"2026-01-31T10:00:00\")"),
+    (&[], "@\"2026-01-31\""),
+    (&[], "[1..2]"),
+    (&[], "(1..2]"),
+    (&[], "]1..2["),
+    (&[], "> 5"),
+    (&["x"], "> x + 1"),
+    (&["x"], "<= 10 = (null..10]"),
+    (&["x"], "x.y.z"),
+    (&["x"], "x...y"),
+    (&["Grace's age"], "Grace's age + 1"),
+    (&["unit price", "qty"], "unit price * qty"),
+    (&["tax return"], "for t in tax return return t"),
+    (&["a-b", "a", "b"], "a-b + a - b"),
+    (&["profit/loss"], "profit/loss / 2"),
+    (&["fr**n*s"], "fr**n*s ** 2"),
+    (&["x and y"], "x and y and z"),
+    // names that are not in scope
+    (&[], "x"),
+    (&[], "unknown name + 1"),
+    (&[], "x - 1"),
+    (&[], "x.y"),
+    (&[], "x and y"),
+    (&[], "for s in x return s.z"),
+    (&[], "if x then y else z"),
+    (&[], "price list"),
+    (&[], "Grace's age"),
+    (&[], "opt-in rate"),
+    (&[], "Is in range"),
+    (&[], "date and time"),
+    // iteration variables
+    (&[], "for item in [1] return item"),
+    (&[], "for in+1 in [1] return 1"),
+    (&[], "for a b in [1] return a b"),
+    // keywords next to brackets
+    (&["x"], "x in[1]"),
+    (&["x"], "x in [1]"),
+    (&["list"], "list < 2"),
+    // errors
+    (&[], ""),
+    (&[], "1 +"),
+    (&[], "(1"),
+    (&[], "1 2"),
+    (&[], "a b c d"),
+    (&[], "$"),
+  ];
+  let mut text = String::from("# Chosen expressions: the names in scope, the tokens read (each with its offset) and the tree or the error.\n");
+  for (names, input) in cases {
+    let frames = [ctx(&names.iter().map(|name| (*name, number(1))).collect::<Vec<_>>())];
+    let run = run_production(&frames, &TokenType::StartExpression, input);
+    text.push_str(&format!(
+      "\n## {input:?}\nin scope: {}\n",
+      if names.is_empty() { "nothing".to_string() } else { names.join(", ") }
+    ));
+    for (_, value, offset) in &run.tokens {
+      text.push_str(&format!("  {value} @{offset}\n"));
+    }
+    match &run.outcome {
+      // the tree, without the Debug text that follows it
+      Outcome::Ast(tree) => text.push_str(tree.rsplit_once('\n').map_or(tree.as_str(), |(tree, _)| tree).trim_end()),
+      Outcome::Error(message) => text.push_str(&format!("error: {message}")),
+      Outcome::Panic(message) => panic!("{input:?}: the parser panicked: {message}"),
+    }
+    text.push('\n');
+  }
+  let path = Golden::file("expressions", false);
+  if Golden::updating() {
+    std::fs::write(&path, &text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    return;
+  }
+  let recorded = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}; write it with RHEON_GOLDEN=update", path.display()));
+  // the first case that differs
+  let differs = recorded.split("\n## ").zip(text.split("\n## ")).find(|(a, b)| a != b);
+  assert!(
+    recorded == text,
+    "the outcome of a chosen expression is not the recorded one; after a change that is meant, write the file again with RHEON_GOLDEN=update\nrecorded and now:\n{differs:#?}"
+  );
 }

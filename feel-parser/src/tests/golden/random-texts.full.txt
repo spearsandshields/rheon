@@ -1,0 +1,2 @@
+# random-texts: 180000 cases at full size, one digest of all
+dba6ad7384cfe170
