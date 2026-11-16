@@ -178,14 +178,21 @@ fn handle(request: &str) -> Result<Response, Failure> {
   enum Op {
     Info,
     Evaluate,
+    EvaluateAll,
     Parse,
   }
   let op = match req.get("op") {
     Some(Json::String(op)) => match op.as_str() {
       "info" => Op::Info,
       "evaluate" => Op::Evaluate,
+      "evaluateAll" => Op::EvaluateAll,
       "parse" => Op::Parse,
-      other => return fail(Kind::Request, format!("unknown op '{}' (expected 'evaluate', 'parse' or 'info')", arg(other))),
+      other => {
+        return fail(
+          Kind::Request,
+          format!("unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')", arg(other)),
+        );
+      }
     },
     None => return fail(Kind::Request, "missing 'op'"),
     Some(_) => return fail(Kind::Request, "'op' must be a string"),
@@ -194,6 +201,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
   match op {
     Op::Info => Ok(Response::Tree(info())),
     Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
+    Op::EvaluateAll => evaluate_all(req, unread, started).map(Response::Text),
     Op::Parse => parse(req, unread, started).map(Response::Tree),
   }
 }
@@ -444,7 +452,166 @@ fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Res
   apply_tz_offset(&req)?;
   let mut warnings = vec![];
   let scope = prepare_scope(req, unread, dialect, &mut warnings)?;
-  let node = parse_node(&scope, dialect, &expression)?;
+  let evaluation = Evaluation {
+    id: None,
+    dialect,
+    language,
+    error_mode,
+    max_steps,
+    expression,
+  };
+  evaluation.run(&scope, warnings, started)
+}
+
+/// Evaluates several expressions over one context (`op: "evaluateAll"`): the context is read
+/// once, and each entry of `evaluations` is answered as an `evaluate` request with that context
+/// answers it, in the order of the entries. An entry that fails is an error in its place and
+/// the others are answered; a failure of the request itself (a context that does not convert,
+/// a field of the request with a value that is not allowed) fails the request. The warnings of
+/// reading the context are those of the request (`contextWarnings`), not of an entry. Nothing
+/// of the request is kept after it.
+fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<String, Failure> {
+  let language = language(&req)?;
+  apply_tz_offset(&req)?;
+  let evaluations = match req.remove("evaluations") {
+    Some(Json::Array(evaluations)) => evaluations,
+    None => return fail(Kind::Request, "missing 'evaluations'"),
+    Some(_) => return fail(Kind::Request, "'evaluations' must be an array"),
+  };
+  let mut context_warnings = vec![];
+  let context = context(&mut req, unread.context, &mut context_warnings)?;
+  // unary tests without an input take the entry `?` of the context, when it has one
+  let has_question_mark = context.get_entry(&question_mark()).is_some();
+  let scope: FeelScope = context.into();
+  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")));
+  let mut results = String::from("[");
+  for (index, evaluation) in evaluations.into_iter().enumerate() {
+    if index > 0 {
+      results.push(',');
+    }
+    // the `id` of an entry stands in its answer, also when the entry fails
+    let id = evaluation.get("id").filter(|id| id.is_string() || id.is_number()).cloned();
+    match evaluate_one(evaluation, index, &scope, language, has_question_mark) {
+      Ok(response) => results.push_str(&response),
+      Err(Failure(kind, message)) => {
+        let mut error = error_response(kind, &message);
+        if let (Some(id), Some(fields)) = (id, error.as_object_mut()) {
+          fields.insert("id".to_string(), id);
+        }
+        results.push_str(&text_of(error)?);
+      }
+    }
+  }
+  results.push(']');
+  let context_warnings = text_of(Json::Array(
+    context_warnings
+      .into_iter()
+      .map(|message| json!({ "message": compose(format_args!("{message}")) }))
+      .collect(),
+  ))?;
+  let mut response = String::with_capacity(results.len() + context_warnings.len() + 80);
+  response.push_str("{\"contextWarnings\":");
+  response.push_str(&context_warnings);
+  response.push_str(",\"elapsedMicros\":");
+  response.push_str(&elapsed_micros(started).to_string());
+  response.push_str(",\"ok\":true,\"results\":");
+  response.push_str(&results);
+  response.push('}');
+  Ok(response)
+}
+
+/// Answers one entry of `evaluations` in the scope of the request's context. For unary tests
+/// the tested value is bound to `?` in a context of its own on top of the scope, which is
+/// taken off again, so that the next entry sees the context as it was read.
+fn evaluate_one(evaluation: Json, index: usize, scope: &FeelScope, language: rheon_feel_evaluator::Dialect, has_question_mark: bool) -> Result<String, Failure> {
+  let started = Instant::now();
+  let Json::Object(mut entry) = evaluation else {
+    return fail(Kind::Request, format!("'evaluations[{index}]' must be an object"));
+  };
+  let id = match entry.get("id") {
+    None | Some(Json::Null) => None,
+    Some(id @ (Json::String(_) | Json::Number(_))) => Some(serde_json::to_string(id).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")))?),
+    Some(other) => return fail(Kind::Request, format!("'id' must be a string or a number, got {}", arg(other))),
+  };
+  let dialect = dialect(&entry)?;
+  let error_mode = error_mode(&entry)?;
+  let max_steps = max_steps(&entry)?;
+  let expression = expression(&mut entry)?;
+  let mut warnings = vec![];
+  let tested = if dialect == Dialect::UnaryTests {
+    match entry.remove("input") {
+      Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure(Kind::Context, e))?),
+      None if has_question_mark => None,
+      None => {
+        warnings.push("no input value given ('input' or context[\"?\"]); testing null".to_string());
+        Some(Value::Null(None))
+      }
+    }
+  } else {
+    None
+  };
+  let evaluation = Evaluation {
+    id,
+    dialect,
+    language,
+    error_mode,
+    max_steps,
+    expression,
+  };
+  let depth = scope.depth();
+  if let Some(value) = tested {
+    let mut frame = FeelContext::default();
+    frame.insert(question_mark(), value);
+    scope.push(frame);
+  }
+  let answer = evaluation.run(scope, warnings, started);
+  // whatever the evaluation left on the scope goes with the context of the tested value
+  scope.truncate(depth);
+  answer
+}
+
+/// What one evaluation is asked to do, apart from its scope.
+struct Evaluation {
+  /// The JSON text of the `id` of an entry of `evaluateAll`, which its answer repeats.
+  id: Option<String>,
+  dialect: Dialect,
+  language: rheon_feel_evaluator::Dialect,
+  error_mode: ErrorMode,
+  max_steps: Option<u64>,
+  expression: String,
+}
+
+impl Evaluation {
+  /// Parses and evaluates the expression in `scope` and returns the text of the response.
+  /// `warnings` are those of the input, which come before the warnings of the evaluation;
+  /// `started` is when the time of the response began.
+  fn run(self, scope: &FeelScope, warnings: Vec<String>, started: Instant) -> Result<String, Failure> {
+    let Evaluation {
+      id,
+      dialect,
+      language,
+      error_mode,
+      max_steps,
+      expression,
+    } = self;
+    let node = parse_node(scope, dialect, &expression)?;
+    evaluated(scope, id, dialect, language, error_mode, max_steps, node, warnings, started)
+  }
+}
+
+/// Evaluates a parsed expression in `scope` and returns the text of the response.
+#[allow(clippy::too_many_arguments)]
+fn evaluated(
+  scope: &FeelScope,
+  id: Option<String>,
+  dialect: Dialect,
+  language: rheon_feel_evaluator::Dialect,
+  error_mode: ErrorMode,
+  max_steps: Option<u64>,
+  node: AstNode,
+  mut warnings: Vec<String>,
+  started: Instant,
+) -> Result<String, Failure> {
   let node = match dialect {
     Dialect::Expression => node,
     Dialect::UnaryTests => {
@@ -459,7 +626,7 @@ fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Res
     None => Session::new(),
   };
   let (value, diagnostics) = session
-    .run(|| diagnostics::collect(|| evaluator(&scope)))
+    .run(|| diagnostics::collect(|| evaluator(scope)))
     .into_result()
     .or_else(|abort| fail(Kind::Evaluation, abort.to_string()))?;
   // strict mode (DMN 1.6 §7.3.8): the first error stops the evaluation
@@ -484,6 +651,10 @@ fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Res
   response.push_str(&diagnostics);
   response.push_str(",\"elapsedMicros\":");
   response.push_str(&elapsed.to_string());
+  if let Some(id) = id {
+    response.push_str(",\"id\":");
+    response.push_str(&id);
+  }
   response.push_str(",\"ok\":true,\"result\":");
   response.push_str(&result);
   response.push_str(",\"warnings\":");

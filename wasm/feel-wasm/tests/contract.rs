@@ -901,7 +901,7 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
   check(
     json!({"op": "y".repeat(300)}),
     "request",
-    format!("unknown op '{}… (300 characters)' (expected 'evaluate', 'parse' or 'info')", "y".repeat(120)),
+    format!("unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')", "y".repeat(120)),
   );
   check(
     json!({"op": "evaluate", "expression": "1", "contextFormat": (1..=300).collect::<Vec<_>>()}),
@@ -966,7 +966,11 @@ fn request_error_messages() {
   // the operation
   assert_error(&raw("{}"), "request", "missing 'op'");
   assert_error(&req(json!({"op": 1})), "request", "'op' must be a string");
-  assert_error(&req(json!({"op": "explode"})), "request", "unknown op 'explode' (expected 'evaluate', 'parse' or 'info')");
+  assert_error(
+    &req(json!({"op": "explode"})),
+    "request",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')",
+  );
   // the expression
   for op in ["evaluate", "parse"] {
     assert_error(&req(json!({"op": op})), "request", "missing 'expression'");
@@ -1063,7 +1067,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'parse' or 'info')";
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1749,4 +1753,137 @@ fn response_text_is_the_text_of_its_tree() {
     let tree: Json = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{request}: {e}: {text}"));
     assert_eq!(serde_json::to_string(&tree).unwrap(), text, "{request}");
   }
+}
+
+/// `evaluateAll` reads the context once and answers each entry of `evaluations` as an `evaluate`
+/// request with that context answers it: the same result, diagnostics and error. The warnings
+/// of reading the context are those of the request, so the warnings of the `evaluate` response
+/// are `contextWarnings` followed by the warnings of the entry.
+#[test]
+fn evaluate_all_answers_each_evaluation_as_evaluate_does() {
+  let long = "1234567890123456789012345678901234567890";
+  let contexts = [
+    json!({"a": 1, "unit price": 2.5, "items": [{"n": 1}, {"n": 2}, {"n": 3}], "s": "text"}),
+    serde_json::from_str::<Json>(&format!(r#"{{"big": {long}, "a": 7, "?": 9}}"#)).unwrap(),
+    json!({}),
+  ];
+  let evaluations = [
+    json!({"expression": "a + 1"}),
+    json!({"expression": "unit price * count(items)"}),
+    json!({"expression": "for i in items return i.n * a"}),
+    json!({"expression": "sum(items[n > 1].n)"}),
+    json!({"expression": "missing + 1"}),
+    json!({"expression": "missing + 1", "errorMode": "strict"}),
+    json!({"expression": "1 +"}),
+    json!({"expression": "count(for i in 1..100 return i)", "maxSteps": 10}),
+    json!({"expression": "count(for i in 1..100 return i)", "maxSteps": 1000}),
+    json!({"expression": "> 5", "dialect": "unaryTests", "input": 7}),
+    json!({"expression": "> 5", "dialect": "unaryTests"}),
+    json!({"expression": "? = {\"k\": [1, 2]}", "dialect": "unaryTests", "input": {"k": [1, 2]}}),
+    json!({"expression": "> 5", "dialect": "unaryTests", "input": {"": 1}}),
+    json!({"expression": "a", "dialect": "xml"}),
+    json!({"expression": "a", "errorMode": "soft"}),
+    json!({"expression": "a", "maxSteps": 0}),
+    json!({"expression": 5}),
+    json!({}),
+    json!({"expression": "{a: 100, r: a + 1}.r + a"}),
+    json!({"expression": "a + 1"}),
+  ];
+  let without_time = |mut response: Json| {
+    response.as_object_mut().unwrap().remove("elapsedMicros");
+    response
+  };
+  for context in contexts {
+    let all = req(json!({"op": "evaluateAll", "context": context, "evaluations": evaluations}));
+    assert_eq!(all["ok"], true, "{all}");
+    assert!(all["elapsedMicros"].is_u64(), "{all}");
+    let context_warnings = all["contextWarnings"].as_array().unwrap().clone();
+    let results = all["results"].as_array().unwrap();
+    assert_eq!(evaluations.len(), results.len(), "{all}");
+    for (evaluation, result) in evaluations.iter().zip(results) {
+      let mut single = evaluation.as_object().unwrap().clone();
+      single.insert("op".to_string(), json!("evaluate"));
+      single.insert("context".to_string(), context.clone());
+      let mut expected = without_time(req(Json::Object(single)));
+      let mut result = without_time(result.clone());
+      if expected["ok"] == true {
+        // the warnings of the context stand first in the response of `evaluate`
+        let warnings = expected["warnings"].as_array().unwrap().clone();
+        assert!(warnings.starts_with(&context_warnings), "{evaluation}: {expected}");
+        expected["warnings"] = Json::Array(warnings[context_warnings.len()..].to_vec());
+        assert!(result["elapsedMicros"].is_null() && result["warnings"].is_array(), "{result}");
+      }
+      result.as_object_mut().unwrap().remove("elapsedMicros");
+      assert_eq!(expected, result, "{evaluation} in {context}");
+    }
+  }
+}
+
+/// The request of `evaluateAll`: its own failures fail the request, an entry that is no object
+/// is an error in its place, the text of the response is that of its tree, and the tested
+/// value of one entry is not seen by the next.
+#[test]
+fn evaluate_all_request_and_response() {
+  assert_error(&req(json!({"op": "evaluateAll"})), "request", "missing 'evaluations'");
+  assert_error(&req(json!({"op": "evaluateAll", "evaluations": {}})), "request", "'evaluations' must be an array");
+  assert_error(
+    &req(json!({"op": "evaluateAll", "evaluations": [], "context": {"": 1}})),
+    "context",
+    "context: empty context key",
+  );
+  assert_eq!(error_kind(&req(json!({"op": "evaluateAll", "evaluations": [], "language": "x"}))), "request");
+  assert_eq!(error_kind(&req(json!({"op": "evaluateAll", "evaluations": [], "tzOffsetMinutes": 5000}))), "request");
+  assert_error(
+    &req(json!({"op": "nothing"})),
+    "request",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')",
+  );
+  let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
+  assert_eq!(
+    (&empty["ok"], &empty["results"], &empty["contextWarnings"]),
+    (&json!(true), &json!([]), &json!([])),
+    "{empty}"
+  );
+  let request = json!({"op": "evaluateAll", "context": {"a": 1}, "language": "b-feel", "evaluations": [
+    5,
+    {"expression": "= 7", "dialect": "unaryTests", "input": 7},
+    {"expression": "?"},
+    {"expression": "= 7", "dialect": "unaryTests"},
+    {"expression": "1 + \"a\\n\\\"b\\\"\""},
+    {"expression": "a + 1"},
+  ]});
+  let text = feel_wasm::call(&request.to_string());
+  let response: Json = serde_json::from_str(&text).unwrap();
+  assert_eq!(serde_json::to_string(&response).unwrap(), text);
+  let results = response["results"].as_array().unwrap();
+  assert_error(&results[0], "request", "'evaluations[0]' must be an object");
+  assert_eq!(results[1]["result"]["display"], "true", "{response}");
+  // `?` of the entry before is gone
+  assert_eq!(results[2]["result"]["isNull"], true, "{response}");
+  assert_eq!(results[3]["result"]["display"], "false", "{response}");
+  assert!(results[3]["warnings"][0]["message"].as_str().unwrap().starts_with("no input value given"), "{response}");
+  // an `id` stands in the answer of its entry, a result or an error, and only there
+  let text = feel_wasm::call(
+    &json!({"op": "evaluateAll", "evaluations": [
+      {"id": "first", "expression": "1"},
+      {"id": 2, "expression": "1 +"},
+      {"expression": "3"},
+      {"id": "q\"\n", "expression": "4", "errorMode": "x"},
+      {"id": [1], "expression": "5"},
+      {"id": null, "expression": "6"},
+    ]})
+    .to_string(),
+  );
+  let with_ids: Json = serde_json::from_str(&text).unwrap();
+  assert_eq!(serde_json::to_string(&with_ids).unwrap(), text);
+  let ids: Vec<&Json> = with_ids["results"].as_array().unwrap().iter().map(|result| &result["id"]).collect();
+  assert_eq!(ids, [&json!("first"), &json!(2), &Json::Null, &json!("q\"\n"), &Json::Null, &Json::Null], "{with_ids}");
+  assert_eq!(with_ids["results"][0]["result"]["display"], "1", "{with_ids}");
+  assert_eq!(error_kind(&with_ids["results"][1]), "syntax", "{with_ids}");
+  assert_eq!(error_kind(&with_ids["results"][3]), "request", "{with_ids}");
+  assert_error(&with_ids["results"][4], "request", "'id' must be a string or a number, got [1]");
+  assert_eq!(with_ids["results"][5]["result"]["display"], "6", "{with_ids}");
+  // B-FEEL for every entry: a number is added to a string as text
+  assert_eq!(results[4]["result"]["type"], "string", "{response}");
+  assert_eq!(results[5]["result"]["display"], "2", "{response}");
 }

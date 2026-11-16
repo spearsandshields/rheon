@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "parse" | "info",
+  "op": "evaluate" | "evaluateAll" | "parse" | "info",
   "dialect": "expression" | "unaryTests",   // evaluate/parse; default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -96,6 +96,32 @@ Non-finite decimals: FEEL has no infinity/NaN. Any arithmetic or function result
 Numbers are IEEE 754 decimal128 (34 significant digits, half-even rounding, exponent range -6176..=6111), computed by the repository's pure-Rust decimal core. Following DMN 1.6 §10.3.2.3.1, every operation is meant to give its exact result rounded once to 34 digits: `+ - * /`, `sqrt`, comparisons and parsing do, and `exp`, `ln`, `log` and `**` are **correctly rounded**, which native dsntk (Intel's BID128 library) is not always (1 ulp in roughly 11–16 % of inputs), so those results can differ from a native dsntk in the last digit. The number oracle (`tools/number-oracle/`) judges every number result of the module against these rules; the classes of results that still deviate are listed with their reasons in its `known-wrong.json`. An exponent outside -999,999,999..999,999,999 gives null for every base (DMN 1.6 Table 61: "value(e2) is a number in the range [-999,999,999..999,999,999]"; `1 ** 1e10` is null with the reason `exponentiation exponent is out of range -999999999..999999999`). `**` with an integer exponent (Table 61: "p is limited to 34 digits") is the exact power rounded once while it has at most 16,384 bits (about 4,900 digits; a negative exponent: one correctly rounded division), so its ties are exact (`5 ** 50`, `2 ** -50`); beyond that it is `exp(y ln x)` at 45 to 560 working digits, accepted when the computed digits are at least 10^7 units of the last working digit away from a half-way point: an inexact power is never a tie, and a result is correctly rounded unless the exact power lies within about 10^-520 (relatively) of a half-way point, which no known operand does.
 
 Scale rounding (`round up/down/half up/half down`, `floor`, `ceiling` with a scale) rounds the number once, by the function's mode, to a multiple of 10^-scale (DMN 1.6 Table 77): every scale of -6111..6176 is valid for every number, a zero or a tiny one included (`round half up(0, 2)` = `0`, `round up(1e-6000, -6000)` = 1 followed by 6,000 zeros), a number with no digit below the scale is itself (`ceiling(0.25, 6145)` = `0.25`), and `round half down` goes to the nearest neighbour and only a tie toward zero (`round half down(2.56)` = `3`). A scale outside that range is null. Date-times and times whose zones carry an offset compare as instants for `=`, `<`, `<=`, `>`, `>=` and ranges; a local (zone-less) value is ordered only against another local value (false otherwise, like dsntk's subtraction). `time + days and time duration` wraps around midnight.
+
+`op: "evaluateAll"` evaluates several expressions over one context, which is read once:
+
+```jsonc
+// request
+{
+  "op": "evaluateAll",
+  "context": { /* as for evaluate */ }, "contextFormat": "json", "tzOffsetMinutes": 0, "language": "feel",   // for all evaluations
+  "evaluations": [                              // required; each entry: the fields of one evaluation
+    { "id": "total",                            // optional, a string or a number: repeated in the answer of the entry
+      "expression": "string", "dialect": "expression", "input": <JSON value>, "errorMode": "lenient", "maxSteps": 1000000 }
+  ]
+}
+// response
+{
+  "ok": true,
+  "contextWarnings": [ { "message": "string" } ],  // the warnings of reading the context, once; empty when there are none
+  "results": [ /* one answer per entry of `evaluations`, in their order */ ],
+  "elapsedMicros": 123
+}
+```
+
+- Each answer is the response that `op: "evaluate"` gives for that entry with the same context: a success (`ok`, `result`, `warnings`, `diagnostics`, `elapsedMicros` of that entry) or a failure (`ok: false`, `error`), with the `id` of the entry when it has one. Its `warnings` are those of the entry (its input, its unary tests, its evaluation); the warnings of the context stand in `contextWarnings`, not in the answers.
+- An entry that fails (a syntax error, a strict-mode error, its step budget, a field with a value that is not allowed, an entry that is no object) is a failure in its place, and the other entries are answered. A failure of the request itself (malformed JSON, a context that does not convert, `evaluations` missing or no array, an invalid `language`, `contextFormat` or `tzOffsetMinutes`) is the failure response below, without results.
+- The entries do not see each other: the tested value of unary tests (`?`) is bound for its entry only, and nothing an entry evaluates changes the context for the next. Nothing of the request is kept after the response.
+- The module has no limit on the number of entries; `maxSteps` bounds the work of each. A trap (§1) ends the whole request.
 
 `op: "parse"` success: `{ "ok": true, "tree": "<dsntk AstNode::tree() ascii, no color>", "elapsedMicros": n }`
 
