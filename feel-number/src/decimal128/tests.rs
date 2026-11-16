@@ -731,3 +731,112 @@ fn parse_reports_rounding() {
   assert!(FeelNumber::from_str_reporting_rounding("1E+6145").is_err());
   assert!(FeelNumber::from_str_reporting_rounding("x").is_err());
 }
+
+/// A number text is parsed with its coefficient read as a number exactly as with the digits
+/// collected as text ([parse_v_by_text]): the value, its exponent (the trailing zeros) and
+/// whether it was rounded, for texts of every form, also those that are no number.
+#[test]
+fn parse_equals_parse_by_text() {
+  let mut state = 0x9E37_79B9_7F4A_7C15_u64;
+  let mut below = |n: u64| rng(&mut state) % n;
+  let fixed = [
+    "",
+    " ",
+    ".",
+    "-",
+    "+",
+    "-.",
+    ".e5",
+    "e5",
+    "0",
+    "-0",
+    "+0",
+    "00",
+    "0.0",
+    "0.000",
+    ".5",
+    "5.",
+    "-.5",
+    "1e",
+    "1e+",
+    "1e-",
+    "1ex",
+    "1e5x",
+    "1x",
+    "1.2.3",
+    "1 ",
+    " 1",
+    "\t-1.5",
+    "inf",
+    "-inf",
+    "Infinity",
+    "NaN",
+    "1e0005",
+    "1e+0000000000005",
+    "1e12345678",
+    "1e-12345678",
+    "1e1234567",
+    "0e999",
+    "0e-9999999",
+    "0.0e7000",
+    "9999999999999999999999999999999999",
+    "99999999999999999999999999999999999",
+    "0.00000000000000000000000000000000000001",
+    "1e6144",
+    "1e6145",
+    "9.999999999999999999999999999999999e6144",
+    "1e-6176",
+    "1e-6177",
+    "5e-6177",
+    "12345678901234567890123456789012345678",
+    "123456789012345678901234567890123456789",
+    "1234567890123456789012345678901234567890",
+    "340282366920938463463374607431768211455",
+    "340282366920938463463374607431768211456",
+    "000000000000000000000000000000000000000000001",
+    "0.000000000000000000000000000000000000000000001",
+  ];
+  for text in fixed {
+    assert_eq!(parse_v_by_text(text), parse_v(text), "{text:?}");
+  }
+  for _ in 0..if full() { 2_000_000 } else { 50_000 } {
+    let mut text = String::new();
+    match below(8) {
+      0 => text.push('-'),
+      1 => text.push('+'),
+      _ => {}
+    }
+    let lengths = [0, 1, 1, 2, 3, 5, 8, 15, 20, 33, 34, 35, 36, 37, 38, 39, 40, 41, 45, 60];
+    let digits = lengths[below(lengths.len() as u64) as usize];
+    let point = if below(2) == 0 { below(digits + 2) } else { u64::MAX };
+    for index in 0..digits {
+      if index == point {
+        text.push('.');
+      }
+      // runs of zeros at both ends and in the middle
+      let digit = if below(4) == 0 { 0 } else { below(10) };
+      text.push((b'0' + digit as u8) as char);
+    }
+    if point >= digits && point != u64::MAX {
+      text.push('.');
+    }
+    if below(3) == 0 {
+      text.push(if below(2) == 0 { 'e' } else { 'E' });
+      match below(3) {
+        0 => text.push('-'),
+        1 => text.push('+'),
+        _ => {}
+      }
+      for _ in 0..below(3) {
+        text.push('0');
+      }
+      for _ in 0..below(9) {
+        text.push((b'0' + below(10) as u8) as char);
+      }
+    }
+    if below(40) == 0 {
+      text.push(['x', ' ', '.', 'e', '-'][below(5) as usize]);
+    }
+    assert_eq!(parse_v_by_text(&text), parse_v(&text), "{text:?}");
+  }
+}

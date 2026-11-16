@@ -887,6 +887,89 @@ fn parse_v(s: &str) -> (V, bool) {
     let rest = s[i..].to_ascii_lowercase();
     return (if rest == "inf" || rest == "infinity" { V::Inf(neg) } else { V::NaN }, false);
   }
+  // The coefficient is read as a number while it has at most 38 digits after its leading
+  // zeros, which always fit; a longer one is rounded from the text of its digits.
+  let first_digit = i;
+  let mut coefficient: u128 = 0;
+  let mut significant = 0;
+  let mut after = 0_i64;
+  let mut seen_point = false;
+  while i < b.len() {
+    let c = b[i];
+    if c.is_ascii_digit() {
+      if significant > 0 || c != b'0' {
+        significant += 1;
+        if significant <= 38 {
+          coefficient = coefficient * 10 + (c - b'0') as u128;
+        }
+      }
+      if seen_point {
+        after += 1;
+      }
+    } else if c == b'.' && !seen_point {
+      seen_point = true;
+    } else {
+      break;
+    }
+    i += 1;
+  }
+  let last_digit = i;
+  let mut exp: i64 = 0;
+  if i < b.len() {
+    let c = b[i];
+    if c != b'e' && c != b'E' {
+      return (V::NaN, false);
+    }
+    i += 1;
+    let c = at(i);
+    if !c.is_ascii_digit() && !((c == b'+' || c == b'-') && at(i + 1).is_ascii_digit()) {
+      return (V::NaN, false);
+    }
+    let mut sign = 1;
+    if c == b'-' || c == b'+' {
+      if c == b'-' {
+        sign = -1;
+      }
+      i += 1;
+    }
+    // Intel skips leading zeros and reads at most 7 exponent digits, ignoring the rest
+    while at(i) == b'0' && at(i + 1).is_ascii_digit() {
+      i += 1;
+    }
+    let mut count = 0;
+    while at(i).is_ascii_digit() && count < 7 {
+      exp = exp * 10 + (at(i) - b'0') as i64;
+      i += 1;
+      count += 1;
+    }
+    exp *= sign;
+  }
+  if significant <= 38 {
+    return round_pack_u128(neg, coefficient, exp - after);
+  }
+  let digits: String = s[first_digit..last_digit].chars().filter(char::is_ascii_digit).collect();
+  round_pack(neg, &digits, exp - after)
+}
+
+/// [parse_v] as it was written first, with the digits collected as text: the reference of the
+/// tests.
+#[cfg(test)]
+fn parse_v_by_text(s: &str) -> (V, bool) {
+  let b = s.as_bytes();
+  let mut i = 0;
+  while i < b.len() && (b[i] == b' ' || b[i] == b'\t') {
+    i += 1;
+  }
+  let mut neg = false;
+  if i < b.len() && (b[i] == b'+' || b[i] == b'-') {
+    neg = b[i] == b'-';
+    i += 1;
+  }
+  let at = |k: usize| if k < b.len() { b[k] } else { 0 };
+  if !(at(i) == b'.' || at(i).is_ascii_digit()) {
+    let rest = s[i..].to_ascii_lowercase();
+    return (if rest == "inf" || rest == "infinity" { V::Inf(neg) } else { V::NaN }, false);
+  }
   let mut digits = String::new();
   let mut after = 0_i64;
   let mut seen_point = false;
