@@ -34,13 +34,20 @@ fn stopped() -> Result<(), Value> {
 /// item is lost, so no result can be given.
 const ITEM_CONTEXT: &str = "item context of a filter";
 
-/// Evaluates the predicate for every item with the item in scope: the entries of a context item
-/// (the item itself, shared, so a write into it copies it first), and on top of them the special
-/// context `{item: value}` with a copy of the item, which is searched first, unless the item has
-/// an entry `item`. Returns which items the predicate keeps.
-fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
+/// Evaluates the predicate for every item with the item in scope, and returns the items it keeps,
+/// cloned (a list or a context item is shared, not copied).
+///
+/// The item is in scope through the entries of a context item, pushed shared, and on top of them
+/// the special context `{item: value}`, which is searched first, unless the item has an entry
+/// `item`. The special context is one context for all items, pushed shared as well, and changed
+/// between items only, when the scope no longer holds it. So what the predicate writes into the
+/// context on the top of the scope (a boxed context as the match of a boxed filter does,
+/// model-evaluator) goes into a copy, which is dropped with the frame: neither the item nor the
+/// predicate of the next item sees it.
+fn kept_items(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Result<Vec<Value>, Value> {
   let name_item: &Name = &ITEM;
-  let mut matched = Vec::with_capacity(values.len());
+  let mut special_context = Arc::new(FeelContext::default());
+  let mut kept = vec![];
   for value in values {
     stopped()?;
     let depth = scope.depth();
@@ -50,116 +57,47 @@ fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) ->
     } else {
       false
     };
-    if !has_item_entry {
-      let mut special_context = FeelContext::default();
-      special_context.set_entry(name_item, value.clone());
-      scope.push(special_context);
-    }
-    let predicate = evaluator(scope);
-    // remove the item contexts (and any context the predicate left behind)
-    scope.truncate(depth);
-    matched.push(outcome(predicate)?);
-  }
-  Ok(matched)
-}
-
-/// [matched_copied] with every item moved into the scope and back: a context item with an entry
-/// `item` is the item context itself, shared, and the item is kept as it was pushed (only the
-/// depth of the stack is checked); otherwise the item is the value of `item` in a special context
-/// reused for all items, on top of the item's entries, shared, for a context item.
-fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
-  let name_item: &Name = &ITEM;
-  let mut special_context = FeelContext::default();
-  let mut matched = Vec::with_capacity(values.len());
-  for slot in values.iter_mut() {
-    stopped()?;
-    let depth = scope.depth();
-    let predicate = match std::mem::replace(slot, Value::Null(None)) {
-      Value::Context(local_context) if local_context.contains_entry(name_item) => {
-        scope.push_shared(Arc::clone(&local_context));
-        let predicate = evaluator(scope);
-        if scope.pop_frame(depth).is_none() {
-          return Err(lost_context(ITEM_CONTEXT));
-        }
-        *slot = Value::Context(local_context);
-        predicate
+    let predicate = if has_item_entry {
+      let predicate = evaluator(scope);
+      if scope.pop_frame(depth).is_none() {
+        return Err(lost_context(ITEM_CONTEXT));
       }
-      value => {
-        let item_depth = if let Value::Context(local_context) = &value {
-          scope.push_shared(Arc::clone(local_context));
-          depth + 1
-        } else {
-          depth
-        };
-        special_context.assign_entry(name_item, value);
-        scope.push(std::mem::take(&mut special_context));
-        let predicate = evaluator(scope);
-        let popped = scope.pop_frame(item_depth);
-        scope.truncate(depth);
-        let Some(ctx) = popped else {
-          return Err(lost_context(ITEM_CONTEXT));
-        };
-        special_context = ctx.into_context();
-        // the entry stays (with a placeholder) for the next item
-        let Some(item) = special_context.assign_entry(name_item, Value::Null(None)) else {
-          return Err(lost_context(ITEM_CONTEXT));
-        };
-        *slot = item;
-        predicate
+      predicate
+    } else {
+      let item_depth = scope.depth();
+      Arc::make_mut(&mut special_context).assign_entry(name_item, value.clone());
+      scope.push_shared(Arc::clone(&special_context));
+      let predicate = evaluator(scope);
+      let popped = scope.pop_frame(item_depth);
+      scope.truncate(depth);
+      if !popped.is_some_and(|frame| frame.contains_entry(name_item)) {
+        return Err(lost_context(ITEM_CONTEXT));
       }
+      predicate
     };
-    matched.push(outcome(predicate)?);
+    if outcome(predicate)? {
+      kept.push(value.clone());
+    }
   }
-  Ok(matched)
+  Ok(kept)
 }
 
 /// Filter expression evaluator.
-pub struct FilterExpressionEvaluator {
-  /// How the predicate gets the item contexts.
-  mode: ItemContexts,
-}
-
-/// How the predicate of a filter gets the contexts of an item.
-#[derive(Clone, Copy, PartialEq)]
-enum ItemContexts {
-  /// Copies of the item: what the predicate writes into the context on the top of the scope
-  /// (boxed contexts do, model-evaluator) does not change the item.
-  Copied,
-  /// The item itself, moved into the scope and back: for FEEL predicates, which never write
-  /// into the context on the top of the scope.
-  Moved,
-}
-
-impl Default for FilterExpressionEvaluator {
-  /// Implements [Default] trait for [FilterExpressionEvaluator].
-  fn default() -> Self {
-    Self::new()
-  }
-}
+#[derive(Default)]
+#[non_exhaustive]
+pub struct FilterExpressionEvaluator;
 
 impl FilterExpressionEvaluator {
-  /// Creates a filter expression evaluator; its predicate gets copies of every item.
+  /// Creates a filter expression evaluator.
   pub fn new() -> Self {
-    Self { mode: ItemContexts::Copied }
-  }
-
-  /// Creates a filter expression evaluator for a FEEL filter expression: every item is moved into
-  /// the scope and back instead of copied, because a FEEL predicate never writes into the context
-  /// on the top of the scope.
-  pub fn for_feel() -> Self {
-    Self { mode: ItemContexts::Moved }
+    Self
   }
 
   pub fn evaluate(&self, scope: &FeelScope, value: Value, evaluator: &Evaluator) -> Value {
     match value {
       Value::List(values) => {
-        let mut values = values.into_vec();
-        let matched = match self.mode {
-          ItemContexts::Copied => matched_copied(scope, &values, evaluator),
-          ItemContexts::Moved => matched_moved(scope, &mut values, evaluator),
-        };
-        let matched = match matched.and_then(|matched| stopped().map(|()| matched)) {
-          Ok(matched) => matched,
+        let kept = match kept_items(scope, &values, evaluator).and_then(|kept| stopped().map(|()| kept)) {
+          Ok(kept) => kept,
           Err(null) => return null,
         };
         let rhv = evaluator(scope);
@@ -208,7 +146,7 @@ impl FilterExpressionEvaluator {
               value_null!("index in filter must be an integer value, actual value is {}", arg(&index))
             }
           }
-          _ => Value::List(values.into_iter().zip(matched).filter_map(|(value, matched)| matched.then_some(value)).collect()),
+          _ => Value::List(kept.into()),
         }
       }
       // A filter on a non-list value applies to the singleton list containing it (implicit

@@ -565,8 +565,8 @@ fn dmn_1_6_singleton_list_filter() {
 
 #[test]
 fn _0077() {
-  // the FEEL filter (items moved into the scope and back) equals the copying filter of boxed
-  // expressions on every kind of item, and leaves the scope as it found it
+  // The filter gives the same result over a list whose items it shares with another holder and
+  // over a list built anew, on every kind of item, and leaves the scope as it found it.
   let scope = &te_scope("{x: 2, item: 9}");
   let lists = [
     "[1, 2, 3]",
@@ -596,16 +596,18 @@ fn _0077() {
     "{y: item}.y != null",
   ];
   for list in lists {
+    let build = || build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+    let shared = build();
     for predicate in predicates {
-      let list_value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
       let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(scope, predicate, false).unwrap());
       let depth = scope.depth();
-      let copied = crate::FilterExpressionEvaluator::new().evaluate(scope, list_value.clone(), &evaluator);
+      let over_shared = crate::FilterExpressionEvaluator::new().evaluate(scope, shared.clone(), &evaluator);
       assert_eq!(depth, scope.depth());
-      let moved = crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list_value, &evaluator);
+      let over_new = crate::FilterExpressionEvaluator::new().evaluate(scope, build(), &evaluator);
       assert_eq!(depth, scope.depth());
-      assert_eq!(copied, moved, "{list}[{predicate}]");
+      assert_eq!(over_shared, over_new, "{list}[{predicate}]");
     }
+    assert_eq!(build(), shared, "{list}");
   }
 }
 
@@ -630,11 +632,34 @@ fn _0078() {
   for (item, special_context) in [("{item: 1, a: 2}", false), ("{a: 2}", true), ("3", true)] {
     let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item, false).unwrap())(scope)].into());
     let depth = scope.depth();
-    assert_eq!(lost, crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list.clone(), &popping), "{item}");
+    assert_eq!(lost, crate::FilterExpressionEvaluator::new().evaluate(scope, list.clone(), &popping), "{item}");
     assert_eq!(depth, scope.depth(), "{item}");
     if special_context {
-      assert_eq!(lost, crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list, &replacing), "{item}");
+      assert_eq!(lost, crate::FilterExpressionEvaluator::new().evaluate(scope, list, &replacing), "{item}");
       assert_eq!(depth, scope.depth(), "{item}");
     }
+  }
+}
+
+#[test]
+fn _0079() {
+  // The predicate gets the item contexts shared: what it writes into the context on the top of
+  // the scope (a boxed context as the match of a boxed filter does) goes into a copy, which the
+  // predicate of the next item does not see, for items that are no context, context items and
+  // context items with an entry `item`; and the items are kept as they were. (The filter
+  // evaluates the predicate once more in the enclosing scope, which it writes into, so every
+  // list gets a scope of its own.)
+  let written = rheon_feel::Name::from("w");
+  let writing: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| {
+    let unseen = scope.get_value(&written).is_none();
+    scope.set_value(&written, Value::Boolean(true));
+    Value::Boolean(unseen)
+  });
+  for list in ["[1, 2]", "[{a: 1}, {a: 2}]", "[{item: 1}, {item: 2}]"] {
+    let scope = &te_scope("{}");
+    let value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+    let depth = scope.depth();
+    assert_eq!(value, crate::FilterExpressionEvaluator::new().evaluate(scope, value.clone(), &writing), "{list}");
+    assert_eq!(depth, scope.depth(), "{list}");
   }
 }

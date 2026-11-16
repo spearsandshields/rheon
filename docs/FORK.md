@@ -2867,6 +2867,30 @@ their items with both answers. The totals are under "Verification" below.
     with one variable and with two, and a body that writes `partial` replaces the results so
     far; on the parent the FEEL iteration answered `[null, 7]`, the write reaching the next
     iteration. Identity step: no answer changes. No public API change.
+166. **One filter path for FEEL and boxed expressions.** A filter had two ways to put an item in
+    scope: for a FEEL predicate it moved each item into the scope and back, reusing one special
+    context `{item: value}` for all items, and for the match of a boxed filter it put a copy of
+    each item into a new special context. Both took the items out of the list first
+    (`into_vec`), which copied every item of a list that another holder shares, such as a list
+    read by name. The filter now reads the items in place and clones the items it keeps (a list
+    or a context item is shared, not copied); a context item is pushed shared, as before, and the
+    special context is one shared context for all items, pushed shared and changed between items
+    only. What a predicate writes into the frame on the top of the scope therefore goes into a
+    copy dropped with the frame, as the boxed path's copy was, and the pins of item 143 pass
+    unchanged. The lost-context checks of the FEEL path now hold for every filter: a predicate
+    that pops the item contexts, or replaces the special context with one without an entry
+    `item`, gives the internal-error null (no FEEL predicate and no boxed match does either).
+    The index branch reads the item at the index from the list in place. Tests first: in
+    `feel-evaluator/src/tests/filter.rs`, a predicate that reads an entry and writes it into the
+    frame does not see it for the next item, for numbers, context items and context items with
+    an entry `item` (on the parent the FEEL filter kept `[1]` of `[1, 2]`, the write reaching the
+    second item); in `feel-evaluator/tests/allocations.rs`, `count(items[item = null]) +
+    count(items)` over 10,000 numbers or contexts costs at most 8 allocations and under 4 KiB
+    more than over one item (on the parent 649,939 bytes more, the copy of the items). The test
+    that compared the two modes now compares the filter over a shared list and over a list built
+    anew. Identity step: no answer changes. Rust API (`rheon-feel-evaluator`):
+    `FilterExpressionEvaluator::for_feel` is removed; `FilterExpressionEvaluator` is a unit
+    struct that only `new` and `Default` build.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

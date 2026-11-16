@@ -689,7 +689,7 @@ impl EvaluatorBuilder {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
     Box::new(move |scope: &FeelScope| {
-      let filter_expression_evaluator = FilterExpressionEvaluator::for_feel();
+      let filter_expression_evaluator = FilterExpressionEvaluator::new();
       filter_expression_evaluator.evaluate(scope, lhe(scope), &rhe)
     })
   }

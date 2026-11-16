@@ -147,6 +147,18 @@ fn a_list_read_by_name_and_passed_on_is_not_copied() {
 }
 
 #[test]
+fn a_list_read_by_name_and_filtered_is_not_copied() {
+  let number = |n: i64| Value::Number(n.into());
+  let expression = "count(items[item = null]) + count(items)";
+  for (kind, (allocations, bytes)) in [("numbers", cost_of_a_long_list(expression, number)), ("contexts", cost_of_a_long_list(expression, record))] {
+    assert!(
+      allocations <= 8 && bytes < 4 * 1024,
+      "{expression} over 10,000 {kind}: {allocations} allocations and {bytes} bytes more than over one"
+    );
+  }
+}
+
+#[test]
 fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
   let mut input = rheon_feel::context::FeelContext::default();
   input.set_entry(&rheon_feel::Name::from("c"), Value::from(wide_context(10_000)));
