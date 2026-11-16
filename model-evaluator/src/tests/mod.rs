@@ -3,7 +3,7 @@ use rheon_feel::FeelScope;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel_evaluator::Outcome;
-use rheon_feel_evaluator::testing::{Backend, take_refusals, with_backend};
+use rheon_feel_evaluator::testing::{Backend, take_lowered, take_refusals, with_backend};
 use rheon_model::DmnElement;
 use std::sync::{Arc, LazyLock, Mutex, Weak};
 
@@ -96,8 +96,10 @@ fn build_model_evaluators(model_content: &[&str]) -> Arc<ModelEvaluator> {
     return build();
   }
   let model_evaluator = with_backend(Backend::Flat, build);
+  note_flat_builds();
   let twin = with_backend(Backend::Old, build);
   take_refusals();
+  take_lowered();
   TWINS.lock().unwrap().push((Arc::downgrade(&model_evaluator), twin));
   model_evaluator
 }
@@ -106,6 +108,28 @@ fn build_model_evaluators(model_content: &[&str]) -> Arc<ModelEvaluator> {
 /// closures (`RHEON_BACKEND_TWINS` set; the group tier sets it).
 fn twins() -> bool {
   std::env::var_os("RHEON_BACKEND_TWINS").is_some()
+}
+
+/// With [twins], adds `lines` to the file that `RHEON_BACKEND_COVERAGE` names, when it is set: a
+/// line for each expression the flat evaluator lowered or refused and for each evaluation, with or
+/// without a twin. The group tier counts the lines of all model tests.
+fn note_coverage(lines: &str) {
+  if let Some(path) = std::env::var_os("RHEON_BACKEND_COVERAGE")
+    && !lines.is_empty()
+  {
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&path).expect("RHEON_BACKEND_COVERAGE");
+    file.write_all(lines.as_bytes()).expect("RHEON_BACKEND_COVERAGE");
+  }
+}
+
+/// Notes the expressions that the flat evaluator lowered and refused since the last note.
+fn note_flat_builds() {
+  let mut lines = "lowered\n".repeat(take_lowered());
+  for refusal in take_refusals() {
+    lines.push_str(&format!("refused {} at {}\n", refusal.kind, refusal.node));
+  }
+  note_coverage(&lines);
 }
 
 /// The models built with [twins] and their twins. A model is held weakly, so that it is dropped as
@@ -137,16 +161,18 @@ fn evaluated(model_evaluator: &ModelEvaluator, model_namespace: &str, model_name
     .find(|(model, _)| std::ptr::eq(model.as_ptr(), model_evaluator))
     .map(|(_, twin)| Arc::clone(twin));
   let (actual, diagnostics) = with_backend(Backend::Flat, || rheon_feel::diagnostics::collect(|| evaluate(model_evaluator)));
-  if let Some(twin) = twin {
-    let (expected, twin_diagnostics) = with_backend(Backend::Old, || rheon_feel::diagnostics::collect(|| evaluate(&twin)));
-    assert_eq!(expected, actual, "the twins of {invocable} differ");
-    assert_eq!(
-      (twin_diagnostics.count, twin_diagnostics.messages),
-      (diagnostics.count, diagnostics.messages),
-      "the diagnostics of the twins of {invocable} differ"
-    );
+  note_flat_builds();
+  match twin {
+    Some(twin) => {
+      let (expected, twin_diagnostics) = with_backend(Backend::Old, || rheon_feel::diagnostics::collect(|| evaluate(&twin)));
+      take_refusals();
+      take_lowered();
+      assert_eq!(expected, actual, "the twins of {invocable} differ");
+      assert_eq!(twin_diagnostics, diagnostics, "the diagnostics of the twins of {invocable} differ");
+      note_coverage("evaluation with a twin\n");
+    }
+    None => note_coverage("evaluation without a twin\n"),
   }
-  take_refusals();
   actual
 }
 
