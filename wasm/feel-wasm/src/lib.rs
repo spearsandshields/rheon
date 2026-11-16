@@ -27,6 +27,7 @@
 mod display;
 mod engine;
 mod input;
+mod json;
 
 pub use engine::{call, call_bytes};
 

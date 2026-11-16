@@ -99,21 +99,7 @@ pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> R
     Json::Null => Value::Null(None),
     Json::Bool(b) => Value::Boolean(b),
     Json::String(s) => Value::String(s.into()),
-    Json::Number(n) => {
-      let text = n.as_str();
-      let (number, rounded) = FeelNumber::from_str_reporting_rounding(text).map_err(|e| format!("{}: invalid number '{}': {e}", arg(path), arg(text)))?;
-      if rounded {
-        let (place, quoted) = (arg(path), arg(text));
-        warnings.push(if number.is_zero() {
-          format!("{place}: number {quoted} is too small for a 34-digit decimal (exponent below -6176) and became 0")
-        } else if significant_digits(text) > MAX_DIGITS {
-          format!("{place}: number {quoted} has more than {MAX_DIGITS} significant digits and was rounded to {}", arg(&number))
-        } else {
-          format!("{place}: number {quoted} is too small for a 34-digit decimal and was rounded to {}", arg(&number))
-        });
-      }
-      Value::Number(number)
-    }
+    Json::Number(n) => number_value(n.as_str(), path, warnings)?,
     Json::Array(items) => {
       let mut values = Vec::with_capacity(items.len());
       for (i, item) in items.into_iter().enumerate() {
@@ -125,10 +111,27 @@ pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> R
   })
 }
 
+/// Converts the text of a JSON number into a FEEL number, exactly: never through `f64`. A number
+/// with more than 34 significant digits is rounded by the decimal library, with a warning.
+pub(crate) fn number_value(text: &str, path: &Path, warnings: &mut Vec<String>) -> Result<Value, String> {
+  let (number, rounded) = FeelNumber::from_str_reporting_rounding(text).map_err(|e| format!("{}: invalid number '{}': {e}", arg(path), arg(text)))?;
+  if rounded {
+    let (place, quoted) = (arg(path), arg(text));
+    warnings.push(if number.is_zero() {
+      format!("{place}: number {quoted} is too small for a 34-digit decimal (exponent below -6176) and became 0")
+    } else if significant_digits(text) > MAX_DIGITS {
+      format!("{place}: number {quoted} has more than {MAX_DIGITS} significant digits and was rounded to {}", arg(&number))
+    } else {
+      format!("{place}: number {quoted} is too small for a 34-digit decimal and was rounded to {}", arg(&number))
+    });
+  }
+  Ok(Value::Number(number))
+}
+
 /// The largest number of entries of a JSON object that are inserted into their context one by
 /// one: up to here the entries are one node of the context's map, and an insert is cheaper than
 /// collecting the entries first (measured: equal at 8 entries, 3% apart at 12).
-const DIRECT_ENTRIES: usize = 11;
+pub(crate) const DIRECT_ENTRIES: usize = 11;
 
 /// Converts a JSON object into a FEEL context, taking it.
 ///

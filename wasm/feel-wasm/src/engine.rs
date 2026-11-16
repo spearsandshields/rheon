@@ -2,6 +2,7 @@
 
 use crate::display::display;
 use crate::input::{Path, feel_context, json_into_value, json_object_into_context};
+use crate::json::{self, Field};
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, ErrorMode};
 use rheon_feel::dto::ValueDto;
@@ -109,8 +110,35 @@ fn error_response(kind: Kind, message: &str) -> Json {
   json!({ "ok": false, "error": { "kind": kind.as_str(), "message": compose(format_args!("{message}")) } })
 }
 
-fn handle(request: &str) -> Result<Json, Failure> {
-  let started = Instant::now();
+/// The `context` and the `input` of a request whose JSON is an object or an array, when the
+/// strict reader took the request ([json::request]): read into values straight from the text,
+/// or still text when the reader refused them. The request then holds neither field.
+#[derive(Default)]
+struct Unread<'a> {
+  context: Option<Field<'a, FeelContext>>,
+  input: Option<Field<'a, Value>>,
+}
+
+/// Reads the request into its fields: with the strict reader when it takes the text, which
+/// reads the JSON of `context` and `input` into values on the way, and otherwise as a tree of
+/// JSON values, which also gives every error of a text that is no request.
+fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Failure> {
+  if let Some(read) = json::request(request) {
+    let fields: Option<Map<String, Json>> = read
+      .fields
+      .iter()
+      .map(|(key, text)| serde_json::from_str(text).ok().map(|value| (key.to_string(), value)))
+      .collect();
+    if let Some(req) = fields {
+      return Ok((
+        req,
+        Unread {
+          context: read.context,
+          input: read.input,
+        },
+      ));
+    }
+  }
   let request: Json = match serde_json::from_str(request) {
     Ok(json) => json,
     // Only `context` / `input` can hold nested JSON values, so a nesting limit is a context problem.
@@ -119,9 +147,27 @@ fn handle(request: &str) -> Result<Json, Failure> {
     }
     Err(e) => return fail(Kind::Request, format!("malformed request JSON: {e}")),
   };
-  let Json::Object(req) = request else {
-    return fail(Kind::Request, "request must be a JSON object");
-  };
+  match request {
+    Json::Object(req) => Ok((req, Unread::default())),
+    _ => fail(Kind::Request, "request must be a JSON object"),
+  }
+}
+
+/// Puts the JSON `text` of the field `field`, which the strict reader refused, into the request
+/// as a tree of JSON values, for the conversion that gives its error or its value.
+fn into_tree(req: &mut Map<String, Json>, field: &str, text: &str) -> Result<(), Failure> {
+  match serde_json::from_str(text) {
+    Ok(tree) => {
+      req.insert(field.to_string(), tree);
+      Ok(())
+    }
+    Err(e) => fail(Kind::Request, format!("malformed request JSON: {e}")),
+  }
+}
+
+fn handle(request: &str) -> Result<Json, Failure> {
+  let started = Instant::now();
+  let (req, unread) = request_fields(request)?;
   enum Op {
     Info,
     Evaluate,
@@ -140,8 +186,8 @@ fn handle(request: &str) -> Result<Json, Failure> {
   // the request is handed over: its context and input are converted by value
   match op {
     Op::Info => Ok(info()),
-    Op::Evaluate => evaluate(req, started),
-    Op::Parse => parse(req, started),
+    Op::Evaluate => evaluate(req, unread, started),
+    Op::Parse => parse(req, unread, started),
   }
 }
 
@@ -208,7 +254,8 @@ fn expression(req: &mut Map<String, Json>) -> Result<String, Failure> {
 }
 
 /// Builds the input context from `context` / `contextFormat`, taking the context out of the request.
-fn context(req: &mut Map<String, Json>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
+fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
+  const FEEL_FORMAT: &str = "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal";
   // a &'static str, so that the context can be taken out of the request below
   let format = match req.get("contextFormat") {
     None | Some(Json::Null) => "json",
@@ -216,12 +263,22 @@ fn context(req: &mut Map<String, Json>, warnings: &mut Vec<String>) -> Result<Fe
     Some(Json::String(f)) if f == "feel" => "feel",
     Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {} (expected \"json\" or \"feel\")", arg(other))),
   };
+  match unread {
+    Some(Field::Read(context, read_warnings)) if format == "json" => {
+      warnings.extend(read_warnings);
+      return Ok(context);
+    }
+    // an object where the text of a FEEL context is expected
+    Some(Field::Read(..)) => return fail(Kind::Context, FEEL_FORMAT),
+    Some(Field::Text(text)) => into_tree(req, "context", text)?,
+    None => {}
+  }
   match (format, req.remove("context")) {
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
     ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e)),
     ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
     (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure(Kind::Context, e)),
-    (_, Some(_)) => fail(Kind::Context, "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal"),
+    (_, Some(_)) => fail(Kind::Context, FEEL_FORMAT),
   }
 }
 
@@ -257,12 +314,29 @@ fn question_mark() -> Name {
 
 /// Prepares the scope (and for unary tests binds `?`), returning warnings collected so far.
 /// Takes the rest of the request: it is not needed any more.
-fn prepare_scope(mut req: Map<String, Json>, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelScope, Failure> {
-  let mut ctx = context(&mut req, warnings)?;
+fn prepare_scope(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelScope, Failure> {
+  let mut ctx = context(&mut req, unread.context, warnings)?;
   if dialect == Dialect::UnaryTests {
-    match req.remove("input") {
-      Some(input) => {
-        let value = json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e))?;
+    let read = match unread.input {
+      Some(Field::Read(value, read_warnings)) => {
+        warnings.extend(read_warnings);
+        Some(value)
+      }
+      Some(Field::Text(text)) => {
+        into_tree(&mut req, "input", text)?;
+        None
+      }
+      None => None,
+    };
+    let input = match read {
+      Some(value) => Some(value),
+      None => match req.remove("input") {
+        Some(input) => Some(json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e))?),
+        None => None,
+      },
+    };
+    match input {
+      Some(value) => {
         ctx.insert(question_mark(), value);
       }
       None => {
@@ -351,7 +425,7 @@ fn uses_question_mark(node: &AstNode) -> bool {
   false
 }
 
-fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failure> {
+fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
   let dialect = dialect(&req)?;
   let language = language(&req)?;
   let error_mode = error_mode(&req)?;
@@ -359,7 +433,7 @@ fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failur
   let expression = expression(&mut req)?;
   apply_tz_offset(&req)?;
   let mut warnings = vec![];
-  let scope = prepare_scope(req, dialect, &mut warnings)?;
+  let scope = prepare_scope(req, unread, dialect, &mut warnings)?;
   let node = parse_node(&scope, dialect, &expression)?;
   let node = match dialect {
     Dialect::Expression => node,
@@ -395,11 +469,11 @@ fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failur
   }))
 }
 
-fn parse(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failure> {
+fn parse(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
   let dialect = dialect(&req)?;
   let expression = expression(&mut req)?;
   // The context is optional for parsing, but it tells the parser which (multi-word) names exist.
-  let scope = prepare_scope(req, dialect, &mut vec![])?;
+  let scope = prepare_scope(req, unread, dialect, &mut vec![])?;
   let node = parse_node(&scope, dialect, &expression)?;
   Ok(json!({
     "ok": true,

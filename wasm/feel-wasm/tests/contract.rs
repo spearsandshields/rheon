@@ -1627,3 +1627,98 @@ fn a_step_budget_is_a_positive_integer() {
   // only an evaluation has a budget
   assert_eq!(req(json!({"op": "parse", "expression": "1", "maxSteps": 0}))["ok"], true);
 }
+
+/// The JSON of `context` and `input` is read into values straight from the request text. A
+/// request answers the same when its text makes the module read it as a tree of JSON values
+/// first, which a top-level key written with an escape does: values, warnings and their order,
+/// errors and their texts.
+#[test]
+fn context_and_input_read_from_the_text_answer_as_read_through_a_tree() {
+  let long = "1234567890123456789012345678901234567890";
+  let requests = [
+    // keys in any order, twice, with outer spaces, with escapes
+    r#"{"op":"evaluate","expression":"[a, b, c]","context":{"c":3,"a":1,"b":2}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"[a, b]","context":{"b":1,"a":2,"b":3,"a":4}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"[a, b]","context":{"a ":1,"a":2," b":3,"b":4,"\ta\n":5}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"\u0061":1}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"get entries(c)","context":{"c":{"k\"q":"\ud83d\ude00\u00e9\/\\\n","é":[true,false,null,{}],"":1}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"x","context":{"x":{"":1}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"x","context":{"  ":1}}"#.to_string(),
+    // warnings, in the order of the keys, and not of a value that a later entry replaces
+    format!(r#"{{"op":"evaluate","expression":"[z, a, m.q]","context":{{"z":{long},"a":{long}.5,"m":{{"q":1e-6200,"b":[{long}]}}}}}}"#),
+    format!(r#"{{"op":"evaluate","expression":"a","context":{{"a":{long},"b":{long},"a":1}}}}"#),
+    format!(r#"{{"op":"evaluate","expression":"a","context":{{"b":{long},"a":1e999999999,"a":2}}}}"#),
+    // errors with their paths
+    r#"{"op":"evaluate","expression":"a","context":{"b":{"list":[1,{"n":1e999999999}]},"a":1e999999999}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"z":1e999999999,"a":{"":1}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":[1,2]}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":1},"contextFormat":"feel"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":1},"contextFormat":"xml"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":"{a: 1}"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":null}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":1},"context":"{a: 2}","contextFormat":"feel"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":"{a: 2}","context":{"a":1}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":{"$serde_json::private::Number":"42"}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":{"b":1,"$serde_json::private::Number":"42"}}}"#.to_string(),
+    // white space, nesting
+    "\n {\t\"op\" : \"evaluate\" , \"expression\" : \"count(a) + b.c[2]\" ,\r\n \"context\" : { \"a\" : [ ] , \"b\" : { \"c\" : [ 1 , 2 ] } } } \n".to_string(),
+    format!(r#"{{"op":"evaluate","expression":"count(a)","context":{{"a":{}1{}}}}}"#, "[".repeat(125), "]".repeat(125)),
+    // the input of unary tests
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":7}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"? = [1, 2]","input":[1,2]}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"?.b = 2","input":{"b":2,"a":1,"b":2}}"#.to_string(),
+    format!(r#"{{"op":"evaluate","dialect":"unaryTests","expression":"count(?) = 2","input":[{long},{{"z":{long},"a":{long}}}],"context":{{"k":{long}}}}}"#),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":{"":1}}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":[1e999999999]}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":[1],"input":9}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","context":{"?":7}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"1","input":[1e999999999]}"#.to_string(),
+    // parse, and errors of other fields before the context is read
+    r#"{"op":"parse","expression":"unit price + 1","context":{"unit price":1}}"#.to_string(),
+    r#"{"op":"parse","expression":"a","context":{"":1}}"#.to_string(),
+    r#"{"op":"evaluate","context":{"":1}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","errorMode":"x","context":{"":1}}"#.to_string(),
+    r#"{"op":"info","context":{"":1}}"#.to_string(),
+    r#"{"context":{"a":1}}"#.to_string(),
+  ];
+  let answer = |text: &str| {
+    let mut response = raw(text);
+    response.as_object_mut().unwrap().remove("elapsedMicros");
+    response
+  };
+  let (mut read, mut failed) = (0, 0);
+  for text in requests {
+    let through_a_tree = text.replace("\"context\"", "\"\\u0063ontext\"").replace("\"input\"", "\"\\u0069nput\"");
+    assert_ne!(text, through_a_tree, "{text}");
+    let response = answer(&text);
+    assert_eq!(answer(&through_a_tree), response, "{text}");
+    if response["ok"] == true {
+      read += 1;
+    } else {
+      failed += 1;
+    }
+  }
+  assert!(read >= 15 && failed >= 10, "{read} answered, {failed} failed");
+  // an object that serde_json refuses is refused as before (the text of the error has a column,
+  // so the request cannot be compared with a longer spelling of itself)
+  assert_error(
+    &raw(r#"{"op":"evaluate","expression":"a","context":{"a":{"$serde_json::private::Number":true}}}"#),
+    "request",
+    "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 85",
+  );
+  // one level deeper than the deepest JSON that is read
+  let too_deep = raw(&format!(
+    r#"{{"op":"evaluate","expression":"count(a)","context":{{"a":{}1{}}}}}"#,
+    "[".repeat(126),
+    "]".repeat(126)
+  ));
+  assert_error(
+    &too_deep,
+    "context",
+    "context or input JSON is nested too deeply (at most about 125 levels): recursion limit exceeded at line 1 column 182",
+  );
+  // the warnings come in the order of the keys
+  let response = raw(&format!(r#"{{"op":"evaluate","expression":"1","context":{{"z":{long},"a":{long}}}}}"#));
+  let warnings: Vec<&str> = response["warnings"].as_array().unwrap().iter().map(|w| w["message"].as_str().unwrap()).collect();
+  assert!(warnings.len() == 2 && warnings[0].starts_with("a: ") && warnings[1].starts_with("z: "), "{response}");
+}
