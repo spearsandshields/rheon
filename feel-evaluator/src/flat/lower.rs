@@ -151,11 +151,12 @@ impl<'a> Lower<'_, 'a> {
         self.into(otherwise, dst)?;
         self.builder.patch(skip);
       }
-      AstNode::List(_) | AstNode::ExpressionList(_) | AstNode::NegatedList(_) => {
+      AstNode::List(_) | AstNode::ExpressionList(_) | AstNode::NegatedList(_) | AstNode::ParameterTypes(_) => {
         let kind = match ast {
           AstNode::List(_) => ListKind::List,
           AstNode::ExpressionList(_) => ListKind::ExpressionList,
-          _ => ListKind::NegatedList,
+          AstNode::NegatedList(_) => ListKind::NegatedList,
+          _ => ListKind::ParameterTypes,
         };
         let resolved = self.resolved;
         let items = resolved.kids(node);
@@ -167,9 +168,15 @@ impl<'a> Lower<'_, 'a> {
         }
         self.builder.emit(Op::ListEnd { kind, dst });
       }
-      AstNode::In(..) | AstNode::Range(..) => {
+      AstNode::In(..) | AstNode::Range(..) | AstNode::InstanceOf(..) | AstNode::ContextTypeEntry(..) | AstNode::FunctionType(..) => {
         let (a, b) = self.operands(node)?;
-        let kernel = if matches!(ast, AstNode::In(..)) { Kernel2::In } else { Kernel2::Range };
+        let kernel = match ast {
+          AstNode::In(..) => Kernel2::In,
+          AstNode::Range(..) => Kernel2::Range,
+          AstNode::InstanceOf(..) => Kernel2::InstanceOf,
+          AstNode::ContextTypeEntry(..) => Kernel2::ContextTypeEntry,
+          _ => Kernel2::FunctionType,
+        };
         self.builder.emit(Op::Kernel2 { kernel, dst, a, b });
         if kernel == Kernel2::In {
           self.boolean_default(dst, false);
@@ -200,7 +207,9 @@ impl<'a> Lower<'_, 'a> {
       | AstNode::UnaryGt(_)
       | AstNode::UnaryGe(_)
       | AstNode::IntervalStart(..)
-      | AstNode::IntervalEnd(..) => {
+      | AstNode::IntervalEnd(..)
+      | AstNode::ListType(_)
+      | AstNode::RangeType(_) => {
         let kernel = match ast {
           AstNode::UnaryEq(_) => Kernel1::UnaryEq,
           AstNode::UnaryNe(_) => Kernel1::UnaryNe,
@@ -210,10 +219,27 @@ impl<'a> Lower<'_, 'a> {
           AstNode::UnaryGe(_) => Kernel1::UnaryGe,
           AstNode::IntervalStart(_, closed) => Kernel1::IntervalStart(*closed),
           AstNode::IntervalEnd(_, closed) => Kernel1::IntervalEnd(*closed),
+          AstNode::ListType(_) => Kernel1::ListType,
+          AstNode::RangeType(_) => Kernel1::RangeType,
           _ => return Err(NotYet { at: ast }),
         };
         let a = self.value(self.resolved.kids(node)[0], None)?;
         self.builder.emit(Op::Kernel1 { kernel, dst, a });
+      }
+      AstNode::ContextType(_) => {
+        // the entries in order, up to the first that is no entry
+        let resolved = self.resolved;
+        self.builder.emit(Op::TypeNew);
+        let mut fails = vec![];
+        for &entry in resolved.kids(node) {
+          let src = self.value(entry, None)?;
+          fails.push(self.builder.emit(Op::TypeAdd { src, dst, fail: 0 }));
+          self.next = mark;
+        }
+        self.builder.emit(Op::TypeEnd { dst });
+        for fail in fails {
+          self.builder.patch(fail);
+        }
       }
       AstNode::FunctionInvocation(_, arguments) => self.invocation(node, arguments, dst)?,
       AstNode::EvaluatedExpression(_) => self.into(self.resolved.kids(node)[0], dst)?,
@@ -338,6 +364,8 @@ impl<'a> Lower<'_, 'a> {
       AstNode::Null => Value::Null(None),
       AstNode::String(text) => Value::String(text.as_str().into()),
       AstNode::Irrelevant => Value::Irrelevant,
+      AstNode::FeelType(feel_type) => Value::FeelType(feel_type.clone()),
+      AstNode::ContextTypeEntryKey(name) => Value::ContextTypeEntryKey(name.clone()),
       AstNode::Numeric(..) | AstNode::At(_) => {
         let (value, warning) = literal(ast)?.ok()?;
         if let Some(warning) = warning {

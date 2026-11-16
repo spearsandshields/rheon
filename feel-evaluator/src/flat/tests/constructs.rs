@@ -308,3 +308,59 @@ fn malformed_invocations_are_errors_inside_the_invocation() {
     agree_node(Dialect::Feel, &scope, &AstNode::FunctionInvocation(abs(), Box::new(arguments)));
   }
 }
+
+#[test]
+fn instance_of_and_types() {
+  let values = ["1", "\"a\"", "true", "null", "@\"2024-01-31\"", "@\"P1D\"", "[1, 2]", "[[\"a\"]]", "[1..2]", "abs", "x"];
+  let types = [
+    "number",
+    "string",
+    "boolean",
+    "date",
+    "Any",
+    "Null",
+    "days and time duration",
+    "list<number>",
+    "list<list<string>>",
+    "range<number>",
+    "context<a: number, b: string>",
+    "context<a: number, a: string>",
+    "context<a: t, b: u>",
+    "function<number> -> number",
+    "function<number, string> -> boolean",
+    "function<t> -> number",
+    "list<t>",
+    "range<t>",
+    "t",
+  ];
+  for value in values {
+    for feel_type in types {
+      let text = format!("({value}) instance of {feel_type}");
+      agree_in(Dialect::Feel, "", &text);
+      agree_in(Dialect::BFeel, "", &text);
+    }
+  }
+}
+
+#[test]
+fn malformed_types_are_the_builders_errors() {
+  let scope = scope("");
+  let key = |name: &str| Box::new(AstNode::ContextTypeEntryKey(Name::from(name)));
+  let number = || Box::new(AstNode::FeelType(rheon_feel::FeelType::Number));
+  for node in [
+    AstNode::ContextType(vec![AstNode::Null, AstNode::Name(Name::from("x"))]),
+    AstNode::ContextType(vec![AstNode::ContextTypeEntry(key("a"), number()), AstNode::Numeric("1".into(), "".into(), '+', "".into())]),
+    AstNode::ContextType(vec![AstNode::ContextTypeEntry(Box::new(AstNode::Null), number())]),
+    AstNode::ContextType(vec![]),
+    AstNode::ListType(Box::new(AstNode::Null)),
+    AstNode::FunctionType(Box::new(AstNode::Null), number()),
+    AstNode::FunctionType(
+      Box::new(AstNode::ParameterTypes(vec![AstNode::Null, AstNode::FeelType(rheon_feel::FeelType::String)])),
+      number(),
+    ),
+    AstNode::FunctionType(Box::new(AstNode::ParameterTypes(vec![])), Box::new(AstNode::Null)),
+  ] {
+    agree_node(Dialect::Feel, &scope, &node);
+    agree_node(Dialect::Feel, &scope, &AstNode::InstanceOf(Box::new(AstNode::Null), Box::new(node)));
+  }
+}

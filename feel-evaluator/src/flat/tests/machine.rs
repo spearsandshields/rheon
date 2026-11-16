@@ -64,17 +64,17 @@ fn verify_rejects_unstructured_code() {
     program(vec![Op::ListPush { src: Opnd::konst(0) }, ret], null(), vec![], 0).verify()
   );
   assert_eq!(
-    at(1, "a list or an invocation is open at the return"),
+    at(1, "a list, an invocation or a context type is open at the return"),
     program(vec![Op::ListNew { len: 0 }, ret], null(), vec![], 0).verify()
   );
   let across = vec![Op::Jump { to: 2 }, Op::ListNew { len: 0 }, Op::ListEnd { kind: ListKind::List, dst: 0 }, ret];
-  assert_eq!(at(0, "jump across a list or an invocation"), program(across, null(), vec![], 1).verify());
+  assert_eq!(at(0, "jump across a list, an invocation or a context type"), program(across, null(), vec![], 1).verify());
   let leave = Op::Leave { dst: 0 };
   assert_eq!(at(0, "no invocation is open"), program(vec![leave, ret], null(), vec![], 1).verify());
   let past = vec![Op::Enter { dst: 0, skip: 2 }, leave, ret];
   assert_eq!(Ok(()), program(past, null(), vec![], 1).verify());
   let into = vec![Op::Enter { dst: 0, skip: 1 }, leave, ret];
-  assert_eq!(at(0, "jump across a list or an invocation"), program(into, null(), vec![], 1).verify());
+  assert_eq!(at(0, "jump across a list, an invocation or a context type"), program(into, null(), vec![], 1).verify());
 }
 
 #[test]

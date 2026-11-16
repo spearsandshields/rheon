@@ -11,7 +11,8 @@ use crate::bfeel;
 use crate::invocation::{Arguments, invoke};
 use crate::kernels::{self, Arithmetic, finite};
 use rheon_feel::values::Value;
-use rheon_feel::{FeelScope, diagnostics, value_null};
+use rheon_feel::{FeelScope, FeelType, Name, diagnostics, value_null};
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 impl Program {
@@ -28,6 +29,8 @@ struct Vm<'p> {
   slots: Vec<Value>,
   /// The lists being built, innermost last.
   lists: Vec<Vec<Value>>,
+  /// The context types being built, innermost last.
+  types: Vec<BTreeMap<Name, FeelType>>,
   /// The invocations entered, innermost last.
   calls: Vec<diagnostics::Call>,
 }
@@ -49,6 +52,7 @@ impl<'p> Vm<'p> {
       host,
       slots: vec![Value::Null(None); program.slots as usize],
       lists: vec![],
+      types: vec![],
       calls: vec![],
     }
   }
@@ -130,6 +134,8 @@ impl<'p> Vm<'p> {
             Kernel1::UnaryGe => Value::UnaryGreaterOrEqual(Box::new(a)),
             Kernel1::IntervalStart(closed) => Value::IntervalStart(Box::new(a), closed),
             Kernel1::IntervalEnd(closed) => Value::IntervalEnd(Box::new(a), closed),
+            Kernel1::ListType => kernels::list_type(a),
+            Kernel1::RangeType => kernels::range_type(a),
           };
         }
         Op::Kernel2 { kernel, dst, a, b } => {
@@ -141,6 +147,9 @@ impl<'p> Vm<'p> {
               _ => value_null!(),
             },
             Kernel2::Range => kernels::range_of(a, b),
+            Kernel2::InstanceOf => kernels::instance_of(a, b),
+            Kernel2::ContextTypeEntry => kernels::context_type_entry(a, b),
+            Kernel2::FunctionType => kernels::function_type(a, b),
           };
         }
         Op::Jump { to } => pc = to as usize,
@@ -194,7 +203,23 @@ impl<'p> Vm<'p> {
             ListKind::List => kernels::list_of(items),
             ListKind::ExpressionList => Value::ExpressionList(items),
             ListKind::NegatedList => Value::NegatedCommaList(items),
+            ListKind::ParameterTypes => Value::ParameterTypes(items),
           };
+        }
+        Op::TypeNew => self.types.push(BTreeMap::new()),
+        Op::TypeAdd { src, dst, fail } => {
+          let entry = self.read(src);
+          if let Some(entries) = self.types.last_mut()
+            && let Err(null) = kernels::add_context_type_entry(entries, entry)
+          {
+            self.types.pop();
+            self.slots[dst as usize] = null;
+            pc = fail as usize;
+          }
+        }
+        Op::TypeEnd { dst } => {
+          let entries = self.types.pop().unwrap_or_default();
+          self.slots[dst as usize] = Value::FeelType(FeelType::Context(entries));
         }
         Op::Enter { dst, skip } => match diagnostics::enter_call(MAX_CALL_DEPTH) {
           Some(call) => self.calls.push(call),

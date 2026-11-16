@@ -87,6 +87,9 @@ pub(crate) enum Kernel1 {
   /// The start and the end of a range literal.
   IntervalStart(IntervalType),
   IntervalEnd(IntervalType),
+  /// The types `list<t>` and `range<t>`.
+  ListType,
+  RangeType,
 }
 
 /// The kernels of two operands.
@@ -98,6 +101,12 @@ pub(crate) enum Kernel2 {
   Out,
   /// The range of a range literal from its start and end.
   Range,
+  /// `a instance of b`.
+  InstanceOf,
+  /// An entry `name: type` of a context type.
+  ContextTypeEntry,
+  /// The type `function<t1, …> -> r`.
+  FunctionType,
 }
 
 /// The kinds of lists that [Op::ListEnd] makes.
@@ -109,6 +118,8 @@ pub(crate) enum ListKind {
   ExpressionList,
   /// The unary tests of a negated comma list, `not(...)`.
   NegatedList,
+  /// The parameter types of a function type.
+  ParameterTypes,
 }
 
 /// An instruction.
@@ -168,6 +179,13 @@ pub(crate) enum Op {
   ListPush { src: Opnd },
   /// `dst` is the innermost open list, closed, as a value of `kind`.
   ListEnd { kind: ListKind, dst: Slot },
+  /// Opens a context type.
+  TypeNew,
+  /// Adds the value of `src`, an entry, to the innermost open context type; a value that is no
+  /// entry closes it, `dst` is its null and the run continues at `fail`.
+  TypeAdd { src: Opnd, dst: Slot, fail: Pc },
+  /// `dst` is the innermost open context type, closed.
+  TypeEnd { dst: Slot },
   /// Enters an invocation ([rheon_feel::diagnostics::enter_call]): beyond the call depth limit `dst` is null
   /// and the run continues at `skip`, past the matching [Op::Leave], so nothing of the
   /// invocation is evaluated.
@@ -274,7 +292,12 @@ impl Program {
           check.opnd(b)?;
         }
         Op::JumpUnlessTrue { c, .. } => check.opnd(c)?,
-        Op::Jump { .. } | Op::ListNew { .. } => {}
+        Op::Jump { .. } | Op::ListNew { .. } | Op::TypeNew => {}
+        Op::TypeAdd { src, dst, .. } => {
+          check.slot(dst)?;
+          check.opnd(src)?;
+        }
+        Op::TypeEnd { dst } => check.slot(dst)?,
         Op::ListPush { src } => check.opnd(src)?,
         Op::Enter { dst, .. } | Op::Leave { dst } => check.slot(dst)?,
         Op::Call { dst, call } => {
@@ -313,11 +336,11 @@ impl Program {
   /// from every jump. An [Op::Enter] that refuses continues past its [Op::Leave], with what was
   /// open before it.
   fn verify_structure(&self) -> Result<(), VerifyError> {
-    // the open lists and the open invocations before each instruction
+    // the open lists, invocations and context types before each instruction
     let mut open = Vec::with_capacity(self.code.len() + 1);
-    let (mut lists, mut calls) = (0_u32, 0_u32);
+    let (mut lists, mut calls, mut types) = (0_u32, 0_u32, 0_u32);
     for (at, op) in self.code.iter().enumerate() {
-      open.push((lists, calls));
+      open.push((lists, calls, types));
       let fail = |what| Err(VerifyError { at: at as Pc, what });
       match *op {
         Op::ListNew { .. } => lists += 1,
@@ -327,7 +350,11 @@ impl Program {
         Op::Enter { .. } => calls += 1,
         Op::Leave { .. } if calls == 0 => return fail("no invocation is open"),
         Op::Leave { .. } => calls -= 1,
-        Op::Return { .. } if lists != 0 || calls != 0 => return fail("a list or an invocation is open at the return"),
+        Op::TypeNew => types += 1,
+        Op::TypeAdd { .. } if types == 0 => return fail("no context type is open"),
+        Op::TypeEnd { .. } if types == 0 => return fail("no context type is open"),
+        Op::TypeEnd { .. } => types -= 1,
+        Op::Return { .. } if lists != 0 || calls != 0 || types != 0 => return fail("a list, an invocation or a context type is open at the return"),
         _ => {}
       }
     }
@@ -335,6 +362,8 @@ impl Program {
       let (target, state) = match *op {
         Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => (to, open.get(at + 1).copied()),
         Op::Enter { skip, .. } => (skip, Some(open[at])),
+        // a failure closes the context type
+        Op::TypeAdd { fail, .. } => (fail, Some((open[at].0, open[at].1, open[at].2 - 1))),
         _ => continue,
       };
       let fail = |what| Err(VerifyError { at: at as Pc, what });
@@ -342,7 +371,7 @@ impl Program {
         return fail("jump out of range");
       }
       if Some(open[target as usize]) != state {
-        return fail("jump across a list or an invocation");
+        return fail("jump across a list, an invocation or a context type");
       }
       if matches!(op, Op::Enter { .. }) && !matches!(self.code[target as usize - 1], Op::Leave { .. }) {
         return fail("an invocation that refuses does not continue past a leave");
@@ -401,7 +430,7 @@ impl ProgramBuilder {
   pub(crate) fn patch(&mut self, at: Pc) {
     let here = self.code.len() as Pc;
     match &mut self.code[at as usize] {
-      Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } | Op::Enter { skip: to, .. } => *to = here,
+      Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } | Op::Enter { skip: to, .. } | Op::TypeAdd { fail: to, .. } => *to = here,
       _ => {}
     }
   }
