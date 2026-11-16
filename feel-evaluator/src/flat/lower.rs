@@ -8,8 +8,8 @@
 //! A node that is not lowered yet refuses the whole expression ([NotYet]).
 
 use super::NotYet;
-use super::program::{CallInfo, Compare, Kernel1, Kernel2, ListKind, NONE, Op, Opnd, Program, ProgramBuilder, SearchInfo, Slot};
-use super::resolve::{Info, Place, Resolved, Stop, Target};
+use super::program::{CallInfo, Compare, Domain, Kernel1, Kernel2, ListKind, LoopInfo, LoopKind, NONE, Op, Opnd, Program, ProgramBuilder, SearchInfo, Slot};
+use super::resolve::{Info, Place, Resolved, Stop, Target, variables};
 use crate::kernels::{self, Arithmetic};
 use crate::{Dialect, builders};
 use rheon_feel::Name;
@@ -250,6 +250,7 @@ impl<'a> Lower<'_, 'a> {
       }
       AstNode::FunctionInvocation(_, arguments) => self.invocation(node, arguments, dst)?,
       AstNode::Context(_) => self.context(node, dst)?,
+      AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) => self.iteration(node, dst)?,
       AstNode::EvaluatedExpression(_) => self.into(self.resolved.kids(node)[0], dst)?,
       _ => return Err(NotYet { at: ast }),
     }
@@ -351,6 +352,124 @@ impl<'a> Lower<'_, 'a> {
     Ok(())
   }
 
+  /// A `for`, `some` or `every` expression: the domain of the first variable, then the walk over
+  /// the combinations of the values of the variables, in which each new value of a variable is
+  /// followed by the domain of the next variable or, for the last, by the body.
+  fn iteration(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+    let resolved = self.resolved;
+    let rnode = &resolved.nodes[node as usize];
+    let (kind, contexts) = match rnode.ast {
+      AstNode::For(contexts, _) => (LoopKind::For, contexts),
+      AstNode::Some(contexts, _) => (LoopKind::Some, contexts),
+      AstNode::Every(contexts, _) => (LoopKind::Every, contexts),
+      _ => return Err(NotYet { at: rnode.ast }),
+    };
+    let Info::Iteration { layout, record, duplicate } = rnode.info else {
+      self.malformed_quantified(rnode.ast, dst);
+      return Ok(());
+    };
+    if duplicate != NONE {
+      self.fail(dst, builders::err_duplicate_iteration_variable(&resolved.names[duplicate as usize]));
+      return Ok(());
+    }
+    let variables = variables(contexts, kind != LoopKind::For);
+    if variables.is_empty() {
+      // no iteration: nothing is evaluated
+      let value = match kind {
+        LoopKind::For => Value::List(Default::default()),
+        LoopKind::Some => Value::Boolean(false),
+        LoopKind::Every => Value::Boolean(true),
+      };
+      let value = self.builder.konst(value);
+      self.builder.emit(Op::Move { dst, src: value });
+      return Ok(());
+    }
+    let mut levels = vec![];
+    for &(_, place) in &resolved.layouts[layout as usize].entries[..variables.len()] {
+      let Place::Slot(slot) = place else {
+        return Err(NotYet { at: rnode.ast });
+      };
+      levels.push((slot, 0));
+    }
+    let mark = self.next;
+    let kids = resolved.kids(node);
+    let mut parts = kids.iter().copied();
+    let (domain, a, b) = self.domain(kind, variables[0].1.len(), &mut parts)?;
+    let info = self.builder.iteration(LoopInfo {
+      kind,
+      step: 0,
+      exit: 0,
+      levels: Box::new([]),
+    });
+    self.builder.emit(Op::LoopOpen { record, info });
+    self.builder.emit(Op::LevelPush { record, domain, a, b });
+    self.next = mark;
+    let step = self.builder.emit(Op::Step { record });
+    for (level, (_, domain_parts)) in variables.iter().enumerate().skip(1) {
+      levels[level - 1].1 = self.builder.here();
+      let (domain, a, b) = self.domain(kind, domain_parts.len(), &mut parts)?;
+      self.builder.emit(Op::LevelPush { record, domain, a, b });
+      self.next = mark;
+    }
+    let last = levels.len() - 1;
+    levels[last].1 = self.builder.here();
+    let body = parts.next().ok_or(NotYet { at: rnode.ast })?;
+    let src = self.value(body, None)?;
+    self.builder.emit(Op::Visit { record, src });
+    self.next = mark;
+    let exit = self.builder.emit(Op::LoopClose { record, dst });
+    let info = self.builder.iteration_mut(info);
+    info.step = step;
+    info.exit = exit;
+    info.levels = levels.into();
+    Ok(())
+  }
+
+  /// The domain of a variable whose domain has `count` parts, the next of `parts`: an interval
+  /// from its two parts, a range literal of a `for` from its start and end, or the items of a
+  /// value.
+  fn domain(&mut self, kind: LoopKind, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), NotYet<'a>> {
+    let resolved = self.resolved;
+    let first = parts.next().ok_or(NotYet {
+      at: resolved.nodes[resolved.root() as usize].ast,
+    })?;
+    if count == 2 {
+      let second = parts.next().ok_or(NotYet {
+        at: resolved.nodes[first as usize].ast,
+      })?;
+      let a = self.value(first, None)?;
+      let b = self.value(second, None)?;
+      return Ok((Domain::Interval, a, b));
+    }
+    if kind == LoopKind::For
+      && let AstNode::Range(..) = resolved.nodes[first as usize].ast
+    {
+      let kids = resolved.kids(first);
+      let a = self.value(kids[0], None)?;
+      let b = self.value(kids[1], None)?;
+      return Ok((Domain::Range, a, b));
+    }
+    let a = self.value(first, None)?;
+    Ok((Domain::Of, a, a))
+  }
+
+  /// A `some` or `every` expression whose parts are not of their shapes: the builder's error.
+  fn malformed_quantified(&mut self, ast: &AstNode, dst: Slot) {
+    let (AstNode::Some(contexts, satisfies) | AstNode::Every(contexts, satisfies)) = ast else {
+      return;
+    };
+    let text = if !matches!(contexts.as_ref(), AstNode::QuantifiedContexts(_)) {
+      builders::err_msg_expected_node("QuantifiedContexts", contexts)
+    } else {
+      let mut names = std::collections::HashSet::new();
+      match variables(contexts, true).into_iter().find(|(name, _)| !names.insert(*name)) {
+        Some((name, _)) => builders::err_duplicate_iteration_variable(name),
+        None => builders::err_msg_expected_node("Satisfies", satisfies),
+      }
+    };
+    self.fail(dst, text);
+  }
+
   /// The operand of the binder that `node` reads, when it is a name that reads one in a slot.
   fn binder(&self, node: u32) -> Option<Opnd> {
     match &self.resolved.nodes[node as usize].info {
@@ -402,6 +521,9 @@ impl<'a> Lower<'_, 'a> {
       return Err(NotYet { at: rnode.ast });
     }
     match (rnode.ast, read.target) {
+      (_, Target::Place(Place::Partial(record))) => {
+        self.builder.emit(Op::LoadPartial { dst, record });
+      }
       (AstNode::Name(_), Target::Free(free)) => {
         let name = self.resolved.frees[free as usize].name;
         self.builder.emit(Op::LoadName { dst, name });

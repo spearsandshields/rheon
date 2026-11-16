@@ -9,6 +9,7 @@ use std::sync::{Arc, LazyLock, Mutex, Weak};
 
 mod compatibility;
 mod exhaustive;
+mod host_calls;
 mod input_data;
 mod item_definition_graph;
 mod limits;

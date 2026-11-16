@@ -14,6 +14,7 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
     name_lists: vec![],
     calls: vec![],
     searches: vec![],
+    loops: vec![],
     layouts: vec![],
     regions: vec![],
     slots,
@@ -67,7 +68,7 @@ fn verify_rejects_unstructured_code() {
     program(vec![Op::ListPush { src: Opnd::konst(0) }, ret], null(), vec![], 0).verify()
   );
   assert_eq!(
-    at(1, "a list, an invocation or a context type is open at the return"),
+    at(1, "a list, an invocation, a context type or a walk is open at the return"),
     program(vec![Op::ListNew { len: 0 }, ret], null(), vec![], 0).verify()
   );
   let across = vec![Op::Jump { to: 2 }, Op::ListNew { len: 0 }, Op::ListEnd { kind: ListKind::List, dst: 0 }, ret];

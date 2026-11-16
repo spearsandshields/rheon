@@ -5,14 +5,15 @@
 //! order it calls them, and every error, warning and limit is recorded in the evaluation's
 //! diagnostics as that evaluator records it.
 
-use super::program::{Compare, Kernel1, Kernel2, ListKind, NONE, Op, Operand, Opnd, Program};
+use super::program::{Compare, Domain, Kernel1, Kernel2, ListKind, LoopKind, NONE, Op, Operand, Opnd, Pc, Program};
 use super::resolve::{Place, RegionKind};
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
 use crate::invocation::{Arguments, invoke};
+use crate::iterations::Sequence;
 use crate::kernels::{self, Arithmetic, finite};
 use rheon_feel::context::FeelContext;
-use rheon_feel::values::Value;
+use rheon_feel::values::{FeelList, Value};
 use rheon_feel::{FeelScope, FeelType, Name, diagnostics, value_null};
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -45,6 +46,26 @@ struct Vm<'p> {
   types: Vec<BTreeMap<Name, FeelType>>,
   /// The invocations entered, innermost last.
   calls: Vec<diagnostics::Call>,
+  /// The open walks, innermost last: the record of a walk is its index.
+  records: Vec<Record>,
+  /// The domains of the variables that have a value in the open walks, innermost last.
+  domains: Vec<Sequence>,
+}
+
+/// An open walk.
+enum Record {
+  /// The walk of a `for`, `some` or `every` expression.
+  Walk(Walk),
+}
+
+/// The walk of an iteration: the domains from `base` in [Vm::domains] are those of its variables
+/// that have a value, in order; the results so far (of a `for`); and its value when a step,
+/// a domain or the body has decided it.
+struct Walk {
+  info: u32,
+  base: usize,
+  results: FeelList,
+  value: Option<Value>,
 }
 
 impl Drop for Vm<'_> {
@@ -66,6 +87,15 @@ impl<'p> Vm<'p> {
       lists: vec![],
       types: vec![],
       calls: vec![],
+      records: vec![],
+      domains: vec![],
+    }
+  }
+
+  /// The walk of `record`, open by the structure of the code.
+  fn walk(&mut self, record: u32) -> &mut Walk {
+    match &mut self.records[record as usize] {
+      Record::Walk(walk) => walk,
     }
   }
 
@@ -286,7 +316,115 @@ impl<'p> Vm<'p> {
           }
           self.slots[dst as usize] = diagnostics::bound_depth(context.into());
         }
+        Op::LoopOpen { record: _, info } => {
+          let base = self.domains.len();
+          self.records.push(Record::Walk(Walk {
+            info,
+            base,
+            results: FeelList::new(),
+            value: None,
+          }));
+        }
+        Op::LevelPush { record, domain, a, b } => {
+          let a = self.read(a);
+          let domain = match domain {
+            Domain::Interval => Sequence::interval(a, self.read(b)),
+            Domain::Range => Sequence::range(a, self.read(b)),
+            Domain::Of => Ok(Sequence::of(a)),
+          };
+          let walk = self.walk(record);
+          let info = &program.loops[walk.info as usize];
+          pc = match domain {
+            Ok(domain) => {
+              self.domains.push(domain);
+              info.step
+            }
+            Err(reason) => {
+              walk.value = Some(value_null!(reason));
+              info.exit
+            }
+          } as usize;
+        }
+        Op::Step { record } => pc = self.step(record) as usize,
+        Op::Visit { record, src } => {
+          let value = self.read(src);
+          let walk = self.walk(record);
+          let info = &program.loops[walk.info as usize];
+          pc = match info.kind {
+            LoopKind::For => {
+              walk.results.push(value);
+              // the results grow with every iteration, through `partial` by a level in each
+              match diagnostics::bound_list_depth(&walk.results) {
+                Ok(()) => info.step,
+                Err(null) => {
+                  walk.value = Some(null);
+                  info.exit
+                }
+              }
+            }
+            LoopKind::Some | LoopKind::Every => {
+              let decisive = info.kind == LoopKind::Some;
+              match value {
+                Value::Boolean(value) if value != decisive => info.step,
+                Value::Boolean(_) => {
+                  walk.value = Some(Value::Boolean(decisive));
+                  info.exit
+                }
+                _ => {
+                  walk.value = Some(value_null!());
+                  info.exit
+                }
+              }
+            }
+          } as usize;
+        }
+        Op::LoopClose { record: _, dst } => {
+          if let Some(Record::Walk(walk)) = self.records.pop() {
+            let info = &program.loops[walk.info as usize];
+            self.domains.truncate(walk.base);
+            for &(slot, _) in info.levels.iter() {
+              self.slots[slot as usize] = Value::Null(None);
+            }
+            self.slots[dst as usize] = walk.value.unwrap_or_else(|| match info.kind {
+              LoopKind::For => Value::List(walk.results),
+              LoopKind::Some => Value::Boolean(false),
+              LoopKind::Every => Value::Boolean(true),
+            });
+          }
+        }
+        Op::LoadPartial { dst, record } => self.slots[dst as usize] = Value::List(self.walk(record).results.clone()),
         Op::Return { src } => return self.read(src),
+      }
+    }
+  }
+
+  /// The next step of the walk of `record`, as the walk of the evaluator of closures takes it:
+  /// while a variable has a domain, unless the evaluation was stopped, the next value of the
+  /// innermost one, where the code that follows it starts; a domain that has no value left is
+  /// removed, with the value of its variable. Without a domain the walk ends.
+  fn step(&mut self, record: u32) -> Pc {
+    let program = self.program;
+    let Self { records, domains, slots, .. } = self;
+    let Record::Walk(walk) = &mut records[record as usize];
+    let info = &program.loops[walk.info as usize];
+    loop {
+      let Some(level) = (domains.len() - walk.base).checked_sub(1) else {
+        return info.exit;
+      };
+      if diagnostics::stopped() {
+        walk.value = Some(Value::Null(None));
+        return info.exit;
+      }
+      let (slot, bind) = info.levels[level];
+      match domains.last_mut().and_then(Sequence::next_item) {
+        Some(value) => {
+          slots[slot as usize] = value;
+          return bind;
+        }
+        None => {
+          domains.pop();
+          slots[slot as usize] = Value::Null(None);
+        }
       }
     }
   }
@@ -295,7 +433,9 @@ impl<'p> Vm<'p> {
   fn place(&self, place: Place) -> Value {
     match place {
       Place::Slot(slot) => self.slots[slot as usize].clone(),
-      Place::Partial(_) => Value::Null(None),
+      Place::Partial(record) => match &self.records[record as usize] {
+        Record::Walk(walk) => Value::List(walk.results.clone()),
+      },
     }
   }
 

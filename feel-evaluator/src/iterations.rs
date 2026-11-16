@@ -95,7 +95,7 @@ impl Sequence {
   /// value (`1e34 + 1 = 1e34`); such a lost step also ends a number interval, otherwise
   /// `for i in 1e34..1e34 return i` would never end. A date interval ends at its end, or at the
   /// last or the first supported date, where no date follows.
-  fn next_item(&mut self) -> Option<Value> {
+  pub(crate) fn next_item(&mut self) -> Option<Value> {
     match &mut self.0 {
       Items::List(values) => values.next(),
       Items::One(value) => value.take(),

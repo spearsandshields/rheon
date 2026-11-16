@@ -629,40 +629,9 @@ impl<'a> Resolver<'a> {
     self.add(ast, Info::Context { layout, stop }, &kids)
   }
 
-  /// The variables of a `for`, `some` or `every` expression whose shapes bind them: the name of
-  /// each and its domain.
-  fn variables(contexts: &'a AstNode, quantified: bool) -> Vec<(&'a Name, Vec<&'a AstNode>)> {
-    let mut variables = vec![];
-    match contexts {
-      AstNode::IterationContexts(items) if !quantified => {
-        for item in items {
-          match item {
-            AstNode::IterationContextInterval(name, start, end) => {
-              if let AstNode::Name(name) = name.as_ref() {
-                variables.push((name, vec![start.as_ref(), end.as_ref()]));
-              }
-            }
-            AstNode::IterationContextSingle(name, domain) => {
-              if let AstNode::Name(name) = name.as_ref() {
-                variables.push((name, vec![domain.as_ref()]));
-              }
-            }
-            _ => {}
-          }
-        }
-      }
-      AstNode::QuantifiedContexts(items) if quantified => {
-        for item in items {
-          if let AstNode::QuantifiedContext(name, domain) = item
-            && let AstNode::Name(name) = name.as_ref()
-          {
-            variables.push((name, vec![domain.as_ref()]));
-          }
-        }
-      }
-      _ => {}
-    }
-    variables
+  fn for_expression(&mut self, ast: &'a AstNode, contexts: &'a AstNode, body: &'a AstNode) -> u32 {
+    let variables = variables(contexts, false);
+    self.iteration(ast, variables, body, LayoutKind::For)
   }
 
   /// The walk of a `for`, `some` or `every` expression: the domain of the first variable is
@@ -720,17 +689,12 @@ impl<'a> Resolver<'a> {
     self.add(ast, Info::Iteration { layout, record, duplicate }, &kids)
   }
 
-  fn for_expression(&mut self, ast: &'a AstNode, contexts: &'a AstNode, body: &'a AstNode) -> u32 {
-    let variables = Self::variables(contexts, false);
-    self.iteration(ast, variables, body, LayoutKind::For)
-  }
-
   /// A `some` or `every` expression; one whose parts are not of their shapes is evaluated as an
   /// error, and nothing in it is read.
   fn quantified(&mut self, ast: &'a AstNode, contexts: &'a AstNode, satisfies: &'a AstNode) -> u32 {
     match (contexts, satisfies) {
       (AstNode::QuantifiedContexts(_), AstNode::Satisfies(body)) => {
-        let variables = Self::variables(contexts, true);
+        let variables = variables(contexts, true);
         self.iteration(ast, variables, body, LayoutKind::Quantified)
       }
       _ => self.add(ast, Info::None, &[]),
@@ -850,6 +814,43 @@ impl<'a> Resolver<'a> {
     }
     self.add(ast, Info::None, &kids)
   }
+}
+
+/// The variables of a `for` (or, `quantified`, of a `some` or `every`) expression whose shapes
+/// bind them, in order: the name of each and the parts of its domain (the start and the end of an
+/// interval, or the one expression of its values).
+pub(crate) fn variables(contexts: &AstNode, quantified: bool) -> Vec<(&Name, Vec<&AstNode>)> {
+  let mut variables = vec![];
+  match contexts {
+    AstNode::IterationContexts(items) if !quantified => {
+      for item in items {
+        match item {
+          AstNode::IterationContextInterval(name, start, end) => {
+            if let AstNode::Name(name) = name.as_ref() {
+              variables.push((name, vec![start.as_ref(), end.as_ref()]));
+            }
+          }
+          AstNode::IterationContextSingle(name, domain) => {
+            if let AstNode::Name(name) = name.as_ref() {
+              variables.push((name, vec![domain.as_ref()]));
+            }
+          }
+          _ => {}
+        }
+      }
+    }
+    AstNode::QuantifiedContexts(items) if quantified => {
+      for item in items {
+        if let AstNode::QuantifiedContext(name, domain) = item
+          && let AstNode::Name(name) = name.as_ref()
+        {
+          variables.push((name, vec![domain.as_ref()]));
+        }
+      }
+    }
+    _ => {}
+  }
+  variables
 }
 
 #[cfg(test)]

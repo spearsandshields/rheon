@@ -127,6 +127,28 @@ pub(crate) enum ListKind {
   ParameterTypes,
 }
 
+/// The kinds of the domains of iteration variables.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Domain {
+  /// The numbers or dates from the first operand to the second (`a..b`).
+  Interval,
+  /// The numbers or dates of a range literal of a `for` (`[a..b]`), from its start and end.
+  Range,
+  /// The items of the value of the first operand, or the value itself when it is no list.
+  Of,
+}
+
+/// The kinds of iterations.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LoopKind {
+  /// `for`: the list of the values of the body.
+  For,
+  /// `some`: whether the body is `true` for some combination of the variables.
+  Some,
+  /// `every`: whether the body is `true` for every combination of the variables.
+  Every,
+}
+
 /// An instruction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Op {
@@ -207,6 +229,23 @@ pub(crate) enum Op {
   /// `dst` is the context of the entries of `layouts[layout]`, whose values are moved out of their
   /// slots, nested no deeper than values may nest.
   Context { dst: Slot, layout: Ix },
+  /// Opens the iteration `loops[info]`, whose walk is the record `record`: no variable has a
+  /// value yet.
+  LoopOpen { record: u32, info: Ix },
+  /// Adds the domain of the next variable to the walk of `record`, from the values of `a` and `b`,
+  /// and continues at the walk's step; a domain that fails ends the walk with its null.
+  LevelPush { record: u32, domain: Domain, a: Opnd, b: Opnd },
+  /// The next combination of the values of the variables of the walk of `record`: the next value
+  /// of the innermost variable that has one, whose domain or body follows; the walk ends when no
+  /// variable has one, or when the evaluation was stopped.
+  Step { record: u32 },
+  /// The value of `src` of the body for one combination of the walk of `record`: a `for` adds it
+  /// to its results, a `some` or an `every` ends at a value that decides; then the next step.
+  Visit { record: u32, src: Opnd },
+  /// Closes the walk of `record`: `dst` is the value of the iteration.
+  LoopClose { record: u32, dst: Slot },
+  /// `dst` is the results so far of the `for` whose walk is `record` (`partial`).
+  LoadPartial { dst: Slot, record: u32 },
   /// Ends the run with the value of `src`.
   Return { src: Opnd },
 }
@@ -224,6 +263,17 @@ pub(crate) struct CallInfo {
   pub(crate) argc: u32,
   pub(crate) names: Ix,
   pub(crate) region: u32,
+}
+
+/// An iteration: its kind, where its walk takes the next step, where it ends (at its
+/// [Op::LoopClose]), and for each variable in order its slot and where the code that follows a
+/// new value of it starts (the domain of the next variable, or the body).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct LoopInfo {
+  pub(crate) kind: LoopKind,
+  pub(crate) step: Pc,
+  pub(crate) exit: Pc,
+  pub(crate) levels: Box<[(Slot, Pc)]>,
 }
 
 /// A qualified-name search: the segments in [Program::name_lists], the index of the first one in
@@ -253,6 +303,8 @@ pub(crate) struct Program {
   pub(crate) calls: Vec<CallInfo>,
   /// The qualified-name searches.
   pub(crate) searches: Vec<SearchInfo>,
+  /// The iterations.
+  pub(crate) loops: Vec<LoopInfo>,
   /// The binders of each binding construct, as name resolution placed them.
   pub(crate) layouts: Vec<Layout>,
   /// The scopes at the positions of the code, as name resolution found them.
@@ -363,6 +415,19 @@ impl Program {
           check.slot(dst)?;
           check.layout(layout)?;
         }
+        Op::LoopOpen { info, .. } => {
+          check.index(info, self.loops.len(), "iteration out of range")?;
+          for &(slot, _) in self.loops[info as usize].levels.iter() {
+            check.slot(slot)?;
+          }
+        }
+        Op::LevelPush { a, b, .. } => {
+          check.opnd(a)?;
+          check.opnd(b)?;
+        }
+        Op::Visit { src, .. } => check.opnd(src)?,
+        Op::Step { .. } => {}
+        Op::LoopClose { dst, .. } | Op::LoadPartial { dst, .. } => check.slot(dst)?,
         Op::Return { src } => check.opnd(src)?,
       }
     }
@@ -383,19 +448,44 @@ impl Program {
 }
 
 impl Program {
-  /// Checks that every jump goes forward to an instruction of the code, and that lists and
-  /// invocations are opened and closed in nesting order on every path: the code is structured,
-  /// so what is open at an instruction is what is open there in the order of the code, the same
-  /// from every jump. An [Op::Enter] that refuses continues past its [Op::Leave], with what was
-  /// open before it.
+  /// Checks that every jump goes forward to an instruction of the code, and that lists,
+  /// invocations, context types and walks are opened and closed in nesting order on every path:
+  /// the code is structured, so what is open at an instruction is what is open there in the
+  /// order of the code, the same from every jump. An [Op::Enter] that refuses continues past its
+  /// [Op::Leave], with what was open before it. A walk is the record of its nesting depth, and the
+  /// only jumps back are those of a walk to its step, inside it.
   fn verify_structure(&self) -> Result<(), VerifyError> {
-    // the open lists, invocations and context types before each instruction
+    // the open lists, invocations, context types and walks before each instruction
     let mut open = Vec::with_capacity(self.code.len() + 1);
     let (mut lists, mut calls, mut types) = (0_u32, 0_u32, 0_u32);
+    let mut records: Vec<(u32, Pc)> = vec![];
     for (at, op) in self.code.iter().enumerate() {
-      open.push((lists, calls, types));
+      open.push((lists, calls, types, records.len() as u32));
       let fail = |what| Err(VerifyError { at: at as Pc, what });
       match *op {
+        Op::LoopOpen { record, info } => {
+          if info as usize >= self.loops.len() {
+            return fail("iteration out of range");
+          }
+          if record as usize != records.len() {
+            return fail("a walk that is not the record of its depth");
+          }
+          records.push((info, at as Pc));
+        }
+        Op::LevelPush { record, .. } | Op::Step { record } | Op::Visit { record, .. } | Op::LoadPartial { record, .. } if record as usize >= records.len() => {
+          return fail("no walk of the record is open");
+        }
+        Op::LoopClose { record, .. } => {
+          if records.len() != record as usize + 1 {
+            return fail("a walk closed out of order");
+          }
+          let (info, opened) = records.pop().unwrap_or_default();
+          let info = &self.loops[info as usize];
+          let inside = |pc: Pc| pc > opened && pc <= at as Pc;
+          if info.exit != at as Pc || !inside(info.step) || info.levels.iter().any(|&(_, bind)| !inside(bind)) {
+            return fail("a walk whose steps are not inside it");
+          }
+        }
         Op::ListNew { .. } => lists += 1,
         Op::ListPush { .. } if lists == 0 => return fail("no list is open"),
         Op::ListEnd { .. } if lists == 0 => return fail("no list is open"),
@@ -407,8 +497,32 @@ impl Program {
         Op::TypeAdd { .. } if types == 0 => return fail("no context type is open"),
         Op::TypeEnd { .. } if types == 0 => return fail("no context type is open"),
         Op::TypeEnd { .. } => types -= 1,
-        Op::Return { .. } if lists != 0 || calls != 0 || types != 0 => return fail("a list, an invocation or a context type is open at the return"),
+        Op::Return { .. } if lists != 0 || calls != 0 || types != 0 || !records.is_empty() => return fail("a list, an invocation, a context type or a walk is open at the return"),
         _ => {}
+      }
+    }
+    if !records.is_empty() {
+      return Err(VerifyError {
+        at: self.code.len() as Pc,
+        what: "a walk is not closed",
+      });
+    }
+    // the targets of the walks: what is open there is what is open inside the walk
+    for (at, op) in self.code.iter().enumerate() {
+      if let Op::LoopOpen { info, .. } = *op {
+        let info = &self.loops[info as usize];
+        let inside = open[at + 1];
+        for target in std::iter::once(info.step)
+          .chain(info.levels.iter().map(|&(_, bind)| bind))
+          .chain(std::iter::once(info.exit))
+        {
+          if open.get(target as usize) != Some(&inside) {
+            return Err(VerifyError {
+              at: at as Pc,
+              what: "a walk that jumps across a list, an invocation or a context type",
+            });
+          }
+        }
       }
     }
     for (at, op) in self.code.iter().enumerate() {
@@ -416,7 +530,7 @@ impl Program {
         Op::Jump { to } | Op::JumpUnlessTrue { to, .. } | Op::AndLeft { to, .. } | Op::OrLeft { to, .. } => (to, open.get(at + 1).copied()),
         Op::Enter { skip, .. } => (skip, Some(open[at])),
         // a failure closes the context type
-        Op::TypeAdd { fail, .. } => (fail, Some((open[at].0, open[at].1, open[at].2 - 1))),
+        Op::TypeAdd { fail, .. } => (fail, Some((open[at].0, open[at].1, open[at].2 - 1, open[at].3))),
         _ => continue,
       };
       let fail = |what| Err(VerifyError { at: at as Pc, what });
@@ -494,6 +608,7 @@ pub(crate) struct ProgramBuilder {
   name_lists: Vec<Box<[Name]>>,
   calls: Vec<CallInfo>,
   searches: Vec<SearchInfo>,
+  loops: Vec<LoopInfo>,
 }
 
 impl ProgramBuilder {
@@ -546,6 +661,22 @@ impl ProgramBuilder {
     self.calls.len() as Ix - 1
   }
 
+  /// The index of the iteration `info` in the program.
+  pub(crate) fn iteration(&mut self, info: LoopInfo) -> Ix {
+    self.loops.push(info);
+    self.loops.len() as Ix - 1
+  }
+
+  /// The iteration `info`, as built so far.
+  pub(crate) fn iteration_mut(&mut self, info: Ix) -> &mut LoopInfo {
+    &mut self.loops[info as usize]
+  }
+
+  /// The position of the next instruction.
+  pub(crate) fn here(&self) -> Pc {
+    self.code.len() as Pc
+  }
+
   /// The index of the search `search` in the program.
   pub(crate) fn search(&mut self, search: SearchInfo) -> Ix {
     self.searches.push(search);
@@ -563,6 +694,7 @@ impl ProgramBuilder {
       name_lists: self.name_lists,
       calls: self.calls,
       searches: self.searches,
+      loops: self.loops,
       layouts,
       regions,
       slots,

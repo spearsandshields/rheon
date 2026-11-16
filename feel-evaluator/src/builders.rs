@@ -952,8 +952,8 @@ fn binary(operator: Arithmetic, lhe: Evaluator, rhe: Evaluator) -> Evaluator {
 fn iteration(variables: Vec<(Name, Domain)>) -> std::result::Result<Iteration, Evaluator> {
   let mut names = HashSet::new();
   if let Some((name, _)) = variables.iter().find(|(name, _)| !names.insert(name)) {
-    let name = name.clone();
-    return Err(Box::new(move |_: &FeelScope| value_null!("duplicate iteration variable '{}'", arg(&name))));
+    let text = err_duplicate_iteration_variable(name);
+    return Err(Box::new(move |_: &FeelScope| value_null!(text)));
   }
   Ok(Iteration::new(variables))
 }
@@ -980,6 +980,11 @@ pub(crate) fn err_msg_expected_positional_or_named_parameter(actual: &AstNode) -
 /// Returns an error message when expected only a parameter name.
 pub(crate) fn err_expected_parameter_name(actual: &AstNode) -> String {
   format!("expected AST node ParameterName, actual node is {actual:?}")
+}
+
+/// The error of an iteration whose variable `name` is named twice.
+pub(crate) fn err_duplicate_iteration_variable(name: &Name) -> String {
+  format!("duplicate iteration variable '{}'", arg(name))
 }
 
 /// Returns an error message when expected only a parameter name.

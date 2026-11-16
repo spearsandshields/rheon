@@ -48,7 +48,7 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 
 #[test]
 fn constructs_not_lowered_yet_are_refused() {
-  for text in ["{a: function(x) x}", "for i in [1] return i", "[1][1]", "function(x) x"] {
+  for text in ["{a: function(x) x}", "for i in [1] return [1][i]", "[1][1]", "function(x) x"] {
     refused(text);
   }
 }
@@ -441,4 +441,141 @@ fn a_context_with_an_entry_that_is_no_entry_is_refused() {
   let entry = |key: &str| AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(Name::from(key))), Box::new(AstNode::Null));
   let node = AstNode::Context(vec![entry("a"), AstNode::Null]);
   assert!(crate::flat::lower::lower(crate::flat::resolve::resolve(&node), Dialect::Feel).is_err());
+}
+
+#[test]
+fn for_walks_every_combination_of_its_variables() {
+  for text in [
+    "for i in 1..3 return i",
+    "for i in 3..1 return i",
+    "for i in 1..1 return i",
+    "for i in [1, 2, 3] return i * 2",
+    "for i in [1..3] return i",
+    "for i in [3..1] return i",
+    "for i in (1..3] return i",
+    "for i in [1..3) return i",
+    "for i in 1 return i",
+    "for i in null return i",
+    "for i in [] return i",
+    "for i in [null, 1] return i",
+    "for d in @\"2024-02-27\"..@\"2024-03-01\" return d",
+    "for d in [@\"2024-02-28\"..@\"2024-03-01\"] return d",
+    "for i in \"a\"..3 return i",
+    "for i in 1..\"b\" return i",
+    "for i in @\"2024-01-01\"..3 return i",
+    "for i in 1..2, j in [i, i + 1] return [i, j]",
+    "for i in 1..3, j in 1..i return j",
+    "for i in [], j in [1] return j",
+    "for i in [1, 2], j in [] return j",
+    "for i in [1, 2], j in \"x\"..1 return j",
+    "for i in [1, 2], j in [i], k in [j, i] return i + j + k",
+    "for i in 1..3 return partial",
+    "for i in 1..4 return count(partial) + i",
+    "for i in 1..3 return sum(partial) + i",
+    "count(for i in 1..600 return partial)",
+    "for i in [1], i in [2] return i",
+    "for i in 1..3 return {x: i, y: x + i}",
+    "{a: 1, r: for i in 1..3 return i + a}.r",
+    "for c in [{a: 1}, {a: 2}] return c.a",
+    "for i in 1..2 return for j in 1..i return [i, j, count(partial)]",
+    "for i in 1..1000 return [x(i), 1 + null]",
+    "for i in [1, \"a\", true] return i + 1",
+  ] {
+    agree(text);
+    agree_in(Dialect::BFeel, "", text);
+  }
+}
+
+#[test]
+fn a_variable_named_partial_is_hidden_in_later_domains() {
+  for text in [
+    "for partial in [1, 2] return partial",
+    "for partial in [1, 2], y in [partial] return y",
+    "for x in [1, 2], partial in [x] return partial",
+    "for x in [1, 2], partial in [x], y in [partial] return [x, y]",
+    "for partial in [abs], y in [partial(-1)] return y",
+    "for i in 1..2, j in [partial] return j",
+  ] {
+    agree(text);
+    agree_with("{partial: 7}", text);
+  }
+}
+
+#[test]
+fn some_and_every_end_at_a_value_that_decides() {
+  for text in [
+    "some x in [1, 2, 3] satisfies x > 2",
+    "some x in [1, 2, 3] satisfies x > 5",
+    "every x in [1, 2, 3] satisfies x > 0",
+    "every x in [1, 2, 3] satisfies x > 1",
+    "some x in [1, 2] satisfies x",
+    "every x in [true, null, false] satisfies x",
+    "some x in [false, \"a\", true] satisfies x",
+    "every x in [] satisfies false",
+    "some x in [] satisfies true",
+    "some x in 5 satisfies x = 5",
+    "some x in [1, 2], y in [x, 3] satisfies x + y = 4",
+    "every x in [1, 2], y in [x] satisfies x = y",
+    "some x in [1], x in [2] satisfies true",
+    "some partial in [1, 2], y in [partial] satisfies y = 2",
+    "every x in [1, 2] satisfies partial = null",
+    "some x in [1..3] satisfies x = 2",
+  ] {
+    agree(text);
+    agree_in(Dialect::BFeel, "", text);
+  }
+}
+
+#[test]
+fn malformed_iterations_are_the_builders_errors() {
+  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  let (some, for_expression) = (parse("some x in [1], x in [2] satisfies x > 0"), parse("for i in [1] return i"));
+  let (AstNode::Some(contexts, satisfies), AstNode::For(iteration_contexts, body)) = (&some, &for_expression) else {
+    panic!("not a some and a for");
+  };
+  let scope = scope("");
+  for node in [
+    AstNode::Some(Box::new(AstNode::Null), satisfies.clone()),
+    AstNode::Every(contexts.clone(), Box::new(AstNode::Null)),
+    AstNode::Every(Box::new(AstNode::QuantifiedContexts(vec![])), Box::new(AstNode::Null)),
+    AstNode::Some(Box::new(AstNode::QuantifiedContexts(vec![])), satisfies.clone()),
+    AstNode::For(Box::new(AstNode::Null), body.clone()),
+    AstNode::For(Box::new(AstNode::IterationContexts(vec![AstNode::Null])), body.clone()),
+    AstNode::For(iteration_contexts.clone(), Box::new(AstNode::Null)),
+  ] {
+    agree_node(Dialect::Feel, &scope, &node);
+  }
+}
+
+#[test]
+fn a_function_of_the_host_sees_the_variables_of_the_walk() {
+  // the bodies read `i`, `j` and `partial`, which only the scope of the invocation has
+  let input = "{f: function(x) x + i, g: function(x) count(partial), h: function(x) [x, partial, i]}";
+  for text in [
+    "for i in 1..3 return f(i)",
+    "for i in 1..3 return g(i)",
+    "for i in 1..2, j in h(i) return j",
+    "for i in 1..2, j in [f(0)] return j",
+    "some i in [1, 2] satisfies f(i) = 4",
+    "{i: 10, r: for j in 1..2 return f(j)}.r",
+    "for i in 1..2 return {j: i, r: h(j)}",
+  ] {
+    agree_with(input, text);
+  }
+}
+
+#[test]
+fn qualified_names_search_the_variables_of_a_walk() {
+  let segments = |names: &[&str]| AstNode::QualifiedName(names.iter().map(|name| AstNode::QualifiedNameSegment(Name::from(*name))).collect());
+  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  let for_expression = parse("for c in [{b: 1}, {b: 2, c: 3}, 4] return c");
+  let AstNode::For(contexts, _) = &for_expression else {
+    panic!("not a for");
+  };
+  for input in ["", "{c: {b: 5}}"] {
+    let scope = scope(input);
+    for names in [&["c", "b"][..], &["c"], &["c", "c"], &["partial"]] {
+      agree_node(Dialect::Feel, &scope, &AstNode::For(contexts.clone(), Box::new(segments(names))));
+    }
+  }
 }
