@@ -133,6 +133,40 @@ fn reference_run(mut parser: oracle::parser::Parser<'_>, input: &str) -> Run {
 /// and the production behaviour. Returns the name of the fix when the difference between
 /// `reference` and `production` is one of them.
 fn registered_difference(start: &str, input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
+  // A number followed by an exponent letter without exponent digits (`1e`, `1.5E+`, `2e x`):
+  // - reference: the letter and a sign after it are part of the number, whose exponent is empty;
+  // - production: the number ends before the letter (DMN 1.6 grammar rule 35), and the letter
+  //   starts the next token, a name or a keyword.
+  let numeric = TokenType::Numeric as i16;
+  let common = reference.tokens.iter().zip(&production.tokens).take_while(|(a, b)| a == b).count();
+  // the number is the first token that differs (the reference keeps the sign it read) or the
+  // token before it
+  let is_number = |tokens: &[(i16, String, usize)], index: usize| tokens.get(index).is_some_and(|(tt, _, _)| *tt == numeric);
+  let at_number = if is_number(&reference.tokens, common) && is_number(&production.tokens, common) {
+    Some(common)
+  } else {
+    common.checked_sub(1)
+  };
+  if let Some(index) = at_number
+    && let (Some((_, value, at)), Some((_, reference_value, reference_at))) = (production.tokens.get(index), reference.tokens.get(index))
+    && is_number(&production.tokens, index)
+    && is_number(&reference.tokens, index)
+    && at == reference_at
+    && value.ends_with(r#"'+', "")"#)
+    && reference_value.ends_with(r#"', "")"#)
+    && value[..value.len() - 8] == reference_value[..reference_value.len() - 8]
+  {
+    // the digits of the number and its point, then the letter that no exponent follows
+    let rest = input[*at..].trim_start_matches(|ch: char| ch.is_ascii_digit() || ch == '.');
+    let mut after = rest.chars();
+    if matches!(after.next(), Some('e' | 'E')) {
+      let next = after.next();
+      let digit = if matches!(next, Some('+' | '-')) { after.next() } else { next };
+      if !digit.is_some_and(|ch| ch.is_ascii_digit()) {
+        return Some("an exponent letter without exponent digits");
+      }
+    }
+  }
   // A string literal or a block comment that the input does not close (`1 + 2 "abc`, `1 /* abc`):
   // - reference: the end of the input where the literal or the comment starts, so the tokens
   //   before it are the whole input (`1 + 2 "abc` is the sum);
@@ -385,11 +419,13 @@ fn registered_fixes_differ_as_registered() {
     r#"(date and time(from: "2012-01-01T10:00:00")..10]"#,
     r#"]"a"..duration(from: "P1D\"x")["#,
   ];
+  let exponents = ["1e", "1e+", "1E-", "1.5e", "2e x", "1e + 2", "1else", "[1e, 2]", "1e+ 3"];
   let unclosed = ["1 + 2 \"abc", "\"", "1 \"a\\\"b", "1 /* abc", "/*", "1 /* a */ + 2 /* b *", "1 /*/"];
   for (inputs, rule, fix) in [
     (&in_names[..], 0, "a name starting with `in` in iteration-variable mode"),
     (&range_literals[..], 8, "a named temporal parameter in a range literal"),
     (&unclosed[..], 0, "a string literal or a block comment that is not closed"),
+    (&exponents[..], 0, "an exponent letter without exponent digits"),
   ] {
     let (name, start, reference_start) = &START_RULES[rule];
     for input in inputs {

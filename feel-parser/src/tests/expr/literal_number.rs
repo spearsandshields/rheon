@@ -130,3 +130,21 @@ fn _0013() {
     "#;
   accept(&scope!(), StartExpression, input, expected, false);
 }
+
+/// The letter of an exponent belongs to a number only when exponent digits follow it, after an
+/// optional sign (grammar rule 35): otherwise the number ends before the letter.
+#[test]
+fn exponent_letter_needs_exponent_digits() {
+  let scope = scope!();
+  let parse = |input: &str| Parser::new(&scope, StartExpression, input, false).parse().map(|node| node.trace());
+  for input in ["1e", "1e+", "1E-", "1.5e", "1e + 2", "1e+ 3", ".5e", "1e.5", "1ee5", "1e+-5"] {
+    assert!(parse(input).is_err(), "{input}: {:?}", parse(input));
+  }
+  for (input, digits) in [("1e5", "`1e+5`"), ("1E+5", "`1e+5`"), ("1.5e-10", "`1.5e-10`"), ("2e0", "`2e+0`"), (".5E3", "`0.5e+3`")] {
+    let tree = parse(input).unwrap();
+    assert!(tree.contains("Numeric") && tree.contains(digits), "{input}: {tree}");
+  }
+  // the letter starts the next token
+  let conditional = parse("if true then 1else 2").unwrap();
+  assert!(conditional.contains("If"), "{conditional}");
+}

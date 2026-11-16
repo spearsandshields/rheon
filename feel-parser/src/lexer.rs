@@ -645,7 +645,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
             self.position += 1;
             state = 2
           }
-          'e' | 'E' => {
+          'e' | 'E' if self.exponent_follows() => {
             // consume exponent letter
             self.position += 1;
             state = 3
@@ -659,7 +659,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
             digits_after.push(ch);
             self.position += 1;
           }
-          'e' | 'E' => {
+          'e' | 'E' if self.exponent_follows() => {
             // consume exponent letter
             self.position += 1;
             state = 3
@@ -704,6 +704,17 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       digits_before.push('0');
     }
     Ok((TokenType::Numeric, TokenValue::Numeric(digits_before, digits_after, exponent_sign, digits_exponent)))
+  }
+
+  /// Returns `true` when the digits of an exponent follow the exponent letter at the position,
+  /// after an optional sign: only then the letter belongs to the number (DMN 1.6 grammar rule
+  /// 35). Otherwise the number ends before the letter.
+  fn exponent_follows(&self) -> bool {
+    match self.char_at(1) {
+      Some('+' | '-') => self.is_digit_at(2),
+      Some(ch) => is_digit(ch),
+      None => false,
+    }
   }
 
   /// Consumes a name.
