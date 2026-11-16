@@ -83,12 +83,6 @@ was written.
   reads such a part only right after an additional name symbol (`.`, `/`, `-`, `'`, `+`, `*`).
   The composite search visits up to (nested contexts) × (separators in the candidate + 1)
   states per candidate.
-- **Filters evaluate their expression once more in the outer scope** `[fork]`. After
-  evaluating the expression for every item, the filter evaluates it once in the enclosing scope
-  to decide between indexing and filtering (`FilterExpressionEvaluator::evaluate`). A predicate
-  that names an item entry fails there: in strict mode `sum(items[amount > 100].amount)` is the
-  error "context has no value for key 'amount'" (lenient mode returns the sum with two
-  diagnostics). Indexing (`list[i]`) evaluates the index once per item as well.
 - **Boxed contexts write into the context below them** `[fork]`. The boxed context evaluator
   (`build_context_evaluator`, `model-evaluator/src/boxed_expressions.rs`) pushes no context of
   its own when it evaluates: it writes each entry into the context on the top of the scope. The
@@ -101,8 +95,9 @@ was written.
   by boxed function bodies depend on these writes (*Closures are not lexical* below), so the two
   change together. These writes are also why a loop and a filter push their contexts shared and
   read `partial` back from the frame the body ran in (`feel-evaluator/src/iterations.rs`,
-  `filters.rs`): no FEEL expression writes into a frame it did not push, so both would go with
-  the writes.
+  `filters.rs`), and why a filter evaluates its expression in the enclosing scope in an empty
+  frame of its own: no FEEL expression writes into a frame it did not push, so all of them would
+  go with the writes.
 - **Rust `==` on values is a tree walk** `[fork]`. The derived `PartialEq` of `Value` follows
   every path, so two values built apart that hold the same lists or contexts on many paths take
   time exponential in the sharing. FEEL equality visits each shared pair once, but the native

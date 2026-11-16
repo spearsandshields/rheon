@@ -2976,6 +2976,55 @@ their items with both answers. The totals are under "Verification" below.
     before. Identity step: the tests of `feel-evaluator/src/tests/filter.rs` and the index
     requests of `tools/identity/requests/filters.json` (0, a non-integer, beyond 2⁶⁴, on an empty
     and a non-empty list) answer as before. No API change.
+170. **A filter expression is evaluated once in the enclosing scope, and a number selects.** A
+    filter `l[e]` over a list evaluated `e` for every item with the item in scope, then once more
+    in the enclosing scope, and only then looked whether that gave a number. So an index was
+    evaluated once per item (`count(for i in 1..count(items) return items[i].amount)` was
+    quadratic in the list), every error of both passes was recorded (`sum(items[amount > 100].amount)`
+    had two errors for the name `amount` in the enclosing scope and failed in strict mode), and a
+    type error of the per-item pass hid an index that the enclosing scope defines. DMN 1.6
+    Table 69 maps row 1 ("e1 is a list and e2 is an integer") in the enclosing scope and the
+    boolean rows in the scope with the item. The filter now evaluates `e` once in the enclosing
+    scope first: a number selects the item at once (`item_at`, item 169) and its errors stay;
+    anything else selects nothing, so what that evaluation recorded is removed and `e` is
+    evaluated for each item as before. An abort in it is never removed: the evaluation stops. The
+    removal is `rheon_feel::diagnostics::tentative`, which returns a mark of what the running
+    collection held (`Tentative`; dropping it keeps the records, `Tentative::discard` sets the
+    count back and cuts the messages and the warnings to their marked lengths, exact at the cap
+    and after a repeat of the message before the mark, and nothing when no collection runs). The
+    evaluation in the enclosing scope runs in an empty frame of its own, so what a boxed context
+    as the match of a boxed filter writes into the frame on the top (model-evaluator) is dropped
+    with it: on the parent that evaluation came after the items and wrote into the enclosing
+    frame, where a later entry of an enclosing boxed context read it (a new pin of
+    `model-evaluator/src/tests/various/dmn_0008`: `seen` of the match was 1 there and is now
+    null with "context has no value for key 'seen'"; the other pins of that model, an entry
+    reading a later entry among them, answer as before). Tests first:
+    `feel/src/diagnostics.rs` (a discarded mark, at the cap, after a repeat, with a nested
+    collection, outside a collection; a kept mark; an abort survives), and
+    `feel-evaluator/src/tests/filter.rs` (an index evaluator that counts its runs runs once
+    for `list[2]` over 1,000 items, 1,001 times on the parent; the requests below), and
+    `wasm/feel-wasm/tests/contract.rs` (strict mode), failing on the parent; the pins of frames
+    that a caller's evaluator removes or writes are kept, with the evaluation in the enclosing
+    scope added. Answers change (`tools/identity/registered/filter-probe.json`,
+    `docs/CONTRACT.md` section 3, the backlog entry on the outer evaluation removed): 14
+    requests of the committed sets change their result or their error (strict mode passes on
+    filters over item entries and on `[][1 + "a"]`; `{a: 2, r: [{a: "x"}, {a: "y"}][a]}.r` is
+    `{a: "y"}` instead of the null of a string index; an index the enclosing scope defines
+    selects where the items' scope ran a runaway recursion, `5` instead of the call-depth error;
+    and one change for the worse, where the expression is a type error for the items and a
+    runaway recursion in the enclosing scope, `{f: function(n) f(n + 1), r: [{g: "s"}][if g =
+    "s" then "x" else f(1)]}.r`, is now the call-depth error instead of null), and 59 lose only
+    errors or warnings of the enclosing-scope evaluation, explained by one rule entry
+    (`[1, 2, 3][1 + "a"]` has 3 errors instead of 4, `[10, 20, 30][count([1 + "a"])]` 1 instead
+    of 4; the error counts of five rows of `feel-evaluator/src/tests/values_used_again.rs` fall
+    the same way). The official TCK has no filter whose expression is a name or a path, and its boxed
+    filter tests 1151 004 and 005 keep their null. Rust API (`rheon-feel`): the added
+    `diagnostics::tentative` and `diagnostics::Tentative`. Measured (wasm, Node 26, Apple M2,
+    the median of warm calls on one instance): `count(for i in 1..count(items) return
+    items[i].amount)` over 1,000 contexts takes 0.938 ms and over 10,000 contexts 8.65 ms, 9.2
+    times as long, where the module of item 169 took 57.3 ms and 5,591 ms (one cold call each,
+    as the module of item 167: 56.7 ms and 5,548 ms; warm, 56.7 ms and 5,561 ms, 98 times as
+    long), so the index loop is linear in the list.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -225,4 +225,40 @@
             </match>
         </filter>
     </decision>
+    <decision name="filter leaves the enclosing scope" id="_d9">
+        <description>A boxed filter in a boxed context, whose match is a boxed context with an entry seen: a later entry of the enclosing boxed context reads seen.</description>
+        <variable name="filter leaves the enclosing scope"/>
+        <context>
+            <contextEntry>
+                <variable name="r"/>
+                <filter>
+                    <in>
+                        <literalExpression>
+                            <text>[1, 2]</text>
+                        </literalExpression>
+                    </in>
+                    <match>
+                        <context>
+                            <contextEntry>
+                                <variable name="seen"/>
+                                <literalExpression>
+                                    <text>1</text>
+                                </literalExpression>
+                            </contextEntry>
+                            <contextEntry>
+                                <literalExpression>
+                                    <text>true</text>
+                                </literalExpression>
+                            </contextEntry>
+                        </context>
+                    </match>
+                </filter>
+            </contextEntry>
+            <contextEntry>
+                <literalExpression>
+                    <text>[r, seen]</text>
+                </literalExpression>
+            </contextEntry>
+        </context>
+    </decision>
 </definitions>

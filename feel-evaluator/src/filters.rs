@@ -22,8 +22,8 @@ fn outcome(predicate: Value) -> Result<bool, Value> {
 }
 
 /// The null that ends the filter when the evaluation was stopped ([diagnostics::stopped]), read
-/// before each item and before the filter expression is evaluated once more for an index: the
-/// abort, not a value, is the outcome of the evaluation.
+/// before each item and before the result is given: the abort, not a value, is the outcome of
+/// the evaluation.
 fn stopped() -> Result<(), Value> {
   if diagnostics::stopped() { Err(Value::Null(None)) } else { Ok(()) }
 }
@@ -82,6 +82,24 @@ fn kept_items(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Res
   Ok(kept)
 }
 
+/// The context that [lost_context] names when the filter expression, evaluated in the enclosing
+/// scope, removed the frame it was given (no FEEL expression does).
+const ENCLOSING_FRAME: &str = "frame of a filter expression in the enclosing scope";
+
+/// Evaluates the filter expression in the enclosing scope, tentatively ([diagnostics::tentative]),
+/// in an empty frame of its own on top of it: what the expression writes into the context on the
+/// top of the scope (a boxed context as the match of a boxed filter does, model-evaluator) is
+/// dropped with that frame, so neither the enclosing scope nor the items see it.
+fn evaluate_in_own_frame(scope: &FeelScope, evaluator: &Evaluator) -> Result<(Value, diagnostics::Tentative), Value> {
+  let depth = scope.depth();
+  scope.push(FeelContext::default());
+  let probe = diagnostics::tentative(|| evaluator(scope));
+  if scope.pop_frame(depth).is_none() {
+    return Err(lost_context(ENCLOSING_FRAME));
+  }
+  Ok(probe)
+}
+
 /// The item of a list at the index of a filter (DMN 1.6 Table 69, "e1 is a list and e2 is an
 /// integer"): counted from the first item when it is positive and from the last when it is
 /// negative. Null when the list is empty, whatever the index is; otherwise null with its reason
@@ -124,15 +142,22 @@ impl FilterExpressionEvaluator {
 
   pub fn evaluate(&self, scope: &FeelScope, value: Value, evaluator: &Evaluator) -> Value {
     match value {
+      // DMN 1.6 Table 69: a number in the enclosing scope selects an item (row 1); otherwise the
+      // expression is evaluated for each item, with the item in scope (the boolean rows)
       Value::List(values) => {
-        let kept = match kept_items(scope, &values, evaluator).and_then(|kept| stopped().map(|()| kept)) {
-          Ok(kept) => kept,
+        let (probe, mark) = match evaluate_in_own_frame(scope, evaluator) {
+          Ok(probe) => probe,
           Err(null) => return null,
         };
-        match evaluator(scope) {
-          Value::Number(index) => item_at(&values, index),
-          _ => Value::List(kept.into()),
-        }
+        let result = match probe {
+          Value::Number(index) => stopped().map(|()| item_at(&values, index)),
+          _ => {
+            // an evaluation that selects no item does not count: what it recorded is removed
+            mark.discard();
+            kept_items(scope, &values, evaluator).and_then(|kept| stopped().map(|()| Value::List(kept.into())))
+          }
+        };
+        result.unwrap_or_else(|null| null)
       }
       // A filter on a non-list value applies to the singleton list containing it (implicit
       // conversion to singleton list, DMN 1.6 §10.3.2.9.4, DMN16-94), so `item` and the context

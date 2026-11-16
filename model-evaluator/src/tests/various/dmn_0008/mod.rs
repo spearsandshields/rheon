@@ -1,7 +1,7 @@
 //! What a boxed context writes in the body of a boxed `for` or as the match of a boxed filter. A
 //! boxed context writes each named entry into the context on the top of the scope: in a boxed
 //! `for` that is the iteration context, in a boxed filter the context of the item. These tests pin
-//! what the next iteration, the next item and the result see of those writes.
+//! what the next iteration, the next item, the result and the enclosing scope see of those writes.
 
 use super::super::*;
 
@@ -38,4 +38,10 @@ fn _0002() {
   decision("filter writes an entry of the item", "[]");
   // an entry is not seen by the entries before it
   decision("filter reads a later entry", "[{a: 1}, {a: 2}, {a: 3}]");
+}
+
+#[test]
+fn _0003() {
+  // what the match writes when the filter evaluates it in the enclosing scope is not seen there
+  decision("filter leaves the enclosing scope", "[[1, 2], null(context has no value for key 'seen')]");
 }

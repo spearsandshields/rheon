@@ -1014,6 +1014,24 @@ fn a_right_operand_that_cannot_change_the_result_is_not_evaluated() {
   );
 }
 
+/// A filter evaluates its expression once in the enclosing scope (DMN 1.6 Table 69, row 1): a
+/// number selects the item; anything else selects nothing and records nothing, and the expression
+/// is evaluated for each item. So a filter over item entries passes strict mode, and an index
+/// reports its own errors once.
+#[test]
+fn a_filter_records_only_the_evaluations_it_uses() {
+  let items = json!([{"amount": 50}, {"amount": 150}, {"amount": 200}]);
+  for error_mode in ["lenient", "strict"] {
+    let response = req(json!({"op": "evaluate", "expression": "sum(items[amount > 100].amount)", "context": {"items": items}, "errorMode": error_mode}));
+    assert_eq!(response["result"]["display"], "350", "{error_mode}: {response}");
+    assert_eq!(response["diagnostics"]["count"], 0, "{response}");
+  }
+  let response = req(json!({"op": "evaluate", "expression": "[10, 20, 30][count([1 + \"a\"])]"}));
+  assert_eq!(response["result"]["display"], "10", "{response}");
+  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  assert_eq!(display("{a: 2, r: [{a: \"x\"}, {a: \"y\"}][a]}.r"), "{\"a\": \"y\"}");
+}
+
 /// The request is parsed first; then, of several invalid fields, the one read first is reported:
 /// dialect, language, errorMode, expression, tzOffsetMinutes, contextFormat, context, input, and
 /// last the syntax of the expression. `parse` reads only dialect, expression, contextFormat,
