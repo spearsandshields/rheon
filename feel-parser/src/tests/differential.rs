@@ -1242,6 +1242,44 @@ fn names_of_list_items_equal_reference() {
   assert!(stats.asts > 20, "{stats:?}");
 }
 
+/// Nested binders push one context each. A name is looked up among them in one step, and their
+/// keys are bounded together once there are many, so the contexts walked do not grow with the
+/// square of the nesting; the tokens and trees are the reference's.
+#[test]
+fn pushed_contexts_walked_grow_linearly_with_the_nesting() {
+  let nested = |levels: usize, body: &str| {
+    let mut text = String::new();
+    for level in 0..levels {
+      text.push_str(&format!("for v{level} in [1] return "));
+    }
+    text.push_str(body);
+    text
+  };
+  let levels = if full_size() { 2_000 } else { 400 };
+  for body in ["v0 + v1 + a", "v3 x + v5.b + a b", "some q in v1 satisfies q + v2 > a"] {
+    let text = nested(levels, body);
+    let walked = work_of(&[], &text).get("local contexts").copied().unwrap_or(0);
+    assert!(walked <= 40 * levels, "{walked} pushed contexts walked for {levels} levels: {body}");
+  }
+  let mut stats = Stats::default();
+  let frames = [ctx(&[("a", number(1)), ("a b", number(2)), ("v3 x", number(3))])];
+  for levels in [1, 2, 15, 16, 17, 18, 40] {
+    for body in [
+      "v0 + v1 + a",
+      "v3 x + v5.b + a b",
+      "v0 v1 + v16 + v17 x",
+      "some q in v1 satisfies q + v2 > a",
+      "function(v1, p q) v1 + p q + v0",
+      "{v1: 1, w: v1 + v0, n: {m: w}}.n.m + v0",
+    ] {
+      let text = nested(levels, body);
+      stats.check(&frames, &text);
+      stats.check(&[], &text);
+    }
+  }
+  println!("nested binders: {stats:?}");
+}
+
 /// The bound of the candidate names by the first word of the token (`ParsingScope::group_bound`):
 /// keys that share their first word, keys with a byte below `0` after a word, more keys with
 /// the same first word than the window looks at, long multi-word keys, list item keys, nested

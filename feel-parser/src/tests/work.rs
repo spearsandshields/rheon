@@ -21,11 +21,13 @@ pub(crate) enum Work {
   IndexContexts,
   /// Lists of input contexts whose items an index compared with their first item.
   ListsDecided,
+  /// Pushed contexts that a lookup or a bound walked one after another.
+  LocalContexts,
 }
 
 impl Work {
   /// Every unit, in the order of the discriminants.
-  const ALL: [Work; 7] = [
+  const ALL: [Work; 8] = [
     Work::Parts,
     Work::Candidates,
     Work::InParts,
@@ -33,6 +35,7 @@ impl Work {
     Work::IndexBuilds,
     Work::IndexContexts,
     Work::ListsDecided,
+    Work::LocalContexts,
   ];
 
   /// The name of the unit in the counts returned by [take].
@@ -45,6 +48,7 @@ impl Work {
       Work::IndexBuilds => "index builds",
       Work::IndexContexts => "index contexts",
       Work::ListsDecided => "lists decided",
+      Work::LocalContexts => "local contexts",
     }
   }
 }

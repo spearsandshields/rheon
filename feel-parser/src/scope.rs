@@ -6,7 +6,7 @@ use crate::index::FrameIndex;
 use rheon_feel::Name;
 use rheon_feel::context::FeelContext;
 use std::cell::{Cell, RefCell, RefMut};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fmt::Display;
 
@@ -27,6 +27,10 @@ pub struct ParsingScope<'a> {
   input_live: Cell<usize>,
   /// Contexts pushed while parsing, above the input contexts.
   locals: RefCell<Vec<ParsingContext>>,
+  /// For each key of the pushed contexts themselves (not of contexts nested in them), the
+  /// number of pushed contexts that have it: a lookup among pushed contexts without nested
+  /// ones is one step, however many are pushed (nested binders push one each).
+  local_keys: RefCell<HashMap<Name, usize>>,
   /// Set of parsed names.
   names: RefCell<HashSet<Name>>,
   /// Length of the longest parsed name that is longer than its first word ([first_word]); grows only.
@@ -49,6 +53,7 @@ impl<'a> ParsingScope<'a> {
       input_live: Cell::new(input.len()),
       input,
       locals: RefCell::new(vec![]),
+      local_keys: RefCell::new(HashMap::new()),
       names: RefCell::new(HashSet::default()),
       max_names_longer: Cell::new(0),
       local_nested: Cell::new(false),
@@ -80,8 +85,27 @@ impl Display for ParsingScope<'_> {
 impl ParsingScope<'_> {
   /// Removes the context from the top of the stack.
   pub fn pop(&self) {
-    if self.locals.borrow_mut().pop().is_none() {
-      self.input_live.set(self.input_live.get().saturating_sub(1));
+    match self.locals.borrow_mut().pop() {
+      Some(ctx) => {
+        let mut keys = self.local_keys.borrow_mut();
+        for key in ctx.keys() {
+          if let Some(count) = keys.get_mut(key) {
+            *count -= 1;
+            if *count == 0 {
+              keys.remove(key);
+            }
+          }
+        }
+      }
+      None => self.input_live.set(self.input_live.get().saturating_sub(1)),
+    }
+  }
+
+  /// Counts the keys of a context that is pushed.
+  fn count_keys(&self, ctx: &ParsingContext) {
+    let mut keys = self.local_keys.borrow_mut();
+    for key in ctx.keys() {
+      *keys.entry(key.clone()).or_insert(0) += 1;
     }
   }
 
@@ -90,6 +114,7 @@ impl ParsingScope<'_> {
     let (max_plain, max_flattened) = ctx.key_lengths();
     self.grow_local_lengths(max_plain, max_flattened);
     self.local_nested.set(self.local_nested.get() || ctx.has_nested());
+    self.count_keys(&ctx);
     self.locals.borrow_mut().push(ctx);
   }
 
@@ -102,6 +127,9 @@ impl ParsingScope<'_> {
   pub fn set_entry_name(&self, name: Name) {
     self.grow_local_lengths(name.as_str().len(), name.as_str().len());
     if let Some(top) = self.top_mut().last_mut() {
+      if !top.has_key(name.as_str()) {
+        *self.local_keys.borrow_mut().entry(name.clone()).or_insert(0) += 1;
+      }
       top.set_name(name);
     }
   }
@@ -112,6 +140,9 @@ impl ParsingScope<'_> {
       // the bounds cover the other entries of the top context already: each was added by an
       // operation that grew them
       let (max_plain, max_flattened) = ParsingContext::entry_key_lengths(name.as_str(), &ctx);
+      if !top.has_key(name.as_str()) {
+        *self.local_keys.borrow_mut().entry(name.clone()).or_insert(0) += 1;
+      }
       top.set_context(name, ctx);
       self.grow_local_lengths(max_plain, max_flattened);
       self.local_nested.set(true);
@@ -150,7 +181,15 @@ impl ParsingScope<'_> {
       return true;
     }
     let live = &self.input[..self.input_live.get()];
-    self.locals.borrow().iter().any(|ctx| ctx.contains_key_deep(name)) || live.iter().any(|frame| frame.contains(name))
+    // without nested contexts the keys of the pushed contexts are all their keys
+    let pushed = if self.local_nested.get() {
+      let locals = self.locals.borrow();
+      work!(LocalContexts, locals.len());
+      locals.iter().any(|ctx| ctx.contains_key_deep(name))
+    } else {
+      self.local_keys.borrow().contains_key(name)
+    };
+    pushed || live.iter().any(|frame| frame.contains(name))
   }
 
   /// Returns an upper bound of the length in bytes of the names that [contains](Self::contains)
@@ -185,7 +224,14 @@ impl ParsingScope<'_> {
     // the keys of the contexts themselves
     bound = live.iter().fold(bound, |bound, frame| bound.max(frame.group_bound(word)));
     if !self.local_nested.get() {
-      bound = self.locals.borrow().iter().fold(bound, |bound, ctx| bound.max(ctx.group_bound(word, self.max_local.get())));
+      let locals = self.locals.borrow();
+      bound = if locals.len() <= GROUP_BOUND_CONTEXTS {
+        work!(LocalContexts, locals.len());
+        locals.iter().fold(bound, |bound, ctx| bound.max(ctx.group_bound(word, self.max_local.get())))
+      } else {
+        // the bound of all their keys, which is no smaller: a bound only prunes
+        bound.max(self.max_local.get())
+      };
     }
     bound
   }
@@ -202,6 +248,7 @@ impl ParsingScope<'_> {
       let (max_plain, max_flattened) = ctx.key_lengths();
       self.grow_local_lengths(max_plain, max_flattened);
       self.local_nested.set(self.local_nested.get() || ctx.has_nested());
+      self.count_keys(&ctx);
       locals.push(ctx);
     }
     locals
@@ -212,6 +259,10 @@ impl ParsingScope<'_> {
     self.max_local_chain.set(self.max_local_chain.get().max(max_flattened).max(max_plain));
   }
 }
+
+/// The most pushed contexts whose keys [ParsingScope::group_bound] looks at one context after
+/// another; with more, it takes the bound of all their keys.
+const GROUP_BOUND_CONTEXTS: usize = 16;
 
 /// Number of keys of a context that [first_word_bound] looks at before it gives up.
 const FIRST_WORD_WINDOW: usize = 16;
