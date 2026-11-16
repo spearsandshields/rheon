@@ -498,3 +498,35 @@ fn test_value_is_not_a_context() {
     <Value as TryInto<FeelContext>>::try_into(Value::Boolean(true)).err().unwrap().to_string()
   );
 }
+
+/// A context collected from entries has the entries that inserting them one after another gives:
+/// an entry with the name of an earlier one replaces it, whatever the order of the names.
+#[test]
+fn test_context_collected_from_entries() {
+  let entries = |names: &[&str]| -> Vec<(Name, Value)> { names.iter().enumerate().map(|(i, name)| (Name::from(*name), value_number!(i as i64))).collect() };
+  for names in [
+    &[][..],
+    &["a"],
+    &["a", "b", "c", "d"],
+    &["d", "c", "b", "a"],
+    &["a", "a"],
+    &["a", "b", "b", "c"],
+    &["a", "b", "a"],
+    &["b", "a", "b", "a", "c"],
+    &["a", "c", "b", "d"],
+    &["a b", "a", "a  b", "a b"],
+    &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "c", "n", "a", "z", "y"],
+    &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "m"],
+  ] {
+    let mut inserted = FeelContext::default();
+    for (name, value) in entries(names) {
+      inserted.insert(name, value);
+    }
+    let collected: FeelContext = entries(names).into_iter().collect();
+    assert_eq!(inserted, collected, "{names:?}");
+    assert_eq!(inserted.get_entries(), collected.get_entries(), "{names:?}");
+  }
+  let many: Vec<(Name, Value)> = (0..1000).map(|i| (Name::from(format!("k{i:04}")), value_number!(i))).collect();
+  let collected: FeelContext = many.clone().into_iter().collect();
+  assert_eq!(many.iter().map(|(name, value)| (name, value)).collect::<Vec<_>>(), collected.get_entries());
+}

@@ -63,6 +63,28 @@ impl fmt::Debug for FeelContext {
   }
 }
 
+impl FromIterator<(Name, Value)> for FeelContext {
+  /// Builds a context from entries, with the entries that [FeelContext::insert] gives for one
+  /// after another: an entry with the name of an earlier one replaces it. The entries that come
+  /// in ascending order of their names, without a repeated name, are built in one pass, without
+  /// a search per entry; from the first entry out of this order on, each is inserted.
+  fn from_iter<T: IntoIterator<Item = (Name, Value)>>(iter: T) -> Self {
+    // the entries of a vector are taken as they are, without a copy
+    let mut ascending: Vec<(Name, Value)> = iter.into_iter().collect();
+    let in_order = ascending.windows(2).position(|pair| pair[0].0 >= pair[1].0).map_or(ascending.len(), |index| index + 1);
+    let rest = ascending.split_off(in_order);
+    // sorted and without equal names, so the result does not depend on how the map treats either
+    let mut entries = FeelContextEntries::from_iter(ascending);
+    for (name, value) in rest {
+      entries.insert(name, value);
+    }
+    Self {
+      entries,
+      depth: AtomicU32::new(0),
+    }
+  }
+}
+
 impl TryFrom<Value> for FeelContext {
   type Error = DsntkError;
   /// Converts [Value] to [FeelContext].

@@ -829,6 +829,38 @@ fn context_keys_are_trimmed_but_inner_whitespace_is_kept() {
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a b", "context": {"a  b": 1}}))["isNull"], true);
   // a trimmed key is the same name as the untrimmed one; the later entry in key order (" a" < "a") wins
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a", "context": {"a": 1, " a": 2}}))["display"], "1");
+  // ("a" < "a "), also between other keys, in a nested context, and with several keys of one name
+  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a", "context": {"a": 1, "a ": 2}}))["display"], "2");
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "[a, b, c]", "context": {"a": 1, "b": 2, "c": 3, " b": 4, "b ": 5}}))["display"],
+    "[1, 5, 3]"
+  );
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "[a, b, c]", "context": {"a": 1, "b": 2, "c": 3, " b": 4, "\tc": 5}}))["display"],
+    "[1, 2, 3]"
+  );
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "x.a + x.z", "context": {"x": {"z": 10, "a": 1, "a ": 2}}}))["display"],
+    "12"
+  );
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "[x[1].a, x[2].a]", "context": {"x": [{"a": 1, " a": 2}, {"a ": 3, "a": 4}]}}))["display"],
+    "[1, 3]"
+  );
+  // the same in contexts of more entries than are inserted one by one: the keys in key order
+  // are "\tk39\n", " k05", "k00" to "k07", "k07 ", "k08" to "k39", "k39  "
+  let mut wide: serde_json::Map<String, Json> = (0..40).map(|i| (format!("k{i:02}"), json!(i))).collect();
+  wide.extend([
+    (" k05".to_string(), json!(-1)),
+    ("k07 ".to_string(), json!(-2)),
+    ("\tk39\n".to_string(), json!(-3)),
+    ("k39  ".to_string(), json!(-4)),
+  ]);
+  let mut context = wide.clone();
+  context.insert("w".to_string(), Json::Object(wide));
+  let expression = "[k04, k05, k06, k07, k08, k38, k39, count(get entries(w)), w.k05, w.k07, w.k39]";
+  let r = eval_ok(json!({"op": "evaluate", "expression": expression, "context": context}));
+  assert_eq!(r["display"], "[4, 5, 6, -2, 8, 38, -4, 40, 5, -2, -4]", "{r}");
 }
 
 #[test]
