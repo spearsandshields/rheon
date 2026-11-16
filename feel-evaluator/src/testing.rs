@@ -3,7 +3,8 @@
 //! Present only with the cargo feature `backends`, which test builds enable: without it, the
 //! expressions are built by the flat evaluator where it lowers them and as closures otherwise.
 //! A test chooses the evaluator of the expressions built inside [with_backend] on its thread,
-//! and reads the expressions that the flat evaluator refused there with [take_refusals]. Outside
+//! and reads the expressions that the flat evaluator refused there with [take_refusals] and the
+//! number it lowered with [take_lowered]. Outside
 //! [with_backend] nothing is recorded, and nothing is kept beyond the closure and the refusals not
 //! yet taken.
 
@@ -40,6 +41,7 @@ pub struct Refusal {
 thread_local! {
   static BACKEND: Cell<Option<Backend>> = const { Cell::new(None) };
   static REFUSALS: RefCell<Vec<Refusal>> = const { RefCell::new(Vec::new()) };
+  static LOWERED: Cell<usize> = const { Cell::new(0) };
 }
 
 /// Runs `f` with `backend` building the expressions on this thread, and restores the previous
@@ -59,6 +61,19 @@ pub fn with_backend<T>(backend: Backend, f: impl FnOnce() -> T) -> T {
 /// in order.
 pub fn take_refusals() -> Vec<Refusal> {
   REFUSALS.with(|refusals| refusals.take())
+}
+
+/// The number of expressions that the flat evaluator lowered inside [with_backend] on this thread
+/// since the last call.
+pub fn take_lowered() -> usize {
+  LOWERED.with(|lowered| lowered.replace(0))
+}
+
+/// Notes an expression that the flat evaluator lowered inside [with_backend].
+pub(crate) fn lowered() {
+  if BACKEND.with(Cell::get).is_some() {
+    LOWERED.with(|lowered| lowered.set(lowered.get() + 1));
+  }
 }
 
 /// The evaluator chosen on this thread: [Backend::Flat] outside [with_backend].

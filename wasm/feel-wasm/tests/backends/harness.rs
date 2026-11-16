@@ -1,6 +1,6 @@
 //! The requests of the harness and the comparison of two evaluators on them.
 
-use rheon_feel_evaluator::testing::{Backend, Refusal, take_refusals, with_backend};
+use rheon_feel_evaluator::testing::{Backend, Refusal, take_lowered, take_refusals, with_backend};
 use serde_json::Value as Json;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -123,6 +123,8 @@ pub struct Report {
   pub requests: usize,
   /// The requests that the second evaluator answered itself and that were compared.
   pub compared: usize,
+  /// The compared requests in which the flat evaluator lowered an expression.
+  pub lowered: usize,
   /// The compared requests whose responses differ.
   pub differences: Vec<Difference>,
   /// The requests that the flat evaluator refused, by the kind of the refusal and of its node.
@@ -138,12 +140,15 @@ impl Report {
 
 impl fmt::Display for Report {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let percent = if self.requests == 0 { 0.0 } else { self.compared as f64 * 100.0 / self.requests as f64 };
+    let percent = |count: usize| if self.requests == 0 { 0.0 } else { count as f64 * 100.0 / self.requests as f64 };
     write!(
       f,
-      "backends: {} requests, {} compared ({percent:.1}%), {} differences, refused:",
+      "backends: {} requests, {} compared ({:.1}%), {} lowered ({:.1}%), {} differences, refused:",
       self.requests,
       self.compared,
+      percent(self.compared),
+      self.lowered,
+      percent(self.lowered),
       self.differences.len()
     )?;
     if self.refused.is_empty() {
@@ -162,12 +167,13 @@ impl fmt::Display for Report {
   }
 }
 
-/// The response of `backend` to `request`, and the refusals of the flat evaluator while it
-/// answered.
-fn answer(backend: Backend, request: &str) -> (String, Vec<Refusal>) {
+/// The response of `backend` to `request`, the refusals of the flat evaluator while it answered
+/// and the number of expressions it lowered.
+fn answer(backend: Backend, request: &str) -> (String, Vec<Refusal>, usize) {
   take_refusals();
+  take_lowered();
   let response = with_backend(backend, || feel_wasm::call(request));
-  (response, take_refusals())
+  (response, take_refusals(), take_lowered())
 }
 
 /// Sends every request, and the parse twin of every evaluate request, to `first` and to `second`,
@@ -185,8 +191,8 @@ pub fn compare(requests: &[String], first: Backend, second: Backend) -> Report {
     }
     for text in texts {
       report.requests += 1;
-      let (expected, _) = answer(first, &text);
-      let (actual, refusals) = answer(second, &text);
+      let (expected, _, _) = answer(first, &text);
+      let (actual, refusals, lowered) = answer(second, &text);
       if second == Backend::FlatOnly
         && let Some(refusal) = refusals.into_iter().next()
       {
@@ -194,6 +200,9 @@ pub fn compare(requests: &[String], first: Backend, second: Backend) -> Report {
         continue;
       }
       report.compared += 1;
+      if lowered > 0 {
+        report.lowered += 1;
+      }
       let (expected, actual) = (comparable(&expected), comparable(&actual));
       if expected != actual {
         report.differences.push(Difference {
