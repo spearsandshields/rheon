@@ -221,7 +221,7 @@ impl FeelType {
               result.set_entry(name, entry_type.get_value_checked(entry_value)?);
             }
           }
-          return Ok(Value::Context(result));
+          return Ok(result.into());
         }
       }
       FeelType::Date => {
@@ -250,7 +250,7 @@ impl FeelType {
           for item in items {
             result.push(items_type.get_value_checked(item)?);
           }
-          return Ok(Value::List(result));
+          return Ok(Value::List(result.into()));
         }
       }
       FeelType::Number => {

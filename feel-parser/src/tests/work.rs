@@ -15,11 +15,13 @@ pub(crate) enum Work {
   CompositeStates,
   /// Indexes of input contexts built.
   IndexBuilds,
+  /// Contexts of input contexts whose entries an index read.
+  IndexContexts,
 }
 
 impl Work {
   /// Every unit, in the order of the discriminants.
-  const ALL: [Work; 4] = [Work::Parts, Work::Candidates, Work::CompositeStates, Work::IndexBuilds];
+  const ALL: [Work; 5] = [Work::Parts, Work::Candidates, Work::CompositeStates, Work::IndexBuilds, Work::IndexContexts];
 
   /// The name of the unit in the counts returned by [take].
   fn name(self) -> &'static str {
@@ -28,6 +30,7 @@ impl Work {
       Work::Candidates => "candidates",
       Work::CompositeStates => "composite states",
       Work::IndexBuilds => "index builds",
+      Work::IndexContexts => "index contexts",
     }
   }
 }

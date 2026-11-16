@@ -45,7 +45,7 @@ fn test_debug() {
   let v_closure_ctx = FeelContext::default();
   eq_dbg!(r#"Boolean(false)"#, Value::Boolean(false));
   eq_dbg!(r#"BuiltInFunction(Time)"#, Value::BuiltInFunction(Bif::Time));
-  eq_dbg!(r#"Context(FeelContext({}))"#, Value::Context(FeelContext::default()));
+  eq_dbg!(r#"Context(FeelContext({}))"#, Value::from(FeelContext::default()));
   eq_dbg!(r#"ContextEntry(Name("a"), Number(+1E+0))"#, Value::ContextEntry(name.clone(), b_number.clone()));
   eq_dbg!(r#"ContextEntryKey(Name("a"))"#, Value::ContextEntryKey(name.clone()));
   eq_dbg!(r#"ContextType(Number)"#, Value::ContextType(t_number.clone()));
@@ -90,18 +90,13 @@ fn test_debug() {
   eq_dbg!(r#"IntervalEnd(Number(+1E+0), Opened)"#, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_dbg!(r#"IntervalStart(Number(+1E+0), Opened)"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
   eq_dbg!(r#"Irrelevant"#, Value::Irrelevant);
-  eq_dbg!(r#"List([])"#, Value::List(Values::default()));
-  eq_dbg!(
-    r#"NamedParameter(ParameterName(Name("a")), Number(+1E+0))"#,
-    Value::NamedParameter(Box::new(Value::ParameterName(name.clone())), b_number.clone())
-  );
+  eq_dbg!(r#"List([])"#, Value::List(Values::default().into()));
   eq_dbg!(r#"NamedParameters({})"#, Value::NamedParameters(BTreeMap::new()));
   eq_dbg!(r#"NegatedCommaList([])"#, Value::NegatedCommaList(Values::default()));
   eq_dbg!(r#"Number(+1E+0)"#, Value::Number(FeelNumber::new(1, 0)));
   eq_dbg!(r#"Null(None)"#, Value::Null(None));
   eq_dbg!(r#"ParameterName(Name("a"))"#, Value::ParameterName(name.clone()));
   eq_dbg!(r#"ParameterTypes([])"#, Value::ParameterTypes(vec![]));
-  eq_dbg!(r#"PositionalParameters([])"#, Value::PositionalParameters(Values::default()));
   eq_dbg!(r#"QualifiedNameSegment(Name("a"))"#, Value::QualifiedNameSegment(name));
   eq_dbg!(
     r#"Range(Number(+1E+0), Opened, Number(+1E+0), Closed)"#,
@@ -138,7 +133,7 @@ fn test_display() {
   let v_closure_ctx = FeelContext::default();
   eq_dsp!(r#"false"#, Value::Boolean(false));
   eq_dsp!(r#"BuiltInFunction"#, Value::BuiltInFunction(Bif::Time));
-  eq_dsp!(r#"{}"#, Value::Context(FeelContext::default()));
+  eq_dsp!(r#"{}"#, Value::from(FeelContext::default()));
   eq_dsp!(r#"ContextEntry"#, Value::ContextEntry(name.clone(), b_number.clone()));
   eq_dsp!(r#"a"#, Value::ContextEntryKey(name.clone()));
   eq_dsp!(r#"ContextType"#, Value::ContextType(t_number.clone()));
@@ -174,15 +169,13 @@ fn test_display() {
   eq_dsp!(r#"IntervalEnd"#, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_dsp!(r#"IntervalStart"#, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
   eq_dsp!(r#"Irrelevant"#, Value::Irrelevant);
-  eq_dsp!(r#"[]"#, Value::List(Values::default()));
-  eq_dsp!(r#"NamedParameter"#, Value::NamedParameter(Box::new(Value::ParameterName(name.clone())), b_number.clone()));
+  eq_dsp!(r#"[]"#, Value::List(Values::default().into()));
   eq_dsp!(r#"NamedParameters"#, Value::NamedParameters(BTreeMap::new()));
   eq_dsp!(r#"NegatedCommaList"#, Value::NegatedCommaList(Values::default()));
   eq_dsp!(r#"1"#, Value::Number(FeelNumber::new(1, 0)));
   eq_dsp!(r#"null"#, Value::Null(None));
   eq_dsp!(r#"ParameterName"#, Value::ParameterName(name.clone()));
   eq_dsp!(r#"ParameterTypes"#, Value::ParameterTypes(vec![]));
-  eq_dsp!(r#"PositionalParameters"#, Value::PositionalParameters(Values::default()));
   eq_dsp!(r#"QualifiedNameSegment"#, Value::QualifiedNameSegment(name));
   eq_dsp!(r#"(1..1]"#, Value::Range(b_number.clone(), IntervalType::Opened, b_number.clone(), IntervalType::Closed));
   eq_dsp!(r#""beta""#, Value::String("beta".into()));
@@ -215,7 +208,7 @@ fn test_type_of() {
   let v_closure_ctx = FeelContext::default();
   eq_typ!(FeelType::Boolean, Value::Boolean(false));
   eq_typ!(FeelType::Any, Value::BuiltInFunction(Bif::Time));
-  eq_typ!(FeelType::Context(BTreeMap::new()), Value::Context(FeelContext::default()));
+  eq_typ!(FeelType::Context(BTreeMap::new()), Value::from(FeelContext::default()));
   eq_typ!(FeelType::Any, Value::ContextEntry(name.clone(), b_number.clone()));
   eq_typ!(FeelType::Any, Value::ContextEntryKey(name.clone()));
   eq_typ!(FeelType::Number, Value::ContextType(t_number.clone()));
@@ -245,17 +238,15 @@ fn test_type_of() {
   eq_typ!(FeelType::Number, Value::IntervalEnd(b_number.clone(), IntervalType::Opened));
   eq_typ!(FeelType::Number, Value::IntervalStart(b_number.clone(), IntervalType::Opened));
   eq_typ!(FeelType::Any, Value::Irrelevant);
-  eq_typ!(FeelType::List(Box::new(FeelType::Null)), Value::List(vec![]));
-  eq_typ!(FeelType::List(Box::new(t_number)), Value::List(vec![v_number.clone()]));
-  eq_typ!(FeelType::List(Box::new(FeelType::Any)), Value::List(vec![v_number, v_boolean]));
-  eq_typ!(FeelType::Any, Value::NamedParameter(Box::new(Value::ParameterName(name.clone())), b_number.clone()));
+  eq_typ!(FeelType::List(Box::new(FeelType::Null)), Value::List(vec![].into()));
+  eq_typ!(FeelType::List(Box::new(t_number)), Value::List(vec![v_number.clone()].into()));
+  eq_typ!(FeelType::List(Box::new(FeelType::Any)), Value::List(vec![v_number, v_boolean].into()));
   eq_typ!(FeelType::Any, Value::NamedParameters(BTreeMap::new()));
   eq_typ!(FeelType::Any, Value::NegatedCommaList(Values::default()));
   eq_typ!(FeelType::Number, Value::Number(FeelNumber::new(1, 0)));
   eq_typ!(FeelType::Null, Value::Null(None));
   eq_typ!(FeelType::Any, Value::ParameterName(name.clone()));
   eq_typ!(FeelType::Any, Value::ParameterTypes(vec![]));
-  eq_typ!(FeelType::Any, Value::PositionalParameters(Values::default()));
   eq_typ!(FeelType::Any, Value::QualifiedNameSegment(name));
   eq_typ!(
     FeelType::Range(Box::new(FeelType::Number)),
@@ -284,7 +275,7 @@ fn test_type_of_list_with_context() {
   let mut ctx_b = FeelContext::default();
   ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
   ctx_b.set_entry(&"b".into(), Value::String("gamma".into()));
-  let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)]);
+  let list = Value::List(vec![Value::from(ctx_a), Value::from(ctx_b)].into());
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
 }
 
@@ -296,7 +287,7 @@ fn test_type_of_list_with_context_and_nulls() {
   let mut ctx_b = FeelContext::default();
   ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
   ctx_b.set_entry(&"b".into(), value_null!());
-  let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)]);
+  let list = Value::List(vec![Value::from(ctx_a), Value::from(ctx_b)].into());
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
 }
 
@@ -342,7 +333,7 @@ fn test_comparison() {
   assert_eq!(Value::Boolean(false), Value::Boolean(false));
   assert_ne!(Value::Boolean(true), Value::Boolean(false));
   assert_ne!(Value::Boolean(false), Value::Boolean(true));
-  assert_eq!(Value::Context(FeelContext::default()), Value::Context(FeelContext::default()));
+  assert_eq!(Value::from(FeelContext::default()), Value::from(FeelContext::default()));
   let fun_body_a = FunctionBody::Context(Arc::new(Box::new(|_: &FeelScope| value_number!(1))));
   let fun_body_b = FunctionBody::Context(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let fun_body_c = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(3))));
@@ -373,11 +364,11 @@ fn test_comparison() {
 fn test_value_to_feel_string() {
   assert_eq!(r#""foo""#, Value::String("foo".into()).to_feel_string());
   assert_eq!(r#""\"bar\"""#, Value::String("\"bar\"".into()).to_feel_string());
-  assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).to_feel_string());
-  assert_eq!(r#"[]"#, Value::List(Values::default()).to_feel_string());
+  assert_eq!(r#"{}"#, Value::from(FeelContext::default()).to_feel_string());
+  assert_eq!(r#"[]"#, Value::List(Values::default().into()).to_feel_string());
   assert_eq!(
     r#"[1.2, 2.1]"#,
-    Value::List(vec![Value::Number(FeelNumber::new(12, 1)), Value::Number(FeelNumber::new(21, 1))]).to_feel_string()
+    Value::List(vec![Value::Number(FeelNumber::new(12, 1)), Value::Number(FeelNumber::new(21, 1))].into()).to_feel_string()
   );
   assert_eq!(r#"true"#, Value::Boolean(true).to_feel_string());
 }
@@ -397,12 +388,12 @@ fn test_jsonify() {
   assert_eq!(r#""P10DT13H59M18S""#, Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(914358)).jsonify());
   assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap()).jsonify());
   assert_eq!(r#"[]"#, Value::ExpressionList(Values::default()).jsonify());
-  assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).jsonify());
+  assert_eq!(r#"{}"#, Value::from(FeelContext::default()).jsonify());
   assert_eq!(r#"alpha"#, Value::ContextEntryKey("alpha".into()).jsonify());
-  assert_eq!(r#"[]"#, Value::List(Values::default()).jsonify());
+  assert_eq!(r#"[]"#, Value::List(Values::default().into()).jsonify());
   assert_eq!(
     r#"[1.2, 2.1]"#,
-    Value::List(vec![Value::Number(FeelNumber::new(12, 1)), Value::Number(FeelNumber::new(21, 1))]).jsonify()
+    Value::List(vec![Value::Number(FeelNumber::new(12, 1)), Value::Number(FeelNumber::new(21, 1))].into()).jsonify()
   );
   assert_eq!(r#"null"#, Value::Null(None).jsonify());
   assert_eq!(r#""null(error details)""#, Value::Null(Some("error details".to_string())).jsonify());
@@ -482,9 +473,9 @@ fn test_try_from() {
 fn test_coerced() {
   let v_number = value_number!(10);
   let v_string = Value::String("a".into());
-  let v_list_number_1 = Value::List(vec![value_number!(1, 0)]);
-  let v_list_number_2 = Value::List(vec![value_number!(1, 0), value_number!(2, 0)]);
-  let v_list_string_1 = Value::List(vec![Value::String("A".into())]);
+  let v_list_number_1 = Value::List(vec![value_number!(1, 0)].into());
+  let v_list_number_2 = Value::List(vec![value_number!(1, 0), value_number!(2, 0)].into());
+  let v_list_string_1 = Value::List(vec![Value::String("A".into())].into());
   let v_function_a = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone())],
     FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(1)))),
@@ -496,9 +487,9 @@ fn test_coerced() {
   let v_irrelevant = Value::Irrelevant;
   let mut ctx_d = FeelContext::default();
   ctx_d.set_entry(&NAME_A, v_string.clone());
-  let v_context_d = Value::Context(ctx_d);
+  let v_context_d = Value::from(ctx_d);
   let v_date = Value::Date(FeelDate::new(2022, 9, 27).unwrap());
-  let v_list_date_1 = Value::List(vec![v_date.clone()]);
+  let v_list_date_1 = Value::List(vec![v_date.clone()].into());
   let v_bif = Value::BuiltInFunction(Bif::Time);
   // the coerced value; the owned forms (`try_into_coerced`, `into_coerced`) give the same results
   let coerced = |value: &Value, target_type: &FeelType| {
@@ -534,20 +525,26 @@ fn test_type_of_list_items() {
     for (name, value) in entries {
       ctx.set_entry(&Name::from(*name), value.clone());
     }
-    Value::Context(ctx)
+    Value::from(ctx)
   };
   let list_of = |item_type: FeelType| FeelType::List(Box::new(item_type));
   let context_a = FeelType::Context(BTreeMap::from([(NAME_A.clone(), FeelType::Number)]));
   // fixed cases: a null item (first, its type is conformed to only by null; later, it conforms to
   // any item type), a missing entry, extra entries, nested lists
-  eq_typ!(list_of(FeelType::Any), Value::List(vec![value_null!(), value_number!(1)]));
-  eq_typ!(list_of(context_a.clone()), Value::List(vec![ctx(&[("a", value_number!(1))]), value_null!()]));
-  eq_typ!(list_of(FeelType::Any), Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("b", value_number!(1))])]));
+  eq_typ!(list_of(FeelType::Any), Value::List(vec![value_null!(), value_number!(1)].into()));
+  eq_typ!(list_of(context_a.clone()), Value::List(vec![ctx(&[("a", value_number!(1))]), value_null!()].into()));
+  eq_typ!(
+    list_of(FeelType::Any),
+    Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("b", value_number!(1))])].into())
+  );
   eq_typ!(
     list_of(context_a.clone()),
-    Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("a", value_number!(2)), ("b", Value::String("x".into()))])])
+    Value::List(vec![ctx(&[("a", value_number!(1))]), ctx(&[("a", value_number!(2)), ("b", Value::String("x".into()))])].into())
   );
-  eq_typ!(list_of(list_of(context_a)), Value::List(vec![Value::List(vec![ctx(&[("a", value_number!(1))])])]));
+  eq_typ!(
+    list_of(list_of(context_a)),
+    Value::List(vec![Value::List(vec![ctx(&[("a", value_number!(1))])].into())].into())
+  );
 }
 
 /// `true` when the randomized tests run their full size (`RHEON_FULL_TESTS` set).
@@ -599,9 +596,9 @@ fn test_type_of_list_equals_reference_rule() {
       1 => value_number!(1),
       2 => Value::String("s".into()),
       3 => Value::Boolean(true),
-      4..=6 => Value::Context(context(rng, depth)),
+      4..=6 => Value::from(context(rng, depth)),
       7 => Value::List((0..rng.below(4)).map(|_| value(rng, depth + 1)).collect()),
-      _ => Value::List(vec![value_null!(), value_number!(1)]),
+      _ => Value::List(vec![value_null!(), value_number!(1)].into()),
     }
   }
   fn context(rng: &mut Rng, depth: u32) -> FeelContext {
@@ -630,7 +627,7 @@ fn test_type_of_list_equals_reference_rule() {
       }
       _ => return value_null!(),
     }
-    Value::Context(ctx)
+    Value::from(ctx)
   }
   let mut rng = Rng(0x2545_F491_4F6C_DD1D);
   let (mut contexts, mut mixed, mut total) = (0, 0, 0);

@@ -6,6 +6,7 @@ use rheon_feel::diagnostics;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name};
 use rheon_feel_parser::AstNode;
+use std::sync::Arc;
 
 /// Evaluates a [Value] from given [AstNode] in its own [Session].
 pub fn evaluate(scope: &FeelScope, node: &AstNode) -> Outcome<Value> {
@@ -44,7 +45,7 @@ pub fn evaluate_max(values: Vec<Value>) -> Value {
 
 /// Compares two values and returns `true` when the two `FEEL` values are equal.
 pub fn evaluate_equals(left: &Value, right: &Value) -> bool {
-  crate::builders::eval_ternary_equality(left, right).unwrap_or(false)
+  crate::equality::eval_ternary_equality(left, right).unwrap_or(false)
 }
 
 /// Evaluates the invocation of a function with named arguments, `function(n1: v1, ...)` (DMN 1.6, Table 64):
@@ -54,7 +55,7 @@ pub fn evaluate_equals(left: &Value, right: &Value) -> bool {
 /// The invocation is part of the running [Session]. Outside one, it is an evaluation of its own,
 /// and when that is stopped its result is null with the reason of the abort.
 pub fn evaluate_invocation(scope: &FeelScope, function: Value, arguments: Vec<(Name, Value)>, dialect: Dialect) -> Value {
-  crate::invocation::guarded(|| crate::invocation::invoke(scope, function, crate::invocation::Arguments::Named(arguments), dialect))
+  crate::invocation::call(scope, function, crate::invocation::Arguments::Named(arguments), dialect)
 }
 
 /// Evaluates a context from text containing `FEEL` expression.
@@ -66,7 +67,7 @@ pub fn evaluate_context(scope: &FeelScope, input: &str) -> Result<FeelContext> {
 /// Evaluates a context from AST node in its own [Session]; a stopped evaluation is an error.
 pub fn evaluate_context_node(scope: &FeelScope, node: &AstNode) -> Result<FeelContext> {
   if let Value::Context(context) = evaluate(scope, node).into_result()? {
-    Ok(context)
+    Ok(Arc::unwrap_or_clone(context))
   } else {
     Err(err_not_a_context())
   }

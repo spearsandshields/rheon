@@ -281,7 +281,7 @@ fn ctx(entries: &[(&str, Value)]) -> FeelContext {
 
 /// The scopes of the short strings (each a list of input contexts, bottom first).
 fn scopes() -> Vec<Vec<FeelContext>> {
-  let nested = |key: &str, inner: FeelContext| ctx(&[(key, Value::Context(inner))]);
+  let nested = |key: &str, inner: FeelContext| ctx(&[(key, Value::from(inner))]);
   let mut rng = Rng(0x2545_F491_4F6C_DD1D);
   vec![
     vec![],
@@ -290,7 +290,7 @@ fn scopes() -> Vec<Vec<FeelContext>> {
       ("in", number(1)),
       ("in+1", number(2)),
       ("a b", number(3)),
-      ("x", Value::Context(ctx(&[("y", number(1))]))),
+      ("x", Value::from(ctx(&[("y", number(1))]))),
       ("i", number(4)),
       ("n", number(5)),
     ])],
@@ -316,12 +316,12 @@ fn scopes() -> Vec<Vec<FeelContext>> {
       ("number", number(7)),
       ("or", number(8)),
       ("?", number(9)),
-      ("list", Value::List(vec![Value::Context(ctx(&[("a", number(1))]))])),
+      ("list", Value::List(vec![Value::from(ctx(&[("a", number(1))]))].into())),
       ("t", Value::FeelType(FeelType::Context(BTreeMap::from([(Name::from("b"), FeelType::Number)])))),
     ])],
     vec![
       ctx(&[("a", number(1)), (&format!("a{OGHAM}b"), number(2))]),
-      ctx(&[("b", Value::Context(ctx(&[("a", number(2)), ("i n", number(3))])))]),
+      ctx(&[("b", Value::from(ctx(&[("a", number(2)), ("i n", number(3))])))]),
     ],
   ]
 }
@@ -754,7 +754,7 @@ fn keys_of_context_literal(text: &str) -> FeelContext {
           && let AstNode::ContextEntryKey(name) = key.as_ref()
         {
           let value = match value.as_ref() {
-            inner @ AstNode::Context(_) => Value::Context(convert(inner)),
+            inner @ AstNode::Context(_) => Value::from(convert(inner)),
             _ => number(1),
           };
           ctx.set_entry(name, value);
@@ -1052,7 +1052,7 @@ fn reused_name_chains_equal_reference() {
 /// A chain of name tokens is scanned once: the parts scanned grow linearly with the length.
 #[test]
 fn name_chains_are_scanned_once() {
-  let scope = [ctx(&[("a", number(1)), ("b", Value::Context(ctx(&[("b", number(2))])))])];
+  let scope = [ctx(&[("a", number(1)), ("b", Value::from(ctx(&[("b", number(2))])))])];
   for (text, parts) in [(vec!["a"; 20_000].join(" + "), 39_999), (format!("b{}", ".b".repeat(19_999)), 39_999)] {
     assert_eq!(Some(&parts), work_of(&scope, &text).get("parts"), "{text:.20}");
   }
@@ -1084,9 +1084,9 @@ fn first_word_bounds_equal_reference() {
   keys.push("monthly".to_string());
   let top = ctx(&keys.iter().map(|k| (k.as_str(), number(1))).collect::<Vec<_>>());
   let nested = ctx(&[
-    ("n", Value::Context(ctx(&[("p q", number(1)), ("p", number(2)), ("q r s", number(3))]))),
-    ("items", Value::List(vec![Value::Context(ctx(&[("u v", number(1)), ("u", number(2))]))])),
-    ("d", Value::Context(ctx(&[("a", Value::Context(ctx(&[("b", number(1))])))]))),
+    ("n", Value::from(ctx(&[("p q", number(1)), ("p", number(2)), ("q r s", number(3))]))),
+    ("items", Value::List(vec![Value::from(ctx(&[("u v", number(1)), ("u", number(2))]))].into())),
+    ("d", Value::from(ctx(&[("a", Value::from(ctx(&[("b", number(1))])))]))),
   ]);
   let inputs = [
     "a + a b + a.b + a!b + a\tb + a0 + ab c",
@@ -1117,8 +1117,8 @@ fn first_word_bounds_equal_reference() {
 /// The input contexts are indexed only when a name is looked up beyond their own keys.
 #[test]
 fn input_contexts_are_indexed_on_first_use() {
-  let items = Value::List(vec![Value::Context(ctx(&[("amount", number(1))])); 3]);
-  let frames = [ctx(&[("a", Value::Context(ctx(&[("b", number(1))]))), ("c", number(2)), ("items", items)])];
+  let items = Value::List(vec![Value::from(ctx(&[("amount", number(1))])); 3].into());
+  let frames = [ctx(&[("a", Value::from(ctx(&[("b", number(1))]))), ("c", number(2)), ("items", items)])];
   for (input, builds) in [
     ("1 + 2", None),
     ("{x: 1, y: \"s\"}", None),
@@ -1136,7 +1136,7 @@ fn input_contexts_are_indexed_on_first_use() {
 #[test]
 fn one_part_names_equal_reference() {
   let frames_d = vec![ctx(&[
-    ("d", Value::Context(ctx(&[("year", number(1))]))),
+    ("d", Value::from(ctx(&[("year", number(1))]))),
     ("x", number(2)),
     ("date", number(3)),
     ("number", number(4)),

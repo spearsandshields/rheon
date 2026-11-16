@@ -146,3 +146,36 @@ fn a_conjunction_with_a_non_boolean_operand_is_a_null_without_an_error() {
   te_errors("true and 1", "null", &[]);
   te_errors("1 and true", "null", &[]);
 }
+
+/// The value of `and` for every pair of operands of DMN 1.6 Table 51: true, false and otherwise
+/// (here a number), in both orders.
+#[test]
+fn a_conjunction_follows_table_51() {
+  for (lhs, rhs, expected) in [
+    ("true", "true", "true"),
+    ("true", "false", "false"),
+    ("true", "1", "null"),
+    ("false", "true", "false"),
+    ("false", "false", "false"),
+    ("false", "1", "false"),
+    ("1", "true", "null"),
+    ("1", "false", "false"),
+    ("1", "1", "null"),
+  ] {
+    te_errors(&format!("{lhs} and {rhs}"), expected, &[]);
+  }
+}
+
+/// The right operand of `and` is evaluated only when the left one does not decide (DMN 1.6
+/// Table 51 gives false for `false and x` whatever x is): the errors and warnings of a right
+/// operand after `false` are not recorded, and a recursion that `and` guards ends. The left
+/// operand is always evaluated.
+#[test]
+fn the_right_operand_of_a_conjunction_is_evaluated_only_when_the_left_does_not_decide() {
+  let addition = r#"incompatible types in addition: 1(number) + "a"(string)"#;
+  te_errors(r#"false and (1 + "a")"#, "false", &[]);
+  te_errors(r#"(1 + "a") and false"#, "false", &[addition]);
+  te_errors(r#"true and (1 + "a")"#, "null", &[addition]);
+  te_warnings(r#"false and @"2021-01-01T10:00:00.1234567891" = null"#, "false", &[]);
+  te_errors("{f: function(n) n > 0 and f(n - 1), r: f(3)}.r", "false", &[]);
+}

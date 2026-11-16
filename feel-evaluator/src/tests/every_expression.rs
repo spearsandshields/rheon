@@ -69,8 +69,8 @@ fn _0009() {
     scope.pop();
     Value::Boolean(true)
   });
-  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)]))));
-  let evaluator = crate::Iteration::for_feel(vec![("i".into(), booleans)]);
+  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)].into()))));
+  let evaluator = crate::Iteration::new(vec![("i".into(), booleans)]);
   let depth = scope.depth();
   assert_eq!(
     Value::Null(Some("internal error: the evaluation removed the iteration context of a `every` expression".to_string())),

@@ -8,19 +8,23 @@
 use crate::errors::*;
 use dsntk_common::Result;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
-use rheon_feel::values::{TypeOf, Value};
-use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, value_null};
+use rheon_feel::values::{FeelList, ListItems, TypeOf, Value};
+use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, ScopeFrame, value_null};
 use rheon_feel_temporal::FeelDate;
 use std::ops::ControlFlow;
+use std::sync::Arc;
 
 /// The values one iteration variable takes, in order.
 pub struct Sequence(Items);
 
-/// The items of a [Sequence]: the remaining items of a list, or the next number or date of an
-/// interval, which are produced one at a time.
+/// The items of a [Sequence]: the remaining items of a list (taken one at a time, so a shared
+/// list is not copied first), a single value, or the next number or date of an interval, which
+/// are produced one at a time.
 enum Items {
-  List(std::vec::IntoIter<Value>),
+  List(ListItems),
+  One(Option<Value>),
   Numbers { next: Option<FeelNumber>, end: FeelNumber, ascending: bool },
   Dates { next: Option<FeelDate>, end: FeelDate, ascending: bool },
 }
@@ -28,16 +32,15 @@ enum Items {
 impl Sequence {
   /// The items of a list; a value that is not a list is the only item.
   pub fn of(value: Value) -> Self {
-    let values = match value {
-      Value::List(values) => values,
-      single => vec![single],
-    };
-    Self(Items::List(values.into_iter()))
+    match value {
+      Value::List(values) => Self(Items::List(values.into_iter())),
+      single => Self(Items::One(Some(single))),
+    }
   }
 
   /// No items.
   pub fn empty() -> Self {
-    Self(Items::List(Vec::new().into_iter()))
+    Self(Items::One(None))
   }
 
   /// The numbers from `start` to `end` by steps of one, or the dates by steps of one day, in
@@ -95,6 +98,7 @@ impl Sequence {
   fn next_item(&mut self) -> Option<Value> {
     match &mut self.0 {
       Items::List(values) => values.next(),
+      Items::One(value) => value.take(),
       Items::Numbers { next, end, ascending } => {
         let current = (*next)?;
         let following = if *ascending { current + FeelNumber::one() } else { current - FeelNumber::one() };
@@ -118,45 +122,22 @@ impl Sequence {
 /// Evaluates what an iteration variable iterates over, with the variables before it in scope.
 pub type Domain = Box<dyn Fn(&FeelScope) -> Result<Sequence> + Send + Sync>;
 
-/// How the body of a `for`, `some` or `every` expression gets the iteration context.
-#[derive(Clone, Copy, PartialEq)]
-enum IterationContext {
-  /// A copy in every iteration: what the body writes into the context on the top of the scope
-  /// (boxed contexts do, model-evaluator) does not reach the next iteration.
-  Copied,
-  /// The iteration context itself, moved into the scope and back: for FEEL expressions, whose
-  /// bodies never write into the context on the top of the scope.
-  Moved,
-}
-
-/// Evaluates `evaluate` with the iteration context `ctx` on the top of the scope.
-/// `prepare` runs on the context pushed, `finish` on the context popped.
+/// Evaluates `evaluate` with the iteration context `ctx` on the top of the scope, pushed shared:
+/// what the evaluation writes into the context on the top of the scope (a boxed context does,
+/// model-evaluator) goes into a copy of it ([ScopeFrame]), which is dropped with the frame, so it
+/// does not reach the next iteration. Returns the value and the frame the evaluation ran in, with
+/// what the evaluation left in it; the caller drops the frame before it changes `ctx` again, so
+/// that `ctx` is held alone then and changed without a copy.
 ///
 /// `None` when the evaluation removed the iteration context from the scope (it popped more
 /// contexts than it pushed, which no evaluator does): the iteration can not go on correctly, and
 /// the caller returns null instead of a result that misses values.
-fn evaluate_in_iteration_context<T>(
-  scope: &FeelScope,
-  ctx: &mut FeelContext,
-  mode: IterationContext,
-  evaluate: impl FnOnce(&FeelScope) -> T,
-  prepare: impl FnOnce(&mut FeelContext),
-  finish: impl FnOnce(&mut FeelContext),
-) -> Option<T> {
-  let mut iteration_context = match mode {
-    IterationContext::Copied => ctx.clone(),
-    IterationContext::Moved => std::mem::take(ctx),
-  };
-  prepare(&mut iteration_context);
+fn evaluate_in_iteration_context<T>(scope: &FeelScope, ctx: &Arc<FeelContext>, evaluate: impl FnOnce(&FeelScope) -> T) -> Option<(T, ScopeFrame)> {
   let depth = scope.depth();
-  scope.push(iteration_context);
+  scope.push_shared(Arc::clone(ctx));
   let value = evaluate(scope);
-  let mut iteration_context = scope.pop_frame(depth)?;
-  finish(&mut iteration_context);
-  if mode == IterationContext::Moved {
-    *ctx = iteration_context;
-  }
-  Some(value)
+  let frame = scope.pop_frame(depth)?;
+  Some((value, frame))
 }
 
 /// The null returned when an evaluation removed from the scope the context that a `for`, `some`
@@ -170,27 +151,17 @@ pub(super) fn lost_context(context: &str) -> Value {
 /// domain, bound in order.
 pub struct Iteration {
   variables: Vec<(Name, Domain)>,
-  mode: IterationContext,
 }
 
 impl Iteration {
-  /// The iteration contexts of a FEEL expression: the iteration context is moved into the scope
-  /// and back in every iteration instead of copied, because a FEEL body never writes into the
-  /// context on the top of the scope.
-  pub(crate) fn for_feel(variables: Vec<(Name, Domain)>) -> Self {
-    Self {
-      variables,
-      mode: IterationContext::Moved,
-    }
+  /// The iteration contexts of a FEEL expression: `variables`, bound in this order.
+  pub(crate) fn new(variables: Vec<(Name, Domain)>) -> Self {
+    Self { variables }
   }
 
-  /// The one iteration context of a boxed `for`, `some` or `every` expression: its body gets a
-  /// copy of the iteration context in every iteration.
+  /// The one iteration context of a boxed `for`, `some` or `every` expression.
   pub fn boxed(variable: Name, domain: Domain) -> Self {
-    Self {
-      variables: vec![(variable, domain)],
-      mode: IterationContext::Copied,
-    }
+    Self::new(vec![(variable, domain)])
   }
 
   /// Visits every combination of the values of the variables, the last variable advancing
@@ -203,31 +174,38 @@ impl Iteration {
   /// and no recursion is involved. When a sequence ends, its variable is unbound, so that a domain
   /// sees the variables before it only; `hidden` (the `partial` of a `for`) is unbound as well
   /// while a domain is evaluated. `Break` ends the walk with its value: the null of a domain that
-  /// fails, or the value `visit` breaks with.
-  fn walk(&self, scope: &FeelScope, expression: &str, hidden: Option<&Name>, mut visit: impl FnMut(&mut FeelContext) -> ControlFlow<Value>) -> ControlFlow<Value> {
+  /// fails, the value `visit` breaks with, or a null when the evaluation was stopped
+  /// ([diagnostics::stopped]), which the walk reads before each further item.
+  ///
+  /// The iteration context is one context for the whole walk, which `visit` gets to evaluate the
+  /// body in ([evaluate_in_iteration_context]); a domain is evaluated in it the same way.
+  fn walk(&self, scope: &FeelScope, expression: &str, hidden: Option<&Name>, mut visit: impl FnMut(&mut Arc<FeelContext>) -> ControlFlow<Value>) -> ControlFlow<Value> {
     let Some((_, first)) = self.variables.first() else {
       return ControlFlow::Continue(());
     };
-    let mut ctx = FeelContext::default();
+    let mut ctx = Arc::new(FeelContext::default());
     let mut levels = Vec::with_capacity(self.variables.len());
     match first(scope) {
       Ok(sequence) => levels.push(sequence),
       Err(reason) => return ControlFlow::Break(value_null!(reason)),
     }
     while let Some(depth) = levels.len().checked_sub(1) {
+      if diagnostics::stopped() {
+        return ControlFlow::Break(Value::Null(None));
+      }
       let name = &self.variables[depth].0;
       let Some(value) = levels[depth].next_item() else {
         levels.pop();
-        ctx.remove_entry(name);
+        Arc::make_mut(&mut ctx).remove_entry(name);
         continue;
       };
-      ctx.assign_entry(name, value);
+      Arc::make_mut(&mut ctx).assign_entry(name, value);
       match self.variables.get(depth + 1) {
         Some((_, domain)) => {
           if let Some(hidden) = hidden {
-            ctx.remove_entry(hidden);
+            Arc::make_mut(&mut ctx).remove_entry(hidden);
           }
-          match evaluate_in_iteration_context(scope, &mut ctx, self.mode, |scope| domain(scope), |_| {}, |_| {}) {
+          match evaluate_in_iteration_context(scope, &ctx, |scope| domain(scope)).map(|(sequence, _)| sequence) {
             Some(Ok(sequence)) => levels.push(sequence),
             Some(Err(reason)) => return ControlFlow::Break(value_null!(reason)),
             None => return ControlFlow::Break(lost_context(expression)),
@@ -244,32 +222,46 @@ impl Iteration {
     const EXPRESSION: &str = "iteration context of a `for` expression";
     // the implicit `partial` variable holds the results of all previous iterations
     let partial = Name::from("partial");
-    let mut results = vec![];
+    let mut results = FeelList::new();
     let walked = self.walk(scope, EXPRESSION, Some(&partial), |ctx| {
       // Move the results into the iteration context and back out afterwards instead of cloning
       // the whole list on every iteration, which made `for` quadratic.
-      let mut previous_results = None;
-      let Some(value) = evaluate_in_iteration_context(
-        scope,
-        ctx,
-        self.mode,
-        body,
-        |iteration_context| iteration_context.assign_entry(&partial, Value::List(std::mem::take(&mut results))),
-        |iteration_context| {
-          // the entry stays (with a placeholder) in a moved context; the next iteration sets it again
-          if let Some(entry) = iteration_context.get_entry_mut(&partial)
-            && let Value::List(values) = std::mem::replace(entry, Value::Null(None))
-          {
-            previous_results = Some(values);
-          }
-        },
-      ) else {
+      Arc::make_mut(ctx).assign_entry(&partial, Value::List(std::mem::take(&mut results)));
+      let Some((value, frame)) = evaluate_in_iteration_context(scope, ctx, body) else {
         return ControlFlow::Break(lost_context(EXPRESSION));
+      };
+      // The results are read from the frame the body ran in. A body that wrote into it (an
+      // entry `partial` replaces the results) left a copy of the iteration context there; one
+      // that did not left the iteration context itself, from which they are taken out.
+      let written = !std::ptr::eq::<FeelContext>(&*frame, &**ctx);
+      let written_results = if written {
+        match frame.get_entry(&partial) {
+          Some(Value::List(values)) => Some(values.clone()),
+          _ => None,
+        }
+      } else {
+        None
+      };
+      drop(frame);
+      // the entry stays (with a placeholder) in the iteration context, which then holds no copy
+      // of the results; the next iteration sets it again
+      let taken = Arc::make_mut(ctx).assign_entry(&partial, Value::Null(None));
+      let previous_results = if written {
+        written_results
+      } else {
+        match taken {
+          Some(Value::List(values)) => Some(values),
+          _ => None,
+        }
       };
       if let Some(values) = previous_results {
         results = values;
       }
       results.push(value);
+      // the results grow with every iteration, through `partial` by a level in each
+      if let Err(null) = diagnostics::bound_list_depth(&results) {
+        return ControlFlow::Break(null);
+      }
       ControlFlow::Continue(())
     });
     match walked {
@@ -295,7 +287,7 @@ impl Iteration {
   /// first value that is not a boolean (null); without either, the result is `!decisive`.
   fn quantified(&self, scope: &FeelScope, body: &Evaluator, decisive: bool, expression: &str) -> Value {
     let walked = self.walk(scope, expression, None, |ctx| {
-      match evaluate_in_iteration_context(scope, ctx, self.mode, body, |_| {}, |_| {}) {
+      match evaluate_in_iteration_context(scope, ctx, body).map(|(value, _)| value) {
         Some(Value::Boolean(value)) if value != decisive => ControlFlow::Continue(()),
         Some(Value::Boolean(_)) => ControlFlow::Break(Value::Boolean(decisive)),
         Some(_) => ControlFlow::Break(value_null!()),

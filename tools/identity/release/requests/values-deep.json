@@ -1,0 +1,14 @@
+[
+  {"op":"evaluate","expression":"(for i in 1..499 return if i = 1 then [] else [partial[-1]])[-1]"},
+  {"op":"evaluate","expression":"(for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1]"},
+  {"op":"evaluate","expression":"count((for i in 1..499 return if i = 1 then [] else [partial[-1]])[-1])"},
+  {"op":"evaluate","expression":"{x: (for i in 1..499 return if i = 1 then [] else [partial[-1]])[-1], r: x = x}.r"},
+  {"op":"evaluate","expression":"(for i in 1..499 return if i = 1 then [] else [partial[-1]])[-1] = (for i in 1..499 return if i = 1 then [] else [partial[-1]])[-1]"},
+  {"op":"evaluate","expression":"(for i in 1..499 return if i = 1 then [] else [partial[-1]])[-1] instance of Any"},
+  {"op":"evaluate","expression":"string length(string((for i in 1..499 return if i = 1 then [] else [partial[-1]])[-1]))"},
+  {"op":"evaluate","expression":"count((for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1])"},
+  {"op":"evaluate","expression":"{x: (for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1], r: x = x}.r"},
+  {"op":"evaluate","expression":"(for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1] = (for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1]"},
+  {"op":"evaluate","expression":"(for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1] instance of Any"},
+  {"op":"evaluate","expression":"string length(string((for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1]))"}
+]

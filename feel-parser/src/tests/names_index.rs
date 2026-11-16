@@ -5,7 +5,7 @@
 
 use super::{differential, full_size, oracle};
 use crate::context::ParsingContext;
-use crate::index::list_item_context_type;
+use crate::index::{Node, list_item_node};
 use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
 use crate::parser::Parser;
@@ -123,27 +123,30 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
   if depth >= 3 {
     return number(1);
   }
-  match rng.below(14) {
+  match rng.below(15) {
     0..=3 => number(rng.below(10) as i64),
     4 => Value::String("s".into()),
     5 => Value::Null(None),
-    6 | 7 => Value::Context(context(rng, depth + 1)),
+    6 | 7 => Value::from(context(rng, depth + 1)),
     8 => {
       // a list of contexts with the same keys (conformant), or with different keys
       let first = context(rng, depth + 1);
-      let mut items = vec![Value::Context(first.clone())];
+      let mut items = vec![Value::from(first.clone())];
       for _ in 0..rng.below(3) {
-        items.push(Value::Context(if rng.chance(70) { first.clone() } else { context(rng, depth + 1) }));
+        items.push(Value::from(if rng.chance(70) { first.clone() } else { context(rng, depth + 1) }));
       }
-      Value::List(items)
+      Value::List(items.into())
     }
-    9 => Value::List(match rng.below(5) {
-      0 => vec![],
-      1 => vec![Value::Null(None), Value::Context(context(rng, depth + 1))],
-      2 => vec![Value::Context(context(rng, depth + 1)), Value::Null(None)],
-      3 => vec![number(1), Value::Context(context(rng, depth + 1))],
-      _ => vec![Value::List(vec![Value::Context(context(rng, depth + 1))])],
-    }),
+    9 => Value::List(
+      match rng.below(5) {
+        0 => vec![],
+        1 => vec![Value::Null(None), Value::from(context(rng, depth + 1))],
+        2 => vec![Value::from(context(rng, depth + 1)), Value::Null(None)],
+        3 => vec![number(1), Value::from(context(rng, depth + 1))],
+        _ => vec![Value::List(vec![Value::from(context(rng, depth + 1))].into())],
+      }
+      .into(),
+    ),
     10 => {
       // contexts with the same keys, values of different types: not conformant
       let key = Name::from(*rng.pick(KEYS));
@@ -151,10 +154,18 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
       a.set_entry(&key, number(1));
       let mut b = FeelContext::default();
       b.set_entry(&key, if rng.chance(50) { Value::String("s".into()) } else { Value::Null(None) });
-      Value::List(vec![Value::Context(a), Value::Context(b)])
+      Value::List(vec![Value::from(a), Value::from(b)].into())
     }
     11 => Value::FeelType(context_type(rng, depth)),
     12 => Value::FeelType(FeelType::List(Box::new(context_type(rng, depth)))),
+    13 => {
+      // one context held under two keys, without a copy
+      let shared = Value::from(context(rng, depth + 1));
+      let mut ctx = FeelContext::default();
+      ctx.set_entry(&Name::from(*rng.pick(KEYS)), shared.clone());
+      ctx.set_entry(&Name::from(*rng.pick(KEYS)), shared);
+      Value::from(ctx)
+    }
     _ => Value::FeelType(FeelType::Number),
   }
 }
@@ -499,11 +510,11 @@ pub(super) fn chain(depth: usize) -> FeelContext {
   ctx.set_entry(&Name::from("leaf"), number(1));
   for level in (0..depth).rev() {
     let mut parent = FeelContext::default();
-    parent.set_entry(&Name::from(format!("k{level}").as_str()), Value::Context(ctx));
+    parent.set_entry(&Name::from(format!("k{level}").as_str()), Value::from(ctx));
     ctx = parent;
   }
   let mut top = ctx.clone();
-  top.set_entry(&Name::from("a./"), Value::Context(ctx));
+  top.set_entry(&Name::from("a./"), Value::from(ctx));
   top.set_entry(&Name::from("x"), number(1));
   top
 }
@@ -554,15 +565,16 @@ fn deep_chain_of_distinct_keys_is_linear() {
   }
 }
 
-/// The item type of a list in an input context is a context type exactly when [Value::type_of] of
-/// the list says so, for lists whose first item is not looked at further and for lists that are
-/// typed.
+/// A list in an input context carries names exactly when its item type ([Value::type_of]) is a
+/// context type, and they are the names of that type: the list's first item is a context of that
+/// type, or a type value of it. Lists whose first item is not looked at further, and lists whose
+/// items are compared, with and without contexts or types nested in them.
 #[test]
 fn list_item_context_types() {
   let one = |key: &str| {
     let mut ctx = FeelContext::default();
     ctx.set_entry(&Name::from(key), number(1));
-    Value::Context(ctx)
+    Value::from(ctx)
   };
   let context_type = FeelType::Context(BTreeMap::from([(Name::from("a"), FeelType::Number)]));
   for (list, has_context_items) in [
@@ -572,15 +584,154 @@ fn list_item_context_types() {
     (vec![one("a"), number(1)], false),
     (vec![number(1), one("a")], false),
     (vec![Value::Null(None), one("a")], false),
-    (vec![Value::List(vec![one("a")])], false),
+    (vec![Value::List(vec![one("a")].into())], false),
     (vec![], false),
+    (vec![nested("a", one("b")), nested("a", one("b"))], true),
+    (vec![nested("a", one("b")), nested("a", one("c"))], false),
+    (
+      vec![nested("a", Value::FeelType(context_type.clone())), nested("a", Value::FeelType(context_type.clone()))],
+      true,
+    ),
+    (
+      vec![nested("a", Value::List(vec![one("b")].into())), nested("a", Value::List(vec![one("b"), one("b")].into()))],
+      true,
+    ),
+    (vec![Value::FeelType(FeelType::List(Box::new(context_type.clone())))], false),
   ] {
-    let list = Value::List(list);
+    let list = Value::List(list.into());
     let expected = match list.type_of() {
       FeelType::List(item_type) if matches!(*item_type, FeelType::Context(_)) => Some(*item_type),
       _ => None,
     };
     assert_eq!(has_context_items, expected.is_some(), "{list:?}");
-    assert_eq!(expected, list_item_context_type(&list), "{list:?}");
+    let node = list_item_node(&list);
+    assert_eq!(expected.is_some(), node.is_some(), "{list:?}");
+    if let (Some(FeelType::Context(entries)), Some((node, item))) = (&expected, node) {
+      // the node is the first item, whose type is the item type
+      let Value::List(items) = &list else { unreachable!() };
+      assert!(std::ptr::eq(item, &items[0]), "{list:?}");
+      assert_eq!(expected, Some(item.type_of()), "{list:?}");
+      match node {
+        Node::Context(ctx) => assert!(ctx.iter().map(|(name, _)| name).eq(entries.keys()), "{list:?}"),
+        Node::Type(type_entries) => assert_eq!(entries, type_entries, "{list:?}"),
+      }
+    }
   }
+}
+
+/// `{key: value}`.
+fn nested(key: &str, value: Value) -> Value {
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&Name::from(key), value);
+  Value::from(ctx)
+}
+
+/// The names nested in a list of contexts doubled 60 times are read from its first item, with
+/// the context read once per level, and the conformance of its items is decided at once.
+#[test]
+fn a_list_of_shared_contexts_is_indexed_once() {
+  for depth in [30, 60] {
+    let mut input = FeelContext::default();
+    input.set_entry(&Name::from("l"), Value::List(vec![doubled(depth), doubled(depth)].into()));
+    let scope = FeelScope::from(input);
+    super::work::take();
+    let node = crate::parse_expression(&scope, "l.a.leaf + 1", false).unwrap();
+    let work = super::work::take();
+    assert!(node.trace().contains("`leaf`"), "{}", node.trace());
+    let contexts = work.get("index contexts").copied().unwrap_or(0);
+    assert!(contexts > depth && contexts <= depth + 2, "depth {depth}: {contexts} contexts read: {work:?}");
+  }
+}
+
+/// The context `{a: c, b: c}` around the one before it, `depth` times, around `{leaf: 1}`: every
+/// level holds the level below on two paths without a copy, so the context has 2^depth paths to
+/// its leaf in a linear size.
+fn doubled(depth: usize) -> Value {
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&Name::from("leaf"), number(1));
+  let mut value = Value::from(ctx);
+  for _ in 0..depth {
+    let mut parent = FeelContext::default();
+    parent.set_entry(&Name::from("a"), value.clone());
+    parent.set_entry(&Name::from("b"), value);
+    value = Value::from(parent);
+  }
+  value
+}
+
+/// The list `[{a: l, b: l}]` around the list before it, `depth` times, around `[{leaf: 1}]`: each
+/// context is held by one list alone, and the list below it is held on two paths without a copy.
+fn doubled_lists(depth: usize) -> Value {
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&Name::from("leaf"), number(1));
+  let mut value = Value::List(vec![Value::from(ctx)].into());
+  for _ in 0..depth {
+    let mut parent = FeelContext::default();
+    parent.set_entry(&Name::from("a"), value.clone());
+    parent.set_entry(&Name::from("b"), value);
+    value = Value::List(vec![Value::from(parent)].into());
+  }
+  value
+}
+
+/// A context held by a shared list alone is reached on as many paths as the list, so the index
+/// remembers the list: with lists of one context doubled 60 times, a context is read once per level.
+#[test]
+fn a_context_in_a_shared_list_is_indexed_once() {
+  for depth in [30, 60] {
+    let mut input = FeelContext::default();
+    input.set_entry(&Name::from("x"), doubled_lists(depth));
+    let scope = FeelScope::from(input);
+    super::work::take();
+    let node = crate::parse_expression(&scope, "x.a.leaf + 1", false).unwrap();
+    let work = super::work::take();
+    assert!(node.trace().contains("`leaf`"), "{}", node.trace());
+    let contexts = work.get("index contexts").copied().unwrap_or(0);
+    assert!(contexts > depth && contexts <= depth + 2, "depth {depth}: {contexts} contexts read: {work:?}");
+  }
+}
+
+/// The index of an input context reads a context held on several paths once for each longer
+/// composite-name prefix it is reached with, so a context doubled 60 times is read once per level.
+#[test]
+fn a_shared_context_is_indexed_once() {
+  for depth in [30, 60] {
+    let mut input = FeelContext::default();
+    input.set_entry(&Name::from("x"), doubled(depth));
+    let scope = FeelScope::from(input);
+    super::work::take();
+    let node = crate::parse_expression(&scope, "x.a.leaf + 1", false).unwrap();
+    let work = super::work::take();
+    assert!(node.trace().contains("`leaf`"), "{}", node.trace());
+    let contexts = work.get("index contexts").copied().unwrap_or(0);
+    assert!(contexts > depth && contexts <= depth + 2, "depth {depth}: {contexts} contexts read: {work:?}");
+  }
+}
+
+/// A composite name into a context held under three keys is found as the flattened-key search
+/// finds it, through each of the keys.
+#[test]
+fn composite_names_into_a_shared_context_equal_flattened_keys_search() {
+  let mut p = FeelContext::default();
+  p.set_entry(&Name::from("q"), number(1));
+  let mut x = FeelContext::default();
+  x.set_entry(&Name::from("p./"), Value::from(p));
+  let x = Value::from(x);
+  let mut top = FeelContext::default();
+  for key in ["x", "a./", "b./"] {
+    top.set_entry(&Name::from(key), x.clone());
+  }
+  top.set_entry(&Name::from("y"), number(1));
+  let frames = vec![top];
+  for input in [
+    format!("a./{OGHAM}.{OGHAM} p./{OGHAM}.{OGHAM} q + 1"),
+    format!("b./{OGHAM}.{OGHAM} p./ - y"),
+    format!("x.p./{OGHAM}.{OGHAM} q"),
+    format!("a./{OGHAM}.{OGHAM} q"),
+    "x.p./.q".to_string(),
+  ] {
+    assert_eq!(parse(&frames, &input, true), parse(&frames, &input, false), "{input:?}");
+  }
+  let trace = parse(&frames, &format!("a./{OGHAM}.{OGHAM} p./{OGHAM}.{OGHAM} q + 1"), false);
+  assert!(trace.contains("`a./. p./. q`") && !trace.contains("Path"), "{trace}");
 }

@@ -77,6 +77,11 @@ pub fn err_invalid_xsd_duration(text: &str) -> DsntkError {
 #[derive(ToErrorMessage)]
 struct ContextError(String);
 
+/// Creates an instance of the error of a path of `keys` entries that would nest a value too deeply.
+pub fn err_value_nested_too_deeply(keys: usize) -> DsntkError {
+  ContextError(format!("a path of {keys} entries nests the value too deeply")).into()
+}
+
 /// Creates an instance of `value is not a context` error.
 pub fn err_value_is_not_a_context(value: &Value) -> DsntkError {
   ContextError(format!("'{}' is not a value containing context", arg(value))).into()

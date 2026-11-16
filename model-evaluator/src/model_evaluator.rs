@@ -180,7 +180,7 @@ impl ModelEvaluator {
       return value_null!();
     };
     let arguments = function_definition
-      .parameters
+      .parameters()
       .iter()
       .filter_map(|(name, _)| input_data.get_entry(name).map(|value| (name.clone(), value.clone())))
       .collect();

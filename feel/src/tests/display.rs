@@ -59,7 +59,7 @@ fn a_long_list_stops_when_the_writer_stops() {
 #[test]
 fn a_context_stops_when_the_writer_stops() {
   assert_stops(&context_of("a", long_list()), ELEMENT);
-  assert_stops(&Value::Context(context_of("a", long_list())), ELEMENT);
+  assert_stops(&Value::from(context_of("a", long_list())), ELEMENT);
 }
 
 #[test]
@@ -75,17 +75,20 @@ fn a_range_and_a_null_stop_when_the_writer_stops() {
   let long = Value::String("x".repeat(1_000).into());
   let range = Value::Range(Box::new(long.clone()), crate::IntervalType::Closed, Box::new(long), crate::IntervalType::Closed);
   assert_stops(&range, 1_002);
-  assert_stops(&Value::List(vec![Value::Null(Some("x".repeat(1_000))); 2]), 1_006);
+  assert_stops(&Value::List(vec![Value::Null(Some("x".repeat(1_000))); 2].into()), 1_006);
 }
 
 #[test]
 fn the_texts_are_unchanged() {
-  let list = Value::List(vec![
-    Value::Number(FeelNumber::new(1, 0)),
-    Value::String("a".into()),
-    Value::Null(None),
-    Value::List(vec![]),
-  ]);
+  let list = Value::List(
+    vec![
+      Value::Number(FeelNumber::new(1, 0)),
+      Value::String("a".into()),
+      Value::Null(None),
+      Value::List(vec![].into()),
+    ]
+    .into(),
+  );
   assert_eq!(r#"[1, "a", null, []]"#, list.to_string());
   assert_eq!(r#"[[1, "a", null, []]]"#, Value::ExpressionList(vec![list.clone()]).to_string());
   let mut context = context_of("", Value::Number(FeelNumber::new(1, 0)));

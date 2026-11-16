@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20240513/MODEL/" namespace="https://dsntk.io/boxed-frames" name="boxed frames" id="_boxed_frames">
+    <description>
+        Boxed contexts in the body of a boxed for and as the match of a boxed filter. A boxed
+        context writes each named entry into the context on the top of the scope, which there is
+        the iteration context or the context of the item.
+    </description>
+    <decision name="for reads an earlier iteration" id="_d1">
+        <description>A boxed context in the body of a boxed for: its entry w reads w, which the body of the iteration before wrote.</description>
+        <variable name="for reads an earlier iteration"/>
+        <for iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>[1, 2, 3]</text>
+                </literalExpression>
+            </in>
+            <return>
+                <context>
+                    <contextEntry>
+                        <variable name="w"/>
+                        <literalExpression>
+                            <text>if w = null then x else w + x</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>w</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </return>
+        </for>
+    </decision>
+    <decision name="for writes partial" id="_d2">
+        <description>A boxed context in the body of a boxed for writes an entry named partial, the name of the results so far.</description>
+        <variable name="for writes partial"/>
+        <for iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>[1, 2, 3]</text>
+                </literalExpression>
+            </in>
+            <return>
+                <context>
+                    <contextEntry>
+                        <variable name="partial"/>
+                        <literalExpression>
+                            <text>[x]</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>count(partial)</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </return>
+        </for>
+    </decision>
+    <decision name="for writes partial a number" id="_d3">
+        <description>As before, with a value of partial that is not a list.</description>
+        <variable name="for writes partial a number"/>
+        <for iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>[1, 2, 3]</text>
+                </literalExpression>
+            </in>
+            <return>
+                <context>
+                    <contextEntry>
+                        <variable name="partial"/>
+                        <literalExpression>
+                            <text>x</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>partial</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </return>
+        </for>
+    </decision>
+    <decision name="for reads a later entry" id="_d4">
+        <description>A boxed context in the body of a boxed for: its first entry reads c, which a later entry writes.</description>
+        <variable name="for reads a later entry"/>
+        <for iteratorVariable="x">
+            <in>
+                <literalExpression>
+                    <text>[1, 2, 3]</text>
+                </literalExpression>
+            </in>
+            <return>
+                <context>
+                    <contextEntry>
+                        <variable name="b"/>
+                        <literalExpression>
+                            <text>if c = null then 0 else c</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <variable name="c"/>
+                        <literalExpression>
+                            <text>x * 10</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>[b, c]</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </return>
+        </for>
+    </decision>
+    <decision name="filter reads an earlier item" id="_d5">
+        <description>A boxed context as the match of a boxed filter: its entry seen reads seen, which the match of the item before wrote.</description>
+        <variable name="filter reads an earlier item"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>[{a: 1}, {a: 2}, {a: 3}]</text>
+                </literalExpression>
+            </in>
+            <match>
+                <context>
+                    <contextEntry>
+                        <variable name="seen"/>
+                        <literalExpression>
+                            <text>if seen = null then (item.a) else seen + (item.a)</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>seen &gt;= 2</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </match>
+        </filter>
+    </decision>
+    <decision name="filter writes item" id="_d6">
+        <description>A boxed context as the match of a boxed filter writes an entry named item.</description>
+        <variable name="filter writes item"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>[1, 2, 3]</text>
+                </literalExpression>
+            </in>
+            <match>
+                <context>
+                    <contextEntry>
+                        <variable name="item"/>
+                        <literalExpression>
+                            <text>item * 10</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>item &gt; 15</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </match>
+        </filter>
+    </decision>
+    <decision name="filter writes an entry of the item" id="_d7">
+        <description>A boxed context as the match of a boxed filter writes an entry named as an entry of the context item.</description>
+        <variable name="filter writes an entry of the item"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>[{a: 1}, {a: 2}, {a: 3}]</text>
+                </literalExpression>
+            </in>
+            <match>
+                <context>
+                    <contextEntry>
+                        <variable name="a"/>
+                        <literalExpression>
+                            <text>a * 10</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>a &gt; 15</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </match>
+        </filter>
+    </decision>
+    <decision name="filter reads a later entry" id="_d8">
+        <description>A boxed context as the match of a boxed filter: its first entry reads c, which a later entry writes.</description>
+        <variable name="filter reads a later entry"/>
+        <filter>
+            <in>
+                <literalExpression>
+                    <text>[{a: 1}, {a: 2}, {a: 3}]</text>
+                </literalExpression>
+            </in>
+            <match>
+                <context>
+                    <contextEntry>
+                        <variable name="b"/>
+                        <literalExpression>
+                            <text>if c = null then 0 else c</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <variable name="c"/>
+                        <literalExpression>
+                            <text>a</text>
+                        </literalExpression>
+                    </contextEntry>
+                    <contextEntry>
+                        <literalExpression>
+                            <text>b = 0</text>
+                        </literalExpression>
+                    </contextEntry>
+                </context>
+            </match>
+        </filter>
+    </decision>
+    <decision name="filter leaves the enclosing scope" id="_d9">
+        <description>A boxed filter in a boxed context, whose match is a boxed context with an entry seen: a later entry of the enclosing boxed context reads seen.</description>
+        <variable name="filter leaves the enclosing scope"/>
+        <context>
+            <contextEntry>
+                <variable name="r"/>
+                <filter>
+                    <in>
+                        <literalExpression>
+                            <text>[1, 2]</text>
+                        </literalExpression>
+                    </in>
+                    <match>
+                        <context>
+                            <contextEntry>
+                                <variable name="seen"/>
+                                <literalExpression>
+                                    <text>1</text>
+                                </literalExpression>
+                            </contextEntry>
+                            <contextEntry>
+                                <literalExpression>
+                                    <text>true</text>
+                                </literalExpression>
+                            </contextEntry>
+                        </context>
+                    </match>
+                </filter>
+            </contextEntry>
+            <contextEntry>
+                <literalExpression>
+                    <text>[r, seen]</text>
+                </literalExpression>
+            </contextEntry>
+        </context>
+    </decision>
+</definitions>

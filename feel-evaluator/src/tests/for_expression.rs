@@ -248,7 +248,7 @@ fn _0024() {
     false,
     &scope!(),
     r#"for i in 1..3 return [1,2]["x"]"#,
-    Value::List(vec![filter_null.clone(), filter_null.clone(), filter_null]),
+    Value::List(vec![filter_null.clone(), filter_null.clone(), filter_null].into()),
   );
   te_null(false, &scope!(), r#"{r: for i in 1..3 return [1,2]["x"], s: i}.s"#, "context has no value for key 'i'");
   te_number(false, &scope!(), r#"count({r: for i in 1..3 return [1,2]["x"]}.r)"#, 3, 0);
@@ -336,8 +336,8 @@ fn _0027() {
     scope.pop();
     Value::Boolean(true)
   });
-  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)]))));
-  let evaluator = crate::Iteration::for_feel(vec![("i".into(), booleans)]);
+  let booleans: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![Value::Boolean(true), Value::Boolean(false)].into()))));
+  let evaluator = crate::Iteration::new(vec![("i".into(), booleans)]);
   let depth = scope.depth();
   assert_eq!(
     Value::Null(Some("internal error: the evaluation removed the iteration context of a `for` expression".to_string())),
@@ -350,18 +350,46 @@ fn _0027() {
 fn _0028() {
   // A domain that removes the iteration context from the scope gives the same null.
   let scope = &te_scope("{}");
-  let numbers: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![rheon_feel::value_number!(1), rheon_feel::value_number!(2)]))));
+  let numbers: crate::Domain = Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![rheon_feel::value_number!(1), rheon_feel::value_number!(2)].into()))));
   let popping: crate::Domain = Box::new(|scope: &FeelScope| {
     scope.pop();
     Ok(crate::Sequence::empty())
   });
-  let evaluator = crate::Iteration::for_feel(vec![("i".into(), numbers), ("j".into(), popping)]);
+  let evaluator = crate::Iteration::new(vec![("i".into(), numbers), ("j".into(), popping)]);
   let body: rheon_feel::Evaluator = Box::new(|_: &FeelScope| Value::Boolean(true));
   let depth = scope.depth();
   assert_eq!(
     Value::Null(Some("internal error: the evaluation removed the iteration context of a `for` expression".to_string())),
     evaluator.collect(scope, &body)
   );
+  assert_eq!(depth, scope.depth());
+}
+
+#[test]
+fn _0029() {
+  // The body of a FEEL iteration, like that of a boxed one, gets the iteration context shared:
+  // what it writes into the context on the top of the scope (a boxed context does) goes into a
+  // copy, which the next iteration does not see, with two variables as with one; and an entry
+  // `partial` it writes replaces the results so far.
+  let scope = &te_scope("{}");
+  let depth = scope.depth();
+  let written = rheon_feel::Name::from("w");
+  let partial = rheon_feel::Name::from("partial");
+  let numbers = || -> crate::Domain { Box::new(|_: &FeelScope| Ok(crate::Sequence::of(Value::List(vec![rheon_feel::value_number!(1), rheon_feel::value_number!(2)].into())))) };
+  let reading_and_writing: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| {
+    let seen = scope.get_value(&written).unwrap_or(Value::Null(None));
+    scope.set_value(&written, rheon_feel::value_number!(7));
+    seen
+  });
+  let one = crate::Iteration::new(vec![("i".into(), numbers())]);
+  assert_eq!("[null, null]", one.collect(scope, &reading_and_writing).to_string());
+  let two = crate::Iteration::new(vec![("i".into(), numbers()), ("j".into(), numbers())]);
+  assert_eq!("[null, null, null, null]", two.collect(scope, &reading_and_writing).to_string());
+  let replacing: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| {
+    scope.set_value(&partial, Value::List(vec![rheon_feel::value_number!(9)].into()));
+    scope.get_value(&rheon_feel::Name::from("i")).unwrap_or(Value::Null(None))
+  });
+  assert_eq!("[9, 2]", one.collect(scope, &replacing).to_string());
   assert_eq!(depth, scope.depth());
 }
 

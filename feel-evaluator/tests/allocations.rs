@@ -99,16 +99,69 @@ fn wide_context(entries: i64) -> rheon_feel::context::FeelContext {
 fn a_message_quoting_the_type_of_a_wide_context_allocates_little() {
   use rheon_feel::message::{arg, compose};
   use rheon_feel::values::TypeOf;
-  let value = Value::Context(wide_context(10_000));
+  let value = Value::from(wide_context(10_000));
   let (message, bytes) = bytes_allocated_by(|| compose(format_args!("actual type is '{}'", arg(&TypeOf(&value)))));
   assert!(message.ends_with("… (10000 entries)'"), "{message}");
   assert!(bytes <= 4 * 1024, "{bytes} bytes allocated");
 }
 
+/// The allocations and the bytes the evaluation of `expression` makes over a list of 10,000
+/// `item`s, less those it makes over a list of the one item `0`: the cost that grows with the list.
+fn cost_of_a_long_list(expression: &str, item: impl Fn(i64) -> Value) -> (i64, i64) {
+  let measure = |items: Vec<Value>| {
+    let len = items.len();
+    let mut input = rheon_feel::context::FeelContext::default();
+    input.set_entry(&rheon_feel::Name::from("items"), Value::List(items.into()));
+    let scope = FeelScope::from(input);
+    let evaluator = prepare(&parse_expression(&scope, expression, false).expect("the expression parses"));
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    let allocations = ALLOCATIONS.with(Cell::get) - allocations;
+    assert_eq!(Value::Number(len.into()), value, "{expression}");
+    (allocations as i64, bytes as i64)
+  };
+  let (long_allocations, long_bytes) = measure((0..10_000).map(&item).collect());
+  let (one_allocations, one_bytes) = measure(vec![item(0)]);
+  (long_allocations - one_allocations, long_bytes - one_bytes)
+}
+
+/// A context with a number and a string entry.
+fn record(n: i64) -> Value {
+  let mut context = rheon_feel::context::FeelContext::default();
+  context.set_entry(&rheon_feel::Name::from("n"), Value::Number(n.into()));
+  context.set_entry(&rheon_feel::Name::from("s"), Value::String(format!("item {n}").into()));
+  Value::from(context)
+}
+
+#[test]
+fn a_list_read_by_name_and_passed_on_is_not_copied() {
+  let number = |n: i64| Value::Number(n.into());
+  for expression in ["count(items)", "{f: function(l) count(l), r: f(items)}.r"] {
+    for (kind, (allocations, bytes)) in [("numbers", cost_of_a_long_list(expression, number)), ("contexts", cost_of_a_long_list(expression, record))] {
+      assert!(
+        allocations <= 8 && bytes < 4 * 1024,
+        "{expression} over 10,000 {kind}: {allocations} allocations and {bytes} bytes more than over one"
+      );
+    }
+  }
+}
+
+#[test]
+fn a_list_read_by_name_and_filtered_is_not_copied() {
+  let number = |n: i64| Value::Number(n.into());
+  let expression = "count(items[item = null]) + count(items)";
+  for (kind, (allocations, bytes)) in [("numbers", cost_of_a_long_list(expression, number)), ("contexts", cost_of_a_long_list(expression, record))] {
+    assert!(
+      allocations <= 8 && bytes < 4 * 1024,
+      "{expression} over 10,000 {kind}: {allocations} allocations and {bytes} bytes more than over one"
+    );
+  }
+}
+
 #[test]
 fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
   let mut input = rheon_feel::context::FeelContext::default();
-  input.set_entry(&rheon_feel::Name::from("c"), Value::Context(wide_context(10_000)));
+  input.set_entry(&rheon_feel::Name::from("c"), Value::from(wide_context(10_000)));
   let scope = FeelScope::from(input);
   let evaluate = |text: &str| {
     let evaluator = prepare(&parse_expression(&scope, text, false).expect("the expression parses"));
@@ -118,4 +171,63 @@ fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
   let (value, invoked) = evaluate("abs(c)");
   assert!(matches!(&value, Value::Null(Some(reason)) if reason.ends_with("… (10000 entries)")), "{value}");
   assert!(invoked <= read + 64 * 1024, "abs(c) allocated {invoked} bytes, c {read}");
+}
+
+/// The allocations and the bytes the evaluation of `expression` makes with the input `data` a
+/// context of 10,000 entries, less those it makes with `data` a context of one entry: the cost
+/// that grows with the context. The expression answers the entry `entry0`, the number 0.
+fn cost_of_a_wide_context(expression: &str) -> (i64, i64) {
+  let measure = |entries: i64| {
+    let mut input = rheon_feel::context::FeelContext::default();
+    input.set_entry(&rheon_feel::Name::from("data"), Value::from(wide_context(entries)));
+    let scope = FeelScope::from(input);
+    let evaluator = prepare(&parse_expression(&scope, expression, false).expect("the expression parses"));
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    let allocations = ALLOCATIONS.with(Cell::get) - allocations;
+    assert_eq!(Value::Number(0.into()), value, "{expression}");
+    (allocations as i64, bytes as i64)
+  };
+  let (wide_allocations, wide_bytes) = measure(10_000);
+  let (one_allocations, one_bytes) = measure(1);
+  (wide_allocations - one_allocations, wide_bytes - one_bytes)
+}
+
+#[test]
+fn a_context_read_by_name_and_passed_on_is_not_copied() {
+  for expression in [
+    "data.entry0",
+    "get value(data, \"entry0\")",
+    "{f: function(c) c.entry0, r: f(data)}.r",
+    "{d: data, r: d.entry0}.r",
+  ] {
+    let (allocations, bytes) = cost_of_a_wide_context(expression);
+    assert!(
+      allocations <= 8 && bytes < 4 * 1024,
+      "{expression} over 10,000 entries: {allocations} allocations and {bytes} bytes more than over one"
+    );
+  }
+}
+
+/// The allocations of `calls` calls of a function that closes over `names` names of a context
+/// literal and answers 0 without reading them.
+fn calls_of_a_closure(names: usize, calls: usize) -> i64 {
+  let entries: Vec<String> = (0..names).map(|i| format!("a{i}: {i}")).collect();
+  let read: Vec<String> = (0..names).map(|i| format!("a{i}")).collect();
+  let expression = format!(
+    "{{{}, f: function() if false then [{}] else 0, r: count(for i in 1..{calls} return f())}}.r",
+    entries.join(", "),
+    read.join(", ")
+  );
+  let (value, allocations) = evaluate_counting(&scope!(), &expression);
+  assert_eq!(Value::Number(calls.into()), value, "{expression}");
+  allocations as i64
+}
+
+/// The allocations that 1,000 more calls cost do not grow with the closure.
+#[test]
+fn a_call_puts_the_closure_in_scope_without_a_copy() {
+  let more_calls = |names: usize| calls_of_a_closure(names, 2_000) - calls_of_a_closure(names, 1_000);
+  let (many, one) = (more_calls(50), more_calls(1));
+  assert!(many <= one + 8, "1,000 more calls closing over 50 names: {many} allocations more, over 1 name: {one}");
 }

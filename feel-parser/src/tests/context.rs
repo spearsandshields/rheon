@@ -53,7 +53,7 @@ fn test_from_feel_context_0004() {
   fctx_a.set_null("b".into());
   let mut fctx_b = FeelContext::default();
   fctx_b.set_null("x".into());
-  fctx_b.set_entry(&"y".into(), Value::Context(fctx_a));
+  fctx_b.set_entry(&"y".into(), Value::from(fctx_a));
   let pctx: ParsingContext = fctx_b.into();
   assert_eq!("{x: <v>, y: {a: <v>, b: <v>}}", format!("{pctx}"));
 }
@@ -65,7 +65,7 @@ fn test_from_feel_context_0005() {
   fctx_a.set_entry(&"b".into(), Value::FeelType(FeelType::Any));
   let mut fctx_b = FeelContext::default();
   fctx_b.set_null("x".into());
-  fctx_b.set_entry(&"y".into(), Value::Context(fctx_a));
+  fctx_b.set_entry(&"y".into(), Value::from(fctx_a));
   let pctx: ParsingContext = fctx_b.into();
   assert_eq!("{x: <v>, y: {a: <v>, b: <v>}}", format!("{pctx}"));
 }
@@ -80,7 +80,7 @@ fn test_from_feel_context_0006() {
   );
   let mut fctx_b = FeelContext::default();
   fctx_b.set_null("x".into());
-  fctx_b.set_entry(&"y".into(), Value::Context(fctx_a));
+  fctx_b.set_entry(&"y".into(), Value::from(fctx_a));
   let pctx: ParsingContext = fctx_b.into();
   assert_eq!("{x: <v>, y: {a: <v>, b: {i: <v>, j: <v>}}}", format!("{pctx}"));
 }
@@ -98,7 +98,7 @@ fn test_from_feel_context_0007() {
   );
   let mut fctx_b = FeelContext::default();
   fctx_b.set_null("x".into());
-  fctx_b.set_entry(&"y".into(), Value::Context(fctx_a));
+  fctx_b.set_entry(&"y".into(), Value::from(fctx_a));
   let pctx: ParsingContext = fctx_b.into();
   assert_eq!("{x: <v>, y: {a: <v>, b: {i: <v>, j: {m: <v>, n: <v>}}}}", format!("{pctx}"));
 }
@@ -110,7 +110,7 @@ fn test_from_feel_context_0008() {
   fctx_a.set_entry(&"b".into(), Value::FeelType(FeelType::list(&FeelType::Boolean)));
   let mut fctx_b = FeelContext::default();
   fctx_b.set_null("x".into());
-  fctx_b.set_entry(&"y".into(), Value::Context(fctx_a));
+  fctx_b.set_entry(&"y".into(), Value::from(fctx_a));
   let pctx: ParsingContext = fctx_b.into();
   assert_eq!("{x: <v>, y: {a: <v>, b: <v>}}", format!("{pctx}"));
 }
@@ -128,7 +128,7 @@ fn test_from_feel_context_0009() {
   );
   let mut fctx_b = FeelContext::default();
   fctx_b.set_null("x".into());
-  fctx_b.set_entry(&"y".into(), Value::Context(fctx_a));
+  fctx_b.set_entry(&"y".into(), Value::from(fctx_a));
   let pctx: ParsingContext = fctx_b.into();
   assert_eq!("{x: <v>, y: {a: <v>, b: {c: <v>, d: <v>}}}", format!("{pctx}"));
 }

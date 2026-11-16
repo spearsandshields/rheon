@@ -279,7 +279,7 @@ fn test_context_apply_entries() {
   let name_d: Name = "d".into();
   let v_a = VALUE_TRUE;
   let v_b = VALUE_FALSE;
-  let v_c = Value::Context(FeelContext::new());
+  let v_c = Value::from(FeelContext::new());
   let mut ctx = FeelContext::new();
   ctx.apply_entries(&[], v_a.clone()).unwrap();
   assert_eq!("{}", ctx.to_string());
@@ -321,27 +321,18 @@ fn test_context_assign_entry() {
   let name_a = Name::from("a");
   let name_b = Name::from("b");
   let mut ctx: FeelContext = Default::default();
-  ctx.assign_entry(&name_a, value_number!(1));
+  // a new entry is inserted, and no value is replaced
+  assert_eq!(None, ctx.assign_entry(&name_a, value_number!(1)));
   assert_eq!(r#"{a: 1}"#, ctx.to_string());
-  // the value of an existing entry is replaced
-  ctx.assign_entry(&name_a, value_number!(2));
+  // the value of an existing entry is replaced and returned
+  assert_eq!(Some(value_number!(1)), ctx.assign_entry(&name_a, value_number!(2)));
   assert_eq!(r#"{a: 2}"#, ctx.to_string());
-  // a new entry is inserted
-  ctx.assign_entry(&name_b, value_number!(3));
+  assert_eq!(None, ctx.assign_entry(&name_b, value_number!(3)));
   assert_eq!(r#"{a: 2, b: 3}"#, ctx.to_string());
-}
-
-#[test]
-fn test_context_get_entry_mut() {
-  let name_a = Name::from("a");
-  let mut ctx: FeelContext = Default::default();
-  ctx.set_entry(&name_a, value_number!(1));
-  assert_eq!(None, ctx.get_entry_mut(&Name::from("b")));
-  let entry = ctx.get_entry_mut(&name_a).unwrap();
-  assert_eq!(&value_number!(1), entry);
-  *entry = Value::String("x".into());
-  assert_eq!(r#"{a: "x"}"#, ctx.to_string());
-  assert_eq!(1, ctx.len());
+  // a value moved into an entry is taken back out by assigning a placeholder
+  assert_eq!(Some(value_number!(3)), ctx.assign_entry(&name_b, Value::Null(None)));
+  assert_eq!(r#"{a: 2, b: null}"#, ctx.to_string());
+  assert_eq!(2, ctx.len());
 }
 
 #[test]
@@ -412,7 +403,7 @@ fn test_try_from_value_context() {
   ctx_a.set_entry(&name_b, value_number!(2));
   ctx_a.set_entry(&name_c, value_number!(3));
   ctx_a.set_entry(&name_d, value_number!(4));
-  let v = Value::Context(ctx_a);
+  let v = Value::from(ctx_a);
   let ctx_b = FeelContext::try_from(v).unwrap();
   assert_eq!(
     vec![
@@ -426,25 +417,22 @@ fn test_try_from_value_context() {
 }
 
 #[test]
-fn test_deref() {
+fn test_read_api() {
   let name_a = Name::from("a");
   let name_b = Name::from("b");
   let name_c = Name::from("c");
-  let name_d = Name::from("d");
   let mut ctx_a: FeelContext = Default::default();
+  ctx_a.set_entry(&name_c, value_number!(3));
   ctx_a.set_entry(&name_a, value_number!(1));
   ctx_a.set_entry(&name_b, value_number!(2));
-  ctx_a.set_entry(&name_c, value_number!(3));
-  ctx_a.set_entry(&name_d, value_number!(4));
-  let entries = &(*ctx_a);
-  entries.contains_key(&name_a);
-  assert_eq!(value_number!(1), entries.get(&name_a).unwrap().clone());
-  entries.contains_key(&name_b);
-  assert_eq!(value_number!(2), entries.get(&name_b).unwrap().clone());
-  entries.contains_key(&name_c);
-  assert_eq!(value_number!(3), entries.get(&name_c).unwrap().clone());
-  entries.contains_key(&name_d);
-  assert_eq!(value_number!(4), entries.get(&name_d).unwrap().clone());
+  assert!(ctx_a.contains_entry(&name_a));
+  assert!(!ctx_a.contains_entry(&Name::from("d")));
+  assert_eq!(Some(&value_number!(2)), ctx_a.get_entry(&name_b));
+  assert_eq!(
+    vec![(&name_a, &value_number!(1)), (&name_b, &value_number!(2)), (&name_c, &value_number!(3))],
+    ctx_a.iter().collect::<Vec<_>>()
+  );
+  assert_eq!(3, ctx_a.iter().len());
 }
 
 #[test]

@@ -57,9 +57,9 @@ was written.
   `(? > 0.1) + 0.2` (`feel-grammar/src/feel.y`).
 - **Zoned `now()`** `[fork]` (2026-10-17). `now()` is zone-less, so
   `now() - date and time("…Z")` is null.
-- **`sort` comparator bypasses guards** `[fork]` (2026-10-18). Depth and finiteness guards are
-  skipped for the user comparator; a non-boolean answer silently means "does not precede" (the
-  ordering itself cannot fail on any answer).
+- **`sort` reads a non-boolean answer as "does not precede"** `[fork]` (2026-10-18). A
+  non-boolean answer of the comparator silently means "does not precede" (the ordering itself
+  cannot fail on any answer).
 - **Globals in the engine** `[fork]` (2026-10-17). The tz-offset override is process-global, so
   the wasm layer serialises requests with `ENGINE_LOCK` (`wasm/feel-wasm/src/engine.rs`). The
   call depth and the abort of an evaluation are thread-local state owned by that evaluation
@@ -83,12 +83,6 @@ was written.
   reads such a part only right after an additional name symbol (`.`, `/`, `-`, `'`, `+`, `*`).
   The composite search visits up to (nested contexts) × (separators in the candidate + 1)
   states per candidate.
-- **Filters evaluate their expression once more in the outer scope** `[fork]`. After
-  evaluating the expression for every item, the filter evaluates it once in the enclosing scope
-  to decide between indexing and filtering (`FilterExpressionEvaluator::evaluate`). A predicate
-  that names an item entry fails there: in strict mode `sum(items[amount > 100].amount)` is the
-  error "context has no value for key 'amount'" (lenient mode returns the sum with two
-  diagnostics). Indexing (`list[i]`) evaluates the index once per item as well.
 - **Boxed contexts write into the context below them** `[fork]`. The boxed context evaluator
   (`build_context_evaluator`, `model-evaluator/src/boxed_expressions.rs`) pushes no context of
   its own when it evaluates: it writes each entry into the context on the top of the scope. The
@@ -99,11 +93,22 @@ was written.
   is a boxed context with an entry named `partial`, that entry overwrites the iteration's
   `partial` and the results of the earlier iterations are lost (§10.3.2.14). Functions returned
   by boxed function bodies depend on these writes (*Closures are not lexical* below), so the two
-  change together.
-- **Values are cloned on lookup** `[fork]`. Function definitions and strings are shared
-  (`Arc<FunctionDefinition>`, `FeelString`), and FEEL loops and filters move their contexts and
-  items instead of cloning them. Contexts and lists are still cloned on every scope lookup, and a
-  function's closure context on every call.
+  change together. These writes are also why a loop and a filter push their contexts shared and
+  read `partial` back from the frame the body ran in (`feel-evaluator/src/iterations.rs`,
+  `filters.rs`), and why a filter evaluates its expression in the enclosing scope in an empty
+  frame of its own: no FEEL expression writes into a frame it did not push, so all of them would
+  go with the writes.
+- **Rust `==` on values is a tree walk** `[fork]`. The derived `PartialEq` of `Value` follows
+  every path, so two values built apart that hold the same lists or contexts on many paths take
+  time exponential in the sharing. FEEL equality visits each shared pair once, but the native
+  DMN decision tables compare output values with `==` for the ANY and PRIORITY hit policies
+  (`model-evaluator/src/decision_table.rs`, the output-value positions and the check that all
+  results agree); no FEEL request reaches them. A pointer shortcut needs `==` to be reflexive for
+  every value, which was not checked; routing them through FEEL equality changes answers.
+- **List built-ins copy the items of their argument** `[fork]`. `insert before`, `insert after`,
+  `remove`, `reverse`, `list replace` and `sublist` take their list by reference and copy its
+  items into the new list, also when the caller held the only reference and the items could have
+  been reused (`append(for i in 1..n return i, 0)` copies `n` items).
 - **Loop variables are looked up by name** `[fork]`: every iteration resolves the variable
   through the scope stack (`FeelScope::get_value`).
 - **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),
@@ -175,8 +180,8 @@ Open in 1.6:
     name); §7.3.4 asks it to be compatible with the value.
   - *`try_coerced` lets any function value pass* whatever the target type (feel/src/values.rs).
   - *Call depth counting.* FEEL invocations are counted at the expression (argument evaluation
-    included), boxed invocations and invocables in `evaluate_invocation`; `sort` and `list
-    replace` callbacks are not counted.
+    included), boxed invocations and invocables in `evaluate_invocation`, and the callbacks of
+    `sort` and `list replace` at the call.
   - *Unused values.* `Value::NamedParameter`, `Value::ParameterName` and
     `Value::PositionalParameters` are not built for invocations (`ParameterName` still is,
     for formal parameters).
@@ -221,7 +226,7 @@ back-references via fancy-regex). The unpatched subset stands at 289/298. Remain
 ## Build and release
 
 - **The DMN TCK is not run by CI.** `scripts/tck.sh` runs it locally (the runner, the patches and
-  a TCK checkout of about 430 MB).
+  a TCK checkout of about 430 MB, each at the commit `scripts/tck-pins.txt` pins).
 - **Builds on different hosts are not bit-identical.** The npm 0.2.0 `feel.wasm` and the release
   asset, both built from the same commit with the same rustc on macOS and on CI's Linux, differ
   by 310 bytes (string-constant order in the data section, a few bytes of code); behaviour is the

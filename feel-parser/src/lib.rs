@@ -40,7 +40,7 @@ use rheon_feel::{FeelScope, Name};
 /// nothing changes `scope` while parsing).
 fn parse(scope: &FeelScope, start_token_type: TokenType, input: &str, trace: bool) -> Result<AstNode> {
   let frames = scope.frames();
-  let parsing_scope = ParsingScope::new(&frames);
+  let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
   Parser::new(&parsing_scope, start_token_type, input, trace).parse()
 }
 

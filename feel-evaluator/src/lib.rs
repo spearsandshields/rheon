@@ -7,6 +7,7 @@ extern crate dsntk_macros;
 mod bfeel;
 mod bifs;
 mod builders;
+mod equality;
 mod errors;
 #[cfg(not(target_arch = "wasm32"))]
 mod evaluator_java;

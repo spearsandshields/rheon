@@ -6,7 +6,6 @@ use crate::scope::{first_word, first_word_bound};
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
-use std::borrow::Cow;
 use std::cell::OnceCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr;
@@ -19,11 +18,15 @@ use std::ptr;
 /// searched, see [FrameIndex::contains_composite].
 ///
 /// Neither the index nor the composite search recurses over the nesting of the input context,
-/// so a deeply nested input context does not overflow the stack of a parse. Two steps do
-/// recurse: typing the items of a list ([list_item_context_type]), over the nesting of the
-/// items; and the conversion of an input context into a parsing context, which the parsing
-/// scope does only for its text and to set a name in the top input context when no context
-/// was pushed.
+/// so a deeply nested input context does not overflow the stack of a parse. Neither follows
+/// every path to a context that the input context holds on several paths (a shared context
+/// value, such as `{a: x, b: x}`, or a context that a shared list holds, such as the item of `l`
+/// in `{a: l, b: l}`): the index reads it again only when the shared node it is held by is
+/// reached with a longer composite-name prefix, and the composite search visits each state once.
+/// Two steps do recurse: deciding whether the items of a list conform to its first item
+/// ([list_item_node]), over the nesting of the items; and the conversion of an input context into
+/// a parsing context, which the parsing scope does only for its text and to set a name in the top
+/// input context when no context was pushed.
 pub(crate) struct FrameIndex<'a> {
   /// The input context; its own keys are looked up in it directly.
   top: &'a FeelContext,
@@ -34,9 +37,8 @@ pub(crate) struct FrameIndex<'a> {
 
 /// The keys of an input context below its own keys, and the lengths of all keys.
 struct Keys<'a> {
-  /// Keys at depth one or more: borrowed from the input context, or owned for the keys of the
-  /// item types of lists, which are computed.
-  names: HashSet<Cow<'a, str>>,
+  /// Keys at depth one or more, borrowed from the input context.
+  names: HashSet<&'a str>,
   /// Length in bytes of the longest key of `names` that is longer than its first word ([first_word]).
   max_longer: usize,
   /// Length in bytes of the longest key at any depth.
@@ -44,33 +46,29 @@ struct Keys<'a> {
   /// Length in bytes of the longest composite name `k1 . k2 . … . kn` (keys along a path from
   /// depth zero, which is the longest of the composite names of that path); at least `max_plain`.
   max_chain: usize,
-  /// The item types of the lists of contexts, by the address of the list in the input context
-  /// (computed, so kept for the composite-name search).
-  item_types: HashMap<usize, FeelType>,
+  /// The nodes of the names nested in the lists of the input context ([list_item_node]), by the
+  /// address of the list value (decided once, so kept for the composite-name search).
+  item_nodes: HashMap<usize, Node<'a>>,
 }
 
 /// The names nested in a value of an input context, the rule of [nested_names].
 pub(crate) enum Nested<'a> {
-  /// A context: its keys, and the names nested in its values.
-  Context(&'a FeelContext),
-  /// A context type, or a list type of a context type ([context_type_entries]): the names of the
-  /// entries, and the names nested in their types.
-  Type(&'a BTreeMap<Name, FeelType>),
-  /// A list: the names of the entries of its item type, when that is a context type
-  /// ([list_item_context_type]), and the names nested in their types.
+  /// The names of a node: a context, or a context type or a list type of a context type.
+  Node(Node<'a>),
+  /// A list: the names of its item type, when that is a context type ([list_item_node]).
   List(&'a Value),
 }
 
 /// Returns the kind of names a value of an input context can carry, or `None` when it can carry
 /// none: a context, a context type or list type of a context type ([Value::FeelType]), or a list;
-/// whether a list carries names depends on its item type ([list_item_context_type]).
+/// whether a list carries names depends on its item type ([list_item_node]).
 ///
 /// The one rule for nested names: the index of input contexts, the composite-name search and the
 /// conversion of input contexts into parsing contexts follow it.
 pub(crate) fn nested_names(value: &Value) -> Option<Nested<'_>> {
   match value {
-    Value::Context(ctx) => Some(Nested::Context(ctx)),
-    Value::FeelType(feel_type) => context_type_entries(feel_type).map(Nested::Type),
+    Value::Context(ctx) => Some(Nested::Node(Node::Context(ctx))),
+    Value::FeelType(feel_type) => context_type_entries(feel_type).map(|entries| Nested::Node(Node::Type(entries))),
     Value::List(_) => Some(Nested::List(value)),
     _ => None,
   }
@@ -89,82 +87,90 @@ pub(crate) fn context_type_entries(feel_type: &FeelType) -> Option<&BTreeMap<Nam
   }
 }
 
-/// Returns the item type of a list value when it is a context type: the item type of
-/// [Value::type_of] of the list.
+/// Returns the node of the names nested in a list value, with the item it is read from: the
+/// names of the item type of the list ([Value::type_of]) when it is a context type, `None`
+/// otherwise.
 ///
-/// A list whose first item is a scalar, a list, a range, a null or a function never has a context
-/// item type, so such a list is not typed (its items are not looked at). Otherwise
-/// [Value::type_of] types the list, the first item once; typing the items recurses over their
-/// nesting, as [Value::type_of] does.
-pub(crate) fn list_item_context_type(value: &Value) -> Option<FeelType> {
+/// The item type of a list is the type of its first item when the types of the other items
+/// conform to it ([FeelList::items_conform_to_first](rheon_feel::values::FeelList::items_conform_to_first)),
+/// so it is a context type when that holds and the type of the first item is a context type
+/// ([context_type_node]). The names are then read from the first item, and no type is built: a
+/// list whose first item is not a context, a context type or an interval end of one is not
+/// looked at further, and the conformance of the items reads them only as far as it needs, a pair
+/// with a shared list or context once.
+pub(crate) fn list_item_node(value: &Value) -> Option<(Node<'_>, &Value)> {
   let Value::List(items) = value else {
     return None;
   };
-  if matches!(
-    items.first()?,
-    Value::Boolean(_)
-      | Value::Number(_)
-      | Value::String(_)
-      | Value::Date(_)
-      | Value::Time(_)
-      | Value::DateTime(_)
-      | Value::DaysAndTimeDuration(_)
-      | Value::YearsAndMonthsDuration(_)
-      | Value::List(_)
-      | Value::Range(..)
-      | Value::Null(_)
-      | Value::FunctionDefinition(_)
-      | Value::BuiltInFunction(_)
-  ) {
-    return None;
-  }
-  match value.type_of() {
-    FeelType::List(item_type) if matches!(*item_type, FeelType::Context(_)) => Some(*item_type),
+  let first = items.first()?;
+  let node = context_type_node(first)?;
+  items.items_conform_to_first().then_some((node, first))
+}
+
+/// Returns the node of the names of the type of a value when that is a context type
+/// ([Value::type_of]): a context, whose names are its keys and the names nested in its values
+/// ([nested_names]); the entries of a context type held as a value; and the node of the value
+/// of an interval end, whose type is that of its value. `None` for every other value.
+///
+/// The names nested in a context are those of its type, except below an entry that holds an
+/// internal value of a type (a context type, a context type entry, a formal parameter or an
+/// interval end): its type may be a context type, but such an entry carries no names in an input
+/// context ([nested_names]).
+fn context_type_node(value: &Value) -> Option<Node<'_>> {
+  match value {
+    Value::Context(ctx) => Some(Node::Context(ctx)),
+    Value::FeelType(feel_type) | Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FormalParameter(_, feel_type) => match feel_type {
+      FeelType::Context(entries) => Some(Node::Type(entries)),
+      _ => None,
+    },
+    Value::IntervalStart(value, _) | Value::IntervalEnd(value, _) => context_type_node(value),
     _ => None,
   }
 }
 
-/// Returns the address of a value, the key of its item type in [Keys::item_types].
+/// Returns the address of a value, the key of its node in [Keys::item_nodes].
 fn address(value: &Value) -> usize {
   ptr::from_ref(value).addr()
 }
 
 /// A node of the input context whose keys are names in scope.
 #[derive(Clone, Copy)]
-enum Node<'a> {
+pub(crate) enum Node<'a> {
+  /// A context: its keys, and the names nested in its values.
   Context(&'a FeelContext),
+  /// A context type, or a list type of a context type ([context_type_entries]): the names of the
+  /// entries, and the names nested in their types.
   Type(&'a BTreeMap<Name, FeelType>),
 }
 
-/// A node of an indexed input context, with the item types of the lists the index computed: a
-/// node of the tree of names that [contains_composite] searches.
+/// A node of an indexed input context, with the nodes of the lists the index decided: a node of
+/// the tree of names that [contains_composite] searches.
 #[derive(Clone, Copy)]
 struct InputNode<'s> {
   node: Node<'s>,
-  item_types: &'s HashMap<usize, FeelType>,
+  item_nodes: &'s HashMap<usize, Node<'s>>,
 }
 
 impl<'s> NameTree for InputNode<'s> {
   fn contains_key(self, key: &str) -> bool {
     match self.node {
-      Node::Context(ctx) => ctx.contains_key(key),
+      Node::Context(ctx) => ctx.contains_entry(key),
       Node::Type(entries) => entries.contains_key(key),
     }
   }
 
-  /// The nested nodes are those of [nested_names], with the item types of lists computed by [Keys::new].
+  /// The nested nodes are those of [nested_names], with the nodes of lists decided by [Keys::new].
   fn for_each_nested(self, mut f: impl FnMut(&str, Self)) {
     let nested = |node| InputNode {
       node,
-      item_types: self.item_types,
+      item_nodes: self.item_nodes,
     };
     match self.node {
       Node::Context(ctx) => {
         for (name, value) in ctx.iter() {
           let node = match nested_names(value) {
-            Some(Nested::Context(ctx)) => Some(Node::Context(ctx)),
-            Some(Nested::Type(entries)) => Some(Node::Type(entries)),
-            Some(Nested::List(list)) => self.item_types.get(&address(list)).and_then(context_type_entries).map(Node::Type),
+            Some(Nested::Node(node)) => Some(node),
+            Some(Nested::List(list)) => self.item_nodes.get(&address(list)).copied(),
             None => None,
           };
           if let Some(node) = node {
@@ -182,7 +188,9 @@ impl<'s> NameTree for InputNode<'s> {
     }
   }
 
-  /// Input nodes are never shared, so the address identifies the node.
+  /// The address of the node: a context held on several paths has one address on all of them,
+  /// and a state of the search depends only on the node and the offset, so a state is decided
+  /// once whichever path reaches it.
   fn address(self) -> usize {
     match self.node {
       Node::Context(ctx) => ptr::from_ref(ctx).addr(),
@@ -204,7 +212,7 @@ impl<'a> FrameIndex<'a> {
 
   /// Returns `true` when `name` is a key at any depth.
   pub(crate) fn contains(&self, name: &str) -> bool {
-    self.top.contains_key(name) || self.keys().names.contains(name)
+    self.top.contains_entry(name) || self.keys().names.contains(name)
   }
 
   /// Length in bytes of the longest key at any depth.
@@ -220,7 +228,7 @@ impl<'a> FrameIndex<'a> {
   /// Upper bound of the length in bytes of the keys of the input context itself whose first word
   /// is `word` (see [first_word]).
   pub(crate) fn group_bound(&self, word: &str) -> usize {
-    first_word_bound(self.top, word, self.max_plain())
+    first_word_bound(self.top.keys_from(word), word, self.max_plain())
   }
 
   /// Length in bytes of the longest key at depth one or more (or of a list item type) that is
@@ -235,7 +243,7 @@ impl<'a> FrameIndex<'a> {
   pub(crate) fn contains_composite(&self, name: &str) -> bool {
     let root = InputNode {
       node: Node::Context(self.top),
-      item_types: &self.keys().item_types,
+      item_nodes: &self.keys().item_nodes,
     };
     contains_composite(root, name)
   }
@@ -250,8 +258,15 @@ impl<'a> Keys<'a> {
   /// values ([nested_names]), at any depth.
   ///
   /// The traversal uses an explicit stack, so a deeply nested input context does not overflow the
-  /// stack. Typing the items of a list ([list_item_context_type]) is the exception: it recurses
-  /// over the nesting of the items, as [Value::type_of] does.
+  /// stack. Deciding whether the items of a list conform to its first item ([list_item_node]) is
+  /// the exception: it recurses over the nesting of the items.
+  ///
+  /// A shared context, and the context a shared list reads its names from, is read again only
+  /// when the shared node is reached with a longer composite-name prefix than before: its keys
+  /// are the same on every path, so with a prefix no longer it adds no key and no longer
+  /// composite name, and neither do the nodes below it, whose prefixes are shorter then too. A
+  /// node held once is reached on several paths only through a shared node above it, so every
+  /// other context is read as often as a shared node above it is read.
   fn new(top: &'a FeelContext) -> Self {
     work!(IndexBuilds, 1);
     let mut index = Self {
@@ -259,50 +274,64 @@ impl<'a> Keys<'a> {
       max_longer: 0,
       max_plain: 0,
       max_chain: 0,
-      item_types: HashMap::new(),
+      item_nodes: HashMap::new(),
     };
     // nodes to visit, with the length of the composite name prefix `k1 . … . ki . ` leading to them
     let mut stack: Vec<(Node<'a>, usize)> = vec![];
-    // list item types to visit (computed, so their keys are owned), with the address of the list
-    // and the same prefix length
-    let mut item_types: Vec<(usize, FeelType, usize)> = vec![];
+    // the longest prefix each shared context was scheduled with, by its address
+    let mut scheduled = Scheduled::default();
     for (name, value) in top.iter() {
       let key = name.as_str();
       index.add_key_length(key.len(), 0);
-      push_value(value, nested_prefix(0, key), &mut stack, &mut item_types);
+      index.push_value(value, nested_prefix(0, key), &mut stack, &mut scheduled);
     }
     while let Some((node, prefix)) = stack.pop() {
       match node {
         Node::Context(ctx) => {
+          work!(IndexContexts, 1);
           for (name, value) in ctx.iter() {
             let key = name.as_str();
-            index.names.insert(Cow::Borrowed(key));
+            index.names.insert(key);
             index.add_nested_key_length(key, prefix);
-            push_value(value, nested_prefix(prefix, key), &mut stack, &mut item_types);
+            index.push_value(value, nested_prefix(prefix, key), &mut stack, &mut scheduled);
           }
         }
-        Node::Type(entries) => index.add_type_entries(entries, prefix, Cow::Borrowed),
+        Node::Type(entries) => index.add_type_entries(entries, prefix),
       }
-    }
-    for (list, item_type, prefix) in item_types {
-      if let Some(entries) = context_type_entries(&item_type) {
-        index.add_type_entries(entries, prefix, |key| Cow::Owned(key.to_owned()));
-      }
-      index.item_types.insert(list, item_type);
     }
     index
   }
 
+  /// Schedules the node of the names nested in a value of the input context ([nested_names]),
+  /// with the prefix `prefix` of the composite names into it; the node of a list
+  /// ([list_item_node]) is kept for the composite-name search. The node is admitted by the
+  /// shared node that holds it ([Scheduled::admits]): a shared list for the item it is read from,
+  /// which the list may hold alone, and otherwise the value that holds the names.
+  fn push_value(&mut self, value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, usize)>, scheduled: &mut Scheduled) {
+    let (node, holder) = match nested_names(value) {
+      Some(Nested::Node(node)) => (node, value),
+      Some(Nested::List(list)) => {
+        let Some((node, item)) = list_item_node(list) else {
+          return;
+        };
+        self.item_nodes.insert(address(list), node);
+        (node, if list.is_shared() { list } else { item })
+      }
+      None => return,
+    };
+    if scheduled.admits(holder, prefix) {
+      stack.push((node, prefix));
+    }
+  }
+
   /// Adds the keys of the entries of a context type, and of the entries nested in their types,
-  /// at any depth; `name` turns a key into an element of [Keys::names].
-  fn add_type_entries<'e>(&mut self, entries: &'e BTreeMap<Name, FeelType>, prefix: usize, name: impl Fn(&'e str) -> Cow<'a, str>) {
+  /// at any depth.
+  fn add_type_entries(&mut self, entries: &'a BTreeMap<Name, FeelType>, prefix: usize) {
     let mut stack = vec![(entries, prefix)];
     while let Some((entries, prefix)) = stack.pop() {
       for (key_name, feel_type) in entries {
         let key = key_name.as_str();
-        if !self.names.contains(key) {
-          self.names.insert(name(key));
-        }
+        self.names.insert(key);
         self.add_nested_key_length(key, prefix);
         if let Some(entries) = context_type_entries(feel_type) {
           stack.push((entries, nested_prefix(prefix, key)));
@@ -324,17 +353,25 @@ impl<'a> Keys<'a> {
   }
 }
 
-/// Schedules the nodes of the names nested in a value of an input context ([nested_names]): a
-/// context or the entries of a context type are visited, the item type of a list is computed.
-fn push_value<'a>(value: &'a Value, prefix: usize, stack: &mut Vec<(Node<'a>, usize)>, item_types: &mut Vec<(usize, FeelType, usize)>) {
-  match nested_names(value) {
-    Some(Nested::Context(ctx)) => stack.push((Node::Context(ctx), prefix)),
-    Some(Nested::Type(entries)) => stack.push((Node::Type(entries), prefix)),
-    Some(Nested::List(list)) => {
-      if let Some(item_type) = list_item_context_type(list) {
-        item_types.push((address(list), item_type, prefix));
-      }
+/// The longest composite-name prefix each shared list or context of an input context was
+/// scheduled with ([Keys::new]), by its node address ([Value::node_address]); created when the
+/// first shared node is met.
+#[derive(Default)]
+struct Scheduled(Option<HashMap<usize, usize>>);
+
+impl Scheduled {
+  /// Whether the node of the names held by `value` is to be read with `prefix`: always for a
+  /// value that is not shared ([Value::is_shared]), and for a shared list or context when it was
+  /// not scheduled with this prefix or a longer one.
+  fn admits(&mut self, value: &Value, prefix: usize) -> bool {
+    let Some(address) = value.node_address().filter(|_| value.is_shared()) else {
+      return true;
+    };
+    let longest = self.0.get_or_insert_with(HashMap::new).entry(address).or_insert(0);
+    if *longest != 0 && *longest >= prefix {
+      return false;
     }
-    None => {}
+    *longest = prefix;
+    true
   }
 }

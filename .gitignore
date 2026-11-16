@@ -1,6 +1,5 @@
 target
 .idea
-benchmarks.txt
 .tools/
 node_modules/
 dist/

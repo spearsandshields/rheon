@@ -25,14 +25,15 @@ use std::sync::Arc;
 /// same depth everywhere, with [Abort::CallDepth](rheon_feel::diagnostics::Abort::CallDepth).
 pub const MAX_CALL_DEPTH: usize = 200;
 
-/// Evaluates an invocation expression within [MAX_CALL_DEPTH]; the result is never a non-finite number.
+/// Evaluates an invocation expression within [MAX_CALL_DEPTH]; the result is never a non-finite
+/// number, and never a value nested more deeply than values may nest ([diagnostics::bound_depth]).
 ///
 /// A call beyond the limit stops the evaluation, and no further call is made in it. A refused
 /// call's null is never observed: the abort is the outcome of the evaluation.
 pub(crate) fn guarded(evaluate: impl FnOnce() -> Value) -> Value {
   match diagnostics::enter_call(MAX_CALL_DEPTH) {
     None => Value::Null(None),
-    Some(call) => call.finish(finite(evaluate())),
+    Some(call) => call.finish(diagnostics::bound_depth(finite(evaluate()))),
   }
 }
 
@@ -44,13 +45,21 @@ pub(crate) enum Arguments {
   Named(Vec<(Name, Value)>),
 }
 
+/// A counted call ([guarded]) of a function value: the invocation of a function by a built-in
+/// that takes one (`sort`, `list replace`) or by a caller outside the evaluator. The invocation
+/// nodes enter the guard themselves, before they evaluate the function and the arguments, and
+/// call [invoke].
+pub(crate) fn call(scope: &FeelScope, function: Value, arguments: Arguments, dialect: Dialect) -> Value {
+  guarded(|| invoke(scope, function, arguments, dialect))
+}
+
 /// Applies a function to arguments (DMN 1.6, Table 64): null when `function` is not a function, or when
 /// the arguments do not match or do not conform to its parameters; the body is then not evaluated.
 pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, dialect: Dialect) -> Value {
   match function {
     Value::BuiltInFunction(bif) => apply_built_in(bif, arguments, dialect),
     Value::FunctionDefinition(function) => {
-      let values = match bind(&function.parameters, arguments) {
+      let values = match bind(function.parameters(), arguments) {
         Ok(values) => values,
         Err(reason) => return value_null!(reason),
       };
@@ -59,7 +68,7 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
       } else {
         apply_body(scope, &function, values)
       };
-      result.into_coerced(&function.result_type)
+      result.into_coerced(function.result_type())
     }
     other => value_null!("expected built-in function name or function definition, actual is {}", arg(&other)),
   }
@@ -101,12 +110,12 @@ fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Val
 /// scope of the invocation extended with the function's closure.
 fn apply_body(scope: &FeelScope, function: &FunctionDefinition, values: Vec<Value>) -> Value {
   let mut params_ctx = FeelContext::default();
-  for ((name, _), value) in function.parameters.iter().zip(values) {
+  for ((name, _), value) in function.parameters().iter().zip(values) {
     params_ctx.set_entry(name, value);
   }
   // parameters innermost: a decision service body reads its inputs from the top (decision_service.rs)
   let depth = scope.depth();
-  scope.push(function.closure_ctx.clone());
+  scope.push_shared(Arc::clone(&function.closure_ctx));
   scope.push(params_ctx);
   let result = closed_over(scope, function.body.evaluate(scope));
   scope.truncate(depth);
@@ -124,10 +133,11 @@ fn closed_over(scope: &FeelScope, result: Value) -> Value {
         .filter_map(|name| scope.search_entry(name).map(|value| (name.clone(), value)))
         .collect();
       if !closed.is_empty() {
-        // a copy of the definition when it is shared (the function value has value semantics)
-        let function = Arc::make_mut(&mut function);
+        // a copy of the definition and of its closure context when they are shared (the function
+        // value has value semantics)
+        let closure_ctx = Arc::make_mut(&mut Arc::make_mut(&mut function).closure_ctx);
         for (name, value) in closed {
-          function.closure_ctx.create_entry(&name, value);
+          closure_ctx.create_entry(&name, value);
         }
       }
       Value::FunctionDefinition(function)

@@ -11,10 +11,12 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { canonical, parseJson } from './json.mjs';
+import { checkRule, explainedBy, explains } from './rules.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../..');
@@ -59,7 +61,8 @@ const plain = [
   { op: 'parse', expression: 'a + b' },
   { op: 'evaluate', expression: 'today()' },
 ];
-// A recursion that exhausts the native stack of Node's main thread: it traps every module there.
+// A recursion that exhausts the native stack of Node's main thread under the reference module. A candidate
+// that needs less stack for a call may answer it on some hosts, so no test relies on the candidate trapping.
 const depth = 60;
 const trapping = {
   op: 'evaluate',
@@ -143,6 +146,32 @@ test('--record writes entries that pass as a ledger, numbers as written', (t) =>
   assert.match(summary(run), new RegExp(`: ${entries.length} registered differences reproduced, 0 unregistered differences, 0 registered entries not reproduced`));
 });
 
+test('--record writes a long response as its digest, and a digest entry is compared with the whole response', (t) => {
+  // A list nested 501 levels deep: the reference renders it in more than 65,536 characters, the
+  // candidate stops at its value-depth limit. Before that limit both modules answer it alike.
+  const deep = file([{ op: 'evaluate', expression: '(for i in 1..501 return if i = 1 then [] else [partial[-1]])[-1]' }]);
+  const out = path.join(dir, 'recorded-deep.json');
+  const run = equal(reference, candidate, deep, '--record', out, '--why', 'the basis');
+  if (run.status === 0) {
+    t.skip('the two modules answer the deep list alike');
+    return;
+  }
+  assert.equal(run.status, 1, run.out + run.err);
+  const [entry] = JSON.parse(readFileSync(out, 'utf8'));
+  assert.deepEqual(Object.keys(entry.old), ['sha256']);
+  assert.match(entry.old.sha256, /^[0-9a-f]{64}$/);
+  assert.ok(!('sha256' in entry.new), JSON.stringify(entry.new));
+  const reproduced = equal(reference, candidate, deep, '--ledger', out);
+  assert.equal(reproduced.status, 0, reproduced.out + reproduced.err);
+  assert.match(summary(reproduced), /: 1 registered differences reproduced, 0 unregistered differences/);
+  // another digest is another response
+  const other = file([{ ...entry, old: { sha256: entry.old.sha256.replace(/^./, (c) => (c === '0' ? '1' : '0')) } }]);
+  const wrong = equal(reference, candidate, deep, '--ledger', other);
+  assert.equal(wrong.status, 1, wrong.out + wrong.err);
+  assert.match(wrong.out, /reference answered/);
+  assert.doesNotMatch(wrong.out, /candidate answered/);
+});
+
 test('a registered change that one side does not make fails the run', (t) => {
   if (needsDifference(t)) return;
   // the candidate answers `old`: the change is not made
@@ -193,6 +222,8 @@ test('a malformed ledger is an input error', () => {
     [[{ expression: '1', why: 'test', old: '1' }], '`old` and `new` are required'],
     [[{ ...ok, old: 2 }], '`old` must be a string or a response object'],
     [[{ ...ok, old: { trap: false }, new: { ok: true } }], 'a trap is exactly {"trap": true}'],
+    [[{ ...ok, old: { sha256: 'ab' }, new: { ok: true } }], 'a digest is exactly {"sha256": <64 lowercase hex digits>}'],
+    [[{ ...ok, old: { sha256: '0'.repeat(64), ok: true }, new: { ok: true } }], 'a digest is exactly'],
     [[{ ...ok, old: { ok: true } }], '`old` and `new` are both result texts or both responses'],
     [[{ ...ok, new: '2' }], '`old` and `new` are the same'],
     [[{ ...ok, expression: 'now()' }], 'a request that calls now() or today() has no fixed answer'],
@@ -226,9 +257,201 @@ test('the reference answers each source on its own instance: the order of the so
   const forward = equal(reference, candidate, a, b, '--parse-too', '--ledger', recorded);
   const backward = equal(reference, candidate, b, a, '--parse-too', '--ledger', recorded);
   assert.equal(forward.status, backward.status);
-  const lines = (run) => run.out.split('\n').filter((l) => /^(DIFF|NOT REPRODUCED|MALFORMED) /.test(l)).sort();
+  // a request held by both sources is reported under the one that comes first, so the lines are compared without the source
+  const lines = (run) =>
+    run.out
+      .split('\n')
+      .filter((l) => /^(DIFF|NOT REPRODUCED|MALFORMED) /.test(l))
+      .map((l) => l.replace(/^(DIFF|MALFORMED) \S+ /, '$1 '))
+      .sort();
   assert.deepEqual(lines(forward), lines(backward));
   assert.equal(summary(forward), summary(backward));
+});
+
+test('--exclude leaves the requests of a source out of every other source and counts them; a ledger entry is still run', () => {
+  const source = file(plain);
+  const excluded = file(plain.slice(0, 2));
+  const run = equal(reference, reference, source, '--parse-too', '--exclude', excluded);
+  assert.equal(run.status, 0, run.out + run.err);
+  // the two requests and their parse twins
+  assert.match(summary(run), /^7 requests \(7 from sources, 2 left out for now\(\)\/today\(\), 4 left out by --exclude, 0 registered, /);
+  const entry = file([{ expression: '1 + 1', why: 'test', old: '2', new: '3' }]);
+  const registered = equal(reference, reference, source, '--exclude', excluded, '--ledger', entry);
+  assert.equal(registered.status, 1, registered.out + registered.err);
+  assert.match(registered.out, /^NOT REPRODUCED /m);
+  assert.match(summary(registered), /\(4 from sources, 1 left out for now\(\)\/today\(\), 2 left out by --exclude, 1 registered, /);
+  assertInputError(equal(reference, reference, source, '--exclude', path.join(dir, 'missing.json')), 'missing.json: not found');
+});
+
+test('--leave-out leaves the named requests out of every source and counts them; a name that no source holds is an input error', () => {
+  const source = file(plain);
+  const digest = (request) => createHash('sha256').update(canonical(request)).digest('hex');
+  const list = file([{ name: 'one plus one', sha256: digest(plain[0]), why: 'test' }]);
+  const run = equal(reference, reference, source, '--parse-too', '--leave-out', list);
+  assert.equal(run.status, 0, run.out + run.err);
+  // the request itself; its parse twin is still sent
+  assert.match(summary(run), /^10 requests \(10 from sources, 2 left out for now\(\)\/today\(\), 1 left out by name, 0 registered, /);
+  const stale = file([{ name: 'one plus two', sha256: digest({ op: 'evaluate', expression: '1 + 2' }), why: 'test' }]);
+  assertInputError(equal(reference, reference, source, '--leave-out', stale), 'no source holds the request named "one plus two"');
+  for (const malformed of [{ name: 'x', why: 'test' }, { name: ' ', sha256: digest(plain[0]), why: 'test' }, { name: 'x', sha256: 'ab', why: 'test' }]) {
+    assertInputError(equal(reference, reference, source, '--leave-out', file([malformed])), 'a request left out is {"name", "sha256", "why"}');
+  }
+});
+
+test('run.sh reads the release sources and ledger only with --release, and the large sets only with --large', () => {
+  // run.sh in a tree of its own, with an equal.mjs that prints the arguments it is given
+  const tree = path.join(dir, `tree${++fileCount}`);
+  const identity = path.join(tree, 'tools/identity');
+  for (const d of ['requests', 'registered', 'release/requests', 'release/registered']) mkdirSync(path.join(identity, d), { recursive: true });
+  mkdirSync(path.join(tree, 'wasm/feel-wasm/tests/corpus'), { recursive: true });
+  copyFileSync(path.join(here, 'run.sh'), path.join(identity, 'run.sh'));
+  writeFileSync(path.join(identity, 'equal.mjs'), 'console.log(JSON.stringify(process.argv.slice(2)));\n');
+  const run = (env, ...args) => {
+    const r = spawnSync('bash', [path.join(identity, 'run.sh'), 'ref.wasm', 'cand.wasm', ...args], { encoding: 'utf8', env: { ...process.env, IDENTITY_LARGE_SETS: '', ...env } });
+    return { status: r.status, args: r.status === 0 ? JSON.parse(r.stdout) : null, err: r.stderr };
+  };
+  const after = (args, option) => args.flatMap((a, i) => (args[i - 1] === option ? [a.slice(a.indexOf('/tools/identity/') + 1)] : []));
+  const sources = (args) => args.filter((a, i) => !a.startsWith('--') && !args[i - 1]?.startsWith('--') && i >= 2).map((a) => a.slice(a.indexOf('/tools/') + 1));
+  const plainRun = run({}, '--record', 'out.json');
+  assert.equal(plainRun.status, 0, plainRun.err);
+  assert.deepEqual(after(plainRun.args, '--ledger'), ['tools/identity/registered']);
+  assert.deepEqual(after(plainRun.args, '--exclude'), ['tools/identity/release/requests']);
+  assert.ok(!plainRun.args.some((a) => a.endsWith('release/registered')));
+  assert.deepEqual(plainRun.args.slice(-2), ['--record', 'out.json']);
+  const release = run({}, '--release');
+  assert.equal(release.status, 0, release.err);
+  assert.deepEqual(after(release.args, '--ledger'), ['tools/identity/registered', 'tools/identity/release/registered']);
+  assert.deepEqual(after(release.args, '--exclude'), []);
+  assert.ok(sources(release.args).includes('tools/identity/release/requests'), release.args.join(' '));
+  assert.equal(run({}, '--large').status, 2);
+  const large = run({ IDENTITY_LARGE_SETS: '/sets/a.json:/sets/b' }, '--large');
+  assert.equal(large.status, 0, large.err);
+  assert.ok(large.args.includes('/sets/a.json') && large.args.includes('/sets/b'), large.args.join(' '));
+  assert.deepEqual(after(large.args, '--exclude'), ['tools/identity/release/requests']);
+  assert.deepEqual(after(large.args, '--leave-out'), ['tools/identity/large-left-out.json']);
+  assert.deepEqual(after(plainRun.args, '--leave-out'), []);
+  assert.deepEqual(after(release.args, '--leave-out'), []);
+});
+
+// ------------------------------------------------------------------ rule entries
+
+/** A response as the modules write it, parsed losslessly: `ok`, a boolean result, warnings and diagnostics. */
+const response = ({ ok = true, display = 'false', warnings = [], count, messages = [] }) =>
+  parseJson(JSON.stringify({ ok, result: { type: 'boolean', display }, warnings: warnings.map((message) => ({ message })), ...(count === undefined ? {} : { diagnostics: { count: 0, messages } }) }).replace('"count":0', `"count":${count}`));
+
+/** A rule entry with one allowed path and one example, made from the old and the new response of the example. */
+const ruleEntry = (allow, old, neu, extra = {}) => ({ rule: 'a-rule', why: 'the basis', allow: [allow], examples: [{ expression: 'x', old, new: neu }], ...extra });
+
+test('rules: each relation explains an instance and refuses a near miss', () => {
+  const lost = { at: 'diagnostics.count', change: 'decreases' };
+  const messages = { at: 'diagnostics.messages', change: 'loses', each: '^\\[addition\\] ' };
+  const two = response({ count: 2, messages: ['[addition] a', '[addition] b'] });
+  const one = response({ count: 1, messages: ['[addition] a'] });
+  const none = response({});
+  const rule = checkRule({ rule: 'fewer', why: 'w', allow: [lost, messages], examples: [{ expression: 'x', old: two, new: one }] });
+  assert.equal(explains(rule, two, one), true);
+  // an absent field is 0 and the empty list; the object it emptied compares equal to an absent one
+  assert.equal(explains(rule, two, none), true);
+  // a lost element that does not match `each`
+  assert.match(explains(rule, response({ count: 2, messages: ['[addition] a', 'other'] }), one), /does not match `each`/);
+  // the count must decrease, strictly
+  assert.match(explains(rule, one, response({ count: 1, messages: [] })), /1 to 1 is not a decrease/);
+  // the kept elements stay in order
+  assert.match(explains(rule, response({ count: 2, messages: ['[addition] a', '[addition] b'] }), response({ count: 1, messages: ['[addition] c'] })), /does not match|subsequence/);
+  // a second field that differs
+  assert.match(explains(rule, two, response({ display: 'true', count: 1, messages: ['[addition] a'] })), /differ beyond the allowed paths/);
+  // a changed `ok`
+  assert.match(explains(rule, two, { ...one, ok: false }), /differ beyond the allowed paths/);
+  // a trap on either side, and a value that is no response
+  assert.match(explains(rule, { trap: true }, one), /trap/);
+  assert.match(explains(rule, two, { trap: true }), /trap/);
+  assert.match(explains(rule, 'false', one), /must be responses/);
+
+  const gains = checkRule(ruleEntry({ at: 'warnings', change: 'gains', each: '^\\{"message":"truncated' }, response({}), response({ warnings: ['truncated 1'] })));
+  assert.equal(explains(gains, response({ warnings: ['w'] }), response({ warnings: ['truncated 1', 'w', 'truncated 2'] })), true);
+  assert.match(explains(gains, response({ warnings: ['w'] }), response({ warnings: ['w', 'rounded'] })), /does not match `each`/);
+  assert.match(explains(gains, response({ warnings: ['w'] }), response({ warnings: [] })), /subsequence/);
+
+  const more = checkRule(ruleEntry({ at: 'diagnostics.count', change: 'increases' }, response({ count: 1 }), response({ count: 2 })));
+  assert.equal(explains(more, response({ count: 0 }), response({ count: 3 })), true);
+  assert.match(explains(more, response({ count: 3 }), response({ count: 2 })), /not an increase/);
+  // integers are compared exactly from their source text, beyond the precision of a double
+  const big = (n) => parseJson(`{"ok":true,"diagnostics":{"count":${n},"messages":[]}}`);
+  assert.equal(explains(more, big('9007199254740993'), big('9007199254740994')), true);
+  assert.match(explains(more, big('1.5'), big('2')), /must be integers/);
+
+  const rewrite = { at: 'warnings[*].message', change: 'rewrite', pattern: 'rounded to (\\S+)', replacement: 'rounded: $1' };
+  const rewritten = checkRule(ruleEntry(rewrite, response({ warnings: ['rounded to 2'] }), response({ warnings: ['rounded: 2'] })));
+  assert.equal(explains(rewritten, response({ warnings: ['a', 'rounded to 1'] }), response({ warnings: ['a', 'rounded: 1'] })), true);
+  assert.match(explains(rewritten, response({ warnings: ['rounded to 1'] }), response({ warnings: ['rounded: 2'] })), /not the new text/);
+  assert.match(explains(rewritten, response({ warnings: ['rounded to 1'] }), response({ warnings: ['rounded: 1', 'b'] })), /equal length/);
+  const display = checkRule(ruleEntry({ at: 'result.display', change: 'rewrite', pattern: '^false$', replacement: 'true' }, response({}), response({ display: 'true' })));
+  assert.equal(explains(display, response({}), response({ display: 'true' })), true);
+  assert.match(explains(display, response({ display: 'null' }), response({ display: 'true' })), /not the new text/);
+});
+
+test('rules: the first rule in ledger order that applies and explains a difference counts it', () => {
+  const old = response({ count: 1, messages: ['m'] });
+  const neu = response({});
+  const lost = { at: 'diagnostics.count', change: 'decreases' };
+  const messages = { at: 'diagnostics.messages', change: 'loses', each: '.' };
+  const make = (name, allow, applies, example = { old, new: neu }) => checkRule({ rule: name, why: 'w', allow, examples: [{ expression: 'x and y', ...example }], ...(applies ? { applies: { expression: applies } } : {}) });
+  const onlyCount = make('only-count', [lost], undefined, { old: response({ count: 2 }), new: response({ count: 1 }) });
+  const ands = make('ands', [lost, messages], ' and ');
+  const any = make('any', [lost, messages]);
+  const request = (expression) => ({ op: 'evaluate', expression });
+  assert.equal(explainedBy([onlyCount, ands, any], request('x and y'), old, neu).name, 'ands');
+  assert.equal(explainedBy([onlyCount, ands, any], request('x or y'), old, neu).name, 'any');
+  assert.equal(explainedBy([any, ands], request('x and y'), old, neu).name, 'any');
+  assert.equal(explainedBy([onlyCount, ands], request('x or y'), old, neu), undefined);
+  // a request without an expression never matches `applies`
+  assert.equal(explainedBy([ands], { op: 'info' }, old, neu), undefined);
+});
+
+test('rules: a malformed rule entry is refused with its reason', () => {
+  const old = response({ count: 1 });
+  const neu = response({ count: 0 });
+  const lost = { at: 'diagnostics.count', change: 'decreases' };
+  const cases = [
+    [{ ...ruleEntry(lost, old, neu), extra: 1 }, 'unknown field extra'],
+    [{ ...ruleEntry(lost, old, neu), rule: 'Not A Name' }, '`rule` must be a name'],
+    [{ ...ruleEntry(lost, old, neu), why: ' ' }, '`why` must state the basis'],
+    [{ ...ruleEntry(lost, old, neu), allow: [] }, '`allow` must list at least one path'],
+    [ruleEntry({ at: 'diagnostics.count', change: 'grows' }, old, neu), '`change` must be one of'],
+    [ruleEntry({ at: 'diagnostics.messages', change: 'loses' }, old, neu), '`each` must be a regular expression'],
+    [ruleEntry({ ...lost, each: 'x' }, old, neu), '`decreases` takes no each'],
+    [ruleEntry({ at: 'diagnostics..count', change: 'decreases' }, old, neu), 'is not a path'],
+    [ruleEntry({ at: 'warnings', change: 'gains', each: '(' }, old, neu), '`each`: Invalid regular expression'],
+    [ruleEntry({ at: 'warnings', change: 'rewrite', pattern: 'a' }, old, neu), '`replacement` must be a string'],
+    [{ ...ruleEntry(lost, old, neu), allow: [lost, lost] }, 'a path is allowed at most once'],
+    [{ ...ruleEntry(lost, old, neu), examples: [] }, '`examples` must hold at least one example'],
+    [{ ...ruleEntry(lost, old, neu), examples: [{ expression: 'x', old: '1', new: '2' }] }, 'whole responses'],
+    [{ ...ruleEntry(lost, old, neu), applies: { expression: '^y' } }, 'does not match `applies`'],
+    [{ ...ruleEntry(lost, old, neu), applies: { text: 'x' } }, '`applies` is {"expression": "<regex>"}'],
+    [ruleEntry(lost, neu, old), 'not an instance of the rule'],
+    [ruleEntry(lost, old, old), 'not an instance of the rule'],
+  ];
+  for (const [entry, message] of cases) assert.throws(() => checkRule(entry), (e) => e.message.includes(message), message);
+});
+
+test('rule entries in a ledger: examples are run like entries, and a malformed rule is an input error', () => {
+  // the candidate is the reference, so it does not answer the example's `new`
+  const old = { ok: true, result: { type: 'boolean', display: 'false', feel: 'false', isNull: false, json: false }, warnings: [], diagnostics: { count: 1, messages: ['m'] } };
+  const neu = { ok: true, result: { type: 'boolean', display: 'false', feel: 'false', isNull: false, json: false }, warnings: [] };
+  const lost = { at: 'diagnostics.count', change: 'decreases' };
+  const messages = { at: 'diagnostics.messages', change: 'loses', each: '.' };
+  const rule = { rule: 'fewer-errors', why: 'test', allow: [lost, messages], examples: [{ expression: 'false and (1 + "a")', old, new: neu }] };
+  const notReproduced = equal(reference, reference, '--ledger', file([rule]));
+  assert.equal(notReproduced.status, 1, notReproduced.out + notReproduced.err);
+  assert.match(notReproduced.out, /^NOT REPRODUCED \S+ entry #0 example #0 /m);
+  assert.match(summary(notReproduced), /1 registered, .*0 differences explained by 1 rules \(fewer-errors: 0\)/);
+  // a rule that is not well formed, an example that is no instance of its rule, a rule stated twice,
+  // and an example whose request another entry registers
+  assertInputError(equal(reference, reference, '--ledger', file([{ ...rule, allow: [] }])), 'entry #0: `allow` must list at least one path');
+  assertInputError(equal(reference, reference, '--ledger', file([{ ...rule, examples: [{ ...rule.examples[0], old: neu, new: old }] }])), 'entry #0: example #0: not an instance of the rule');
+  const other = { ...rule, examples: [{ expression: 'true or (1 + "a")', old, new: neu }] };
+  assertInputError(equal(reference, reference, '--ledger', file([rule, other])), 'entry #1: the rule fewer-errors is already stated by');
+  assertInputError(equal(reference, reference, '--ledger', file([rule, { expression: 'false and (1 + "a")', why: 'test', old: '1', new: '2' }])), 'entry #1: the request is already registered by');
 });
 
 // ------------------------------------------------------------------ the cache of reference answers
@@ -287,9 +510,13 @@ test('a cached run answers as an uncached one: identical modules, traps, wrong e
 
 test('a cached run answers as an uncached one: differences and --record', (t) => {
   if (needsDifference(t)) return;
-  const [, , warm] = sameWithCache([reference, candidate, differing], { record: true });
+  const [, cold, warm] = sameWithCache([reference, candidate, differing], { record: true });
   assert.equal(warm.status, 1);
-  assert.match(summary(warm), /; reference: [1-9]\d* answers from the cache/);
+  // every answer of the cold run comes from the cache, except a trap, which is evaluated again
+  const count = (run, pattern) => Number(summary(run).match(pattern)[1]);
+  const traps = count(cold, /(\d+) trapping the reference/);
+  const cached = count(cold, /; reference: 0 answers from the cache, (\d+) evaluated$/) - traps;
+  assert.match(summary(warm), new RegExp(`; reference: ${cached} answers from the cache, ${traps} evaluated$`));
   assert.equal(sameWithCache([reference, candidate, differing, '--ledger', recorded])[2].status, 0);
 });
 

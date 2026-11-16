@@ -1,0 +1,6 @@
+[
+  {"op": "evaluate", "expression": "{f: function(x, n) if n = 0 then x else f([x], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x, n) if n = 0 then x else f({a: x}, n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x, n) if n = 0 then x else f([x..1], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x, n) if n = 0 then x else f(append([], x), n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"}
+]

@@ -285,7 +285,7 @@ fn doubling_value(level: usize) -> Value {
   let mut context = FeelContext::default();
   context.set_entry(&"a".into(), item.clone());
   context.set_entry(&"b".into(), item);
-  Value::Context(context)
+  Value::from(context)
 }
 
 #[test]
@@ -300,7 +300,7 @@ fn an_input_of_a_type_with_as_many_nodes_as_the_bound_is_checked_and_evaluated()
   for (name, level) in parts {
     input.set_entry(&name.into(), doubling_value(level));
   }
-  evaluate_at_the_bound(model_with_input(&types, "tBig"), Value::Context(input));
+  evaluate_at_the_bound(model_with_input(&types, "tBig"), Value::from(input));
 }
 
 #[test]
@@ -309,7 +309,7 @@ fn an_input_of_a_type_as_deep_as_the_bound_is_checked_and_evaluated() {
   for _ in 1..256 {
     let mut context = FeelContext::default();
     context.set_entry(&"x".into(), input);
-    input = Value::Context(context);
+    input = Value::from(context);
   }
   evaluate_at_the_bound(model_with_input(&chain(256), "t1"), input);
 }

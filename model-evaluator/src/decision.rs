@@ -218,7 +218,7 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
 
       // prepare context containing values from required input data
       let mut required_input_ctx: FeelContext = Default::default();
-      let input_data = Value::Context(input_data);
+      let input_data = Value::from(input_data);
       required_input_data_references.iter().for_each(|(import_name, input_data_id)| {
         if let Some(import_name) = import_name {
           // DMN 1.6 §6.3.10 (DMN16-50): an imported input data holds one value however it is reached;
@@ -266,12 +266,54 @@ fn build_decision_evaluator(def_definitions: &DefDefinitions, def_decision: &Def
 /// an import name can hold both imported input data and imported decisions (TCK 1160).
 fn merge_contexts(target: &mut FeelContext, other: &FeelContext) {
   for (name, value) in other.iter() {
-    match (target.get_entry(name).cloned(), value) {
+    match (target.remove_entry(name), value) {
       (Some(Value::Context(mut existing)), Value::Context(incoming)) => {
-        merge_contexts(&mut existing, incoming);
+        // taken out of the target, so a copy of the existing context's own entries is made only
+        // when another value holds it too
+        merge_contexts(Arc::make_mut(&mut existing), incoming);
         target.set_entry(name, Value::Context(existing));
       }
       _ => target.set_entry(name, value.clone()),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::merge_contexts;
+  use rheon_feel::context::FeelContext;
+  use rheon_feel::values::Value;
+  use rheon_feel::{Name, value_number};
+  use std::sync::Arc;
+
+  fn context(entries: &[(&str, Value)]) -> FeelContext {
+    let mut ctx = FeelContext::default();
+    for (name, value) in entries {
+      ctx.set_entry(&Name::from(*name), value.clone());
+    }
+    ctx
+  }
+
+  fn address(ctx: &FeelContext, name: &str) -> *const FeelContext {
+    match ctx.get_entry(&Name::from(name)) {
+      Some(Value::Context(inner)) => Arc::as_ptr(inner),
+      other => panic!("{other:?}"),
+    }
+  }
+
+  /// A context held by the target alone is merged in place; a shared one is copied first, and the
+  /// other holder keeps its entries.
+  #[test]
+  fn a_nested_context_is_copied_only_when_it_is_shared() {
+    let mut target = context(&[("a", Value::from(context(&[("x", value_number!(1))])))]);
+    let other = context(&[("a", Value::from(context(&[("y", value_number!(2))])))]);
+    let before = address(&target, "a");
+    merge_contexts(&mut target, &other);
+    assert_eq!(before, address(&target, "a"));
+    assert_eq!("{a: {x: 1, y: 2}}", target.to_string());
+    let held = target.get_entry(&Name::from("a")).cloned().unwrap();
+    merge_contexts(&mut target, &context(&[("a", Value::from(context(&[("z", value_number!(3))])))]));
+    assert_eq!("{a: {x: 1, y: 2, z: 3}}", target.to_string());
+    assert_eq!("{x: 1, y: 2}", held.to_string());
   }
 }

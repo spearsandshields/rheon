@@ -92,7 +92,7 @@ impl From<&FeelContext> for ParsingContext {
     for (name, value) in value.iter() {
       match value {
         Value::Context(ctx) => {
-          entries.insert(name.to_owned(), ParsingEntry::Context(ctx.into()));
+          entries.insert(name.to_owned(), ParsingEntry::Context(ctx.as_ref().into()));
         }
         list @ Value::List(_) => {
           entries.insert(name.to_owned(), list.type_of().into());

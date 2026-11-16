@@ -112,5 +112,21 @@
   {"op":"evaluate","expression":"sort(for i in 1..64 return {k: modulo(i, 4), i: i}, function(x, y) x.k <= y.k)"},
   {"op":"evaluate","expression":"sort(for i in 1..200 return i, function(x, y) modulo(x * 7, 5) < modulo(y * 3, 5))"},
   {"op":"evaluate","expression":"sort(for i in 1..200 return modulo(i, 7), function(x, y) if x < 3 then \"yes\" else x < y)"},
-  {"op":"evaluate","expression":"sort(for i in 1..33 return modulo(i, 7), function(x, y) modulo(x * 7, 5) < modulo(y * 3, 5))"}
+  {"op":"evaluate","expression":"sort(for i in 1..33 return modulo(i, 7), function(x, y) modulo(x * 7, 5) < modulo(y * 3, 5))"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: for i in 1..100000 return f(i)}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: for i in 1..1000, j in [f(i), i] return j}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: every i in (for k in 1..100000 return k) satisfies f(i) = null}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: some i in (for k in 1..100000 return k) satisfies f(i) = 0}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: (for i in 1..100000 return i)[f(item) = null]}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: (for i in 1..100000 return {a: i})[f(a) = null]}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: sort(for i in 1..100000 return i, function(x, y) f(x) = null)}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: list replace(for i in 1..100000 return i, function(item, newItem) f(item) = null, 0)}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: for i in 1..10000000 return f(i)}.r"},
+  {"op":"evaluate","expression":"{f: function(n) f(n + 1), r: for i in 1..100, j in 1..100000 return f(j)}.r"},
+  {"op":"evaluate","expression":"context put({}, for i in 1..100000 return \"a\", 0)"},
+  {"op":"evaluate","expression":"count(context put({}, for i in 1..100000 return \"a\", 0))"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f([x], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f({a: x}, n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f([x..1], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"},
+  {"op":"evaluate","expression":"{f: function(x, n) if n = 0 then x else f(append([], x), n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r"}
 ]

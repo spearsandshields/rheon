@@ -13,13 +13,11 @@
 //! The evaluator builder applies these rules when it builds an expression in [Dialect::BFeel].
 
 use crate::bifs;
+use crate::builders::Arithmetic;
+use rheon_feel::FeelNumber;
 use rheon_feel::bif::Bif;
-use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
-use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name};
-use rheon_feel_parser::AstNode;
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelOffset, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
-use std::sync::LazyLock;
 
 /// The expression language of an expression: FEEL (the default) or B-FEEL.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -55,7 +53,7 @@ pub fn bif_default(bif: &Bif) -> Option<Value> {
     Time => epoch_time(),
     Duration | YearsAndMonthsDuration => zero_ym_duration(),
     Append | Concatenate | DistinctValues | Flatten | GetEntries | IndexOf | InsertAfter | InsertBefore | Intersection | ListReplace | Mode | Remove | Reverse | Sort | Split
-    | Sublist | Union => Value::List(vec![]),
+    | Sublist | Union => Value::List(vec![].into()),
     Range => empty_range(),
     Context | ContextMerge | ContextPut | GetValue | Max | Min => return None,
   })
@@ -69,8 +67,8 @@ pub fn positional_arguments(bif: &Bif, args: Vec<Value>) -> Vec<Value> {
   }
   let numbers = |items: &[Value]| items.iter().filter(|v| matches!(v, Value::Number(_))).cloned().collect::<Vec<Value>>();
   match args.as_slice() {
-    [Value::List(items)] => vec![Value::List(numbers(items))],
-    _ => vec![Value::List(numbers(&args))],
+    [Value::List(items)] => vec![Value::List(numbers(items).into())],
+    _ => vec![Value::List(numbers(&args).into())],
   }
 }
 
@@ -128,59 +126,11 @@ pub fn to_duration(value: &Value) -> Value {
   }
 }
 
-/// Arithmetic operators of B-FEEL.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum Operator {
-  Add,
-  Sub,
-  Mul,
-  Div,
-  Exp,
-}
-
-static LHS: LazyLock<Name> = LazyLock::new(|| Name::from("⟦b-feel lhs⟧"));
-static RHS: LazyLock<Name> = LazyLock::new(|| Name::from("⟦b-feel rhs⟧"));
-static OPERAND_NODES: LazyLock<[AstNode; 5]> = LazyLock::new(|| {
-  let l = || Box::new(AstNode::Name(LHS.clone()));
-  let r = || Box::new(AstNode::Name(RHS.clone()));
-  [
-    AstNode::Add(l(), r()),
-    AstNode::Sub(l(), r()),
-    AstNode::Mul(l(), r()),
-    AstNode::Div(l(), r()),
-    AstNode::Exp(l(), r()),
-  ]
-});
-
-/// The FEEL evaluator of `⟦lhs⟧ <op> ⟦rhs⟧`, used on already evaluated operands.
-pub fn feel_operator_evaluator(operator: Operator) -> Evaluator {
-  let index = match operator {
-    Operator::Add => 0,
-    Operator::Sub => 1,
-    Operator::Mul => 2,
-    Operator::Div => 3,
-    Operator::Exp => 4,
-  };
-  crate::builders::build_evaluator(&OPERAND_NODES[index])
-}
-
-/// Applies a FEEL arithmetic evaluator built by [feel_operator_evaluator] to two values.
-fn apply(feel_operator: &Evaluator, scope: &FeelScope, lhs: &Value, rhs: &Value) -> Value {
-  let mut operands = FeelContext::default();
-  operands.set_entry(&LHS, lhs.clone());
-  operands.set_entry(&RHS, rhs.clone());
-  let depth = scope.depth();
-  scope.push(operands);
-  let value = feel_operator(scope);
-  scope.truncate(depth);
-  value
-}
-
 /// B-FEEL arithmetic (§11.9–§11.11): the FEEL result when it is not null; otherwise the first
 /// matching rule, in the spec's order of precedence, converts the mismatched operand and FEEL
-/// semantics apply to the converted values.
-pub fn arithmetic(operator: Operator, feel_operator: &Evaluator, scope: &FeelScope, lhs: Value, rhs: Value) -> Value {
-  let feel = apply(feel_operator, scope, &lhs, &rhs);
+/// semantics apply to the converted values ([Arithmetic::apply] each time).
+pub(crate) fn arithmetic(operator: Arithmetic, lhs: Value, rhs: Value) -> Value {
+  let feel = operator.apply(lhs.clone(), rhs.clone());
   if !feel.is_null() {
     return feel;
   }
@@ -189,13 +139,13 @@ pub fn arithmetic(operator: Operator, feel_operator: &Evaluator, scope: &FeelSco
   let convert = |is: fn(&Value) -> bool, to: fn(&Value) -> Value| {
     let l = if is(&lhs) { lhs.clone() } else { to(&lhs) };
     let r = if is(&rhs) { rhs.clone() } else { to(&rhs) };
-    apply(feel_operator, scope, &l, &r)
+    operator.apply(l, r)
   };
   match operator {
-    Operator::Exp => apply(feel_operator, scope, &to_number(&lhs), &to_number(&rhs)),
-    Operator::Add | Operator::Sub => {
+    Arithmetic::Exponentiation => operator.apply(to_number(&lhs), to_number(&rhs)),
+    Arithmetic::Addition | Arithmetic::Subtraction => {
       if either(is_string) {
-        if operator == Operator::Sub {
+        if operator == Arithmetic::Subtraction {
           return Value::String(Default::default());
         }
         return convert(is_string, to_string);
@@ -210,7 +160,7 @@ pub fn arithmetic(operator: Operator, feel_operator: &Evaluator, scope: &FeelSco
       }
       feel
     }
-    Operator::Mul | Operator::Div => {
+    Arithmetic::Multiplication | Arithmetic::Division => {
       for is in [is_number as fn(&Value) -> bool, is_ym_duration, is_dt_duration] {
         if either(is) {
           return convert(is, to_number);
@@ -218,6 +168,8 @@ pub fn arithmetic(operator: Operator, feel_operator: &Evaluator, scope: &FeelSco
       }
       feel
     }
+    // negation is no B-FEEL conversion: its FEEL result stands
+    Arithmetic::Negation => feel,
   }
 }
 

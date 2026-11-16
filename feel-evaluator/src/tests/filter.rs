@@ -565,8 +565,8 @@ fn dmn_1_6_singleton_list_filter() {
 
 #[test]
 fn _0077() {
-  // the FEEL filter (items moved into the scope and back) equals the copying filter of boxed
-  // expressions on every kind of item, and leaves the scope as it found it
+  // The filter gives the same result over a list whose items it shares with another holder and
+  // over a list built anew, on every kind of item, and leaves the scope as it found it.
   let scope = &te_scope("{x: 2, item: 9}");
   let lists = [
     "[1, 2, 3]",
@@ -596,16 +596,18 @@ fn _0077() {
     "{y: item}.y != null",
   ];
   for list in lists {
+    let build = || build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+    let shared = build();
     for predicate in predicates {
-      let list_value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
       let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(scope, predicate, false).unwrap());
       let depth = scope.depth();
-      let copied = crate::FilterExpressionEvaluator::new().evaluate(scope, list_value.clone(), &evaluator);
+      let over_shared = crate::FilterExpressionEvaluator::new().evaluate(scope, shared.clone(), &evaluator);
       assert_eq!(depth, scope.depth());
-      let moved = crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list_value, &evaluator);
+      let over_new = crate::FilterExpressionEvaluator::new().evaluate(scope, build(), &evaluator);
       assert_eq!(depth, scope.depth());
-      assert_eq!(copied, moved, "{list}[{predicate}]");
+      assert_eq!(over_shared, over_new, "{list}[{predicate}]");
     }
+    assert_eq!(build(), shared, "{list}");
   }
 }
 
@@ -615,26 +617,128 @@ fn _0078() {
   // evaluator supplied by a caller can) gives a null, and the filter leaves the scope as it
   // found it: for a context item with an entry `item`, a context item without one, and an item
   // that is not a context. A predicate that replaces the special context `{item: value}` with
-  // another context gives the same null.
+  // another context gives the same null. The evaluators change the scope only where `item` is in
+  // scope, so the evaluation in the enclosing scope, which comes first, leaves it alone; one that
+  // removes the frame of that evaluation gives a null of its own.
   let scope = &te_scope("{}");
-  let popping: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
-    scope.pop();
+  let name_item = rheon_feel::Name::from("item");
+  let item_in_scope = move |scope: &FeelScope| scope.get_value(&name_item).is_some();
+  let popping: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| {
+    if item_in_scope(scope) {
+      scope.pop();
+    }
     Value::Boolean(true)
   });
-  let replacing: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
-    scope.pop();
-    scope.push(rheon_feel::context::FeelContext::default());
+  let name_item = rheon_feel::Name::from("item");
+  let replacing: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| {
+    if scope.get_value(&name_item).is_some() {
+      scope.pop();
+      scope.push(rheon_feel::context::FeelContext::default());
+    }
     Value::Boolean(true)
   });
   let lost = Value::Null(Some("internal error: the evaluation removed the item context of a filter".to_string()));
   for (item, special_context) in [("{item: 1, a: 2}", false), ("{a: 2}", true), ("3", true)] {
-    let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item, false).unwrap())(scope)]);
+    let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item, false).unwrap())(scope)].into());
     let depth = scope.depth();
-    assert_eq!(lost, crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list.clone(), &popping), "{item}");
+    assert_eq!(lost, crate::FilterExpressionEvaluator::new().evaluate(scope, list.clone(), &popping), "{item}");
     assert_eq!(depth, scope.depth(), "{item}");
     if special_context {
-      assert_eq!(lost, crate::FilterExpressionEvaluator::for_feel().evaluate(scope, list, &replacing), "{item}");
+      assert_eq!(lost, crate::FilterExpressionEvaluator::new().evaluate(scope, list, &replacing), "{item}");
       assert_eq!(depth, scope.depth(), "{item}");
     }
   }
+  let popping: rheon_feel::Evaluator = Box::new(|scope: &FeelScope| {
+    scope.pop();
+    Value::Boolean(true)
+  });
+  let depth = scope.depth();
+  let lost = Value::Null(Some(
+    "internal error: the evaluation removed the frame of a filter expression in the enclosing scope".to_string(),
+  ));
+  assert_eq!(
+    lost,
+    crate::FilterExpressionEvaluator::new().evaluate(scope, Value::List(vec![Value::Boolean(true)].into()), &popping)
+  );
+  assert_eq!(depth, scope.depth());
+}
+
+#[test]
+fn _0079() {
+  // The predicate gets the item contexts shared: what it writes into the context on the top of
+  // the scope (a boxed context as the match of a boxed filter does) goes into a copy, which the
+  // predicate of the next item does not see, for items that are no context, context items and
+  // context items with an entry `item`; and the items are kept as they were. The evaluation in
+  // the enclosing scope writes into a frame of its own, so neither the items nor the enclosing
+  // scope see its write.
+  let written = rheon_feel::Name::from("w");
+  let writing: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| {
+    let unseen = scope.get_value(&written).is_none();
+    scope.set_value(&written, Value::Boolean(true));
+    Value::Boolean(unseen)
+  });
+  let scope = &te_scope("{}");
+  for list in ["[1, 2]", "[{a: 1}, {a: 2}]", "[{item: 1}, {item: 2}]"] {
+    let value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+    let depth = scope.depth();
+    assert_eq!(value, crate::FilterExpressionEvaluator::new().evaluate(scope, value.clone(), &writing), "{list}");
+    assert_eq!(depth, scope.depth(), "{list}");
+    assert_eq!(None, scope.get_value(&rheon_feel::Name::from("w")), "{list}");
+  }
+}
+
+/// A filter evaluates its expression once in the enclosing scope (DMN 1.6 Table 69, row 1: "e1 is
+/// a list and e2 is an integer"), and a number selects the item at once: the expression of
+/// `list[2]` is evaluated once for a list of 1,000 items.
+#[test]
+fn an_index_is_evaluated_once() {
+  let runs = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+  let counted = std::sync::Arc::clone(&runs);
+  let index: rheon_feel::Evaluator = Box::new(move |_: &FeelScope| {
+    counted.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    Value::Number(2.into())
+  });
+  let list = Value::List((1..=1000).map(|i| Value::Number(i.into())).collect());
+  let item = crate::FilterExpressionEvaluator::new().evaluate(&FeelScope::default(), list, &index);
+  assert_eq!(Value::Number(2.into()), item);
+  assert_eq!(1, runs.load(std::sync::atomic::Ordering::Relaxed));
+}
+
+/// The evaluation in the enclosing scope counts only when it gives a number: otherwise its
+/// errors and warnings are not recorded, and the expression is evaluated for each item (the
+/// boolean rows of Table 69). When it is a number, it is the one evaluation and its errors stay.
+#[test]
+fn the_evaluation_in_the_enclosing_scope_counts_only_when_it_gives_a_number() {
+  let addition = r#"incompatible types in addition: 1(number) + "a"(string)"#;
+  let items = "[{amount: 50}, {amount: 150}, {amount: 200}]";
+  te_errors(&format!("{{items: {items}, r: sum(items[amount > 100].amount)}}.r"), "350", &[]);
+  te_errors("[1, 2, 3][item > 1]", "[2, 3]", &[]);
+  te_errors(r#"[][1 + "a"]"#, "[]", &[]);
+  // the expression is evaluated for each of the three items, and the repeated message is kept once
+  let (value, diagnostics) = te_collect(r#"[1, 2, 3][1 + "a"]"#);
+  assert_eq!(
+    ("[]".to_string(), 3, vec![addition.to_string()]),
+    (value.to_string(), diagnostics.count, diagnostics.messages)
+  );
+  te_errors(r#"[10, 20, 30][count([1 + "a"])]"#, "10", &[addition]);
+  te_warnings(r#"[][@"2021-01-01T10:00:00.1234567891" = item]"#, "[]", &[]);
+}
+
+/// A number in the enclosing scope selects the item (Table 69, row 1, in the enclosing scope),
+/// also where the expression for the items would be a type error or a runaway recursion; the
+/// evaluation in the enclosing scope comes first, so a runaway recursion there stops the
+/// evaluation.
+#[test]
+fn a_number_in_the_enclosing_scope_selects_the_item() {
+  te_errors(r#"{a: 2, r: [{a: "x"}, {a: "y"}][a]}.r"#, r#"{a: "y"}"#, &[]);
+  te_errors(
+    "{f: function(n) f(n + 1), g: 1, r: [{g: f, v: 5}][if (g instance of number) then 1 else g(1)].v}.r",
+    "5",
+    &[],
+  );
+  te_aborted(
+    r#"{f: function(n) f(n + 1), r: [{g: "s"}][if g = "s" then "x" else f(1)]}.r"#,
+    crate::Dialect::Feel,
+    "function calls are nested too deeply (more than 200 levels, e.g. runaway recursion); evaluation stopped",
+  );
 }

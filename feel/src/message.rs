@@ -15,6 +15,7 @@
 //! cut string counts its characters, and the type of a list checks every item).
 
 use std::fmt::{self, Display, Write};
+use std::sync::Arc;
 
 /// Characters of an argument quoted whole; a longer one is quoted as a preview of this length.
 pub(crate) const PREVIEW_CHARS: usize = 120;
@@ -187,19 +188,26 @@ impl Write for Capped {
   }
 }
 
-impl<T: MessageArg + ?Sized> MessageArg for &T {
-  fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    (**self).write_message(f)
-  }
+/// A reference and a shared value are quoted as the value they point to.
+macro_rules! message_arg_through_pointer {
+  ($($pointer:ty),*) => {$(
+    impl<T: MessageArg + ?Sized> MessageArg for $pointer {
+      fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        (**self).write_message(f)
+      }
 
-  fn size(&self) -> Option<Size> {
-    (**self).size()
-  }
+      fn size(&self) -> Option<Size> {
+        (**self).size()
+      }
 
-  fn is_short(&self) -> bool {
-    (**self).is_short()
-  }
+      fn is_short(&self) -> bool {
+        (**self).is_short()
+      }
+    }
+  )*};
 }
+
+message_arg_through_pointer!(&T, Arc<T>);
 
 impl MessageArg for str {
   fn write_message(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

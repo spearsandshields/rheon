@@ -213,7 +213,7 @@ mod tests {
   }
 
   fn list(items: Vec<Value>) -> Value {
-    Value::List(items)
+    Value::List(items.into())
   }
 
   fn context(entries: &[(&str, Value)]) -> Value {
@@ -221,7 +221,7 @@ mod tests {
     for (name, value) in entries {
       ctx.set_entry(&(*name).into(), value.clone());
     }
-    Value::Context(ctx)
+    Value::from(ctx)
   }
 
   /// `inner` at indent `2 * depth`: inside `depth` lists, each of which also holds an 80-byte

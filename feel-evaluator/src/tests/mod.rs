@@ -54,10 +54,12 @@ mod properties;
 mod range;
 mod satisfies;
 mod send_sync;
+mod shared_values;
 mod some_expression;
 mod subtraction;
 mod types;
 mod unary_tests;
+mod values_used_again;
 mod various;
 
 const SECONDS_IN_DAY: i64 = 86_400;
@@ -184,7 +186,7 @@ pub fn te_scope(input: &str) -> FeelScope {
   let scope = FeelScope::default();
   match rheon_feel_parser::parse_context(&scope, input, false) {
     Ok(node) => match eval(&scope, &node) {
-      Value::Context(ctx) => ctx.into(),
+      Value::Context(ctx) => std::sync::Arc::unwrap_or_clone(ctx).into(),
       other => {
         println!("ERROR (INVALID VALUE TYPE): {other}");
         panic!("te_scope failed");

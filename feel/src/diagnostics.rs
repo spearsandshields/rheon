@@ -27,9 +27,10 @@
 //!
 //! An evaluation can also be stopped by an implementation limit ([Abort]), such as the depth of
 //! nested function calls. One evaluation ([evaluation]) owns the abort and the call depth, every
-//! function call reads them ([enter_call]), and nothing of them outlives the evaluation.
+//! function call reads them ([enter_call]), and nothing of them outlives the evaluation. The
+//! depth of nested values is bounded where an expression produces a value ([bound_depth]).
 
-use crate::values::Value;
+use crate::values::{FeelList, Value};
 use crate::{Evaluator, FeelScope};
 use dsntk_common::{DsntkError, ToErrorMessage};
 use std::cell::{Cell, RefCell};
@@ -120,6 +121,45 @@ pub fn collect<T>(f: impl FnOnce() -> T) -> (T, Diagnostics) {
   (result, diagnostics)
 }
 
+/// Runs `f` and returns its result with a mark of what the running collection held before it:
+/// an evaluation whose diagnostics count only when its result is used. Dropping the mark keeps
+/// what `f` recorded; [Tentative::discard] removes it.
+pub fn tentative<T>(f: impl FnOnce() -> T) -> (T, Tentative) {
+  let mark = Tentative(ACTIVE.with(Cell::get).then(|| Mark {
+    count: COUNT.with(Cell::get),
+    messages: MESSAGES.with(|messages| messages.borrow().len()),
+    warnings: WARNINGS.with(|warnings| warnings.borrow().len()),
+  }));
+  (f(), mark)
+}
+
+/// What the running collection held before a tentative evaluation ([tentative]); nothing when
+/// no collection was running.
+#[must_use = "dropping the mark keeps what the evaluation recorded; discard it to remove that"]
+pub struct Tentative(Option<Mark>);
+
+/// The count of errors and the lengths of the lists of a collection.
+struct Mark {
+  count: usize,
+  messages: usize,
+  warnings: usize,
+}
+
+impl Tentative {
+  /// Removes the errors and the warnings recorded since the mark: the count is set back and both
+  /// lists are cut to their marked lengths. A message that repeated the last one before the mark
+  /// was counted but not kept, so the cut is exact, also at the cap; a collection nested in the
+  /// tentative evaluation merged its records into this one when it ended. An abort is no record:
+  /// it stays.
+  pub fn discard(self) {
+    if let Some(mark) = self.0 {
+      COUNT.with(|count| count.set(mark.count));
+      MESSAGES.with(|messages| messages.borrow_mut().truncate(mark.messages));
+      WARNINGS.with(|warnings| warnings.borrow_mut().truncate(mark.warnings));
+    }
+  }
+}
+
 /// The collection state of the enclosing scope, restored when the inner collection ends, also
 /// when the evaluation panics (a thread that keeps collecting would record forever).
 struct Collection {
@@ -185,6 +225,9 @@ pub enum Abort {
   /// An engine below FEEL gave up; `reason` names the function, the input and the limit.
   #[non_exhaustive]
   Limit { reason: Box<str> },
+  /// A value nested more than `limit` levels deep ([bound_depth]).
+  #[non_exhaustive]
+  ValueDepth { limit: u32 },
 }
 
 impl Abort {
@@ -202,6 +245,7 @@ impl std::fmt::Display for Abort {
         "function calls are nested too deeply (more than {limit} levels, e.g. runaway recursion); evaluation stopped"
       ),
       Self::Limit { reason } => write!(f, "{reason}; evaluation stopped"),
+      Self::ValueDepth { limit } => write!(f, "values are nested too deeply (more than {limit} levels); evaluation stopped"),
     }
   }
 }
@@ -228,7 +272,7 @@ struct Evaluation {
   depth: Cell<usize>,
   /// Why the running evaluation was stopped, the first reason only.
   abort: RefCell<Option<Abort>>,
-  /// Whether `abort` is set, read by every function call.
+  /// Whether `abort` is set, read by every function call and by every loop before each item.
   aborted: Cell<bool>,
 }
 
@@ -242,6 +286,10 @@ impl Evaluation {
     self.depth.set(0);
     self.aborted.set(false);
     self.abort.borrow_mut().take();
+  }
+
+  fn stopped(&self) -> bool {
+    self.aborted.get()
   }
 
   fn stop(&self, reason: Abort) {
@@ -323,13 +371,58 @@ pub fn abort(reason: Abort) {
   });
 }
 
+/// Whether the running evaluation was stopped ([abort]). A loop reads it before each further item
+/// and ends; what the loop returns then is never observed, because the abort, not a value, is the
+/// outcome of the evaluation. Outside an evaluation it is `false`.
+pub fn stopped() -> bool {
+  EVALUATION.with(Evaluation::stopped)
+}
+
+/// The number of levels values may nest in each other within an evaluation: the depth of a scalar
+/// is 0; a list or a context is one level deeper than the deepest value it holds, so an empty one
+/// is 1 level deep; a function is one level deeper than its closure context; a range and the
+/// other values that hold values are one level deeper than what they hold. Every consumer of a
+/// value on every host walks twice as many levels, measured on the stack of each.
+pub(crate) const MAX_VALUE_DEPTH: u32 = 500;
+
+/// The value an expression produced, when it nests at most 500 levels.
+///
+/// A deeper value stops the running evaluation with [Abort::ValueDepth] and is dropped; the null
+/// returned in its place is never observed, because the abort, not a value, is the outcome of the
+/// evaluation. Outside an evaluation the null carries the abort's text. It is read where values
+/// are produced (the result of an invocation, a list, range, context and function literal, the
+/// results of a loop as they grow, a boxed expression), not where values are bound: a scope frame
+/// may hold a value at the limit.
+#[inline]
+pub fn bound_depth(value: Value) -> Value {
+  if value.nesting_depth() <= MAX_VALUE_DEPTH { value } else { too_deep() }
+}
+
+/// [bound_depth] for a list that grows in place, such as the results of a loop: `Ok` when it nests
+/// at most 500 levels, otherwise the evaluation is stopped and the error is the null to return in
+/// place of the list. The list keeps its depth, so this reads one field.
+#[inline]
+pub fn bound_list_depth(list: &FeelList) -> Result<(), Value> {
+  if list.nesting_depth() <= MAX_VALUE_DEPTH { Ok(()) } else { Err(too_deep()) }
+}
+
+/// Stops the running evaluation for a value nested more than [MAX_VALUE_DEPTH] levels: the null
+/// returned in place of the value ([bound_depth]).
+#[cold]
+#[inline(never)]
+pub(crate) fn too_deep() -> Value {
+  let reason = Abort::ValueDepth { limit: MAX_VALUE_DEPTH };
+  abort(reason.clone());
+  if stopped() { Value::Null(None) } else { crate::value_null!(reason) }
+}
+
 /// Enters a function call when at most `limit` calls are nested in it. `None` refuses the call:
 /// the evaluation was stopped before, or this call exceeds the limit, which stops it with
 /// [Abort::CallDepth]. A refused call's result is never observed, because the abort, not a value,
 /// is the outcome of the evaluation.
 pub fn enter_call(limit: usize) -> Option<Call> {
   EVALUATION.with(|evaluation| {
-    if evaluation.aborted.get() {
+    if evaluation.stopped() {
       return None;
     }
     let depth = evaluation.depth.get();
@@ -558,5 +651,84 @@ mod tests {
     });
     assert_eq!((inner.count, inner.messages), (1, vec!["inner".to_string()]));
     assert_eq!((outer.count, outer.messages), (2, vec!["outer".to_string(), "inner".to_string()]));
+  }
+
+  /// What a collection holds: the count, the messages and the warnings.
+  fn held(diagnostics: &Diagnostics) -> (usize, Vec<String>, Vec<String>) {
+    (diagnostics.count, diagnostics.messages.clone(), diagnostics.warnings().to_vec())
+  }
+
+  #[test]
+  fn a_discarded_mark_removes_what_was_recorded_since() {
+    let strings = |items: &[&str]| items.iter().map(|item| item.to_string()).collect::<Vec<_>>();
+    let ((), diagnostics) = collect(|| {
+      record(Severity::Error, "before");
+      warn("w before");
+      let ((), mark) = tentative(|| {
+        record(Severity::Error, "probe");
+        // a repeat of the message before the mark is counted, not kept
+        record(Severity::Error, "probe");
+        warn("w probe");
+        // a collection inside the mark merges into it before the mark is discarded
+        let ((), inner) = collect(|| record(Severity::Error, "inner"));
+        assert_eq!(1, inner.count);
+      });
+      mark.discard();
+      record(Severity::Error, "after");
+    });
+    assert_eq!((2, strings(&["before", "after"]), strings(&["w before"])), held(&diagnostics));
+    // a repeat of the last message before the mark: counted inside, not kept, and its count discarded
+    let ((), diagnostics) = collect(|| {
+      record(Severity::Error, "same");
+      let ((), mark) = tentative(|| record(Severity::Error, "same"));
+      mark.discard();
+    });
+    assert_eq!((1, strings(&["same"]), vec![]), held(&diagnostics));
+  }
+
+  #[test]
+  fn a_discarded_mark_at_the_cap_restores_the_count() {
+    let ((), diagnostics) = collect(|| {
+      (0..MAX_MESSAGES).for_each(|i| record(Severity::Error, &i.to_string()));
+      let ((), mark) = tentative(|| (0..10).for_each(|i| record(Severity::Error, &format!("probe {i}"))));
+      mark.discard();
+    });
+    assert_eq!(MAX_MESSAGES, diagnostics.count);
+    assert_eq!(MAX_MESSAGES, diagnostics.messages.len());
+    assert_eq!("63", diagnostics.messages[MAX_MESSAGES - 1]);
+  }
+
+  #[test]
+  fn a_kept_mark_changes_nothing() {
+    let (kept, diagnostics) = collect(|| {
+      record(Severity::Error, "before");
+      let (value, mark) = tentative(|| {
+        record(Severity::Error, "probe");
+        warn("w probe");
+        7
+      });
+      drop(mark);
+      value
+    });
+    assert_eq!(7, kept);
+    assert_eq!((2, vec!["before".to_string(), "probe".to_string()], vec!["w probe".to_string()]), held(&diagnostics));
+  }
+
+  #[test]
+  fn a_mark_outside_a_collection_has_no_effect() {
+    let ((), mark) = tentative(|| record(Severity::Error, "outside"));
+    mark.discard();
+    let ((), diagnostics) = collect(|| ());
+    assert_eq!(Diagnostics::default(), diagnostics);
+  }
+
+  #[test]
+  fn an_abort_survives_a_discarded_mark() {
+    let ((), aborted) = evaluation(|| {
+      let ((), mark) = tentative(|| abort(Abort::limit("in the probe")));
+      mark.discard();
+      assert!(stopped());
+    });
+    assert_eq!(Some(Abort::limit("in the probe")), aborted);
   }
 }

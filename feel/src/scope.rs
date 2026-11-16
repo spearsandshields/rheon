@@ -6,6 +6,8 @@ use crate::{Name, QualifiedName};
 use dsntk_common::Jsonify;
 use std::cell::{Ref, RefCell};
 use std::fmt;
+use std::ops::Deref;
+use std::sync::Arc;
 
 /// This macro creates a default scope.
 #[macro_export]
@@ -13,17 +15,73 @@ macro_rules! scope {
   () => {{ FeelScope::default() }};
 }
 
+/// A context on the stack of a [FeelScope]: a context the scope owns (the parameters of a call,
+/// the entries of a context literal, the variables of a loop), or a shared context value pushed
+/// without a copy ([FeelScope::push_shared]), such as a context item of a filter.
+///
+/// A frame is read as its context ([Deref]). A write into a shared frame copies the context
+/// first ([FeelScope::set_value], [FeelScope::set_name]), so it never shows through the value the
+/// frame was pushed from.
+pub struct ScopeFrame(Frame);
+
+enum Frame {
+  Owned(FeelContext),
+  Shared(Arc<FeelContext>),
+}
+
+impl ScopeFrame {
+  /// The context of this frame, to be changed: a copy of it, which the frame then holds alone,
+  /// when it is shared.
+  fn context_mut(&mut self) -> &mut FeelContext {
+    match &mut self.0 {
+      Frame::Owned(ctx) => ctx,
+      Frame::Shared(ctx) => Arc::make_mut(ctx),
+    }
+  }
+
+  /// The context of this frame: moved out of a frame that holds it alone, copied otherwise.
+  pub fn into_context(self) -> FeelContext {
+    match self.0 {
+      Frame::Owned(ctx) => ctx,
+      Frame::Shared(ctx) => Arc::unwrap_or_clone(ctx),
+    }
+  }
+}
+
+impl Deref for ScopeFrame {
+  type Target = FeelContext;
+  fn deref(&self) -> &FeelContext {
+    match &self.0 {
+      Frame::Owned(ctx) => ctx,
+      Frame::Shared(ctx) => ctx,
+    }
+  }
+}
+
+impl From<FeelContext> for ScopeFrame {
+  /// A frame that owns the context.
+  fn from(ctx: FeelContext) -> Self {
+    Self(Frame::Owned(ctx))
+  }
+}
+
+impl fmt::Debug for ScopeFrame {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fmt::Debug::fmt(&**self, f)
+  }
+}
+
 /// The `FEEL` scope.
 pub struct FeelScope {
   /// The stack of contexts.
-  stack: RefCell<Vec<FeelContext>>,
+  stack: RefCell<Vec<ScopeFrame>>,
 }
 
 impl Default for FeelScope {
   /// Creates a default [FeelScope] containing single default [FeelContext].
   fn default() -> Self {
     Self {
-      stack: RefCell::new(vec![FeelContext::default()]),
+      stack: RefCell::new(vec![FeelContext::default().into()]),
     }
   }
 }
@@ -31,7 +89,9 @@ impl Default for FeelScope {
 impl From<FeelContext> for FeelScope {
   /// Creates a [FeelScope] from [FeelContext].
   fn from(ctx: FeelContext) -> Self {
-    Self { stack: RefCell::new(vec![ctx]) }
+    Self {
+      stack: RefCell::new(vec![ctx.into()]),
+    }
   }
 }
 
@@ -52,13 +112,13 @@ impl Jsonify for FeelScope {
 impl FeelScope {
   /// Returns a copy of the stack of contexts, bottom first.
   pub fn contexts(&self) -> Vec<FeelContext> {
-    self.stack.borrow().clone()
+    self.stack.borrow().iter().map(|frame| FeelContext::clone(frame)).collect()
   }
 
   /// Returns the stack of contexts, bottom first, without copying it.
   ///
   /// The scope can not be changed while the returned reference is alive (it would panic).
-  pub fn frames(&self) -> Ref<'_, [FeelContext]> {
+  pub fn frames(&self) -> Ref<'_, [ScopeFrame]> {
     Ref::map(self.stack.borrow(), Vec::as_slice)
   }
 
@@ -69,7 +129,13 @@ impl FeelScope {
 
   /// Pushes a context on the top of the scope stack.
   pub fn push(&self, ctx: FeelContext) {
-    self.stack.borrow_mut().push(ctx)
+    self.stack.borrow_mut().push(ctx.into())
+  }
+
+  /// Pushes a shared context on the top of the scope stack, without a copy: a write into the
+  /// frame copies it first ([ScopeFrame]).
+  pub fn push_shared(&self, ctx: Arc<FeelContext>) {
+    self.stack.borrow_mut().push(ScopeFrame(Frame::Shared(ctx)))
   }
 
   /// Appends the content of another scope at the end of this scope.
@@ -77,9 +143,9 @@ impl FeelScope {
     self.stack.borrow_mut().append(&mut other.stack.borrow_mut());
   }
 
-  /// Takes and returns a context from the top of the stack.
+  /// Takes and returns a context from the top of the stack (a copy of it when it is shared).
   pub fn pop(&self) -> Option<FeelContext> {
-    self.stack.borrow_mut().pop()
+    self.stack.borrow_mut().pop().map(ScopeFrame::into_context)
   }
 
   /// Returns the number of contexts on the stack.
@@ -96,13 +162,13 @@ impl FeelScope {
     self.stack.borrow_mut().truncate(depth);
   }
 
-  /// Restores the stack to `depth` contexts like [FeelScope::truncate] and returns the context
+  /// Restores the stack to `depth` contexts like [FeelScope::truncate] and returns the frame
   /// above them, the one pushed when the stack had `depth` contexts; `None` when the stack has
   /// no more than `depth` contexts (more were popped than pushed since, which no evaluator does).
   ///
   /// Only the number of contexts is checked: a context that was popped and replaced by another
   /// one is not detected, and the other one is returned.
-  pub fn pop_frame(&self, depth: usize) -> Option<FeelContext> {
+  pub fn pop_frame(&self, depth: usize) -> Option<ScopeFrame> {
     let mut stack = self.stack.borrow_mut();
     if stack.len() > depth {
       stack.truncate(depth + 1);
@@ -112,10 +178,9 @@ impl FeelScope {
     }
   }
 
-  /// Peeks a context from the top of the stack.
-  /// If the stack is empty, the default context is returned.
+  /// Returns a copy of the context on the top of the stack, `None` when the stack is empty.
   pub fn peek(&self) -> Option<FeelContext> {
-    self.stack.borrow().last().cloned()
+    self.stack.borrow().last().map(|frame| FeelContext::clone(frame))
   }
 
   /// Returns a value of an entry with specified name.
@@ -151,17 +216,23 @@ impl FeelScope {
     None
   }
 
-  /// Sets a specified value for entry name in [FeelContext] placed on the top of the scope stack.
+  /// Sets a specified value for entry name in [FeelContext] placed on the top of the scope stack
+  /// (in a copy of it when the frame is shared, see [ScopeFrame]).
+  ///
+  /// Evaluators write only into the frames they pushed (a context literal writes its entries
+  /// into its own frame), except a boxed context, which writes each entry into the frame on the
+  /// top of the scope, whatever pushed it: the one write into a frame that may be shared.
   pub fn set_value(&self, name: &Name, value: Value) {
-    if let Some(context) = self.stack.borrow_mut().last_mut() {
-      context.set_entry(name, value);
+    if let Some(frame) = self.stack.borrow_mut().last_mut() {
+      frame.context_mut().set_entry(name, value);
     }
   }
 
-  /// Sets a null value for entry name in [FeelContext] placed on the top of the scope stack.
+  /// Sets a null value for entry name in [FeelContext] placed on the top of the scope stack (in a
+  /// copy of it when the frame is shared, see [ScopeFrame]).
   pub fn set_name(&self, name: Name) {
-    if let Some(context) = self.stack.borrow_mut().last_mut() {
-      context.set_null(name);
+    if let Some(frame) = self.stack.borrow_mut().last_mut() {
+      frame.context_mut().set_null(name);
     }
   }
 }

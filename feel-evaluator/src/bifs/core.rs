@@ -1,14 +1,15 @@
 //! # Core implementation of build-in functions
 
 use crate::bfeel::Dialect;
-use crate::invocation::{Arguments, invoke};
+use crate::equality::Equality;
+use crate::evaluate_range_literal;
+use crate::invocation::{Arguments, call};
 use crate::macros::invalid_argument_type;
-use crate::{evaluate_equals, evaluate_range_literal};
 use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, Abort};
 use rheon_feel::message::{arg, compose};
-use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value, Values, warn_truncated_fraction};
+use rheon_feel::values::{FeelList, TypeOf, VALUE_FALSE, VALUE_TRUE, Value, warn_truncated_fraction};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_number::RoundingMode;
 use rheon_feel_regex::RegexError;
@@ -430,7 +431,7 @@ pub fn concatenate(values: &[Value]) -> Value {
       return invalid_argument_type!("concatenate", "list", value);
     }
   }
-  Value::List(concatenated)
+  Value::List(concatenated.into())
 }
 
 /// Returns `true` when the input string contains the match.
@@ -463,7 +464,7 @@ pub fn context(entries: &Value) -> Value {
               Value::String(key) => key.as_str().into(),
               _ => return value_null!("context: 'key' entry is not a string, actual type is {}", arg(&TypeOf(key))),
             };
-            if result_ctx.contains_key(&key) {
+            if result_ctx.contains_entry(&key) {
               return value_null!("context: duplicated key: {}", arg(&key));
             }
             result_ctx.set_entry(&key, value.clone());
@@ -471,7 +472,7 @@ pub fn context(entries: &Value) -> Value {
           _ => return value_null!("context: invalid entry, expected context, actual type is {}", arg(&TypeOf(entry))),
         }
       }
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     Value::Context(ctx) => {
       let mut result_ctx = FeelContext::default();
@@ -486,7 +487,7 @@ pub fn context(entries: &Value) -> Value {
         _ => return value_null!("context: 'key' entry is not a string, actual type is {}", arg(&TypeOf(key))),
       };
       result_ctx.set_entry(&key, value.clone());
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     null @ Value::Null(_) => null.clone(),
     other => invalid_argument_type!("context", "list or context", other),
@@ -496,7 +497,8 @@ pub fn context(entries: &Value) -> Value {
 pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
   match context {
     Value::Context(ctx) => {
-      let mut result_ctx = ctx.clone();
+      // a copy of the context's own entries; the values in them stay shared
+      let mut result_ctx = FeelContext::clone(ctx);
       match keys {
         Value::String(key) => result_ctx.set_entry(&key.as_str().into(), value.clone()),
         Value::List(items) => {
@@ -518,7 +520,7 @@ pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
         null @ Value::Null(_) => return null.clone(),
         other => return invalid_argument_type!("context put", "string or list<string>", other),
       }
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     null @ Value::Null(_) => null.clone(),
     other => invalid_argument_type!("context put", "context", other),
@@ -539,7 +541,7 @@ pub fn context_merge(contexts: &Value) -> Value {
           other => return invalid_argument_type!("context merge", "context", other),
         }
       }
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     Value::Context(ctx) => Value::Context(ctx.clone()),
     null @ Value::Null(_) => null.clone(),
@@ -713,13 +715,14 @@ pub fn decimal(number_value: &Value, scale_value: &Value) -> Value {
 /// Returns new list with removed duplicates.
 pub fn distinct_values(value: &Value) -> Value {
   if let Value::List(items) = value {
+    let mut equality = Equality::default();
     let mut result = vec![];
     for item in items {
-      if result.iter().all(|v| !evaluate_equals(v, item)) {
+      if result.iter().all(|v| equality.compare(v, item) != Some(true)) {
         result.push(item.clone())
       }
     }
-    Value::List(result)
+    Value::List(result.into())
   } else {
     invalid_argument_type!("distinct values", "list", value)
   }
@@ -1024,7 +1027,7 @@ pub fn flatten(value: &Value) -> Value {
   if let Value::List(_) = value {
     let mut flattened = vec![];
     flatten_value(value, &mut flattened);
-    Value::List(flattened)
+    Value::List(flattened.into())
   } else {
     invalid_argument_type!("flatten", "list", value)
   }
@@ -1057,9 +1060,9 @@ pub fn get_entries(context: &Value) -> Value {
       let mut key_value_pair = FeelContext::default();
       key_value_pair.set_entry(&name_key, Value::String(name.to_string().into()));
       key_value_pair.set_entry(&name_value, (**value).clone());
-      entries.push(Value::Context(key_value_pair));
+      entries.push(key_value_pair.into());
     });
-    Value::List(entries)
+    Value::List(entries.into())
   } else {
     invalid_argument_type!("get entries", "context", context)
   }
@@ -1155,13 +1158,14 @@ pub fn includes(value1: &Value, value2: &Value) -> Value {
 /// Return ascending list of list positions containing match.
 pub fn index_of(list: &Value, element: &Value) -> Value {
   if let Value::List(items) = list {
+    let mut equality = Equality::default();
     let mut indexes = vec![];
     for (i, item) in items.iter().enumerate() {
-      if evaluate_equals(item, element) {
+      if equality.compare(item, element) == Some(true) {
         indexes.push(Value::Number((i + 1).into()));
       }
     }
-    Value::List(indexes)
+    Value::List(indexes.into())
   } else {
     invalid_argument_type!("index of", "list", list)
   }
@@ -1170,9 +1174,10 @@ pub fn index_of(list: &Value, element: &Value) -> Value {
 /// `insert after(list, position, newItem)` (DMN 1.7 beta 1, DMN17-100): a new list with
 /// `newItem` inserted after the item at `position` (1-based; negative positions count from the end).
 pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value) -> Value {
-  if let Value::List(mut items) = list.clone()
+  if let Value::List(items) = list
     && let Value::Number(position) = position_value
   {
+    let mut items = items.to_vec();
     // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
     let position = &position.trunc();
     // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
@@ -1182,7 +1187,7 @@ pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value
       && i <= items.len() as u64
     {
       items.insert(i as usize, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
     if position.is_negative()
       && let Ok(i) = u64::try_from(position.abs())
@@ -1190,7 +1195,7 @@ pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value
       && i <= items.len() as u64
     {
       items.insert(items.len() - i as usize + 1, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
   }
   value_null!("index is out of range")
@@ -1199,9 +1204,10 @@ pub fn insert_after(list: &Value, position_value: &Value, new_item_value: &Value
 /// `insert before(list, position, newItem)`: a new list with `newItem` inserted before the item
 /// at `position` (1-based; negative positions count from the end).
 pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Value) -> Value {
-  if let Value::List(mut items) = list.clone()
+  if let Value::List(items) = list
     && let Value::Number(position) = position_value
   {
+    let mut items = items.to_vec();
     // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
     let position = &position.trunc();
     // Positions are converted through 64-bit integers, so 32-bit targets (wasm32) behave like 64-bit ones.
@@ -1211,14 +1217,14 @@ pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Valu
       && i <= items.len() as u64
     {
       items.insert(i as usize - 1, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
     if position.is_negative()
       && let Ok(i) = u64::try_from(position.abs())
       && i <= items.len() as u64
     {
       items.insert(items.len() - i as usize, new_item_value.clone());
-      return Value::List(items);
+      return Value::List(items.into());
     }
   }
   value_null!("index is out of range")
@@ -1266,8 +1272,9 @@ pub fn is(value1: &Value, value2: &Value) -> Value {
 /// Returns `true` when the list contain the specified element.
 pub fn list_contains(list: &Value, element: &Value) -> Value {
   if let Value::List(items) = list {
+    let mut equality = Equality::default();
     for item in items {
-      if evaluate_equals(item, element) {
+      if equality.compare(item, element) == Some(true) {
         return VALUE_TRUE;
       }
     }
@@ -1279,7 +1286,7 @@ pub fn list_contains(list: &Value, element: &Value) -> Value {
 
 pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -> Value {
   let mut items = match list {
-    Value::List(items) => items.clone(),
+    Value::List(items) => items.to_vec(),
     Value::Null(_) => return invalid_argument_type!("list replace", "list", list),
     other => vec![other.clone()],
   };
@@ -1292,7 +1299,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
             if index.unsigned_abs() <= len as u64 {
               let index = index as usize;
               items[index - 1] = new_item.clone();
-              Value::List(items)
+              Value::List(items.into())
             } else {
               value_null!("position exceeds list bounds")
             }
@@ -1301,7 +1308,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
             let index = index.unsigned_abs();
             if index <= len as u64 {
               items[len - index as usize] = new_item.clone();
-              Value::List(items)
+              Value::List(items.into())
             } else {
               value_null!("position exceeds list bounds")
             }
@@ -1313,19 +1320,26 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
       }
     }
     Value::FunctionDefinition(function) => {
-      if function.parameters.len() != 2 {
+      if function.parameters().len() != 2 {
         return value_null!("list replace: matching function must have exactly two arguments");
       }
       let mut elements = vec![];
+      // one empty scope for every call: a call leaves the scope as it found it
+      let scope = FeelScope::default();
       for item in items {
         let arguments = Arguments::Positional(vec![item.clone(), new_item.clone()]);
-        match invoke(&FeelScope::default(), position_or_match.clone(), arguments, Dialect::Feel) {
+        let matched = call(&scope, position_or_match.clone(), arguments, Dialect::Feel);
+        // the answer of a call in a stopped evaluation is not read; the null is never observed
+        if diagnostics::stopped() {
+          return Value::Null(None);
+        }
+        match matched {
           Value::Boolean(true) => elements.push(new_item.clone()),
           Value::Boolean(false) => elements.push(item),
           _ => return value_null!("list replace: matching function must return boolean value"),
         }
       }
-      Value::List(elements)
+      Value::List(elements.into())
     }
     _ => value_null!("position must be number or function"),
   }
@@ -1624,7 +1638,7 @@ pub fn min(values: &[Value]) -> Value {
 /// Returns the mode of numbers.
 pub fn mode(values: &[Value]) -> Value {
   if values.is_empty() {
-    return Value::List(Values::default());
+    return Value::List(FeelList::new());
   }
   // make sure all values are numbers and prepare the list of them
   let mut list = vec![];
@@ -2054,9 +2068,10 @@ pub fn range(value: &Value) -> Value {
 
 /// ???
 pub fn remove(list: &Value, position_value: &Value) -> Value {
-  if let Value::List(mut items) = list.clone()
+  if let Value::List(items) = list
     && let Value::Number(position_number) = position_value
   {
+    let mut items = items.to_vec();
     // a fractional position is truncated toward zero first (DMN 1.6 §10.3.2.9.4, DMN16-82), so -0.5 is 0
     let position_number = &position_number.trunc();
     if position_number.is_positive()
@@ -2065,14 +2080,14 @@ pub fn remove(list: &Value, position_value: &Value) -> Value {
       && index < items.len() as u64
     {
       items.remove(index as usize);
-      return Value::List(items);
+      return Value::List(items.into());
     }
     if position_number.is_negative()
       && let Ok(index) = u64::try_from(position_number.abs())
       && index <= items.len() as u64
     {
       items.remove(items.len() - index as usize);
-      return Value::List(items);
+      return Value::List(items.into());
     }
   }
   value_null!("probably index is out of range")
@@ -2103,9 +2118,10 @@ pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replace
 }
 
 pub fn reverse(list: &Value) -> Value {
-  if let Value::List(mut items) = list.clone() {
+  if let Value::List(items) = list {
+    let mut items = items.to_vec();
     items.reverse();
-    Value::List(items)
+    Value::List(items.into())
   } else {
     invalid_argument_type!("reverse", "list", list)
   }
@@ -2155,13 +2171,22 @@ fn round_to_scale(n: &Value, scale: &Value, mode: RoundingMode, name: &str, site
 pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   if let Value::List(items) = list {
     if let Value::FunctionDefinition(function) = ordering_function {
-      if function.parameters.len() == 2 {
-        // an answer other than `true` (false, null, any other value) means "does not precede"
+      if function.parameters().len() == 2 {
+        // an answer other than `true` (false, null, any other value) means "does not precede";
+        // once the evaluation was stopped the ordering ends, and its null is never observed
+        // one empty scope for every call: a call leaves the scope as it found it
+        let scope = FeelScope::default();
         let order = super::sorting::order_by(items.len(), |a, b| {
+          if diagnostics::stopped() {
+            return None;
+          }
           let arguments = Arguments::Positional(vec![items[a].clone(), items[b].clone()]);
-          matches!(invoke(&FeelScope::default(), ordering_function.clone(), arguments, Dialect::Feel), Value::Boolean(true))
+          Some(matches!(call(&scope, ordering_function.clone(), arguments, Dialect::Feel), Value::Boolean(true)))
         });
-        Value::List(order.into_iter().map(|position| items[position].clone()).collect())
+        match order {
+          Some(order) => Value::List(order.into_iter().map(|position| items[position].clone()).collect()),
+          None => Value::Null(None),
+        }
       } else {
         value_null!("sort: ordering function should take exactly two arguments")
       }
@@ -2522,7 +2547,7 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
         if let Ok(position) = u64::try_from(position_number) {
           let index = position as i128 - 1;
           if index >= 0 && index < len {
-            Value::List(items[index as usize..].to_vec())
+            Value::List(items[index as usize..].to_vec().into())
           } else {
             value_null!("sublist: position is out of range, len = {}, position = {}", items.len(), position)
           }
@@ -2532,7 +2557,7 @@ pub fn sublist2(list: &Value, position_value: &Value) -> Value {
       } else if position_number.is_negative() {
         if let Ok(position) = u64::try_from(position_number.abs()) {
           if (position as i128) <= len {
-            Value::List(items[items.len() - position as usize..].to_vec())
+            Value::List(items[items.len() - position as usize..].to_vec().into())
           } else {
             value_null!("sublist: position is out of range, len = {}, position = -{}", items.len(), position)
           }
@@ -2575,7 +2600,7 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
           };
           let last = first + length as i128;
           if first >= 0 && first < len && last <= len {
-            Value::List(items[first as usize..last as usize].to_vec())
+            Value::List(items[first as usize..last as usize].to_vec().into())
           } else {
             value_null!("sublist: invalid range, len = {}, start position = {}, end position = {}", items.len(), first + 1, last + 1)
           }
@@ -2856,16 +2881,17 @@ pub fn intersection(lists: &[Value]) -> Value {
       other => return invalid_argument_type!("intersection", "list", other),
     }
   }
+  let mut equality = Equality::default();
   let mut result: Vec<Value> = vec![];
   for item in inputs[0].iter() {
-    if result.iter().any(|a| evaluate_equals(a, item)) {
+    if result.iter().any(|a| equality.compare(a, item) == Some(true)) {
       continue;
     }
-    if inputs[1..].iter().all(|other| other.iter().any(|b| evaluate_equals(b, item))) {
+    if inputs[1..].iter().all(|other| other.iter().any(|b| equality.compare(b, item) == Some(true))) {
       result.push(item.clone());
     }
   }
-  Value::List(result)
+  Value::List(result.into())
 }
 
 /// `trim(string)` (DMN 1.7 beta 1, DMN17-96): the string without leading and trailing white space,
@@ -2886,11 +2912,12 @@ pub fn trim(value: &Value) -> Value {
 
 /// Returns new list containing concatenated list with duplicates removed.
 pub fn union(lists: &[Value]) -> Value {
+  let mut equality = Equality::default();
   let mut result = vec![];
   for list in lists {
     if let Value::List(items) = list {
       for item in items {
-        if result.iter().all(|a| !evaluate_equals(a, item)) {
+        if result.iter().all(|a| equality.compare(a, item) != Some(true)) {
           result.push(item.clone())
         }
       }
@@ -2898,7 +2925,7 @@ pub fn union(lists: &[Value]) -> Value {
       return invalid_argument_type!("union", "list", list);
     }
   }
-  Value::List(result)
+  Value::List(result.into())
 }
 
 /// Returns upper-cased string.

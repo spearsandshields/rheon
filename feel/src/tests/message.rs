@@ -4,6 +4,7 @@
 use crate::closure::Closure;
 use crate::context::FeelContext;
 use crate::message::{arg, compose};
+use crate::tests::type_relations::{doubled, nested_list_type};
 use crate::values::{TypeOf, Value};
 use crate::{FeelNumber, FeelScope, FeelType, FunctionBody, FunctionDefinition, IntervalType, Name, value_null, value_number};
 use std::sync::Arc;
@@ -46,7 +47,7 @@ fn a_longer_argument_is_a_preview_with_its_size() {
   assert_eq!(format!("{LIST_PREVIEW}… (1000 items)"), arg(&numbers(1000)).to_string());
   assert_eq!(
     format!("[\"{}… (1 item)", "x".repeat(118)),
-    arg(&Value::List(vec![Value::String("x".repeat(500).into())])).to_string()
+    arg(&Value::List(vec![Value::String("x".repeat(500).into())].into())).to_string()
   );
   let text = Value::String("x".repeat(5000).into());
   assert_eq!(format!("\"{}… (5000 characters)", "x".repeat(119)), arg(&text).to_string());
@@ -55,7 +56,7 @@ fn a_longer_argument_is_a_preview_with_its_size() {
   let quoted = arg(&big).to_string();
   assert!(quoted.ends_with("… (1000 entries)"), "{quoted}");
   assert_eq!(120 + "… (1000 entries)".chars().count(), quoted.chars().count());
-  assert!(arg(&Value::Context(big)).to_string().ends_with("… (1000 entries)"));
+  assert!(arg(&Value::from(big)).to_string().ends_with("… (1000 entries)"));
   let one = context([("a".to_string(), Value::String("x".repeat(500).into()))]);
   assert!(arg(&one).to_string().ends_with("… (1 entry)"));
   // values without a size end with the cut alone
@@ -120,10 +121,10 @@ fn function(parameters: Vec<FeelType>, result: FeelType) -> Value {
 #[test]
 fn the_type_of_a_value_is_quoted_from_the_value() {
   let a = || Value::String("a".into());
-  let nested = context([("outer".to_string(), Value::Context(context([("inner".to_string(), numbers(2))])))]);
+  let nested = context([("outer".to_string(), Value::from(context([("inner".to_string(), numbers(2))])))]);
   let wide = context((0..10_000).map(|i| (format!("entry{i}"), value_number!(i))));
   let entry = |name: &str| format!("{name} {}", "entry".repeat(8));
-  let three = || Value::Context(context([(entry("x"), value_number!(1)), (entry("y"), a()), (entry("z"), Value::Null(None))]));
+  let three = || Value::from(context([(entry("x"), value_number!(1)), (entry("y"), a()), (entry("z"), Value::Null(None))]));
   let one = Box::new(value_number!(1));
   let ten = Box::new(value_number!(10));
   let values = vec![
@@ -131,17 +132,17 @@ fn the_type_of_a_value_is_quoted_from_the_value() {
     a(),
     Value::Boolean(true),
     Value::Null(None),
-    Value::List(vec![]),
-    Value::List(vec![value_number!(1), a()]),
-    Value::List(vec![Value::Null(None), value_number!(1)]),
-    Value::List(vec![value_number!(1), Value::Null(None)]),
-    Value::List(vec![numbers(1)]),
-    Value::Context(context([("a".to_string(), numbers(2))])),
-    Value::Context(nested),
+    Value::List(vec![].into()),
+    Value::List(vec![value_number!(1), a()].into()),
+    Value::List(vec![Value::Null(None), value_number!(1)].into()),
+    Value::List(vec![value_number!(1), Value::Null(None)].into()),
+    Value::List(vec![numbers(1)].into()),
+    Value::from(context([("a".to_string(), numbers(2))])),
+    Value::from(nested),
     function(vec![FeelType::Number, FeelType::List(Box::new(FeelType::String))], FeelType::Boolean),
     Value::Range(one, IntervalType::Closed, ten, IntervalType::Closed),
     Value::FeelType(FeelType::Context([(Name::from("t"), FeelType::Date)].into())),
-    Value::Context(wide),
+    Value::from(wide),
     Value::List((0..1000).map(|_| three()).collect()),
   ];
   for value in &values {
@@ -157,10 +158,30 @@ fn the_type_of_a_value_is_quoted_from_the_value() {
   assert_eq!(format!("{}…", full.chars().take(120).collect::<String>()), list_of_contexts);
 }
 
+/// The type of a list that holds the same list on 2^59 paths is written at once, in a message
+/// and by [Value::type_of]: the type of the first item is built, and the other items are related
+/// to it without building theirs.
+#[test]
+fn the_type_of_a_shared_list_is_written_at_once() {
+  let list = doubled(60);
+  let expected = nested_list_type(60, FeelType::Number);
+  assert_eq!(expected, list.type_of());
+  assert_eq!(arg(&expected).to_string(), arg(&TypeOf(&list)).to_string());
+  // the items of a list after the first are not typed, so a large type among them is no cut
+  let huge = Value::from(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
+  let list = Value::List(vec![value_number!(1), huge].into());
+  assert_eq!("list<Any>", arg(&TypeOf(&list)).to_string());
+  assert_eq!("list<Any>", list.type_of().to_string());
+}
+
 #[test]
 fn the_type_of_a_list_whose_first_item_has_a_huge_type_is_not_built() {
-  let huge = Value::Context(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
-  let list = Value::List(vec![huge, value_number!(1)]);
+  let huge = Value::from(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
+  let list = Value::List(vec![huge.clone(), huge.clone()].into());
   assert_eq!("list<…>", arg(&TypeOf(&list)).to_string());
+  assert!(list.type_of().to_string().starts_with("list<context<entry0: number, "));
+  // the items are not alike, so the first item's type is not needed
+  let list = Value::List(vec![huge, value_number!(1)].into());
+  assert_eq!("list<Any>", arg(&TypeOf(&list)).to_string());
   assert_eq!("list<Any>", list.type_of().to_string());
 }

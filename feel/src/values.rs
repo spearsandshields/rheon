@@ -18,12 +18,16 @@ use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fmt::Display;
-use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
+mod list;
 mod string;
+mod type_relations;
 
+use type_relations::Conformance;
+
+pub use list::{FeelList, ListItems};
 pub use string::FeelString;
 
 /// Creates `Value::Null` with optional tracing message: the reason of an error null, or with
@@ -118,8 +122,10 @@ pub enum Value {
   /// Value for storing built-in function definition.
   BuiltInFunction(Bif),
 
-  /// Value representing a context.
-  Context(FeelContext),
+  /// Value representing a context. The context is shared: copying the value copies a pointer,
+  /// and a context is never changed while it is shared ([Arc::make_mut] changes a copy, which the
+  /// value then holds alone), so a change never shows through another copy of the value.
+  Context(Arc<FeelContext>),
 
   /// Value representing a context entry.
   ContextEntry(Name, Box<Value>),
@@ -205,10 +211,7 @@ pub enum Value {
   Irrelevant,
 
   /// Value representing a list of values.
-  List(Values),
-
-  /// Named parameter.
-  NamedParameter(Box<Value>, Box<Value>),
+  List(FeelList),
 
   /// Value representing a collection of named parameters.
   NamedParameters(BTreeMap<Name, (Value, usize)>),
@@ -227,9 +230,6 @@ pub enum Value {
 
   /// Value representing a list of function's parameter types.
   ParameterTypes(Vec<Value>),
-
-  /// List of positional parameters.
-  PositionalParameters(Values),
 
   /// Value representing a segment of a qualified name.
   QualifiedNameSegment(Name),
@@ -319,20 +319,15 @@ impl Display for Value {
       Value::FunctionBody(_, external) => write!(f, "FunctionBody{}", if *external { " (external)" } else { "" }),
       Value::FunctionDefinition(function) => {
         let FunctionDefinition {
-          parameters,
-          external,
-          closure,
-          closure_ctx,
-          result_type,
-          ..
+          external, closure, closure_ctx, ..
         } = function.as_ref();
+        let (parameters, result_type) = (function.parameters(), function.result_type());
         write!(f, "FunctionDefinition({parameters:?},_,{external},{closure},{closure_ctx},{result_type})")
       }
       Value::IntervalEnd(_, _) => write!(f, "IntervalEnd"),
       Value::IntervalStart(_, _) => write!(f, "IntervalStart"),
       Value::Irrelevant => write!(f, "Irrelevant"),
       Value::List(items) => write_values(f, items),
-      Value::NamedParameter(_, _) => write!(f, "NamedParameter"),
       Value::NamedParameters(_) => write!(f, "NamedParameters"),
       Value::NegatedCommaList(_) => write!(f, "NegatedCommaList"),
       Value::Number(value) => write!(f, "{value}"),
@@ -340,7 +335,6 @@ impl Display for Value {
       Value::Null(Some(reason)) => write!(f, "null({reason})"),
       Value::ParameterName(_) => write!(f, "ParameterName"),
       Value::ParameterTypes(_) => write!(f, "ParameterTypes"),
-      Value::PositionalParameters(_) => write!(f, "PositionalParameters"),
       Value::QualifiedNameSegment(_) => write!(f, "QualifiedNameSegment"),
       Value::Range(start, start_type, end, end_type) => {
         f.write_str(if start_type.closed() { "[" } else { "(" })?;
@@ -438,6 +432,97 @@ impl Value {
     matches!(self, Value::List(_))
   }
 
+  /// Whether this value is a node that a value can hold on several paths: a list whose items
+  /// another list holds too ([FeelList::is_shared]), or a context held more than once.
+  ///
+  /// A node held once is reached on one path only from a value that holds it, unless that value
+  /// is itself reached on several paths; a walk that remembers the shared nodes it visited, by
+  /// their [node_address](Self::node_address), therefore visits every node once.
+  pub fn is_shared(&self) -> bool {
+    match self {
+      Value::List(list) => list.is_shared(),
+      Value::Context(ctx) => Arc::strong_count(ctx) > 1,
+      _ => false,
+    }
+  }
+
+  /// The address of the node of a list or a context, the key under which a walk remembers it:
+  /// that of the items of a non-empty list ([FeelList::address]) or of a context; `None` for any
+  /// other value. Every value that holds the node has its address, and while the values are
+  /// borrowed, no other node is stored there; the items of a list and a context are never at one
+  /// address.
+  pub fn node_address(&self) -> Option<usize> {
+    match self {
+      Value::List(list) => list.address(),
+      Value::Context(ctx) => Some(Arc::as_ptr(ctx).addr()),
+      _ => None,
+    }
+  }
+
+  /// The nesting depth of this value: 0 for a scalar; a list or a context is one level deeper
+  /// than the deepest value it holds, so an empty one is 1 level deep (a list keeps its depth, and
+  /// a context remembers it from its first read until its next write); a function is one level
+  /// deeper than its closure context, so 2 when it captures nothing; a range, an interval end, a
+  /// unary test and the other values that hold values are one level deeper than what they hold.
+  #[inline]
+  pub(crate) fn nesting_depth(&self) -> u32 {
+    // lists, contexts and the values that hold none are read where they are, as they are the most common
+    match self {
+      Value::List(list) => list.nesting_depth(),
+      Value::Context(context) => context.nesting_depth(),
+      Value::Null(_) | Value::Number(_) | Value::Boolean(_) | Value::String(_) => 0,
+      other => other.operand_depth(),
+    }
+  }
+
+  /// The nesting depth of the values other than lists, contexts and the most common scalars.
+  #[inline(never)]
+  fn operand_depth(&self) -> u32 {
+    fn deepest<'a>(values: impl Iterator<Item = &'a Value>) -> u32 {
+      values.map(Value::nesting_depth).max().unwrap_or(0).saturating_add(1)
+    }
+    match self {
+      Value::List(list) => list.nesting_depth(),
+      Value::Context(context) => context.nesting_depth(),
+      Value::FunctionDefinition(function) => function.closure_ctx.nesting_depth().saturating_add(1),
+      Value::Range(start, _, end, _) => deepest([start.as_ref(), end.as_ref()].into_iter()),
+      Value::ContextEntry(_, value)
+      | Value::IntervalEnd(value, _)
+      | Value::IntervalStart(value, _)
+      | Value::UnaryGreater(value)
+      | Value::UnaryGreaterOrEqual(value)
+      | Value::UnaryLess(value)
+      | Value::UnaryLessOrEqual(value)
+      | Value::UnaryEqual(value)
+      | Value::UnaryNotEqual(value) => value.nesting_depth().saturating_add(1),
+      Value::ExpressionList(values) | Value::NegatedCommaList(values) | Value::ParameterTypes(values) => deepest(values.iter()),
+      Value::NamedParameters(parameters) => deepest(parameters.values().map(|(value, _)| value)),
+      Value::Boolean(_)
+      | Value::BuiltInFunction(_)
+      | Value::ContextEntryKey(_)
+      | Value::ContextType(_)
+      | Value::ContextTypeEntry(_, _)
+      | Value::ContextTypeEntryKey(_)
+      | Value::Date(_)
+      | Value::DateTime(_)
+      | Value::DaysAndTimeDuration(_)
+      | Value::ExternalJavaFunction(_, _)
+      | Value::ExternalPmmlFunction(_, _)
+      | Value::FeelType(_)
+      | Value::FormalParameter(_, _)
+      | Value::FormalParameters(_)
+      | Value::FunctionBody(_, _)
+      | Value::Irrelevant
+      | Value::Null(_)
+      | Value::Number(_)
+      | Value::ParameterName(_)
+      | Value::QualifiedNameSegment(_)
+      | Value::String(_)
+      | Value::Time(_)
+      | Value::YearsAndMonthsDuration(_) => 0,
+    }
+  }
+
   /// Returns `true` when the value is of type [Value::Range].
   pub fn is_range(&self) -> bool {
     matches!(self, Value::Range(_, _, _, _))
@@ -512,7 +597,7 @@ impl Value {
       Value::BuiltInFunction(_) => FeelType::Any,
       Value::Context(context) => {
         let mut entries = BTreeMap::new();
-        for (name, value) in context.deref() {
+        for (name, value) in context.iter() {
           entries.insert(name.clone(), value.type_of_within(budget)?);
         }
         FeelType::Context(entries)
@@ -533,24 +618,22 @@ impl Value {
       Value::FormalParameters(_) => FeelType::Any,
       Value::FunctionBody(_, _) => FeelType::Any,
       Value::FunctionDefinition(function) => {
-        let mut parameter_types = Vec::with_capacity(function.parameters.len());
-        for (_, feel_type) in &function.parameters {
+        let mut parameter_types = Vec::with_capacity(function.parameters().len());
+        for (_, feel_type) in function.parameters() {
           parameter_types.push(budget.copy(feel_type)?);
         }
-        FeelType::Function(parameter_types, Box::new(budget.copy(&function.result_type)?))
+        FeelType::Function(parameter_types, Box::new(budget.copy(function.result_type())?))
       }
       Value::IntervalEnd(interval_end, _) => interval_end.type_of_within(budget)?,
       Value::IntervalStart(interval_start, _) => interval_start.type_of_within(budget)?,
       Value::Irrelevant => FeelType::Any,
       Value::List(values) => FeelType::List(Box::new(list_item_type(values, budget)?)),
-      Value::NamedParameter(_, _) => FeelType::Any,
       Value::NamedParameters(_) => FeelType::Any,
       Value::NegatedCommaList(_) => FeelType::Any,
       Value::Null(_) => FeelType::Null,
       Value::Number(_) => FeelType::Number,
       Value::ParameterName(_) => FeelType::Any,
       Value::ParameterTypes(_) => FeelType::Any,
-      Value::PositionalParameters(_) => FeelType::Any,
       Value::QualifiedNameSegment(_) => FeelType::Any,
       Value::Range(range_start, _, range_end, _) => {
         let range_start_type = range_start.type_of_within(budget)?;
@@ -572,105 +655,14 @@ impl Value {
     })
   }
 
-  /// Returns `self.type_of().is_conformant(target_type)` without building the type of a context,
-  /// or `None` when a type it builds would hold more type nodes than `budget` has left.
-  ///
-  /// The type of a context is the context type of its entries' types: it conforms to `Any`, and
-  /// to a context type when every entry of the target type has an entry here whose type conforms
-  /// to the target entry's type (extra entries are allowed); to nothing else
-  /// ([FeelType::is_conformant]). The type of `null` conforms to every type.
-  fn type_is_conformant_within(&self, target_type: &FeelType, budget: &mut impl Budget) -> Option<bool> {
-    match self {
-      Value::Null(_) => Some(true),
-      Value::Context(ctx) => match target_type {
-        FeelType::Any => Some(true),
-        FeelType::Context(target_entries) => {
-          for (name, entry_type) in target_entries {
-            match ctx.get_entry(name) {
-              Some(value) if value.type_is_conformant_within(entry_type, budget)? => {}
-              _ => return Some(false),
-            }
-          }
-          Some(true)
-        }
-        _ => Some(false),
-      },
-      other => {
-        // the type is dropped after the check, so its nodes are given back
-        let mark = budget.mark();
-        let conformant = other.type_of_within(budget)?.is_conformant(target_type);
-        budget.restore(mark);
-        Some(conformant)
-      }
-    }
-  }
-
-  /// Checks if a value is conformant with specified target type.
+  /// Checks if a value is conformant with specified target type: every value to `Any`, null to
+  /// every type, a simple value to its own type, a list when each of its items conforms to the
+  /// item type, a context when it has each entry of the context type and the entry's value
+  /// conforms to the entry's type, a range when both endpoints conform to the endpoint type, a
+  /// function by its declared types; nothing else. A list or a context that the value holds on
+  /// several paths is checked once against each type it meets there ([Value::is_shared]).
   pub fn is_conformant(&self, target_type: &FeelType) -> bool {
-    if matches!(target_type, FeelType::Any) {
-      return true;
-    }
-    match self {
-      Value::Null(_) => true,
-      Value::Boolean(_) => matches!(target_type, FeelType::Boolean),
-      Value::Number(_) => matches!(target_type, FeelType::Number),
-      Value::String(_) => matches!(target_type, FeelType::String),
-      Value::Date(_) => matches!(target_type, FeelType::Date),
-      Value::Time(_) => matches!(target_type, FeelType::Time),
-      Value::DateTime(_) => matches!(target_type, FeelType::DateTime),
-      Value::DaysAndTimeDuration(_) => matches!(target_type, FeelType::DaysAndTimeDuration),
-      Value::YearsAndMonthsDuration(_) => matches!(target_type, FeelType::YearsAndMonthsDuration),
-      Value::Range(r_start, _, r_end, _) => {
-        if let FeelType::Range(range_type) = target_type {
-          return r_start.is_conformant(range_type) && r_end.is_conformant(range_type);
-        }
-        false
-      }
-      Value::List(items) => {
-        if let FeelType::List(list_type) = target_type {
-          for item in items {
-            if !item.is_conformant(list_type) {
-              return false;
-            }
-          }
-          return true;
-        }
-        false
-      }
-      Value::Context(context) => {
-        if let FeelType::Context(type_context) = target_type {
-          for (name, entry_type) in type_context.iter() {
-            if let Some(entry_value) = context.get(name) {
-              if !entry_value.is_conformant(entry_type) {
-                return false;
-              }
-            } else {
-              return false;
-            }
-          }
-          return true;
-        }
-        false
-      }
-      Value::FunctionDefinition(function) => {
-        if let FeelType::Function(t_parameters, t_result) = target_type {
-          if function.parameters.len() != t_parameters.len() {
-            return false;
-          }
-          if !function.result_type.is_conformant(t_result) {
-            return false;
-          }
-          for (i, (_, parameter_type)) in function.parameters.iter().enumerate() {
-            if !parameter_type.is_conformant(&t_parameters[i]) {
-              return false;
-            }
-          }
-          return true;
-        }
-        false
-      }
-      _ => false,
-    }
+    Conformance::default().check(self, target_type)
   }
 
   /// Returns value coerced to specified type.
@@ -749,7 +741,7 @@ impl Value {
         if let FeelType::List(list_type) = target_type
           && value.is_conformant(list_type)
         {
-          return Some(Value::List(vec![value.clone()]));
+          return Some(Value::List(vec![value.clone()].into()));
         }
       }
     }
@@ -866,22 +858,18 @@ pub fn warn_truncated_fraction(source: &(impl MessageArg + ?Sized), dropped: Opt
 pub type Values = Vec<Value>;
 
 /// The type of the items of a list, `Null` for an empty one: the type of the first item when
-/// every other item conforms to it, `Any` otherwise. The first item's type is built once
-/// (building it twice made the cost exponential in the nesting depth of lists); the other items
-/// are only checked against it, without building their context types.
-fn list_item_type(values: &[Value], budget: &mut impl Budget) -> Option<FeelType> {
-  let Some((first, rest)) = values.split_first() else {
-    budget.take(1)?;
-    return Some(FeelType::Null);
-  };
-  let item_type = first.type_of_within(budget)?;
-  for item in rest {
-    if !item.type_is_conformant_within(&item_type, budget)? {
+/// every other item's type conforms to it, `Any` otherwise. Whether they conform is decided
+/// without building a type ([FeelList::items_conform_to_first]), a pair with a shared list or
+/// context once, so only the first item's type is built: building or checking each item's type
+/// followed every path of a list that holds the same list on several paths.
+fn list_item_type(items: &FeelList, budget: &mut impl Budget) -> Option<FeelType> {
+  match items.first() {
+    Some(first) if items.items_conform_to_first() => first.type_of_within(budget),
+    first => {
       budget.take(1)?;
-      return Some(FeelType::Any);
+      Some(if first.is_some() { FeelType::Any } else { FeelType::Null })
     }
   }
-  Some(item_type)
 }
 
 /// The number of type nodes a type may still build: [Unlimited] for [Value::type_of], [Nodes]
@@ -892,12 +880,6 @@ trait Budget {
 
   /// A copy of `feel_type` when its nodes are left.
   fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType>;
-
-  /// The nodes left, for [restore](Self::restore).
-  fn mark(&self) -> usize;
-
-  /// Gives back the nodes taken since `mark`, of a type that was dropped.
-  fn restore(&mut self, mark: usize);
 }
 
 /// No limit: every check is a constant, so [Value::type_of] pays nothing for the budget.
@@ -911,12 +893,6 @@ impl Budget for Unlimited {
   fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType> {
     Some(feel_type.clone())
   }
-
-  fn mark(&self) -> usize {
-    0
-  }
-
-  fn restore(&mut self, _: usize) {}
 }
 
 /// At most this many type nodes.
@@ -931,14 +907,6 @@ impl Budget for Nodes {
   fn copy(&mut self, feel_type: &FeelType) -> Option<FeelType> {
     self.take(type_nodes(feel_type))?;
     Some(feel_type.clone())
-  }
-
-  fn mark(&self) -> usize {
-    self.0
-  }
-
-  fn restore(&mut self, mark: usize) {
-    self.0 = mark;
   }
 }
 
@@ -959,8 +927,9 @@ const TYPE_NODE_BUDGET: usize = 1_000;
 /// value itself, so a message never builds the whole type of a value.
 ///
 /// The type of a context is written entry by entry, so entries past a preview are never visited.
-/// The type of a list builds the type of its first item, of at most 1,000 type nodes, and checks
-/// the other items against it: `list<…>` when it would hold more. Declared types (of functions,
+/// The type of a list is `list<Any>` when the types of its other items do not conform to the type
+/// of its first item (decided without building a type), and otherwise builds the type of its
+/// first item, of at most 1,000 type nodes: `list<…>` when it would hold more. Declared types (of functions,
 /// formal parameters and type values) are written as they are, without a copy.
 pub struct TypeOf<'a>(pub &'a Value);
 
@@ -972,7 +941,7 @@ impl Display for TypeOf<'_> {
         Some(item_type) => write_list_type(f, item_type),
         None => write_list_type(f, "…"),
       },
-      Value::FunctionDefinition(function) => write_function_type(f, function.parameters.iter().map(|(_, feel_type)| feel_type), &function.result_type),
+      Value::FunctionDefinition(function) => write_function_type(f, function.parameters().iter().map(|(_, feel_type)| feel_type), function.result_type()),
       Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => fmt::Display::fmt(feel_type, f),
       Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => fmt::Display::fmt(&TypeOf(value), f),
       other => fmt::Display::fmt(&other.type_of(), f),
@@ -1011,7 +980,8 @@ impl MessageArg for Value {
 
   fn size(&self) -> Option<Size> {
     match self {
-      Value::List(items) | Value::ExpressionList(items) => Some(Size::Items(items.len())),
+      Value::List(items) => Some(Size::Items(items.len())),
+      Value::ExpressionList(items) => Some(Size::Items(items.len())),
       Value::Context(context) => context.size(),
       Value::String(text) => text.as_str().size(),
       _ => None,
@@ -1113,7 +1083,7 @@ impl MessageArg for FeelNumber {
 }
 
 /// Converts a collection of values into string.
-pub fn values_to_string(values: &Values) -> String {
+pub fn values_to_string(values: &[Value]) -> String {
   struct List<'a>(&'a [Value]);
   impl Display for List<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1131,11 +1101,11 @@ fn write_values(f: &mut fmt::Formatter<'_>, values: &[Value]) -> fmt::Result {
 }
 
 /// Converts a collection of values into `FEEL` string.
-pub fn values_to_feel_string(values: &Values) -> String {
+pub fn values_to_feel_string(values: &[Value]) -> String {
   format!("[{}]", values.iter().map(|value| value.to_feel_string()).collect::<Vec<String>>().join(", "))
 }
 
 /// Converts a collection of values into `JSON` string.
-pub fn values_to_jsonify(values: &Values) -> String {
+pub fn values_to_jsonify(values: &[Value]) -> String {
   format!("[{}]", values.iter().map(|value| value.jsonify()).collect::<Vec<String>>().join(", "))
 }

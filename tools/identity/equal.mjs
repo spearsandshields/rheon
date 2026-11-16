@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 // Full-response identity of two feel.wasm modules, with a ledger of registered differences.
 //
-//   node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]…
-//                  [--parse-too] [--record <out.json> --why <basis>] [--cache <dir> [--verify-cache]]
+//   node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--exclude <file|dir>]…
+//                  [--leave-out <file>]… [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>]
+//                  [--cache <dir> [--verify-cache]]
 //
 // A source is a JSON file holding one request or an array of requests, or a directory whose *.json
 // files are such sources. Every request goes through both modules (raw ABI, node:wasi; a fresh
 // instance after a trap), byte for byte as it is written in its file. Requests that call now() or
 // today() are left out: their answers depend on the clock. With --parse-too, every evaluate
-// request is also sent as a parse request, the same request with `op` set to "parse".
+// request is also sent as a parse request, the same request with `op` set to "parse". --exclude
+// names a source whose requests (with their parse twins) are left out of every source and
+// counted in the summary; a ledger entry is still run. --leave-out names a JSON array of
+// requests, each by a name, the sha256 of its canonical text and the reason, that are left out of
+// every source (their parse twins are still sent) and counted; a named request that no source
+// holds is an input error.
 //
 // JSON is read losslessly: a number keeps its source text, so a number beyond the range or the
 // precision of a double is sent, keyed and compared as written, in requests, responses and the
@@ -17,10 +23,16 @@
 //
 // A ledger is a JSON array of registered differences (README.md); a directory adds its *.json
 // files. Every ledger entry is run even if no source lists its request: the reference must answer
-// `old` and the candidate `new`. Any other difference fails the run.
+// `old` and the candidate `new`. A rule entry (rules.mjs) explains a class of differences; its
+// examples are run like entries, and a difference of a request with no entry of its own is
+// explained by the first rule, in ledger order, that it is an instance of. Any other difference
+// fails the run.
 //
 // --record writes the unregistered differences of the run to <out.json> as ledger entries in the
-// full-response form, each with the given `why`, as a draft to check against the spec.
+// full-response form, each with the given `why`, as a draft to check against the spec; a
+// response whose canonical text is longer than 65,536 characters is written as the sha256 of that
+// text. A difference that a rule explains is not one of them. --explained writes every difference
+// that a rule explains, with the rule's name, to <out.json> for review.
 //
 // --cache keeps the reference's answers to each source file and ledger file in <dir> and reuses
 // them while the module, the file, the options and the host are the same (README.md, "The cache
@@ -35,22 +47,27 @@ import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/p
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MalformedResponse, session } from '../../scripts/feel-abi.mjs';
+import { canonical, isObject, lossless, parseJson } from './json.mjs';
+import { checkRule, explainedBy } from './rules.mjs';
 
 class InputError extends Error {}
 
 function usage(message) {
-  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--parse-too] [--record <out.json> --why <basis>] [--cache <dir> [--verify-cache]]`);
+  throw new InputError(`${message}\nusage: node equal.mjs <reference.wasm> <candidate.wasm> [source…] [--ledger <file|dir>]… [--exclude <file|dir>]… [--leave-out <file>]… [--parse-too] [--record <out.json> --why <basis>] [--explained <out.json>] [--cache <dir> [--verify-cache]]`);
 }
 
 function parseArgs(argv) {
-  const options = { positional: [], ledgers: [], parseToo: false, record: null, why: null, cache: null, verifyCache: false };
+  const options = { positional: [], ledgers: [], excludes: [], leaveOut: [], parseToo: false, record: null, why: null, explained: null, cache: null, verifyCache: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const value = () => (i + 1 < argv.length ? argv[++i] : usage(`${arg} needs a value`));
     if (arg === '--ledger') options.ledgers.push(value());
+    else if (arg === '--exclude') options.excludes.push(value());
+    else if (arg === '--leave-out') options.leaveOut.push(value());
     else if (arg === '--parse-too') options.parseToo = true;
     else if (arg === '--record') options.record = value();
     else if (arg === '--why') options.why = value();
+    else if (arg === '--explained') options.explained = value();
     else if (arg === '--cache') options.cache = value();
     else if (arg === '--verify-cache') options.verifyCache = true;
     else if (arg.startsWith('--')) usage(`unknown option ${arg}`);
@@ -62,18 +79,6 @@ function parseArgs(argv) {
   if (options.verifyCache && options.cache === null) usage('--verify-cache needs --cache');
   return options;
 }
-
-/** Whether this Node parses JSON losslessly: numbers as JSON.rawJSON of their source text. */
-const lossless = typeof JSON.rawJSON === 'function' && JSON.parse('1.50', (_, v, context) => context && context.source) === '1.50';
-
-/** The value of a JSON text, with every number as JSON.rawJSON of its source text. */
-const parseJson = (text) => JSON.parse(text, (_, v, context) => (typeof v === 'number' ? JSON.rawJSON(context.source) : v));
-
-/** Whether a parsed JSON value is an object: not null, an array or a number (JSON.rawJSON). */
-const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v) && !JSON.isRawJSON(v);
-
-/** JSON with the keys of every object sorted: the key of a request, and the form responses are compared in. */
-const canonical = (value) => JSON.stringify(value, (_, v) => (isObject(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, v[k]])) : v));
 
 const WHITESPACE = new Set([' ', '\t', '\n', '\r']);
 const skipWhitespace = (text, i) => {
@@ -181,6 +186,24 @@ async function loadSources(paths) {
   return units;
 }
 
+/** The requests that --leave-out names: each `{name, sha256, why}`, with the file it is in. */
+async function loadLeftOut(paths) {
+  const named = [];
+  for (const file of paths) {
+    const { content } = await readJson(file);
+    if (!Array.isArray(content)) throw new InputError(`${file}: a list of requests left out is a JSON array`);
+    content.forEach((entry, i) => {
+      const where = `${path.basename(file)}#${i}`;
+      const valid = isObject(entry) && canonical(Object.keys(entry).sort()) === '["name","sha256","why"]';
+      if (!valid || [entry.name, entry.why].some((s) => typeof s !== 'string' || s.trim() === '') || !/^[0-9a-f]{64}$/.test(entry.sha256)) {
+        throw new InputError(`${where}: a request left out is {"name", "sha256", "why"}, a name, the sha256 of its canonical text and the reason`);
+      }
+      named.push({ ...entry, where });
+    });
+  }
+  return named;
+}
+
 const ENTRY_FIELDS = new Set(['expression', 'request', 'why', 'old', 'new']);
 
 /** What a ledger entry's `old` or `new` may be: the result text, a whole response, or a trap. */
@@ -188,11 +211,20 @@ function checkOutcome(outcome, field) {
   if (typeof outcome === 'string') return;
   if (!isObject(outcome)) throw new Error(`\`${field}\` must be a string or a response object`);
   if ('trap' in outcome && canonical(outcome) !== '{"trap":true}') throw new Error(`\`${field}\`: a trap is exactly {"trap": true}`);
+  if ('sha256' in outcome && !isDigest(outcome)) throw new Error(`\`${field}\`: a digest is exactly {"sha256": <64 lowercase hex digits>}`);
 }
 
-/** The registered entries by request key, and the ledger units, one per file: its requests in order. */
+/** Whether a ledger outcome is the digest form, `{"sha256": …}`: the sha256 of the response's canonical text. */
+const isDigest = (outcome) => Object.keys(outcome).length === 1 && typeof outcome.sha256 === 'string' && /^[0-9a-f]{64}$/.test(outcome.sha256);
+
+/**
+ * The ledger: the registered entries by request key, the rule entries in ledger order, and the
+ * ledger units, one per file: its requests in order. The examples of a rule entry are registered
+ * like request entries, each with the rule's name.
+ */
 async function loadLedger(paths) {
   const entries = new Map();
+  const rules = [];
   const units = [];
   for (const p of paths) {
     for (const file of await jsonFiles(p)) {
@@ -201,8 +233,33 @@ async function loadLedger(paths) {
       const entryTexts = itemTexts(text, 0);
       const requests = [];
       units.push({ file, sha256, mode: 'ledger', requests });
+      // An entry or an example: its request, keyed and registered at most once across all ledger files.
+      const register = (where, entry, entryText, fields) => {
+        const request = 'expression' in entry ? { op: 'evaluate', expression: entry.expression } : entry.request;
+        const requestText = 'expression' in entry ? JSON.stringify(request) : memberText(entryText, 'request');
+        if (usesClock(request)) throw new InputError(`${where}: a request that calls now() or today() has no fixed answer`);
+        const key = canonical(request);
+        const earlier = entries.get(key);
+        if (earlier) throw new InputError(`${where}: the request is already registered by ${earlier.where}`);
+        entries.set(key, { where, request, text: requestText, old: entry.old, new: entry.new, ...fields });
+        requests.push({ label: where, request, text: requestText });
+      };
       content.forEach((entry, i) => {
         const where = `${file} entry #${i}`;
+        if (isObject(entry) && 'rule' in entry) {
+          let rule;
+          try {
+            rule = checkRule(entry);
+          } catch (e) {
+            throw new InputError(`${where}: ${e.message}`);
+          }
+          const earlier = rules.find((r) => r.name === rule.name);
+          if (earlier) throw new InputError(`${where}: the rule ${rule.name} is already stated by ${earlier.where}`);
+          rules.push({ ...rule, where });
+          const exampleTexts = itemTexts(memberText(entryTexts[i], 'examples'), 0);
+          entry.examples.forEach((example, j) => register(`${where} example #${j}`, example, exampleTexts[j], { rule: rule.name }));
+          return;
+        }
         try {
           if (!isObject(entry)) throw new Error('an entry is an object');
           const unknown = Object.keys(entry).filter((k) => !ENTRY_FIELDS.has(k));
@@ -218,18 +275,11 @@ async function loadLedger(paths) {
         } catch (e) {
           throw new InputError(`${where}: ${e.message}`);
         }
-        const request = 'expression' in entry ? { op: 'evaluate', expression: entry.expression } : entry.request;
-        const requestText = 'expression' in entry ? JSON.stringify(request) : memberText(entryTexts[i], 'request');
-        if (usesClock(request)) throw new InputError(`${where}: a request that calls now() or today() has no fixed answer`);
-        const key = canonical(request);
-        const earlier = entries.get(key);
-        if (earlier) throw new InputError(`${where}: the request is already registered by ${earlier.where}`);
-        entries.set(key, { where, request, text: requestText, why: entry.why, old: entry.old, new: entry.new });
-        requests.push({ label: where, request, text: requestText });
+        register(where, entry, entryTexts[i], { why: entry.why });
       });
     }
   }
-  return { entries, units };
+  return { entries, rules, units };
 }
 
 /** A compiled module: the sha256 of its file, and `open`, which opens a session on a fresh instance. */
@@ -287,10 +337,23 @@ function resultText(response) {
   return result.type === 'string' ? JSON.parse(result.display) : result.display;
 }
 
-const matches = (answer, expected) => (typeof expected === 'string' ? resultText(answer.value) === expected : answer.text === canonical(expected));
+const matches = (answer, expected) =>
+  typeof expected === 'string' ? resultText(answer.value) === expected : isDigest(expected) ? sha256(answer.text) === expected.sha256 : answer.text === canonical(expected);
+
+/** The longest response that --record writes whole; a longer one is written as its digest. */
+const RECORDED_WHOLE = 64 * 1024;
+
+/** A response as --record writes it: whole, or as the digest of its canonical text when it is long. */
+const recordedOutcome = (answer) => (answer.text.length > RECORDED_WHOLE ? { sha256: sha256(answer.text) } : answer.value);
 
 /** In the result-text form, what besides the text both responses must still agree on. */
 const besidesText = (response) => canonical([response.ok, response.result && response.result.type, response.warnings, response.diagnostics]);
+
+/** A request as a ledger entry names it: by its expression when it is a plain evaluate request, otherwise whole. */
+function asEntry(request) {
+  const isPlain = request && request.op === 'evaluate' && canonical(Object.keys(request).sort()) === '["expression","op"]';
+  return isPlain ? { expression: request.expression } : { request };
+}
 
 const clip = (s) => (s.length > 400 ? `${s.slice(0, 400)}…` : s);
 const short = (value) => clip(value instanceof Answer ? value.text : typeof value === 'string' ? JSON.stringify(value) : canonical(value));
@@ -311,7 +374,7 @@ async function evaluateUnit(reference, unit) {
   return outcomes;
 }
 
-const toolFiles = [fileURLToPath(import.meta.url), fileURLToPath(new URL('../../scripts/feel-abi.mjs', import.meta.url))];
+const toolFiles = ['./equal.mjs', './json.mjs', './rules.mjs', '../../scripts/feel-abi.mjs'].map((f) => fileURLToPath(new URL(f, import.meta.url)));
 const isReferenceDirectory = (name) => /^[0-9a-f]{64}$/.test(name);
 
 /**
@@ -349,7 +412,7 @@ class Cache {
 
   header(unit) {
     const { reference, parseToo, tool, node, arch, execArgv } = this.run;
-    return { format: 1, reference, unit: unit.sha256, mode: unit.mode, parseToo, tool, node, arch, execArgv, count: unit.requests.length };
+    return { format: 2, reference, unit: unit.sha256, mode: unit.mode, parseToo, tool, node, arch, execArgv, count: unit.requests.length };
   }
 
   /** The cached answers of a unit: `{ outcomes }`, `{ rejected: reason }`, or `{}` when there is no file. */
@@ -452,7 +515,7 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (!lossless) throw new InputError('this Node does not parse JSON losslessly (JSON.rawJSON and the source text of a number, Node 21 or later)');
   const [refPath, candPath, ...sourcePaths] = options.positional;
-  const { entries: ledger, units: ledgerUnits } = await loadLedger(options.ledgers);
+  const { entries: ledger, rules, units: ledgerUnits } = await loadLedger(options.ledgers);
   const sourceUnits = await loadSources(sourcePaths);
   // With --parse-too, every evaluate request of a unit is also sent as a parse request, the same
   // request with `op` set to "parse".
@@ -465,9 +528,32 @@ async function main() {
             const parse = { ...request, op: 'parse' };
             return { label: `${label} (as parse)`, request: parse, text: JSON.stringify(parse) };
           });
-  const twins = sourceUnits.map(twinsOf);
+  // The requests of an excluded source, with their parse twins, are left out of every source; a
+  // ledger entry is run whatever its request.
+  const excludedKeys = new Set((await loadSources(options.excludes)).flatMap((unit) => [...unit.requests, ...twinsOf(unit)]).map(({ request }) => canonical(request)));
+  // The requests that --leave-out names, by the sha256 of their canonical text.
+  const named = new Map((await loadLeftOut(options.leaveOut)).map((entry) => [entry.sha256, entry]));
+  const found = new Set();
+  let leftOut = 0;
+  let leftOutByName = 0;
+  const kept = (items) =>
+    items.filter((item) => {
+      item.key = canonical(item.request);
+      const digest = named.size ? sha256(item.key) : null;
+      if (named.has(digest)) {
+        found.add(digest);
+        leftOutByName++;
+        return false;
+      }
+      if (!excludedKeys.has(item.key)) return true;
+      leftOut++;
+      return false;
+    });
+  const twins = sourceUnits.map((unit) => kept(twinsOf(unit)));
+  for (const unit of sourceUnits) unit.requests = kept(unit.requests);
+  for (const [digest, { where, name }] of named) if (!found.has(digest)) throw new InputError(`${where}: no source holds the request named "${name}"`);
   const sourced = [...sourceUnits.flatMap((unit) => unit.requests), ...twins.flat()];
-  for (const item of [...sourced, ...ledgerUnits.flatMap((unit) => unit.requests)]) item.key = canonical(item.request);
+  for (const item of ledgerUnits.flatMap((unit) => unit.requests)) item.key = canonical(item.request);
 
   // The work list: the requests of every source unit, then their parse twins, then the requests
   // only the ledger lists; the first occurrence of a request wins.
@@ -489,6 +575,8 @@ async function main() {
   const cand = await candidate.open();
   const failures = [...mismatches];
   const recorded = [];
+  const explained = [];
+  const byRule = new Map(rules.map((rule) => [rule.name, 0]));
   let reproduced = 0;
   let trapped = 0;
   for (const [key, item] of work) {
@@ -515,26 +603,35 @@ async function main() {
       if (problems.length) failures.push(`NOT REPRODUCED ${entry.where} ${JSON.stringify(request).slice(0, 90)}\n${problems.join('\n')}`);
       else reproduced++;
     } else if (a.text !== b.text) {
-      failures.push(`DIFF ${labelOf(label, request)}\n  ref : ${short(a)}\n  cand: ${short(b)}`);
-      if (options.record) {
-        const isPlain = request && request.op === 'evaluate' && canonical(Object.keys(request).sort()) === '["expression","op"]';
-        recorded.push({ ...(isPlain ? { expression: request.expression } : { request }), why: options.why, old: a.value, new: b.value });
+      // A request with no entry of its own: the first rule, in ledger order, that explains it.
+      const rule = explainedBy(rules, request, a.value, b.value);
+      if (rule) {
+        byRule.set(rule.name, byRule.get(rule.name) + 1);
+        if (options.explained) explained.push({ rule: rule.name, ...asEntry(request), old: a.value, new: b.value });
+        continue;
       }
+      failures.push(`DIFF ${labelOf(label, request)}\n  ref : ${short(a)}\n  cand: ${short(b)}`);
+      if (options.record) recorded.push({ ...asEntry(request), why: options.why, old: recordedOutcome(a), new: recordedOutcome(b) });
     }
   }
 
   const shown = 20;
   for (const f of failures.slice(0, shown)) console.log(f);
   if (failures.length > shown) console.log(`… and ${failures.length - shown} more`);
+  if (options.explained) {
+    await writeFile(options.explained, `${JSON.stringify(explained, null, 2)}\n`);
+    console.log(`listed ${explained.length} explained differences in ${options.explained}`);
+  }
   if (options.record) {
     await writeFile(options.record, `${JSON.stringify(recorded, null, 2)}\n`);
     console.log(`recorded ${recorded.length} differences in ${options.record}`);
   }
   const count = (kind) => failures.filter((f) => f.startsWith(kind)).length;
   console.log(
-    `${work.size} requests (${fromSources} from sources, ${excluded} left out for now()/today(), ${ledger.size} registered, ${trapped} trapping the reference): ` +
+    `${work.size} requests (${fromSources} from sources, ${excluded} left out for now()/today(), ${options.excludes.length ? `${leftOut} left out by --exclude, ` : ''}${options.leaveOut.length ? `${leftOutByName} left out by name, ` : ''}${ledger.size} registered, ${trapped} trapping the reference): ` +
       `${reproduced} registered differences reproduced, ${count('DIFF')} unregistered differences, ` +
-      `${count('NOT REPRODUCED')} registered entries not reproduced, ${count('MALFORMED')} malformed responses; ` +
+      `${count('NOT REPRODUCED')} registered entries not reproduced, ${count('MALFORMED')} malformed responses, ` +
+      `${[...byRule.values()].reduce((n, m) => n + m, 0)} differences explained by ${rules.length} rules${rules.length ? ` (${[...byRule].map(([name, n]) => `${name}: ${n}`).join(', ')})` : ''}; ` +
       `reference: ${counts.cached} answers from the cache, ${counts.evaluated} evaluated${options.verifyCache ? `, ${count('CACHE MISMATCH')} cache mismatches` : ''}`,
   );
   return failures.length ? 1 : 0;

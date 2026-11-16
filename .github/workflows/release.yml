@@ -1,7 +1,7 @@
 name: release
 
-# A `vX.Y.Z` tag builds feel.wasm and the npm tarball and attaches them, with the playground
-# build, to a GitHub Release. Publishing to crates.io and npm stays a manual step
+# A `vX.Y.Z` tag runs the release tier, then builds feel.wasm and the npm tarball and attaches
+# them, with the playground build, to a GitHub Release. Publishing to crates.io and npm stays a manual step
 # (docs/FORK.md "Publishing", packages/feel-runtime/README.md). A manual dispatch runs the
 # same build and keeps the files as a workflow artifact without creating a release.
 on:
@@ -13,8 +13,41 @@ permissions:
   contents: write
 
 jobs:
+  # The release tier (scripts/tier.mjs, README "Test tiers"), without the large request sets and
+  # the speed suite, which stay outside the repository: the table lists them as NOT RUN, and a
+  # release is fully checked only when the whole tier ran on the reference machine first. Nothing
+  # is built for the release unless the tier passes. Times are reported without a budget until
+  # five runs give one.
+  tier:
+    name: release tier
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip1
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # the version the tiers' CI times are measured on; a 0.4.0 or older reference can crash Node 22 itself (tools/identity/README.md)
+          cache: npm
+      - run: npm ci
+      - run: npm run bootstrap
+      - run: python3 -m venv .tools/py && .tools/py/bin/pip install --require-hashes -r tools/number-oracle/requirements.txt
+      - run: npm run tier:release -- --without-large-sets --without-speed-suite
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHON: .tools/py/bin/python
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tier-logs
+          path: .tools/tier/release
+        if: always()
+
   release:
     name: feel.wasm + npm tarball + playground
+    needs: tier
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -24,7 +57,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions/setup-node@v4
         with:
-          node-version: 24 # the identity check runs the previous release, which can crash Node 22 itself (tools/identity/README.md)
+          node-version: 24 # the version the tiers' CI times are measured on; a 0.4.0 or older reference can crash Node 22 itself (tools/identity/README.md)
           cache: npm
       - run: npm ci
       - run: npm run bootstrap

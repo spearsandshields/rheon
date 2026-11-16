@@ -692,6 +692,39 @@ fn nesting_and_recursion_limits_body() {
   }
   let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": "{f: function(n) f(n + 1), r: f(1)}"}));
   assert_error(&response, "context", call_depth);
+  // a loop stops at the abort: it neither runs on through its items nor holds a result for each
+  for e in [
+    "{f: function(n) f(n + 1), r: for i in 1..10000000 return f(i)}.r",
+    "{f: function(n) f(n + 1), r: for i in 1..100, j in 1..100000 return f(j)}.r",
+    "{f: function(n) f(n + 1), l: [1, 2, 3], r: every i in l, j in l, k in l satisfies f(k) = null}.r",
+    "{f: function(n) f(n + 1), r: (for i in 1..1000 return i)[f(item) = null]}.r",
+    "{f: function(n) f(n + 1), r: sort([3, 1, 2], function(x, y) f(x) = null)}.r",
+    "{f: function(n) f(n + 1), r: list replace([1, 2, 3], function(item, newItem) f(item), 0)}.r",
+  ] {
+    assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", call_depth);
+  }
+  // values nest at most 500 levels: a value 501 levels deep stops the evaluation, also when a
+  // loop or a key list would nest it far deeper, and a value 500 levels deep is bound and returned
+  let value_depth = "values are nested too deeply (more than 500 levels); evaluation stopped";
+  // a list `5 * calls + base` levels deep, built by a recursion that adds 5 levels per call
+  let list = |calls: u32, base: usize| {
+    let base = format!("{}[]{}", "[".repeat(base - 1), "]".repeat(base - 1));
+    format!("(function(f) f(f, {calls}))(function(g, n) if n = 0 then {base} else [[[[[g(g, n - 1)]]]]])")
+  };
+  assert_eq!(display(&format!("count({})", list(99, 5))), "1");
+  assert_eq!(display(&format!("(function(x) count(x))({})", list(99, 5))), "1");
+  for e in [
+    format!("[{}]", list(99, 5)),
+    list(100, 1),
+    format!("{{a: {}}}", list(99, 5)),
+    format!("for i in 1..2 return {}", list(99, 5)),
+    "context put({}, for i in 1..100000 return \"a\", 0)".to_string(),
+    "{f: function(x, n) if n = 0 then x else f([x], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r".to_string(),
+  ] {
+    assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", value_depth);
+  }
+  let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": format!("{{a: {}}}", list(99, 5))}));
+  assert_error(&response, "context", value_depth);
   // the limit does not leak into the next request
   assert_eq!(display(&rec(150)), "150");
   // a JSON context nested deeper than the request parser allows is a context error
@@ -947,6 +980,56 @@ fn request_error_messages() {
     "evaluation",
     "strict error mode: incompatible types in addition: 1(number) + \"a\"(string)",
   );
+}
+
+/// `and` and `or` evaluate the right operand only when the left one does not decide the result
+/// (DMN 1.6 Table 51), so an error of a right operand that cannot change the result is not
+/// counted, strict mode passes, and a recursion they guard returns its value; the left operand is
+/// always evaluated.
+#[test]
+fn a_right_operand_that_cannot_change_the_result_is_not_evaluated() {
+  let addition = "incompatible types in addition: 1(number) + \"a\"(string)";
+  for (expression, language, shown) in [
+    ("false and (1 + \"a\")", "feel", "false"),
+    ("true or (1 + \"a\")", "feel", "true"),
+    ("false and (1 + \"a\")", "b-feel", "false"),
+    ("{f: function(n) n <= 0 or f(n - 1), r: f(3)}.r", "feel", "true"),
+    ("{f: function(n) n > 0 and f(n - 1), r: f(3)}.r", "feel", "false"),
+  ] {
+    for error_mode in ["lenient", "strict"] {
+      let response = req(json!({"op": "evaluate", "expression": expression, "language": language, "errorMode": error_mode}));
+      assert_eq!(response["result"]["display"], shown, "{expression} {language} {error_mode}: {response}");
+      assert_eq!(response["diagnostics"]["count"], 0, "{expression}: {response}");
+    }
+  }
+  let response = req(json!({"op": "evaluate", "expression": "true or @\"2021-01-01T10:00:00.1234567891\" = null"}));
+  assert_eq!(warnings(&response), Vec::<&str>::new());
+  let response = req(json!({"op": "evaluate", "expression": "(1 + \"a\") and false"}));
+  assert_eq!(response["result"]["display"], "false", "{response}");
+  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  assert_error(
+    &req(json!({"op": "evaluate", "expression": "true and (1 + \"a\")", "errorMode": "strict"})),
+    "evaluation",
+    &format!("strict error mode: {addition}"),
+  );
+}
+
+/// A filter evaluates its expression once in the enclosing scope (DMN 1.6 Table 69, row 1): a
+/// number selects the item; anything else selects nothing and records nothing, and the expression
+/// is evaluated for each item. So a filter over item entries passes strict mode, and an index
+/// reports its own errors once.
+#[test]
+fn a_filter_records_only_the_evaluations_it_uses() {
+  let items = json!([{"amount": 50}, {"amount": 150}, {"amount": 200}]);
+  for error_mode in ["lenient", "strict"] {
+    let response = req(json!({"op": "evaluate", "expression": "sum(items[amount > 100].amount)", "context": {"items": items}, "errorMode": error_mode}));
+    assert_eq!(response["result"]["display"], "350", "{error_mode}: {response}");
+    assert_eq!(response["diagnostics"]["count"], 0, "{response}");
+  }
+  let response = req(json!({"op": "evaluate", "expression": "[10, 20, 30][count([1 + \"a\"])]"}));
+  assert_eq!(response["result"]["display"], "10", "{response}");
+  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  assert_eq!(display("{a: 2, r: [{a: \"x\"}, {a: \"y\"}][a]}.r"), "{\"a\": \"y\"}");
 }
 
 /// The request is parsed first; then, of several invalid fields, the one read first is reported:

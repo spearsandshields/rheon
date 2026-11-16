@@ -1,0 +1,6 @@
+# The inputs of scripts/tck.sh, pinned by commit, so that a run is reproducible and a change of
+# result comes from this repository. One line each: <directory under .tck/> <repository> <commit>.
+# Moving a pin is a commit of its own, with the new docs/tck-baseline.txt it gives.
+tck https://github.com/dmn-tck/tck.git 5cd912f281831bc535e710aba435e16de198028a
+tck-patches https://github.com/DecisionToolkit/dsntk-tck-patches.git 8dfc54e8ab137b6d3875d8dc649b77a2604cb8d2
+runner https://github.com/DecisionToolkit/dsntk-test-runner.git 3276110236af1b9f1a0947a67bf421b283615c8f

@@ -94,7 +94,7 @@ impl<'a> FrameIndex<'a> {
 
   /// Returns `true` when `name` is a key at any depth.
   pub(crate) fn contains(&self, name: &str) -> bool {
-    self.top.contains_key(name) || self.nested.contains(name) || self.owned.contains(name)
+    self.top.contains_entry(name) || self.nested.contains(name) || self.owned.contains(name)
   }
 
   /// Length in bytes of the longest key at any depth.

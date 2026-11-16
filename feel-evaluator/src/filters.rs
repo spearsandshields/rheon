@@ -2,10 +2,11 @@
 
 use crate::iterations::lost_context;
 use rheon_feel::context::FeelContext;
+use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
-use rheon_feel::{Evaluator, FeelScope, Name, value_null};
-use std::sync::LazyLock;
+use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name, value_null};
+use std::sync::{Arc, LazyLock};
 
 /// Name of the special context entry holding the item of a filtered list.
 static ITEM: LazyLock<Name> = LazyLock::new(|| Name::from("item"));
@@ -20,189 +21,150 @@ fn outcome(predicate: Value) -> Result<bool, Value> {
   }
 }
 
+/// The null that ends the filter when the evaluation was stopped ([diagnostics::stopped]), read
+/// before each item and before the result is given: the abort, not a value, is the outcome of
+/// the evaluation.
+fn stopped() -> Result<(), Value> {
+  if diagnostics::stopped() { Err(Value::Null(None)) } else { Ok(()) }
+}
+
 /// The context that [lost_context] names when the predicate removed the item contexts from the
 /// scope: it popped more contexts than it pushed, or it replaced the special context
 /// `{item: value}` with a context that has no entry `item` (no FEEL predicate does either). The
 /// item is lost, so no result can be given.
 const ITEM_CONTEXT: &str = "item context of a filter";
 
-/// Evaluates the predicate for every item with copies of the item in scope: the entries of a
-/// context item, and on top of them the special context `{item: value}`, which is searched
-/// first, unless the item has an entry `item`. Returns which items the predicate keeps.
-fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
+/// Evaluates the predicate for every item with the item in scope, and returns the items it keeps,
+/// cloned (a list or a context item is shared, not copied).
+///
+/// The item is in scope through the entries of a context item, pushed shared, and on top of them
+/// the special context `{item: value}`, which is searched first, unless the item has an entry
+/// `item`. The special context is one context for all items, pushed shared as well, and changed
+/// between items only, when the scope no longer holds it. So what the predicate writes into the
+/// context on the top of the scope (a boxed context as the match of a boxed filter does,
+/// model-evaluator) goes into a copy, which is dropped with the frame: neither the item nor the
+/// predicate of the next item sees it.
+fn kept_items(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Result<Vec<Value>, Value> {
   let name_item: &Name = &ITEM;
-  let mut matched = Vec::with_capacity(values.len());
+  let mut special_context = Arc::new(FeelContext::default());
+  let mut kept = vec![];
   for value in values {
+    stopped()?;
     let depth = scope.depth();
     let has_item_entry = if let Value::Context(local_context) = value {
-      scope.push(local_context.clone());
+      scope.push_shared(Arc::clone(local_context));
       local_context.contains_entry(name_item)
     } else {
       false
     };
-    if !has_item_entry {
-      let mut special_context = FeelContext::default();
-      special_context.set_entry(name_item, value.clone());
-      scope.push(special_context);
+    let predicate = if has_item_entry {
+      let predicate = evaluator(scope);
+      if scope.pop_frame(depth).is_none() {
+        return Err(lost_context(ITEM_CONTEXT));
+      }
+      predicate
+    } else {
+      let item_depth = scope.depth();
+      Arc::make_mut(&mut special_context).assign_entry(name_item, value.clone());
+      scope.push_shared(Arc::clone(&special_context));
+      let predicate = evaluator(scope);
+      let popped = scope.pop_frame(item_depth);
+      scope.truncate(depth);
+      if !popped.is_some_and(|frame| frame.contains_entry(name_item)) {
+        return Err(lost_context(ITEM_CONTEXT));
+      }
+      predicate
+    };
+    if outcome(predicate)? {
+      kept.push(value.clone());
     }
-    let predicate = evaluator(scope);
-    // remove the item contexts (and any context the predicate left behind)
-    scope.truncate(depth);
-    matched.push(outcome(predicate)?);
   }
-  Ok(matched)
+  Ok(kept)
 }
 
-/// [matched_copied] with every item moved into the scope and back: a context item with an entry
-/// `item` is the item context itself; otherwise the item is the value of `item` in a special
-/// context reused for all items, on top of a copy of the item's entries for a context item.
-fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
-  let name_item: &Name = &ITEM;
-  let mut special_context = FeelContext::default();
-  let mut matched = Vec::with_capacity(values.len());
-  for slot in values.iter_mut() {
-    let depth = scope.depth();
-    let predicate = match std::mem::replace(slot, Value::Null(None)) {
-      Value::Context(local_context) if local_context.contains_entry(name_item) => {
-        scope.push(local_context);
-        let predicate = evaluator(scope);
-        let Some(local_context) = scope.pop_frame(depth) else {
-          return Err(lost_context(ITEM_CONTEXT));
-        };
-        *slot = Value::Context(local_context);
-        predicate
-      }
-      value => {
-        let item_depth = if let Value::Context(local_context) = &value {
-          scope.push(local_context.clone());
-          depth + 1
-        } else {
-          depth
-        };
-        special_context.assign_entry(name_item, value);
-        scope.push(std::mem::take(&mut special_context));
-        let predicate = evaluator(scope);
-        let popped = scope.pop_frame(item_depth);
-        scope.truncate(depth);
-        let Some(ctx) = popped else {
-          return Err(lost_context(ITEM_CONTEXT));
-        };
-        special_context = ctx;
-        // the entry stays (with a placeholder) for the next item
-        let Some(item) = special_context.get_entry_mut(name_item).map(|entry| std::mem::replace(entry, Value::Null(None))) else {
-          return Err(lost_context(ITEM_CONTEXT));
-        };
-        *slot = item;
-        predicate
-      }
-    };
-    matched.push(outcome(predicate)?);
+/// The context that [lost_context] names when the filter expression, evaluated in the enclosing
+/// scope, removed the frame it was given (no FEEL expression does).
+const ENCLOSING_FRAME: &str = "frame of a filter expression in the enclosing scope";
+
+/// Evaluates the filter expression in the enclosing scope, tentatively ([diagnostics::tentative]),
+/// in an empty frame of its own on top of it: what the expression writes into the context on the
+/// top of the scope (a boxed context as the match of a boxed filter does, model-evaluator) is
+/// dropped with that frame, so neither the enclosing scope nor the items see it.
+fn evaluate_in_own_frame(scope: &FeelScope, evaluator: &Evaluator) -> Result<(Value, diagnostics::Tentative), Value> {
+  let depth = scope.depth();
+  scope.push(FeelContext::default());
+  let probe = diagnostics::tentative(|| evaluator(scope));
+  if scope.pop_frame(depth).is_none() {
+    return Err(lost_context(ENCLOSING_FRAME));
   }
-  Ok(matched)
+  Ok(probe)
+}
+
+/// The item of a list at the index of a filter (DMN 1.6 Table 69, "e1 is a list and e2 is an
+/// integer"): counted from the first item when it is positive and from the last when it is
+/// negative. Null when the list is empty, whatever the index is; otherwise null with its reason
+/// when the index is no integer, beyond 2⁶⁴ in magnitude, 0, or past the end of the list.
+fn item_at(items: &[Value], index: FeelNumber) -> Value {
+  if !index.is_integer() {
+    return value_null!("index in filter must be an integer value, actual value is {}", arg(&index));
+  }
+  if items.is_empty() {
+    return value_null!();
+  }
+  let from_last = index.is_negative();
+  // converted through u64, so 32-bit targets (wasm32) behave like 64-bit ones
+  let Ok(n) = u64::try_from(if from_last { index.abs() } else { index }) else {
+    return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
+  };
+  let size = items.len();
+  if n == 0 || n > size as u64 {
+    return if from_last {
+      value_null!("index in filter is out of range [-{}..-1], actual index is -{}", size, n)
+    } else {
+      value_null!("index in filter is out of range [1..{}], actual index is {}", size, n)
+    };
+  }
+  // `n` is in 1..=size, checked above
+  let n = n as usize;
+  items[if from_last { size - n } else { n - 1 }].clone()
 }
 
 /// Filter expression evaluator.
-pub struct FilterExpressionEvaluator {
-  /// How the predicate gets the item contexts.
-  mode: ItemContexts,
-}
-
-/// How the predicate of a filter gets the contexts of an item.
-#[derive(Clone, Copy, PartialEq)]
-enum ItemContexts {
-  /// Copies of the item: what the predicate writes into the context on the top of the scope
-  /// (boxed contexts do, model-evaluator) does not change the item.
-  Copied,
-  /// The item itself, moved into the scope and back: for FEEL predicates, which never write
-  /// into the context on the top of the scope.
-  Moved,
-}
-
-impl Default for FilterExpressionEvaluator {
-  /// Implements [Default] trait for [FilterExpressionEvaluator].
-  fn default() -> Self {
-    Self::new()
-  }
-}
+#[derive(Default)]
+#[non_exhaustive]
+pub struct FilterExpressionEvaluator;
 
 impl FilterExpressionEvaluator {
-  /// Creates a filter expression evaluator; its predicate gets copies of every item.
+  /// Creates a filter expression evaluator.
   pub fn new() -> Self {
-    Self { mode: ItemContexts::Copied }
-  }
-
-  /// Creates a filter expression evaluator for a FEEL filter expression: every item is moved into
-  /// the scope and back instead of copied, because a FEEL predicate never writes into the context
-  /// on the top of the scope.
-  pub fn for_feel() -> Self {
-    Self { mode: ItemContexts::Moved }
+    Self
   }
 
   pub fn evaluate(&self, scope: &FeelScope, value: Value, evaluator: &Evaluator) -> Value {
     match value {
-      Value::List(mut values) => {
-        let matched = match self.mode {
-          ItemContexts::Copied => matched_copied(scope, &values, evaluator),
-          ItemContexts::Moved => matched_moved(scope, &mut values, evaluator),
-        };
-        let matched = match matched {
-          Ok(matched) => matched,
+      // DMN 1.6 Table 69: a number in the enclosing scope selects an item (row 1); otherwise the
+      // expression is evaluated for each item, with the item in scope (the boolean rows)
+      Value::List(values) => {
+        let (probe, mark) = match evaluate_in_own_frame(scope, evaluator) {
+          Ok(probe) => probe,
           Err(null) => return null,
         };
-        let rhv = evaluator(scope);
-        match rhv {
-          Value::Number(index) => {
-            if index.is_integer() {
-              let list_size = values.len();
-              if list_size > 0 {
-                if !index.is_negative() {
-                  let n = {
-                    // converted through u64, so 32-bit targets (wasm32) behave like 64-bit ones
-                    if let Ok(u_index) = u64::try_from(index) {
-                      u_index
-                    } else {
-                      return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
-                    }
-                  };
-                  if n > 0 && n <= list_size as u64 {
-                    let n = n as usize;
-                    // unwrap below is safe, index `n` is checked above, `values` holds every item
-                    values.get(n - 1).unwrap().to_owned()
-                  } else {
-                    value_null!("index in filter is out of range [1..{}], actual index is {}", list_size, n)
-                  }
-                } else {
-                  let n = {
-                    if let Ok(u_index) = u64::try_from(index.abs()) {
-                      u_index
-                    } else {
-                      return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
-                    }
-                  };
-                  if n > 0 && n <= list_size as u64 {
-                    let n = n as usize;
-                    // unwrap below is safe, index `n` is checked above, `values` holds every item
-                    values.get(list_size - n).unwrap().to_owned()
-                  } else {
-                    value_null!("index in filter is out of range [-{}..-1], actual index is -{}", list_size, n)
-                  }
-                }
-              } else {
-                // return null when the list is empty, no matter what value the index has
-                value_null!()
-              }
-            } else {
-              value_null!("index in filter must be an integer value, actual value is {}", arg(&index))
-            }
+        let result = match probe {
+          Value::Number(index) => stopped().map(|()| item_at(&values, index)),
+          _ => {
+            // an evaluation that selects no item does not count: what it recorded is removed
+            mark.discard();
+            kept_items(scope, &values, evaluator).and_then(|kept| stopped().map(|()| Value::List(kept.into())))
           }
-          _ => Value::List(values.into_iter().zip(matched).filter_map(|(value, matched)| matched.then_some(value)).collect()),
-        }
+        };
+        result.unwrap_or_else(|null| null)
       }
       // A filter on a non-list value applies to the singleton list containing it (implicit
       // conversion to singleton list, DMN 1.6 §10.3.2.9.4, DMN16-94), so `item` and the context
       // entries of a singleton context are in scope like for a list element.
       Value::Null(_) => value_null!(),
-      v => self.evaluate(scope, Value::List(vec![v]), evaluator),
+      // the list holding the value is one level deeper than the value
+      v => diagnostics::bound_depth(self.evaluate(scope, Value::List(vec![v].into()), evaluator)),
     }
   }
 }

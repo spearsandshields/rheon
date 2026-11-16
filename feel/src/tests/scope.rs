@@ -203,7 +203,7 @@ fn test_scope_contexts_and_frames() {
   let scope = scope_a_b_c();
   let contexts = scope.contexts();
   assert_eq!(3, contexts.len());
-  assert_eq!(contexts.as_slice(), &*scope.frames());
+  assert!(contexts.iter().eq(scope.frames().iter().map(|frame| &**frame)));
   assert_eq!("{a: 1}", scope.frames()[0].to_string());
   assert_eq!("{c: 3}", scope.frames()[2].to_string());
   assert!(FeelScope::new().contexts().is_empty());
@@ -250,4 +250,35 @@ fn test_insert_null() {
   scope.set_name(name_c);
   scope.set_name(name_d);
   assert_eq!("[{a: 1}, {b: 2}, {b: null, c: null, d: null}]", scope.to_string());
+}
+
+/// A shared context is pushed without a copy; a write into its frame copies it first, so the
+/// context it was pushed from stays as it was, and popping the frame copies out only a context
+/// that is still shared.
+#[test]
+fn test_scope_push_shared() {
+  let name_a = Name::from("a");
+  let name_x = Name::from("x");
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&name_a, value_number!(1));
+  let shared = std::sync::Arc::new(ctx);
+  let scope = FeelScope::new();
+  scope.push_shared(shared.clone());
+  assert!(std::ptr::eq(&*shared, &*scope.frames()[0]));
+  assert_eq!(Some(value_number!(1)), scope.get_value(&name_a));
+  scope.set_value(&name_x, value_number!(2));
+  scope.set_name(Name::from("y"));
+  assert_eq!("[{a: 1, x: 2, y: null}]", scope.to_string());
+  assert!(!std::ptr::eq(&*shared, &*scope.frames()[0]));
+  assert_eq!("{a: 1}", shared.to_string());
+  // the frame holds its copy alone now: it is moved out
+  let frame = scope.pop_frame(0).expect("a frame");
+  assert_eq!("{a: 1, x: 2, y: null}", frame.into_context().to_string());
+  // a frame that is still shared is copied out, and the shared context is unchanged
+  scope.push_shared(shared.clone());
+  assert_eq!(Some(FeelContext::clone(&shared)), scope.peek());
+  let mut popped = scope.pop().expect("a context");
+  popped.set_entry(&name_x, value_number!(3));
+  assert_eq!("{a: 1}", shared.to_string());
+  assert_eq!(1, std::sync::Arc::strong_count(&shared));
 }

@@ -7,6 +7,7 @@ use rheon_feel::values::{TypeOf, Value};
 use rheon_feel::{FeelNumber, FeelScope, Name};
 use serde_json::{Map, Value as Json};
 use std::fmt;
+use std::sync::Arc;
 
 /// Maximum number of significant digits of a decimal128 (BID128) number.
 const MAX_DIGITS: usize = 34;
@@ -118,9 +119,9 @@ pub fn json_into_value(json: Json, path: &Path, warnings: &mut Vec<String>) -> R
       for (i, item) in items.into_iter().enumerate() {
         values.push(json_into_value(item, &Path::Index(path, i), warnings)?);
       }
-      Value::List(values)
+      Value::List(values.into())
     }
-    Json::Object(map) => Value::Context(json_object_into_context(map, path, warnings)?),
+    Json::Object(map) => json_object_into_context(map, path, warnings)?.into(),
   })
 }
 
@@ -163,7 +164,7 @@ pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContex
   let value = outcome.into_result().map_err(|abort| abort.to_string())?;
   warnings.extend_from_slice(diagnostics.warnings());
   match value {
-    Value::Context(ctx) => Ok(ctx),
+    Value::Context(ctx) => Ok(Arc::unwrap_or_clone(ctx)),
     Value::Null(Some(reason)) => Err(format!("FEEL context evaluated to null: {reason}")),
     other => Err(format!("FEEL context literal expected, it evaluated to {} ({})", arg(&other), arg(&TypeOf(&other)))),
   }

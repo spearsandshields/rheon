@@ -121,14 +121,38 @@ npm run dev            # builds the runtime, then starts the Vite dev server
 | `npm run dev` | Playground dev server (arguments after `--` go to Vite) |
 | `npm test` | `cargo test -p rheon-feel-wasm` native + the same under wasmtime (`--target wasm32-wasip1`) + runtime tests (`node --test`) |
 | `npm run smoke` | Node smoke test of `dist/feel.wasm` (node:wasi) |
-| `npm run stack` | `scripts/stack-headroom.mjs`: five constructs nested to the AST depth limit must evaluate on Node's main thread, in a 4 MiB Node worker and in Wasmtime with a 4 MiB wasm stack, and a recursion of 190 calls with a body nested 60 levels in the worker and in Wasmtime; `npm run stack -- --report` prints the depths each host reaches |
+| `npm run stack` | `scripts/stack-headroom.mjs`: five constructs nested to the AST depth limit and a value nested to the value depth limit (500) must evaluate on Node's main thread, in a 4 MiB Node worker and in Wasmtime with a 4 MiB wasm stack, and a recursion of 190 calls with a body nested 60 levels in the worker and in Wasmtime; `npm run stack -- --report` prints the depths each host reaches |
 | `bash tools/identity/run.sh <reference.wasm> dist/feel.wasm` | Every committed request through the previous release (`tools/identity/fetch-baseline.sh` puts it in `.tools/baseline/`) and the build; the full responses must be identical except the differences registered in `tools/identity/registered/` (see `tools/identity/README.md`) |
+| `npm run tier:fix`, `tier:group`, `tier:release` | The test tiers (see below) |
 | `npm run test:identity` | `tools/identity/test.mjs` (`node --test`): the identity check's own behaviour on the previous release and the build (identical runs, unregistered and unreproduced differences, malformed ledgers, traps, `--record`, numbers kept as written) |
 | `bash tools/number-oracle/run.sh [quick\|full]` | Every number result of `dist/feel.wasm` judged against its truth under DMN 1.6, computed in Python with `decimal`, exact rationals and mpmath (`PYTHON` names an interpreter with the C `decimal` module and mpmath 1.3.0, see `tools/number-oracle/README.md`); the known wrong classes are listed in `known-wrong.json`, and a listed class that no longer fails fails the run. CI runs the quick size |
+| `bash scripts/tck.sh [--only <folder>]…` | The official DMN TCK with DecisionToolkit's patches and the tests of `tck-addendum/`, against the dsntk server of this tree with DecisionToolkit's runner; the three repositories are fetched into `.tck/` at the commits in `scripts/tck-pins.txt`, and the run exits 1 when a test fails or passes against `docs/tck-baseline.txt` (`node scripts/tck-summary.mjs .tck/out/tck_results.csv --update-baseline` rewrites it). `npm run test:tck-summary` checks the comparison on small result files |
 | `scripts/publish-crates.sh` | Publishes the `rheon-*` crates that crates.io lacks at the workspace version, waiting out the new-crate rate limit (see `docs/FORK.md`, "Publishing") |
-| `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); see `.github/workflows/ci.yml` |
-| `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps -p rheon-feel-number …` | The API documentation of the ten published crates (the `-p` list is in `.github/workflows/ci.yml`), with every rustdoc warning, such as an intra-doc link that resolves to nothing, an error |
+| `cargo test --workspace` | The engine's own suites (about 4,200 tests). A few upstream tests need things CI does not have and are skipped there: `external_functions` and `dmn_3_0076` (a Java external-function service), `compare_the_number_of_models` (a DMN TCK checkout at `../tck`), the server's `utils::tests::getting_*` (a checkout directory named `dsntk`); the tiers pass the same skips (`scripts/tier.mjs`) |
+| `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps -p rheon-feel-number …` | The API documentation of the ten published crates (the `-p` list is in `scripts/tier.mjs`, which runs it in the release tier), with every rustdoc warning, such as an intra-doc link that resolves to nothing, an error |
 | `RHEON_FULL_TESTS=1 cargo test --release -p rheon-feel-number -p rheon-feel -p rheon-feel-parser -p rheon-feel-wasm` | The randomized and exhaustive tests of those crates at full size (by default they run a smaller number of cases; for `rheon-feel-wasm`, the edge-operand product with all its binary templates). `RHEON_PARSER_CORPUS=<absolute path of tools/feel-corpus>` with `-- --include-ignored` adds the parser's corpus test |
+
+### Test tiers
+
+`scripts/tier.mjs` runs the checks above in three tiers, one step after another, and ends with a
+table of every step (build or run, seconds, result), the build and run totals and the verdict.
+The budget limits the run time; compile steps (cargo check, test builds, the wasm build, clippy,
+the documentation) are timed but not judged. Each step's output is in `.tools/tier/<tier>/`.
+
+| Command | Runs | Budget (run time) |
+|---|---|---|
+| `npm run tier:fix -- [-p <crate>]… [--test <filter>] [--base <rev>]` | After every change: `cargo fmt --all --check`, `cargo check --workspace --all-targets`, the fix's own test (`--test`), the tests of the touched crates (`-p`, or the crates owning the files that differ from the merge base with `main`), the wasm build and the identity check on the committed sets; a changed ledger file adds the Rust copies of the TCK tests and runs each changed release-tier ledger file, and a changed tool its own tests. Stops at the first failure | 2 min |
+| `npm run tier:group` | After a group of changes: the fix tier's steps for the whole workspace (the workspace tests with CI's skips, the Rust copies of the TCK tests as their own line), clippy with warnings denied, the identity tool's, the tier runner's and the TCK summary's tests, the number oracle's quick run, the contract tests (`test:rust`, `test:rust:wasm`, `test:runtime`), `smoke`, `stack`, `build:playground` and `scripts/tck.sh`. Runs every step and reports every failure | 6 min |
+| `npm run tier:release -- [--without-large-sets] [--without-speed-suite]` | Before a release: the group tier, then the identity check with `--release` and with the large sets (`IDENTITY_LARGE_SETS`), each with `--verify-cache`, the oracle's full run, the full-size randomized tests and the parser corpus, `npm run stack -- --report`, the speed suite (`RHEON_BENCH`, the directory of `bench.mjs`: the previous release and the build, engine mode, results beside the logs) and `cargo doc` of the published crates with warnings denied. An input kept outside the repository is required unless its `--without` flag names it, and then the step is listed as NOT RUN | 30 min |
+
+The budgets hold on a developer machine; with `CI` set the times are reported without a budget.
+Measured on an Apple M2 with Node 26, warm builds, the engine of 0.5.0: the fix tier of a change to
+the tools 3 to 7 s of run time, the group tier 62 s (the workspace tests 22 s of it, the oracle 7 s,
+the contract tests 24 s, the TCK 3 s), the release tier about 18 minutes (the release-tier identity
+sources 7.1 min while 0.5.0 exhausts its memory on them, the oracle's full run 5.7 min, the
+full-size tests 2.4 min, the large sets 39 s, the speed suite 54 s).
+`RHEON_WASM_TARGET_DIR` gives the wasm steps a target directory of their own. `npm run
+test:tier` checks the runner on step tables of its own.
 
 The production build in `apps/playground/dist/` uses a relative base (`./`), so you can host it on
 any static file server and under any sub-path. `feel.wasm` is a hashed asset in `assets/`. Serve

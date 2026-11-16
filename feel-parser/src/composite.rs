@@ -22,7 +22,9 @@ pub(crate) trait NameTree: Copy {
   /// Calls `f` with the key and the nested node of every key of the node whose value has nested names.
   fn for_each_nested(self, f: impl FnMut(&str, Self));
 
-  /// Returns the address of the node; nodes are never shared, so the address identifies the node.
+  /// Returns the address of the node. A node reached on several paths (a shared context) has one
+  /// address on all of them; the search's answer for a state depends only on the node and the
+  /// offset, so a state is visited once whichever path reaches it.
   fn address(self) -> usize;
 }
 

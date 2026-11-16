@@ -1,0 +1,12 @@
+[
+  {
+    "name": "a context literal of 100,000 entries, each a context that holds the entry before",
+    "sha256": "259a9691ddc07a84ebe56a92c5b9f0b5605e00791f7466f096714ef2fd66bb8a",
+    "why": "The candidate stops it with the value-depth error at 501 levels (docs/CONTRACT.md §2), where 0.5.0 exhausts its memory and traps. The request is 2 MB, too large to commit with a ledger entry; its 501-level form, the chain of context literals in requests/value-depth.json, is registered."
+  },
+  {
+    "name": "a context literal of 50,000 closures, each returning the closure before",
+    "sha256": "d0d23a1d8bf2e00bad8e33ca7049d139852cb5c2d814376bc63e41023a10508d",
+    "why": "The candidate stops it with the value-depth error at 501 levels (docs/CONTRACT.md §2), where 0.5.0 exhausts its memory and traps. The request is 1.3 MB, too large to commit with a ledger entry; its 501-level form, the chain of closures in requests/value-depth.json, is registered."
+  }
+]
