@@ -92,9 +92,12 @@ test('real worker: cancelling a running runaway evaluation frees the engine at o
   t.after(() => engine.dispose());
   const t0 = Date.now();
   const first = new AbortController();
-  const slow = engine.evaluate({ expression: 'for i in 1..100000000 return i' }, { signal: first.signal });
+  // walks that keep little at a time, so the evaluation runs until it is stopped instead of
+  // filling the memory
+  const runaway = 'count(for i in 1..100000 return count(for j in 1..100000 return j))';
+  const slow = engine.evaluate({ expression: runaway }, { signal: first.signal });
   const queuedSlow = new AbortController();
-  const slow2 = engine.evaluate({ expression: 'for i in 1..100000000 return i' }, { signal: queuedSlow.signal });
+  const slow2 = engine.evaluate({ expression: runaway }, { signal: queuedSlow.signal });
   const parse = engine.parse('expression', 'count(for i in 1..10 return i)');
   const latest = engine.evaluate({ expression: 'count(for i in 1..10 return i)' });
   setTimeout(() => {
