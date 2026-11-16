@@ -133,6 +133,36 @@ fn reference_run(mut parser: oracle::parser::Parser<'_>, input: &str) -> Run {
 /// and the production behaviour. Returns the name of the fix when the difference between
 /// `reference` and `production` is one of them.
 fn registered_difference(start: &str, input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
+  // A range literal with a negative number as an endpoint (`[-1..1]`), or without endpoints
+  // (`(..)`, `]..[`):
+  // - reference: a syntax error at the minus; a range of two missing endpoints;
+  // - production: the range with the negated number (DMN 1.6 grammar rules 66 and 67 with rule
+  //   35's sign); a syntax error, because rule 66 has no range without an endpoint.
+  if start == "range literal" {
+    let minus = TokenType::Minus as i16;
+    // the reference stops at the minus; the production parser reads on
+    let stopped_at_minus = reference.tokens.last().is_some_and(|token| token.0 == minus) && production.tokens.starts_with(&reference.tokens);
+    if stopped_at_minus && matches!(&reference.outcome, Outcome::Error(_)) {
+      return Some("a signed number or no endpoint in a range literal");
+    }
+    let kinds: Vec<i16> = reference.tokens.iter().map(|token| token.0).collect();
+    let brackets = [
+      TokenType::LeftParen as i16,
+      TokenType::RightBracket as i16,
+      TokenType::RightParen as i16,
+      TokenType::LeftBracket as i16,
+    ];
+    // the production parser stops at the bracket that would close a range without endpoints
+    if kinds.len() >= 4
+      && brackets[..2].contains(&kinds[1])
+      && kinds[2] == TokenType::Ellipsis as i16
+      && brackets[2..].contains(&kinds[3])
+      && production.tokens == reference.tokens[..4]
+      && matches!(&production.outcome, Outcome::Error(_))
+    {
+      return Some("a signed number or no endpoint in a range literal");
+    }
+  }
   // A unary comparison (`> a + b`, `= x in y`):
   // - reference: the comparison takes the operand next to it, `(? > a) + b`;
   // - production: its endpoint binds like the right side of a comparison, `? > (a + b)`; another
@@ -464,6 +494,7 @@ fn registered_fixes_differ_as_registered() {
     r#"(date and time(from: "2012-01-01T10:00:00")..10]"#,
     r#"]"a"..duration(from: "P1D\"x")["#,
   ];
+  let signed = ["[-1..1]", "(-2.5..-1)", "]-1e3..0[", "[0..-1]", "(..)", "]..[", "(..[", "]..)"];
   let endpoints = ["> 1 + 2", "< a * 2", "[>= 1 - 1, 5]", "= 1 in [1]", "f(> 1 + 1)", "!= 2 ** 2"];
   let exponents = ["1e", "1e+", "1E-", "1.5e", "2e x", "1e + 2", "1else", "[1e, 2]", "1e+ 3"];
   let unclosed = ["1 + 2 \"abc", "\"", "1 \"a\\\"b", "1 /* abc", "/*", "1 /* a */ + 2 /* b *", "1 /*/"];
@@ -473,6 +504,7 @@ fn registered_fixes_differ_as_registered() {
     (&unclosed[..], 0, "a string literal or a block comment that is not closed"),
     (&exponents[..], 0, "an exponent letter without exponent digits"),
     (&endpoints[..], 0, "the endpoint of a unary comparison"),
+    (&signed[..], 8, "a signed number or no endpoint in a range literal"),
   ] {
     let (name, start, reference_start) = &START_RULES[rule];
     for input in inputs {
