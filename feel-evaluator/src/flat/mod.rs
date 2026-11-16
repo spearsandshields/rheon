@@ -5,6 +5,12 @@
 //! expression it does not lower yet is refused ([NotYet]) and built as closures, whole, so no
 //! expression mixes the two. It lowers nothing yet.
 
+#![cfg_attr(not(test), allow(dead_code))]
+
+mod resolve;
+#[cfg(test)]
+mod tests;
+
 use crate::Dialect;
 use rheon_feel::Evaluator;
 use rheon_feel_parser::AstNode;
