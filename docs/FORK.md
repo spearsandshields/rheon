@@ -2949,6 +2949,26 @@ their items with both answers. The totals are under "Verification" below.
     `count(items[status = "open"])` is 12,671,845 B (22,459,853 B on 0.5.0). The string
     doubling's peak memory (n = 17 to 26, 267.38 MiB at 26, growth 2.00x the result) equals that
     of 0.5.0. Module size 3,761,500 B (3,737,388 B on 0.5.0, 3,763,638 B after item 163).
+168. **`and` and `or` evaluate the right operand only when the left one does not decide.** Both
+    operators evaluated both operands and then applied DMN 1.6 Table 51, so the right operand ran
+    even where its value cannot change the result: its errors and warnings were recorded
+    (`false and (1 + "a")` was false with one error, and failed in strict mode), and a recursion
+    guarded by `or` or `and` (`{f: function(n) n <= 0 or f(n - 1), r: f(3)}.r`) called itself on
+    until the 200-call limit stopped the evaluation. The right operand is now evaluated only when
+    the left one is not `false` (`and`) or not `true` (`or`); the values of Table 51 are
+    unchanged for every pair of operands, and the left operand is always evaluated
+    (`(1 + "a") and false` is false with its error, `true and (1 + "a")` null with it). The B-FEEL
+    dialect shares the operators. Tests first: `feel-evaluator/src/tests/conjunction.rs` and
+    `disjunction.rs` (the nine rows of Table 51 for each operator; no error and no warning
+    recorded for a right operand that cannot change the result, the errors of the left operand
+    kept, the guarded recursions end), and `wasm/feel-wasm/tests/contract.rs` (the same requests
+    in lenient and strict mode and in B-FEEL), failing on the parent where the right operand's
+    error is counted. Answers change (`tools/identity/registered/logic-right-operand.json`,
+    `docs/CONTRACT.md` section 3): 16 requests of the committed sets change their result or
+    their error (strict mode passes where the right operand's error stopped it; the guarded
+    recursions answer true or false instead of the call-depth error), and 22 lose only the
+    errors or the warnings of the right operand, explained by two rule entries. The official TCK
+    is unchanged (its `and` and `or` tests, 0064 and 0065, compare values). No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

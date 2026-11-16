@@ -982,6 +982,38 @@ fn request_error_messages() {
   );
 }
 
+/// `and` and `or` evaluate the right operand only when the left one does not decide the result
+/// (DMN 1.6 Table 51), so an error of a right operand that cannot change the result is not
+/// counted, strict mode passes, and a recursion they guard returns its value; the left operand is
+/// always evaluated.
+#[test]
+fn a_right_operand_that_cannot_change_the_result_is_not_evaluated() {
+  let addition = "incompatible types in addition: 1(number) + \"a\"(string)";
+  for (expression, language, shown) in [
+    ("false and (1 + \"a\")", "feel", "false"),
+    ("true or (1 + \"a\")", "feel", "true"),
+    ("false and (1 + \"a\")", "b-feel", "false"),
+    ("{f: function(n) n <= 0 or f(n - 1), r: f(3)}.r", "feel", "true"),
+    ("{f: function(n) n > 0 and f(n - 1), r: f(3)}.r", "feel", "false"),
+  ] {
+    for error_mode in ["lenient", "strict"] {
+      let response = req(json!({"op": "evaluate", "expression": expression, "language": language, "errorMode": error_mode}));
+      assert_eq!(response["result"]["display"], shown, "{expression} {language} {error_mode}: {response}");
+      assert_eq!(response["diagnostics"]["count"], 0, "{expression}: {response}");
+    }
+  }
+  let response = req(json!({"op": "evaluate", "expression": "true or @\"2021-01-01T10:00:00.1234567891\" = null"}));
+  assert_eq!(warnings(&response), Vec::<&str>::new());
+  let response = req(json!({"op": "evaluate", "expression": "(1 + \"a\") and false"}));
+  assert_eq!(response["result"]["display"], "false", "{response}");
+  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  assert_error(
+    &req(json!({"op": "evaluate", "expression": "true and (1 + \"a\")", "errorMode": "strict"})),
+    "evaluation",
+    &format!("strict error mode: {addition}"),
+  );
+}
+
 /// The request is parsed first; then, of several invalid fields, the one read first is reported:
 /// dialect, language, errorMode, expression, tzOffsetMinutes, contextFormat, context, input, and
 /// last the syntax of the expression. `parse` reads only dialect, expression, contextFormat,

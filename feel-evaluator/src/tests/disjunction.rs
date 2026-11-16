@@ -146,3 +146,36 @@ fn a_disjunction_with_a_non_boolean_operand_is_a_null_without_an_error() {
   te_errors(r#"false or "x""#, "null", &[]);
   te_errors("1 or 1", "null", &[]);
 }
+
+/// The value of `or` for every pair of operands of DMN 1.6 Table 51: true, false and otherwise
+/// (here a number), in both orders.
+#[test]
+fn a_disjunction_follows_table_51() {
+  for (lhs, rhs, expected) in [
+    ("true", "true", "true"),
+    ("true", "false", "true"),
+    ("true", "1", "true"),
+    ("false", "true", "true"),
+    ("false", "false", "false"),
+    ("false", "1", "null"),
+    ("1", "true", "true"),
+    ("1", "false", "null"),
+    ("1", "1", "null"),
+  ] {
+    te_errors(&format!("{lhs} or {rhs}"), expected, &[]);
+  }
+}
+
+/// The right operand of `or` is evaluated only when the left one does not decide (DMN 1.6
+/// Table 51 gives true for `true or x` whatever x is): the errors and warnings of a right operand
+/// after `true` are not recorded, and a recursion that `or` guards ends. The left operand is
+/// always evaluated.
+#[test]
+fn the_right_operand_of_a_disjunction_is_evaluated_only_when_the_left_does_not_decide() {
+  let addition = r#"incompatible types in addition: 1(number) + "a"(string)"#;
+  te_errors(r#"true or (1 + "a")"#, "true", &[]);
+  te_errors(r#"(1 + "a") or true"#, "true", &[addition]);
+  te_errors(r#"false or (1 + "a")"#, "null", &[addition]);
+  te_warnings(r#"true or @"2021-01-01T10:00:00.1234567891" = null"#, "true", &[]);
+  te_errors("{f: function(n) n <= 0 or f(n - 1), r: f(3)}.r", "true", &[]);
+}

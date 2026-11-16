@@ -446,34 +446,23 @@ impl EvaluatorBuilder {
   /// otherwise   false        false
   /// otherwise   otherwise    null
   /// ```
+  ///
+  /// The right operand is evaluated only when the left one is not `false`, which decides the
+  /// result whatever the right one is: the errors and warnings of a right operand that cannot
+  /// change the result are not recorded.
   fn build_and(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Boolean(lh) => match rhv {
-          Value::Boolean(rh) => Value::Boolean(lh && rh),
-          _ => {
-            if lh {
-              value_null!()
-            } else {
-              Value::Boolean(false)
-            }
-          }
-        },
-        _ => match rhv {
-          Value::Boolean(rh) => {
-            if rh {
-              value_null!()
-            } else {
-              Value::Boolean(false)
-            }
-          }
-          _ => value_null!(),
-        },
-      }
+    Box::new(move |scope: &FeelScope| match lhe(scope) {
+      Value::Boolean(false) => Value::Boolean(false),
+      Value::Boolean(true) => match rhe(scope) {
+        rhv @ Value::Boolean(_) => rhv,
+        _ => value_null!(),
+      },
+      _ => match rhe(scope) {
+        Value::Boolean(false) => Value::Boolean(false),
+        _ => value_null!(),
+      },
     })
   }
 
@@ -1505,34 +1494,23 @@ impl EvaluatorBuilder {
   /// otherwise   false        null
   /// otherwise   otherwise    null
   /// ```
+  ///
+  /// The right operand is evaluated only when the left one is not `true`, which decides the
+  /// result whatever the right one is: the errors and warnings of a right operand that cannot
+  /// change the result are not recorded.
   fn build_or(&mut self, lhs: &AstNode, rhs: &AstNode) -> Evaluator {
     let lhe = self.build(lhs);
     let rhe = self.build(rhs);
-    Box::new(move |scope: &FeelScope| {
-      let lhv = lhe(scope);
-      let rhv = rhe(scope);
-      match lhv {
-        Value::Boolean(lh) => match rhv {
-          Value::Boolean(rh) => Value::Boolean(lh || rh),
-          _ => {
-            if lh {
-              Value::Boolean(true)
-            } else {
-              value_null!()
-            }
-          }
-        },
-        _ => match rhv {
-          Value::Boolean(rh) => {
-            if rh {
-              Value::Boolean(true)
-            } else {
-              value_null!()
-            }
-          }
-          _ => value_null!(),
-        },
-      }
+    Box::new(move |scope: &FeelScope| match lhe(scope) {
+      Value::Boolean(true) => Value::Boolean(true),
+      Value::Boolean(false) => match rhe(scope) {
+        rhv @ Value::Boolean(_) => rhv,
+        _ => value_null!(),
+      },
+      _ => match rhe(scope) {
+        Value::Boolean(true) => Value::Boolean(true),
+        _ => value_null!(),
+      },
     })
   }
 
