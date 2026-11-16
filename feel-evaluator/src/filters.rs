@@ -34,9 +34,10 @@ fn stopped() -> Result<(), Value> {
 /// item is lost, so no result can be given.
 const ITEM_CONTEXT: &str = "item context of a filter";
 
-/// Evaluates the predicate for every item with copies of the item in scope: the entries of a
-/// context item, and on top of them the special context `{item: value}`, which is searched
-/// first, unless the item has an entry `item`. Returns which items the predicate keeps.
+/// Evaluates the predicate for every item with the item in scope: the entries of a context item
+/// (the item itself, shared, so a write into it copies it first), and on top of them the special
+/// context `{item: value}` with a copy of the item, which is searched first, unless the item has
+/// an entry `item`. Returns which items the predicate keeps.
 fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
   let name_item: &Name = &ITEM;
   let mut matched = Vec::with_capacity(values.len());
@@ -44,7 +45,7 @@ fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) ->
     stopped()?;
     let depth = scope.depth();
     let has_item_entry = if let Value::Context(local_context) = value {
-      scope.push(FeelContext::clone(local_context));
+      scope.push_shared(Arc::clone(local_context));
       local_context.contains_entry(name_item)
     } else {
       false
@@ -63,8 +64,9 @@ fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) ->
 }
 
 /// [matched_copied] with every item moved into the scope and back: a context item with an entry
-/// `item` is the item context itself; otherwise the item is the value of `item` in a special
-/// context reused for all items, on top of a copy of the item's entries for a context item.
+/// `item` is the item context itself, shared, and the item is kept as it was pushed (only the
+/// depth of the stack is checked); otherwise the item is the value of `item` in a special context
+/// reused for all items, on top of the item's entries, shared, for a context item.
 fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator) -> Result<Vec<bool>, Value> {
   let name_item: &Name = &ITEM;
   let mut special_context = FeelContext::default();
@@ -74,17 +76,17 @@ fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator)
     let depth = scope.depth();
     let predicate = match std::mem::replace(slot, Value::Null(None)) {
       Value::Context(local_context) if local_context.contains_entry(name_item) => {
-        scope.push(Arc::unwrap_or_clone(local_context));
+        scope.push_shared(Arc::clone(&local_context));
         let predicate = evaluator(scope);
-        let Some(local_context) = scope.pop_frame(depth) else {
+        if scope.pop_frame(depth).is_none() {
           return Err(lost_context(ITEM_CONTEXT));
-        };
-        *slot = local_context.into();
+        }
+        *slot = Value::Context(local_context);
         predicate
       }
       value => {
         let item_depth = if let Value::Context(local_context) = &value {
-          scope.push(FeelContext::clone(local_context));
+          scope.push_shared(Arc::clone(local_context));
           depth + 1
         } else {
           depth
@@ -97,7 +99,7 @@ fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator)
         let Some(ctx) = popped else {
           return Err(lost_context(ITEM_CONTEXT));
         };
-        special_context = ctx;
+        special_context = ctx.into_context();
         // the entry stays (with a placeholder) for the next item
         let Some(item) = special_context.assign_entry(name_item, Value::Null(None)) else {
           return Err(lost_context(ITEM_CONTEXT));

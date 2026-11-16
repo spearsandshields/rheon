@@ -154,7 +154,7 @@ fn evaluate_in_iteration_context<T>(
   let depth = scope.depth();
   scope.push(iteration_context);
   let value = evaluate(scope);
-  let mut iteration_context = scope.pop_frame(depth)?;
+  let mut iteration_context = scope.pop_frame(depth)?.into_context();
   finish(&mut iteration_context);
   if mode == IterationContext::Moved {
     *ctx = iteration_context;

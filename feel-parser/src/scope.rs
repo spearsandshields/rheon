@@ -43,10 +43,11 @@ pub struct ParsingScope<'a> {
 
 impl<'a> ParsingScope<'a> {
   /// Creates a parsing scope over input contexts (bottom first).
-  pub(crate) fn new(frames: &'a [FeelContext]) -> Self {
+  pub(crate) fn new(frames: impl IntoIterator<Item = &'a FeelContext>) -> Self {
+    let input: Vec<FrameIndex<'a>> = frames.into_iter().map(FrameIndex::new).collect();
     Self {
-      input: frames.iter().map(FrameIndex::new).collect(),
-      input_live: Cell::new(frames.len()),
+      input_live: Cell::new(input.len()),
+      input,
       locals: RefCell::new(vec![]),
       names: RefCell::new(HashSet::default()),
       max_names_longer: Cell::new(0),

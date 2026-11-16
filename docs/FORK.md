@@ -2686,6 +2686,28 @@ their items with both answers. The totals are under "Verification" below.
     match `Value::Context(ctx)` and read through the `Arc`; take the context out with
     `FeelContext::try_from(value)` or `Arc::unwrap_or_clone`); `rheon_feel::message::MessageArg`
     is implemented for `Arc<T>` where `T: MessageArg`. `Value` stays `Send + Sync`.
+160. **A scope frame is an owned context or a shared one.** The stack of a `FeelScope` held its
+    contexts by value, so a context value pushed as a frame was copied first: a filter over a
+    list of contexts copied the entries of each item to put them in scope. A frame is now a
+    `ScopeFrame`: a context the scope owns (the parameters of a call, the entries of a context
+    literal, the variables of a loop) or a shared context value pushed without a copy
+    (`FeelScope::push_shared`). A frame reads as its context (`Deref<Target = FeelContext>`); a
+    write into a shared frame (`set_value`, `set_name`) copies the context first, so it never
+    shows through the value it was pushed from. The one write into a frame that another evaluator
+    pushed is that of a boxed context, which writes each entry into the frame on the top of the
+    scope; on a shared item frame it now writes into a copy that is dropped with the frame, as it
+    wrote into the item's copy before. A filter pushes a context item shared in both of its modes;
+    in the mode for FEEL predicates, a context item with an entry `item` is kept as it was pushed,
+    and only the depth of the stack is checked after its predicate (no FEEL predicate replaces a
+    frame, and a boxed filter uses the other mode). The parser reads the frames through `Deref`.
+    Tests: `feel/src/tests/scope.rs` pushes a shared context, writes into its frame, and checks
+    that the shared context is unchanged and that popping copies out only a context that is still
+    shared; the pins of item 143 (`model-evaluator/src/tests/various/dmn_0008`) pass unchanged.
+    Identity step: no answer changes. Rust API (`rheon-feel`): `ScopeFrame` is added (`Deref` to
+    its context, `into_context`, `From<FeelContext>`, `Send + Sync`); `FeelScope::push_shared` is
+    added; `FeelScope::frames` returns `Ref<[ScopeFrame]>` instead of `Ref<[FeelContext]>`;
+    `FeelScope::pop_frame` returns `Option<ScopeFrame>` instead of `Option<FeelContext>`;
+    `pop`, `peek` and `contexts` return their contexts as before, a shared one copied.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
