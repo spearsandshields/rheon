@@ -73,7 +73,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Full", "Name"]), Value::String("John".into()))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -88,7 +88,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Full", "Name"]), Value::String("Phillip".into()))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -103,7 +103,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Full", "Name"]), value_null!("after coercion"))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -118,7 +118,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Monthly", "Salary"]), value_number!(12000))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -133,7 +133,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Monthly", "Salary"]), value_number!(813535, 2))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -148,7 +148,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Monthly", "Salary"]), value_null!("after coercion"))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -163,7 +163,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Is", "Affordable"]), Value::Boolean(true))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -178,7 +178,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Is", "Affordable"]), Value::Boolean(false))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -193,7 +193,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Is", "Affordable"]), value_null!("after coercion"))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -209,7 +209,7 @@ mod tests {
     let name = Name::new(&["Employment", "Status"]);
     assert_eq!(
       Some((name, Value::String("EMPLOYED".into()))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -224,7 +224,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Always", "Null"]), value_null!())),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -239,7 +239,7 @@ mod tests {
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), context_str).unwrap();
     assert_eq!(
       Some((Name::new(&["Always", "Null"]), value_null!("after coercion"))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -255,7 +255,7 @@ mod tests {
     let name = Name::new(&["Employment", "Status"]);
     assert_eq!(
       Some((name, value_null!("input data evaluator: item definition evaluator 'tEmploymentStatus' not found"))),
-      input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator)
+      input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator)
     );
   }
 
@@ -266,7 +266,7 @@ mod tests {
     let (input_data_evaluator, item_definitions_evaluator) = build_evaluators(DMN_0001);
     let def_key = DefKey::new(NAMESPACE, "_input_1");
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), "{}").unwrap();
-    let (evaluated, diagnostics) = rheon_feel::diagnostics::collect(|| input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator));
+    let (evaluated, diagnostics) = rheon_feel::diagnostics::collect(|| input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator));
     assert_eq!(Some((Name::new(&["Full", "Name"]), value_null!())), evaluated);
     assert_eq!(0, diagnostics.count);
   }
@@ -278,7 +278,7 @@ mod tests {
     let (input_data_evaluator, item_definitions_evaluator) = build_evaluators(DMN_0004);
     let def_key = DefKey::new(NAMESPACE, "_input_1");
     let context = rheon_feel_evaluator::evaluate_context(&Default::default(), "{}").unwrap();
-    let (evaluated, diagnostics) = rheon_feel::diagnostics::collect(|| input_data_evaluator.evaluate(&def_key, &Value::Context(context), &item_definitions_evaluator));
+    let (evaluated, diagnostics) = rheon_feel::diagnostics::collect(|| input_data_evaluator.evaluate(&def_key, &Value::from(context), &item_definitions_evaluator));
     let note = Value::Null(Some("no name Employment Status in context {}".to_string()));
     assert_eq!(Some((Name::new(&["Employment", "Status"]), note)), evaluated);
     assert_eq!(0, diagnostics.count, "{diagnostics:?}");

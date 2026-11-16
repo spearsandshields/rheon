@@ -186,7 +186,7 @@ pub fn te_scope(input: &str) -> FeelScope {
   let scope = FeelScope::default();
   match rheon_feel_parser::parse_context(&scope, input, false) {
     Ok(node) => match eval(&scope, &node) {
-      Value::Context(ctx) => ctx.into(),
+      Value::Context(ctx) => std::sync::Arc::unwrap_or_clone(ctx).into(),
       other => {
         println!("ERROR (INVALID VALUE TYPE): {other}");
         panic!("te_scope failed");

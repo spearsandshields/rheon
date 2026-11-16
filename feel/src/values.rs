@@ -120,8 +120,10 @@ pub enum Value {
   /// Value for storing built-in function definition.
   BuiltInFunction(Bif),
 
-  /// Value representing a context.
-  Context(FeelContext),
+  /// Value representing a context. The context is shared: copying the value copies a pointer,
+  /// and a context is never changed while it is shared ([Arc::make_mut] changes a copy, which the
+  /// value then holds alone), so a change never shows through another copy of the value.
+  Context(Arc<FeelContext>),
 
   /// Value representing a context entry.
   ContextEntry(Name, Box<Value>),

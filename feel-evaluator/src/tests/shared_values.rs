@@ -50,7 +50,7 @@ fn unshared(value: &Value) -> Value {
       for (name, value) in ctx.iter() {
         copy.set_entry(name, unshared(value));
       }
-      Value::Context(copy)
+      Value::from(copy)
     }
     other => other.clone(),
   }
@@ -69,7 +69,7 @@ fn values(rng: &mut Rng) -> Vec<Value> {
         for _ in 0..rng.below(3) {
           ctx.set_entry(&Name::from(["a", "b"][rng.below(2) as usize]), pick(rng, &values));
         }
-        Value::Context(ctx)
+        Value::from(ctx)
       }
       _ => Value::List((0..rng.below(4)).map(|_| pick(rng, &values)).collect::<FeelList>()),
     };
@@ -143,6 +143,52 @@ fn instance_of_reads_a_shared_list_once() {
       list_of(60, "number")
     ),
     "[true, true, false, false, true]",
+    &[],
+  );
+}
+
+/// The context `{a: x, b: x}` built from the one before it `n - 1` times, starting with `first`.
+fn doubled_context(n: u32, first: &str) -> String {
+  format!("(for i in 1..{n} return if i = 1 then {first} else {{a: partial[-1], b: partial[-1]}})[-1]")
+}
+
+#[test]
+fn equality_compares_each_pair_of_shared_contexts_once() {
+  let x = doubled_context(60, "{a: 1}");
+  let y = doubled_context(60, "{a: 2}");
+  te_warnings(
+    &format!("{{x: {x}, y: {x}, z: {y}, r: [x = x, x = y, x != y, x = z, [x, y] = [y, x]]}}.r"),
+    "[true, true, false, false, true]",
+    &[],
+  );
+  // contexts and lists shared together
+  let mixed = "(for i in 1..60 return if i = 1 then [1] else {a: partial[-1], b: [partial[-1], partial[-1]]})[-1]";
+  te_warnings(&format!("{{x: {mixed}, y: {mixed}, r: [x = x, x = y]}}.r"), "[true, true]", &[]);
+}
+
+#[test]
+fn list_scans_compare_each_pair_of_shared_contexts_once() {
+  let x = doubled_context(60, "{a: 1}");
+  let y = doubled_context(60, "{a: 2}");
+  te_warnings(
+    &format!(
+      "{{x: {x}, y: {y}, l: for i in 1..100 return if i = 50 then y else x, r: [count(distinct values(l)), index of(l, y), list contains(l, x), count(union(l, l)), y in l]}}.r"
+    ),
+    "[2, [50], true, 2, true]",
+    &[],
+  );
+}
+
+#[test]
+fn instance_of_reads_a_shared_context_once() {
+  // the type of `[x, y]` is a list of the type of `x` only when `y` conforms to it, which reads both
+  let x = doubled_context(60, "{a: 1}");
+  let z = doubled_context(60, "{a: 2}");
+  te_warnings(
+    &format!(
+      "{{x: {x}, y: {x}, z: {z}, r: [[x, y] instance of list<context<c: Any>>, [x, z] instance of list<Any>, [x, y] instance of list<context<a: Any, b: Any>>, x instance of context<a: Any>, x instance of context<c: Any>, [x, 1] instance of list<Any>]}}.r"
+    ),
+    "[false, true, false, false, false, true]",
     &[],
   );
 }

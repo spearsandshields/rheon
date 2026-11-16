@@ -396,19 +396,19 @@ fn test_type_get_conformant_value() {
   // contexts
   let mut ctx_a = FeelContext::default();
   ctx_a.set_entry(&NAME_A, v_number_1.clone());
-  let v_context_a = Value::Context(ctx_a);
+  let v_context_a = Value::from(ctx_a);
   let mut ctx_a_b = FeelContext::default();
   ctx_a_b.set_entry(&NAME_A, v_number_1.clone());
   ctx_a_b.set_entry(&NAME_B, v_boolean_false.clone());
-  let v_context_a_b = Value::Context(ctx_a_b);
+  let v_context_a_b = Value::from(ctx_a_b);
   let mut ctx_a_b_c = FeelContext::default();
   ctx_a_b_c.set_entry(&NAME_A, v_number_1.clone());
   ctx_a_b_c.set_entry(&NAME_B, v_boolean_false.clone());
   ctx_a_b_c.set_entry(&NAME_C, v_string.clone());
-  let v_context_a_b_c = Value::Context(ctx_a_b_c);
+  let v_context_a_b_c = Value::from(ctx_a_b_c);
   let mut ctx_d = FeelContext::default();
   ctx_d.set_entry(&NAME_D, v_number_1.clone());
-  let v_context_d = Value::Context(ctx_d);
+  let v_context_d = Value::from(ctx_d);
   // functions
   let v_function_a = Value::from(FunctionDefinition::new(
     vec![(NAME_A.clone(), T_NUMBER.clone()), (NAME_B.clone(), T_NUMBER.clone())],

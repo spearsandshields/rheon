@@ -1,13 +1,28 @@
 //! # FEEL equality of two values
 //!
-//! A value can hold the same list on several paths (`[x, x]` holds `x` twice without a copy), so
-//! a value that a loop doubles through `partial` holds exponentially many paths in a linear size.
-//! An equality walk that followed every path would take exponential time; this one remembers the
-//! answer for each pair of shared lists it compared, and compares a pair again only when it was
-//! not met before.
+//! A value can hold the same list or context on several paths (`[x, x]` and `{a: x, b: x}` hold
+//! `x` twice without a copy), so a value that a loop doubles through `partial` holds
+//! exponentially many paths in a linear size. An equality walk that followed every path would
+//! take exponential time; this one remembers the answer for each pair of shared lists or shared
+//! contexts it compared, and compares a pair again only when it was not met before.
 
 use rheon_feel::values::Value;
 use std::collections::HashMap;
+use std::sync::Arc;
+
+/// The key of a pair of lists of one length or of contexts with as many entries, when either side
+/// is shared: the addresses of their items or of the contexts. `None` for any other pair, which is
+/// compared without being remembered (a pair of lists of different lengths or of contexts of
+/// different sizes is decided at once).
+fn shared_pair(lhs: &Value, rhs: &Value) -> Option<(usize, usize)> {
+  match (lhs, rhs) {
+    (Value::List(ls), Value::List(rs)) if ls.len() == rs.len() && (ls.is_shared() || rs.is_shared()) => ls.address().zip(rs.address()),
+    (Value::Context(lc), Value::Context(rc)) if lc.len() == rc.len() && (Arc::strong_count(lc) > 1 || Arc::strong_count(rc) > 1) => {
+      Some((Arc::as_ptr(lc).addr(), Arc::as_ptr(rc).addr()))
+    }
+    _ => None,
+  }
+}
 
 /// Evaluates the equality of two values: `None` when the values can not be compared.
 ///
@@ -19,12 +34,15 @@ pub(crate) fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
 }
 
 /// One equality walk over borrowed values: the answers for the pairs of lists it compared where
-/// either list shares its items, by the addresses of their items.
+/// either list shares its items, by the addresses of their items, and for the pairs of contexts
+/// it compared where either context is shared, by the addresses of the contexts.
 ///
 /// The memory lives as long as the walk, is created when the first shared pair is met, and is
-/// never iterated. While the values are borrowed, no other items are stored at the addresses it
-/// holds. Remembering only the pairs with a shared side is enough: a pair of lists is reached
-/// again only through two paths that meet in a list held twice, and that list is shared.
+/// never iterated. While the values are borrowed, no other items or contexts are stored at the
+/// addresses it holds, and the items of a list and a context are never at one address, so a
+/// pair of lists and a pair of contexts never have one key. Remembering only the pairs with a
+/// shared side is enough: a pair is reached again only through two paths that meet in a list or
+/// a context held twice, and that list or context is shared.
 ///
 /// One walk serves every comparison of an operation that compares several pairs of values, such
 /// as a built-in that compares the items of a list with one another or with a match: a pair of
@@ -35,19 +53,15 @@ pub(crate) struct Equality {
 }
 
 impl Equality {
-  /// The equality of two values held by the values compared: remembered for a pair of lists
-  /// with a shared side, compared otherwise.
+  /// The equality of two values held by the values compared: remembered for a pair of lists or
+  /// a pair of contexts with a shared side, compared otherwise.
   fn nested(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
-    if let (Value::List(ls), Value::List(rs)) = (lhs, rhs)
-      && ls.len() == rs.len()
-      && (ls.is_shared() || rs.is_shared())
-      && let (Some(l), Some(r)) = (ls.address(), rs.address())
-    {
-      if let Some(answer) = self.shared.as_ref().and_then(|shared| shared.get(&(l, r))) {
+    if let Some(key) = shared_pair(lhs, rhs) {
+      if let Some(answer) = self.shared.as_ref().and_then(|shared| shared.get(&key)) {
         return *answer;
       }
       let answer = self.compare(lhs, rhs);
-      self.shared.get_or_insert_with(HashMap::new).insert((l, r), answer);
+      self.shared.get_or_insert_with(HashMap::new).insert(key, answer);
       return answer;
     }
     self.compare(lhs, rhs)

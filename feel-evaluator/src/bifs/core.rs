@@ -472,7 +472,7 @@ pub fn context(entries: &Value) -> Value {
           _ => return value_null!("context: invalid entry, expected context, actual type is {}", arg(&TypeOf(entry))),
         }
       }
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     Value::Context(ctx) => {
       let mut result_ctx = FeelContext::default();
@@ -487,7 +487,7 @@ pub fn context(entries: &Value) -> Value {
         _ => return value_null!("context: 'key' entry is not a string, actual type is {}", arg(&TypeOf(key))),
       };
       result_ctx.set_entry(&key, value.clone());
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     null @ Value::Null(_) => null.clone(),
     other => invalid_argument_type!("context", "list or context", other),
@@ -497,7 +497,8 @@ pub fn context(entries: &Value) -> Value {
 pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
   match context {
     Value::Context(ctx) => {
-      let mut result_ctx = ctx.clone();
+      // a copy of the context's own entries; the values in them stay shared
+      let mut result_ctx = FeelContext::clone(ctx);
       match keys {
         Value::String(key) => result_ctx.set_entry(&key.as_str().into(), value.clone()),
         Value::List(items) => {
@@ -519,7 +520,7 @@ pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
         null @ Value::Null(_) => return null.clone(),
         other => return invalid_argument_type!("context put", "string or list<string>", other),
       }
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     null @ Value::Null(_) => null.clone(),
     other => invalid_argument_type!("context put", "context", other),
@@ -540,7 +541,7 @@ pub fn context_merge(contexts: &Value) -> Value {
           other => return invalid_argument_type!("context merge", "context", other),
         }
       }
-      Value::Context(result_ctx)
+      result_ctx.into()
     }
     Value::Context(ctx) => Value::Context(ctx.clone()),
     null @ Value::Null(_) => null.clone(),
@@ -1059,7 +1060,7 @@ pub fn get_entries(context: &Value) -> Value {
       let mut key_value_pair = FeelContext::default();
       key_value_pair.set_entry(&name_key, Value::String(name.to_string().into()));
       key_value_pair.set_entry(&name_value, (**value).clone());
-      entries.push(Value::Context(key_value_pair));
+      entries.push(key_value_pair.into());
     });
     Value::List(entries.into())
   } else {

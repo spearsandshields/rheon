@@ -99,7 +99,7 @@ fn wide_context(entries: i64) -> rheon_feel::context::FeelContext {
 fn a_message_quoting_the_type_of_a_wide_context_allocates_little() {
   use rheon_feel::message::{arg, compose};
   use rheon_feel::values::TypeOf;
-  let value = Value::Context(wide_context(10_000));
+  let value = Value::from(wide_context(10_000));
   let (message, bytes) = bytes_allocated_by(|| compose(format_args!("actual type is '{}'", arg(&TypeOf(&value)))));
   assert!(message.ends_with("… (10000 entries)'"), "{message}");
   assert!(bytes <= 4 * 1024, "{bytes} bytes allocated");
@@ -130,7 +130,7 @@ fn record(n: i64) -> Value {
   let mut context = rheon_feel::context::FeelContext::default();
   context.set_entry(&rheon_feel::Name::from("n"), Value::Number(n.into()));
   context.set_entry(&rheon_feel::Name::from("s"), Value::String(format!("item {n}").into()));
-  Value::Context(context)
+  Value::from(context)
 }
 
 #[test]
@@ -149,7 +149,7 @@ fn a_list_read_by_name_and_passed_on_is_not_copied() {
 #[test]
 fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
   let mut input = rheon_feel::context::FeelContext::default();
-  input.set_entry(&rheon_feel::Name::from("c"), Value::Context(wide_context(10_000)));
+  input.set_entry(&rheon_feel::Name::from("c"), Value::from(wide_context(10_000)));
   let scope = FeelScope::from(input);
   let evaluate = |text: &str| {
     let evaluator = prepare(&parse_expression(&scope, text, false).expect("the expression parses"));
@@ -159,4 +159,40 @@ fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
   let (value, invoked) = evaluate("abs(c)");
   assert!(matches!(&value, Value::Null(Some(reason)) if reason.ends_with("… (10000 entries)")), "{value}");
   assert!(invoked <= read + 64 * 1024, "abs(c) allocated {invoked} bytes, c {read}");
+}
+
+/// The allocations and the bytes the evaluation of `expression` makes with the input `data` a
+/// context of 10,000 entries, less those it makes with `data` a context of one entry: the cost
+/// that grows with the context. The expression answers the entry `entry0`, the number 0.
+fn cost_of_a_wide_context(expression: &str) -> (i64, i64) {
+  let measure = |entries: i64| {
+    let mut input = rheon_feel::context::FeelContext::default();
+    input.set_entry(&rheon_feel::Name::from("data"), Value::from(wide_context(entries)));
+    let scope = FeelScope::from(input);
+    let evaluator = prepare(&parse_expression(&scope, expression, false).expect("the expression parses"));
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    let allocations = ALLOCATIONS.with(Cell::get) - allocations;
+    assert_eq!(Value::Number(0.into()), value, "{expression}");
+    (allocations as i64, bytes as i64)
+  };
+  let (wide_allocations, wide_bytes) = measure(10_000);
+  let (one_allocations, one_bytes) = measure(1);
+  (wide_allocations - one_allocations, wide_bytes - one_bytes)
+}
+
+#[test]
+fn a_context_read_by_name_and_passed_on_is_not_copied() {
+  for expression in [
+    "data.entry0",
+    "get value(data, \"entry0\")",
+    "{f: function(c) c.entry0, r: f(data)}.r",
+    "{d: data, r: d.entry0}.r",
+  ] {
+    let (allocations, bytes) = cost_of_a_wide_context(expression);
+    assert!(
+      allocations <= 8 && bytes < 4 * 1024,
+      "{expression} over 10,000 entries: {allocations} allocations and {bytes} bytes more than over one"
+    );
+  }
 }

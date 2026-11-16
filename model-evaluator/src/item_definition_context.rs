@@ -95,7 +95,7 @@ fn component_type_context_evaluator(item_definition: &DefItemDefinition) -> Resu
       let feel_type = component_evaluator(component_name, &mut evaluated_ctx, evaluator);
       entries.insert(component_name.clone(), feel_type);
     }
-    ctx.set_entry(name, Value::Context(evaluated_ctx));
+    ctx.set_entry(name, Value::from(evaluated_ctx));
     FeelType::Context(entries)
   }))
 }
@@ -149,7 +149,7 @@ fn collection_of_component_type_context_evaluator(item_definition: &DefItemDefin
       entries.insert(component_name.clone(), feel_type);
     }
     let list_type = FeelType::List(Box::new(FeelType::Context(entries)));
-    let list = Value::List(vec![Value::Context(evaluated_ctx)].into());
+    let list = Value::List(vec![Value::from(evaluated_ctx)].into());
     ctx.set_entry(name, list);
     list_type
   }))

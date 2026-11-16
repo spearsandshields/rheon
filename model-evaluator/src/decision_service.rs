@@ -193,13 +193,13 @@ fn build_decision_service_evaluator(decision_service: &DefDecisionService, model
       // now evaluate input data for encapsulated and output decisions and store them in separate context
       let mut evaluated_input_data = FeelContext::default();
       // first take values from evaluated input decisions...
-      let input_decision_results_value = Value::Context(input_decisions_results);
+      let input_decision_results_value = Value::from(input_decisions_results);
       for evaluator in &input_decision_results_evaluators {
         let (name, value) = evaluator(&input_decision_results_value, item_definition_evaluator);
         evaluated_input_data.set_entry(&name, value);
       }
       // ...and then take values from provided input data
-      let input_data_values = Value::Context(input_data.clone());
+      let input_data_values = Value::from(input_data.clone());
       for evaluator in &input_decision_results_evaluators {
         let (name, value) = evaluator(&input_data_values, item_definition_evaluator);
         evaluated_input_data.set_entry(&name, value);
@@ -237,7 +237,7 @@ fn build_decision_service_evaluator(decision_service: &DefDecisionService, model
             output_ctx.set_entry(output_name, value.to_owned());
           }
         });
-        let complex_result = Value::Context(output_ctx);
+        let complex_result = Value::from(output_ctx);
         let coerced_complex_result = complex_result.coerced(&output_variable_type);
         output_data.set_entry(&output_variable_name, coerced_complex_result);
       }

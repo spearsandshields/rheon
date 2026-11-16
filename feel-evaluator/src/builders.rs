@@ -511,7 +511,7 @@ impl EvaluatorBuilder {
       };
       // remove special context from scope, on every path
       scope.truncate(depth);
-      failure.unwrap_or_else(|| diagnostics::bound_depth(Value::Context(evaluated_ctx)))
+      failure.unwrap_or_else(|| diagnostics::bound_depth(evaluated_ctx.into()))
     })
   }
 

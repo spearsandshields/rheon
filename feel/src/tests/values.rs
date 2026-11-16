@@ -45,7 +45,7 @@ fn test_debug() {
   let v_closure_ctx = FeelContext::default();
   eq_dbg!(r#"Boolean(false)"#, Value::Boolean(false));
   eq_dbg!(r#"BuiltInFunction(Time)"#, Value::BuiltInFunction(Bif::Time));
-  eq_dbg!(r#"Context(FeelContext({}))"#, Value::Context(FeelContext::default()));
+  eq_dbg!(r#"Context(FeelContext({}))"#, Value::from(FeelContext::default()));
   eq_dbg!(r#"ContextEntry(Name("a"), Number(+1E+0))"#, Value::ContextEntry(name.clone(), b_number.clone()));
   eq_dbg!(r#"ContextEntryKey(Name("a"))"#, Value::ContextEntryKey(name.clone()));
   eq_dbg!(r#"ContextType(Number)"#, Value::ContextType(t_number.clone()));
@@ -133,7 +133,7 @@ fn test_display() {
   let v_closure_ctx = FeelContext::default();
   eq_dsp!(r#"false"#, Value::Boolean(false));
   eq_dsp!(r#"BuiltInFunction"#, Value::BuiltInFunction(Bif::Time));
-  eq_dsp!(r#"{}"#, Value::Context(FeelContext::default()));
+  eq_dsp!(r#"{}"#, Value::from(FeelContext::default()));
   eq_dsp!(r#"ContextEntry"#, Value::ContextEntry(name.clone(), b_number.clone()));
   eq_dsp!(r#"a"#, Value::ContextEntryKey(name.clone()));
   eq_dsp!(r#"ContextType"#, Value::ContextType(t_number.clone()));
@@ -208,7 +208,7 @@ fn test_type_of() {
   let v_closure_ctx = FeelContext::default();
   eq_typ!(FeelType::Boolean, Value::Boolean(false));
   eq_typ!(FeelType::Any, Value::BuiltInFunction(Bif::Time));
-  eq_typ!(FeelType::Context(BTreeMap::new()), Value::Context(FeelContext::default()));
+  eq_typ!(FeelType::Context(BTreeMap::new()), Value::from(FeelContext::default()));
   eq_typ!(FeelType::Any, Value::ContextEntry(name.clone(), b_number.clone()));
   eq_typ!(FeelType::Any, Value::ContextEntryKey(name.clone()));
   eq_typ!(FeelType::Number, Value::ContextType(t_number.clone()));
@@ -275,7 +275,7 @@ fn test_type_of_list_with_context() {
   let mut ctx_b = FeelContext::default();
   ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
   ctx_b.set_entry(&"b".into(), Value::String("gamma".into()));
-  let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)].into());
+  let list = Value::List(vec![Value::from(ctx_a), Value::from(ctx_b)].into());
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
 }
 
@@ -287,7 +287,7 @@ fn test_type_of_list_with_context_and_nulls() {
   let mut ctx_b = FeelContext::default();
   ctx_b.set_entry(&"a".into(), Value::String("gamma".into()));
   ctx_b.set_entry(&"b".into(), value_null!());
-  let list = Value::List(vec![Value::Context(ctx_a), Value::Context(ctx_b)].into());
+  let list = Value::List(vec![Value::from(ctx_a), Value::from(ctx_b)].into());
   assert_eq!("list<context<a: string, b: string>>", list.type_of().to_string());
 }
 
@@ -333,7 +333,7 @@ fn test_comparison() {
   assert_eq!(Value::Boolean(false), Value::Boolean(false));
   assert_ne!(Value::Boolean(true), Value::Boolean(false));
   assert_ne!(Value::Boolean(false), Value::Boolean(true));
-  assert_eq!(Value::Context(FeelContext::default()), Value::Context(FeelContext::default()));
+  assert_eq!(Value::from(FeelContext::default()), Value::from(FeelContext::default()));
   let fun_body_a = FunctionBody::Context(Arc::new(Box::new(|_: &FeelScope| value_number!(1))));
   let fun_body_b = FunctionBody::Context(Arc::new(Box::new(|_: &FeelScope| value_number!(2))));
   let fun_body_c = FunctionBody::LiteralExpression(Arc::new(Box::new(|_: &FeelScope| value_number!(3))));
@@ -364,7 +364,7 @@ fn test_comparison() {
 fn test_value_to_feel_string() {
   assert_eq!(r#""foo""#, Value::String("foo".into()).to_feel_string());
   assert_eq!(r#""\"bar\"""#, Value::String("\"bar\"".into()).to_feel_string());
-  assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).to_feel_string());
+  assert_eq!(r#"{}"#, Value::from(FeelContext::default()).to_feel_string());
   assert_eq!(r#"[]"#, Value::List(Values::default().into()).to_feel_string());
   assert_eq!(
     r#"[1.2, 2.1]"#,
@@ -388,7 +388,7 @@ fn test_jsonify() {
   assert_eq!(r#""P10DT13H59M18S""#, Value::DaysAndTimeDuration(FeelDaysAndTimeDuration::from_s(914358)).jsonify());
   assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap()).jsonify());
   assert_eq!(r#"[]"#, Value::ExpressionList(Values::default()).jsonify());
-  assert_eq!(r#"{}"#, Value::Context(FeelContext::default()).jsonify());
+  assert_eq!(r#"{}"#, Value::from(FeelContext::default()).jsonify());
   assert_eq!(r#"alpha"#, Value::ContextEntryKey("alpha".into()).jsonify());
   assert_eq!(r#"[]"#, Value::List(Values::default().into()).jsonify());
   assert_eq!(
@@ -487,7 +487,7 @@ fn test_coerced() {
   let v_irrelevant = Value::Irrelevant;
   let mut ctx_d = FeelContext::default();
   ctx_d.set_entry(&NAME_A, v_string.clone());
-  let v_context_d = Value::Context(ctx_d);
+  let v_context_d = Value::from(ctx_d);
   let v_date = Value::Date(FeelDate::new(2022, 9, 27).unwrap());
   let v_list_date_1 = Value::List(vec![v_date.clone()].into());
   let v_bif = Value::BuiltInFunction(Bif::Time);
@@ -525,7 +525,7 @@ fn test_type_of_list_items() {
     for (name, value) in entries {
       ctx.set_entry(&Name::from(*name), value.clone());
     }
-    Value::Context(ctx)
+    Value::from(ctx)
   };
   let list_of = |item_type: FeelType| FeelType::List(Box::new(item_type));
   let context_a = FeelType::Context(BTreeMap::from([(NAME_A.clone(), FeelType::Number)]));
@@ -596,7 +596,7 @@ fn test_type_of_list_equals_reference_rule() {
       1 => value_number!(1),
       2 => Value::String("s".into()),
       3 => Value::Boolean(true),
-      4..=6 => Value::Context(context(rng, depth)),
+      4..=6 => Value::from(context(rng, depth)),
       7 => Value::List((0..rng.below(4)).map(|_| value(rng, depth + 1)).collect()),
       _ => Value::List(vec![value_null!(), value_number!(1)].into()),
     }
@@ -627,7 +627,7 @@ fn test_type_of_list_equals_reference_rule() {
       }
       _ => return value_null!(),
     }
-    Value::Context(ctx)
+    Value::from(ctx)
   }
   let mut rng = Rng(0x2545_F491_4F6C_DD1D);
   let (mut contexts, mut mixed, mut total) = (0, 0, 0);

@@ -87,7 +87,7 @@ fn copies_changed_in_threads_leave_the_original_unchanged() {
   let item = |n: usize| {
     let mut ctx = FeelContext::default();
     ctx.set_entry(&Name::from("text"), Value::String(format!("item {n}").into()));
-    Value::Context(ctx)
+    Value::from(ctx)
   };
   let original: FeelList = (0..8).map(item).collect();
   let snapshot = format!("{original:?}");

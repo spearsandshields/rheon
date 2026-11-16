@@ -91,7 +91,7 @@ pub fn build_context_evaluator(scope: &FeelScope, context: &Context, model_build
         None => return coerced_value,
       }
     }
-    Value::Context(evaluated_context)
+    Value::from(evaluated_context)
   });
   Ok((
     build_coerced_result_evaluator(context_evaluator, context, context.namespace(), model_builder),
@@ -325,7 +325,7 @@ pub fn build_relation_evaluator(scope: &FeelScope, relation: &Relation, model_bu
       for (name, evaluator) in row {
         evaluated_context.set_entry(name, evaluator(scope));
       }
-      results.push(Value::Context(evaluated_context));
+      results.push(Value::from(evaluated_context));
     }
     Value::List(results.into())
   });

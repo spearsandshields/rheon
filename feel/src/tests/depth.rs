@@ -14,7 +14,7 @@ fn reference(value: &Value) -> u32 {
   match value {
     Value::List(items) => deepest(items.iter()),
     Value::Context(ctx) => deepest(ctx.iter().map(|(_, value)| value)),
-    Value::FunctionDefinition(function) => reference(&Value::Context(function.closure_ctx.clone())) + 1,
+    Value::FunctionDefinition(function) => reference(&Value::from(function.closure_ctx.clone())) + 1,
     Value::Range(start, _, end, _) => deepest([start.as_ref(), end.as_ref()].into_iter()),
     Value::UnaryLess(operand) | Value::IntervalStart(operand, _) => reference(operand) + 1,
     _ => 0,
@@ -70,7 +70,7 @@ fn value(rng: &mut Rng, depth: u32) -> Value {
       }
       Value::List(list)
     }
-    7 | 8 => Value::Context(context(rng, depth - 1)),
+    7 | 8 => Value::from(context(rng, depth - 1)),
     9 => function(context(rng, depth - 1)),
     10 => Value::Range(Box::new(value(rng, depth - 1)), IntervalType::Closed, Box::new(value_number!(1)), IntervalType::Opened),
     _ => Value::UnaryLess(Box::new(value(rng, depth - 1))),
@@ -120,9 +120,9 @@ fn a_context_keeps_its_depth_through_every_change() {
     let mut ctx = context(&mut rng, 4);
     for step in 0..200 {
       change(&mut rng, &mut ctx);
-      let expected = reference(&Value::Context(ctx.clone()));
+      let expected = reference(&Value::from(ctx.clone()));
       assert_eq!(expected, ctx.nesting_depth(), "seed {seed}, step {step}: {ctx}");
-      assert_eq!(expected, Value::Context(ctx.clone()).nesting_depth());
+      assert_eq!(expected, Value::from(ctx.clone()).nesting_depth());
     }
   }
 }
@@ -184,7 +184,7 @@ fn the_depth_of_scalars_and_operands() {
   assert_eq!(0, value_number!(1).nesting_depth());
   assert_eq!(0, value_null!().nesting_depth());
   assert_eq!(1, Value::List(FeelList::new()).nesting_depth());
-  assert_eq!(1, Value::Context(FeelContext::default()).nesting_depth());
+  assert_eq!(1, Value::from(FeelContext::default()).nesting_depth());
   assert_eq!(2, function(FeelContext::default()).nesting_depth());
   assert_eq!(
     1,

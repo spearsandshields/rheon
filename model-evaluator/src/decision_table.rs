@@ -85,7 +85,7 @@ impl EvaluatedDecisionTable {
       for (i, value) in evaluated_rule.output_entry_values.iter().enumerate() {
         result.set_entry(&self.component_names[i], value.clone());
       }
-      Value::Context(result)
+      Value::from(result)
     } else {
       evaluated_rule.output_entry_values[0].clone()
     }
@@ -108,7 +108,7 @@ impl EvaluatedDecisionTable {
         for (i, value) in self.default_output_values.iter().enumerate() {
           result.set_entry(&self.component_names[i], value.clone());
         }
-        Value::Context(result)
+        Value::from(result)
       }
     }
   }

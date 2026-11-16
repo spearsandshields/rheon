@@ -59,7 +59,7 @@ fn a_long_list_stops_when_the_writer_stops() {
 #[test]
 fn a_context_stops_when_the_writer_stops() {
   assert_stops(&context_of("a", long_list()), ELEMENT);
-  assert_stops(&Value::Context(context_of("a", long_list())), ELEMENT);
+  assert_stops(&Value::from(context_of("a", long_list())), ELEMENT);
 }
 
 #[test]

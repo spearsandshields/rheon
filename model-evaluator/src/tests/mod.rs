@@ -68,7 +68,7 @@ pub fn context(input: &str) -> FeelContext {
     Ok(node) => {
       let evaluator = rheon_feel_evaluator::prepare(&node);
       match evaluator(&scope) {
-        Value::Context(ctx) => ctx,
+        Value::Context(ctx) => std::sync::Arc::unwrap_or_clone(ctx),
         other => panic!("ERROR: expected context value, actual value is: {}", other),
       }
     }

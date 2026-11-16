@@ -224,7 +224,7 @@ fn build_component_type_evaluator(item_definition: &DefItemDefinition) -> Result
           return value_null!("item definition evaluator (Component): name not found: {} in context: {}", arg(&component_name), arg(&ctx));
         }
       }
-      check_allowed_values(Value::Context(evaluated_ctx), av_evaluator.as_ref())
+      check_allowed_values(Value::from(evaluated_ctx), av_evaluator.as_ref())
     } else {
       value_null!("item definition evaluator (Component): expected context value, actual value is: {}", arg(&value))
     }
@@ -299,7 +299,7 @@ fn build_collection_of_component_type_evaluator(item_definition: &DefItemDefinit
               return value_null!("name '{}' not found in context '{}'", arg(&component_name), arg(&ctx));
             }
           }
-          evaluated_values.push(Value::Context(evaluated_ctx))
+          evaluated_values.push(Value::from(evaluated_ctx))
         } else {
           return value_null!("expected context, actual type is '{}' in value '{}'", arg(&TypeOf(item_value)), arg(&item_value));
         }
@@ -380,7 +380,7 @@ mod tests {
     let expected = format!("expected type 'string', actual type is '{actual_type}… (10000 entries)' in value '{actual_value}… (10000 entries)'");
     assert_eq!(
       Value::Null(Some(expected)),
-      evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), &Value::Context(wide)).unwrap()
+      evaluator.eval(&DefKey::new(NAMESPACE, "tCustomerName"), &Value::from(wide)).unwrap()
     );
   }
 
@@ -518,7 +518,7 @@ mod tests {
     ctx.set_entry(&"principal".into(), value_number!(10));
     ctx.set_entry(&"rate".into(), value_number!(60));
     ctx.set_entry(&"termMonths".into(), value_number!(28));
-    let expected = Value::Context(ctx);
+    let expected = Value::from(ctx);
     assert_eq!(expected, evaluator.eval(&DefKey::new(NAMESPACE, "tLoan"), value).unwrap());
   }
 
@@ -682,7 +682,7 @@ mod tests {
     ctx_3.set_entry(&"number".into(), value_number!(3));
     ctx_3.set_entry(&"name".into(), Value::String("Three".into()));
     ctx_3.set_entry(&"manager".into(), Value::String("Bob".into()));
-    let expected = Value::List(vec![Value::Context(ctx_1), Value::Context(ctx_2), Value::Context(ctx_3)].into());
+    let expected = Value::List(vec![Value::from(ctx_1), Value::from(ctx_2), Value::from(ctx_3)].into());
     assert_eq!(Some(expected), evaluator.eval(&DefKey::new(NAMESPACE, "tItems"), value));
   }
 
@@ -709,7 +709,7 @@ mod tests {
     for (feel_type, not_a_list, element) in cases {
       let evaluator = super::build_collection_of_simple_type_evaluator(feel_type.clone(), None).unwrap();
       assert_eq!(expected(not_a_list), evaluator(&value_number!(1), &evaluators), "{feel_type:?}");
-      let list = Value::List(vec![Value::Context(FeelContext::default())].into());
+      let list = Value::List(vec![Value::from(FeelContext::default())].into());
       let result = evaluator(&list, &evaluators);
       match element {
         Some(element) => assert_eq!(expected(element), result, "{feel_type:?}"),

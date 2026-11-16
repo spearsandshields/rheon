@@ -55,7 +55,7 @@ fn a_longer_argument_is_a_preview_with_its_size() {
   let quoted = arg(&big).to_string();
   assert!(quoted.ends_with("… (1000 entries)"), "{quoted}");
   assert_eq!(120 + "… (1000 entries)".chars().count(), quoted.chars().count());
-  assert!(arg(&Value::Context(big)).to_string().ends_with("… (1000 entries)"));
+  assert!(arg(&Value::from(big)).to_string().ends_with("… (1000 entries)"));
   let one = context([("a".to_string(), Value::String("x".repeat(500).into()))]);
   assert!(arg(&one).to_string().ends_with("… (1 entry)"));
   // values without a size end with the cut alone
@@ -120,10 +120,10 @@ fn function(parameters: Vec<FeelType>, result: FeelType) -> Value {
 #[test]
 fn the_type_of_a_value_is_quoted_from_the_value() {
   let a = || Value::String("a".into());
-  let nested = context([("outer".to_string(), Value::Context(context([("inner".to_string(), numbers(2))])))]);
+  let nested = context([("outer".to_string(), Value::from(context([("inner".to_string(), numbers(2))])))]);
   let wide = context((0..10_000).map(|i| (format!("entry{i}"), value_number!(i))));
   let entry = |name: &str| format!("{name} {}", "entry".repeat(8));
-  let three = || Value::Context(context([(entry("x"), value_number!(1)), (entry("y"), a()), (entry("z"), Value::Null(None))]));
+  let three = || Value::from(context([(entry("x"), value_number!(1)), (entry("y"), a()), (entry("z"), Value::Null(None))]));
   let one = Box::new(value_number!(1));
   let ten = Box::new(value_number!(10));
   let values = vec![
@@ -136,12 +136,12 @@ fn the_type_of_a_value_is_quoted_from_the_value() {
     Value::List(vec![Value::Null(None), value_number!(1)].into()),
     Value::List(vec![value_number!(1), Value::Null(None)].into()),
     Value::List(vec![numbers(1)].into()),
-    Value::Context(context([("a".to_string(), numbers(2))])),
-    Value::Context(nested),
+    Value::from(context([("a".to_string(), numbers(2))])),
+    Value::from(nested),
     function(vec![FeelType::Number, FeelType::List(Box::new(FeelType::String))], FeelType::Boolean),
     Value::Range(one, IntervalType::Closed, ten, IntervalType::Closed),
     Value::FeelType(FeelType::Context([(Name::from("t"), FeelType::Date)].into())),
-    Value::Context(wide),
+    Value::from(wide),
     Value::List((0..1000).map(|_| three()).collect()),
   ];
   for value in &values {
@@ -159,7 +159,7 @@ fn the_type_of_a_value_is_quoted_from_the_value() {
 
 #[test]
 fn the_type_of_a_list_whose_first_item_has_a_huge_type_is_not_built() {
-  let huge = Value::Context(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
+  let huge = Value::from(context((0..2_000).map(|i| (format!("entry{i}"), value_number!(i)))));
   let list = Value::List(vec![huge, value_number!(1)].into());
   assert_eq!("list<…>", arg(&TypeOf(&list)).to_string());
   assert_eq!("list<Any>", list.type_of().to_string());

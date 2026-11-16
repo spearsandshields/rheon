@@ -100,7 +100,7 @@ fn input_context(names: &[&str], contexts: Vec<(&str, FeelContext)>) -> FeelCont
     ctx.set_null(Name::from(*name));
   }
   for (name, nested) in contexts {
-    ctx.set_entry(&Name::from(name), Value::Context(nested));
+    ctx.set_entry(&Name::from(name), Value::from(nested));
   }
   ctx
 }

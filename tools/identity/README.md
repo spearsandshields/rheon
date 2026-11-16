@@ -81,9 +81,11 @@ sets, depth probes 501 levels deep, answer the value-depth error, while 0.5.0 an
 them and traps on one; they are not committed, so they are not registered, and `--large` lists them
 as differences. Five requests of the large sets trap 0.5.0 (two of them after 1.2 s each, three
 at once); the 17 of `memory-exhausting.json` exhaust its memory (1.2 to 1.7 s each, its two
-100,000-level loops after 158 s and 35 s), and the candidate answers 9 of them (the two loops
-with the value-depth error, and the 7 of `release/registered/shared-lists.json` in 7 to 9 ms
-each) and exhausts its memory on 8; the 12 of `values-deep.json` take
+100,000-level loops after 158 s and 35 s), and the candidate answers 12 of them (the two loops
+with the value-depth error, the 7 of `release/registered/shared-lists.json` in 7 to 9 ms
+each, and the 3 of `release/registered/shared-contexts.json`: `=` in under 1 ms, the two parse
+requests in 52 s and 37 s, because the parser's index of the input context visits a context
+again on every path that reaches it) and exhausts its memory on 5; the 12 of `values-deep.json` take
 44 s on each side, and the 4 of `value-depth-deep.json` trap the reference after 0.6 to 1.3 s. The
 release run took 533 s (peak 3.4 GB). A cached trap is evaluated again on every run (see the
 cache section), so the cache cannot save that time. The peak memory is 3.4 GB for the large sets

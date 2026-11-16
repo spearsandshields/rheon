@@ -13,6 +13,7 @@ use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::ops::Bound;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 /// Type alias for context entries.
@@ -65,18 +66,20 @@ impl fmt::Debug for FeelContext {
 impl TryFrom<Value> for FeelContext {
   type Error = DsntkError;
   /// Converts [Value] to [FeelContext].
+  /// The context is moved out of a value that holds it alone, and copied out of a shared one
+  /// (a shallow copy: each entry clone shares what the entry holds).
   fn try_from(value: Value) -> Result<Self, Self::Error> {
     let Value::Context(ctx) = value else {
       return Err(err_value_is_not_a_context(&value));
     };
-    Ok(ctx)
+    Ok(Arc::unwrap_or_clone(ctx))
   }
 }
 
 impl From<FeelContext> for Value {
-  /// Converts [FeelContext] to [Value].
+  /// Converts [FeelContext] to [Value], which holds it alone.
   fn from(ctx: FeelContext) -> Self {
-    Value::Context(ctx)
+    Value::Context(Arc::new(ctx))
   }
 }
 
@@ -300,9 +303,10 @@ impl FeelContext {
       self.put(key, value);
       return;
     }
-    // if there is a context under the key, then insert value to this context and return
+    // if there is a context under the key, then insert value to this context (a copy of it, when
+    // it is shared, so only the contexts on the path are copied) and return
     if let Some(Value::Context(ctx)) = self.entries_mut().get_mut(&key) {
-      ctx.create_entries(tail, value);
+      Arc::make_mut(ctx).create_entries(tail, value);
       return;
     }
     // insert a value from tail to newly created context

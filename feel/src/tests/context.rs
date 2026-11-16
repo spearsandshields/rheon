@@ -279,7 +279,7 @@ fn test_context_apply_entries() {
   let name_d: Name = "d".into();
   let v_a = VALUE_TRUE;
   let v_b = VALUE_FALSE;
-  let v_c = Value::Context(FeelContext::new());
+  let v_c = Value::from(FeelContext::new());
   let mut ctx = FeelContext::new();
   ctx.apply_entries(&[], v_a.clone()).unwrap();
   assert_eq!("{}", ctx.to_string());
@@ -403,7 +403,7 @@ fn test_try_from_value_context() {
   ctx_a.set_entry(&name_b, value_number!(2));
   ctx_a.set_entry(&name_c, value_number!(3));
   ctx_a.set_entry(&name_d, value_number!(4));
-  let v = Value::Context(ctx_a);
+  let v = Value::from(ctx_a);
   let ctx_b = FeelContext::try_from(v).unwrap();
   assert_eq!(
     vec![

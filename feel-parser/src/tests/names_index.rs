@@ -127,23 +127,23 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
     0..=3 => number(rng.below(10) as i64),
     4 => Value::String("s".into()),
     5 => Value::Null(None),
-    6 | 7 => Value::Context(context(rng, depth + 1)),
+    6 | 7 => Value::from(context(rng, depth + 1)),
     8 => {
       // a list of contexts with the same keys (conformant), or with different keys
       let first = context(rng, depth + 1);
-      let mut items = vec![Value::Context(first.clone())];
+      let mut items = vec![Value::from(first.clone())];
       for _ in 0..rng.below(3) {
-        items.push(Value::Context(if rng.chance(70) { first.clone() } else { context(rng, depth + 1) }));
+        items.push(Value::from(if rng.chance(70) { first.clone() } else { context(rng, depth + 1) }));
       }
       Value::List(items.into())
     }
     9 => Value::List(
       match rng.below(5) {
         0 => vec![],
-        1 => vec![Value::Null(None), Value::Context(context(rng, depth + 1))],
-        2 => vec![Value::Context(context(rng, depth + 1)), Value::Null(None)],
-        3 => vec![number(1), Value::Context(context(rng, depth + 1))],
-        _ => vec![Value::List(vec![Value::Context(context(rng, depth + 1))].into())],
+        1 => vec![Value::Null(None), Value::from(context(rng, depth + 1))],
+        2 => vec![Value::from(context(rng, depth + 1)), Value::Null(None)],
+        3 => vec![number(1), Value::from(context(rng, depth + 1))],
+        _ => vec![Value::List(vec![Value::from(context(rng, depth + 1))].into())],
       }
       .into(),
     ),
@@ -154,7 +154,7 @@ fn value(rng: &mut Rng, depth: usize) -> Value {
       a.set_entry(&key, number(1));
       let mut b = FeelContext::default();
       b.set_entry(&key, if rng.chance(50) { Value::String("s".into()) } else { Value::Null(None) });
-      Value::List(vec![Value::Context(a), Value::Context(b)].into())
+      Value::List(vec![Value::from(a), Value::from(b)].into())
     }
     11 => Value::FeelType(context_type(rng, depth)),
     12 => Value::FeelType(FeelType::List(Box::new(context_type(rng, depth)))),
@@ -502,11 +502,11 @@ pub(super) fn chain(depth: usize) -> FeelContext {
   ctx.set_entry(&Name::from("leaf"), number(1));
   for level in (0..depth).rev() {
     let mut parent = FeelContext::default();
-    parent.set_entry(&Name::from(format!("k{level}").as_str()), Value::Context(ctx));
+    parent.set_entry(&Name::from(format!("k{level}").as_str()), Value::from(ctx));
     ctx = parent;
   }
   let mut top = ctx.clone();
-  top.set_entry(&Name::from("a./"), Value::Context(ctx));
+  top.set_entry(&Name::from("a./"), Value::from(ctx));
   top.set_entry(&Name::from("x"), number(1));
   top
 }
@@ -565,7 +565,7 @@ fn list_item_context_types() {
   let one = |key: &str| {
     let mut ctx = FeelContext::default();
     ctx.set_entry(&Name::from(key), number(1));
-    Value::Context(ctx)
+    Value::from(ctx)
   };
   let context_type = FeelType::Context(BTreeMap::from([(Name::from("a"), FeelType::Number)]));
   for (list, has_context_items) in [

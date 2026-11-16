@@ -1,23 +1,23 @@
 //! # The type of a value related to a type, without building the type of the value
 //!
-//! [Value::type_of] builds the type of a value as a tree. A value can hold the same list on
-//! several paths (`[x, x]` holds `x` twice without a copy), so a value that a loop doubles
-//! through `partial` has exponentially many paths in a linear size, and building its type, or
-//! checking each item against the type of the first, follows every path. The relations here
-//! answer what the built type would answer, reading the value only as far as the relation needs:
-//! the type of a value is the given type, the types of two values are equal, the type of a value
-//! conforms to the type of another ([FeelType::is_conformant]), and `instance of`
-//! ([FeelType::instance_of]).
+//! [Value::type_of] builds the type of a value as a tree. A value can hold the same list or
+//! context on several paths (`[x, x]` and `{a: x, b: x}` hold `x` twice without a copy), so a
+//! value that a loop doubles through `partial` has exponentially many paths in a linear size, and
+//! building its type, or checking each item against the type of the first, follows every path.
+//! The relations here answer what the built type would answer, reading the value only as far as
+//! the relation needs: the type of a value is the given type, the types of two values are equal,
+//! the type of a value conforms to the type of another ([FeelType::is_conformant]), and
+//! `instance of` ([FeelType::instance_of]).
 //!
 //! The type of a list is a list of the type of its first item when every other item's type
 //! conforms to it, and a list of `Any` otherwise. Within one relation, whether a list's items
 //! conform to its first is decided once per list that nests more than two levels (a shallower
 //! one costs a pass over its items when it is reached again), and the answer for a pair of nodes
-//! is remembered when either node is a shared list. A pair is reached again only through two
-//! paths that meet in a list held twice, which is shared, so every pair is decided once. The
-//! memory lives for one relation, keyed by the addresses of the borrowed nodes (no other node is
-//! stored at an address while the values are borrowed), is created on first use, and is never
-//! iterated.
+//! is remembered when either node is a shared list or a shared context. A pair is reached again
+//! only through two paths that meet in a list or a context held twice, which is shared, so every
+//! pair is decided once. The memory lives for one relation, keyed by the addresses of the
+//! borrowed nodes (no other node is stored at an address while the values are borrowed), is
+//! created on first use, and is never iterated.
 
 use crate::context::FeelContext;
 use crate::names::Name;
@@ -25,6 +25,7 @@ use crate::types::FeelType;
 use crate::values::{FeelList, Value};
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 const ANY: &FeelType = &FeelType::Any;
 const NULL: &FeelType = &FeelType::Null;
@@ -190,20 +191,24 @@ impl<'a> Ty<'a> {
   }
 
   /// This type as a key of the memory: a non-empty list value by the address of its items, a
-  /// context value or a type by its own address; `None` for any other type, whose relations
-  /// are decided without walking a value.
+  /// context value by the address of its context, a type by its own address; `None` for any
+  /// other type, whose relations are decided without walking a value.
   fn node(self) -> Option<Node> {
     match self {
       Ty::Of(Value::List(items)) => items.address().map(Node::Items),
-      Ty::Of(Value::Context(ctx)) => Some(Node::Context(std::ptr::from_ref(ctx).addr())),
+      Ty::Of(Value::Context(ctx)) => Some(Node::Context(Arc::as_ptr(ctx).addr())),
       Ty::Is(feel_type) => Some(Node::Type(std::ptr::from_ref(feel_type).addr())),
       Ty::Of(_) => None,
     }
   }
 
-  /// Whether this is the type of a list that shares its items.
+  /// Whether this is the type of a list that shares its items or of a shared context.
   fn is_shared(self) -> bool {
-    matches!(self, Ty::Of(Value::List(items)) if items.is_shared())
+    match self {
+      Ty::Of(Value::List(items)) => items.is_shared(),
+      Ty::Of(Value::Context(ctx)) => Arc::strong_count(ctx) > 1,
+      _ => false,
+    }
   }
 }
 
@@ -229,7 +234,7 @@ enum Relation {
 struct Relations {
   /// Whether the items of a list conform to its first item, by the address of the items.
   uniform: Option<HashMap<usize, bool>>,
-  /// The answers for the pairs with a shared list on either side.
+  /// The answers for the pairs with a shared list or a shared context on either side.
   pairs: Option<HashMap<(Relation, Node, Node), bool>>,
 }
 
@@ -282,7 +287,7 @@ impl<'a> Relations {
   }
 
   /// The answer of `decide` for `relation` between `a` and `b`, remembered when either is a
-  /// shared list.
+  /// shared list or a shared context.
   fn remembered(&mut self, relation: Relation, a: Ty<'a>, b: Ty<'a>, decide: impl FnOnce(&mut Self) -> bool) -> bool {
     if (a.is_shared() || b.is_shared())
       && let (Some(a), Some(b)) = (a.node(), b.node())

@@ -6,7 +6,7 @@ use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name, value_null};
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 /// Name of the special context entry holding the item of a filtered list.
 static ITEM: LazyLock<Name> = LazyLock::new(|| Name::from("item"));
@@ -44,7 +44,7 @@ fn matched_copied(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) ->
     stopped()?;
     let depth = scope.depth();
     let has_item_entry = if let Value::Context(local_context) = value {
-      scope.push(local_context.clone());
+      scope.push(FeelContext::clone(local_context));
       local_context.contains_entry(name_item)
     } else {
       false
@@ -74,17 +74,17 @@ fn matched_moved(scope: &FeelScope, values: &mut [Value], evaluator: &Evaluator)
     let depth = scope.depth();
     let predicate = match std::mem::replace(slot, Value::Null(None)) {
       Value::Context(local_context) if local_context.contains_entry(name_item) => {
-        scope.push(local_context);
+        scope.push(Arc::unwrap_or_clone(local_context));
         let predicate = evaluator(scope);
         let Some(local_context) = scope.pop_frame(depth) else {
           return Err(lost_context(ITEM_CONTEXT));
         };
-        *slot = Value::Context(local_context);
+        *slot = local_context.into();
         predicate
       }
       value => {
         let item_depth = if let Value::Context(local_context) = &value {
-          scope.push(local_context.clone());
+          scope.push(FeelContext::clone(local_context));
           depth + 1
         } else {
           depth

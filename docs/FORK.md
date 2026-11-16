@@ -2632,6 +2632,60 @@ their items with both answers. The totals are under "Verification" below.
     with the added `FunctionDefinition::parameters()` (`&[(Name, FeelType)]`) and
     `FunctionDefinition::result_type()` (`&FeelType`); build a definition with
     `FunctionDefinition::new` as before.
+159. **Context values are shared.** A context value held its context by value, so every copy of
+    it (a name read, an argument passed, an entry taken out, `partial` in a loop) copied all its
+    entries and theirs: `data.entry0` over a context of 10,000 entries copied the 10,000 entries
+    (11,546 allocations and 1,644,148 B more than over one entry), and a context that a loop
+    doubles 30 times through `partial` (`{a: partial[-1], b: partial[-1]}`) held 2^29 copies of
+    its first context and exhausted the module's memory. `Value::Context` now holds an
+    `Arc<FeelContext>`: a copy shares the context, and a context is never changed while it is
+    shared (`context put` "Returns a new context that includes the new entry", DMN 1.6 Table 82).
+    A change takes the context out of its value (`FeelContext::try_from` moves it out of a value
+    that holds it alone and copies it otherwise) or copies it through `Arc::make_mut`; a copy is
+    shallow, its entries share what they hold. The changes along a path (`create_entries`,
+    `create_entry`, `apply_entries`, `move_entry`, and the merge of a decision's imports) copy
+    only the shared contexts on the path; the merge takes a nested context out of its target
+    first, so a context the target holds alone is merged in place (a unit test in
+    `model-evaluator/src/decision.rs` keeps its address and leaves a copy held elsewhere
+    unchanged). `context put` copies the entries of its context only, and the
+    path step, `get entries`, `context merge` of one context and the binding of a context to a
+    name are reference counts. The walks of items 155 to 157 treat a shared context as they treat
+    a shared list: equality remembers the answer for a pair of contexts of one size where either
+    is shared, keyed by the addresses of the contexts, and the type relations of `instance of`
+    remember a pair with a shared context on either side; a pair is reached again only through
+    two paths that meet in a list or a context held twice, which is shared, so each pair is
+    decided once. A filter of a list of contexts still gives each item's entries a frame of
+    their own, now a shallow copy of the item. A value is quoted in a message
+    through its `Arc` as before. Tests first: `feel/src/tests/contexts_shared.rs` applies every
+    method that changes a context (`set_entry`, `insert`, `assign_entry`, `remove_entry`,
+    `set_null`, `zip`, `overwrite`, `move_entry`, `create_entry`, `create_entries`,
+    `apply_entries`) to a copy at nesting 1, 2 and 3 and checks that the original equals a
+    snapshot, that the copy changed, that the copy owns the contexts on the path and shares the
+    contexts off it; that a path of 1 to 3 names copies the contexts on the path only; and that a
+    context value copied into 8 threads and changed in each leaves the original unchanged; on the
+    parent the original stays unchanged but a copy shares nothing. In
+    `feel-evaluator/src/tests/shared_values.rs`, `=`, `distinct values`, `index of`,
+    `list contains`, `union`, `in` and `instance of` over contexts doubled 60 times answer at once;
+    with this commit's contexts but without the context arms of the walks, each of the three tests
+    was still running when it was stopped after 60 s. In `feel-evaluator/tests/allocations.rs`,
+    `data.entry0`, `get value(data, "entry0")`, `{f: function(c) c.entry0, r: f(data)}.r` and
+    `{d: data, r: d.entry0}.r` over a context of 10,000 entries cost at most 8 allocations and
+    under 4 KiB more than over one entry. Answers change: 4 requests of
+    `tools/identity/release/requests/memory-exhausting.json`, which exhausted the memory of 0.5.0
+    (the three over a context doubled 30 times after 1.4 to 1.5 s), now answer
+    (`tools/identity/release/registered/shared-contexts.json`): `=` of the doubled context with
+    itself (true, in under 1 ms), the invocation of a function whose parameter declares
+    `context<a: …>` nested 40 levels deep with a context doubled 40 times (0: a context type
+    names the entries it follows, so the check follows one path), and the parse of `x.a.a` and of
+    `{r: x.a}` with the doubled context as the FEEL input context (their syntax trees), which take
+    52 s and 37 s on this module, because the parser's index of the input context visits a context
+    again on every path that reaches it. Rendering the doubled context and its descendants `...a`,
+    whose results are exponential in size, still exhaust the memory. No other committed request
+    and no official TCK test changes its answer. Rust API (`rheon-feel`): `Value::Context` holds
+    `Arc<FeelContext>` instead of `FeelContext` (build one with `ctx.into()` or `Value::from(ctx)`;
+    match `Value::Context(ctx)` and read through the `Arc`; take the context out with
+    `FeelContext::try_from(value)` or `Arc::unwrap_or_clone`); `rheon_feel::message::MessageArg`
+    is implemented for `Arc<T>` where `T: MessageArg`. `Value` stays `Send + Sync`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

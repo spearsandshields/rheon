@@ -6,6 +6,7 @@ use rheon_feel::diagnostics;
 use rheon_feel::values::Value;
 use rheon_feel::{Evaluator, FeelScope, Name};
 use rheon_feel_parser::AstNode;
+use std::sync::Arc;
 
 /// Evaluates a [Value] from given [AstNode] in its own [Session].
 pub fn evaluate(scope: &FeelScope, node: &AstNode) -> Outcome<Value> {
@@ -66,7 +67,7 @@ pub fn evaluate_context(scope: &FeelScope, input: &str) -> Result<FeelContext> {
 /// Evaluates a context from AST node in its own [Session]; a stopped evaluation is an error.
 pub fn evaluate_context_node(scope: &FeelScope, node: &AstNode) -> Result<FeelContext> {
   if let Value::Context(context) = evaluate(scope, node).into_result()? {
-    Ok(context)
+    Ok(Arc::unwrap_or_clone(context))
   } else {
     Err(err_not_a_context())
   }

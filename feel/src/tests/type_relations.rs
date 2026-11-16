@@ -78,7 +78,7 @@ fn values(rng: &mut Rng) -> Vec<Value> {
         for _ in 0..rng.below(3) {
           ctx.set_entry(&rng.name(), rng.pick(&values).clone());
         }
-        Value::Context(ctx)
+        Value::from(ctx)
       }
       1 => Value::Range(
         Box::new(rng.pick(&values).clone()),

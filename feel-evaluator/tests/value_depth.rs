@@ -38,11 +38,11 @@ fn deep_list(levels: usize) -> Value {
 
 /// A context `levels` deep: `levels - 1` contexts `{a: ..}` around an empty one.
 fn deep_context(levels: usize) -> Value {
-  let mut value = Value::Context(FeelContext::default());
+  let mut value = Value::from(FeelContext::default());
   for _ in 1..levels {
     let mut ctx = FeelContext::default();
     ctx.set_entry(&Name::from("a"), value);
-    value = Value::Context(ctx);
+    value = Value::from(ctx);
   }
   value
 }
