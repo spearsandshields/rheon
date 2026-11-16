@@ -1203,8 +1203,9 @@ impl<'p> Vm<'p> {
           }
           // the scope the layout has from an invocation before, unless that one saw entries
           // that this region does not see
-          let mut scope = match layout_scopes[layout as usize].take() {
-            Some((scope, seen)) if kept && seen <= visible => scope,
+          // (a region of another program gets a scope of its own, which is not kept)
+          let mut scope = match kept.then(|| layout_scopes[layout as usize].take()).flatten() {
+            Some((scope, seen)) if seen <= visible => scope,
             _ => Arc::default(),
           };
           let context = Arc::make_mut(&mut scope);
