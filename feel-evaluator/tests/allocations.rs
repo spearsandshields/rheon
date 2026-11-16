@@ -302,3 +302,27 @@ fn filters_allocate_only_for_the_items_they_keep() {
     "{allocations} allocations, {bytes} bytes"
   );
 }
+
+/// A function of the host invoked in a walk gets the walk's variables and `partial` in its scope,
+/// and they are not held after the invocation: the results grow without a copy.
+#[test]
+fn a_function_of_the_host_invoked_in_a_walk_holds_no_copy_of_its_results() {
+  let measure = |n: usize| {
+    let input = parse_expression(&scope!(), "{f: function(x) x}", false).expect("the context parses");
+    let Value::Context(input) = prepare(&input)(&scope!()) else { panic!("not a context") };
+    let scope = FeelScope::from(std::sync::Arc::unwrap_or_clone(input));
+    let evaluator = prepare(&parse_expression(&scope, &format!("count(for i in 1..{n} return f(i))"), false).expect("the expression parses"));
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    assert_eq!(Value::Number(n.into()), value);
+    ((ALLOCATIONS.with(Cell::get) - allocations) as i64, bytes as i64)
+  };
+  let (many, one) = (measure(10_000), measure(1));
+  let (allocations, bytes) = (many.0 - one.0, many.1 - one.1);
+  // 30,009 allocations and 12,665,583 bytes measured (3 allocations and about 1 KiB an
+  // invocation), and a tenth; a copy of the results in each iteration would take gigabytes
+  assert!(
+    allocations <= 33_010 && bytes <= 13_932_141,
+    "{allocations} allocations and {bytes} bytes more over 10,000 than over one"
+  );
+}

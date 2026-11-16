@@ -51,6 +51,12 @@ struct Vm<'p> {
   records: Vec<Record>,
   /// The domains of the variables that have a value in the open walks, innermost last.
   domains: Vec<Sequence>,
+  /// For each region, the scope that invocations of functions of the host in it get, once one
+  /// was invoked there: its names are the region's, its values are set for each invocation and
+  /// set back to null after it, so it holds no value between invocations.
+  scopes: Vec<Option<Arc<FeelContext>>>,
+  /// The regions of the invocation being made, innermost first.
+  chain: Vec<u32>,
 }
 
 /// An open walk or filter.
@@ -115,6 +121,8 @@ impl<'p> Vm<'p> {
       calls: vec![],
       records: vec![],
       domains: vec![],
+      scopes: vec![],
+      chain: vec![],
     }
   }
 
@@ -327,6 +335,7 @@ impl<'p> Vm<'p> {
             let depth = self.materialize(call.region);
             let value = invoke(self.host, function, arguments, program.dialect);
             self.host.truncate(depth);
+            self.release();
             value
           } else {
             invoke(self.host, function, arguments, program.dialect)
@@ -594,46 +603,82 @@ impl<'p> Vm<'p> {
 
   /// Pushes on the scope of the host the scopes that the evaluator of closures has at a position
   /// whose innermost region is `region`, outermost first; returns the depth of the scope before.
-  /// A scope without entries is left out: it changes no read.
+  /// A scope without entries is left out: it changes no read. [Vm::release] ends the invocation.
   #[cold]
   #[inline(never)]
-  fn materialize(&self, region: u32) -> usize {
+  fn materialize(&mut self, region: u32) -> usize {
     let depth = self.host.depth();
-    let mut chain = vec![];
+    let program = self.program;
+    if self.scopes.is_empty() {
+      self.scopes.resize(program.regions.len(), None);
+    }
+    self.chain.clear();
     let mut at = region;
     while at != NONE {
-      chain.push(at);
-      at = self.program.regions[at as usize].parent;
+      self.chain.push(at);
+      at = program.regions[at as usize].parent;
     }
-    for &at in chain.iter().rev() {
-      match self.program.regions[at as usize].kind {
+    for index in (0..self.chain.len()).rev() {
+      let at = self.chain[index];
+      match program.regions[at as usize].kind {
         RegionKind::Layout { layout, visible } => {
-          let mut context = FeelContext::default();
-          for &(name, place) in self.program.layouts[layout as usize].visible(visible) {
-            context.set_entry(&self.program.names[name as usize], self.place(place));
+          let mut entries = program.layouts[layout as usize].visible(visible).peekable();
+          if entries.peek().is_none() {
+            continue;
           }
-          if !context.is_empty() {
-            self.host.push(context);
+          let mut scope = self.scopes[at as usize].take().unwrap_or_default();
+          let context = Arc::make_mut(&mut scope);
+          for &(name, place) in entries {
+            context.assign_entry(&program.names[name as usize], self.place(place));
           }
+          self.host.push_shared(Arc::clone(&scope));
+          self.scopes[at as usize] = Some(scope);
         }
         // while the filter visits its items: the item's entries, then the item
         RegionKind::Item { record } => {
           let filter = self.filter(record);
-          if let Some(item) = filter.item() {
-            if let Value::Context(context) = item {
-              self.host.push_shared(context.clone());
-            }
-            if !filter.item_entry {
-              let mut context = FeelContext::default();
-              context.set_entry(&ITEM, item.clone());
-              self.host.push(context);
-            }
+          let Some(item) = filter.item() else {
+            continue;
+          };
+          if let Value::Context(context) = item {
+            self.host.push_shared(context.clone());
+          }
+          if !filter.item_entry {
+            let item = item.clone();
+            let mut scope = self.scopes[at as usize].take().unwrap_or_default();
+            Arc::make_mut(&mut scope).assign_entry(&ITEM, item);
+            self.host.push_shared(Arc::clone(&scope));
+            self.scopes[at as usize] = Some(scope);
           }
         }
         RegionKind::Closure => {}
       }
     }
     depth
+  }
+
+  /// Ends the invocation of [Vm::materialize]: the values of the scopes it pushed, which the scope
+  /// of the host no longer holds, are set back to null, so that no value is held twice (a list
+  /// held twice is copied when it grows).
+  #[cold]
+  #[inline(never)]
+  fn release(&mut self) {
+    for &at in &self.chain {
+      if let Some(scope) = &mut self.scopes[at as usize] {
+        let context = Arc::make_mut(scope);
+        match self.program.regions[at as usize].kind {
+          RegionKind::Layout { layout, visible } => {
+            for &(name, _) in self.program.layouts[layout as usize].visible(visible) {
+              context.assign_entry(&self.program.names[name as usize], Value::Null(None));
+            }
+          }
+          RegionKind::Item { .. } => {
+            context.assign_entry(&ITEM, Value::Null(None));
+          }
+          RegionKind::Closure => {}
+        }
+      }
+    }
   }
 
   /// The value of the qualified name of `searches[search]`: in each scope of its position,
