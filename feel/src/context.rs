@@ -85,6 +85,18 @@ impl FromIterator<(Name, Value)> for FeelContext {
   }
 }
 
+impl FeelContext {
+  /// Builds a context from entries that come in ascending order of their names, each name
+  /// once, in one pass and without the check of [FromIterator]. Entries in another order give a
+  /// context too, but which of two entries with one name it keeps is not defined.
+  pub fn from_ascending_entries(entries: impl IntoIterator<Item = (Name, Value)>) -> Self {
+    Self {
+      entries: FeelContextEntries::from_iter(entries),
+      depth: AtomicU32::new(0),
+    }
+  }
+}
+
 impl TryFrom<Value> for FeelContext {
   type Error = DsntkError;
   /// Converts [Value] to [FeelContext].

@@ -353,6 +353,21 @@ fn hex4(bytes: &[u8], at: usize) -> Option<u32> {
   Some(value)
 }
 
+/// The keys of an object as they stand in the text, with what was found out about them. The
+/// records of a list mostly have the same keys in the same order: the next object with these
+/// keys takes the names (one text for all of them, not one per record) and the order, for one
+/// comparison per key.
+#[derive(Default)]
+struct Shape {
+  /// The names of the keys, in the order of the text.
+  names: Vec<Name>,
+  /// Whether the keys are in ascending order, each one once.
+  ascending: bool,
+  /// When they are not: for each place of the ascending order, the index of its entry in the
+  /// order of the text; of the entries with one key only the last.
+  order: Vec<usize>,
+}
+
 /// Reads JSON text into FEEL values. It accepts only JSON that `serde_json` accepts: what it
 /// does not expect at a position, it refuses.
 pub(crate) struct Reader<'a, 'w> {
@@ -364,6 +379,12 @@ pub(crate) struct Reader<'a, 'w> {
   entries: Vec<(Name, Value)>,
   /// The number of arrays and objects around the position, those of the request included.
   depth: usize,
+  /// The keys of the object read last at each depth, see [Shape].
+  shapes: Vec<Shape>,
+  /// The depth inside the outermost array or object of the text.
+  outermost: usize,
+  /// The entries of an object while they are put into the order of their keys.
+  unordered: Vec<Option<(Name, Value)>>,
 }
 
 impl<'a, 'w> Reader<'a, 'w> {
@@ -375,6 +396,9 @@ impl<'a, 'w> Reader<'a, 'w> {
       warnings,
       entries: vec![],
       depth,
+      shapes: vec![],
+      outermost: depth + 1,
+      unordered: vec![],
     }
   }
 
@@ -500,10 +524,14 @@ impl<'a, 'w> Reader<'a, 'w> {
       self.leave();
       return Ok(FeelContext::default());
     }
+    let level = self.depth;
+    if self.shapes.len() <= level {
+      self.shapes.resize_with(level + 1, Shape::default);
+    }
     let first_warning = self.warnings.len();
     let first_entry = self.entries.len();
-    // whether the keys came in ascending order, each one once
-    let mut ascending = true;
+    // whether the keys so far are those of the object read before at this depth, in its order
+    let mut same = true;
     loop {
       self.skip_white();
       let key = self.read_string()?;
@@ -513,8 +541,19 @@ impl<'a, 'w> Reader<'a, 'w> {
       }
       self.expect(b':')?;
       let value = self.read_value(&Path::Key(path, &key))?;
-      let name = Name::from(key.into_owned());
-      ascending &= self.entries.get(first_entry..).and_then(<[_]>::last).is_none_or(|last| last.0 < name);
+      let index = self.entries.len() - first_entry;
+      let known = if same {
+        self.shapes[level].names.get(index).filter(|name| name.as_str() == key)
+      } else {
+        None
+      };
+      let name = match known {
+        Some(name) => name.clone(),
+        None => {
+          same = false;
+          Name::from(&*key)
+        }
+      };
       self.entries.push((name, value));
       match self.peek() {
         Some(b',') => self.at += 1,
@@ -525,16 +564,29 @@ impl<'a, 'w> Reader<'a, 'w> {
         _ => return Err(Refused),
       }
     }
-    if !ascending {
+    let count = self.entries.len() - first_entry;
+    if !same || count != self.shapes[level].names.len() || level == self.outermost {
+      self.remember_shape(level, first_entry);
+    }
+    if !self.shapes[level].ascending {
       // the warnings would have to follow the entries into the order of the keys
       if self.warnings.len() > first_warning {
         return Err(Refused);
       }
-      self.in_key_order(first_entry);
+      self.unordered.clear();
+      self.unordered.extend(self.entries.drain(first_entry..).map(Some));
+      for index in &self.shapes[level].order {
+        // every index is that of one entry, once
+        if let Some(entry) = self.unordered.get_mut(*index).and_then(Option::take) {
+          self.entries.push(entry);
+        }
+      }
+      self.unordered.clear();
     }
+    // the entries are in ascending order of their names now, each name once
     if first_entry == 0 && self.entries.len() > DIRECT_ENTRIES {
       // the outermost object takes the buffer as it is, without a copy of its entries
-      return Ok(std::mem::take(&mut self.entries).into_iter().collect());
+      return Ok(FeelContext::from_ascending_entries(std::mem::take(&mut self.entries)));
     }
     let entries = self.entries.drain(first_entry..);
     Ok(if entries.len() <= DIRECT_ENTRIES {
@@ -544,23 +596,36 @@ impl<'a, 'w> Reader<'a, 'w> {
       }
       context
     } else {
-      entries.collect()
+      FeelContext::from_ascending_entries(entries)
     })
   }
 
-  /// Puts the entries of the object that start at `first` into the order of their keys, and
-  /// keeps the last of the entries with one key.
-  fn in_key_order(&mut self, first: usize) {
-    // a stable sort: entries with one key stay in the order of the text
-    self.entries[first..].sort_by(|a, b| a.0.cmp(&b.0));
-    let mut kept = first;
-    for index in first + 1..self.entries.len() {
-      if self.entries[kept].0 != self.entries[index].0 {
-        kept += 1;
-      }
-      self.entries.swap(kept, index);
+  /// Remembers the keys of the object whose entries start at `first` as the shape of `level`:
+  /// their names, whether they are ascending, and the order that makes them so, which keeps
+  /// the last of the entries with one key.
+  fn remember_shape(&mut self, level: usize, first: usize) {
+    let entries = &self.entries[first..];
+    let shape = &mut self.shapes[level];
+    shape.names.clear();
+    // the outermost object comes once, so no object takes its names
+    if level > self.outermost {
+      shape.names.extend(entries.iter().map(|entry| entry.0.clone()));
     }
-    self.entries.truncate(kept + 1);
+    shape.ascending = entries.windows(2).all(|pair| pair[0].0 < pair[1].0);
+    shape.order.clear();
+    if !shape.ascending {
+      shape.order.extend(0..entries.len());
+      // a stable sort: entries with one key stay in the order of the text
+      shape.order.sort_by(|a, b| entries[*a].0.cmp(&entries[*b].0));
+      let mut kept = 0;
+      for place in 1..entries.len() {
+        if entries[shape.order[kept]].0 != entries[shape.order[place]].0 {
+          kept += 1;
+        }
+        shape.order[kept] = shape.order[place];
+      }
+      shape.order.truncate(kept + 1);
+    }
   }
 
   /// Reads the string whose opening quote is at the position: its text as written when it has
@@ -860,6 +925,53 @@ mod tests {
       read > cases() / 4 && refused > cases() / 20 && with_warnings > cases() / 40,
       "{read} read, {with_warnings} with warnings, {refused} refused"
     );
+  }
+
+  /// Records whose keys repeat in an order that is not ascending are read as through the tree:
+  /// the order of the record before is taken when it fits, and not when the keys, their order
+  /// or their number differ, or a key comes twice.
+  #[test]
+  fn records_with_repeating_key_orders_equal_the_conversion_through_the_tree() {
+    let mut rng = Rng(0x0123_4567_89AB_CDEF, false);
+    let orders: [&[&str]; 9] = [
+      &["c", "a", "b"],
+      &["c", "b", "a"],
+      &["b", "a", "c"],
+      &["a", "b", "c"],
+      &["c", "a", "b", "d"],
+      &["c", "a", "x"],
+      &["c", "a", "a"],
+      &["b", "a", "b"],
+      &["zeta", "alpha", "mid", "beta", "omega", "delta", "k1", "k10", "k2", "aa", "ab", "b", "a", "y"],
+    ];
+    for case in 0..cases() / 100 {
+      let mut text = String::from("{\"z\":1,\"rows\":[");
+      for record in 0..2 + rng.below(40) {
+        if record > 0 {
+          text.push(',');
+        }
+        // mostly the order of the record before
+        let order = if record > 0 && rng.below(4) > 0 {
+          orders[rng.0 as usize % 3]
+        } else {
+          orders[rng.below(orders.len())]
+        };
+        text.push('{');
+        for (index, key) in order.iter().enumerate() {
+          if index > 0 {
+            text.push(',');
+          }
+          text.push_str(&format!("\"{key}\":{}", rng.below(1000)));
+        }
+        text.push('}');
+      }
+      text.push_str("],\"a\":{\"q\":1,\"p\":2}}");
+      let mut warnings = vec![];
+      let read = Reader::object(&text, &Path::Root(""), &mut warnings).unwrap_or_else(|_| panic!("case {case}: refused {text}"));
+      let (expected, _) = through_the_tree(&text).unwrap();
+      assert_eq!(expected, read, "case {case}: {text}");
+      assert_eq!(format!("{expected:?}"), format!("{read:?}"), "case {case}: {text}");
+    }
   }
 
   /// [fields] takes a text only when `serde_json` reads it as an object, and gives the keys and
