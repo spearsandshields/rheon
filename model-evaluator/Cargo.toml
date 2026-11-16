@@ -21,5 +21,7 @@ dsntk-macros = { workspace = true }
 rheon-model = { workspace = true }
 
 [dev-dependencies]
+# The backend twins of the model tests (src/tests/mod.rs); a test build only.
+rheon-feel-evaluator = { workspace = true, features = ["backends"] }
 dsntk-examples = { workspace = true }
 dsntk-recognizer = { workspace = true }

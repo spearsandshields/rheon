@@ -3,8 +3,9 @@
 //! Present only with the cargo feature `backends`, which test builds enable: without it, the
 //! expressions are built by the flat evaluator where it lowers them and as closures otherwise.
 //! A test chooses the evaluator of the expressions built inside [with_backend] on its thread,
-//! and reads the expressions that the flat evaluator refused with [take_refusals]. Nothing is
-//! kept beyond the closure and the refusals not yet taken.
+//! and reads the expressions that the flat evaluator refused there with [take_refusals]. Outside
+//! [with_backend] nothing is recorded, and nothing is kept beyond the closure and the refusals not
+//! yet taken.
 
 use crate::flat::NotYet;
 use rheon_feel::values::Value;
@@ -37,36 +38,38 @@ pub struct Refusal {
 }
 
 thread_local! {
-  static BACKEND: Cell<Backend> = const { Cell::new(Backend::Flat) };
+  static BACKEND: Cell<Option<Backend>> = const { Cell::new(None) };
   static REFUSALS: RefCell<Vec<Refusal>> = const { RefCell::new(Vec::new()) };
 }
 
 /// Runs `f` with `backend` building the expressions on this thread, and restores the previous
 /// choice when `f` returns or panics.
 pub fn with_backend<T>(backend: Backend, f: impl FnOnce() -> T) -> T {
-  struct Restore(Backend);
+  struct Restore(Option<Backend>);
   impl Drop for Restore {
     fn drop(&mut self) {
       BACKEND.with(|cell| cell.set(self.0));
     }
   }
-  let _restore = Restore(BACKEND.with(|cell| cell.replace(backend)));
+  let _restore = Restore(BACKEND.with(|cell| cell.replace(Some(backend))));
   f()
 }
 
-/// The refusals of the flat evaluator on this thread since the last call, in order.
+/// The refusals of the flat evaluator inside [with_backend] on this thread since the last call,
+/// in order.
 pub fn take_refusals() -> Vec<Refusal> {
   REFUSALS.with(|refusals| refusals.take())
 }
 
-/// The evaluator chosen on this thread.
+/// The evaluator chosen on this thread: [Backend::Flat] outside [with_backend].
 pub(crate) fn backend() -> Backend {
-  BACKEND.with(Cell::get)
+  BACKEND.with(Cell::get).unwrap_or(Backend::Flat)
 }
 
-/// Notes a refusal of the flat evaluator; under [Backend::FlatOnly] it gives the evaluator that
-/// stands for the refused expression.
+/// Notes a refusal of the flat evaluator inside [with_backend]; under [Backend::FlatOnly] it gives
+/// the evaluator that stands for the refused expression.
 pub(crate) fn refused(refusal: &NotYet) -> Option<Evaluator> {
+  BACKEND.with(Cell::get)?;
   let node = format!("{:?}", refusal.at);
   let node = node.split(|c: char| !c.is_ascii_alphanumeric()).next().unwrap_or_default().to_string();
   let refusal = Refusal { kind: "NotYet", node };
