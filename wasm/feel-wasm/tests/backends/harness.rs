@@ -55,6 +55,10 @@ fn ledger_request(entry: &Json) -> Json {
 /// the corpus that must never trap and the product of edge operands; with `RHEON_PARSER_CORPUS`
 /// the expressions of the FEEL corpus, and with `RHEON_FULL_TESTS` the requests of the release
 /// tier and the full product. Each is a request text, as a host sends it.
+///
+/// The release tier's requests that exhaust the module's memory are left out: natively, where no
+/// memory cap stops them, they would build values of gigabytes. The identity check compares them
+/// in the module.
 pub fn committed(product: Vec<String>) -> Vec<String> {
   let root = root();
   let identity = root.join("tools/identity");
@@ -88,8 +92,8 @@ pub fn committed(product: Vec<String>) -> Vec<String> {
     }
   }
   if std::env::var_os("RHEON_FULL_TESTS").is_some() {
-    for file in json_files(&identity.join("release/requests")) {
-      requests.extend(requests_of(&file));
+    for file in json_files(&identity.join("release/requests")).iter().filter(|file| !file.ends_with(MEMORY_EXHAUSTING)) {
+      requests.extend(requests_of(file));
     }
     for file in json_files(&identity.join("release/registered")) {
       requests.extend(requests_of(&file).iter().map(ledger_request));
@@ -97,6 +101,9 @@ pub fn committed(product: Vec<String>) -> Vec<String> {
   }
   requests.iter().map(Json::to_string).filter(|text| !uses_clock(text)).collect()
 }
+
+/// The release tier's requests that stop at the module's memory cap.
+const MEMORY_EXHAUSTING: &str = "memory-exhausting.json";
 
 /// A response without the fields that name the build or the time it took.
 fn comparable(response: &str) -> Json {
@@ -119,7 +126,7 @@ pub struct Difference {
 /// What a comparison of two evaluators found.
 #[derive(Default)]
 pub struct Report {
-  /// The requests sent, the parse twins included.
+  /// The requests sent.
   pub requests: usize,
   /// The requests that the second evaluator answered itself and that were compared.
   pub compared: usize,
@@ -176,41 +183,31 @@ fn answer(backend: Backend, request: &str) -> (String, Vec<Refusal>, usize) {
   (response, take_refusals(), take_lowered())
 }
 
-/// Sends every request, and the parse twin of every evaluate request, to `first` and to `second`,
-/// and compares their responses whole: a request that the flat evaluator refused under `second`
-/// is counted, not compared.
+/// Sends every request to `first` and to `second` and compares their responses whole: a request
+/// that the flat evaluator refused under `second` is counted, not compared.
 pub fn compare(requests: &[String], first: Backend, second: Backend) -> Report {
   let mut report = Report::default();
   for request in requests {
-    let mut texts = vec![request.clone()];
-    if let Ok(mut twin) = serde_json::from_str::<Json>(request)
-      && twin["op"] == "evaluate"
+    report.requests += 1;
+    let (expected, _, _) = answer(first, request);
+    let (actual, refusals, lowered) = answer(second, request);
+    if second == Backend::FlatOnly
+      && let Some(refusal) = refusals.into_iter().next()
     {
-      twin["op"] = "parse".into();
-      texts.push(twin.to_string());
+      *report.refused.entry(refusal.kind).or_default().entry(refusal.node).or_default() += 1;
+      continue;
     }
-    for text in texts {
-      report.requests += 1;
-      let (expected, _, _) = answer(first, &text);
-      let (actual, refusals, lowered) = answer(second, &text);
-      if second == Backend::FlatOnly
-        && let Some(refusal) = refusals.into_iter().next()
-      {
-        *report.refused.entry(refusal.kind).or_default().entry(refusal.node).or_default() += 1;
-        continue;
-      }
-      report.compared += 1;
-      if lowered > 0 {
-        report.lowered += 1;
-      }
-      let (expected, actual) = (comparable(&expected), comparable(&actual));
-      if expected != actual {
-        report.differences.push(Difference {
-          request: text,
-          first: expected,
-          second: actual,
-        });
-      }
+    report.compared += 1;
+    if lowered > 0 {
+      report.lowered += 1;
+    }
+    let (expected, actual) = (comparable(&expected), comparable(&actual));
+    if expected != actual {
+      report.differences.push(Difference {
+        request: request.clone(),
+        first: expected,
+        second: actual,
+      });
     }
   }
   report

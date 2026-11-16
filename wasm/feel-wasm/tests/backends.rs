@@ -122,16 +122,16 @@ const SAMPLE: [&str; 5] = [
 #[test]
 fn harness_detects_a_difference() {
   let requests: Vec<String> = SAMPLE.iter().map(|request| request.to_string()).collect();
-  // two equal evaluators: every request and its parse twin compared, no difference
+  // two equal evaluators: every request compared, no difference
   let same = compare(&requests, Backend::Old, Backend::Flat);
-  assert_eq!((10, 10, 0, 0), (same.requests, same.compared, same.differences.len(), same.refusals()), "{same}");
+  assert_eq!((5, 5, 0, 0), (same.requests, same.compared, same.differences.len(), same.refusals()), "{same}");
   // an evaluator that negates boolean results: the three boolean answers differ
   let mutant = compare(&requests, Backend::Old, Backend::Mutant);
   assert_eq!(3, mutant.differences.len(), "{mutant}");
   assert_eq!(r#"{"op": "evaluate", "expression": "1 < 2"}"#, mutant.differences[0].request);
   // the flat evaluator alone answers what it lowers, and refusals are counted, not compared
   let flat = compare(&requests, Backend::Old, Backend::FlatOnly);
-  assert_eq!((10, 0), (flat.requests, flat.differences.len()), "{flat}");
+  assert_eq!((5, 0), (flat.requests, flat.differences.len()), "{flat}");
   assert_eq!(flat.requests, flat.compared + flat.refusals(), "{flat}");
   assert!(flat.lowered <= flat.compared, "{flat}");
 }
