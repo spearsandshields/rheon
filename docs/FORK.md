@@ -2452,9 +2452,11 @@ their items with both answers. The totals are under "Verification" below.
     and 502 levels deep. `model-evaluator/src/tests/various/dmn_0009` does the same for a boxed list,
     a boxed context and a boxed context entry of a collection type, and fails without the boxed
     checks; the contract test asserts both error kinds with their texts. Answers change, each
-    registered with both answers: `tools/identity/requests/value-depth.json` (46 requests, every
-    channel at 500 and 501 levels, the 500 ones and two blocked key paths identical) and the two `context put` requests with
-    100,000 keys in `no-trap.json` in `tools/identity/registered/value-depth.json` (19 entries);
+    registered with both answers: `tools/identity/requests/value-depth.json` (54 requests, every
+    channel at 500 and 501 levels, the 500 ones, two blocked key paths and an `instance of` at
+    500 levels identical, and the seven 501-level depth probes of the large sets of item 175) and
+    the two `context put` requests with 100,000 keys in `no-trap.json` in
+    `tools/identity/registered/value-depth.json` (26 entries);
     the four requests of `tools/identity/release/requests/value-depth-deep.json` (also in
     `no-trap.json`), which trapped 0.5.0 after 0.6 to 1.3 s, and the two loops of
     `memory-exhausting.json` that nest a list and a context 100,000 levels deep, which trapped it
@@ -3123,6 +3125,18 @@ their items with both answers. The totals are under "Verification" below.
     form (`tools/identity/README.md`). Test: `npm run test:identity`, a recorded 501-level list
     whose old answer is a digest reproduces, and another digest does not; a malformed digest is
     an input error. Tooling only; no API change.
+175. **The depth probes of the large sets that 0.5.0 answers are committed requests.** Nine depth
+    probes 501 levels deep in the request sets kept outside the repository answer the value-depth
+    error of item 152, so the large-set run listed them as unregistered differences. The seven
+    that 0.5.0 answers are now in `tools/identity/requests/value-depth.json`, as they are written
+    there: a list and a context grown through `partial`, a recursion around list literals that
+    nests 501 levels, chains of 501 context literals, of ranges and of closures, and `context
+    put` with 501 keys. Their entries in `tools/identity/registered/value-depth.json` hold the old
+    answer whole for the range and the closure chains and as a digest (item 174) for the five
+    whose rendering is longer than 65,536 characters, and the value-depth error as the new one;
+    the basis is that of item 152, the owner's limit of 500 levels. Identity against 0.5.0: the
+    committed sources are 12,932 requests, 63 registered differences reproduced, 0 others.
+    Tooling only; no API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
