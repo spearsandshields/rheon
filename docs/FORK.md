@@ -3025,6 +3025,18 @@ their items with both answers. The totals are under "Verification" below.
     times as long, where the module of item 169 took 57.3 ms and 5,591 ms (one cold call each,
     as the module of item 167: 56.7 ms and 5,548 ms; warm, 56.7 ms and 5,561 ms, 98 times as
     long), so the index loop is linear in the list.
+171. **`sort` and `list replace` call their function in one scope.** Each call of the ordering
+    function of `sort` and of the matching function of `list replace` was given a new empty
+    scope, whose stack of frames was allocated again for every call. One empty scope now serves
+    every call of one `sort` or `list replace`: a call pushes the function's closure and its
+    parameters and truncates the stack back to its depth when it returns (`apply_body`), so each
+    call starts from the empty scope as before. It stays an empty scope, not the caller's, so
+    what the function's free names find is unchanged. Identity step: the requests of
+    `tools/identity/requests/callbacks.json` and the aliasing requests of `values.json` answer as
+    before. No API change. Measured (wasm, Node 26, Apple M2, three alternating rounds against
+    the module of item 170): `count(sort(for i in 1..10000 return modulo(i * 7919, 10007),
+    function(a, b) a < b))` 32.07 to 27.72 ms (1.157x), `count(list replace(for i in 1..10000
+    return i, function(item, newItem) item > 5000, 0))` 3.43 to 3.08 ms (1.115x).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

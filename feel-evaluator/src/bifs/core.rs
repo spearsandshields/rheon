@@ -1324,9 +1324,11 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
         return value_null!("list replace: matching function must have exactly two arguments");
       }
       let mut elements = vec![];
+      // one empty scope for every call: a call leaves the scope as it found it
+      let scope = FeelScope::default();
       for item in items {
         let arguments = Arguments::Positional(vec![item.clone(), new_item.clone()]);
-        let matched = invoke(&FeelScope::default(), position_or_match.clone(), arguments, Dialect::Feel);
+        let matched = invoke(&scope, position_or_match.clone(), arguments, Dialect::Feel);
         // the answer of a call in a stopped evaluation is not read; the null is never observed
         if diagnostics::stopped() {
           return Value::Null(None);
@@ -2172,15 +2174,14 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
       if function.parameters().len() == 2 {
         // an answer other than `true` (false, null, any other value) means "does not precede";
         // once the evaluation was stopped the ordering ends, and its null is never observed
+        // one empty scope for every call: a call leaves the scope as it found it
+        let scope = FeelScope::default();
         let order = super::sorting::order_by(items.len(), |a, b| {
           if diagnostics::stopped() {
             return None;
           }
           let arguments = Arguments::Positional(vec![items[a].clone(), items[b].clone()]);
-          Some(matches!(
-            invoke(&FeelScope::default(), ordering_function.clone(), arguments, Dialect::Feel),
-            Value::Boolean(true)
-          ))
+          Some(matches!(invoke(&scope, ordering_function.clone(), arguments, Dialect::Feel), Value::Boolean(true)))
         });
         match order {
           Some(order) => Value::List(order.into_iter().map(|position| items[position].clone()).collect()),
