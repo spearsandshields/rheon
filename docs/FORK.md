@@ -272,6 +272,12 @@ Rules:
 | 224 | `6d233e3` | feel-parser: the name tokens after an iteration variable `item` compare each part with `in` once | fork |
 | 225 | `d3e6945` | feel, feel-wasm: a JSON input context of more than 11 entries is built in one pass | fork |
 | 226 | `d5bfeab` | feel-parser: the name index compares the items of a list only when a lookup depends on it | fork |
+| 227 | `f1407dc` | feel-wasm: the JSON of context and input is read straight into values | fork |
+| 228 | `795c84b` | feel-wasm: the response of an evaluation is written straight from the result | fork |
+| 229 | `544f67f` | feel, feel-wasm: the records of an input list share their names and the order of their keys | fork |
+| 230 | `cd5e6d8` | feel-number: the digits of a number text are read as a number, not collected as text | fork |
+| 231 | `5f3494c` | feel-parser: a name is looked up among the pushed contexts in one step | fork |
+| 232 | `c00944b` | feel-parser: a candidate name is a piece of its chain, looked up only when a name has its length | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -3281,6 +3287,15 @@ after an iteration variable `item` no longer search their chain again and again 
 context of more than 11 entries is built in one pass (225), and the name index compares the items
 of a list only when a lookup depends on it (226).
 
+Commits 227-232 are the boundary of the wasm module and two inputs of the parser that cost out of
+proportion. No answer changes. The JSON of `context` and `input` is read straight into values by a
+strict reader, with the tree of JSON values as the answer to everything the reader refuses (227);
+the response of an evaluation is written straight from the result, byte for byte as before (228);
+the records of an input list share their names and the order of their keys (229); and the digits
+of a number are read as a number (230). In the parser, a name is looked up among the pushed
+contexts in one step (231), and a candidate name is a piece of the flattened text of its chain,
+looked up only when a name in scope has its length (232).
+
 179. **The identity check compares with 0.6.0.** The baseline moves to the v0.6.0 release module,
     and the ledgers of registered differences against 0.5.0 are emptied: 0.6.0 answers every
     committed request as registered. The 61 entries and 3 rule entries of `registered/` and the 21
@@ -3917,6 +3932,77 @@ of a list only when a lookup depends on it (226).
     rows 9.09 ms to 7.92 ms; a nested `for` over 200 lists of 50 rows 6.32 ms to 5.09 ms; a
     filter by a key of two words, which decides its list, 9.18 ms and 9.18 ms. No answer
     changes. Rust API: none.
+227. **The JSON of context and input is read straight into values.** A request was read into a
+    tree of JSON values and the tree converted into FEEL values: two walks, and the input held
+    twice. A strict reader of the request text (`wasm/feel-wasm/src/json.rs`) walks the top-level
+    object once and reads the JSON of `context` (an object) and of `input` (an object or an
+    array) into values where it stands; the other fields are read as before. The reader answers
+    only what it is sure of: it takes a text only when it is JSON as serde_json accepts it (the
+    same grammar, escapes and nesting limit), and whatever it refuses is answered by the tree as
+    before: a text that is no request, a top-level key written with an escape, an object with
+    serde_json's private number key, a key with white space at an end, an empty key, a number
+    that does not convert, and an object whose keys are not ascending when one of its values
+    has a warning. So every error and its text are unchanged, of two entries with one key the
+    later one counts, the warnings of an object come in the order of its keys, and a warning
+    quotes a number as serde_json hands it on. Tests: random objects, a third of them damaged,
+    read exactly as through the tree or refused (20,000; 400,000 at full size); random and
+    damaged texts taken only when serde_json reads them as an object; the nesting limit; the
+    scan of a string eight bytes at a time; a contract test that answers 37 requests both
+    ways. Measured (wasm, V8, whole requests): `1` with 5,000 input names 1.31 ms to 0.61 ms,
+    with 10,000 small contexts 6.87 ms to 5.47 ms, with 160 records of 200 fields in nested
+    lists 7.63 ms to 4.16 ms; slower: a 1 MiB string without escapes 0.37 ms to 0.41 ms. The
+    four changes that would let the tree go (exact keys, a repeated key as an error, warnings
+    in the order of the text, own texts for malformed JSON) are not made. Rust API: none.
+228. **The response of an evaluation is written straight from the result.** The result was
+    walked four times, copied into a tree of its typed form and that into a tree of JSON
+    values, and the response written from the tree: about 36 allocations for every number of a
+    list. The response of a successful evaluation is now written as text
+    (`wasm/feel-wasm/src/output.rs`), the typed form straight from the value and the `feel` and
+    `type` texts through a writer that escapes what is written to it; byte for byte what
+    serde_json wrote for the tree. Tests: the result of 30 expressions equals the text of its
+    tree, which stays in the tests as the reference; strings are escaped as serde_json escapes
+    them; a contract test reads 13 responses back and writes them again. Measured: a list of
+    10,000 numbers returned 13.7 ms to 5.3 ms, 10,000 small contexts 79.5 ms to 37.3 ms, with
+    the memory of the instance growing by 19.3 MiB instead of 84.4 MiB; `1 + 2` 5.2 us to
+    3.8 us; slower: a 1 MiB string of which every fifth character is escaped, echoed, 14.5 ms
+    to 17.0 ms. Rust API: none.
+229. **The records of an input list share their names and the order of their keys.** The reader
+    remembers, for each depth, the keys of the object it read last: their names, whether they
+    are ascending, and the order that makes them so; the next object at that depth with the
+    same keys in the same order takes the names and the order, for one comparison per key. A
+    `Name` holds its text shared, so the name of a key is one text for all records. Tests: the
+    differential tests of the reader, and lists of records whose key orders repeat, change,
+    differ in number and repeat a key. Measured: `1` with 10,000 rows of 8 keys 9.9 ms to
+    7.9 ms; a nested input of 3,400 records with 129,000 numbers 21.0 ms to 16.5 ms; small
+    expressions 0.97x to 1.03x. Rust API: `Name` holds shared text (`From<Name> for String`
+    copies); `FeelContext::from_ascending_entries` is new.
+230. **The digits of a number text are read as a number.** The parser of a number text collected
+    its digits in a string that the rounding read again. The coefficient is read as a number
+    while it has at most 38 digits after its leading zeros and handed to the rounding that
+    takes a number; a longer one is rounded from its digits as before. Test:
+    `parse_equals_parse_by_text` compares the parser with the one it replaces on 55 chosen and
+    50,000 random texts (2,000,000 at full size). Measured: `1` with a list of 40,000 numbers
+    2.98 ms to 2.41 ms; the nested input of item 229 16.6 ms to 14.3 ms. Rust API: none.
+231. **A name is looked up among the pushed contexts in one step.** Every binder pushes a
+    context, and a name of two or more parts was looked up in each pushed context in turn: n
+    nested binders with such names cost n² steps. The scope counts, for each key of the pushed
+    contexts themselves, the contexts that have it; with more than 16 pushed contexts the
+    bound of the candidates by their first word is the bound of all their keys. Tests:
+    `pushed_contexts_walked_grow_linearly_with_the_nesting` (a work counter, and the tokens of
+    binders nested 1 to 40 deep against the reference). Measured (op parse):
+    `for v in a b return ` 2,000 times around `a b + v` 34.7 ms to 2.5 ms. The depth limit is
+    still checked after the parse. Rust API: none.
+232. **A candidate name is a piece of its chain, looked up only when a name has its length.** A
+    name token tried every prefix of its chain of name parts and wrote the flattened text of
+    each anew: with a long key in scope that shares its first word with the text, a text of n
+    parts cost n³ byte steps. The flattened text of a regular chain is written once, a
+    candidate is a piece of it, and a candidate of a length that no name in scope has is not
+    written or looked up (`ParsingScope::may_contain_length`; the index of an input context
+    keeps the lengths of its keys). Tests: the differential tests, in which every candidate
+    piece is also compared with the flattening it replaces. Measured (the key `a.a...a.b` and
+    `a` in the context, the text `a.a...a`): 250 parts 164 ms to 0.74 ms, 500 parts 1,279 ms
+    to 2.5 ms, 1,000 parts (4 KB) 9.5 ms; the cost is still a step per candidate (2,000 parts
+    37 ms). Rust API: none.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -3958,6 +4044,33 @@ existed.
   of such results (`exp(74.971090)`, `exp(log(2.5))`, `log(exp(7))`).
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
+
+Commits 227-232 (2026-11-16), on the tree of commit 232, by the release tier (`npm run
+tier:release`, 814 s of run time and 57 s of builds, budget 1,800 s; 32 of 32 steps): workspace
+8,903 passed, 0 failed, 24 ignored (CI's skips: the Rust TCK copies 3,555, the model evaluator 168,
+the other crates 5,180); clippy on the workspace without warnings, also on every one of commits 227-232 on its own, each
+of which passes `cargo check --workspace --all-targets`; the API documentation builds with
+rustdoc's warnings denied; feel.wasm tests 93 native and 94 under Wasmtime; runtime 34; the
+identity tool's tests pass; smoke passes, with its two memory checks growing by 12.0 MiB and
+22.8 MiB (bound 32 MiB) and the 26 string doublings by 256.0 MiB (at most 281.6); the randomized
+and exhaustive tests at full size 1,051 passed and the parser corpus 512; the playground builds.
+The number oracle judges every case right with no exemption: 35,939 cases quick and 2,896,591 at
+full size, in 188 families. DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum
+312 of 312, and the result of every test equal to that on the tree of commit 221. Full responses
+against the 0.6.0 release module, every cached reference answer equal to a live one: the committed
+sources 14,976 requests, the release sources 14,988, the two sets kept outside the repository
+15,153; the registered differences are those of items 215, 222 and 223 and no other, none
+unregistered in any run. Speed against 0.6.0 (the speed suite of 58 workloads, wasm, Node 26,
+Apple M2, two alternating rounds): geomean 1.44x and 1.43x (1.20x on the tree of commit 226).
+`1 + 2` 4.8 us to 3.9 us (1.25x), a formula over 1,000 input names 453 us to 237 us (1.92x), over
+5,000 names 1.98x, a `for` over an input list of 10,000 contexts 1.76x, a filter over it 1.40x,
+counting 10,000 numbers in a loop 2.58x. Slower than 0.6.0 in both rounds: a recursion through
+`sort` callbacks, 0.92x and 0.94x. The boundary workloads (15 requests whose cost is the reading
+of the input or the writing of the result, kept outside the repository) against the tree of
+commit 226: a list of 10,000 numbers returned 2.6x, 10,000 input contexts echoed 2.3x, `1` with
+5,000 input names 2.2x. The module is 3,904,418 bytes (commit 226: 3,849,528; +1.4%). Commits 227
+to 230 passed the group tier one by one; commits 231 and 232 the fix tier and the group tier on
+the tree of 232. Not run: CI, Node 24 and Node 22.
 
 Commits 222-226 (2026-11-16), on the code of commit 226 (two corrections of documentation were
 folded into commits 222 and 223 after the run), by the release tier (`npm run tier:release`, 803 s
@@ -4418,6 +4531,15 @@ The API changes of commits 85-133 (the item of each change is in parentheses):
   and `rheon-model` change only by the removed features (95). The wasm module's ABI and its
   request and response JSON are unchanged; what changes there are answers, registered with both
   answers as "Verification" states.
+
+The API changes of commits 227-232 (the item of each change is in parentheses):
+
+- Changed:
+  - `rheon-feel`: `Name` holds its text shared, so a clone is no copy and `From<Name> for String`
+    copies the text (229).
+- Added:
+  - `rheon-feel`: `FeelContext::from_ascending_entries` (229).
+- The wasm ABI, its request and response JSON and every answer are unchanged.
 
 The API changes of commits 222-226 (the item of each change is in parentheses):
 
