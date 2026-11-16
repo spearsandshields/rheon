@@ -6,10 +6,12 @@
 //! diagnostics as that evaluator records it.
 
 use super::program::{Compare, Kernel1, Kernel2, ListKind, NONE, Op, Operand, Opnd, Program};
+use super::resolve::{Place, RegionKind};
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
 use crate::invocation::{Arguments, invoke};
 use crate::kernels::{self, Arithmetic, finite};
+use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, FeelType, Name, diagnostics, value_null};
 use std::collections::BTreeMap;
@@ -94,7 +96,7 @@ impl<'p> Vm<'p> {
           let name = &program.names[name as usize];
           self.slots[dst as usize] = self.host.get_value(name).unwrap_or_else(|| kernels::free_name(name));
         }
-        Op::Search { dst, search } => self.slots[dst as usize] = self.host.search(&program.name_lists[search as usize]).unwrap_or_else(kernels::free_qualified_name),
+        Op::Search { dst, search } => self.slots[dst as usize] = self.search(search as usize).unwrap_or_else(kernels::free_qualified_name),
         Op::Path { dst, a, name } => {
           let a = self.read(a);
           self.slots[dst as usize] = kernels::path(a, &program.names[name as usize]);
@@ -247,7 +249,15 @@ impl<'p> Vm<'p> {
           } else {
             Arguments::Named(program.name_lists[call.names as usize].iter().cloned().zip(values).collect())
           };
-          self.slots[dst as usize] = invoke(self.host, function, arguments, program.dialect);
+          // a function of the host reads the scopes of the position through the scope it gets
+          self.slots[dst as usize] = if call.region != NONE && matches!(function, Value::FunctionDefinition(_)) {
+            let depth = self.materialize(call.region);
+            let value = invoke(self.host, function, arguments, program.dialect);
+            self.host.truncate(depth);
+            value
+          } else {
+            invoke(self.host, function, arguments, program.dialect)
+          };
         }
         Op::Leave { dst } => {
           let value = diagnostics::bound_depth(finite(self.take(dst as usize)));
@@ -255,8 +265,100 @@ impl<'p> Vm<'p> {
             self.slots[dst as usize] = call.finish(value);
           }
         }
+        Op::BoundDepth { s } => {
+          let value = self.take(s as usize);
+          self.slots[s as usize] = diagnostics::bound_depth(value);
+        }
+        Op::Clear { layout, visible } => {
+          for &(_, place) in &program.layouts[layout as usize].entries[..visible as usize] {
+            if let Place::Slot(slot) = place {
+              self.slots[slot as usize] = Value::Null(None);
+            }
+          }
+        }
+        Op::Context { dst, layout } => {
+          let mut context = FeelContext::default();
+          for &(name, place) in program.layouts[layout as usize].entries.iter() {
+            if let Place::Slot(slot) = place {
+              let value = self.take(slot as usize);
+              context.set_entry(&program.names[name as usize], value);
+            }
+          }
+          self.slots[dst as usize] = diagnostics::bound_depth(context.into());
+        }
         Op::Return { src } => return self.read(src),
       }
     }
+  }
+
+  /// The value of a binder.
+  fn place(&self, place: Place) -> Value {
+    match place {
+      Place::Slot(slot) => self.slots[slot as usize].clone(),
+      Place::Partial(_) => Value::Null(None),
+    }
+  }
+
+  /// Pushes on the scope of the host the scopes that the evaluator of closures has at a position
+  /// whose innermost region is `region`, outermost first; returns the depth of the scope before.
+  /// A scope without entries is left out: it changes no read.
+  #[cold]
+  #[inline(never)]
+  fn materialize(&self, region: u32) -> usize {
+    let depth = self.host.depth();
+    let mut chain = vec![];
+    let mut at = region;
+    while at != NONE {
+      chain.push(at);
+      at = self.program.regions[at as usize].parent;
+    }
+    for &at in chain.iter().rev() {
+      match self.program.regions[at as usize].kind {
+        RegionKind::Layout { layout, visible } => {
+          let mut context = FeelContext::default();
+          for &(name, place) in self.program.layouts[layout as usize].visible(visible) {
+            context.set_entry(&self.program.names[name as usize], self.place(place));
+          }
+          if !context.is_empty() {
+            self.host.push(context);
+          }
+        }
+        RegionKind::Item { .. } | RegionKind::Closure => {}
+      }
+    }
+    depth
+  }
+
+  /// The value of the qualified name of `searches[search]`: in each scope of its position,
+  /// innermost first, the entry of the first segment and in it the entries of the others, as the
+  /// scopes of the evaluator of closures search it; a search that fails in one scope goes on in
+  /// the scope below it, down to the scope of the host.
+  #[cold]
+  #[inline(never)]
+  fn search(&self, search: usize) -> Option<Value> {
+    let info = self.program.searches[search];
+    let segments = &self.program.name_lists[info.segments as usize];
+    let mut at = if info.first == NONE { NONE } else { info.region };
+    while at != NONE {
+      let region = self.program.regions[at as usize];
+      if let RegionKind::Layout { layout, visible } = region.kind
+        && let Some(place) = self.program.layouts[layout as usize].find(info.first, visible)
+        && let Some(value) = search_in(&self.place(place), &segments[1..])
+      {
+        return Some(value);
+      }
+      at = region.parent;
+    }
+    self.host.search(segments)
+  }
+}
+
+/// The entry at the path `names` in `value`, `value` itself for no names: each name but the last
+/// names a context.
+fn search_in(value: &Value, names: &[Name]) -> Option<Value> {
+  match (value, names) {
+    (_, []) => Some(value.clone()),
+    (Value::Context(context), names) => context.search_deep(names).cloned(),
+    _ => None,
   }
 }

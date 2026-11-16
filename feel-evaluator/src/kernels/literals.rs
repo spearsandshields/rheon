@@ -67,6 +67,11 @@ pub(crate) fn context_entry(lhv: Value, rhv: Value) -> Value {
   }
 }
 
+/// The error of an entry of a context literal whose key an earlier entry has.
+pub(crate) fn err_duplicated_context_entry_key(name: &Name) -> String {
+  format!("duplicated context entry key: {}", arg(name))
+}
+
 /// The name and the value of the evaluated entry `entry` of a context literal whose earlier entries
 /// are `context`, the value nested no deeper than values may nest; or the null that ends the
 /// literal: for a key already in `context`, for an entry's own null, or for a value that is no
@@ -76,7 +81,7 @@ pub(crate) fn context_literal_entry(context: &FeelContext, entry: Value) -> Resu
     Value::ContextEntry(name, value) => {
       if context.contains_entry(&name) {
         // duplicated context entry keys are not allowed
-        Err(value_null!("duplicated context entry key: {}", arg(&name)))
+        Err(value_null!(err_duplicated_context_entry_key(&name)))
       } else {
         Ok((name, diagnostics::bound_depth(*value)))
       }

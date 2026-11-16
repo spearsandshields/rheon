@@ -31,7 +31,7 @@ pub(crate) struct NotYet<'a> {
 /// The evaluator of `node` in `dialect`, or why the flat evaluator does not lower it.
 pub(crate) fn lower(node: &AstNode, dialect: Dialect) -> Result<Evaluator, NotYet<'_>> {
   let resolved = resolve::resolve(node);
-  let program = lower::lower(&resolved, dialect)?;
+  let program = lower::lower(resolved, dialect)?;
   #[cfg(feature = "backends")]
   crate::testing::lowered();
   Ok(Box::new(move |scope: &FeelScope| program.run(scope)))

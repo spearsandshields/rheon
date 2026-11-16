@@ -40,7 +40,7 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
   use rheon_feel_parser::AstNode;
   let node = AstNode::Numeric("1x".into(), "".into(), '+', "".into());
   let old = crate::builders::build_evaluator_with_dialect(&node, Dialect::Feel);
-  let program = lower(&resolve(&node), Dialect::Feel).unwrap_or_else(|_| panic!("refused"));
+  let program = lower(resolve(&node), Dialect::Feel).unwrap_or_else(|_| panic!("refused"));
   let scope = FeelScope::default();
   let flat: rheon_feel::Evaluator = Box::new(move |scope: &FeelScope| program.run(scope));
   assert_eq!(super::outcome(old, &scope), super::outcome(flat, &scope));
@@ -48,7 +48,7 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 
 #[test]
 fn constructs_not_lowered_yet_are_refused() {
-  for text in ["{a: 1}", "abs({a: 1})", "1 + [{a: 1}]", "for i in [1] return i", "[1][1]", "function(x) x"] {
+  for text in ["{a: function(x) x}", "for i in [1] return i", "[1][1]", "function(x) x"] {
     refused(text);
   }
 }
@@ -363,4 +363,82 @@ fn malformed_types_are_the_builders_errors() {
     agree_node(Dialect::Feel, &scope, &node);
     agree_node(Dialect::Feel, &scope, &AstNode::InstanceOf(Box::new(AstNode::Null), Box::new(node)));
   }
+}
+
+#[test]
+fn context_literals_bind_their_entries_for_the_entries_after_them() {
+  for text in [
+    "{}",
+    "{a: 1}",
+    "{a: 1, b: a + 1}",
+    "{a: 1, b: a + 1}.b",
+    "{a: b, b: 1}",
+    "{a: {b: 1}, c: a.b}",
+    "{a: 1, b: {a: 2, c: a}, d: a}",
+    "{a: 1, b: {c: a, a: 2, d: a}}",
+    "{abs: 1, r: abs}",
+    "{abs: -1, r: abs(-1)}",
+    "{r: abs(-1), abs: 1}",
+    "{a: 1 + \"x\", b: a, c: b + 1}",
+    "{a: [1, 2], b: append(a, 3), c: a}",
+    "{partial: 1, item: 2, r: partial + item}",
+    "{\"a b\": 1, c: a b}",
+    "[{a: 1}, {a: 2, b: a}]",
+    "{a: 1}.a + {a: 2}.a",
+  ] {
+    agree(text);
+    agree_in(Dialect::BFeel, "", text);
+  }
+  agree_with("{x: 5}", "{y: x, x: 2, z: x}");
+  agree_with("{x: 5, y: 6}", "{a: x, b: {x: a, c: y}}");
+}
+
+#[test]
+fn a_repeated_key_ends_the_context_after_its_value() {
+  for text in ["{a: 1, a: 2}", "{a: 1, a: x}", "{a: 1, b: 2, a: a + b, c: 3}", "{a: 1, a: 2}.a", "{b: {a: 1, a: 2}, c: b}"] {
+    agree(text);
+  }
+}
+
+#[test]
+fn a_function_of_the_host_sees_the_entries_before_its_invocation() {
+  // the body of `f` reads `a`, which only the scope of its invocation has
+  let input = "{f: function(x) x + a, g: function(x) {r: x}}";
+  for text in [
+    "{a: 1, r: f(2)}.r",
+    "{r: f(2), a: 1}.r",
+    "{a: 1, b: {a: 10, r: f(2)}, c: f(3)}",
+    "{a: 1, r: g(a)}",
+    "{a: 1, a: f(1)}",
+  ] {
+    agree_with(input, text);
+  }
+}
+
+#[test]
+fn qualified_names_search_the_entries_of_a_context() {
+  let segments = |names: &[&str]| AstNode::QualifiedName(names.iter().map(|name| AstNode::QualifiedNameSegment(Name::from(*name))).collect());
+  let entry = |key: &str, value: AstNode| AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(Name::from(key))), Box::new(value));
+  let nested = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  for input in ["", "{a: {b: 5}}", "{a: {c: 5}}"] {
+    let scope = scope(input);
+    for names in [&["a", "b"][..], &["a"], &["a", "c"], &["x", "b"], &[]] {
+      let node = AstNode::Context(vec![entry("a", nested("{b: 1}")), entry("r", segments(names))]);
+      agree_node(Dialect::Feel, &scope, &node);
+      let node = AstNode::Context(vec![entry("r", segments(names)), entry("a", nested("{b: 1}"))]);
+      agree_node(Dialect::Feel, &scope, &node);
+      let node = AstNode::Context(vec![
+        entry("a", nested("{b: 1}")),
+        entry("s", AstNode::Context(vec![entry("a", nested("2")), entry("r", segments(names))])),
+      ]);
+      agree_node(Dialect::Feel, &scope, &node);
+    }
+  }
+}
+
+#[test]
+fn a_context_with_an_entry_that_is_no_entry_is_refused() {
+  let entry = |key: &str| AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(Name::from(key))), Box::new(AstNode::Null));
+  let node = AstNode::Context(vec![entry("a"), AstNode::Null]);
+  assert!(crate::flat::lower::lower(crate::flat::resolve::resolve(&node), Dialect::Feel).is_err());
 }

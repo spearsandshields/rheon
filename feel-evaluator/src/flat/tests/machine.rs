@@ -13,6 +13,9 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
     names: vec![],
     name_lists: vec![],
     calls: vec![],
+    searches: vec![],
+    layouts: vec![],
+    regions: vec![],
     slots,
     dialect: crate::Dialect::Feel,
   }
@@ -85,7 +88,7 @@ fn a_run_records_errors_and_warnings_in_order() {
   builder.emit(Op::Warn { msg: warning });
   builder.emit(Op::Fail { dst: 0, msg: error });
   builder.emit(Op::Return { src: Opnd::take(0) });
-  let program = builder.finish(1, crate::Dialect::Feel);
+  let program = builder.finish(1, crate::Dialect::Feel, vec![], vec![]);
   let (value, recorded) = diagnostics::collect(|| program.run(&FeelScope::default()));
   let (expected, expected_recorded) = diagnostics::collect(|| {
     diagnostics::warn("w");

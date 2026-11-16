@@ -120,8 +120,9 @@ pub(crate) enum Target {
   Place(Place),
   /// A free name ([Free]).
   Free(u32),
-  /// The chain of the position, searched at run time (a qualified name of several segments).
-  Search,
+  /// The chain of the position, searched at run time (a qualified name of several segments, the
+  /// first of which is `first`, or of none: [NONE]).
+  Search { first: u32 },
 }
 
 /// Where a binder is kept while the code that sees it runs.
@@ -164,6 +165,13 @@ impl Layout {
       by_name: by_name.into(),
       hidden,
     }
+  }
+
+  /// The entries that the first `visible` entries show, in binding order: all of them, but the
+  /// hidden name where not every entry is visible.
+  pub(crate) fn visible(&self, visible: u32) -> impl Iterator<Item = &(u32, Place)> {
+    let hide = (visible as usize) < self.entries.len();
+    self.entries[..visible as usize].iter().filter(move |(name, _)| !hide || *name != self.hidden)
   }
 
   /// The place of `name` among the first `visible` entries: the last one of that name, as the
@@ -558,14 +566,18 @@ impl<'a> Resolver<'a> {
         self.add(ast, Info::Read(read), &[])
       }
       Some(names) => {
-        if let Some(first) = names.first() {
-          let first = self.name(first);
-          let used = if self.body.proto == NONE { uses::ROOT } else { uses::FUNCTION_BODY };
-          self.free(first, true, used);
-        }
+        let first = match names.first() {
+          Some(first) => {
+            let first = self.name(first);
+            let used = if self.body.proto == NONE { uses::ROOT } else { uses::FUNCTION_BODY };
+            self.free(first, true, used);
+            first
+          }
+          None => NONE,
+        };
         let read = Read {
           probes: Box::new([]),
-          target: Target::Search,
+          target: Target::Search { first },
         };
         self.add(ast, Info::Read(read), &[])
       }
@@ -930,7 +942,7 @@ impl Resolved<'_> {
     parts.push(match read.target {
       Target::Place(place) => place_text(place),
       Target::Free(free) => format!("free {free}"),
-      Target::Search => "search".to_string(),
+      Target::Search { .. } => "search".to_string(),
     });
     parts.join(", ")
   }

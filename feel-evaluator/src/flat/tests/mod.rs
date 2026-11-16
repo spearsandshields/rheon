@@ -37,7 +37,7 @@ pub(super) fn scope(input: &str) -> FeelScope {
 pub(super) fn agree_node(dialect: Dialect, scope: &FeelScope, node: &AstNode) {
   let old = crate::builders::build_evaluator_with_dialect(node, dialect);
   let resolved = resolve(node);
-  let program = lower(&resolved, dialect).unwrap_or_else(|refusal| panic!("{node:?}: refused at {:?}", refusal.at));
+  let program = lower(resolved, dialect).unwrap_or_else(|refusal| panic!("{node:?}: refused at {:?}", refusal.at));
   let flat: Evaluator = Box::new(move |scope: &FeelScope| program.run(scope));
   assert_eq!(outcome(old, scope), outcome(flat, scope), "{node:?}");
 }
@@ -52,5 +52,5 @@ pub(super) fn agree(text: &str) {
 #[track_caller]
 pub(super) fn refused(text: &str) {
   let node = rheon_feel_parser::parse_expression(&FeelScope::default(), text, false).unwrap_or_else(|e| panic!("{text}: {e}"));
-  assert!(lower(&resolve(&node), Dialect::Feel).is_err(), "{text} is lowered");
+  assert!(lower(resolve(&node), Dialect::Feel).is_err(), "{text} is lowered");
 }

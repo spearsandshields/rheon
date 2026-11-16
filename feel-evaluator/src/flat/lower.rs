@@ -8,8 +8,8 @@
 //! A node that is not lowered yet refuses the whole expression ([NotYet]).
 
 use super::NotYet;
-use super::program::{CallInfo, Compare, Kernel1, Kernel2, ListKind, NONE, Op, Opnd, Program, ProgramBuilder, Slot};
-use super::resolve::{Info, Resolved, Target};
+use super::program::{CallInfo, Compare, Kernel1, Kernel2, ListKind, NONE, Op, Opnd, Program, ProgramBuilder, SearchInfo, Slot};
+use super::resolve::{Info, Place, Resolved, Stop, Target};
 use crate::kernels::{self, Arithmetic};
 use crate::{Dialect, builders};
 use rheon_feel::Name;
@@ -18,18 +18,22 @@ use rheon_feel_parser::AstNode;
 use std::sync::Arc;
 
 /// The program of the resolved expression `resolved` in `dialect`.
-pub(crate) fn lower<'a>(resolved: &Resolved<'a>, dialect: Dialect) -> Result<Arc<Program>, NotYet<'a>> {
+pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Program>, NotYet<'_>> {
+  // the binders first, then the temporaries
+  let binders = resolved.root.binders;
   let mut lower = Lower {
-    resolved,
+    resolved: &resolved,
     dialect,
     builder: ProgramBuilder::with_capacity(resolved.nodes.len()),
-    next: 0,
-    max: 0,
+    next: binders,
+    max: binders,
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
-  lower.builder.names(resolved.names.iter().map(|name| name.as_ref().clone()).collect());
-  Ok(lower.builder.finish(lower.max, dialect))
+  let Lower { mut builder, max, .. } = lower;
+  let Resolved { names, layouts, regions, .. } = resolved;
+  builder.names(names.into_iter().map(|name| name.into_owned()).collect());
+  Ok(builder.finish(max, dialect, layouts, regions))
 }
 
 struct Lower<'r, 'a> {
@@ -56,6 +60,9 @@ impl<'a> Lower<'_, 'a> {
     let ast = self.resolved.nodes[node as usize].ast;
     if let Some(constant) = self.constant(ast) {
       return Ok(constant);
+    }
+    if let Some(binder) = self.binder(node) {
+      return Ok(binder);
     }
     let dst = dst.unwrap_or_else(|| self.temporary());
     let mark = self.next;
@@ -242,6 +249,7 @@ impl<'a> Lower<'_, 'a> {
         }
       }
       AstNode::FunctionInvocation(_, arguments) => self.invocation(node, arguments, dst)?,
+      AstNode::Context(_) => self.context(node, dst)?,
       AstNode::EvaluatedExpression(_) => self.into(self.resolved.kids(node)[0], dst)?,
       _ => return Err(NotYet { at: ast }),
     }
@@ -286,7 +294,14 @@ impl<'a> Lower<'_, 'a> {
           Some(names) => self.builder.name_list(names),
           None => NONE,
         };
-        let call = self.builder.call(CallInfo { function, args, argc, names });
+        let region = self.resolved.nodes[node as usize].region;
+        let call = self.builder.call(CallInfo {
+          function,
+          args,
+          argc,
+          names,
+          region,
+        });
         self.builder.emit(Op::Call { dst, call });
       }
       Err(text) => self.fail(dst, text),
@@ -294,6 +309,57 @@ impl<'a> Lower<'_, 'a> {
     self.builder.emit(Op::Leave { dst });
     self.builder.patch(enter);
     Ok(())
+  }
+
+  /// A context literal: the value of each entry in the slot of its binder, which the entries after
+  /// it read, nested no deeper than values may nest; at a repeated key, after the value of its
+  /// entry, the null of the repeated key, and the entries before it are dropped.
+  fn context(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+    let resolved = self.resolved;
+    let rnode = &resolved.nodes[node as usize];
+    let Info::Context { layout, stop } = rnode.info else {
+      return Err(NotYet { at: rnode.ast });
+    };
+    let entries = resolved.kids(node);
+    let bound = &resolved.layouts[layout as usize].entries;
+    for (&entry, &(_, place)) in entries.iter().zip(bound.iter()) {
+      let Place::Slot(slot) = place else {
+        return Err(NotYet { at: rnode.ast });
+      };
+      self.into(resolved.kids(entry)[1], slot)?;
+      self.builder.emit(Op::BoundDepth { s: slot });
+    }
+    match stop {
+      Stop::None => {
+        self.builder.emit(Op::Context { dst, layout });
+      }
+      Stop::Duplicate(index) => {
+        let entry = entries[index as usize];
+        self.into(resolved.kids(entry)[1], dst)?;
+        let AstNode::ContextEntry(key, _) = resolved.nodes[entry as usize].ast else {
+          return Err(NotYet { at: rnode.ast });
+        };
+        let AstNode::ContextEntryKey(name) = key.as_ref() else {
+          return Err(NotYet { at: rnode.ast });
+        };
+        self.fail(dst, kernels::err_duplicated_context_entry_key(name));
+        self.builder.emit(Op::Clear { layout, visible: index });
+      }
+      // an entry whose value may bind any name
+      Stop::Irregular(_) => return Err(NotYet { at: rnode.ast }),
+    }
+    Ok(())
+  }
+
+  /// The operand of the binder that `node` reads, when it is a name that reads one in a slot.
+  fn binder(&self, node: u32) -> Option<Opnd> {
+    match &self.resolved.nodes[node as usize].info {
+      Info::Read(read) if read.probes.is_empty() => match read.target {
+        Target::Place(Place::Slot(slot)) => Some(Opnd::slot(slot)),
+        _ => None,
+      },
+      _ => None,
+    }
   }
 
   /// The value of `node` into the slot `dst`.
@@ -340,7 +406,7 @@ impl<'a> Lower<'_, 'a> {
         let name = self.resolved.frees[free as usize].name;
         self.builder.emit(Op::LoadName { dst, name });
       }
-      (AstNode::QualifiedName(segments), Target::Free(_) | Target::Search) => {
+      (AstNode::QualifiedName(segments), Target::Free(_) | Target::Search { .. }) => {
         let segments = segments
           .iter()
           .filter_map(|segment| match segment {
@@ -348,7 +414,13 @@ impl<'a> Lower<'_, 'a> {
             _ => None,
           })
           .collect();
-        let search = self.builder.name_list(segments);
+        let segments = self.builder.name_list(segments);
+        // a free name is in no scope of the position; a search may be in any
+        let (first, region) = match read.target {
+          Target::Search { first } => (first, rnode.region),
+          _ => (NONE, NONE),
+        };
+        let search = self.builder.search(SearchInfo { segments, first, region });
         self.builder.emit(Op::Search { dst, search });
       }
       _ => return Err(NotYet { at: rnode.ast }),

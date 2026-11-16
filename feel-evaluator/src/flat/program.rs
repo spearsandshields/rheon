@@ -5,6 +5,8 @@
 //! by [ProgramBuilder] and checked by [Program::verify], and shared by every evaluation of the
 //! expression.
 
+pub(crate) use super::resolve::NONE;
+use super::resolve::{Layout, Place, Region};
 use crate::Dialect;
 use crate::kernels::Arithmetic;
 use rheon_feel::values::Value;
@@ -42,6 +44,10 @@ impl Opnd {
     // an index of 2^30 or more would need more memory than an evaluation may use
     assert!(index <= Self::INDEX, "operand index {index} out of range");
     Self(kind << Self::SHIFT | index)
+  }
+
+  pub(crate) fn slot(slot: Slot) -> Self {
+    Self::new(0, slot)
   }
 
   pub(crate) fn take(slot: Slot) -> Self {
@@ -133,8 +139,8 @@ pub(crate) enum Op {
   /// `dst` is the value of the free name `names[name]` in the scope of the host, else the
   /// built-in function of that name, else null with an error.
   LoadName { dst: Slot, name: Ix },
-  /// `dst` is the value of the qualified name `name_lists[search]` in the scope of the host, else
-  /// null with an error.
+  /// `dst` is the value of the qualified name of `searches[search]`, searched in the scopes of its
+  /// position and then in the scope of the host, else null with an error.
   Search { dst: Slot, search: Ix },
   /// `dst` is the entry `names[name]` of the value of `a` (`a.name`).
   Path { dst: Slot, a: Opnd, name: Ix },
@@ -194,6 +200,13 @@ pub(crate) enum Op {
   /// Leaves the innermost invocation: its value in `dst` is made finite and nested no deeper
   /// than values may nest.
   Leave { dst: Slot },
+  /// The value in the slot `s` is nested no deeper than values may nest.
+  BoundDepth { s: Slot },
+  /// Sets the slots of the first `visible` entries of `layouts[layout]` to null.
+  Clear { layout: Ix, visible: u32 },
+  /// `dst` is the context of the entries of `layouts[layout]`, whose values are moved out of their
+  /// slots, nested no deeper than values may nest.
+  Context { dst: Slot, layout: Ix },
   /// Ends the run with the value of `src`.
   Return { src: Opnd },
 }
@@ -201,18 +214,27 @@ pub(crate) enum Op {
 const _: () = assert!(std::mem::size_of::<Op>() <= 16);
 
 /// An invocation: the function, the arguments in the temporaries `args .. args + argc`, in the
-/// order written, and for named arguments the index of their names in [Program::name_lists]
-/// ([NONE] for positional arguments).
+/// order written, for named arguments the index of their names in [Program::name_lists] ([NONE]
+/// for positional arguments), and the innermost region at its position ([NONE] outside every
+/// region), whose scopes a function of the host sees.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct CallInfo {
   pub(crate) function: Opnd,
   pub(crate) args: Slot,
   pub(crate) argc: u32,
   pub(crate) names: Ix,
+  pub(crate) region: u32,
 }
 
-/// No index: positional arguments.
-pub(crate) const NONE: Ix = Ix::MAX;
+/// A qualified-name search: the segments in [Program::name_lists], the index of the first one in
+/// [Program::names] ([NONE] without segments), and the innermost region at its position ([NONE]
+/// outside every region).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SearchInfo {
+  pub(crate) segments: Ix,
+  pub(crate) first: u32,
+  pub(crate) region: u32,
+}
 
 /// The code of an expression and its tables (vectors as they were built: a program is built once
 /// per expression, and copying each table into an allocation of its exact size would cost more
@@ -229,6 +251,12 @@ pub(crate) struct Program {
   pub(crate) name_lists: Vec<Box<[Name]>>,
   /// The invocations.
   pub(crate) calls: Vec<CallInfo>,
+  /// The qualified-name searches.
+  pub(crate) searches: Vec<SearchInfo>,
+  /// The binders of each binding construct, as name resolution placed them.
+  pub(crate) layouts: Vec<Layout>,
+  /// The scopes at the positions of the code, as name resolution found them.
+  pub(crate) regions: Vec<Region>,
   /// FEEL or B-FEEL.
   pub(crate) dialect: Dialect,
   /// The slots of the frame.
@@ -261,7 +289,13 @@ impl Program {
         }
         Op::Search { dst, search } => {
           check.slot(dst)?;
-          check.index(search, self.name_lists.len(), "name list out of range")?;
+          check.index(search, self.searches.len(), "search out of range")?;
+          let info = self.searches[search as usize];
+          check.index(info.segments, self.name_lists.len(), "name list out of range")?;
+          if info.first != NONE {
+            check.index(info.first, self.names.len(), "name out of range")?;
+          }
+          check.region(info.region)?;
         }
         Op::Path { dst, a, name } | Op::Descendant { dst, a, name } => {
           check.slot(dst)?;
@@ -316,8 +350,26 @@ impl Program {
               return check.fail("names and arguments differ in number");
             }
           }
+          check.region(info.region)?;
+        }
+        Op::BoundDepth { s } => check.slot(s)?,
+        Op::Clear { layout, visible } => {
+          check.layout(layout)?;
+          if visible as usize > self.layouts[layout as usize].entries.len() {
+            return check.fail("more entries than the layout has");
+          }
+        }
+        Op::Context { dst, layout } => {
+          check.slot(dst)?;
+          check.layout(layout)?;
         }
         Op::Return { src } => check.opnd(src)?,
+      }
+    }
+    for (at, region) in self.regions.iter().enumerate() {
+      let check = Check { program: self, at: at as Pc };
+      if region.parent != NONE && region.parent as usize >= at {
+        return check.fail("a region is not held by an earlier one");
       }
     }
     match self.code.last() {
@@ -401,6 +453,29 @@ impl Check<'_> {
     if slot < self.program.slots { Ok(()) } else { self.fail("slot out of range") }
   }
 
+  /// A region, or [NONE].
+  fn region(&self, region: u32) -> Result<(), VerifyError> {
+    if region == NONE {
+      Ok(())
+    } else {
+      self.index(region, self.program.regions.len(), "region out of range")
+    }
+  }
+
+  /// A layout whose binders are all in slots of the frame and whose names are names of the
+  /// program.
+  fn layout(&self, layout: Ix) -> Result<(), VerifyError> {
+    self.index(layout, self.program.layouts.len(), "layout out of range")?;
+    for &(name, place) in self.program.layouts[layout as usize].entries.iter() {
+      self.index(name, self.program.names.len(), "name out of range")?;
+      match place {
+        Place::Slot(slot) => self.slot(slot)?,
+        Place::Partial(_) => return self.fail("a binder that is no slot"),
+      }
+    }
+    Ok(())
+  }
+
   fn opnd(&self, opnd: Opnd) -> Result<(), VerifyError> {
     match opnd.decode() {
       Operand::Slot(slot) | Operand::Take(slot) => self.slot(slot),
@@ -418,6 +493,7 @@ pub(crate) struct ProgramBuilder {
   names: Vec<Name>,
   name_lists: Vec<Box<[Name]>>,
   calls: Vec<CallInfo>,
+  searches: Vec<SearchInfo>,
 }
 
 impl ProgramBuilder {
@@ -470,9 +546,15 @@ impl ProgramBuilder {
     self.calls.len() as Ix - 1
   }
 
-  /// The program in `dialect`, with a frame of `slots` slots; checked in builds with debug
-  /// assertions.
-  pub(crate) fn finish(self, slots: u32, dialect: Dialect) -> Arc<Program> {
+  /// The index of the search `search` in the program.
+  pub(crate) fn search(&mut self, search: SearchInfo) -> Ix {
+    self.searches.push(search);
+    self.searches.len() as Ix - 1
+  }
+
+  /// The program in `dialect`, with a frame of `slots` slots and the layouts and regions of its
+  /// name resolution; checked in builds with debug assertions.
+  pub(crate) fn finish(self, slots: u32, dialect: Dialect, layouts: Vec<Layout>, regions: Vec<Region>) -> Arc<Program> {
     let program = Program {
       code: self.code,
       consts: self.consts,
@@ -480,6 +562,9 @@ impl ProgramBuilder {
       names: self.names,
       name_lists: self.name_lists,
       calls: self.calls,
+      searches: self.searches,
+      layouts,
+      regions,
       slots,
       dialect,
     };
