@@ -4,9 +4,8 @@
 //! expressions are built by the flat evaluator where it lowers them and as closures otherwise.
 //! A test chooses the evaluator of the expressions built inside [with_backend] on its thread,
 //! and reads the expressions that the flat evaluator refused there with [take_refusals] and the
-//! number it lowered with [take_lowered]. Outside
-//! [with_backend] nothing is recorded, and nothing is kept beyond the closure and the refusals not
-//! yet taken.
+//! number it lowered with [take_lowered]. Outside [with_backend] nothing is recorded, and nothing
+//! is kept beyond the closure and the refusals and the lowered count not yet taken.
 
 use crate::flat::NotYet;
 use rheon_feel::values::Value;

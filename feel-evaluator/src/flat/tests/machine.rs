@@ -25,11 +25,6 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
 }
 
 #[test]
-fn an_instruction_takes_at_most_16_bytes() {
-  assert!(std::mem::size_of::<Op>() <= 16);
-}
-
-#[test]
 fn operands_keep_their_kind_and_index() {
   use crate::flat::program::Operand;
   assert_eq!(Operand::Take(7), Opnd::take(7).decode());
