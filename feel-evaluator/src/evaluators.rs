@@ -31,19 +31,9 @@ pub fn prepare_with_dialect(node: &AstNode, dialect: Dialect) -> Evaluator {
 /// The evaluator of `node` in `dialect`, the flat evaluator's. A malformed tree (of a shape that
 /// the parser never produces) evaluates to null with one error, recorded at every evaluation.
 pub(crate) fn build(node: &AstNode, dialect: Dialect) -> Evaluator {
-  #[cfg(feature = "backends")]
-  match crate::testing::backend() {
-    crate::testing::Backend::Old => return crate::builders::build_evaluator_with_dialect(node, dialect),
-    crate::testing::Backend::Mutant => return crate::testing::mutant(crate::builders::build_evaluator_with_dialect(node, dialect)),
-    crate::testing::Backend::Flat | crate::testing::Backend::FlatOnly => {}
-  }
   match crate::flat::lower(node, dialect) {
     Ok(evaluator) => evaluator,
     Err(malformed) => {
-      #[cfg(feature = "backends")]
-      if let Some(marker) = crate::testing::refused(&malformed) {
-        return marker;
-      }
       let message = malformed.message();
       Box::new(move |_: &FeelScope| value_null!(message))
     }

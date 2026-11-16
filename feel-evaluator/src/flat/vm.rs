@@ -1,13 +1,13 @@
 //! # The run loop
 //!
 //! One evaluation of a [Program]: the frames of slots of its activations, and one loop that runs
-//! the instructions in order. Every value is computed by the kernels that the evaluator of
-//! closures calls, in the order it calls them, and every error, warning and limit is recorded in
-//! the evaluation's diagnostics as that evaluator records it.
+//! the instructions in order. Every value is computed by the kernels
+//! ([crate::kernels]), and every error, warning and limit is recorded in the evaluation's
+//! diagnostics in the order of the instructions.
 //!
 //! An invocation of a function whose body is code of a program is an activation of that body in
-//! the same run (on the heap: no recursion of the host). Its body reads what the evaluator of
-//! closures reads in the scope of the invocation: its parameters, its closure, then the scopes of
+//! the same run (on the heap: no recursion of the host). Its body reads the scopes
+//! of the invocation: its parameters, its closure, then the scopes of
 //! its caller where the caller invoked it, and so on down to the scope of the host.
 
 use super::program::{CallInfo, Compare, Domain, Fold, Kernel1, Kernel2, ListKind, LoopKind, NONE, Op, Operand, Opnd, Pc, Program, Slot};
@@ -1041,8 +1041,7 @@ impl<'p> Vm<'p> {
     }
   }
 
-  /// The step of the filter of `record` after its predicate gave `c`, as the filter of the
-  /// evaluator of closures takes it: evaluated in the scope around the filter, a number selects
+  /// The step of the filter of `record` after its predicate gave `c`: evaluated in the scope around the filter, a number selects
   /// the item at that index; any other value is not counted (what it recorded is removed) and the
   /// predicate is evaluated for each item, unless the evaluation was stopped, keeping the items
   /// for which it is `true`, up to a value that is no boolean, number or null, which ends the
@@ -1094,7 +1093,7 @@ impl<'p> Vm<'p> {
     }
   }
 
-  /// The next step of the walk of `record`, as the walk of the evaluator of closures takes it:
+  /// The next step of the walk of `record`:
   /// while a variable has a domain, unless the evaluation was stopped, the next value of the
   /// innermost one, where the code that follows it starts; a domain that has no value left is
   /// removed, with the value of its variable. Without a domain the walk ends.
@@ -1158,7 +1157,7 @@ impl<'p> Vm<'p> {
     }
   }
 
-  /// Pushes on the scope of the host the scopes that the evaluator of closures has at a position
+  /// Pushes on the scope of the host the scopes of a position
   /// whose innermost region is `region` of the activation that runs (and so those of the
   /// activations below it, where each invoked the one above), outermost first; returns the depth
   /// of the scope before. A scope without entries is left out: it changes no read. [Vm::release]
@@ -1285,7 +1284,7 @@ impl<'p> Vm<'p> {
   /// The value of the qualified name `segments`, whose first segment is `names[first]` of the
   /// program that runs ([NONE] when no binder has it), from the region `region` of the activation
   /// that runs down: in each scope, innermost first, the entry of the first segment and in it the
-  /// entries of the others, as the scopes of the evaluator of closures search it; a search that
+  /// entries of the others; a search that
   /// fails in one scope goes on in the scope below it, down to the scope of the host.
   #[cold]
   #[inline(never)]

@@ -1,5 +1,4 @@
-// Checks of the tier runner (scripts/tier.mjs) on step tables of their own, and of the steps of the
-// group and release tiers that compare the two evaluators:
+// Checks of the tier runner (scripts/tier.mjs) on step tables of their own:
 //
 //   node --test scripts/tier.test.mjs        (npm run test:tier)
 import { test, before, after } from 'node:test';
@@ -9,7 +8,7 @@ import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { groupSteps, releaseSteps, runSteps } from './tier.mjs';
+import { runSteps } from './tier.mjs';
 
 let dir;
 let count = 0;
@@ -107,21 +106,4 @@ test('usage errors exit 2', () => {
     assert.equal(r.status, 2, `${args.join(' ')}: ${r.stdout}${r.stderr}`);
     assert.match(r.stderr, /^usage: /m);
   }
-});
-
-test('the group tier compares the two evaluators, and the release tier at full size', () => {
-  const step = (steps, name) => steps.find((s) => s.name === name) ?? assert.fail(`no step ${name}`);
-  const group = groupSteps();
-  const backends = step(group, 'backends');
-  assert.match(backends.command, /cargo test -p rheon-feel-wasm --test backends -- --ignored --nocapture$/);
-  assert.match(backends.env.RHEON_PARSER_CORPUS, /tools\/feel-corpus$/);
-  for (const name of ['tck-copies', 'model-evaluator']) {
-    assert.equal(step(group, name).env.RHEON_BACKEND_TWINS, '1', name);
-    assert.match(step(group, name).command, /RHEON_BACKEND_COVERAGE="\$TIER_LOGS\/twins-coverage.txt" cargo test -p rheon-model-evaluator/, name);
-  }
-  assert.deepEqual(step(group, 'twins-coverage').needs, ['tck-copies', 'model-evaluator']);
-  const full = step(releaseSteps(), 'backends-full');
-  assert.match(full.command, /cargo test --release -p rheon-feel-wasm --test backends -- --ignored --nocapture$/);
-  assert.equal(full.env.RHEON_FULL_TESTS, '1');
-  assert.deepEqual(full.needs, ['full-size-build']);
 });

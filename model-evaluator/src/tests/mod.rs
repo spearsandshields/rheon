@@ -3,9 +3,8 @@ use rheon_feel::FeelScope;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel_evaluator::Outcome;
-use rheon_feel_evaluator::testing::{Backend, take_lowered, take_refusals, with_backend};
 use rheon_model::DmnElement;
-use std::sync::{Arc, LazyLock, Mutex, Weak};
+use std::sync::{Arc, LazyLock};
 
 mod compatibility;
 mod exhaustive;
@@ -83,98 +82,18 @@ fn build_model_evaluator(model_content: &str) -> Arc<ModelEvaluator> {
   build_model_evaluators(&[model_content])
 }
 
-/// Utility function that builds a model evaluator from multiple XML model definitions; with
-/// [twins] it is built by the flat evaluator, and its twin by the evaluator of closures.
+/// Utility function that builds a model evaluator from multiple XML model definitions.
 fn build_model_evaluators(model_content: &[&str]) -> Arc<ModelEvaluator> {
-  let build = || {
-    let mut definitions = vec![];
-    for content in model_content {
-      definitions.push(rheon_model::parse(content).unwrap());
-    }
-    ModelEvaluator::new(&definitions).unwrap()
-  };
-  if !twins() {
-    return build();
+  let mut definitions = vec![];
+  for content in model_content {
+    definitions.push(rheon_model::parse(content).unwrap());
   }
-  let model_evaluator = with_backend(Backend::Flat, build);
-  note_flat_builds();
-  let twin = with_backend(Backend::Old, build);
-  take_refusals();
-  take_lowered();
-  TWINS.lock().unwrap().push((Arc::downgrade(&model_evaluator), twin));
-  model_evaluator
+  ModelEvaluator::new(&definitions).unwrap()
 }
 
-/// Whether the model tests compare every evaluation with that of a twin built by the evaluator of
-/// closures (`RHEON_BACKEND_TWINS` set; the group tier sets it).
-fn twins() -> bool {
-  std::env::var_os("RHEON_BACKEND_TWINS").is_some()
-}
-
-/// With [twins], adds `lines` to the file that `RHEON_BACKEND_COVERAGE` names, when it is set: a
-/// line for each expression the flat evaluator lowered or refused and for each evaluation, with or
-/// without a twin. The group tier counts the lines of all model tests.
-fn note_coverage(lines: &str) {
-  if let Some(path) = std::env::var_os("RHEON_BACKEND_COVERAGE")
-    && !lines.is_empty()
-  {
-    use std::io::Write;
-    let mut file = std::fs::OpenOptions::new().create(true).append(true).open(&path).expect("RHEON_BACKEND_COVERAGE");
-    file.write_all(lines.as_bytes()).expect("RHEON_BACKEND_COVERAGE");
-  }
-}
-
-/// Notes the expressions that the flat evaluator lowered and refused since the last note.
-fn note_flat_builds() {
-  let mut lines = "lowered\n".repeat(take_lowered());
-  for refusal in take_refusals() {
-    lines.push_str(&format!("refused {} at {}\n", refusal.kind, refusal.node));
-  }
-  note_coverage(&lines);
-}
-
-/// The models built with [twins] and their twins. A model is held weakly, so that it is dropped as
-/// without a twin, while its allocation stays and no other model is built at its address.
-static TWINS: Mutex<Vec<(Weak<ModelEvaluator>, Arc<ModelEvaluator>)>> = Mutex::new(Vec::new());
-
-/// With [twins], a model that is built has a twin, which [evaluated] finds.
-#[test]
-fn a_model_has_a_twin() {
-  if !twins() {
-    return;
-  }
-  let model_evaluator = build_model_evaluator(dsntk_examples::DMN_2_0001);
-  let found = TWINS.lock().unwrap().iter().any(|(model, _)| std::ptr::eq(model.as_ptr(), Arc::as_ptr(&model_evaluator)));
-  assert!(found);
-}
-
-/// The text of the outcome of `invocable` with `input_data`; with [twins], the twin must give the
-/// same text and the same diagnostics.
+/// The text of the outcome of `invocable` with `input_data`.
 fn evaluated(model_evaluator: &ModelEvaluator, model_namespace: &str, model_name: &str, invocable: &str, input_data: &FeelContext) -> String {
-  let evaluate = |model_evaluator: &ModelEvaluator| outcome_text(model_evaluator.evaluate_invocable(model_namespace, model_name, invocable, input_data));
-  if !twins() {
-    return evaluate(model_evaluator);
-  }
-  let twin = TWINS
-    .lock()
-    .unwrap()
-    .iter()
-    .find(|(model, _)| std::ptr::eq(model.as_ptr(), model_evaluator))
-    .map(|(_, twin)| Arc::clone(twin));
-  let (actual, diagnostics) = with_backend(Backend::Flat, || rheon_feel::diagnostics::collect(|| evaluate(model_evaluator)));
-  note_flat_builds();
-  match twin {
-    Some(twin) => {
-      let (expected, twin_diagnostics) = with_backend(Backend::Old, || rheon_feel::diagnostics::collect(|| evaluate(&twin)));
-      take_refusals();
-      take_lowered();
-      assert_eq!(expected, actual, "the twins of {invocable} differ");
-      assert_eq!(twin_diagnostics, diagnostics, "the diagnostics of the twins of {invocable} differ");
-      note_coverage("evaluation with a twin\n");
-    }
-    None => note_coverage("evaluation without a twin\n"),
-  }
-  actual
+  outcome_text(model_evaluator.evaluate_invocable(model_namespace, model_name, invocable, input_data))
 }
 
 /// Utility function that returns a model namespace from a single DMN model.

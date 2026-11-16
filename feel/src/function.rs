@@ -109,8 +109,7 @@ pub enum FunctionBody {
   /// Function body created from boxed `some` expression defined in DMN model.
   Some(FunctionBodyEvaluator),
   /// Function body of a FEEL function definition: code of an evaluator of FEEL and the index of
-  /// the body in it. It compares and prints like [FunctionBody::LiteralExpression], the body that
-  /// an evaluator of closures builds for the same definition.
+  /// the body in it. It compares and prints like [FunctionBody::LiteralExpression].
   Feel(Arc<dyn FeelCode>, u32),
 }
 

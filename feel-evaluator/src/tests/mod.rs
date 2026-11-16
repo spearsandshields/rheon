@@ -67,8 +67,7 @@ const SECONDS_IN_DAY: i64 = 86_400;
 const SECONDS_IN_HOUR: i64 = 3_600;
 const SECONDS_IN_MINUTE: i64 = 60;
 
-/// The evaluator of `node` as [crate::prepare] builds it (the flat evaluator where it lowers the
-/// expression, otherwise the evaluator of closures), without a session of its own.
+/// The evaluator of `node` as [crate::prepare] builds it, without a session of its own.
 pub(crate) fn build_evaluator(node: &AstNode) -> Evaluator {
   crate::evaluators::build(node, Dialect::Feel)
 }

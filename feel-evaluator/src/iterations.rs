@@ -185,7 +185,7 @@ pub struct Iteration {
 }
 
 impl Iteration {
-  /// The iteration contexts of a FEEL expression: `variables`, bound in this order.
+  /// The iteration contexts `variables`, bound in this order.
   pub(crate) fn new(variables: Vec<(Name, Domain)>) -> Self {
     Self { variables }
   }

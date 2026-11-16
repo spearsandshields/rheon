@@ -1,5 +1,5 @@
 //! What a function of the host sees when the flat evaluator invokes it: the binders of the
-//! invocation's position, as the scopes of the evaluator of closures hold them.
+//! invocation's position, as recorded for each case in `expected/host.txt`.
 
 use super::agree_text;
 use crate::Dialect;

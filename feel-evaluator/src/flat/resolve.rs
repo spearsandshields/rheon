@@ -12,15 +12,15 @@
 //!   function, the scopes of its callers and the scope of the host, then the built-in function of
 //!   that name.
 //!
-//! The scopes of the evaluator of closures are kept as static regions: a region is one scope at
+//! The scopes of an expression are kept as static regions: a region is one scope at
 //! a position of the code (the first entries of a layout, the item of a filter, the closure of a
 //! function), and the chain of a position is its region and the regions that hold it. A qualified
 //! name of several segments is searched along that chain at run time, since a search that fails
 //! in one scope goes on in the scope below it.
 //!
-//! The pass visits the nodes that the evaluator of closures evaluates, where it evaluates them,
-//! and binds names only in the shapes that evaluator binds; any other shape is kept as it is,
-//! unbound, for the lowering to give what that evaluator gives or to refuse it.
+//! The pass visits the nodes that are evaluated, where they are evaluated, and binds names only
+//! in the shapes that bind them; any other shape is kept as it is, unbound, for the lowering to
+//! give its error or to find the tree malformed.
 
 use rheon_feel::Name;
 use rheon_feel::closure::Closure;
@@ -178,8 +178,8 @@ impl Layout {
     self.entries[..visible as usize].iter().filter(move |(name, _)| !hide || *name != self.hidden)
   }
 
-  /// The place of `name` among the first `visible` entries: the last one of that name, as the
-  /// scope of the evaluator of closures keeps the last value set under a name.
+  /// The place of `name` among the first `visible` entries: the last one of that name, since a
+  /// scope keeps the last value set under a name.
   pub(crate) fn find(&self, name: u32, visible: u32) -> Option<Place> {
     if name == self.hidden && (visible as usize) < self.entries.len() {
       return None;
@@ -219,7 +219,7 @@ pub(crate) struct Proto {
   pub(crate) binders: u32,
   /// The outermost region of the body.
   pub(crate) region: u32,
-  /// The names the function closes over, as the evaluator of closures lists them.
+  /// The names the function closes over, as [ClosureBuilder] lists them.
   pub(crate) closure: Closure,
   /// For each name of `closure`, in its order, the index of its first segment in
   /// [Resolved::names], [NONE] for a name that no binder binds.
@@ -569,8 +569,8 @@ impl<'a> Resolver<'a> {
         let kids = self.nodes(items);
         self.add(ast, Info::None, &kids)
       }
-      // literals, keys and types; and the nodes that the evaluator of closures does not evaluate
-      // but builds as an error, so their children are never read
+      // literals, keys and types; and the nodes that are not evaluated but lowered as an error
+      // or found malformed, so their children are never read
       At(_)
       | Boolean(_)
       | ContextEntryKey(_)
@@ -596,8 +596,8 @@ impl<'a> Resolver<'a> {
   }
 
   /// A qualified name: of one segment it reads as a name, of several it is searched along the
-  /// chain of its position at run time. A segment that is no segment is kept as a child: the
-  /// evaluator of closures evaluates it.
+  /// chain of its position at run time. A name with a segment that is no segment keeps
+  /// its segments as children and reads nothing.
   fn qualified_name(&mut self, ast: &'a AstNode, segments: &'a [AstNode], callee: bool) -> u32 {
     let names: Option<Vec<&Name>> = segments
       .iter()

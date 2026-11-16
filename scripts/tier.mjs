@@ -54,8 +54,6 @@ const WASM = { wasm: true };
 
 class UsageError extends Error {}
 
-export { groupSteps, releaseSteps };
-
 /** Runs the steps of a tier; returns the exit status. `print` receives every output line. */
 export function runSteps(tier, steps, { budget = null, stopAtFailure = false, without = new Set(), logs, env = process.env, cwd = root, print = console.log } = {}) {
   rmSync(logs, { recursive: true, force: true });
@@ -136,13 +134,7 @@ const head = [
 ];
 const wasmBuild = { name: 'build-wasm', kind: 'build', command: 'npm run build:wasm', ...WASM };
 const identityStep = { name: 'identity', kind: 'run', command: identity(), needs: ['build-wasm'] };
-const tckCopies = (needs, env) => ({ name: 'tck-copies', kind: 'run', command: `cargo test -p rheon-model-evaluator -- ${TCK_COPIES} ${SKIPS}`, needs, env });
-// The model tests with a twin of every model built by the evaluator of closures (model-evaluator/src/tests/mod.rs).
-const TWINS = { RHEON_BACKEND_TWINS: '1' };
-// The lines in which the model tests with twins note what the flat evaluator lowered and refused and what they compared, counted by the twins-coverage step.
-const COVERAGE = '"$TIER_LOGS/twins-coverage.txt"';
-// The FEEL corpus, which the parser's corpus test and the backends harness read.
-const CORPUS = { RHEON_PARSER_CORPUS: path.join(root, 'tools/feel-corpus') };
+const tckCopies = (needs) => ({ name: 'tck-copies', kind: 'run', command: `cargo test -p rheon-model-evaluator -- ${TCK_COPIES} ${SKIPS}`, needs });
 const toolTests = {
   identity: { name: 'test-identity', kind: 'run', command: 'npm run test:identity', needs: ['build-wasm'] },
   tier: { name: 'test-tier', kind: 'run', command: 'npm run test:tier' },
@@ -154,13 +146,10 @@ function groupSteps() {
   return [
     ...head,
     { name: 'workspace-build', kind: 'build', command: 'cargo test --workspace --no-run' },
-    { ...tckCopies(['workspace-build'], TWINS), command: `rm -f ${COVERAGE} && RHEON_BACKEND_COVERAGE=${COVERAGE} ${tckCopies().command}` },
+    tckCopies(['workspace-build']),
     // the rest of rheon-model-evaluator, and every other crate (a filter cannot name one crate's tests)
-    { name: 'model-evaluator', kind: 'run', command: `RHEON_BACKEND_COVERAGE=${COVERAGE} cargo test -p rheon-model-evaluator -- ${SKIPS} --skip ${TCK_COPIES}`, needs: ['workspace-build'], env: TWINS },
-    { name: 'twins-coverage', kind: 'run', command: `sort ${COVERAGE} | uniq -c | sort -rn && rm ${COVERAGE}`, needs: ['tck-copies', 'model-evaluator'] },
+    { name: 'model-evaluator', kind: 'run', command: `cargo test -p rheon-model-evaluator -- ${SKIPS} --skip ${TCK_COPIES}`, needs: ['workspace-build'] },
     { name: 'workspace', kind: 'run', command: `cargo test --workspace --exclude rheon-model-evaluator --no-fail-fast -- ${SKIPS}`, needs: ['workspace-build'] },
-    // the evaluator of closures against the flat evaluator on every committed request (wasm/feel-wasm/tests/backends.rs)
-    { name: 'backends', kind: 'run', command: 'cargo test -p rheon-feel-wasm --test backends -- --ignored --nocapture', needs: ['workspace-build'], env: CORPUS },
     { name: 'clippy', kind: 'build', command: 'cargo clippy --workspace --lib --tests -- -D warnings' },
     wasmBuild,
     identityStep,
@@ -188,7 +177,6 @@ function releaseSteps() {
     { name: 'oracle-full', kind: 'run', command: 'bash tools/number-oracle/run.sh full', needs: ['build-wasm'] },
     ...cargoTest('full-size', `--release ${FULL_SIZE}`, '', { env: { RHEON_FULL_TESTS: '1' } }),
     { name: 'parser-corpus', kind: 'run', command: `RHEON_PARSER_CORPUS="$PWD/tools/feel-corpus" cargo test --release -p rheon-feel-parser -- --include-ignored`, needs: ['full-size-build'] },
-    { name: 'backends-full', kind: 'run', command: 'cargo test --release -p rheon-feel-wasm --test backends -- --ignored --nocapture', needs: ['full-size-build'], env: { RHEON_FULL_TESTS: '1', ...CORPUS } },
     { name: 'stack-report', kind: 'run', command: 'npm run stack -- --report', needs: ['build-wasm'] },
     {
       name: 'speed-suite',

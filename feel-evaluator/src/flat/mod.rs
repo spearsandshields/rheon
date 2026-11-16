@@ -62,7 +62,5 @@ pub(crate) fn kind_of(node: &AstNode) -> String {
 pub(crate) fn lower(node: &AstNode, dialect: Dialect) -> Result<Evaluator, Malformed<'_>> {
   let resolved = resolve::resolve(node);
   let program = lower::lower(resolved, dialect)?;
-  #[cfg(feature = "backends")]
-  crate::testing::lowered();
   Ok(Box::new(move |scope: &FeelScope| program.run(scope)))
 }

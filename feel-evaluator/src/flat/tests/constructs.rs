@@ -1,5 +1,5 @@
-//! The lowering of each construct: the flat evaluator gives the value and the diagnostics that
-//! the evaluator of closures gives.
+//! The lowering of each construct: the flat evaluator gives the value and the diagnostics
+//! recorded for each case in `expected/constructs.txt`.
 
 use super::{agree, agree_in, agree_node, scope};
 use crate::Dialect;
@@ -359,7 +359,7 @@ fn instance_of_and_types() {
 }
 
 #[test]
-fn malformed_types_are_the_builders_errors() {
+fn malformed_types_are_errors() {
   let scope = scope("");
   let key = |name: &str| Box::new(AstNode::ContextTypeEntryKey(Name::from(name)));
   let number = || Box::new(AstNode::FeelType(rheon_feel::FeelType::Number));
@@ -536,7 +536,7 @@ fn some_and_every_end_at_a_value_that_decides() {
 }
 
 #[test]
-fn malformed_iterations_are_the_builders_errors() {
+fn malformed_iterations_are_errors() {
   let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
   let (some, for_expression) = (parse("some x in [1], x in [2] satisfies x > 0"), parse("for i in [1] return i"));
   let (AstNode::Some(contexts, satisfies), AstNode::For(iteration_contexts, body)) = (&some, &for_expression) else {

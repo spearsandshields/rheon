@@ -1,9 +1,8 @@
 //! # Lowering
 //!
 //! The instructions of a resolved expression. Every node becomes the instructions that compute
-//! what the evaluator of closures computes for it, emitted in the order in which that evaluator
-//! evaluates the parts of the node, so that errors, warnings and limits are recorded in the same
-//! order. A value known when the expression is built and whose evaluation records nothing is a
+//! its value, emitted in the order in which the parts of the node are evaluated, so that errors,
+//! warnings and limits are recorded in that order. A value known when the expression is built and whose evaluation records nothing is a
 //! constant; any other value is computed into a temporary slot, which its one reader moves out.
 //! A node of a shape that the parser never produces makes the whole tree malformed ([Malformed]).
 
@@ -13,10 +12,11 @@ use super::program::{
   SearchInfo, Slot,
 };
 use super::resolve::{Info, Place, Resolved, Stop, Target, variables};
+use crate::Dialect;
 use crate::filters::ITEM;
 use crate::kernels::{self, Arithmetic};
-use crate::{Dialect, builders};
 use rheon_feel::Name;
+use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
@@ -157,7 +157,7 @@ impl<'a> Lower<'_, 'a> {
             _ => Op::Descendant { dst, a, name },
           });
         }
-        _ => self.fail(dst, crate::builders::err_expected_name(entry)),
+        _ => self.fail(dst, err_expected_name(entry)),
       },
       AstNode::Add(..) | AstNode::Sub(..) | AstNode::Mul(..) | AstNode::Div(..) | AstNode::Exp(..) => {
         let op = match ast {
@@ -454,13 +454,13 @@ impl<'a> Lower<'_, 'a> {
         .map(|item| match item {
           AstNode::NamedParameter(name, _) => match name.as_ref() {
             AstNode::ParameterName(name) => Ok(name.clone()),
-            other => Err(builders::err_expected_parameter_name(other)),
+            other => Err(err_expected_parameter_name(other)),
           },
-          other => Err(builders::err_msg_expected_node("NamedParameter", other)),
+          other => Err(err_msg_expected_node("NamedParameter", other)),
         })
         .collect::<Result<_, _>>()
         .map(Some),
-      other => Err(builders::err_msg_expected_positional_or_named_parameter(other)),
+      other => Err(err_msg_expected_positional_or_named_parameter(other)),
     };
     match names {
       Ok(names) => {
@@ -580,7 +580,7 @@ impl<'a> Lower<'_, 'a> {
       return Ok(());
     };
     if duplicate != NONE {
-      self.fail(dst, builders::err_duplicate_iteration_variable(&resolved.names[duplicate as usize]));
+      self.fail(dst, err_duplicate_iteration_variable(&resolved.names[duplicate as usize]));
       return Ok(());
     }
     let variables = variables(contexts, kind != LoopKind::For);
@@ -670,12 +670,12 @@ impl<'a> Lower<'_, 'a> {
       return;
     };
     let text = if !matches!(contexts.as_ref(), AstNode::QuantifiedContexts(_)) {
-      builders::err_msg_expected_node("QuantifiedContexts", contexts)
+      err_msg_expected_node("QuantifiedContexts", contexts)
     } else {
       let mut names = std::collections::HashSet::new();
       match variables(contexts, true).into_iter().find(|(name, _)| !names.insert(*name)) {
-        Some((name, _)) => builders::err_duplicate_iteration_variable(name),
-        None => builders::err_msg_expected_node("Satisfies", satisfies),
+        Some((name, _)) => err_duplicate_iteration_variable(name),
+        None => err_msg_expected_node("Satisfies", satisfies),
       }
     };
     self.fail(dst, text);
@@ -830,4 +830,29 @@ fn literal(ast: &AstNode) -> Option<Result<(Value, Option<String>), String>> {
     AstNode::At(text) => Some(kernels::at_literal(text)),
     _ => None,
   }
+}
+
+/// Returns an error message when other AST node was expected.
+fn err_msg_expected_node(expected: &str, actual: &AstNode) -> String {
+  format!("expected AST node {expected}, actual AST node is {actual:?}")
+}
+
+/// Returns an error message when expected only a named or positional parameter.
+fn err_msg_expected_positional_or_named_parameter(actual: &AstNode) -> String {
+  format!("expected positional or named parameter, actual AST node is {actual:?}")
+}
+
+/// Returns an error message when expected only a parameter name.
+fn err_expected_parameter_name(actual: &AstNode) -> String {
+  format!("expected AST node ParameterName, actual node is {actual:?}")
+}
+
+/// The error of an iteration whose variable `name` is named twice.
+fn err_duplicate_iteration_variable(name: &Name) -> String {
+  format!("duplicate iteration variable '{}'", arg(name))
+}
+
+/// Returns an error message when expected only a name.
+fn err_expected_name(actual: &AstNode) -> String {
+  format!("expected name node, actual node is: {actual:?}")
 }

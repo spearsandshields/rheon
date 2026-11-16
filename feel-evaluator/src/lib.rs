@@ -6,7 +6,6 @@ extern crate dsntk_macros;
 
 mod bfeel;
 mod bifs;
-mod builders;
 mod equality;
 mod errors;
 #[cfg(not(target_arch = "wasm32"))]
@@ -23,9 +22,6 @@ mod iterations;
 mod kernels;
 mod macros;
 mod session;
-#[cfg(feature = "backends")]
-#[doc(hidden)]
-pub mod testing;
 mod tests;
 
 pub use crate::bfeel::Dialect;
