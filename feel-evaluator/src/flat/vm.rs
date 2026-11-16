@@ -12,10 +12,11 @@
 
 use super::program::{CallInfo, Compare, Domain, Fold, Kernel1, Kernel2, ListKind, LoopKind, NONE, Op, Operand, Opnd, Pc, Program, Slot};
 use super::resolve::{Place, Region, RegionKind};
+use crate::Dialect;
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
 use crate::filters::{ITEM, item_at, outcome};
-use crate::invocation::{Arguments, arity, closed_over, coerce_arguments, in_order, invoke};
+use crate::invocation::{Arguments, apply_feel_built_in, arity, closed_over, coerce_arguments, in_order, invoke};
 use crate::iterations::Sequence;
 use crate::kernels::{self, Arithmetic, finite};
 use rheon_feel::bif::Bif;
@@ -760,9 +761,25 @@ impl<'p> Vm<'p> {
     if let (Some((callee, proto)), Value::FunctionDefinition(function)) = (code, &function) {
       return self.activate(program, pc, dst, call, &info, Arc::clone(function), callee, proto);
     }
-    let values: Vec<Value> = (info.args..info.args + info.argc).map(|slot| self.take(slot)).collect();
+    let (args, argc) = (info.args, info.argc as usize);
+    let function = match (function, info.names, program.dialect) {
+      // in FEEL a built-in function reads its positional arguments where they are
+      (Value::BuiltInFunction(bif), NONE, Dialect::Feel) => {
+        let value = match self.act.base {
+          BOTTOM => apply_feel_built_in(bif, &self.bottom[args as usize..args as usize + argc]),
+          base => apply_feel_built_in(bif, &self.stack[base + args as usize..base + args as usize + argc]),
+        };
+        for slot in args..args + argc as u32 {
+          *self.slot(slot) = Value::Null(None);
+        }
+        *self.slot(dst) = value;
+        return Next::At(pc);
+      }
+      (function, ..) => function,
+    };
+    let values = (args..args + argc as u32).map(|slot| self.take(slot));
     let arguments = if info.names == NONE {
-      Arguments::Positional(values)
+      Arguments::Positional(values.collect())
     } else {
       Arguments::Named(program.name_lists[info.names as usize].iter().cloned().zip(values).collect())
     };
@@ -800,7 +817,7 @@ impl<'p> Vm<'p> {
       })
     } else {
       let mut named = std::mem::take(&mut self.named);
-      let values: Vec<Value> = (args..args + argc as u32).map(|slot| self.take(slot)).collect();
+      let values = (args..args + argc as u32).map(|slot| self.take(slot));
       let bound = in_order(parameters, program.name_lists[info.names as usize].iter().zip(values), &mut named).and_then(|()| coerce_arguments(parameters, &mut named));
       self.named = named;
       bound

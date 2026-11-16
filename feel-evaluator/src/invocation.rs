@@ -187,12 +187,17 @@ fn apply_external(scope: &FeelScope, body: &FunctionBody, arguments: &[Value]) -
   }
 }
 
+/// Applies a built-in function in FEEL to positional arguments, which it reads where they are.
+pub(crate) fn apply_feel_built_in(bif: Bif, values: &[Value]) -> Value {
+  bifs::positional::evaluate_bif(bif, values)
+}
+
 /// Applies a built-in function; the dialect selects the FEEL or B-FEEL semantics.
 fn apply_built_in(bif: Bif, arguments: Arguments, dialect: Dialect) -> Value {
   match arguments {
     Arguments::Positional(values) => match dialect {
       Dialect::BFeel => bfeel::evaluate_positional_bif(bif, values),
-      Dialect::Feel => bifs::positional::evaluate_bif(bif, &values),
+      Dialect::Feel => apply_feel_built_in(bif, &values),
     },
     Arguments::Named(arguments) => {
       // positions tell `before(point, range)` from `before(range, point)` (bifs/named.rs)

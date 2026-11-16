@@ -273,7 +273,7 @@ fn loops_allocate_only_for_their_results() {
 }
 
 /// `partial` is the walk's results, not a copy of them: an iteration that reads it and invokes a
-/// built-in allocates for the invocation (2 allocations, 72 bytes), never the results again.
+/// built-in allocates for the invocation, never the results again.
 #[test]
 fn partial_is_read_without_a_copy_of_the_results() {
   let (_, bytes) = cost_of_iterations("count(for i in 1..{n} return count(partial))");
@@ -323,6 +323,36 @@ fn a_function_of_the_host_invoked_in_a_walk_holds_no_copy_of_its_results() {
   // invocation), and a tenth; a copy of the results in each iteration would take gigabytes
   assert!(
     allocations <= 33_010 && bytes <= 13_932_141,
+    "{allocations} allocations and {bytes} bytes more over 10,000 than over one"
+  );
+}
+
+/// An invocation of a function of FEEL allocates nothing: its arguments are bound in place and its
+/// frame is a window of slots that the run keeps; positional, named, typed and recursive.
+#[test]
+fn invocations_of_functions_of_feel_allocate_nothing() {
+  for expression in [
+    "{f: function(x) x + 1, r: count(for i in 1..{n} return f(i))}.r",
+    "{f: function(a, b) a - b, r: count(for i in 1..{n} return f(b: 1, a: i))}.r",
+    "{f: function(a: number) a + 1, r: count(for i in 1..{n} return f(i))}.r",
+    "{f: function(n) if n = 0 then 0 else f(n - 1), r: count(for i in 1..{n} return f(3))}.r",
+  ] {
+    let (allocations, bytes) = cost_of_iterations(expression);
+    assert!(
+      allocations <= RESULTS_ALLOCATIONS && bytes <= RESULTS_BYTES,
+      "{expression}: {allocations} allocations and {bytes} bytes more over 10,000 than over one"
+    );
+  }
+}
+
+/// In FEEL a built-in function reads its positional arguments where they are: an invocation
+/// allocates only what the function itself allocates (`abs` one value).
+#[test]
+fn invocations_of_built_in_functions_allocate_no_arguments() {
+  let (allocations, bytes) = cost_of_iterations("count(for i in 1..{n} return abs(i))");
+  // 10,011 allocations and 2,176,632 bytes measured, and a tenth of the bytes
+  assert!(
+    allocations <= 10_000 + RESULTS_ALLOCATIONS && bytes <= 2_394_295,
     "{allocations} allocations and {bytes} bytes more over 10,000 than over one"
   );
 }
