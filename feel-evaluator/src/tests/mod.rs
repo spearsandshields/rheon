@@ -53,6 +53,7 @@ mod previews;
 mod properties;
 mod range;
 mod satisfies;
+mod scoping;
 mod send_sync;
 mod shared_values;
 mod some_expression;
