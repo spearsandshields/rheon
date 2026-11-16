@@ -1220,6 +1220,19 @@ impl FeelNumber {
     eq_v(v, round_integral_v(v, RoundingMode::Down))
   }
 
+  /// The number as an `i64`, when it is an integer of that range held without a scale: then
+  /// `FeelNumber::from` of the result is the number itself, in the same cohort.
+  pub fn unscaled_i64(&self) -> Option<i64> {
+    match self.v() {
+      // a zero with a sign is not the number that `from` gives
+      V::Fin(negative, coefficient, 0) if coefficient != 0 || !negative => {
+        let magnitude = i64::try_from(coefficient).ok()?;
+        Some(if negative { -magnitude } else { magnitude })
+      }
+      _ => None,
+    }
+  }
+
   pub fn is_zero(&self) -> bool {
     eq_v(self.v(), ZERO)
   }

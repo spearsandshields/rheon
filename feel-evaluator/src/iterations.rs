@@ -25,8 +25,23 @@ pub struct Sequence(Items);
 enum Items {
   List(ListItems),
   One(Option<Value>),
-  Numbers { next: Option<FeelNumber>, end: FeelNumber, ascending: bool },
-  Dates { next: Option<FeelDate>, end: FeelDate, ascending: bool },
+  Numbers {
+    next: Option<FeelNumber>,
+    end: FeelNumber,
+    ascending: bool,
+  },
+  /// The numbers of an interval whose ends are integers held without a scale: each step is the
+  /// number that adding or subtracting one gives, counted as an integer.
+  Integers {
+    next: Option<i64>,
+    end: i64,
+    ascending: bool,
+  },
+  Dates {
+    next: Option<FeelDate>,
+    end: FeelDate,
+    ascending: bool,
+  },
 }
 
 impl Sequence {
@@ -66,10 +81,17 @@ impl Sequence {
     match start {
       Value::Number(start) => match end {
         Value::Number(end) if ascending_only && start > end => Err(err_invalid_range()),
-        Value::Number(end) => Ok(Self(Items::Numbers {
-          next: Some(start),
-          end,
-          ascending: start <= end,
+        Value::Number(end) => Ok(Self(match (start.unscaled_i64(), end.unscaled_i64()) {
+          (Some(first), Some(last)) => Items::Integers {
+            next: Some(first),
+            end: last,
+            ascending: first <= last,
+          },
+          _ => Items::Numbers {
+            next: Some(start),
+            end,
+            ascending: start <= end,
+          },
         })),
         other => Err(err_invalid_interval_end(FEEL_TYPE_NAME_NUMBER, arg(&TypeOf(&other)))),
       },
@@ -105,6 +127,15 @@ impl Sequence {
         let within = if *ascending { following <= *end } else { following >= *end };
         *next = (within && following != current).then_some(following);
         Some(Value::Number(current))
+      }
+      Items::Integers { next, end, ascending } => {
+        let current = (*next)?;
+        *next = if *ascending {
+          current.checked_add(1).filter(|following| *following <= *end)
+        } else {
+          current.checked_sub(1).filter(|following| *following >= *end)
+        };
+        Some(Value::Number(FeelNumber::from(current)))
       }
       Items::Dates { next, end, ascending } => {
         let current = next.take()?;
