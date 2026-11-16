@@ -5,7 +5,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
-use rheon_feel::{Evaluator, FeelScope, Name, value_null};
+use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name, value_null};
 use std::sync::{Arc, LazyLock};
 
 /// Name of the special context entry holding the item of a filtered list.
@@ -82,6 +82,35 @@ fn kept_items(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Res
   Ok(kept)
 }
 
+/// The item of a list at the index of a filter (DMN 1.6 Table 69, "e1 is a list and e2 is an
+/// integer"): counted from the first item when it is positive and from the last when it is
+/// negative. Null when the list is empty, whatever the index is; otherwise null with its reason
+/// when the index is no integer, beyond 2⁶⁴ in magnitude, 0, or past the end of the list.
+fn item_at(items: &[Value], index: FeelNumber) -> Value {
+  if !index.is_integer() {
+    return value_null!("index in filter must be an integer value, actual value is {}", arg(&index));
+  }
+  if items.is_empty() {
+    return value_null!();
+  }
+  let from_last = index.is_negative();
+  // converted through u64, so 32-bit targets (wasm32) behave like 64-bit ones
+  let Ok(n) = u64::try_from(if from_last { index.abs() } else { index }) else {
+    return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
+  };
+  let size = items.len();
+  if n == 0 || n > size as u64 {
+    return if from_last {
+      value_null!("index in filter is out of range [-{}..-1], actual index is -{}", size, n)
+    } else {
+      value_null!("index in filter is out of range [1..{}], actual index is {}", size, n)
+    };
+  }
+  // `n` is in 1..=size, checked above
+  let n = n as usize;
+  items[if from_last { size - n } else { n - 1 }].clone()
+}
+
 /// Filter expression evaluator.
 #[derive(Default)]
 #[non_exhaustive]
@@ -100,52 +129,8 @@ impl FilterExpressionEvaluator {
           Ok(kept) => kept,
           Err(null) => return null,
         };
-        let rhv = evaluator(scope);
-        match rhv {
-          Value::Number(index) => {
-            if index.is_integer() {
-              let list_size = values.len();
-              if list_size > 0 {
-                if !index.is_negative() {
-                  let n = {
-                    // converted through u64, so 32-bit targets (wasm32) behave like 64-bit ones
-                    if let Ok(u_index) = u64::try_from(index) {
-                      u_index
-                    } else {
-                      return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
-                    }
-                  };
-                  if n > 0 && n <= list_size as u64 {
-                    let n = n as usize;
-                    // unwrap below is safe, index `n` is checked above, `values` holds every item
-                    values.get(n - 1).unwrap().to_owned()
-                  } else {
-                    value_null!("index in filter is out of range [1..{}], actual index is {}", list_size, n)
-                  }
-                } else {
-                  let n = {
-                    if let Ok(u_index) = u64::try_from(index.abs()) {
-                      u_index
-                    } else {
-                      return value_null!("index is out of range 1..2⁶⁴: {}", arg(&index));
-                    }
-                  };
-                  if n > 0 && n <= list_size as u64 {
-                    let n = n as usize;
-                    // unwrap below is safe, index `n` is checked above, `values` holds every item
-                    values.get(list_size - n).unwrap().to_owned()
-                  } else {
-                    value_null!("index in filter is out of range [-{}..-1], actual index is -{}", list_size, n)
-                  }
-                }
-              } else {
-                // return null when the list is empty, no matter what value the index has
-                value_null!()
-              }
-            } else {
-              value_null!("index in filter must be an integer value, actual value is {}", arg(&index))
-            }
-          }
+        match evaluator(scope) {
+          Value::Number(index) => item_at(&values, index),
           _ => Value::List(kept.into()),
         }
       }

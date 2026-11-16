@@ -2969,6 +2969,13 @@ their items with both answers. The totals are under "Verification" below.
     recursions answer true or false instead of the call-depth error), and 22 lose only the
     errors or the warnings of the right operand, explained by two rule entries. The official TCK
     is unchanged (its `and` and `or` tests, 0064 and 0065, compare values). No API change.
+169. **The item at an index of a filter is one function.** The index branch of a filter
+    (`feel-evaluator/src/filters.rs`) wrote the bounds check twice, once for a positive index
+    and once for a negative one. It is now `item_at`: the integer check, the empty list, the
+    magnitude beyond 2⁶⁴ and the bounds are checked once, in the order and with the texts of
+    before. Identity step: the tests of `feel-evaluator/src/tests/filter.rs` and the index
+    requests of `tools/identity/requests/filters.json` (0, a non-integer, beyond 2⁶⁴, on an empty
+    and a non-empty list) answer as before. No API change.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
