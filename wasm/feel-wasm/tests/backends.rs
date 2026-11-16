@@ -14,22 +14,18 @@
 #[path = "corpus/product.rs"]
 mod product;
 
+#[path = "shared/big_stack.rs"]
+mod big_stack;
 #[path = "backends/gen.rs"]
 mod generator;
 #[path = "backends/harness.rs"]
 mod harness;
 
+use big_stack::with_big_stack;
 use generator::{CONSTRUCTS, generate, seeds};
 use harness::{committed, compare};
 use rheon_feel_evaluator::testing::Backend;
 use std::collections::BTreeMap;
-
-/// Runs `body` on a thread with the stack that the deepest requests need natively.
-fn with_big_stack(body: impl FnOnce() + Send + 'static) {
-  if let Err(panic) = std::thread::Builder::new().stack_size(512 * 1024 * 1024).spawn(body).unwrap().join() {
-    std::panic::resume_unwind(panic);
-  }
-}
 
 #[test]
 #[ignore = "the group tier runs it: cargo test -p rheon-feel-wasm --test backends -- --ignored"]

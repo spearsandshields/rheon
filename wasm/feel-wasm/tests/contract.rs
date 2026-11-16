@@ -6,17 +6,10 @@ use serde_json::{Value as Json, json};
 
 mod corpus;
 
-/// Runs `body` on a thread with a big stack natively, and directly on wasm32. The nesting and
-/// call-depth limits are sized for the release wasm build in a browser worker; unoptimized native
-/// test builds use much bigger stack frames than that.
-fn with_big_stack(body: fn()) {
-  #[cfg(not(target_arch = "wasm32"))]
-  if let Err(panic) = std::thread::Builder::new().stack_size(512 * 1024 * 1024).spawn(body).unwrap().join() {
-    std::panic::resume_unwind(panic);
-  }
-  #[cfg(target_arch = "wasm32")]
-  body();
-}
+#[path = "shared/big_stack.rs"]
+mod big_stack;
+
+use big_stack::with_big_stack;
 
 /// Sends a raw request text and parses the response.
 fn raw(request: &str) -> Json {
