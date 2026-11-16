@@ -231,3 +231,74 @@ fn a_call_puts_the_closure_in_scope_without_a_copy() {
   let (many, one) = (more_calls(50), more_calls(1));
   assert!(many <= one + 8, "1,000 more calls closing over 50 names: {many} allocations more, over 1 name: {one}");
 }
+
+/// The allocations and the bytes of the evaluation of `expression` with `{n}` replaced by 10,000,
+/// less those with it replaced by 1: the cost that grows with the number of iterations.
+fn cost_of_iterations(expression: &str) -> (i64, i64) {
+  let measure = |n: usize| {
+    let scope = scope!();
+    let node = parse_expression(&scope, &expression.replace("{n}", &n.to_string()), false).expect("the expression parses");
+    let evaluator = prepare(&node);
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (_, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    ((ALLOCATIONS.with(Cell::get) - allocations) as i64, bytes as i64)
+  };
+  let (many, one) = (measure(10_000), measure(1));
+  (many.0 - one.0, many.1 - one.1)
+}
+
+/// The results of 10,000 iterations grow a vector of 10,000 values by doubling: 12 allocations of
+/// 2,096,640 bytes in all. The caps are those figures and a tenth.
+const RESULTS_ALLOCATIONS: i64 = 13;
+const RESULTS_BYTES: i64 = 2_306_304;
+
+/// A walk allocates nothing per iteration: only its results grow.
+#[test]
+fn loops_allocate_only_for_their_results() {
+  for expression in [
+    "count(for i in 1..{n} return i)",
+    "(for i in 1..{n} return if i = 1 then 1 else partial[-1] + 1)[-1]",
+    "some i in for j in 1..{n} return j satisfies i < 0",
+    "every i in for j in 1..{n} return j satisfies i > 0",
+  ] {
+    let (allocations, bytes) = cost_of_iterations(expression);
+    assert!(
+      allocations <= RESULTS_ALLOCATIONS && bytes <= RESULTS_BYTES,
+      "{expression}: {allocations} allocations and {bytes} bytes more over 10,000 than over one"
+    );
+  }
+  // two variables: the domain of the second is made again for each value of the first
+  let (allocations, _) = cost_of_iterations("count(for i in 1..2, j in 1..{n} return j)");
+  assert!(allocations <= RESULTS_ALLOCATIONS + 1, "{allocations} allocations");
+}
+
+/// `partial` is the walk's results, not a copy of them: an iteration that reads it and invokes a
+/// built-in allocates for the invocation (2 allocations, 72 bytes), never the results again.
+#[test]
+fn partial_is_read_without_a_copy_of_the_results() {
+  let (_, bytes) = cost_of_iterations("count(for i in 1..{n} return count(partial))");
+  // 2,816,568 bytes measured, and a tenth
+  assert!(bytes <= 3_098_225, "{bytes} bytes more over 10,000 iterations than over one");
+}
+
+/// A filter allocates nothing per item: only the items it keeps grow.
+#[test]
+fn filters_allocate_only_for_the_items_they_keep() {
+  let number = |n: i64| Value::Number(n.into());
+  for (kind, (allocations, bytes)) in [
+    ("numbers", cost_of_a_long_list("count(items[item >= 0])", number)),
+    ("contexts", cost_of_a_long_list("count(items[n >= 0])", record)),
+    ("contexts", cost_of_a_long_list("count(items[item.n >= 0])", record)),
+    ("contexts", cost_of_a_long_list("count(items[s != null])", record)),
+  ] {
+    assert!(
+      allocations <= RESULTS_ALLOCATIONS && bytes <= RESULTS_BYTES,
+      "over 10,000 {kind}: {allocations} allocations and {bytes} bytes more than over one"
+    );
+  }
+  let (allocations, bytes) = cost_of_a_long_list("count(items[item >= 0][item >= 0])", number);
+  assert!(
+    allocations <= 2 * RESULTS_ALLOCATIONS && bytes <= 2 * RESULTS_BYTES,
+    "{allocations} allocations, {bytes} bytes"
+  );
+}
