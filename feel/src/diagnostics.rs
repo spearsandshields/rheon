@@ -121,19 +121,18 @@ pub fn collect<T>(f: impl FnOnce() -> T) -> (T, Diagnostics) {
   (result, diagnostics)
 }
 
-/// Runs `f` and returns its result with a mark of what the running collection held before it:
-/// an evaluation whose diagnostics count only when its result is used. Dropping the mark keeps
-/// what `f` recorded; [Tentative::discard] removes it.
-pub fn tentative<T>(f: impl FnOnce() -> T) -> (T, Tentative) {
-  let mark = Tentative(ACTIVE.with(Cell::get).then(|| Mark {
+/// A mark of what the running collection holds now, taken before an evaluation whose diagnostics
+/// count only when its result is used. Dropping the mark keeps what was recorded since;
+/// [Tentative::discard] removes it.
+pub fn tentative_mark() -> Tentative {
+  Tentative(ACTIVE.with(Cell::get).then(|| Mark {
     count: COUNT.with(Cell::get),
     messages: MESSAGES.with(|messages| messages.borrow().len()),
     warnings: WARNINGS.with(|warnings| warnings.borrow().len()),
-  }));
-  (f(), mark)
+  }))
 }
 
-/// What the running collection held before a tentative evaluation ([tentative]); nothing when
+/// What the running collection held before a tentative evaluation ([tentative_mark]); nothing when
 /// no collection was running.
 #[must_use = "dropping the mark keeps what the evaluation recorded; discard it to remove that"]
 pub struct Tentative(Option<Mark>);
@@ -664,7 +663,8 @@ mod tests {
     let ((), diagnostics) = collect(|| {
       record(Severity::Error, "before");
       warn("w before");
-      let ((), mark) = tentative(|| {
+      let mark = tentative_mark();
+      {
         record(Severity::Error, "probe");
         // a repeat of the message before the mark is counted, not kept
         record(Severity::Error, "probe");
@@ -672,7 +672,7 @@ mod tests {
         // a collection inside the mark merges into it before the mark is discarded
         let ((), inner) = collect(|| record(Severity::Error, "inner"));
         assert_eq!(1, inner.count);
-      });
+      }
       mark.discard();
       record(Severity::Error, "after");
     });
@@ -680,7 +680,8 @@ mod tests {
     // a repeat of the last message before the mark: counted inside, not kept, and its count discarded
     let ((), diagnostics) = collect(|| {
       record(Severity::Error, "same");
-      let ((), mark) = tentative(|| record(Severity::Error, "same"));
+      let mark = tentative_mark();
+      record(Severity::Error, "same");
       mark.discard();
     });
     assert_eq!((1, strings(&["same"]), vec![]), held(&diagnostics));
@@ -690,7 +691,8 @@ mod tests {
   fn a_discarded_mark_at_the_cap_restores_the_count() {
     let ((), diagnostics) = collect(|| {
       (0..MAX_MESSAGES).for_each(|i| record(Severity::Error, &i.to_string()));
-      let ((), mark) = tentative(|| (0..10).for_each(|i| record(Severity::Error, &format!("probe {i}"))));
+      let mark = tentative_mark();
+      (0..10).for_each(|i| record(Severity::Error, &format!("probe {i}")));
       mark.discard();
     });
     assert_eq!(MAX_MESSAGES, diagnostics.count);
@@ -702,13 +704,11 @@ mod tests {
   fn a_kept_mark_changes_nothing() {
     let (kept, diagnostics) = collect(|| {
       record(Severity::Error, "before");
-      let (value, mark) = tentative(|| {
-        record(Severity::Error, "probe");
-        warn("w probe");
-        7
-      });
+      let mark = tentative_mark();
+      record(Severity::Error, "probe");
+      warn("w probe");
       drop(mark);
-      value
+      7
     });
     assert_eq!(7, kept);
     assert_eq!((2, vec!["before".to_string(), "probe".to_string()], vec!["w probe".to_string()]), held(&diagnostics));
@@ -716,7 +716,8 @@ mod tests {
 
   #[test]
   fn a_mark_outside_a_collection_has_no_effect() {
-    let ((), mark) = tentative(|| record(Severity::Error, "outside"));
+    let mark = tentative_mark();
+    record(Severity::Error, "outside");
     mark.discard();
     let ((), diagnostics) = collect(|| ());
     assert_eq!(Diagnostics::default(), diagnostics);
@@ -725,7 +726,8 @@ mod tests {
   #[test]
   fn an_abort_survives_a_discarded_mark() {
     let ((), aborted) = evaluation(|| {
-      let ((), mark) = tentative(|| abort(Abort::limit("in the probe")));
+      let mark = tentative_mark();
+      abort(Abort::limit("in the probe"));
       mark.discard();
       assert!(stopped());
     });

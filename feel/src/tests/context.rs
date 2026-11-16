@@ -170,6 +170,39 @@ fn test_context_search_entry() {
 }
 
 #[test]
+fn test_context_search_deep_stops_at_a_value_that_is_no_context() {
+  let name_a = Name::from("a");
+  let name_b = Name::from("b");
+  let mut ctx_b = FeelContext::default();
+  ctx_b.set_entry(&name_b, value_number!(2));
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&name_a, ctx_b.into());
+  assert_eq!(None, ctx.search_deep(&[]));
+  assert_eq!("{b: 2}", ctx.search_deep(slice::from_ref(&name_a)).unwrap().to_string());
+  assert_eq!("2", ctx.search_deep(&[name_a.clone(), name_b.clone()]).unwrap().to_string());
+  // a name after a value that is no context, and a name that no context holds
+  assert_eq!(None, ctx.search_deep(&[name_a.clone(), name_b.clone(), name_b.clone()]));
+  assert_eq!(None, ctx.search_deep(&[name_a.clone(), name_a.clone()]));
+  assert_eq!(None, ctx.search_deep(slice::from_ref(&name_b)));
+}
+
+#[test]
+fn test_context_search_deep_follows_many_names() {
+  // a context nested as deeply as values may nest (diagnostics::MAX_VALUE_DEPTH)
+  let name = Name::from("a");
+  let mut value = value_number!(1);
+  for _ in 0..500 {
+    let mut ctx = FeelContext::default();
+    ctx.set_entry(&name, value);
+    value = ctx.into();
+  }
+  let Value::Context(ctx) = value else { unreachable!() };
+  let names = vec![name.clone(); 500];
+  assert_eq!("1", ctx.search_deep(&names).unwrap().to_string());
+  assert_eq!(None, ctx.search_deep(&vec![name; 501]));
+}
+
+#[test]
 fn test_context_search_entries() {
   // prepare names
   let name_a = Name::from("a");

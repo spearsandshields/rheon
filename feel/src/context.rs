@@ -340,19 +340,19 @@ impl FeelContext {
     Ok(())
   }
 
-  /// Deep search for a value pointed by names.
+  /// Deep search for a value pointed by names: the entry named by the first name, then in each
+  /// context found the entry named by the next one. One step per name, without recursion, so the
+  /// number of names is not bounded by the host stack.
   pub fn search_deep(&self, names: &[Name]) -> Option<&Value> {
-    if !names.is_empty() {
-      let tail = &names[1..];
-      if let Some(value) = self.entries.get(&names[0]) {
-        if let Value::Context(ctx) = value {
-          return if tail.is_empty() { Some(value) } else { ctx.search_deep(tail) };
-        } else if tail.is_empty() {
-          return Some(value);
-        }
-      }
+    let (first, rest) = names.split_first()?;
+    let mut value = self.entries.get(first)?;
+    for name in rest {
+      let Value::Context(ctx) = value else {
+        return None;
+      };
+      value = ctx.entries.get(name)?;
     }
-    None
+    Some(value)
   }
 
   /// The nesting depth of this context: one more than that of its deepest entry.

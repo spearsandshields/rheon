@@ -86,18 +86,19 @@ fn kept_items(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Res
 /// scope, removed the frame it was given (no FEEL expression does).
 const ENCLOSING_FRAME: &str = "frame of a filter expression in the enclosing scope";
 
-/// Evaluates the filter expression in the enclosing scope, tentatively ([diagnostics::tentative]),
+/// Evaluates the filter expression in the enclosing scope, tentatively ([diagnostics::tentative_mark]),
 /// in an empty frame of its own on top of it: what the expression writes into the context on the
 /// top of the scope (a boxed context as the match of a boxed filter does, model-evaluator) is
 /// dropped with that frame, so neither the enclosing scope nor the items see it.
 fn evaluate_in_own_frame(scope: &FeelScope, evaluator: &Evaluator) -> Result<(Value, diagnostics::Tentative), Value> {
   let depth = scope.depth();
   scope.push(FeelContext::default());
-  let probe = diagnostics::tentative(|| evaluator(scope));
+  let mark = diagnostics::tentative_mark();
+  let value = evaluator(scope);
   if scope.pop_frame(depth).is_none() {
     return Err(lost_context(ENCLOSING_FRAME));
   }
-  Ok(probe)
+  Ok((value, mark))
 }
 
 /// The item of a list at the index of a filter (DMN 1.6 Table 69, "e1 is a list and e2 is an
