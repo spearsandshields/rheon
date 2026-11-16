@@ -317,6 +317,10 @@ fn name_lookup_equals_flattened_keys_search() {
     let input = expression(&mut rng, &keys, 0);
     let actual_tokens = tokens(&frames, &input, false);
     let expected_tokens = tokens(&frames, &input, true);
+    // the reference ends the input at a string literal or a block comment that is not closed,
+    // where the lexer reads an undefined token (a registered difference of the differential tests)
+    let not_closed = actual_tokens.len() > expected_tokens.len() && actual_tokens[expected_tokens.len()..].iter().all(|token| token == "257 YyUndef");
+    let actual_tokens = if not_closed { actual_tokens[..expected_tokens.len()].to_vec() } else { actual_tokens };
     assert_eq!(expected_tokens, actual_tokens, "case {case}: tokens of {input:?} in {frames:?}");
     // names found as composite keys (the only names with a space after an additional symbol)
     composite += actual_tokens

@@ -132,7 +132,20 @@ fn reference_run(mut parser: oracle::parser::Parser<'_>, input: &str) -> Run {
 /// The registered differences: bug fixes of the production front end, each with the reference's
 /// and the production behaviour. Returns the name of the fix when the difference between
 /// `reference` and `production` is one of them.
-fn registered_difference(start: &str, reference: &Run, production: &Run) -> Option<&'static str> {
+fn registered_difference(start: &str, input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
+  // A string literal or a block comment that the input does not close (`1 + 2 "abc`, `1 /* abc`):
+  // - reference: the end of the input where the literal or the comment starts, so the tokens
+  //   before it are the whole input (`1 + 2 "abc` is the sum);
+  // - production: the same tokens, then an undefined token at the quote or at the `/*`; a
+  //   syntax error.
+  if let (Some(((257, undefined, at), production_head)), Some(((0, _, _), reference_head))) = (production.tokens.split_last(), reference.tokens.split_last())
+    && undefined == "YyUndef"
+    && production_head == reference_head
+    && (input[*at..].starts_with('"') || (input[*at..].starts_with("/*") && !input[*at + 2..].contains("*/")))
+    && matches!(&production.outcome, Outcome::Error(message) if message.starts_with("<ParserError> syntax error"))
+  {
+    return Some("a string literal or a block comment that is not closed");
+  }
   // A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with `in`:
   // an iteration variable (`for in+1 in [1] return 1`), or the `in` after an iteration variable
   // `item`, which leaves the mode set (`for item in[1] return item`):
@@ -265,7 +278,7 @@ pub(super) fn compare(start: &str, frames: &[FeelContext], input: &str, referenc
   if (&production.tokens, &production.outcome) == (&reference.tokens, &reference.outcome) {
     return None;
   }
-  match registered_difference(start, reference, production) {
+  match registered_difference(start, input, reference, production) {
     Some(fix) => Some(fix),
     None => panic!("{start} {input:?} in {frames:?}:\nreference {reference:#?}\nproduction {production:#?}"),
   }
@@ -347,8 +360,9 @@ fn for_each_string(alphabet: &[char], len: usize, mut f: impl FnMut(&str)) {
 }
 
 /// Every registered difference is registered for the inputs of its fix: the reference traps on
-/// a name starting with `in` in iteration-variable mode, and drops the name of a named temporal
-/// parameter in a range literal.
+/// a name starting with `in` in iteration-variable mode, drops the name of a named temporal
+/// parameter in a range literal, and ends the input at a string literal or a block comment that
+/// is not closed.
 #[test]
 fn registered_fixes_differ_as_registered() {
   let in_names = [
@@ -371,9 +385,11 @@ fn registered_fixes_differ_as_registered() {
     r#"(date and time(from: "2012-01-01T10:00:00")..10]"#,
     r#"]"a"..duration(from: "P1D\"x")["#,
   ];
+  let unclosed = ["1 + 2 \"abc", "\"", "1 \"a\\\"b", "1 /* abc", "/*", "1 /* a */ + 2 /* b *", "1 /*/"];
   for (inputs, rule, fix) in [
     (&in_names[..], 0, "a name starting with `in` in iteration-variable mode"),
     (&range_literals[..], 8, "a named temporal parameter in a range literal"),
+    (&unclosed[..], 0, "a string literal or a block comment that is not closed"),
   ] {
     let (name, start, reference_start) = &START_RULES[rule];
     for input in inputs {

@@ -384,6 +384,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 2;
         Ok((TokenType::RightArrow, TokenValue::RightArrow))
       }
+      // every closed comment was consumed before the token, so this one is not closed
+      ['/', '*', _, _, _, _, _, _, _, _, _, _] => Ok((TokenType::YyUndef, TokenValue::YyUndef)),
       ['.', ch, _, _, _, _, _, _, _, _, _, _] if is_digit(ch) => self.consume_number(),
       ['.', _, _, _, _, _, _, _, _, _, _, _] => {
         self.position += 1;
@@ -496,7 +498,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   /// Consumes single comment starting from the current position.
   /// After consuming a comment, the current position is advanced
-  /// to the next character after comment.
+  /// to the next character after comment. Returns `true` when more
+  /// white space or another comment can follow.
   fn consume_comment(&mut self) -> bool {
     let pair = (self.char_at(0), self.char_at(1));
     match pair {
@@ -510,15 +513,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         }
       }
       (Some('/'), Some('*')) => {
-        self.position += 2;
-        while let Some(ch) = self.char_at(0) {
-          if ch == '*'
-            && let Some('/') = self.char_at(1)
-          {
-            self.position += 2;
-            return true;
-          }
-          self.position += ch.len_utf8();
+        // a comment that the input does not close is no comment: the position stays at its
+        // `/*`, which the next token reports
+        if let Some(len) = self.input[self.position + 2..].find("*/") {
+          self.position += 2 + len + 2;
+          return true;
         }
       }
       _ => {}
@@ -584,7 +583,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
           string.push(ch);
           self.position += ch.len_utf8();
         }
-        _ => return Ok((TokenType::YyEof, TokenValue::YyEof)),
+        // the input ends inside the literal
+        _ => return Ok((TokenType::YyUndef, TokenValue::YyUndef)),
       }
     }
     Ok((TokenType::String, TokenValue::String(string)))
