@@ -11,6 +11,8 @@ pub(crate) enum Work {
   Parts,
   /// Candidate names the lexer looks up in the scope.
   Candidates,
+  /// Parts of name chains the lexer compares with `in`, for the end of an iteration variable.
+  InParts,
   /// States (node, offset) visited by the searches of composite names.
   CompositeStates,
   /// Indexes of input contexts built.
@@ -21,13 +23,14 @@ pub(crate) enum Work {
 
 impl Work {
   /// Every unit, in the order of the discriminants.
-  const ALL: [Work; 5] = [Work::Parts, Work::Candidates, Work::CompositeStates, Work::IndexBuilds, Work::IndexContexts];
+  const ALL: [Work; 6] = [Work::Parts, Work::Candidates, Work::InParts, Work::CompositeStates, Work::IndexBuilds, Work::IndexContexts];
 
   /// The name of the unit in the counts returned by [take].
   fn name(self) -> &'static str {
     match self {
       Work::Parts => "parts",
       Work::Candidates => "candidates",
+      Work::InParts => "in parts",
       Work::CompositeStates => "composite states",
       Work::IndexBuilds => "index builds",
       Work::IndexContexts => "index contexts",

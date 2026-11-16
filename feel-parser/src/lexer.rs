@@ -18,6 +18,10 @@ const BUF_SIZE: usize = 12;
 /// Definition of decimal separator.
 const DECIMAL_SEPARATOR: char = '.';
 
+/// The value of the remembered search for a part `in` (`Lexer::chain_in`) of a chain that was
+/// not searched: no part is in its range.
+const NOT_SEARCHED: (usize, usize) = (usize::MAX, 0);
+
 /// The keywords that can follow an operand. A name that is not in scope ends before a word of
 /// its chain that is one of them: `for s in x return s` and `x and y` have their keywords also
 /// when `x` is no name in scope. A name in scope is matched first, so it may hold these words
@@ -143,6 +147,9 @@ pub struct Lexer<'lexer, 'scope> {
   chain_end: usize,
   /// Index of the last part of the chain that is empty after trimming (only U+1680), if any.
   chain_last_empty: Option<usize>,
+  /// The last search for a part `in` of the chain: the part it started at, and the first part
+  /// `in` at or after it (the number of parts when there is none). See [Lexer::next_in_part].
+  chain_in: (usize, usize),
   /// Start offset of the last token read from input: the hook of the token log of the parser
   /// (`Parser::with_token_log`), which the differential tests compare.
   #[cfg(test)]
@@ -181,6 +188,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       chain_parts: vec![],
       chain_end: 0,
       chain_last_empty: None,
+      chain_in: NOT_SEARCHED,
       #[cfg(test)]
       token_start: 0,
     }
@@ -719,15 +727,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // can not start with `in`: then `in` is the keyword (and the variable name is missing).
     //-------------------------------------------------------------------------------
     if self.till_in
-      && let Some(index) = (first..self.chain_parts.len()).position(|part| self.part_text(part) == "in")
+      && let Some(part) = self.next_in_part(first)
     {
       self.till_in = false;
-      if index == 0 {
+      if part == first {
         self.position = self.chain_parts[first].end;
         return Ok((TokenType::In, TokenValue::In));
       }
-      self.position = self.chain_parts[first + index - 1].end;
-      return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + index))));
+      self.position = self.chain_parts[part - 1].end;
+      return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, part))));
     }
 
     //-------------------------------------------------------------------------------
@@ -815,6 +823,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   fn scan_chain(&mut self) {
     self.chain_parts.clear();
     self.chain_last_empty = None;
+    self.chain_in = NOT_SEARCHED;
     //------------------------------------------------------------------------------
     // The current character on input is already a `name start` character, the first
     // character of the first part.
@@ -869,6 +878,24 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       }
     }
     self.chain_end = self.position;
+  }
+
+  /// Returns the index of the first part `in` of the chain at or after the part `first`. The
+  /// last search is remembered, so the name tokens of a chain compare each of its parts once:
+  /// the mode of the iteration variable stays set after a variable `item`, and then every later
+  /// name token asks.
+  fn next_in_part(&mut self, first: usize) -> Option<usize> {
+    let (from, found) = self.chain_in;
+    if !(from..=found).contains(&first) {
+      let found = (first..self.chain_parts.len())
+        .find(|&part| {
+          work!(InParts, 1);
+          self.part_text(part) == "in"
+        })
+        .unwrap_or(self.chain_parts.len());
+      self.chain_in = (first, found);
+    }
+    Some(self.chain_in.1).filter(|&part| part < self.chain_parts.len())
   }
 
   /// Ends a part of the chain: from `start` to the current character, the last of the part.

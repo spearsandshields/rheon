@@ -1086,6 +1086,65 @@ fn candidates_grow_linearly_with_the_chain() {
   assert!(candidates <= terms, "{candidates} candidates for {terms} terms");
 }
 
+/// After an iteration variable `item` the lexer stays in iteration-variable mode, so every later
+/// name token looks for a part `in` in the rest of its chain: each part of a chain is compared
+/// once, whatever the number of name tokens that start in the chain.
+#[test]
+fn parts_compared_with_in_grow_linearly_with_the_chain() {
+  let scope = [ctx(&[("a", number(1))])];
+  let terms = 1_000;
+  for (head, chain) in [
+    ("for item in [1] return ", vec!["a"; terms].join(" + ")),
+    ("some item in [1] satisfies ", vec!["a"; terms].join(" * ")),
+    ("for item in [1] return ", vec!["b"; terms].join(" + ")),
+    ("for item in [1] return ", format!("{} + for x in a return a + x", vec!["a"; terms].join(" + "))),
+    (
+      "for item in [1], item in [2] return ",
+      format!("{} + (for item in [3] return a + a - a)", vec!["a"; terms].join(" + ")),
+    ),
+  ] {
+    let text = format!("{head}{chain}");
+    let work = work_of(&scope, &text);
+    let (parts, compared) = (work["parts"], work.get("in parts").copied().unwrap_or(0));
+    assert!(compared <= parts, "{compared} parts compared with `in` of {parts} parts: {text:.60}");
+  }
+}
+
+/// The tokens after an iteration variable `item`, which leaves the lexer in iteration-variable
+/// mode, equal the reference's: later names end before a part `in`, also names in scope that have
+/// it, and an `in` without white space after it is the keyword.
+#[test]
+fn names_after_an_item_variable_equal_reference() {
+  let frames = [ctx(&[("a", number(1)), ("x in y", number(2)), ("in", number(3)), ("b in", number(4))])];
+  let mut stats = Stats::default();
+  for text in [
+    "for item in [1] return a",
+    "for item in[1] return item",
+    "for item in [1] return x in y",
+    "for item in [1] return a + x in y + a",
+    "for item in [1] return a + a + x in y + x in y",
+    "for item in [1] return a + b in + a in a",
+    "for item in [1] return a + in + a",
+    "for item in [1] return a + (in) + a + x in y",
+    "for item in [1] return for x in a return x in y + a",
+    "for item in [1] return for item in a return x in y + a + x in y",
+    "for item in [1], x in [2] return a + x in y",
+    "for item in [1], item in [2] return a + x in y + x in y",
+    "some item in [1] satisfies a + x in y = a + x in y",
+    "every item in [1] satisfies a in[1]",
+    "for item in [1] return a + b + c in d in e",
+    "for item in [1] return a + a",
+    "for item in a + a + x in y return a",
+    "for item",
+    "for item in",
+    "for item in in",
+  ] {
+    stats.check(&frames, text);
+    stats.check(&[], text);
+  }
+  println!("after an item variable: {stats:?}");
+}
+
 /// The bound of the candidate names by the first word of the token (`ParsingScope::group_bound`):
 /// keys that share their first word, keys with a byte below `0` after a word, more keys with
 /// the same first word than the window looks at, long multi-word keys, list item keys, nested
