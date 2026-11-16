@@ -1538,3 +1538,60 @@ fn zoned_date_time_display_keeps_the_seconds_of_the_offset() {
   assert_eq!(display(r#"@"1880-01-01T12:00:00@America/New_York""#), r#""1880-01-01T12:00:00-04:56:02[America/New_York]""#);
   assert_eq!(display(r#"@"2020-01-01T12:00:00@Asia/Kolkata""#), r#""2020-01-01T12:00:00+05:30[Asia/Kolkata]""#);
 }
+
+/// `maxSteps` is a budget of steps for one evaluation: function calls and the items of loops and
+/// filters. The step after the last one stops the evaluation.
+#[test]
+fn a_step_budget_stops_an_evaluation_that_takes_more_steps() {
+  let stopped = |steps: u64| format!("evaluation took more than {steps} steps; evaluation stopped");
+  let with = |expression: &str, steps: u64| req(json!({"op": "evaluate", "expression": expression, "maxSteps": steps}));
+  for (expression, few, enough, display) in [
+    ("count(for i in 1..1000 return i)", 100, 100_000, "1000"),
+    ("count([1, 2, 3, 4, 5][item > 0])", 3, 100, "5"),
+    ("some i in [1, 2, 3, 4, 5] satisfies i > 4", 3, 100, "true"),
+    ("{f: function(n) if n = 0 then 0 else f(n - 1), r: f(50)}.r", 10, 1_000, "0"),
+    ("sort([3, 1, 2], function(a, b) a < b)[1]", 1, 100, "1"),
+    ("abs(abs(abs(-1)))", 2, 3, "1"),
+  ] {
+    assert_error(&with(expression, few), "evaluation", &stopped(few));
+    let response = with(expression, enough);
+    assert_eq!(response["result"]["display"], display, "{expression}: {response}");
+    // without the field the evaluation has no budget
+    assert_eq!(expr(expression)["display"], display, "{expression}");
+  }
+  // the budget is exact: a loop over 10 numbers visits its level 11 times and calls one function
+  let counted = "count(for i in 1..10 return i)";
+  assert_error(&with(counted, 11), "evaluation", &stopped(11));
+  assert_eq!(with(counted, 12)["result"]["display"], "10");
+  // in strict mode the abort is the error, as for every limit
+  let strict = req(json!({"op": "evaluate", "expression": counted, "maxSteps": 5, "errorMode": "strict"}));
+  assert_error(&strict, "evaluation", &stopped(5));
+  // the budget of one request does not reach the next
+  assert_eq!(expr(counted)["display"], "10");
+}
+
+#[test]
+fn a_step_budget_is_a_positive_integer() {
+  for (value, shown) in [
+    (json!(0), "0"),
+    (json!(-1), "-1"),
+    (json!(1.5), "1.5"),
+    (json!("10"), "\"10\""),
+    (json!(true), "true"),
+    (json!([1]), "[1]"),
+  ] {
+    let response = req(json!({"op": "evaluate", "expression": "1", "maxSteps": value}));
+    assert_error(&response, "request", &format!("invalid 'maxSteps' {shown} (expected a positive integer)"));
+  }
+  // null is no budget; the field is read after `errorMode` and before the expression
+  assert_eq!(req(json!({"op": "evaluate", "expression": "1", "maxSteps": null}))["result"]["display"], "1");
+  let response = req(json!({"op": "evaluate", "errorMode": "x", "maxSteps": 0}));
+  assert_error(&response, "request", "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")");
+  assert_error(
+    &req(json!({"op": "evaluate", "maxSteps": 0})),
+    "request",
+    "invalid 'maxSteps' 0 (expected a positive integer)",
+  );
+  // only an evaluation has a budget
+  assert_eq!(req(json!({"op": "parse", "expression": "1", "maxSteps": 0}))["ok"], true);
+}

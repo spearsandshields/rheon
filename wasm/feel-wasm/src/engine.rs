@@ -189,6 +189,15 @@ fn error_mode(req: &Map<String, Json>) -> Result<ErrorMode, Failure> {
   }
 }
 
+/// The step budget of the evaluation: `maxSteps`, a positive integer, or none.
+fn max_steps(req: &Map<String, Json>) -> Result<Option<u64>, Failure> {
+  match req.get("maxSteps") {
+    None | Some(Json::Null) => Ok(None),
+    Some(Json::Number(steps)) if steps.as_u64().is_some_and(|steps| steps > 0) => Ok(steps.as_u64()),
+    Some(other) => fail(Kind::Request, format!("invalid 'maxSteps' {} (expected a positive integer)", arg(other))),
+  }
+}
+
 /// Takes the expression out of the request.
 fn expression(req: &mut Map<String, Json>) -> Result<String, Failure> {
   match req.remove("expression") {
@@ -346,6 +355,7 @@ fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failur
   let dialect = dialect(&req)?;
   let language = language(&req)?;
   let error_mode = error_mode(&req)?;
+  let max_steps = max_steps(&req)?;
   let expression = expression(&mut req)?;
   apply_tz_offset(&req)?;
   let mut warnings = vec![];
@@ -360,7 +370,11 @@ fn evaluate(mut req: Map<String, Json>, started: Instant) -> Result<Json, Failur
   };
   let evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, language);
   // an evaluation stopped by an implementation limit has no result, only the abort
-  let (value, diagnostics) = Session::new()
+  let session = match max_steps {
+    Some(steps) => Session::new().with_step_budget(steps),
+    None => Session::new(),
+  };
+  let (value, diagnostics) = session
     .run(|| diagnostics::collect(|| evaluator(&scope)))
     .into_result()
     .or_else(|abort| fail(Kind::Evaluation, abort.to_string()))?;

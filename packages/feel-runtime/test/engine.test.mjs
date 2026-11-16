@@ -34,8 +34,8 @@ test('real worker: timeout terminates the worker, next request works on a fresh 
   const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 400 });
   t.after(() => engine.dispose());
   const t0 = Date.now();
-  // ~5 s of work (10M loop iterations in constant memory): far past the 400 ms budget on any host
-  const slow = engine.evaluate({ expression: 'count(for i in 1..10000 return sum(for j in 1..1000 return j))' });
+  // seconds of work (100M loop iterations in constant memory): far past the 400 ms budget on any host
+  const slow = engine.evaluate({ expression: 'count(for i in 1..100000 return sum(for j in 1..1000 return j))' });
   const next = engine.evaluate({ expression: '6 * 7' }); // queued behind the slow one
   const r = await slow;
   const elapsed = Date.now() - t0;
@@ -44,6 +44,19 @@ test('real worker: timeout terminates the worker, next request works on a fresh 
   assert.ok(elapsed >= 400 && elapsed < 3000, `elapsed ${elapsed}`);
   assert.equal((await next).result.display, '42');
   assert.equal(engine.workerStarts, 2);
+});
+
+test('real worker: maxSteps ends a long evaluation as an error, and the worker is kept', async (t) => {
+  const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker });
+  t.after(() => engine.dispose());
+  const long = 'count(for i in 1..100000 return sum(for j in 1..1000 return j))';
+  const stopped = await engine.evaluate({ expression: long, maxSteps: 10000 });
+  assert.equal(stopped.ok, false);
+  assert.equal(stopped.error.kind, 'evaluation');
+  assert.equal(stopped.error.message, 'evaluation took more than 10000 steps; evaluation stopped');
+  const next = await engine.evaluate({ expression: '6 * 7', maxSteps: 10000 });
+  assert.equal(next.result.display, '42');
+  assert.equal(engine.workerStarts, 1);
 });
 
 test('real worker: deep nesting and deep recursion are errors, not crashes (worker kept)', async (t) => {

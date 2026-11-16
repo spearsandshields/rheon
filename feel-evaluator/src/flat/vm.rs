@@ -1077,7 +1077,13 @@ impl<'p> Vm<'p> {
         }
       }
     }
-    if diagnostics::stopped() {
+    // an item is a step of the evaluation; after the last one the result is given unless the
+    // evaluation was stopped
+    let stopped = match filter.items.get(filter.at) {
+      Some(_) => diagnostics::step(),
+      None => diagnostics::stopped(),
+    };
+    if stopped {
       filter.value = Some(Value::Null(None));
       return info.close;
     }
@@ -1119,7 +1125,8 @@ impl<'p> Vm<'p> {
       let Some(level) = (domains.len() - walk.base).checked_sub(1) else {
         return info.exit;
       };
-      if diagnostics::stopped() {
+      // each visit of a level is a step of the evaluation
+      if diagnostics::step() {
         walk.value = Some(Value::Null(None));
         return info.exit;
       }

@@ -138,6 +138,7 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
     language: req.language,
     errorMode: req.errorMode,
+    maxSteps: req.maxSteps,
   });
 }
 

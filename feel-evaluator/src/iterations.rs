@@ -221,7 +221,8 @@ impl Iteration {
       Err(reason) => return ControlFlow::Break(value_null!(reason)),
     }
     while let Some(depth) = levels.len().checked_sub(1) {
-      if diagnostics::stopped() {
+      // each visit of a level is a step of the evaluation
+      if diagnostics::step() {
         return ControlFlow::Break(Value::Null(None));
       }
       let name = &self.variables[depth].0;

@@ -22,10 +22,14 @@ pub(crate) fn outcome(predicate: Value) -> Result<bool, Value> {
 }
 
 /// The null that ends the filter when the evaluation was stopped ([diagnostics::stopped]), read
-/// before each item and before the result is given: the abort, not a value, is the outcome of
-/// the evaluation.
+/// before the result is given: the abort, not a value, is the outcome of the evaluation.
 fn stopped() -> Result<(), Value> {
   if diagnostics::stopped() { Err(Value::Null(None)) } else { Ok(()) }
+}
+
+/// [stopped] before an item, which is a step of the evaluation ([diagnostics::step]).
+fn stopped_at_item() -> Result<(), Value> {
+  if diagnostics::step() { Err(Value::Null(None)) } else { Ok(()) }
 }
 
 /// The context that [lost_context] names when the predicate removed the item contexts from the
@@ -49,7 +53,7 @@ fn kept_items(scope: &FeelScope, values: &[Value], evaluator: &Evaluator) -> Res
   let mut special_context = Arc::new(FeelContext::default());
   let mut kept = vec![];
   for value in values {
-    stopped()?;
+    stopped_at_item()?;
     let depth = scope.depth();
     let has_item_entry = if let Value::Context(local_context) = value {
       scope.push_shared(Arc::clone(local_context));

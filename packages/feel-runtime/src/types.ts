@@ -29,6 +29,12 @@ export interface EvaluateRequest {
   language?: Language;
   /** `'strict'` turns any error during evaluation into an `evaluation` error (DMN 1.6 §7.3.8). */
   errorMode?: ErrorMode;
+  /**
+   * A budget of steps for the evaluation, a positive integer: every function call and every item
+   * of a loop or a filter is a step, and an evaluation that takes more ends as an `evaluation`
+   * error. No budget by default.
+   */
+  maxSteps?: number;
 }
 
 /** FEEL or B-FEEL (DMN 1.6 chapter 11). */

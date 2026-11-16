@@ -227,6 +227,9 @@ pub enum Abort {
   /// A value nested more than `limit` levels deep ([bound_depth]).
   #[non_exhaustive]
   ValueDepth { limit: u32 },
+  /// More than `limit` steps ([evaluation_within]): function calls and items of loops and filters.
+  #[non_exhaustive]
+  Steps { limit: u64 },
 }
 
 impl Abort {
@@ -245,6 +248,7 @@ impl std::fmt::Display for Abort {
       ),
       Self::Limit { reason } => write!(f, "{reason}; evaluation stopped"),
       Self::ValueDepth { limit } => write!(f, "values are nested too deeply (more than {limit} levels); evaluation stopped"),
+      Self::Steps { limit } => write!(f, "evaluation took more than {limit} steps; evaluation stopped"),
     }
   }
 }
@@ -273,7 +277,14 @@ struct Evaluation {
   abort: RefCell<Option<Abort>>,
   /// Whether `abort` is set, read by every function call and by every loop before each item.
   aborted: Cell<bool>,
+  /// The steps the evaluation may still take, [NO_BUDGET] when it has no budget.
+  steps: Cell<u64>,
+  /// The budget the evaluation started with, for the abort.
+  budget: Cell<u64>,
 }
+
+/// The steps left of an evaluation without a budget: never counted down.
+const NO_BUDGET: u64 = u64::MAX;
 
 impl Evaluation {
   fn active(&self) -> bool {
@@ -285,6 +296,18 @@ impl Evaluation {
     self.depth.set(0);
     self.aborted.set(false);
     self.abort.borrow_mut().take();
+    self.steps.set(NO_BUDGET);
+    self.budget.set(NO_BUDGET);
+  }
+
+  /// Counts one step of an evaluation that has a budget; the step after the last one of the
+  /// budget stops the evaluation.
+  fn step(&self) {
+    match self.steps.get() {
+      NO_BUDGET => {}
+      0 => self.stop(Abort::Steps { limit: self.budget.get() }),
+      left => self.steps.set(left - 1),
+    }
   }
 
   fn stopped(&self) -> bool {
@@ -309,6 +332,8 @@ thread_local! {
       depth: Cell::new(0),
       abort: RefCell::new(None),
       aborted: Cell::new(false),
+      steps: Cell::new(NO_BUDGET),
+      budget: Cell::new(NO_BUDGET),
     }
   };
 }
@@ -319,7 +344,21 @@ thread_local! {
 /// returns or unwinds. Inside an evaluation, `f` joins it: an abort in `f` stops the enclosing
 /// evaluation too, and an abort before `f` is returned for `f` as well.
 pub fn evaluation<T>(f: impl FnOnce() -> T) -> (T, Option<Abort>) {
+  evaluation_within(None, f)
+}
+
+/// [evaluation] with a budget of `steps` steps, when given: every function call and every item
+/// of a loop or a filter is a step, and the step after the last one of the budget stops the
+/// evaluation with [Abort::Steps]. The budget belongs to the evaluation that `f` starts: inside
+/// a running evaluation `f` joins it, with the budget that one has.
+pub fn evaluation_within<T>(steps: Option<u64>, f: impl FnOnce() -> T) -> (T, Option<Abort>) {
   let opened = Opened::open();
+  if let (true, Some(steps)) = (opened.0, steps) {
+    EVALUATION.with(|evaluation| {
+      evaluation.steps.set(steps);
+      evaluation.budget.set(steps);
+    });
+  }
   let value = f();
   let abort = EVALUATION.with(Evaluation::abort);
   drop(opened);
@@ -377,6 +416,15 @@ pub fn stopped() -> bool {
   EVALUATION.with(Evaluation::stopped)
 }
 
+/// Counts one step of the running evaluation (an item of a loop or a filter) and returns whether
+/// the evaluation is stopped, by this step or before it.
+pub fn step() -> bool {
+  EVALUATION.with(|evaluation| {
+    evaluation.step();
+    evaluation.stopped()
+  })
+}
+
 /// The number of levels values may nest in each other within an evaluation: the depth of a scalar
 /// is 0; a list or a context is one level deeper than the deepest value it holds, so an empty one
 /// is 1 level deep; a function is one level deeper than its closure context; a range and the
@@ -421,6 +469,7 @@ pub(crate) fn too_deep() -> Value {
 /// is the outcome of the evaluation.
 pub fn enter_call(limit: usize) -> Option<Call> {
   EVALUATION.with(|evaluation| {
+    evaluation.step();
     if evaluation.stopped() {
       return None;
     }
