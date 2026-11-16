@@ -25,6 +25,8 @@ mod list;
 mod string;
 mod type_relations;
 
+use type_relations::Conformance;
+
 pub use list::{FeelList, ListItems};
 pub use string::FeelString;
 
@@ -653,72 +655,14 @@ impl Value {
     })
   }
 
-  /// Checks if a value is conformant with specified target type.
+  /// Checks if a value is conformant with specified target type: every value to `Any`, null to
+  /// every type, a simple value to its own type, a list when each of its items conforms to the
+  /// item type, a context when it has each entry of the context type and the entry's value
+  /// conforms to the entry's type, a range when both endpoints conform to the endpoint type, a
+  /// function by its declared types; nothing else. A list or a context that the value holds on
+  /// several paths is checked once against each type it meets there ([Value::is_shared]).
   pub fn is_conformant(&self, target_type: &FeelType) -> bool {
-    if matches!(target_type, FeelType::Any) {
-      return true;
-    }
-    match self {
-      Value::Null(_) => true,
-      Value::Boolean(_) => matches!(target_type, FeelType::Boolean),
-      Value::Number(_) => matches!(target_type, FeelType::Number),
-      Value::String(_) => matches!(target_type, FeelType::String),
-      Value::Date(_) => matches!(target_type, FeelType::Date),
-      Value::Time(_) => matches!(target_type, FeelType::Time),
-      Value::DateTime(_) => matches!(target_type, FeelType::DateTime),
-      Value::DaysAndTimeDuration(_) => matches!(target_type, FeelType::DaysAndTimeDuration),
-      Value::YearsAndMonthsDuration(_) => matches!(target_type, FeelType::YearsAndMonthsDuration),
-      Value::Range(r_start, _, r_end, _) => {
-        if let FeelType::Range(range_type) = target_type {
-          return r_start.is_conformant(range_type) && r_end.is_conformant(range_type);
-        }
-        false
-      }
-      Value::List(items) => {
-        if let FeelType::List(list_type) = target_type {
-          for item in items {
-            if !item.is_conformant(list_type) {
-              return false;
-            }
-          }
-          return true;
-        }
-        false
-      }
-      Value::Context(context) => {
-        if let FeelType::Context(type_context) = target_type {
-          for (name, entry_type) in type_context.iter() {
-            if let Some(entry_value) = context.get_entry(name) {
-              if !entry_value.is_conformant(entry_type) {
-                return false;
-              }
-            } else {
-              return false;
-            }
-          }
-          return true;
-        }
-        false
-      }
-      Value::FunctionDefinition(function) => {
-        if let FeelType::Function(t_parameters, t_result) = target_type {
-          if function.parameters().len() != t_parameters.len() {
-            return false;
-          }
-          if !function.result_type().is_conformant(t_result) {
-            return false;
-          }
-          for (i, (_, parameter_type)) in function.parameters().iter().enumerate() {
-            if !parameter_type.is_conformant(&t_parameters[i]) {
-              return false;
-            }
-          }
-          return true;
-        }
-        false
-      }
-      _ => false,
-    }
+    Conformance::default().check(self, target_type)
   }
 
   /// Returns value coerced to specified type.

@@ -2600,6 +2600,23 @@ their items with both answers. The totals are under "Verification" below.
     with items of two kinds 3.78 to 5.89 ms; `instance of` over a context 4.83 to 4.79 ms per
     10,000, a range 2.22 to 2.28 ms, a number 1.24 ms on both. Rust API (`rheon-feel`): the added
     `Value::has_type`, `Value::has_type_of` and `Value::type_instance_of`.
+    The conformance of a value to a type (`Value::is_conformant`: the check of a typed
+    parameter, of the type a boxed context, a decision or a decision service declares, and of the
+    implicit conversions) is a relation of the value, not of its type, and walked the value along
+    every path: a list that a loop doubles 40 times through `partial`, passed to a function whose
+    parameter declares its 40-level type, made 2^40 checks, and so did a list that holds the same
+    context twice at each of 40 levels (`[c, c]` with `c = {a: l}` around the list before it). A
+    context type names the entries it follows, so a context doubled 40 times and checked against
+    `context<a: …>` nested 40 levels was checked along one path. It is now walked by
+    `Conformance` in the same module, which remembers the answer for a shared list or context and
+    a type node by their addresses, for one check (a node held once is reached again only
+    through a shared node above it); the answers are those of the walk before. Tests first:
+    `feel/src/tests/type_relations.rs` checks lists doubled 60 times and lists that hold the
+    same context twice at each of 60 levels against their types; each was stopped after 60 s on
+    the parent, the second also with the answers remembered for shared lists only. Answers
+    change: the invocations over a list doubled 40 times and over a list that holds the same
+    context twice at each of 40 levels, which exhausted the memory of 0.5.0, answer 0
+    (`tools/identity/release/registered/shared-lists.json` and `shared-contexts.json`).
     Measured on the module of items 154 to 157 together (wasm, Node 26, Apple M2, two
     alternating rounds): against the module of item 153, geomean 1.012x and 1.016x over the 39
     workloads of the speed suite, none below 0.97x in either round; `count(items)` over 10,000

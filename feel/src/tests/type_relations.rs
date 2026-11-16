@@ -164,3 +164,71 @@ fn the_relations_visit_a_shared_list_once() {
   assert!(top.type_instance_of(&nested_list_type(1, FeelType::Any)));
   assert!(!top.type_instance_of(&nested_list_type(60, FeelType::Number)));
 }
+
+/// The context `{a: c, b: c}` around the one before it `n - 1` times, starting with `{a: 1}`;
+/// it holds the context below it on two paths without a copy.
+fn doubled_context(n: u32) -> Value {
+  let (a, b) = (Name::from("a"), Name::from("b"));
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&a, value_number!(1));
+  let mut value = Value::from(ctx);
+  for _ in 1..n {
+    let mut parent = FeelContext::default();
+    parent.set_entry(&a, value.clone());
+    parent.set_entry(&b, value);
+    value = Value::from(parent);
+  }
+  value
+}
+
+/// `context<a: …>` nested `levels` levels deep around `item`.
+fn nested_context_type(levels: u32, item: FeelType) -> FeelType {
+  (0..levels).fold(item, |item, _| FeelType::Context(BTreeMap::from([(Name::from("a"), item)])))
+}
+
+/// The conformance of a value to a type (the check of a typed parameter) visits a list held on
+/// 2^59 paths once for each type it is checked against. A context type names the entries it
+/// follows, so the doubled contexts here are checked along one path.
+#[test]
+fn the_conformance_of_a_value_visits_a_shared_node_once() {
+  let list = doubled(60);
+  assert!(list.is_conformant(&nested_list_type(60, FeelType::Number)));
+  assert!(!list.is_conformant(&nested_list_type(60, FeelType::String)));
+  assert!(list.is_conformant(&nested_list_type(30, FeelType::Any)));
+  let ctx = doubled_context(60);
+  assert!(ctx.is_conformant(&nested_context_type(60, FeelType::Number)));
+  assert!(!ctx.is_conformant(&nested_context_type(60, FeelType::String)));
+  // a list of contexts that hold the list before them twice: each context is held by its list
+  let mut value = Value::List(FeelList::from(vec![value_number!(1)]));
+  for _ in 1..60 {
+    let mut ctx = FeelContext::default();
+    ctx.set_entry(&Name::from("a"), value.clone());
+    ctx.set_entry(&Name::from("b"), value);
+    value = Value::List(FeelList::from(vec![Value::from(ctx)]));
+  }
+  let target = (1..60).fold(FeelType::List(Box::new(FeelType::Number)), |item, _| {
+    FeelType::List(Box::new(FeelType::Context(BTreeMap::from([(Name::from("b"), item)]))))
+  });
+  assert!(value.is_conformant(&target));
+}
+
+/// The conformance of a value to a type visits a context that every list on its path holds twice
+/// once for each type it is checked against: the list `[c, c]` with `c = {a: l}` around the list
+/// before it `l`, nested 60 times, holds each list once and each context on 2^59 paths.
+#[test]
+fn the_conformance_of_a_value_visits_a_context_held_twice_once() {
+  let mut value = Value::List(FeelList::from(vec![value_number!(1)]));
+  for _ in 1..60 {
+    let mut ctx = FeelContext::default();
+    ctx.set_entry(&Name::from("a"), value);
+    let ctx = Value::from(ctx);
+    value = Value::List(FeelList::from(vec![ctx.clone(), ctx]));
+  }
+  let target = |item: FeelType| {
+    (1..60).fold(FeelType::List(Box::new(item)), |item, _| {
+      FeelType::List(Box::new(FeelType::Context(BTreeMap::from([(Name::from("a"), item)]))))
+    })
+  };
+  assert!(value.is_conformant(&target(FeelType::Number)));
+  assert!(!value.is_conformant(&target(FeelType::String)));
+}

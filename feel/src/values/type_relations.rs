@@ -7,7 +7,9 @@
 //! The relations here answer what the built type would answer, reading the value only as far as
 //! the relation needs: the type of a value is the given type, the types of two values are equal,
 //! the type of a value conforms to the type of another ([FeelType::is_conformant]), and
-//! `instance of` ([FeelType::instance_of]).
+//! `instance of` ([FeelType::instance_of]). The conformance of a value to a type
+//! ([Value::is_conformant]), a relation of the value rather than of its type, is decided here
+//! too ([Conformance]).
 //!
 //! The type of a list is a list of the type of its first item when every other item's type
 //! conforms to it, and a list of `Any` otherwise. Within one relation, whether a list's items
@@ -386,6 +388,80 @@ impl<'a> Relations {
           .get(name)
           .is_some_and(|entry| matches!(entry.shape(), Shape::Leaf(FeelType::Null)) || self.same(entry, Ty::Is(target_type)))
       }),
+      _ => false,
+    }
+  }
+}
+
+/// The conformance of a value to a type ([Value::is_conformant]), checked on the value: a
+/// relation of the value itself, not of its type ([Value::type_of] types a list by its first
+/// item). The answer for a shared list or context ([Value::is_shared]) and a type is remembered
+/// by their addresses: a node held once is reached again only through a shared node above it,
+/// so every pair is checked once. The memory lives for one check, is created on first use, and
+/// is never iterated.
+#[derive(Default)]
+pub(super) struct Conformance {
+  shared: Option<HashMap<(usize, usize), bool>>,
+}
+
+impl Conformance {
+  /// Whether `value` conforms to `target`, remembered for a shared list or context.
+  pub(super) fn check(&mut self, value: &Value, target: &FeelType) -> bool {
+    if matches!(target, FeelType::Any) {
+      return true;
+    }
+    if value.is_shared()
+      && let Some(address) = value.node_address()
+    {
+      let key = (address, std::ptr::from_ref(target).addr());
+      if let Some(answer) = self.shared.as_ref().and_then(|shared| shared.get(&key)) {
+        return *answer;
+      }
+      let answer = self.decide(value, target);
+      self.shared.get_or_insert_with(HashMap::new).insert(key, answer);
+      return answer;
+    }
+    self.decide(value, target)
+  }
+
+  /// [Conformance::check] without a lookup, for a target type other than `Any`.
+  fn decide(&mut self, value: &Value, target: &FeelType) -> bool {
+    match value {
+      Value::Null(_) => true,
+      Value::Boolean(_) => matches!(target, FeelType::Boolean),
+      Value::Number(_) => matches!(target, FeelType::Number),
+      Value::String(_) => matches!(target, FeelType::String),
+      Value::Date(_) => matches!(target, FeelType::Date),
+      Value::Time(_) => matches!(target, FeelType::Time),
+      Value::DateTime(_) => matches!(target, FeelType::DateTime),
+      Value::DaysAndTimeDuration(_) => matches!(target, FeelType::DaysAndTimeDuration),
+      Value::YearsAndMonthsDuration(_) => matches!(target, FeelType::YearsAndMonthsDuration),
+      Value::Range(start, _, end, _) => match target {
+        FeelType::Range(ends) => self.check(start, ends) && self.check(end, ends),
+        _ => false,
+      },
+      Value::List(items) => match target {
+        FeelType::List(item_type) => items.iter().all(|item| self.check(item, item_type)),
+        _ => false,
+      },
+      Value::Context(ctx) => match target {
+        FeelType::Context(entries) => entries
+          .iter()
+          .all(|(name, entry_type)| ctx.get_entry(name).is_some_and(|entry| self.check(entry, entry_type))),
+        _ => false,
+      },
+      Value::FunctionDefinition(function) => match target {
+        FeelType::Function(parameter_types, result_type) => {
+          function.parameters().len() == parameter_types.len()
+            && function.result_type().is_conformant(result_type)
+            && function
+              .parameters()
+              .iter()
+              .zip(parameter_types)
+              .all(|((_, parameter_type), target_type)| parameter_type.is_conformant(target_type))
+        }
+        _ => false,
+      },
       _ => false,
     }
   }
