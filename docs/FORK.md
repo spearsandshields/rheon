@@ -223,6 +223,7 @@ Rules:
 | 175 | `947ff20` | tools/identity: a ledger outcome can be the digest of a long response | fork |
 | 176 | `047ee58` | tools/identity: the depth probes of the large sets that 0.5.0 answers are committed | fork |
 | 177 | `40c7ec5` | tools/identity: the large-set run leaves out two chains by name | fork |
+| 178 | `ef0081f` | tools/identity: the order test compares differences without their source | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
