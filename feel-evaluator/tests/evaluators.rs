@@ -219,3 +219,25 @@ fn list_replace_reads_no_answer_after_an_abort() {
     assert_eq!(abort_and_errors("{f: function(n) f(n + 1), r: f(1)}.r"), replaced);
   });
 }
+
+/// The function that `sort` and `list replace` call is a function invocation (DMN 1.6 Table 64)
+/// and counts toward the 200 nested calls: a recursion through a callback is 3 calls deep per
+/// level (the function, the built-in and the callback), so 66 levels answer and 80 stop at the
+/// call-depth limit.
+#[test]
+fn a_callback_is_a_counted_call() {
+  with_big_stack(|| {
+    for callback in [
+      "sort([1, 2], function(a, b) f(n - 1))[1] = 1",
+      "list replace([1], function(item, newItem) f(n - 1), 2)[1] = 2",
+    ] {
+      let text = |levels: usize| format!("{{f: function(n) if n = 0 then true else {callback}, r: f({levels})}}.r");
+      assert_eq!(None, abort_and_errors(&text(66)).0, "{callback}");
+      let aborted = abort_and_errors(&text(80)).0;
+      assert!(
+        matches!(aborted, Some(rheon_feel::diagnostics::Abort::CallDepth { limit: 200, .. })),
+        "{callback}: {aborted:?}"
+      );
+    }
+  });
+}

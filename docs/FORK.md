@@ -3037,6 +3037,33 @@ their items with both answers. The totals are under "Verification" below.
     the module of item 170): `count(sort(for i in 1..10000 return modulo(i * 7919, 10007),
     function(a, b) a < b))` 32.07 to 27.72 ms (1.157x), `count(list replace(for i in 1..10000
     return i, function(item, newItem) item > 5000, 0))` 3.43 to 3.08 ms (1.115x).
+172. **The function called by `sort` and `list replace` is a counted call.** The ordering
+    function of `sort` and the matching function of `list replace` were invoked without the
+    call guard, so they did not count toward the 200 nested function calls: a recursion through
+    a callback was 2 calls deep per level (the function and the built-in) and ran 99 levels
+    before the limit, on the native stack of every callback frame besides. Both are now invoked
+    through `call` (`feel-evaluator/src/invocation.rs`), the guard around `invoke` that
+    `evaluate_invocation` uses too, so a recursion through a callback is 3 calls deep per level:
+    levels 1 to 66 answer as before, 67 to 99 are now the call-depth error, and 100 and more
+    stop in both. The invocation nodes keep entering the guard themselves, before they evaluate
+    the function and the arguments. After an abort a callback is not reached at all, because the
+    call of the built-in is refused first, and the loops of both built-ins already stopped at
+    the abort. Test first: `feel-evaluator/tests/evaluators.rs`, a recursion through each
+    callback 66 levels deep answers and 80 levels deep stops at the call-depth limit, while on
+    the parent 80 levels answered. Answers change (`tools/identity/registered/callback-call-depth.json`,
+    `docs/CONTRACT.md` section 2, the backlog entries on the comparator and on call depth
+    counting): the two requests of `callbacks.json` 80 levels deep are now the call-depth error
+    instead of `true`. The official TCK's `sort` and `list replace` tests (0013-sort,
+    1155-list-replace-function) use shallow function literals and business knowledge models.
+    No API change. Measured (wasm, Node 26, Apple M2, against the module of item 171, three runs
+    of three or four alternating rounds): the 10,000-item `sort` of item 171 0.934x, 0.945x and
+    0.936x (27.5 to 29.4 ms), its `list replace` 0.960x, 0.957x and 0.956x, under the floor of
+    0.97x that applied to this step. The cost is the guard on each call of the ordering function,
+    one per comparison: the count of nested calls is entered and left, the abort is checked,
+    and the call's result is checked for a non-finite number and for its nesting depth. The
+    commit is kept as a robustness fix, the figure reported. Against 0.5.0 at the end of items
+    168 to 173 (two alternating rounds) the `sort` stands at 1.099x and 1.075x and the `list
+    replace` at 1.055x and 1.049x: the shared scope of item 171 gains more than the guard costs.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

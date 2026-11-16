@@ -55,7 +55,7 @@ pub fn evaluate_equals(left: &Value, right: &Value) -> bool {
 /// The invocation is part of the running [Session]. Outside one, it is an evaluation of its own,
 /// and when that is stopped its result is null with the reason of the abort.
 pub fn evaluate_invocation(scope: &FeelScope, function: Value, arguments: Vec<(Name, Value)>, dialect: Dialect) -> Value {
-  crate::invocation::guarded(|| crate::invocation::invoke(scope, function, crate::invocation::Arguments::Named(arguments), dialect))
+  crate::invocation::call(scope, function, crate::invocation::Arguments::Named(arguments), dialect)
 }
 
 /// Evaluates a context from text containing `FEEL` expression.

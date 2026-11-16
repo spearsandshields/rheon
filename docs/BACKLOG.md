@@ -57,9 +57,9 @@ was written.
   `(? > 0.1) + 0.2` (`feel-grammar/src/feel.y`).
 - **Zoned `now()`** `[fork]` (2026-10-17). `now()` is zone-less, so
   `now() - date and time("…Z")` is null.
-- **`sort` comparator bypasses guards** `[fork]` (2026-10-18). Depth and finiteness guards are
-  skipped for the user comparator; a non-boolean answer silently means "does not precede" (the
-  ordering itself cannot fail on any answer).
+- **`sort` reads a non-boolean answer as "does not precede"** `[fork]` (2026-10-18). A
+  non-boolean answer of the comparator silently means "does not precede" (the ordering itself
+  cannot fail on any answer).
 - **Globals in the engine** `[fork]` (2026-10-17). The tz-offset override is process-global, so
   the wasm layer serialises requests with `ENGINE_LOCK` (`wasm/feel-wasm/src/engine.rs`). The
   call depth and the abort of an evaluation are thread-local state owned by that evaluation
@@ -180,8 +180,8 @@ Open in 1.6:
     name); §7.3.4 asks it to be compatible with the value.
   - *`try_coerced` lets any function value pass* whatever the target type (feel/src/values.rs).
   - *Call depth counting.* FEEL invocations are counted at the expression (argument evaluation
-    included), boxed invocations and invocables in `evaluate_invocation`; `sort` and `list
-    replace` callbacks are not counted.
+    included), boxed invocations and invocables in `evaluate_invocation`, and the callbacks of
+    `sort` and `list replace` at the call.
   - *Unused values.* `Value::NamedParameter`, `Value::ParameterName` and
     `Value::PositionalParameters` are not built for invocations (`ParameterName` still is,
     for formal parameters).

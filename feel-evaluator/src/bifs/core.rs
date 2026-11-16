@@ -3,7 +3,7 @@
 use crate::bfeel::Dialect;
 use crate::equality::Equality;
 use crate::evaluate_range_literal;
-use crate::invocation::{Arguments, invoke};
+use crate::invocation::{Arguments, call};
 use crate::macros::invalid_argument_type;
 use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
@@ -1328,7 +1328,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
       let scope = FeelScope::default();
       for item in items {
         let arguments = Arguments::Positional(vec![item.clone(), new_item.clone()]);
-        let matched = invoke(&scope, position_or_match.clone(), arguments, Dialect::Feel);
+        let matched = call(&scope, position_or_match.clone(), arguments, Dialect::Feel);
         // the answer of a call in a stopped evaluation is not read; the null is never observed
         if diagnostics::stopped() {
           return Value::Null(None);
@@ -2181,7 +2181,7 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
             return None;
           }
           let arguments = Arguments::Positional(vec![items[a].clone(), items[b].clone()]);
-          Some(matches!(invoke(&scope, ordering_function.clone(), arguments, Dialect::Feel), Value::Boolean(true)))
+          Some(matches!(call(&scope, ordering_function.clone(), arguments, Dialect::Feel), Value::Boolean(true)))
         });
         match order {
           Some(order) => Value::List(order.into_iter().map(|position| items[position].clone()).collect()),

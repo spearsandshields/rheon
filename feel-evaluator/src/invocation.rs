@@ -45,6 +45,14 @@ pub(crate) enum Arguments {
   Named(Vec<(Name, Value)>),
 }
 
+/// A counted call ([guarded]) of a function value: the invocation of a function by a built-in
+/// that takes one (`sort`, `list replace`) or by a caller outside the evaluator. The invocation
+/// nodes enter the guard themselves, before they evaluate the function and the arguments, and
+/// call [invoke].
+pub(crate) fn call(scope: &FeelScope, function: Value, arguments: Arguments, dialect: Dialect) -> Value {
+  guarded(|| invoke(scope, function, arguments, dialect))
+}
+
 /// Applies a function to arguments (DMN 1.6, Table 64): null when `function` is not a function, or when
 /// the arguments do not match or do not conform to its parameters; the body is then not evaluated.
 pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, dialect: Dialect) -> Value {
