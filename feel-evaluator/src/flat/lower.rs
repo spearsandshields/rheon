@@ -40,6 +40,8 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
+  let root_cells = lower.cell_names.len() as u32;
+  lower.builder.root_cells(root_cells);
   let root_end = lower.builder.here();
   let root_slots = lower.max;
   // the bodies one after the other, so that no body is lowered inside another
@@ -83,6 +85,9 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
   builder.names(names.into_iter().map(|name| name.into_owned()).collect());
   Ok(builder.finish(root_slots, root_end, dialect, layouts, regions))
 }
+
+/// No proto has read a free name yet.
+const UNSET: u32 = NONE - 1;
 
 struct Lower<'r, 'a> {
   resolved: &'r Resolved<'a>,
@@ -424,14 +429,10 @@ impl<'a> Lower<'_, 'a> {
     Ok(())
   }
 
-  /// The cell of the free name `free` in the proto being lowered ([NONE] in the root
-  /// expression, which reads free names from the scope of the host).
+  /// The cell of the free name `free` in the root expression or the proto being lowered.
   fn cell(&mut self, free: u32) -> u32 {
-    if self.proto == NONE {
-      return NONE;
-    }
     if self.cells.is_empty() {
-      self.cells = vec![(NONE, NONE); self.resolved.frees.len()];
+      self.cells = vec![(UNSET, NONE); self.resolved.frees.len()];
     }
     let (proto, cell) = &mut self.cells[free as usize];
     if *proto != self.proto {

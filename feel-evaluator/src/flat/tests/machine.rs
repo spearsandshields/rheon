@@ -23,6 +23,7 @@ fn program(code: Vec<Op>, consts: Vec<Value>, messages: Vec<&str>, slots: u32) -
     layouts: vec![],
     regions: vec![],
     slots,
+    root_cells: 0,
     dialect: crate::Dialect::Feel,
   }
 }

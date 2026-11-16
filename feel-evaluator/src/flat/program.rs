@@ -400,6 +400,8 @@ pub(crate) struct Program {
   pub(crate) dialect: Dialect,
   /// The slots of the frame of the root expression.
   pub(crate) slots: u32,
+  /// The cells of the root expression: one for each free name it reads.
+  pub(crate) root_cells: u32,
   /// The end of the code of the root expression.
   pub(crate) root_end: Pc,
 }
@@ -416,7 +418,7 @@ impl Program {
   /// operand, slot and index of every instruction is in range for its body and that every body's
   /// code ends with a return, so that the run loop never indexes out of range.
   pub(crate) fn verify(&self) -> Result<(), VerifyError> {
-    let mut bodies: Vec<(Pc, Pc, u32, u32)> = std::iter::once((0, self.root_end, self.slots, 0))
+    let mut bodies: Vec<(Pc, Pc, u32, u32)> = std::iter::once((0, self.root_end, self.slots, self.root_cells))
       .chain(self.protos.iter().map(|proto| (proto.entry, proto.end, proto.slots, proto.cells.len() as u32)))
       .collect();
     bodies.sort_unstable();
@@ -479,8 +481,7 @@ impl Program {
   }
 
   /// [Program::verify] for the body whose code is `entry .. end`, whose frame has `slots` slots
-  /// and whose activation `cells` cells (none for the root expression, whose free names are
-  /// read from the scope of the host).
+  /// and whose activation `cells` cells.
   fn verify_body(&self, entry: Pc, end: Pc, slots: u32, cells: u32) -> Result<(), VerifyError> {
     self.verify_structure(entry, end)?;
     for (at, op) in self.code[entry as usize..end as usize].iter().enumerate() {
@@ -498,7 +499,7 @@ impl Program {
         Op::LoadName { dst, name, cell } => {
           check.slot(dst)?;
           check.index(name, self.names.len(), "name out of range")?;
-          if entry == 0 && cell != NONE || entry != 0 && cell >= cells {
+          if cell >= cells {
             return check.fail("cell out of range");
           }
         }
@@ -828,12 +829,18 @@ pub(crate) struct ProgramBuilder {
   probes: Vec<ProbeInfo>,
   closures: Vec<ClosureInfo>,
   protos: Vec<Proto>,
+  root_cells: u32,
 }
 
 impl ProgramBuilder {
   pub(crate) fn emit(&mut self, op: Op) -> Pc {
     self.code.push(op);
     self.code.len() as Pc - 1
+  }
+
+  /// The root expression reads `cells` free names, each into a cell of its own.
+  pub(crate) fn root_cells(&mut self, cells: u32) {
+    self.root_cells = cells;
   }
 
   /// Points the jump at `at` to the next instruction.
@@ -961,6 +968,7 @@ impl ProgramBuilder {
       layouts,
       regions,
       slots,
+      root_cells: self.root_cells,
       root_end,
       dialect,
     };

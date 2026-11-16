@@ -260,7 +260,11 @@ enum Next {
 
 impl<'p> Vm<'p> {
   fn new(act: Activation, host: &'p FeelScope, bottom: &'p mut [Value]) -> Self {
-    let cells = act.program.protos.get(act.proto as usize).map_or(0, |proto| proto.cells.len());
+    let cells = act
+      .program
+      .protos
+      .get(act.proto as usize)
+      .map_or(act.program.root_cells as usize, |proto| proto.cells.len());
     Self {
       host,
       bottom,
@@ -337,6 +341,16 @@ impl<'p> Vm<'p> {
       Operand::Slot(slot) => self.slot(slot).clone(),
       Operand::Take(slot) => self.take(slot),
       Operand::Const(index) => self.act.program.consts[index as usize].clone(),
+    }
+  }
+
+  /// Whether an operand is `true`; a temporary is left null.
+  #[inline(always)]
+  fn is_true(&mut self, opnd: Opnd) -> bool {
+    match opnd.decode() {
+      Operand::Slot(slot) => matches!(self.slot_of(self.act.base, slot), Value::Boolean(true)),
+      Operand::Take(slot) => matches!(self.take(slot), Value::Boolean(true)),
+      Operand::Const(index) => matches!(self.act.program.consts[index as usize], Value::Boolean(true)),
     }
   }
 
@@ -441,7 +455,7 @@ impl<'p> Vm<'p> {
         }
         Op::Jump { to } => pc = to as usize,
         Op::JumpUnlessTrue { c, to } => {
-          if !matches!(self.read(c), Value::Boolean(true)) {
+          if !self.is_true(c) {
             pc = to as usize;
           }
         }
@@ -701,17 +715,27 @@ impl<'p> Vm<'p> {
   }
 
   /// The value of the free name `names[name]` of `program`, the program that runs: once read in
-  /// the activation (its cell `cell`, [NONE] in the root expression, whose scope below is the
-  /// host's), the same; a name that nothing has is the built-in function of that name, or null
-  /// with an error, at every read.
+  /// the activation (its cell `cell`), the same. In the root expression the scope below is the
+  /// host's, and a name it does not have is the built-in function of that name, or null with an
+  /// error, at every read; in a body, a name that nothing has is the same, read once.
   fn load_name(&mut self, program: &Program, name: u32, cell: u32) -> Value {
     let text = &program.names[name as usize];
-    if cell == NONE {
-      return self.host.get_value(text).unwrap_or_else(|| kernels::free_name(text));
-    }
     let at = self.act.cells + cell as usize;
     if let Cell::Read(value) = &self.cells[at] {
       return value.clone();
+    }
+    if self.act.proto == NONE {
+      // the root expression reads the scope of the host, which has the name or not for the whole
+      // run; the error of a name that nothing has is recorded at every read
+      let value = match self.host.get_value(text) {
+        Some(value) => value,
+        None => match kernels::free_name(text) {
+          function @ Value::BuiltInFunction(_) => function,
+          null => return null,
+        },
+      };
+      self.cells[at] = Cell::Read(value.clone());
+      return value;
     }
     let value = match self.below(name, text) {
       Some(value) => value,
