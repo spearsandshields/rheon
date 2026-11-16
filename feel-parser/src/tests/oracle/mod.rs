@@ -13,7 +13,8 @@
 //! `Value::type_of`.
 //!
 //! One change of behaviour is written into the reference lexer as well (marked `oracle:`): a name
-//! that is not in scope ends before a keyword that can follow an operand. It changes the tokens
+//! that is not in scope ends before a keyword that can follow an operand and before a symbol that
+//! is an operator. It changes the tokens
 //! after the name in most texts with such a name, so as a registered difference it would leave the
 //! rest of these texts uncompared. The tests of `super::expr::name` state the behaviour itself.
 //!

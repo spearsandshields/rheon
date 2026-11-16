@@ -3,12 +3,12 @@ List([Boolean(true)])
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #2 "{f: function() 2 instance of a.b, r: for a in [{b: 1}] return f()}.r"
-List([Boolean(false)])
-Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
+List([Boolean(true)])
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #3 "{f: function() 2 instance of a.b, r: [{a: {b: 1}}][f()]}.r"
-List([])
-Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
+List([Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))}))])
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #4 "{f: function() 2 instance of item, r: [1][f()]}.r"
 List([Number(+1E+0)])

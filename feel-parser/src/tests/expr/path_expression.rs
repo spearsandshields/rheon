@@ -42,10 +42,13 @@ fn _0003() {
     r#"Manager.Address.Street"#,
     r#"
        Path
-       ├─ Name
-       │  └─ `Manager`
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `Manager`
+       │  └─ Name
+       │     └─ `Address`
        └─ Name
-          └─ `Address.Street`
+          └─ `Street`
     "#,
     false,
   );
@@ -60,8 +63,11 @@ fn _0004() {
     r#"(Manager.Address).Street"#,
     r#"
        Path
-       ├─ Name
-       │  └─ `Manager.Address`
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `Manager`
+       │  └─ Name
+       │     └─ `Address`
        └─ Name
           └─ `Street`
     "#,
@@ -372,7 +378,8 @@ fn _0015() {
   let (w1, w2, w3) = (work(1), work(1_001), work(2_001));
   for unit in ["parts", "candidates"] {
     let n = |w: &std::collections::BTreeMap<&str, usize>| w.get(unit).copied().unwrap_or(0);
-    assert!(n(&w2) > n(&w1), "{unit} does not grow: {w1:?} {w2:?} {w3:?}");
+    // a segment before a dot is its token without a lookup, so the candidates may be none
+    assert!(n(&w2) > n(&w1) || unit == "candidates", "{unit} does not grow: {w1:?} {w2:?} {w3:?}");
     assert_eq!(n(&w3) - n(&w2), n(&w2) - n(&w1), "{unit}: {w1:?} {w2:?} {w3:?}");
   }
 }

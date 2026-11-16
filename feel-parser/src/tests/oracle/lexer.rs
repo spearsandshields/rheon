@@ -781,9 +781,23 @@ impl<'lexer> Lexer<'lexer> {
         let after = start + keyword.len();
         self.input[start..].iter().take(keyword.len()).copied().eq(keyword.chars()) && self.input.get(after).is_none_or(|ch| is_whitespace(*ch))
       });
-      if is_keyword && is_whitespace(self.input[start - 1]) {
-        parts.truncate(index);
-        self.position = consumed_positions[index - 1] + 1;
+      // oracle: and before a symbol that is an operator (`NAME_ENDING_SYMBOLS` there)
+      let is_symbol = [".", "/", "-", "+", "*"].contains(&parts[index].trim());
+      if is_symbol || (is_keyword && is_whitespace(self.input[start - 1])) {
+        // oracle: where a symbol follows a symbol, or a part is empty or has white space at an
+        // end, the longest run of the parts whose name is in scope is the name
+        let is_symbol = |part: &String| [".", "/", "-", "'", "+", "*"].contains(&part.trim());
+        let irregular = parts.windows(2).any(|pair| is_symbol(&pair[0]) && is_symbol(&pair[1])) || parts.iter().any(|part| part.trim().is_empty() || part.trim() != part);
+        let longer = if irregular {
+          (index + 1..=parts.len()).rev().find(|&to| self.scope.contains(Name::from_parts(&parts[..to]).as_str()))
+        } else {
+          None
+        };
+        let end = longer.unwrap_or(index);
+        if end < parts.len() {
+          parts.truncate(end);
+          self.position = consumed_positions[end - 1] + 1;
+        }
         break;
       }
     }

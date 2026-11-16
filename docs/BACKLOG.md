@@ -40,15 +40,17 @@ was written.
 
 ## Engine
 
-- **A name that is not in scope takes the words and symbols after it** `[fork]` (2026-11-16).
-  When no name in scope starts at a name token, the name runs to the next punctuation or to a
-  keyword that can follow an operand (`and`, `between`, `else`, `in`, `instance`, `or`, `return`,
-  `satisfies`, `then`) written as a word of its own. So with no `x` in scope `x - 1` is the one
-  name `x-1` and `x.y` the one name `x.y` (null, with an error), and the other keywords stay in
-  the name (`x for y`). A name that is not in scope and has one of the nine keywords as a word
-  (`Is in range`) is read as the expression with that keyword, often a syntax error; a name in
-  scope holds its keywords. The name is read by `consume_name` in `feel-parser/src/lexer.rs`.
-  Workaround: parenthesise the name, `(x) - 1`.
+- **A name that is not in scope is a run of words** `[fork]` (2026-11-16). When no name in scope
+  starts at a name token, the name runs to the next punctuation, to a keyword that can follow an
+  operand (`and`, `between`, `else`, `in`, `instance`, `or`, `return`, `satisfies`, `then`)
+  written as a word of its own, or to a symbol that is an operator (`.`, `/`, `-`, `+`, `*`). So
+  with no `x` in scope `x - 1` is a subtraction and `x.y` a path (null, with an error about
+  `x`). What stays in such a name: the other keywords (`x for y`) and an apostrophe (`Grace's
+  age`). A name with a keyword or an operator symbol must be in scope to be read as one name: a
+  name that is not in scope and has one (`Is in range`, `opt-in rate`) is read as the
+  expression, often a syntax error. A name in scope is found by its text with single spaces
+  between words and none around symbols, so a key written with other spacing (`Date  -  Time`)
+  is not found. The name is read by `consume_name` in `feel-parser/src/lexer.rs`.
 - **Decision-table bounds** `[fork]` (2026-10-18). Rules and outputs are indexed by clause position
   with no count check (`model-evaluator/src/decision_table.rs`): a short rule or a zero-output table
   panics.

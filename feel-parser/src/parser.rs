@@ -122,6 +122,13 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     }
   }
 
+  /// Reads the text as a name that is being declared: a name that is not in scope is the whole
+  /// chain of its parts (see [crate::parse_name]).
+  pub fn with_whole_names(mut self) -> Self {
+    self.yy_lexer.set_whole_names();
+    self
+  }
+
   /// Records every token read from the lexer (see [Parser::token_log]).
   #[cfg(test)]
   pub fn with_token_log(mut self) -> Self {

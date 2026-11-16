@@ -34,8 +34,10 @@ fn _0002() {
   decision("filter reads an earlier item", "[{a: 2}, {a: 3}]");
   // an entry named `item` is read by the entries after it and leaves the items unchanged
   decision("filter writes item", "[2, 3]");
-  // an entry named as an entry of the item is not read by the entries after it
-  decision("filter writes an entry of the item", "[]");
+  // an entry named as an entry of the item is read by the entries after it, in place of the
+  // entry of the item: `a * 10` is the product of the item's `a` (it was one name that is not
+  // in scope, so the entry was null), and `a > 15` reads the entry
+  decision("filter writes an entry of the item", "[{a: 2}, {a: 3}]");
   // an entry is not seen by the entries before it
   decision("filter reads a later entry", "[{a: 1}, {a: 2}, {a: 3}]");
 }

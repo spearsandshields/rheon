@@ -1,0 +1,3059 @@
+[
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "< x.y",
+      "input": 1
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x.y'",
+          "eval_in_unary_less"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "eval_in_unary_less"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "< x.y",
+      "input": 1,
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x.y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x + 1",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x+1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x+1')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x+1'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[addition] incompatible types: null(context has no value for key 'x') + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null(context has no value for key 'x') + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null(context has no value for key 'x') + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x + 1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x+1'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x.y",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x.y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x.y')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x.y'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x.y",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x.y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "a.b.c",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a.b.c'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a.b.c')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a.b.c'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a.b.c",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'a.b.c'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'a'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "abs.x",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'abs.x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'abs.x')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'abs.x'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected type: Any, for property: x"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(unexpected type: Any, for property: x)",
+        "isNull": true,
+        "nullReason": "unexpected type: Any, for property: x",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs.x",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'abs.x'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: unexpected type: Any, for property: x"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "opt-in rate",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'opt-in rate'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'opt-in rate')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'opt-in rate'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: opt-in rate"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "opt-in rate",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'opt-in rate'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: opt-in rate"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x and-y",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x and-y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x and-y')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x and-y'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'x and'",
+          "context has no value for key 'y'",
+          "[subtraction] incompatible types: null(context has no value for key 'x and') - null(context has no value for key 'y')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null(context has no value for key 'x and') - null(context has no value for key 'y'))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null(context has no value for key 'x and') - null(context has no value for key 'y')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x and-y",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x and-y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x and'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x - 1",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x-1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x-1')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x-1'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[subtraction] incompatible types: null(context has no value for key 'x') - 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null(context has no value for key 'x') - 1)",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null(context has no value for key 'x') - 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x - 1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x-1'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x-1",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x-1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x-1')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x-1'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[subtraction] incompatible types: null(context has no value for key 'x') - 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null(context has no value for key 'x') - 1)",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null(context has no value for key 'x') - 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x-1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x-1'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x * y",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x*y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x*y')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x*y'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'x'",
+          "context has no value for key 'y'",
+          "[multiplication] incompatible types: null(context has no value for key 'x') * null(context has no value for key 'y')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([multiplication] incompatible types: null(context has no value for key 'x') * null(context has no value for key 'y'))",
+        "isNull": true,
+        "nullReason": "[multiplication] incompatible types: null(context has no value for key 'x') * null(context has no value for key 'y')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x * y",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x*y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x / 2",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x/2'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x/2')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x/2'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[division] incompatible types: null(context has no value for key 'x') / 2"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([division] incompatible types: null(context has no value for key 'x') / 2)",
+        "isNull": true,
+        "nullReason": "[division] incompatible types: null(context has no value for key 'x') / 2",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x / 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x/2'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x ** 2",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x**2'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x**2')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x**2'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[exponentiation] incompatible types: null(context has no value for key 'x') ** 2"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([exponentiation] incompatible types: null(context has no value for key 'x') ** 2)",
+        "isNull": true,
+        "nullReason": "[exponentiation] incompatible types: null(context has no value for key 'x') ** 2",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x ** 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x**2'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x + y",
+      "context": {
+        "y": 2
+      }
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x+y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x+y')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x+y'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[addition] incompatible types: null(context has no value for key 'x') + 2"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null(context has no value for key 'x') + 2)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null(context has no value for key 'x') + 2",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x + y",
+      "context": {
+        "y": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x+y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a b + c d",
+      "context": {
+        "c d": 2
+      }
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a b+c d'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a b+c d')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a b+c d'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'a b'",
+          "[addition] incompatible types: null(context has no value for key 'a b') + 2"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null(context has no value for key 'a b') + 2)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null(context has no value for key 'a b') + 2",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a b + c d",
+      "context": {
+        "c d": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'a b+c d'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'a b'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "[x..y]",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x..y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null]",
+        "feel": "[null(context has no value for key 'x..y')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "context has no value for key 'y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null(context has no value for key 'x')..null(context has no value for key 'y')]\"",
+        "feel": "[null(context has no value for key 'x')..null(context has no value for key 'y')]",
+        "isNull": false,
+        "type": "range<Null>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[x..y]",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x..y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "x.y.z",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x.y.z'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x.y.z')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x.y.z'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x.y.z",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x.y.z'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x.y + z",
+      "context": {
+        "z": 1
+      }
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'x.y+z'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'x.y+z')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'x.y+z'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[addition] incompatible types: null(context has no value for key 'x') + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null(context has no value for key 'x') + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null(context has no value for key 'x') + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x.y + z",
+      "context": {
+        "z": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x.y+z'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "profit/loss",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'profit/loss'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'profit/loss')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'profit/loss'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'profit'",
+          "context has no value for key 'loss'",
+          "[division] incompatible types: null(context has no value for key 'profit') / null(context has no value for key 'loss')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([division] incompatible types: null(context has no value for key 'profit') / null(context has no value for key 'loss'))",
+        "isNull": true,
+        "nullReason": "[division] incompatible types: null(context has no value for key 'profit') / null(context has no value for key 'loss')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "profit/loss",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'profit/loss'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'profit'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "e-mail address",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'e-mail address'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'e-mail address')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'e-mail address'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'e'",
+          "context has no value for key 'mail address'",
+          "[subtraction] incompatible types: null(context has no value for key 'e') - null(context has no value for key 'mail address')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null(context has no value for key 'e') - null(context has no value for key 'mail address'))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null(context has no value for key 'e') - null(context has no value for key 'mail address')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "e-mail address",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'e-mail address'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'e'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "for i in x.items return i.amount * 2",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for i in x.items return i.amount * 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "[multiplication] incompatible types: null(context has no value for key 'x') * 2"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null]",
+        "feel": "[null([multiplication] incompatible types: null(context has no value for key 'x') * 2)]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for i in x.items return i.amount * 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for i in x.items return i.amount * 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "if x.flag then x.a + 1 else x.b - 1",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if x.flag then x.a + 1 else x.b - 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'x'",
+          "[subtraction] incompatible types: null(context has no value for key 'x') - 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: null(context has no value for key 'x') - 1)",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: null(context has no value for key 'x') - 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "if x.flag then x.a + 1 else x.b - 1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if x.flag then x.a + 1 else x.b - 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "sum(x.values) / count(x.values)",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'x.values'",
+          "[core::sum] invalid argument type, expected number, actual type is Null",
+          "context has no value for key 'x.values'",
+          "[division] incompatible types: null([core::sum] invalid argument type, expected number, actual type is Null) / 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([division] incompatible types: null([core::sum] invalid argument type, expected number, actual type is Null) / 1)",
+        "isNull": true,
+        "nullReason": "[division] incompatible types: null([core::sum] invalid argument type, expected number, actual type is Null) / 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'x'",
+          "[core::sum] invalid argument type, expected number, actual type is Null",
+          "context has no value for key 'x'",
+          "[division] incompatible types: null([core::sum] invalid argument type, expected number, actual type is Null) / 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([division] incompatible types: null([core::sum] invalid argument type, expected number, actual type is Null) / 1)",
+        "isNull": true,
+        "nullReason": "[division] incompatible types: null([core::sum] invalid argument type, expected number, actual type is Null) / 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sum(x.values) / count(x.values)",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x.values'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{a: {b: 1}}.a.c + 1",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(build_path: no entry c+1 in context: {b: 1})",
+        "isNull": true,
+        "nullReason": "build_path: no entry c+1 in context: {b: 1}",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[addition] incompatible types: null(build_path: no entry c in context: {b: 1}) + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null(build_path: no entry c in context: {b: 1}) + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null(build_path: no entry c in context: {b: 1}) + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function() x + y, r: for x in 1..2, y in [10, 20] return f()}.r",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'x+y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null, null, null]",
+        "feel": "[null(context has no value for key 'x+y'), null(context has no value for key 'x+y'), null(context has no value for key 'x+y'), null(context has no value for key 'x+y')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[11, 21, 12, 22]",
+        "feel": "[11, 21, 12, 22]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "11",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "21",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "12",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "22",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() x + y, r: for x in 1..2, y in [10, 20] return f()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x+y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[11, 21, 12, 22]",
+        "feel": "[11, 21, 12, 22]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "11",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "21",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "12",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "22",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{a: b + 1, b: 1}",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'b+1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"a\": null, \"b\": 1}",
+        "feel": "{a: null(context has no value for key 'b+1'), b: 1}",
+        "isNull": false,
+        "type": "context<a: Null, b: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "a",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "b",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'b'",
+          "[addition] incompatible types: null(context has no value for key 'b') + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"a\": null, \"b\": 1}",
+        "feel": "{a: null([addition] incompatible types: null(context has no value for key 'b') + 1), b: 1}",
+        "isNull": false,
+        "type": "context<a: Null, b: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "a",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "b",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{a: b + 1, b: 1}",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'b+1'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'b'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(3)}.r",
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'c.f'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'c.f')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'c.f'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'c.f')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(3)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'c.f'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "< x.y",
+      "input": 1
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ UnaryLt\n    └─ Name\n       └─ `x.y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ UnaryLt\n    └─ Path\n       ├─ Name\n       │  └─ `x`\n       └─ Name\n          └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "< x.y",
+      "input": 1,
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ UnaryLt\n    └─ Name\n       └─ `x.y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ UnaryLt\n    └─ Path\n       ├─ Name\n       │  └─ `x`\n       └─ Name\n          └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x + 1"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x+1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x + 1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x+1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.y"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x.y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Name\n │  └─ `x`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.y",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x.y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Name\n │  └─ `x`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a.b.c"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `a.b.c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Path\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a.b.c",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `a.b.c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Path\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "abs.x"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `abs.x`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Name\n │  └─ `abs`\n └─ Name\n    └─ `x`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "abs.x",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `abs.x`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Name\n │  └─ `abs`\n └─ Name\n    └─ `x`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 instance of x.y"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ QualifiedName\n    └─ Name\n       └─ `x.y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ QualifiedName\n    ├─ Name\n    │  └─ `x`\n    └─ Name\n       └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 instance of x.y",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ QualifiedName\n    └─ Name\n       └─ `x.y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ QualifiedName\n    ├─ Name\n    │  └─ `x`\n    └─ Name\n       └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "opt-in rate"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `opt-in rate`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: opt-in rate"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "opt-in rate",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `opt-in rate`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: opt-in rate"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x and-y"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x and-y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `x and`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x and-y",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x and-y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `x and`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x - 1"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x-1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x - 1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x-1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x-1"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x-1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x-1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x-1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x * y"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x*y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Mul\n ├─ Name\n │  └─ `x`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x * y",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x*y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Mul\n ├─ Name\n │  └─ `x`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x / 2"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x/2`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Div\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x / 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x/2`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Div\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x ** 2"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x**2`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Exp\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x ** 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x**2`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Exp\n ├─ Name\n │  └─ `x`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x + y",
+      "context": {
+        "y": 2
+      }
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x+y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `x`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x + y",
+      "context": {
+        "y": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x+y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `x`\n └─ Name\n    └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a b + c d",
+      "context": {
+        "c d": 2
+      }
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `a b+c d`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `a b`\n └─ Name\n    └─ `c d`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a b + c d",
+      "context": {
+        "c d": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `a b+c d`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `a b`\n └─ Name\n    └─ `c d`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[x..y]"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " List\n └─ Name\n    └─ `x..y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Range\n ├─ IntervalStart (closed)\n │  └─ Name\n │     └─ `x`\n └─ IntervalEnd (closed)\n    └─ Name\n       └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[x..y]",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " List\n └─ Name\n    └─ `x..y`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Range\n ├─ IntervalStart (closed)\n │  └─ Name\n │     └─ `x`\n └─ IntervalEnd (closed)\n    └─ Name\n       └─ `y`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.y.z"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x.y.z`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `y`\n └─ Name\n    └─ `z`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.y.z",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x.y.z`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `y`\n └─ Name\n    └─ `z`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.y + z",
+      "context": {
+        "z": 1
+      }
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x.y+z`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `y`\n └─ Name\n    └─ `z`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.y + z",
+      "context": {
+        "z": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `x.y+z`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `y`\n └─ Name\n    └─ `z`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "profit/loss"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `profit/loss`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Div\n ├─ Name\n │  └─ `profit`\n └─ Name\n    └─ `loss`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "profit/loss",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `profit/loss`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Div\n ├─ Name\n │  └─ `profit`\n └─ Name\n    └─ `loss`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "e-mail address"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `e-mail address`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `e`\n └─ Name\n    └─ `mail address`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "e-mail address",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `e-mail address`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `e`\n └─ Name\n    └─ `mail address`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for i in x.items return i.amount * 2"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for i in x.items return i.amount * 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Path\n │        ├─ Name\n │        │  └─ `x`\n │        └─ Name\n │           └─ `items`\n └─ EvaluatedExpression\n    └─ Mul\n       ├─ Path\n       │  ├─ Name\n       │  │  └─ `i`\n       │  └─ Name\n       │     └─ `amount`\n       └─ Numeric\n          └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for i in x.items return i.amount * 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for i in x.items return i.amount * 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Path\n │        ├─ Name\n │        │  └─ `x`\n │        └─ Name\n │           └─ `items`\n └─ EvaluatedExpression\n    └─ Mul\n       ├─ Path\n       │  ├─ Name\n       │  │  └─ `i`\n       │  └─ Name\n       │     └─ `amount`\n       └─ Numeric\n          └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "if x.flag then x.a + 1 else x.b - 1"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if x.flag then x.a + 1 else x.b - 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " If\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `flag`\n ├─ Add\n │  ├─ Path\n │  │  ├─ Name\n │  │  │  └─ `x`\n │  │  └─ Name\n │  │     └─ `a`\n │  └─ Numeric\n │     └─ `1`\n └─ Sub\n    ├─ Path\n    │  ├─ Name\n    │  │  └─ `x`\n    │  └─ Name\n    │     └─ `b`\n    └─ Numeric\n       └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "if x.flag then x.a + 1 else x.b - 1",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if x.flag then x.a + 1 else x.b - 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " If\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `flag`\n ├─ Add\n │  ├─ Path\n │  │  ├─ Name\n │  │  │  └─ `x`\n │  │  └─ Name\n │  │     └─ `a`\n │  └─ Numeric\n │     └─ `1`\n └─ Sub\n    ├─ Path\n    │  ├─ Name\n    │  │  └─ `x`\n    │  └─ Name\n    │     └─ `b`\n    └─ Numeric\n       └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "sum(x.values) / count(x.values)"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Div\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `sum`\n │  └─ PositionalParameters\n │     └─ Name\n │        └─ `x.values`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `count`\n    └─ PositionalParameters\n       └─ Name\n          └─ `x.values`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Div\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `sum`\n │  └─ PositionalParameters\n │     └─ Path\n │        ├─ Name\n │        │  └─ `x`\n │        └─ Name\n │           └─ `values`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `count`\n    └─ PositionalParameters\n       └─ Path\n          ├─ Name\n          │  └─ `x`\n          └─ Name\n             └─ `values`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "sum(x.values) / count(x.values)",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Div\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `sum`\n │  └─ PositionalParameters\n │     └─ Name\n │        └─ `x.values`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `count`\n    └─ PositionalParameters\n       └─ Name\n          └─ `x.values`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Div\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `sum`\n │  └─ PositionalParameters\n │     └─ Path\n │        ├─ Name\n │        │  └─ `x`\n │        └─ Name\n │           └─ `values`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `count`\n    └─ PositionalParameters\n       └─ Path\n          ├─ Name\n          │  └─ `x`\n          └─ Name\n             └─ `values`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: {b: 1}}.a.c + 1"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Path\n │  ├─ Context\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `a`\n │  │     └─ Context\n │  │        └─ ContextEntry\n │  │           ├─ ContextEntryKey\n │  │           │  └─ `b`\n │  │           └─ Numeric\n │  │              └─ `1`\n │  └─ Name\n │     └─ `a`\n └─ Name\n    └─ `c+1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Path\n │  │  ├─ Context\n │  │  │  └─ ContextEntry\n │  │  │     ├─ ContextEntryKey\n │  │  │     │  └─ `a`\n │  │  │     └─ Context\n │  │  │        └─ ContextEntry\n │  │  │           ├─ ContextEntryKey\n │  │  │           │  └─ `b`\n │  │  │           └─ Numeric\n │  │  │              └─ `1`\n │  │  └─ Name\n │  │     └─ `a`\n │  └─ Name\n │     └─ `c`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{f: function() x + y, r: for x in 1..2, y in [10, 20] return f()}.r"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ (empty)\n │  │     └─ FunctionBody\n │  │        └─ Name\n │  │           └─ `x+y`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ For\n │        ├─ IterationContexts\n │        │  ├─ IterationContextInterval\n │        │  │  ├─ Name\n │        │  │  │  └─ `x`\n │        │  │  ├─ Numeric\n │        │  │  │  └─ `1`\n │        │  │  └─ Numeric\n │        │  │     └─ `2`\n │        │  └─ IterationContextSingle\n │        │     ├─ Name\n │        │     │  └─ `y`\n │        │     └─ List\n │        │        ├─ Numeric\n │        │        │  └─ `10`\n │        │        └─ Numeric\n │        │           └─ `20`\n │        └─ EvaluatedExpression\n │           └─ FunctionInvocation\n │              ├─ Name\n │              │  └─ `f`\n │              └─ PositionalParameters\n │                 └─ (empty)\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ (empty)\n │  │     └─ FunctionBody\n │  │        └─ Add\n │  │           ├─ Name\n │  │           │  └─ `x`\n │  │           └─ Name\n │  │              └─ `y`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ For\n │        ├─ IterationContexts\n │        │  ├─ IterationContextInterval\n │        │  │  ├─ Name\n │        │  │  │  └─ `x`\n │        │  │  ├─ Numeric\n │        │  │  │  └─ `1`\n │        │  │  └─ Numeric\n │        │  │     └─ `2`\n │        │  └─ IterationContextSingle\n │        │     ├─ Name\n │        │     │  └─ `y`\n │        │     └─ List\n │        │        ├─ Numeric\n │        │        │  └─ `10`\n │        │        └─ Numeric\n │        │           └─ `20`\n │        └─ EvaluatedExpression\n │           └─ FunctionInvocation\n │              ├─ Name\n │              │  └─ `f`\n │              └─ PositionalParameters\n │                 └─ (empty)\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{f: function() x + y, r: for x in 1..2, y in [10, 20] return f()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ (empty)\n │  │     └─ FunctionBody\n │  │        └─ Name\n │  │           └─ `x+y`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ For\n │        ├─ IterationContexts\n │        │  ├─ IterationContextInterval\n │        │  │  ├─ Name\n │        │  │  │  └─ `x`\n │        │  │  ├─ Numeric\n │        │  │  │  └─ `1`\n │        │  │  └─ Numeric\n │        │  │     └─ `2`\n │        │  └─ IterationContextSingle\n │        │     ├─ Name\n │        │     │  └─ `y`\n │        │     └─ List\n │        │        ├─ Numeric\n │        │        │  └─ `10`\n │        │        └─ Numeric\n │        │           └─ `20`\n │        └─ EvaluatedExpression\n │           └─ FunctionInvocation\n │              ├─ Name\n │              │  └─ `f`\n │              └─ PositionalParameters\n │                 └─ (empty)\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ (empty)\n │  │     └─ FunctionBody\n │  │        └─ Add\n │  │           ├─ Name\n │  │           │  └─ `x`\n │  │           └─ Name\n │  │              └─ `y`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ For\n │        ├─ IterationContexts\n │        │  ├─ IterationContextInterval\n │        │  │  ├─ Name\n │        │  │  │  └─ `x`\n │        │  │  ├─ Numeric\n │        │  │  │  └─ `1`\n │        │  │  └─ Numeric\n │        │  │     └─ `2`\n │        │  └─ IterationContextSingle\n │        │     ├─ Name\n │        │     │  └─ `y`\n │        │     └─ List\n │        │        ├─ Numeric\n │        │        │  └─ `10`\n │        │        └─ Numeric\n │        │           └─ `20`\n │        └─ EvaluatedExpression\n │           └─ FunctionInvocation\n │              ├─ Name\n │              │  └─ `f`\n │              └─ PositionalParameters\n │                 └─ (empty)\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: b + 1, b: 1}"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Context\n ├─ ContextEntry\n │  ├─ ContextEntryKey\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b+1`\n └─ ContextEntry\n    ├─ ContextEntryKey\n    │  └─ `b`\n    └─ Numeric\n       └─ `1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Context\n ├─ ContextEntry\n │  ├─ ContextEntryKey\n │  │  └─ `a`\n │  └─ Add\n │     ├─ Name\n │     │  └─ `b`\n │     └─ Numeric\n │        └─ `1`\n └─ ContextEntry\n    ├─ ContextEntryKey\n    │  └─ `b`\n    └─ Numeric\n       └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: b + 1, b: 1}",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Context\n ├─ ContextEntry\n │  ├─ ContextEntryKey\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b+1`\n └─ ContextEntry\n    ├─ ContextEntryKey\n    │  └─ `b`\n    └─ Numeric\n       └─ `1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Context\n ├─ ContextEntry\n │  ├─ ContextEntryKey\n │  │  └─ `a`\n │  └─ Add\n │     ├─ Name\n │     │  └─ `b`\n │     └─ Numeric\n │        └─ `1`\n └─ ContextEntry\n    ├─ ContextEntryKey\n    │  └─ `b`\n    └─ Numeric\n       └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(3)}.r"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Name\n │  │                    │  └─ `c.f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `3`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Path\n │  │                    │  ├─ Name\n │  │                    │  │  └─ `c`\n │  │                    │  └─ Name\n │  │                    │     └─ `f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `3`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(3)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.6: an additional name symbol is part of a name only when the names in scope resolve it so (name tokens are matched against the names in scope, the longest match preferred). No name in scope has this symbol here, so the name ends before it and the symbol is the operator or the dot of a path.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Name\n │  │                    │  └─ `c.f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `3`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Path\n │  │                    │  ├─ Name\n │  │                    │  │  └─ `c`\n │  │                    │  └─ Name\n │  │                    │     └─ `f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `3`\n └─ Name\n    └─ `r`\n"
+    }
+  }
+]

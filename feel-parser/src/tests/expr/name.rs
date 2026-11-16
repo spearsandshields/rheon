@@ -86,7 +86,9 @@ fn _0005() {
 
 #[test]
 fn _0006() {
+  // a name with a symbol is one name when it is in scope, and a division when it is not
   let scope = scope!();
+  scope.set_entry_name("profit/loss".into());
   accept(
     &scope,
     StartExpression,
@@ -94,6 +96,19 @@ fn _0006() {
     r#"
        Name
        └─ `profit/loss`
+    "#,
+    false,
+  );
+  accept(
+    &scope!(),
+    StartExpression,
+    "profit/loss",
+    r#"
+       Div
+       ├─ Name
+       │  └─ `profit`
+       └─ Name
+          └─ `loss`
     "#,
     false,
   );
@@ -238,14 +253,25 @@ fn tree(names: &[&str], input: &str) -> std::string::String {
 }
 
 /// A name that is not in scope ends before a word that is a keyword which can follow an operand
-/// (`return`, `then`, `else`, `satisfies`, `instance`, `in`, `and`, `or`, `between`), so the
-/// expression has the tree it has when the name is in scope.
+/// (`return`, `then`, `else`, `satisfies`, `instance`, `in`, `and`, `or`, `between`) and before
+/// a symbol that is an operator (`.`, `/`, `-`, `+`, `*`), so the expression has the tree it
+/// has when the name is in scope.
 #[test]
 fn unknown_name_ends_before_a_keyword() {
   for (input, names) in [
     ("for s in x return 1", &["x"][..]),
     ("for s in x y return s", &["x y"]),
-    ("for s in x.y return s.z", &["x.y"]),
+    ("for s in x.y return s.z", &["x"]),
+    ("x - 1 and y", &["x", "y"]),
+    ("x + y", &["x", "y"]),
+    ("a b * c d / e f - g h + i j", &["a b", "c d", "e f", "g h", "i j"]),
+    ("x.y.z", &["x"]),
+    ("x.y + z", &["x", "z"]),
+    ("[x..y]", &["x", "y"]),
+    ("x-1", &["x"]),
+    ("x ** y", &["x", "y"]),
+    ("-x - -y", &["x", "y"]),
+    ("x's + y", &["x's", "y"]),
     ("for s in x, t in y return s", &["x", "y"]),
     ("some s in x satisfies s.z", &["x"]),
     ("every s in x satisfies s", &["x"]),
@@ -285,7 +311,8 @@ fn name_in_scope_with_a_keyword_is_read_whole() {
 }
 
 /// An unknown name keeps the words that are no keyword where they stand: a keyword that never
-/// follows an operand, a keyword without white space on both sides, and a longer word.
+/// follows an operand, a keyword without white space after it, and a longer word; and it keeps
+/// an apostrophe.
 #[test]
 fn unknown_name_keeps_other_words() {
   for input in [
@@ -295,8 +322,6 @@ fn unknown_name_keeps_other_words() {
     "x of y",
     "x true",
     "x null",
-    "opt-in rate",
-    "x and-y",
     "x and(y)",
     "x android",
     "x band y",
@@ -309,5 +334,38 @@ fn unknown_name_keeps_other_words() {
     );
   }
   assert_eq!("\n       Name\n       └─ `price list`\n    ", tree(&[], "price list"));
-  assert_eq!("\n       Name\n       └─ `opt-in rate`\n    ", tree(&[], "opt-in rate"));
+  // an apostrophe is no operator, so it stays in the name
+  assert_eq!("\n       Name\n       └─ `Grace's age`\n    ", tree(&[], "Grace's age"));
+  // a symbol that is an operator ends the name: what follows it is read by itself
+  assert_eq!(tree(&["opt", "rate"], "opt-in rate"), tree(&[], "opt-in rate"));
+  // `and` without white space after it is a word of the name
+  assert_eq!(
+    "\n       Sub\n       ├─ Name\n       │  └─ `x and`\n       └─ Name\n          └─ `y`\n    ",
+    tree(&[], "x and-y")
+  );
+}
+
+/// A name that is being declared is the whole text, with the keywords and symbols it has; a
+/// text that is no name is refused.
+#[test]
+fn declared_name_is_the_whole_text() {
+  let scope = rheon_feel::FeelScope::default();
+  for (text, name) in [
+    ("Approved/Declined", "Approved/Declined"),
+    ("Profit and loss", "Profit and loss"),
+    ("Is in range", "Is in range"),
+    ("opt-in rate", "opt-in rate"),
+    ("a + b", "a+b"),
+    ("x.y", "x.y"),
+    ("tax return", "tax return"),
+    ("Grace's age", "Grace's age"),
+    ("  spaced   name ", "spaced name"),
+    ("x", "x"),
+  ] {
+    assert_eq!(name, crate::parse_name(&scope, text, false).unwrap().as_str(), "{text}");
+    assert_eq!(name, crate::parse_longest_name(text).unwrap().as_str(), "{text}");
+  }
+  for text in ["1", "a(b)", "a, b", "[a]", "\"a\"", "", "a = b"] {
+    assert!(crate::parse_name(&scope, text, false).is_err(), "{text}");
+  }
 }

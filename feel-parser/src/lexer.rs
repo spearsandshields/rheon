@@ -37,6 +37,13 @@ const NOT_SEARCHED: (usize, usize) = (usize::MAX, 0);
 /// would only be a syntax error.
 const NAME_ENDING_KEYWORDS: [&str; 9] = ["and", "between", "else", "in", "instance", "or", "return", "satisfies", "then"];
 
+/// The additional name symbols that are operators or punctuation of an expression. A name that
+/// is not in scope ends before one of them: `a + b` is a sum and `x.y` a path also when `a` and
+/// `x` are no names in scope (DMN 1.6 §10.3.1.6: a symbol is part of a name when the names in
+/// scope say so). The apostrophe is no such symbol: a name would end before it only to leave a
+/// text that is no expression.
+const NAME_ENDING_SYMBOLS: [&str; 5] = [".", "/", "-", "+", "*"];
+
 /// The built-in names that have one of the [NAME_ENDING_KEYWORDS], as their words. They are
 /// names of functions and types, which are never in the parsing scope, so a name that starts
 /// with their words holds them whole.
@@ -143,6 +150,9 @@ pub struct Lexer<'lexer, 'scope> {
   type_name: bool,
   /// ???
   till_in: bool,
+  /// The text is a name that is being declared ([crate::parse_name]): a name that is not in
+  /// scope is the whole chain of its parts, keywords and symbols included.
+  whole_names: bool,
   /// ??
   after_dot: bool,
   /// Buffer for the flattened candidate names of [Lexer::longest_name_in_scope].
@@ -165,6 +175,9 @@ pub struct Lexer<'lexer, 'scope> {
   chain_flat_parts: Vec<(usize, usize)>,
   /// Whether `chain_flat` is written for the chain: not yet, written, or the chain is not regular.
   chain_flat_state: FlatChain,
+  /// The index of the last part of the chain that is not regular (see
+  /// [Lexer::has_irregular_parts]), once it was looked for.
+  chain_last_irregular: Option<Option<usize>>,
   /// Start offset of the last token read from input: the hook of the token log of the parser
   /// (`Parser::with_token_log`), which the differential tests compare.
   #[cfg(test)]
@@ -197,6 +210,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       between: false,
       type_name: false,
       till_in: false,
+      whole_names: false,
       after_dot: false,
       name_buf: String::new(),
       name_tmp: String::new(),
@@ -207,6 +221,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       chain_flat: String::new(),
       chain_flat_parts: vec![],
       chain_flat_state: FlatChain::Unknown,
+      chain_last_irregular: None,
       #[cfg(test)]
       token_start: 0,
     }
@@ -232,6 +247,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   pub fn set_till_in(&mut self) {
     self.till_in = true;
+  }
+
+  pub fn set_whole_names(&mut self) {
+    self.whole_names = true;
   }
 
   pub fn set_after_dot(&mut self) {
@@ -813,10 +832,22 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
     //------------------------------------------------------------------------------
     // No name in scope starts here. Build the name from the name parts up to the first
-    // word that is a keyword which can follow an operand: the rest of the chain is
-    // read as the following tokens, as it is after a name in scope.
+    // word that is a keyword which can follow an operand, or the first symbol that is an
+    // operator: the rest of the chain is read as the following tokens, as it is after a
+    // name in scope.
     //------------------------------------------------------------------------------
-    let end = self.unknown_name_end(first);
+    let mut end = if self.whole_names { self.chain_parts.len() } else { self.unknown_name_end(first) };
+    // A name in scope that is written with symbols side by side (`fr**n*s`) is not found by its
+    // flattened text, which keeps a space between them: where the parts are of this kind, the
+    // longest run of them whose name is in scope is the name.
+    if end < self.chain_parts.len()
+      && self.has_irregular_parts(first)
+      && let Some(longer) = (end + 1..=self.chain_parts.len())
+        .rev()
+        .find(|&to| self.scope.contains(self.chain_name(first, to).as_str()))
+    {
+      end = longer;
+    }
     if end < self.chain_parts.len() {
       self.position = self.chain_parts[end - 1].end;
     }
@@ -854,6 +885,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.chain_last_empty = None;
     self.chain_in = NOT_SEARCHED;
     self.chain_flat_state = FlatChain::Unknown;
+    self.chain_last_irregular = None;
     //------------------------------------------------------------------------------
     // The current character on input is already a `name start` character, the first
     // character of the first part.
@@ -953,14 +985,41 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 
   /// Returns the index after the last part of the name that starts at part `first` of the chain
-  /// when no name in scope starts there: the index of the first later part that is one of the
-  /// [NAME_ENDING_KEYWORDS] as a word of its own ([Lexer::is_name_ending_keyword]), or the length
-  /// of the chain. The words of one of the [BUILT_IN_NAMES_WITH_KEYWORDS] at the start of the
-  /// name are skipped.
+  /// when no name in scope starts there: the index of the first later part that ends such a name
+  /// ([Lexer::ends_unknown_name]), or the length of the chain. The words of one of the
+  /// [BUILT_IN_NAMES_WITH_KEYWORDS] at the start of the name are skipped.
   fn unknown_name_end(&self, first: usize) -> usize {
     (first + self.built_in_words(first)..self.chain_parts.len())
-      .find(|&index| self.is_name_ending_keyword(index))
+      .find(|&index| self.ends_unknown_name(index))
       .unwrap_or(self.chain_parts.len())
+  }
+
+  /// Returns `true` when the parts of the chain from `first` on are not all words and single
+  /// symbols between them: a symbol follows a symbol, or a part is empty or has white space at
+  /// an end. The last such part of the chain is found once.
+  fn has_irregular_parts(&mut self, first: usize) -> bool {
+    let last = *self.chain_last_irregular.get_or_insert_with(|| {
+      let mut after_symbol = false;
+      let mut last = None;
+      for (index, part) in self.chain_parts.iter().enumerate() {
+        let text = &self.input[part.trimmed.clone()];
+        let symbol = is_symbol_part(text);
+        if text.is_empty() || part.trimmed != (part.start..part.end) || (symbol && after_symbol) {
+          last = Some(index);
+        }
+        after_symbol = symbol;
+      }
+      last
+    });
+    // a name starts at a word, so a symbol at `first` is no part of it
+    last.is_some_and(|last| last > first)
+  }
+
+  /// Returns `true` when the part `index` of the chain ends a name that is not in scope before
+  /// it: one of the [NAME_ENDING_KEYWORDS] as a word of its own, or one of the
+  /// [NAME_ENDING_SYMBOLS].
+  fn ends_unknown_name(&self, index: usize) -> bool {
+    NAME_ENDING_SYMBOLS.contains(&&self.input[self.chain_parts[index].trimmed.clone()]) || self.is_name_ending_keyword(index)
   }
 
   /// Returns the number of parts from part `first` of the chain that are no keywords whatever
@@ -986,10 +1045,12 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 
   /// Returns `true` when the name that starts at part `first` of the chain is this part alone
-  /// when no name in scope starts there: a name-ending keyword follows it. A name in scope of
-  /// this one part is then the same token, so the scope need not be asked for it.
-  fn is_one_part_before_keyword(&self, first: usize) -> bool {
-    first + 1 < self.chain_parts.len() && self.built_in_words(first) == 1 && self.is_name_ending_keyword(first + 1)
+  /// when no name in scope starts there: a keyword or a symbol that ends such a name follows
+  /// it. A name in scope of this one part is then the same token, so the scope need not be
+  /// asked for it.
+  fn is_one_part_before_keyword(&mut self, first: usize) -> bool {
+    // parts that are not regular may be a longer name in scope that its flattened text misses
+    !self.whole_names && first + 1 < self.chain_parts.len() && self.built_in_words(first) == 1 && self.ends_unknown_name(first + 1) && !self.has_irregular_parts(first)
   }
 
   /// Returns the number of leading name parts (from part `first` of the chain) that form the
