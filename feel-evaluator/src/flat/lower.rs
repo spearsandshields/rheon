@@ -8,17 +8,19 @@
 //! A node that is not lowered yet refuses the whole expression ([NotYet]).
 
 use super::NotYet;
-use super::program::{Op, Opnd, Program, ProgramBuilder, Slot};
+use super::program::{Compare, Op, Opnd, Program, ProgramBuilder, Slot};
 use super::resolve::{Info, Resolved, Target};
-use crate::{Dialect, kernels};
+use crate::Dialect;
+use crate::kernels::{self, Arithmetic};
 use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
 
 /// The program of the resolved expression `resolved` in `dialect`.
-pub(crate) fn lower<'a>(resolved: &Resolved<'a>, _dialect: Dialect) -> Result<Arc<Program>, NotYet<'a>> {
+pub(crate) fn lower<'a>(resolved: &Resolved<'a>, dialect: Dialect) -> Result<Arc<Program>, NotYet<'a>> {
   let mut lower = Lower {
     resolved,
+    dialect,
     builder: ProgramBuilder::default(),
     next: 0,
     max: 0,
@@ -30,6 +32,7 @@ pub(crate) fn lower<'a>(resolved: &Resolved<'a>, _dialect: Dialect) -> Result<Ar
 
 struct Lower<'r, 'a> {
   resolved: &'r Resolved<'a>,
+  dialect: Dialect,
   builder: ProgramBuilder,
   /// The first free temporary.
   next: Slot,
@@ -73,10 +76,76 @@ impl<'a> Lower<'_, 'a> {
         }
         other => self.fail(dst, crate::builders::err_expected_name(other)),
       },
+      AstNode::Add(..) | AstNode::Sub(..) | AstNode::Mul(..) | AstNode::Div(..) | AstNode::Exp(..) => {
+        let op = match ast {
+          AstNode::Add(..) => Arithmetic::Addition,
+          AstNode::Sub(..) => Arithmetic::Subtraction,
+          AstNode::Mul(..) => Arithmetic::Multiplication,
+          AstNode::Div(..) => Arithmetic::Division,
+          _ => Arithmetic::Exponentiation,
+        };
+        let (a, b) = self.operands(node)?;
+        // B-FEEL arithmetic converts mismatched operands (DMN 1.6 chapter 11)
+        self.builder.emit(match self.dialect {
+          Dialect::Feel => Op::Arith { op, dst, a, b },
+          Dialect::BFeel => Op::ArithB { op, dst, a, b },
+        });
+      }
+      AstNode::Neg(_) => {
+        let a = self.value(self.resolved.kids(node)[0], None)?;
+        self.builder.emit(Op::Neg { dst, a });
+      }
+      AstNode::Eq(..) | AstNode::Nq(..) | AstNode::Lt(..) | AstNode::Le(..) | AstNode::Gt(..) | AstNode::Ge(..) => {
+        let op = match ast {
+          AstNode::Eq(..) => Compare::Eq,
+          AstNode::Nq(..) => Compare::Ne,
+          AstNode::Lt(..) => Compare::Lt,
+          AstNode::Le(..) => Compare::Le,
+          AstNode::Gt(..) => Compare::Gt,
+          _ => Compare::Ge,
+        };
+        let (a, b) = self.operands(node)?;
+        self.builder.emit(Op::Compare { op, dst, a, b });
+        self.boolean_default(dst, op == Compare::Ne);
+      }
+      AstNode::Between(..) => {
+        let args = self.temporary();
+        self.temporary();
+        self.temporary();
+        let resolved = self.resolved;
+        for (slot, &kid) in (args..).zip(resolved.kids(node)) {
+          self.into(kid, slot)?;
+        }
+        self.builder.emit(Op::Between { dst, args });
+        self.boolean_default(dst, false);
+      }
       _ => return Err(NotYet { at: ast }),
     }
     self.next = mark;
     Ok(Opnd::take(dst))
+  }
+
+  /// The value of `node` into the slot `dst`.
+  fn into(&mut self, node: u32, dst: Slot) -> Result<(), NotYet<'a>> {
+    let src = self.value(node, Some(dst))?;
+    if src != Opnd::take(dst) {
+      self.builder.emit(Op::Move { dst, src });
+    }
+    Ok(())
+  }
+
+  /// The operands of the two children of `node`, evaluated in order.
+  fn operands(&mut self, node: u32) -> Result<(Opnd, Opnd), NotYet<'a>> {
+    let kids = self.resolved.kids(node);
+    let (lhs, rhs) = (kids[0], kids[1]);
+    Ok((self.value(lhs, None)?, self.value(rhs, None)?))
+  }
+
+  /// B-FEEL: a boolean operator never gives null, but `ne` (DMN 1.6 chapter 11).
+  fn boolean_default(&mut self, dst: Slot, ne: bool) {
+    if self.dialect == Dialect::BFeel {
+      self.builder.emit(Op::BoolDefault { dst, ne });
+    }
   }
 
   /// `dst` is null with the error `text`, recorded at every evaluation.

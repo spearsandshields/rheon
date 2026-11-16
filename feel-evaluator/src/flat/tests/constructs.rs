@@ -48,7 +48,7 @@ fn a_number_without_a_value_is_an_error_at_every_evaluation() {
 
 #[test]
 fn constructs_not_lowered_yet_are_refused() {
-  for text in ["1 + 2", "[1]", "{a: 1}", "abs(1)"] {
+  for text in ["[1]", "{a: 1}", "abs(1)", "1 + [1]"] {
     refused(text);
   }
 }
@@ -93,4 +93,64 @@ fn paths_and_descendants() {
   agree_node(Dialect::Feel, &scope, &node);
   let node = AstNode::Descendant(Box::new(AstNode::Name(Name::from("x"))), Box::new(AstNode::Null));
   agree_node(Dialect::Feel, &scope, &node);
+}
+
+/// Operands of every kind: numbers, strings, booleans, temporal values, null and a name that no
+/// scope holds (an error).
+const OPERANDS: [&str; 12] = [
+  "1",
+  "2.5",
+  "0",
+  "null",
+  "\"a\"",
+  "true",
+  "@\"2024-01-31\"",
+  "@\"P1D\"",
+  "@\"P1Y\"",
+  "@\"10:00:00\"",
+  "@\"2024-01-31T10:00:00\"",
+  "x",
+];
+
+#[test]
+fn arithmetic_and_comparisons_feel_and_bfeel() {
+  for operator in ["+", "-", "*", "/", "**", "=", "!=", "<", "<=", ">", ">="] {
+    for a in OPERANDS {
+      for b in OPERANDS {
+        let text = format!("({a}) {operator} ({b})");
+        agree_in(Dialect::Feel, "", &text);
+        agree_in(Dialect::BFeel, "", &text);
+      }
+    }
+  }
+}
+
+#[test]
+fn negation() {
+  for a in OPERANDS {
+    agree_in(Dialect::Feel, "", &format!("-({a})"));
+    agree_in(Dialect::BFeel, "", &format!("-({a})"));
+  }
+  agree("-(-1)");
+  agree("1e6000 * 1e6000");
+}
+
+#[test]
+fn between_evaluates_all_three_operands() {
+  for a in ["1", "\"b\"", "null", "x", "@\"2024-01-31\""] {
+    for low in ["0", "\"a\"", "null", "y"] {
+      for high in ["2", "\"c\"", "null", "z"] {
+        let text = format!("({a}) between ({low}) and ({high})");
+        agree_in(Dialect::Feel, "", &text);
+        agree_in(Dialect::BFeel, "", &text);
+      }
+    }
+  }
+}
+
+#[test]
+fn operators_nest() {
+  agree_with("{a: 2, b: 3}", "(a + b) * (a - b) / b ** a");
+  agree_with("{a: 2, b: 3}", "a + b = 5");
+  agree("1 + 2 * 3 - 4 / 5 ** 6 < 7");
 }

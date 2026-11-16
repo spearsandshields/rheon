@@ -5,8 +5,9 @@
 //! order it calls them, and every error, warning and limit is recorded in the evaluation's
 //! diagnostics as that evaluator records it.
 
-use super::program::{Op, Operand, Opnd, Program};
-use crate::kernels;
+use super::program::{Compare, Op, Operand, Opnd, Program};
+use crate::bfeel;
+use crate::kernels::{self, Arithmetic};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, diagnostics, value_null};
 use std::sync::Arc;
@@ -34,11 +35,16 @@ impl<'p> Vm<'p> {
     }
   }
 
+  /// The value of the temporary `slot`, which is left null.
+  fn take(&mut self, slot: usize) -> Value {
+    std::mem::replace(&mut self.slots[slot], Value::Null(None))
+  }
+
   /// The value of an operand; a temporary is left null.
   fn read(&mut self, opnd: Opnd) -> Value {
     match opnd.decode() {
       Operand::Slot(slot) => self.slots[slot as usize].clone(),
-      Operand::Take(slot) => std::mem::replace(&mut self.slots[slot as usize], Value::Null(None)),
+      Operand::Take(slot) => self.take(slot as usize),
       Operand::Const(index) => self.program.consts[index as usize].clone(),
     }
   }
@@ -64,6 +70,36 @@ impl<'p> Vm<'p> {
         Op::Descendant { dst, a, name } => {
           let a = self.read(a);
           self.slots[dst as usize] = kernels::descendants(a, &program.names[name as usize]);
+        }
+        Op::Move { dst, src } => self.slots[dst as usize] = self.read(src),
+        Op::Arith { op, dst, a, b } => {
+          let (a, b) = (self.read(a), self.read(b));
+          self.slots[dst as usize] = op.apply(a, b);
+        }
+        Op::ArithB { op, dst, a, b } => {
+          let (a, b) = (self.read(a), self.read(b));
+          self.slots[dst as usize] = bfeel::arithmetic(op, a, b);
+        }
+        Op::Neg { dst, a } => self.slots[dst as usize] = Arithmetic::negation(self.read(a)),
+        Op::Compare { op, dst, a, b } => {
+          let (a, b) = (self.read(a), self.read(b));
+          self.slots[dst as usize] = match op {
+            Compare::Eq => kernels::equal(&a, &b),
+            Compare::Ne => kernels::not_equal(&a, &b),
+            Compare::Lt => kernels::compare_lt(a, b),
+            Compare::Le => kernels::compare_le(a, b),
+            Compare::Gt => kernels::compare_gt(a, b),
+            Compare::Ge => kernels::compare_ge(a, b),
+          };
+        }
+        Op::Between { dst, args } => {
+          let args = args as usize;
+          let (a, low, high) = (self.take(args), self.take(args + 1), self.take(args + 2));
+          self.slots[dst as usize] = kernels::between(a, low, high);
+        }
+        Op::BoolDefault { dst, ne } => {
+          let value = self.take(dst as usize);
+          self.slots[dst as usize] = bfeel::boolean_result(value, ne);
         }
         Op::Return { src } => return self.read(src),
       }

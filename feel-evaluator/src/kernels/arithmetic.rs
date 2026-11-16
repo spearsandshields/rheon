@@ -18,7 +18,7 @@ pub(crate) fn finite(value: Value) -> Value {
 }
 
 /// The arithmetic operators, named and written as their errors name and write them.
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Arithmetic {
   Addition,
   Subtraction,

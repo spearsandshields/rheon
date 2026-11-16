@@ -5,6 +5,7 @@
 //! by [ProgramBuilder] and checked by [Program::verify], and shared by every evaluation of the
 //! expression.
 
+use crate::kernels::Arithmetic;
 use rheon_feel::Name;
 use rheon_feel::values::Value;
 use std::collections::HashMap;
@@ -61,9 +62,22 @@ impl Opnd {
   }
 }
 
+/// The comparisons.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Compare {
+  Eq,
+  Ne,
+  Lt,
+  Le,
+  Gt,
+  Ge,
+}
+
 /// An instruction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Op {
+  /// `dst` is the value of `src`.
+  Move { dst: Slot, src: Opnd },
   /// `dst` is null with the error `messages[msg]`, recorded at every evaluation.
   Fail { dst: Slot, msg: Ix },
   /// Records the warning `messages[msg]`.
@@ -79,6 +93,19 @@ pub(crate) enum Op {
   /// `dst` is the values of the entries `names[name]` in the value of `a` and in every context
   /// in it (`a...name`).
   Descendant { dst: Slot, a: Opnd, name: Ix },
+  /// `dst` is the FEEL arithmetic `op` on the values of `a` and `b`.
+  Arith { op: Arithmetic, dst: Slot, a: Opnd, b: Opnd },
+  /// `dst` is the B-FEEL arithmetic `op` on the values of `a` and `b`.
+  ArithB { op: Arithmetic, dst: Slot, a: Opnd, b: Opnd },
+  /// `dst` is the negation of the value of `a`.
+  Neg { dst: Slot, a: Opnd },
+  /// `dst` is the comparison `op` of the values of `a` and `b`.
+  Compare { op: Compare, dst: Slot, a: Opnd, b: Opnd },
+  /// `dst` is whether the value of the temporary `args` is between those of `args + 1` and
+  /// `args + 2`.
+  Between { dst: Slot, args: Slot },
+  /// B-FEEL: a null in `dst` becomes `ne` (`false` for `=` and the others, `true` for `!=`).
+  BoolDefault { dst: Slot, ne: bool },
   /// Ends the run with the value of `src`.
   Return { src: Opnd },
 }
@@ -131,6 +158,21 @@ impl Program {
           check.opnd(a)?;
           check.index(name, self.names.len(), "name out of range")?;
         }
+        Op::Move { dst, src: a } | Op::Neg { dst, a } => {
+          check.slot(dst)?;
+          check.opnd(a)?;
+        }
+        Op::Arith { dst, a, b, .. } | Op::ArithB { dst, a, b, .. } | Op::Compare { dst, a, b, .. } => {
+          check.slot(dst)?;
+          check.opnd(a)?;
+          check.opnd(b)?;
+        }
+        Op::Between { dst, args } => {
+          check.slot(dst)?;
+          check.slot(args)?;
+          check.slot(args + 2)?;
+        }
+        Op::BoolDefault { dst, .. } => check.slot(dst)?,
         Op::Return { src } => check.opnd(src)?,
       }
     }
