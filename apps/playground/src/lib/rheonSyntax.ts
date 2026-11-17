@@ -45,8 +45,13 @@ export function configureRheonSyntax(dialect: Dialect, names: string[]): void {
 function syntaxOf(expression: string): RheonSyntax | null {
   if (!instance) return null;
   const context = Object.fromEntries(config.names.map((name) => [name, null]));
-  const response = instance.call({ op: 'syntax', expression, dialect: config.dialect, context });
-  return response && response.ok ? (response as RheonSyntax) : null;
+  try {
+    const response = instance.call({ op: 'syntax', expression, dialect: config.dialect, context });
+    return response && response.ok ? (response as RheonSyntax) : null;
+  } catch {
+    // the editor keeps working without colours when the engine fails on a text
+    return null;
+  }
 }
 
 /** Asks the editor to read the syntax again (the engine is loaded, or the scope changed). */

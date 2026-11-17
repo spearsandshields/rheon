@@ -940,6 +940,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         return Ok(AstNode::NegatedList(items));
       }
       T::Minus => {
+        let start = self.token_start;
         self.bump();
         if self.look(At::AfterOperand)? == T::Eof {
           return Ok(AstNode::Irrelevant);
@@ -947,7 +948,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         self.enter()?;
         let mut node = AstNode::Neg(Box::new(self.expression(NEGATION)?));
         self.made = Made::Negation;
-        self.infix(&mut node, 0, LOWEST, false)?;
+        self.note("Negation", start);
+        self.infix(&mut node, start, LOWEST, false)?;
         self.nesting -= 1;
         items.push(node);
       }
@@ -1265,7 +1267,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         _ => self.unexpected("expected", "`,`, `)` or `..` is expected here")?,
       }
       self.between = between;
+      // the operators after the operand in parentheses: an open expression, as the operand
+      // without parentheses is
+      self.enter()?;
       self.infix(&mut first, start, IN, false)?;
+      self.nesting -= 1;
       first
     } else {
       self.expression(IN)?
@@ -1580,7 +1586,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   #[inline(never)]
   fn named_parameters(&mut self, mut name: Name) -> Result<AstNode> {
     if let Some(syntax) = &mut self.syntax
-      && let Some(token) = syntax.tokens.iter_mut().rev().nth(1)
+      && let Some(token) = syntax.tokens.iter_mut().rev().find(|token| token.class == TokenClass::Name)
     {
       // the name before the `:` the parser looks at
       token.class = TokenClass::Parameter;
