@@ -1,7 +1,7 @@
 /**
  * Prototype: highlighting, error marks and the positions tree from the engine's own parser
  * (`op: "syntax"`), switched on with `?parser=rheon`. The operation exists only in a module
- * built with the feature `hand-parser`; with any other module the editor shows plain text.
+ * built with the feature `editor-prototype` of rheon-feel-wasm; with any other module the editor shows plain text.
  *
  * The engine runs in this thread here: one call per edit, a few microseconds for a formula.
  */

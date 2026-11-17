@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::lalr::TokenType::StartTextualExpressions;
+use crate::token::TokenType::StartTextualExpressions;
 
 #[test]
 fn _0001() {

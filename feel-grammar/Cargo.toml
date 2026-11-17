@@ -2,7 +2,8 @@
 name = "rheon-feel-grammar"
 version = { workspace = true }
 authors = { workspace = true }
-description = "rheon | FEEL grammar (Bison) and the generator of the parser tables (fork of dsntk-feel-grammar)"
+description = "rheon | FEEL grammar (Bison): the reference grammar of the hand-written parser, not published (fork of dsntk-feel-grammar)"
+publish = false
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
 keywords = ["dmn", "decision", "rheon", "feel"]
 documentation = "https://docs.rs/rheon-feel-grammar"

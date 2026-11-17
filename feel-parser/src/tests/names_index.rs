@@ -6,10 +6,10 @@
 use super::{differential, full_size};
 use crate::context::ParsingContext;
 use crate::index::{Node, list_item_node};
-use crate::lalr::TokenType;
 use crate::lexer::{Lexer, TokenValue};
 use crate::parser::Parser;
 use crate::scope::{ParsingScope, first_word};
+use crate::token::TokenType;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, FeelScope, FeelType, Name};

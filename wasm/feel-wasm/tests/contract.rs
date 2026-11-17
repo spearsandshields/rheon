@@ -661,13 +661,17 @@ fn nesting_and_recursion_limits() {
 
 fn nesting_and_recursion_limits_body() {
   let too_deep = |levels: usize| format!("expression is nested too deeply ({levels} levels, the limit is 300)");
+  // a text with more than 640 expressions open at once is stopped by the parser
+  let too_nested = "expression is nested too deeply (more than 640 levels of nesting)".to_string();
   let trailing_operator = format!("1{}+", "+1".repeat(20000));
   for (e, message) in [
     (format!("1{}", "+1".repeat(20000)), too_deep(20001)),
     // a syntax error is reported before the depth is measured; it quotes a preview of the input
     (trailing_operator.clone(), format!("syntax error: {}… (40002 characters)", &trailing_operator[..120])),
-    (format!("{}1{}", "[".repeat(5000), "]".repeat(5000)), too_deep(5001)),
-    (format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000)), too_deep(6001)),
+    (format!("{}1{}", "[".repeat(5000), "]".repeat(5000)), too_nested.clone()),
+    (format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000)), too_nested.clone()),
+    (format!("{}1{}", "(".repeat(5000), ")".repeat(5000)), too_nested.clone()),
+    (format!("{}1{}", "[".repeat(400), "]".repeat(400)), too_deep(401)),
     (format!("1{}", "+1".repeat(300)), too_deep(301)),
   ] {
     assert_error(&req(json!({"op": "evaluate", "expression": e})), "syntax", &message);
@@ -675,7 +679,7 @@ fn nesting_and_recursion_limits_body() {
   }
   assert_eq!(display(&format!("1{}", "+1".repeat(250))), "251");
   let response = req(json!({"op": "evaluate", "expression": "1", "contextFormat": "feel", "context": format!("{}1{}", "{a:".repeat(3000), "}".repeat(3000))}));
-  assert_error(&response, "context", &format!("invalid FEEL context: {}", too_deep(6001)));
+  assert_error(&response, "context", &format!("invalid FEEL context: <ParserError> {too_nested}"));
   // recursion
   let call_depth = "function calls are nested too deeply (more than 200 levels, e.g. runaway recursion); evaluation stopped";
   let rec = |n: u32| format!("{{f: function(n) if n = 0 then 0 else 1 + f(n - 1), r: f({n})}}.r");

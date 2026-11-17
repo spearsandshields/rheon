@@ -23,8 +23,8 @@ name = "feel_wasm"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-# The hand-written parser (prototype) and the `syntax` operation for editors.
-hand-parser = ["rheon-feel-parser/hand-parser"]
+# The `syntax` operation for editors (a prototype: not part of the contract).
+editor-prototype = []
 
 [dependencies]
 # The engine crates of this repository (pure Rust; no C toolchain is involved), as path

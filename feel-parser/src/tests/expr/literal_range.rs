@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::lalr::TokenType::StartRangeLiteral;
+use crate::token::TokenType::StartRangeLiteral;
 
 #[test]
 fn _0001() {

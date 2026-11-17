@@ -47,7 +47,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const SKIPS = '--skip external_functions --skip dmn_3_0076 --skip compare_the_number_of_models --skip utils::tests::getting_';
 /** The Rust copies of the TCK tests (rheon-model-evaluator). */
 const TCK_COPIES = 'tests::compatibility::';
-const PUBLISHED = ['rheon-feel-number', 'rheon-feel-temporal', 'rheon-feel', 'rheon-feel-regex', 'rheon-feel-grammar', 'rheon-feel-parser', 'rheon-feel-evaluator', 'rheon-model', 'rheon-model-evaluator', 'rheon-feel-wasm'];
+const PUBLISHED = ['rheon-feel-number', 'rheon-feel-temporal', 'rheon-feel', 'rheon-feel-regex', 'rheon-feel-parser', 'rheon-feel-evaluator', 'rheon-model', 'rheon-model-evaluator', 'rheon-feel-wasm'];
 const FULL_SIZE = '-p rheon-feel-number -p rheon-feel -p rheon-feel-parser -p rheon-feel-wasm';
 const BASELINE = '.tools/baseline/feel.wasm';
 const WASM = { wasm: true };

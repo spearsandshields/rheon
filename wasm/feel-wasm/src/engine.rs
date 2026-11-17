@@ -180,7 +180,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Evaluate,
     EvaluateAll,
     Parse,
-    #[cfg(feature = "hand-parser")]
+    #[cfg(feature = "editor-prototype")]
     Syntax,
   }
   let op = match req.get("op") {
@@ -189,7 +189,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "evaluate" => Op::Evaluate,
       "evaluateAll" => Op::EvaluateAll,
       "parse" => Op::Parse,
-      #[cfg(feature = "hand-parser")]
+      #[cfg(feature = "editor-prototype")]
       "syntax" => Op::Syntax,
       other => {
         return fail(
@@ -207,7 +207,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
     Op::EvaluateAll => evaluate_all(req, unread, started).map(Response::Text),
     Op::Parse => parse(req, unread, started).map(Response::Tree),
-    #[cfg(feature = "hand-parser")]
+    #[cfg(feature = "editor-prototype")]
     Op::Syntax => syntax(req, unread, started).map(Response::Tree),
   }
 }
@@ -670,9 +670,9 @@ fn evaluated(
 }
 
 /// The tokens, the nodes and the syntax errors of an expression, for an editor (`op: "syntax"`,
-/// a prototype behind the feature `hand-parser`). It answers for every text. The places are
+/// a prototype behind the feature `editor-prototype`). It answers for every text. The places are
 /// offsets in UTF-16 code units: `[class, from, to]` for a token, `[kind, from, to]` for a node.
-#[cfg(feature = "hand-parser")]
+#[cfg(feature = "editor-prototype")]
 fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
   let dialect = dialect(&req)?;
   let expression = expression(&mut req)?;

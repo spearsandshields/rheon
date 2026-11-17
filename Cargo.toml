@@ -66,7 +66,6 @@ dsntk-evaluator = { path = "evaluator" }
 dsntk-examples = { path = "examples" }
 rheon-feel = { path = "feel", version = "=0.7.0" }
 rheon-feel-evaluator = { path = "feel-evaluator", version = "=0.7.0" }
-rheon-feel-grammar = { path = "feel-grammar", version = "=0.7.0" }
 rheon-feel-number = { path = "feel-number", version = "=0.7.0" }
 rheon-feel-parser = { path = "feel-parser", version = "=0.7.0" }
 rheon-feel-regex = { path = "feel-regex", version = "=0.7.0" }
@@ -85,6 +84,12 @@ upstream = "https://github.com/dsntk/dsntk-rs.git"
 
 # rheon: profile for the wasm modules (`scripts/build-wasm.sh` builds with `--profile wasm`).
 # Kept separate from `release` so the native dsntk binaries keep their default settings.
+# The parser takes native stack for each level of nesting (at most 640, feel-parser/src/parser.rs).
+# Unoptimized, a level takes up to 5 KB, more than the 2 MiB of a test thread holds at the limit;
+# with this level it takes about 1 KB, as in a release build.
+[profile.dev.package.rheon-feel-parser]
+opt-level = 1
+
 [profile.wasm]
 inherits = "release"
 # opt-level 3: faster than "z" for a larger download; its larger stack frames need the 10 MiB

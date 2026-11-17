@@ -67,9 +67,9 @@ macro_rules! b_bool {
   };
 }
 
-use crate::lalr::TokenType;
-use crate::lalr::TokenType::*;
 use crate::parser::Parser;
+use crate::token::TokenType;
+use crate::token::TokenType::*;
 use crate::{AstNode, ParsingScope};
 pub(crate) use __name;
 pub(crate) use _name;

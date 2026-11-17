@@ -23,9 +23,9 @@
 
 use super::full_size;
 use super::names_index::{KEYS, OGHAM, Rng, context, key_text, number};
-use crate::lalr::TokenType;
 use crate::parser::Parser;
 use crate::scope::ParsingScope;
+use crate::token::TokenType;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
@@ -82,54 +82,10 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
     .unwrap_or_default()
 }
 
-/// Runs the production front end; a panic is an outcome. With `RHEON_HAND=use` the hand-written
-/// parser runs in its place; with `RHEON_HAND=compare` both run, and every case in which they
-/// differ is appended to the file named by `RHEON_HAND_OUT`.
+/// Runs the front end; a panic is an outcome.
 pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
-  match std::env::var("RHEON_HAND").as_deref() {
-    Ok("use") => run_hand(frames, start, input),
-    Ok("compare") => {
-      let production = run_tables(frames, start, input);
-      let hand = run_hand(frames, start, input);
-      if hand != production {
-        use std::io::Write;
-        let path = std::env::var("RHEON_HAND_OUT").expect("RHEON_HAND_OUT");
-        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
-        let keys: Vec<Vec<String>> = frames.iter().map(|frame| frame.get_entries().iter().map(|(name, _)| name.to_string()).collect()).collect();
-        writeln!(
-          file,
-          "CASE start={} input={input:?} keys={keys:?}\n  tables: {:?}\n  hand:   {:?}",
-          start.clone() as i16,
-          production,
-          hand
-        )
-        .unwrap();
-      }
-      production
-    }
-    _ => run_tables(frames, start, input),
-  }
-}
-
-/// Runs the table-driven parser; a panic is an outcome.
-fn run_tables(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
   let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
-  let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
-  Run {
-    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
-    outcome: match outcome {
-      Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
-      Ok(Err(e)) => Outcome::Error(e.to_string()),
-      Err(payload) => Outcome::Panic(panic_message(payload)),
-    },
-  }
-}
-
-/// Runs the hand-written parser; a panic is an outcome.
-fn run_hand(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
-  let scope = ParsingScope::new(frames);
-  let mut parser = crate::hand::Parser::new(&scope, start.clone(), input).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   Run {
     tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
@@ -914,70 +870,12 @@ fn corpus_equals_reference() {
   println!("corpus: {} lines, {stats:?}", corpus.len());
 }
 
-/// Every reduction of a rule without symbols whose action changes the state of the lexer or of the
-/// scope happens before the lexer reads the next token: in a state with a default reduction that
-/// needs no lookahead.
-#[test]
-fn feedback_actions_are_reduced_before_the_next_token() {
-  use crate::lalr::*;
-  const FEEDBACK: [&str; 14] = [
-    "after_dot",
-    "between_begin",
-    "type_name",
-    "for_begin",
-    "some_begin",
-    "every_begin",
-    "context_begin",
-    "context_end",
-    "iteration_context_variable_name_begin",
-    "iteration_context_variable_name",
-    "quantified_expression_variable_name_begin",
-    "quantified_expression_variable_name",
-    "formal_parameters_begin",
-    "unary_tests_begin",
-  ];
-  // rule number -> action name, from the dispatch in lalr.rs
-  let source = include_str!("../lalr.rs");
-  let mut actions = BTreeMap::new();
-  for line in source.lines() {
-    if let Some((rule, action)) = line.trim().split_once(" => reduce_actions.action_")
-      && let Ok(rule) = rule.parse::<usize>()
-    {
-      actions.insert(rule, action.trim_end_matches("(),").to_string());
-    }
-  }
-  let feedback = |rule: usize| YY_R2[rule] == 0 && actions.get(&rule).is_some_and(|a| FEEDBACK.contains(&a.as_str()));
-  let mut late = vec![];
-  for state in 0..YY_PACT.len() {
-    let mut reduced = vec![YY_DEF_ACT[state] as usize];
-    let base = YY_PACT[state];
-    if base != YY_PACT_N_INF {
-      for token in 0..YY_N_TOKENS as i16 {
-        let i = base + token;
-        if (0..=YY_LAST).contains(&i) && YY_CHECK[i as usize] == token && YY_TABLE[i as usize] < 0 && YY_TABLE[i as usize] != YY_TABLE_N_INF {
-          reduced.push((-YY_TABLE[i as usize]) as usize);
-        }
-      }
-    }
-    for rule in reduced.into_iter().filter(|&rule| rule != 0 && feedback(rule)) {
-      if base != YY_PACT_N_INF {
-        late.push((rule, actions[&rule].clone()));
-      }
-    }
-  }
-  late.sort();
-  late.dedup();
-  assert_eq!(Vec::<(usize, String)>::new(), late);
-}
-
-/// The parser's use of the native stack does not depend on the input: deep and long inputs parse,
-/// and their ASTs are dropped, in a thread with a small stack. The hand-written parser takes
-/// stack for every level of nesting, up to its limit: a text nested deeper is a syntax error,
-/// and a long text that is not nested parses.
+/// The parser takes native stack for every level of nesting, up to its limit: a text nested
+/// deeper is an error, a long text that is not nested parses, and neither overflows the stack
+/// of a thread of the default size of the test threads (2 MiB), in a debug build too.
 #[test]
 fn deep_inputs_parse_in_a_small_stack() {
   let n = 5_000;
-  let hand = cfg!(feature = "hand-parser");
   // the inputs, and whether they are nested `n` levels deep
   let inputs = vec![
     (format!("{}1{}", "(1+".repeat(n), ")".repeat(n)), true),
@@ -994,17 +892,17 @@ fn deep_inputs_parse_in_a_small_stack() {
     (format!("a{}", " + a".repeat(4 * n)), false),
     (format!("{{{}}}", (0..n).map(|i| format!("k{i}: {i}")).collect::<Vec<_>>().join(", ")), false),
     (format!("[{}]", (0..n).map(|i| i.to_string()).collect::<Vec<_>>().join(", ")), false),
-    (format!("{}x", "for x in [1] return ".repeat(n / 10)), n / 10 > crate::hand::MAX_NESTING),
+    (format!("{}x", "for x in [1] return ".repeat(crate::parser::MAX_NESTING - 2)), false),
+    (format!("{}x", "for x in [1] return ".repeat(crate::parser::MAX_NESTING)), true),
   ];
-  // the stack of a debug build: about 10x the frames of an optimized one
-  let stack_size = if hand { crate::hand::MAX_NESTING * 6 * 1024 } else { 256 * 1024 };
   let handle = std::thread::Builder::new()
-    .stack_size(stack_size)
+    .stack_size(2 * 1024 * 1024)
     .spawn(move || {
       for (input, nested) in inputs {
         let parsed = crate::parse_expression(&Default::default(), &input, false);
-        if hand && nested {
-          assert!(parsed.is_err(), "{}", &input[..80]);
+        if nested {
+          let message = parsed.unwrap_err().to_string();
+          assert!(message.contains("nested too deeply"), "{message}");
         } else {
           let node = parsed.unwrap_or_else(|e| panic!("{e}: {}", &input[..80]));
           drop(node);
@@ -1783,88 +1681,12 @@ fn chosen_expressions_have_their_recorded_outcome() {
   );
 }
 
-/// Prints the time of one parse with the table-driven and with the hand-written parser, for some
-/// texts (a measurement, run on request in a release build:
-/// `cargo test --release -p rheon-feel-parser parse_speed -- --ignored --nocapture`).
-#[test]
-#[ignore]
-fn parse_speed() {
-  let names: Vec<String> = (0..60).map(|i| format!("monthly amount of item {i}")).collect();
-  let name_refs: Vec<(&str, Value)> = names.iter().map(|name| (name.as_str(), number(1))).collect();
-  let many_names = ctx(&name_refs);
-  let few_names = ctx(&[
-    ("Monthly Salary", number(1)),
-    ("Tax Rate", number(1)),
-    ("Net Bonus", number(1)),
-    ("items", number(1)),
-    ("order", number(1)),
-  ]);
-  let cases: Vec<(&str, Vec<FeelContext>, String)> = vec![
-    ("1 + 2", vec![], "1 + 2".to_string()),
-    (
-      "formula, multi-word names",
-      vec![few_names.clone()],
-      "(Monthly Salary * 12 + Net Bonus) * (1 - Tax Rate) / 12".to_string(),
-    ),
-    ("60 terms, multi-word names", vec![many_names], names.join(" + ")),
-    (
-      "if, for, filter",
-      vec![few_names.clone()],
-      "if count(items[item > 10]) > 3 then sum(for i in items return i * 2) else order.total".to_string(),
-    ),
-    (
-      "functions in a context",
-      vec![],
-      "{f: function(a, b) a + b, g: function(x) if x > 0 then f(x, 1) else 0, r: g(5) + f(1, 2)}.r".to_string(),
-    ),
-    (
-      "list of 1,000 numbers",
-      vec![],
-      format!("[{}]", (0..1000).map(|i| i.to_string()).collect::<Vec<_>>().join(", ")),
-    ),
-    (
-      "context of 200 entries",
-      vec![],
-      format!("{{{}}}", (0..200).map(|i| format!("key {i}: {i}")).collect::<Vec<_>>().join(", ")),
-    ),
-    ("lists nested 100 levels", vec![], format!("{}1{}", "[".repeat(100), "]".repeat(100))),
-    ("sum of 1,000 terms", vec![], format!("1{}", " + 1".repeat(999))),
-    ("unary tests", vec![], "< 10, [20..30], > 100, \"a\", not(5)".to_string()),
-  ];
-  for (name, frames, input) in &cases {
-    let start = if *name == "unary tests" {
-      TokenType::StartUnaryTests
-    } else {
-      TokenType::StartExpression
-    };
-    let rounds = 7;
-    let iterations = (200_000 / input.len().max(1)).clamp(20, 20_000);
-    let mut best = [f64::MAX; 2];
-    for _ in 0..rounds {
-      for (which, slot) in best.iter_mut().enumerate() {
-        let t0 = std::time::Instant::now();
-        for _ in 0..iterations {
-          let scope = ParsingScope::new(frames.iter());
-          let node = if which == 0 {
-            Parser::new(&scope, start.clone(), input, false).parse()
-          } else {
-            crate::hand::Parser::new(&scope, start.clone(), input).parse()
-          };
-          std::hint::black_box(node.is_ok());
-        }
-        *slot = slot.min(t0.elapsed().as_nanos() as f64 / iterations as f64);
-      }
-    }
-    println!("SPEED {name:<28} tables {:>10.0} ns   hand {:>10.0} ns   {:.2}x", best[0], best[1], best[0] / best[1]);
-  }
-}
-
-/// What the tolerant parse of the hand-written parser must hold for every text: it does not
+/// What the tolerant parse must hold for every text: it does not
 /// panic, its tokens are the whole input in order, its nodes and errors lie inside the input,
 /// and it records no error exactly when the strict parse accepts the text.
 fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> bool {
   let scope = ParsingScope::new(frames);
-  let syntax = catch_unwind(AssertUnwindSafe(|| crate::hand::Parser::new(&scope, start.clone(), input).parse_tolerant()))
+  let syntax = catch_unwind(AssertUnwindSafe(|| Parser::new(&scope, start.clone(), input, false).parse_tolerant()))
     .unwrap_or_else(|payload| panic!("the tolerant parse of {input:?} panicked: {}", panic_message(payload)));
   let mut position = 0;
   for token in &syntax.tokens {
@@ -1880,7 +1702,7 @@ fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> boo
     assert!(diagnostic.start <= diagnostic.end && diagnostic.end <= input.len(), "an error of {input:?}: {diagnostic:?}");
   }
   let scope = ParsingScope::new(frames);
-  let strict = crate::hand::Parser::new(&scope, start.clone(), input).parse();
+  let strict = Parser::new(&scope, start.clone(), input, false).parse();
   assert_eq!(
     strict.is_ok(),
     syntax.diagnostics.is_empty(),
@@ -1966,7 +1788,7 @@ fn tolerant_samples() {
     "f(a: 1, 2)",
   ] {
     let scope = ParsingScope::new(&frames);
-    let syntax = crate::hand::Parser::new(&scope, TokenType::StartExpression, input).parse_tolerant();
+    let syntax = Parser::new(&scope, TokenType::StartExpression, input, false).parse_tolerant();
     println!("SAMPLE {input:?}");
     println!(
       "  tokens: {}",

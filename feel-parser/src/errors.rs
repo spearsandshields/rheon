@@ -45,7 +45,6 @@ pub fn err_syntax_error(input: &str) -> DsntkError {
 }
 
 /// Creates the error of an input that is nested deeper than the parser goes.
-#[cfg(any(test, feature = "hand-parser"))]
 pub fn err_nested_too_deeply(limit: usize) -> DsntkError {
   ParserError(format!("expression is nested too deeply (more than {limit} levels of nesting)")).into()
 }

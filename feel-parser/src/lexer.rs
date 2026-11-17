@@ -1,8 +1,8 @@
 //! Implementation of the lexer for `FEEL` grammar.
 
 use crate::errors::*;
-use crate::lalr::TokenType;
 use crate::scope::{ParsingScope, first_word};
+use crate::token::TokenType;
 use dsntk_common::Result;
 use rheon_feel::Name;
 use rheon_feel::bif::{is_built_in_date_time_function_name, is_built_in_function_name};
@@ -63,7 +63,6 @@ pub enum TokenValue {
   YyEof,
   YyError,
   YyUndef,
-  YyState,
   And,
   At,
   Between,
@@ -181,7 +180,6 @@ pub struct Lexer<'lexer, 'scope> {
   /// Start offset of the last token read from input: the hook of the token log of the parser
   /// (`Parser::with_token_log`), which the differential tests compare, and the place of a
   /// token for the hand-written parser.
-  #[cfg(any(test, feature = "hand-parser"))]
   token_start: usize,
 }
 
@@ -222,25 +220,21 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       chain_flat_parts: vec![],
       chain_flat_state: FlatChain::Unknown,
       chain_last_irregular: None,
-      #[cfg(any(test, feature = "hand-parser"))]
       token_start: 0,
     }
   }
 
   /// Returns the start offset of the last token read from input (a byte offset).
-  #[cfg(any(test, feature = "hand-parser"))]
   pub fn token_start(&self) -> usize {
     self.token_start
   }
 
   /// Returns the position after the last token read from input (a byte offset).
-  #[cfg(any(test, feature = "hand-parser"))]
   pub fn position(&self) -> usize {
     self.position
   }
 
   /// Moves the position: the next token is read from there.
-  #[cfg(any(test, feature = "hand-parser"))]
   pub fn set_position(&mut self, position: usize) {
     self.position = position;
   }
@@ -315,7 +309,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// Reads the next token starting from current position.
   fn read_next_token(&mut self) -> Result<(TokenType, TokenValue)> {
     let chars = self.read_input();
-    #[cfg(any(test, feature = "hand-parser"))]
     {
       self.token_start = self.position;
     }

@@ -1947,7 +1947,6 @@ dependencies = [
  "dsntk-common",
  "dsntk-macros",
  "rheon-feel",
- "rheon-feel-grammar",
 ]
 
 [[package]]

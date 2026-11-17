@@ -1,134 +1,516 @@
-//! Implementation of the `LALR` parser for `FEEL` grammar.
+//! The parser of the `FEEL` grammar, written by hand.
+//!
+//! Recursive descent for the constructs, and one loop with the precedence levels of the
+//! grammar for the operators ([Parser::infix]). It reads the tokens of today's [Lexer] and
+//! tells it what it expects at each place (a type, a name after a dot, the variable of an
+//! iteration). It replaced a parser driven by tables that Bison generated from
+//! `feel-grammar/src/feel.y`, and gives the same [AstNode] for every text.
+//!
+//! A token is read from the lexer when the parser first looks at it, never earlier: the lexer
+//! reads a name with the scope and the expectations of that moment.
 
 use crate::AstNode;
 use crate::errors::*;
-use crate::lalr::*;
-use crate::lexer::*;
+use crate::lexer::{Lexer, TokenValue};
 use crate::scope::ParsingScope;
+use crate::token::TokenType;
 use dsntk_common::Result;
 use rheon_feel::{FeelType, IntervalType, Name};
 
-/// Initial capacity of the state and value stacks, enough for small expressions.
-const STACK_CAPACITY: usize = 16;
+/// The most expressions that are open at once while parsing: an operand inside an operand
+/// counts one. A text that is nested deeper is an error.
+pub const MAX_NESTING: usize = 640;
 
-/// Initial capacity of the AST node stack.
-const NODE_STACK_CAPACITY: usize = 8;
+/// The precedence levels of the operators, lowest first (the `%left`, `%right`, `%nonassoc`
+/// and `%precedence` lines of the grammar).
+const LOWEST: u8 = 0;
+const OR: u8 = 1;
+const AND: u8 = 2;
+const COMPARISON: u8 = 3;
+const BETWEEN: u8 = 4;
+const BETWEEN_AND: u8 = 5;
+const IN: u8 = 6;
+const ADDITION: u8 = 7;
+const MULTIPLICATION: u8 = 8;
+const EXPONENTIATION: u8 = 9;
+const NEGATION: u8 = 10;
 
-enum Action {
-  Accept,
-  NewState,
-  Default,
-  Shift,
-  Reduce,
+/// The kind of the token the parser looks at.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum T {
+  And,
+  At,
+  Between,
+  BetweenAnd,
+  Boolean,
+  BuiltInTypeName,
+  Colon,
+  Comma,
+  Context,
+  Descendant,
+  Div,
+  Dot,
+  Ellipsis,
+  Else,
+  Eof,
+  Eq,
+  Every,
+  Exp,
+  External,
+  For,
+  Function,
+  Ge,
+  Gt,
+  If,
+  In,
+  Instance,
+  Le,
+  LeftBrace,
+  LeftBracket,
+  LeftParen,
+  List,
+  Lt,
+  Minus,
+  Mul,
+  Name,
+  NameDateTime,
+  Ne,
+  Not,
+  Null,
+  Numeric,
+  Of,
+  Or,
+  Other,
+  Plus,
+  Range,
+  Return,
+  RightArrow,
+  RightBrace,
+  RightBracket,
+  RightParen,
+  Satisfies,
+  Some,
+  String,
+  Then,
+}
+
+/// Returns the kind of a token.
+fn kind_of(value: &TokenValue) -> T {
+  match value {
+    TokenValue::And => T::And,
+    TokenValue::At => T::At,
+    TokenValue::Between => T::Between,
+    TokenValue::BetweenAnd => T::BetweenAnd,
+    TokenValue::Boolean(_) => T::Boolean,
+    TokenValue::BuiltInTypeName(_) => T::BuiltInTypeName,
+    TokenValue::Colon => T::Colon,
+    TokenValue::Comma => T::Comma,
+    TokenValue::Context => T::Context,
+    TokenValue::Descendant => T::Descendant,
+    TokenValue::Div => T::Div,
+    TokenValue::Dot => T::Dot,
+    TokenValue::Ellipsis => T::Ellipsis,
+    TokenValue::Else => T::Else,
+    TokenValue::YyEof => T::Eof,
+    TokenValue::Eq => T::Eq,
+    TokenValue::Every => T::Every,
+    TokenValue::Exp => T::Exp,
+    TokenValue::External => T::External,
+    TokenValue::For => T::For,
+    TokenValue::Function => T::Function,
+    TokenValue::Ge => T::Ge,
+    TokenValue::Gt => T::Gt,
+    TokenValue::If => T::If,
+    TokenValue::In => T::In,
+    TokenValue::Instance => T::Instance,
+    TokenValue::Le => T::Le,
+    TokenValue::LeftBrace => T::LeftBrace,
+    TokenValue::LeftBracket => T::LeftBracket,
+    TokenValue::LeftParen => T::LeftParen,
+    TokenValue::List => T::List,
+    TokenValue::Lt => T::Lt,
+    TokenValue::Minus => T::Minus,
+    TokenValue::Mul => T::Mul,
+    TokenValue::Name(_) => T::Name,
+    TokenValue::NameDateTime(_) => T::NameDateTime,
+    TokenValue::Nq => T::Ne,
+    TokenValue::Not => T::Not,
+    TokenValue::Null => T::Null,
+    TokenValue::Numeric(..) => T::Numeric,
+    TokenValue::Of => T::Of,
+    TokenValue::Or => T::Or,
+    TokenValue::Plus => T::Plus,
+    TokenValue::Range => T::Range,
+    TokenValue::Return => T::Return,
+    TokenValue::RightArrow => T::RightArrow,
+    TokenValue::RightBrace => T::RightBrace,
+    TokenValue::RightBracket => T::RightBracket,
+    TokenValue::RightParen => T::RightParen,
+    TokenValue::Satisfies => T::Satisfies,
+    TokenValue::Some => T::Some,
+    TokenValue::String(_) => T::String,
+    TokenValue::Then => T::Then,
+    _ => T::Other,
+  }
+}
+
+/// The most errors a tolerant parse records.
+pub const MAX_DIAGNOSTICS: usize = 100;
+
+/// What a tolerant parse records ([Parser::parse_tolerant]). The places are byte offsets in the
+/// input.
+#[derive(Debug, Default)]
+pub struct Syntax {
+  /// Every token of the input in its order, white space and comments included: together they
+  /// are the whole input.
+  pub tokens: Vec<SyntaxToken>,
+  /// The nodes, each before the nodes inside it.
+  pub nodes: Vec<SyntaxNode>,
+  /// The errors, in the order of their places.
+  pub diagnostics: Vec<Diagnostic>,
+}
+
+/// A token of a tolerant parse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SyntaxToken {
+  pub class: TokenClass,
+  pub start: usize,
+  pub end: usize,
+}
+
+/// What a token is in its expression.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenClass {
+  Whitespace,
+  Comment,
+  Keyword,
+  Name,
+  Number,
+  String,
+  Constant,
+  Operator,
+  Punctuation,
+  /// The name of the function of a date and time literal.
+  Function,
+  /// The name of a type.
+  Type,
+  /// The key of a context entry.
+  Key,
+  /// The name of a parameter.
+  Parameter,
+  /// The variable of an iteration.
+  Variable,
+  /// The name after a dot.
+  Property,
+  /// Text that starts no token.
   Error,
-  Error1,
 }
 
-macro_rules! trace {
-  ($s:tt, $fmt:expr, $($arg:tt)*) => {
-    if $s.yy_trace { println!($fmt, $($arg)*); }
-  };
-  ($s:tt, $fmt:expr) => {
-    if $s.yy_trace { println!($fmt); }
-  };
-}
-
-macro_rules! trace_action {
-  ($s:tt, $msg:literal) => {
-    if $s.yy_trace {
-      println!("  action: [\u{001b}[32m{}\u{001b}[0m]", $msg);
-      println!("  state_stack={:?}", $s.yy_state_stack);
-      println!("  value_stack={:?}", $s.yy_value_stack);
-      println!("  node_stack={:?}", $s.yy_node_stack);
+impl TokenClass {
+  /// The name of the class in the answers of the editor operations.
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      TokenClass::Whitespace => "whitespace",
+      TokenClass::Comment => "comment",
+      TokenClass::Keyword => "keyword",
+      TokenClass::Name => "name",
+      TokenClass::Number => "number",
+      TokenClass::String => "string",
+      TokenClass::Constant => "constant",
+      TokenClass::Operator => "operator",
+      TokenClass::Punctuation => "punctuation",
+      TokenClass::Function => "function",
+      TokenClass::Type => "type",
+      TokenClass::Key => "key",
+      TokenClass::Parameter => "parameter",
+      TokenClass::Variable => "variable",
+      TokenClass::Property => "property",
+      TokenClass::Error => "error",
     }
-  };
+  }
 }
 
-/// Adds an item to a list of kind `$kind` (an [AstNode] variant holding the items), see [Parser::list_item].
-macro_rules! list_item {
-  ($s:tt, $kind:ident, $complete:expr) => {
-    $s.list_item(|node| if let AstNode::$kind(items) = node { Some(items) } else { None }, AstNode::$kind, $complete)
-  };
+/// A node of a tolerant parse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SyntaxNode {
+  pub kind: &'static str,
+  pub start: usize,
+  pub end: usize,
 }
 
-/// Replaces the list of kind `$kind` on top of the node stack with a list of kind `$into`, see [Parser::convert_list].
-macro_rules! convert_list {
-  ($s:tt, $kind:ident, $into:ident) => {
-    $s.convert_list(|node| if let AstNode::$kind(items) = node { Some(items) } else { None }, AstNode::$into)
-  };
+/// An error of a tolerant parse.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Diagnostic {
+  /// What kind of error it is, for a program.
+  pub code: &'static str,
+  /// The error in words.
+  pub message: String,
+  pub start: usize,
+  pub end: usize,
 }
 
-/// Puts the items of a list of kind `$kind` into source order, see [complete_list].
-macro_rules! complete_list {
-  ($node:expr, $kind:ident) => {
-    complete_list(&mut $node, |node| if let AstNode::$kind(items) = node { Some(items) } else { None })
-  };
+impl Syntax {
+  /// Puts the white space and the comments between the tokens, and the nodes in their order.
+  fn finish(&mut self, input: &str) {
+    let mut tokens = Vec::with_capacity(self.tokens.len() * 2 + 1);
+    let mut position = 0;
+    self.tokens.sort_by_key(|token| token.start);
+    let end = SyntaxToken {
+      class: TokenClass::Error,
+      start: input.len(),
+      end: input.len(),
+    };
+    for token in self.tokens.iter().copied().chain(std::iter::once(end)) {
+      if token.start < position {
+        continue;
+      }
+      trivia(input, position, token.start, &mut tokens);
+      if token.end > token.start {
+        tokens.push(token);
+      }
+      position = token.end.max(token.start);
+    }
+    self.tokens = tokens;
+    // a node stands before the nodes inside it; of two nodes of the same place, the one made
+    // later holds the other
+    let mut order: Vec<usize> = (0..self.nodes.len()).collect();
+    order.sort_by(|&a, &b| {
+      let (x, y) = (&self.nodes[a], &self.nodes[b]);
+      x.start.cmp(&y.start).then(y.end.cmp(&x.end)).then(b.cmp(&a))
+    });
+    self.nodes = order.into_iter().map(|index| self.nodes[index]).collect();
+    self.diagnostics.sort_by_key(|diagnostic| diagnostic.start);
+  }
 }
 
-/// Parser.
+/// Writes the white space and the comments of `input[start..end]` as tokens.
+fn trivia(input: &str, start: usize, end: usize, tokens: &mut Vec<SyntaxToken>) {
+  let mut position = start;
+  while position < end {
+    let rest = &input[position..end];
+    let (class, len) = if rest.starts_with("//") {
+      (TokenClass::Comment, rest.find('\n').unwrap_or(rest.len()))
+    } else if let Some(comment) = rest.strip_prefix("/*") {
+      (TokenClass::Comment, comment.find("*/").map_or(rest.len(), |len| len + 4))
+    } else {
+      (TokenClass::Whitespace, rest.find('/').filter(|&len| len > 0).unwrap_or(rest.len()).max(1))
+    };
+    let len = (position + len..=end).find(|&at| input.is_char_boundary(at)).unwrap_or(end) - position;
+    tokens.push(SyntaxToken {
+      class,
+      start: position,
+      end: position + len,
+    });
+    position += len;
+  }
+}
+
+/// Returns the class of a token of the kind `kind`.
+fn class_of(kind: T) -> TokenClass {
+  match kind {
+    T::Name => TokenClass::Name,
+    T::NameDateTime => TokenClass::Function,
+    T::BuiltInTypeName => TokenClass::Type,
+    T::Numeric => TokenClass::Number,
+    T::String => TokenClass::String,
+    T::Boolean | T::Null => TokenClass::Constant,
+    T::And
+    | T::Between
+    | T::BetweenAnd
+    | T::Context
+    | T::Else
+    | T::Every
+    | T::External
+    | T::For
+    | T::Function
+    | T::If
+    | T::In
+    | T::Instance
+    | T::List
+    | T::Not
+    | T::Of
+    | T::Or
+    | T::Range
+    | T::Return
+    | T::Satisfies
+    | T::Some
+    | T::Then => TokenClass::Keyword,
+    T::Div | T::Eq | T::Exp | T::Ge | T::Gt | T::Le | T::Lt | T::Minus | T::Mul | T::Ne | T::Plus | T::Dot | T::Descendant | T::Ellipsis | T::RightArrow | T::At => {
+      TokenClass::Operator
+    }
+    T::Colon | T::Comma | T::LeftBrace | T::LeftBracket | T::LeftParen | T::RightBrace | T::RightBracket | T::RightParen => TokenClass::Punctuation,
+    T::Eof | T::Other => TokenClass::Error,
+  }
+}
+
+/// Returns `true` for white space of an expression.
+fn is_space(ch: char) -> bool {
+  ch.is_whitespace() || matches!(ch, '\u{180E}' | '\u{200B}' | '\u{FEFF}')
+}
+
+/// Returns `true` when a token of the kind `kind` starts an operand.
+fn starts_operand(kind: T) -> bool {
+  matches!(
+    kind,
+    T::At
+      | T::Every
+      | T::For
+      | T::LeftBrace
+      | T::Null
+      | T::Function
+      | T::If
+      | T::Some
+      | T::Numeric
+      | T::String
+      | T::Boolean
+      | T::Eq
+      | T::Ne
+      | T::Lt
+      | T::Le
+      | T::Gt
+      | T::Ge
+      | T::Minus
+      | T::Name
+      | T::NameDateTime
+      | T::LeftParen
+      | T::LeftBracket
+      | T::RightBracket
+  )
+}
+
+/// Returns what is expected where a token of the kind `kind` is missing, in words.
+fn expected(kind: T) -> &'static str {
+  match kind {
+    T::RightParen => "`)` is expected here",
+    T::RightBracket => "`]` is expected here",
+    T::RightBrace => "`}` is expected here",
+    T::LeftParen => "`(` is expected here",
+    T::Colon => "`:` is expected here",
+    T::Ellipsis => "`..` is expected here",
+    T::Then => "`then` is expected here",
+    T::Else => "`else` is expected here",
+    T::In => "`in` is expected here",
+    T::Return => "`return` is expected here",
+    T::Satisfies => "`satisfies` is expected here",
+    T::Of => "`of` is expected here",
+    T::BetweenAnd => "`and` is expected here, after the first bound of `between`",
+    T::Lt => "`<` is expected here",
+    T::Gt => "`>` is expected here",
+    T::RightArrow => "`->` is expected here",
+    _ => "another token is expected here",
+  }
+}
+
+/// Returns the name of the node of a binary operator of the level `level`.
+fn operator_name(level: u8) -> &'static str {
+  match level {
+    OR => "Disjunction",
+    AND => "Conjunction",
+    COMPARISON => "Comparison",
+    ADDITION => "Addition",
+    MULTIPLICATION => "Multiplication",
+    _ => "Exponentiation",
+  }
+}
+
+/// How an expression was made, for the start rules that take only some expressions.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Made {
+  /// A list, a function definition or a context, alone.
+  Boxed,
+  /// A number, a string, a boolean, an `@` literal or a date and time literal, alone.
+  SimpleLiteral,
+  /// An addition, subtraction, multiplication, division or exponentiation.
+  Arithmetic,
+  /// An arithmetic negation.
+  Negation,
+  /// Any other textual expression.
+  Textual,
+}
+
+/// Where the parser is when it reads a token.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum At {
+  /// Where an operand or a certain token is expected.
+  Start,
+  /// After a complete operand: an operator or the end of the construct follows.
+  AfterOperand,
+}
+
+/// The hand-written parser.
+///
+/// The functions that call each other for a nested expression keep their stack frames small:
+/// a node is built in place (`&mut AstNode`), and every construct has its own function.
 pub struct Parser<'parser, 'scope> {
   /// Parsing scope.
   scope: &'parser ParsingScope<'scope>,
   /// Parsed input.
   input: &'parser str,
-  /// Flag indicating whether the tracing messages should be printed to standard output.
-  yy_trace: bool,
-  /// The FEEL [Lexer] used by this FEEL [Parser] as an input token stream.
-  yy_lexer: Lexer<'parser, 'scope>,
-  /// The lookahead token type returned by lexer.
-  yy_char: i16,
-  /// The lookahead semantic value associated with token type returned by lexer.
-  yy_value: TokenValue,
-  /// Current token.
-  yy_token: i16,
-  /// Current state.
-  yy_state: usize,
-  /// This is an all-purpose variable, it may represent a state number or a rule number.
-  yy_n: i16,
-  /// The number of symbols on the RHS of the reduced rule, keep to zero when no symbol should be popped.
-  yy_len: i16,
-  /// State stack.
-  yy_state_stack: Vec<usize>,
-  /// Semantic value stack.
-  yy_value_stack: Vec<TokenValue>,
-  /// AST node stack.
-  yy_node_stack: Vec<AstNode>,
-  /// The number of `between` keywords read whose `and` was not read yet.
-  open_betweens: usize,
-  /// The token log: every token read from the lexer, with its start offset in the input (the
-  /// differential tests compare it with the tokens of the frozen reference front end).
+  /// The lexer.
+  lexer: Lexer<'parser, 'scope>,
+  /// The start rule.
+  start: Option<TokenType>,
+  /// The token the parser looks at, read from the lexer and not taken yet.
+  token: Option<TokenValue>,
+  /// The kind of `token`.
+  kind: T,
+  /// How the expression parsed last was made.
+  made: Made,
+  /// The expression being parsed ends the middle operand of a `between`: an `and` after a
+  /// complete operand is the `and` of that `between`.
+  between: bool,
+  /// The number of expressions that are open.
+  nesting: usize,
+  /// Where the token the parser looks at starts and ends in the input.
+  token_start: usize,
+  token_end: usize,
+  /// Where the token taken last ends.
+  last_end: usize,
+  /// What a tolerant parse records; a strict parse has none and stops at the first error.
+  syntax: Option<Box<Syntax>>,
+  /// The token log: every token read from the lexer, with its start offset in the input.
   #[cfg(test)]
   token_log: Option<Vec<(TokenType, TokenValue, usize)>>,
 }
 
+#[cfg(test)]
+thread_local! {
+  /// The lowest address of the stack seen while parsing (a measurement of the tests).
+  pub(crate) static STACK_LOW: std::cell::Cell<usize> = const { std::cell::Cell::new(usize::MAX) };
+}
+
+/// Replaces the node `lhs` with a node made of it.
+fn wrap(lhs: &mut AstNode, node: impl FnOnce(Box<AstNode>) -> AstNode) {
+  let inner = Box::new(std::mem::replace(lhs, AstNode::Null));
+  *lhs = node(inner);
+}
+
 impl<'parser, 'scope> Parser<'parser, 'scope> {
-  /// Creates a new parser.
-  pub fn new(scope: &'parser ParsingScope<'scope>, start_token_type: TokenType, input: &'parser str, trace: bool) -> Self {
-    let lexer = Lexer::new(scope, start_token_type, input);
+  /// Creates a new parser. The parser has no trace: `_trace` is kept for the callers of the
+  /// table-driven parser that it replaced.
+  pub fn new(scope: &'parser ParsingScope<'scope>, start_token_type: TokenType, input: &'parser str, _trace: bool) -> Self {
     Self {
       scope,
       input,
-      yy_trace: trace,
-      yy_lexer: lexer,
-      yy_char: TokenType::YyEmpty as i16,
-      yy_value: TokenValue::YyEmpty,
-      yy_token: TokenType::YyEmpty as i16,
-      yy_state: 0,
-      yy_n: 0,
-      yy_len: 0,
-      yy_state_stack: stack(0),
-      yy_value_stack: stack(TokenValue::YyEmpty),
-      yy_node_stack: Vec::with_capacity(NODE_STACK_CAPACITY),
-      open_betweens: 0,
+      lexer: Lexer::new(scope, start_token_type.clone(), input),
+      start: Some(start_token_type),
+      token: None,
+      kind: T::Other,
+      made: Made::Textual,
+      between: false,
+      nesting: 0,
+      token_start: 0,
+      token_end: 0,
+      last_end: 0,
+      syntax: None,
       #[cfg(test)]
       token_log: None,
     }
   }
 
-  /// Reads the text as a name that is being declared: a name that is not in scope is the whole
-  /// chain of its parts (see [crate::parse_name]).
+  /// Reads the text as a name that is being declared (see [crate::parse_name]).
   pub fn with_whole_names(mut self) -> Self {
-    self.yy_lexer.set_whole_names();
+    self.lexer.set_whole_names();
     self
   }
 
@@ -145,1188 +527,1453 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.token_log.take().unwrap_or_default()
   }
 
-  /// Returns the next token from the lexer (and records it in the token log of tests).
-  fn next_token(&mut self) -> Result<(TokenType, TokenValue)> {
-    let mut token = self.yy_lexer.next_token();
-    // `and` is the `and` of an open `between` where the parser can take that one: not inside
-    // brackets or another expression that began after the `between`
-    if self.open_betweens > 0 && matches!(token, Ok((TokenType::And, _))) && self.takes(TokenType::BetweenAnd) {
-      self.open_betweens -= 1;
-      token = Ok((TokenType::BetweenAnd, TokenValue::BetweenAnd));
-    }
-    #[cfg(test)]
-    if let (Some(log), Ok((token_type, token_value))) = (&mut self.token_log, &token) {
-      log.push((token_type.clone(), token_value.clone(), self.yy_lexer.token_start()));
-    }
-    token
-  }
-
-  /// Returns `true` when the parser shifts a token of the type `token_type` from its state now,
-  /// after the reductions that the token brings; no action runs and nothing changes. The states
-  /// that the reductions would push are kept apart from the state stack, which is only read.
-  fn takes(&self, token_type: TokenType) -> bool {
-    let token = YY_TRANSLATE[token_type as usize] as i16;
-    // the states of the stack that are left, and the states pushed on top of them
-    let mut left = self.yy_state_stack.len();
-    let mut pushed: Vec<usize> = vec![];
-    loop {
-      let state = pushed.last().copied().unwrap_or(self.yy_state_stack[left - 1]);
-      let mut n = YY_PACT[state];
-      if n != YY_PACT_N_INF {
-        n += token;
-        if (0..=YY_LAST).contains(&n) && YY_CHECK[n as usize] == token {
-          n = YY_TABLE[n as usize];
-          if n > 0 {
-            return true;
-          }
-          if n == 0 || n == YY_TABLE_N_INF {
-            return false;
-          }
-          n = -n;
-        } else {
-          n = YY_DEF_ACT[state] as i16;
-        }
-      } else {
-        n = YY_DEF_ACT[state] as i16;
-      }
-      if n == 0 {
-        return false;
-      }
-      // reduce with the rule `n`
-      let mut len = YY_R2[n as usize] as usize;
-      while len > 0 && pushed.pop().is_some() {
-        len -= 1;
-      }
-      if len >= left {
-        return false;
-      }
-      left -= len;
-      let lhs = (YY_R1[n as usize] as usize) - YY_N_TOKENS;
-      let top = pushed.last().copied().unwrap_or(self.yy_state_stack[left - 1]) as i16;
-      let i = YY_P_GOTO[lhs] + top;
-      pushed.push(if (0..=YY_LAST).contains(&i) && YY_CHECK[i as usize] == top {
-        YY_TABLE[i as usize] as usize
-      } else {
-        YY_DEF_GOTO[lhs] as usize
-      });
-    }
-  }
-
   /// Parses the input.
   pub fn parse(&mut self) -> Result<AstNode> {
-    let mut action = Action::NewState;
-    loop {
-      match action {
-        Action::NewState => {
-          trace!(self, "\nNEW-STATE: {}", self.yy_state);
-          // if the final state then accept
-          if self.yy_state == YY_FINAL {
-            action = Action::Accept;
-            continue;
-          }
-          // first try to decide what to do without reference to lookahead token
-          self.yy_n = YY_PACT[self.yy_state];
-          if self.yy_n == YY_PACT_N_INF {
-            // process the default action
-            action = Action::Default;
-            continue;
-          }
-          // not known, so get a lookahead token, only if we don't have one already
-          if self.yy_char == TokenType::YyEmpty as i16 {
-            let (token_type, opt_token_value) = self.next_token()?;
-            self.yy_char = token_type as i16;
-            self.yy_token = SymbolKind::YyEmpty as i16;
-            self.yy_value = opt_token_value;
-            trace!(self, "  lexer: yy_char={}", self.yy_char);
-            trace!(self, "  lexer: yy_value={:?}", self.yy_value);
-          }
-          trace!(self, "  yy_char={}", self.yy_char);
-          if self.yy_char <= TokenType::YyEof as i16 {
-            self.yy_char = TokenType::YyEof as i16;
-            self.yy_token = SymbolKind::YyEof as i16;
-            trace!(self, "  Now at end of input.");
-          } else if self.yy_char == TokenType::YyError as i16 {
-            self.yy_char = TokenType::YyUndef as i16;
-            self.yy_token = SymbolKind::YyUndef as i16;
-            action = Action::Error1;
-            continue;
-          } else {
-            self.yy_token = YY_TRANSLATE[self.yy_char as usize] as i16;
-          }
-          trace!(self, "  yy_token={}", self.yy_token);
-          trace!(self, "  state_stack={:?}", self.yy_state_stack);
-          trace!(self, "  value_stack={:?}", self.yy_value_stack);
-          trace!(self, "  node_stack={:?}", self.yy_node_stack);
-          //
-          let yy_token_code = self.yy_token;
-          self.yy_n += yy_token_code;
-          if self.yy_n < 0 || YY_LAST < self.yy_n || YY_CHECK[self.yy_n as usize] != yy_token_code {
-            action = Action::Default;
-            continue;
-          }
-          self.yy_n = YY_TABLE[self.yy_n as usize];
-          if self.yy_n <= 0 {
-            if self.yy_n == YY_TABLE_N_INF {
-              action = Action::Error;
-            } else {
-              self.yy_n = -self.yy_n;
-              action = Action::Reduce;
-            }
-          } else {
-            action = Action::Shift;
-          }
-        }
-        Action::Default => {
-          trace!(self, "\nDEFAULT");
-          self.yy_n = YY_DEF_ACT[self.yy_state] as i16;
-          if self.yy_n == 0 {
-            action = Action::Error;
-          } else {
-            trace!(self, "  reduce_using_rule = {}", self.yy_n);
-            action = Action::Reduce;
-          }
-        }
-        Action::Shift => {
-          trace!(self, "\nSHIFT");
-          self.yy_state = self.yy_n as usize;
-          self.yy_state_stack.push(self.yy_state);
-          // the lookahead value is consumed by the shift (and reset to `YyEmpty`)
-          self.yy_value_stack.push(std::mem::replace(&mut self.yy_value, TokenValue::YyEmpty));
-          trace!(self, "  state_stack={:?}", self.yy_state_stack);
-          trace!(self, "  value_stack={:?}", self.yy_value_stack);
-          trace!(self, "  node_stack={:?}", self.yy_node_stack);
-          self.yy_char = TokenType::YyEmpty as i16;
-          action = Action::NewState;
-        }
-        Action::Reduce => {
-          trace!(self, "\nREDUCE");
-          // get the length of the right-hand side
-          self.yy_len = YY_R2[self.yy_n as usize] as i16;
-          trace!(self, "  reduce count = {}", self.yy_len);
-          // yy_n is the number of a rule to reduce with
-          trace!(self, "  --------------------------------------------");
-          trace!(self, "  reducing_using_rule = {}", self.yy_n);
-          reduce(self, self.yy_n)?;
-          trace!(self, "  --------------------------------------------");
-          // pop the state stack and semantic value stack
-          self.yy_state_stack.truncate(self.yy_state_stack.len() - self.yy_len as usize);
-          self.yy_value_stack.truncate(self.yy_value_stack.len() - self.yy_len as usize);
-          // keep yy_len = 0
-          self.yy_len = 0;
-          let yy_lhs = (YY_R1[self.yy_n as usize] as usize) - YY_N_TOKENS;
-          let top_state = self.yy_state_stack[self.yy_state_stack.len() - 1] as i16;
-          let yy_i = YY_P_GOTO[yy_lhs] + top_state;
-          // calculate the new state number
-          self.yy_state = if (0..=YY_LAST).contains(&yy_i) && YY_CHECK[yy_i as usize] == top_state {
-            YY_TABLE[yy_i as usize] as usize
-          } else {
-            YY_DEF_GOTO[yy_lhs] as usize
-          };
-          trace!(self, "  new_state = {}", self.yy_state);
-          // push the new state on the stack
-          self.yy_state_stack.push(self.yy_state);
-          self.yy_value_stack.push(TokenValue::YyState);
-          trace!(self, "  state_stack={:?}", self.yy_state_stack);
-          trace!(self, "  value_stack={:?}", self.yy_value_stack);
-          trace!(self, "  node_stack={:?}", self.yy_node_stack);
-          action = Action::NewState;
-        }
-        Action::Error => {
-          trace!(self, "\nERROR");
-          self.yy_token = SymbolKind::YyError as i16;
-          return Err(err_syntax_error(self.input));
-        }
-        Action::Error1 => {
-          trace!(self, "\nERROR 1");
-          return Err(err_syntax_error(self.input));
-        }
-        Action::Accept => {
-          trace!(self, "\n**********");
-          trace!(self, "* ACCEPT *");
-          trace!(self, "**********\n");
-          self.yy_token = SymbolKind::YyAccept as i16;
-          let node = self.yy_node_stack.pop().unwrap();
-          debug_assert!(self.yy_node_stack.is_empty());
-          if self.yy_trace {
-            println!("    AST:{}", node.trace());
-          }
-          return Ok(node);
-        }
+    let node = self.start_rule()?;
+    // the end of the input
+    self.look(At::AfterOperand)?;
+    if self.kind == T::Eof { Ok(node) } else { self.error() }
+  }
+
+  /// Parses the input and never fails: returns the tokens, the nodes with their places and
+  /// every error. After an error the parser goes on as if the missing part were there, and
+  /// passes a token that fits nowhere.
+  pub fn parse_tolerant(mut self) -> Syntax {
+    self.syntax = Some(Box::default());
+    let mut parsed = self.start_rule().map(|_| ());
+    while parsed.is_ok() {
+      parsed = self.rest();
+      if parsed.is_ok() && self.kind == T::Eof {
+        break;
       }
     }
-  }
-}
-
-impl Parser<'_, '_> {
-  /// Adds an item to a list. The lists of the grammar are right recursive, so the parser sees their
-  /// items from the last to the first, and stores them in this order: the item below the top of
-  /// the node stack is appended to the list on top (`items` returns the items of this kind of
-  /// list); when the top is not such a list, it is the last item, and becomes a list of one item
-  /// (`list`). The rule that completes the list (`complete`) puts the items into source order.
-  /// Appending keeps every action constant time instead of shifting all the items collected.
-  fn list_item(&mut self, items: fn(&mut AstNode) -> Option<&mut Vec<AstNode>>, list: fn(Vec<AstNode>) -> AstNode, complete: bool) {
-    let mut node = self.yy_node_stack.pop().unwrap();
-    let mut list_items = match items(&mut node) {
-      Some(list_items) => {
-        let mut list_items = std::mem::take(list_items);
-        list_items.push(self.yy_node_stack.pop().unwrap());
-        list_items
+    if let Err(reason) = parsed {
+      // the parser gave up: the rest of the input is read for its tokens only
+      let (start, end) = (self.last_end, self.input.len());
+      self.diagnostic("failed", reason.to_string().trim_start_matches("<ParserError> ").to_string(), start, end);
+      self.token = None;
+      while !matches!(self.look(At::Start), Ok(T::Eof) | Err(_)) {
+        self.bump();
       }
-      None => vec![node],
+    }
+    let mut syntax = *self.syntax.take().unwrap_or_default();
+    syntax.finish(self.input);
+    syntax
+  }
+
+  /// What follows the expression in a tolerant parse: nothing, or tokens that fit nowhere. One
+  /// such token is passed, and an expression after it is parsed.
+  fn rest(&mut self) -> Result<()> {
+    if self.look(At::AfterOperand)? == T::Eof {
+      return Ok(());
+    }
+    self.unexpected("unexpected", "this fits nowhere in the expression")?;
+    let start = self.token_start;
+    self.bump();
+    self.note("Error", start);
+    if starts_operand(self.look(At::Start)?) {
+      self.expression(LOWEST)?;
+    }
+    Ok(())
+  }
+
+  /// Parses what the start rule asks for.
+  fn start_rule(&mut self) -> Result<AstNode> {
+    // the start token of the lexer
+    let (_token_type, _token_value) = self.lexer.next_token()?;
+    #[cfg(test)]
+    if let Some(log) = &mut self.token_log {
+      log.push((_token_type, _token_value, self.lexer.token_start()));
+    }
+    let node = match self.start.take() {
+      Some(TokenType::StartExpression) => self.expression(LOWEST)?,
+      Some(TokenType::StartBoxedExpression) => self.start_boxed_expression()?,
+      Some(TokenType::StartTextualExpression) => self.textual_expression()?,
+      Some(TokenType::StartTextualExpressions) => {
+        let mut items = vec![self.textual_expression()?];
+        while self.kind == T::Comma {
+          self.bump();
+          items.push(self.textual_expression()?);
+        }
+        AstNode::ExpressionList(items)
+      }
+      Some(TokenType::StartUnaryTests) => self.start_unary_tests()?,
+      Some(TokenType::StartSimpleExpression) => self.simple_expression()?,
+      Some(TokenType::StartSimpleExpressions) => {
+        let mut items = vec![self.simple_expression()?];
+        while self.kind == T::Comma {
+          self.bump();
+          items.push(self.simple_expression()?);
+        }
+        AstNode::ExpressionList(items)
+      }
+      Some(TokenType::StartSimpleValue) => self.start_simple_value()?,
+      Some(TokenType::StartRangeLiteral) => self.start_range_literal()?,
+      _ => return self.error(),
     };
-    if complete {
-      list_items.reverse();
-    }
-    self.yy_node_stack.push(list(list_items));
+    Ok(node)
   }
 
-  /// Replaces the list on top of the node stack, built from the last item to the first (see
-  /// [Parser::list_item]; `items` returns the items of this kind of list), with a list of another
-  /// kind (`list`) of the same items in source order. A node of another kind is removed.
-  fn convert_list(&mut self, items: fn(&mut AstNode) -> Option<&mut Vec<AstNode>>, list: fn(Vec<AstNode>) -> AstNode) {
-    if let Some(mut node) = self.yy_node_stack.pop()
-      && let Some(list_items) = items(&mut node)
+  //----------------------------------------------------------------------------------------------
+  // Tokens
+  //----------------------------------------------------------------------------------------------
+
+  /// Returns the syntax error.
+  #[cold]
+  fn error<V>(&self) -> Result<V> {
+    Err(err_syntax_error(self.input))
+  }
+
+  /// Looks at the next token: reads it from the lexer unless that was done.
+  fn look(&mut self, at: At) -> Result<T> {
+    if self.token.is_none() {
+      self.read(at)?;
+    }
+    Ok(self.kind)
+  }
+
+  /// Reads the next token from the lexer.
+  #[inline(never)]
+  fn read(&mut self, at: At) -> Result<()> {
+    #[allow(unused_mut)]
+    let (mut token_type, mut token_value) = if self.syntax.is_some() { self.next_token_tolerant()? } else { self.lexer.next_token()? };
+    self.token_start = self.lexer.token_start();
+    // the lexer passes the white space after a name of one word
+    self.token_end = self.token_start + self.input[self.token_start..self.lexer.position()].trim_end_matches(is_space).len();
+    // the `and` after the middle operand of a `between`
+    if at == At::AfterOperand && self.between && matches!(token_value, TokenValue::And) {
+      token_type = TokenType::BetweenAnd;
+      token_value = TokenValue::BetweenAnd;
+    }
+    self.kind = kind_of(&token_value);
+    #[cfg(test)]
+    if let Some(log) = &mut self.token_log {
+      log.push((token_type.clone(), token_value.clone(), self.lexer.token_start()));
+    }
+    let _ = token_type;
+    if let Some(syntax) = &mut self.syntax
+      && self.kind != T::Eof
     {
-      let mut list_items = std::mem::take(list_items);
-      list_items.reverse();
-      self.yy_node_stack.push(list(list_items));
+      syntax.tokens.push(SyntaxToken {
+        class: class_of(self.kind),
+        start: self.token_start,
+        end: self.token_end,
+      });
     }
-  }
-}
-
-impl Parser<'_, '_> {
-  /// Takes the semantic value at `index` of the value stack, in the last action that reads it: the
-  /// value of a symbol of the reduced rule (popped right after), or of a symbol before a mid-rule
-  /// action that no later action reads. The AST gets the value without a copy.
-  fn take_value(&mut self, index: usize) -> TokenValue {
-    std::mem::replace(&mut self.yy_value_stack[index], TokenValue::YyState)
-  }
-}
-
-/// Returns a parser stack holding its first element.
-fn stack<T>(first: T) -> Vec<T> {
-  let mut stack = Vec::with_capacity(STACK_CAPACITY);
-  stack.push(first);
-  stack
-}
-
-/// Puts the items of a list built from the last item to the first (see [Parser::list_item]) into
-/// source order, for a list that is completed by the rule that uses it.
-fn complete_list(node: &mut AstNode, items: fn(&mut AstNode) -> Option<&mut Vec<AstNode>>) {
-  if let Some(items) = items(node) {
-    items.reverse();
-  }
-}
-
-impl ReduceActions for Parser<'_, '_> {
-  fn action_addition(&mut self) -> Result<()> {
-    trace_action!(self, "addition");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Add(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_after_dot(&mut self) -> Result<()> {
-    trace_action!(self, "after dot");
-    self.yy_lexer.set_after_dot();
-    Ok(())
-  }
-
-  fn action_between(&mut self) -> Result<()> {
-    trace_action!(self, "between");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let mhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Between(Box::new(lhs), Box::new(mhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_between_begin(&mut self) -> Result<()> {
-    trace_action!(self, "between_begin");
-    self.open_betweens += 1;
-    Ok(())
-  }
-
-  fn action_built_in_type_name(&mut self) -> Result<()> {
-    trace_action!(self, "built_in_type_name");
-    if let TokenValue::BuiltInTypeName(name) = &self.yy_value_stack[self.yy_value_stack.len() - 1] {
-      self.yy_node_stack.push(AstNode::FeelType(name.into()));
-    }
-    Ok(())
-  }
-
-  fn action_comparison_eq(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_equal");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Eq(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_comparison_ge(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_greater_or_equal");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Ge(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_comparison_gt(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_greater_than");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Gt(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_comparison_in(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_in");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::In(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_comparison_le(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_less_or_equal");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Le(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_comparison_lt(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_less_than");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Lt(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_comparison_ne(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_not_equal");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Nq(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_comparison_unary_eq(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_unary_eq");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::UnaryEq(Box::new(lhs)));
-    Ok(())
-  }
-
-  fn action_comparison_unary_ge(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_unary_ge");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::UnaryGe(Box::new(lhs)));
-    Ok(())
-  }
-
-  fn action_comparison_unary_gt(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_unary_gt");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::UnaryGt(Box::new(lhs)));
-    Ok(())
-  }
-
-  fn action_comparison_unary_le(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_unary_le");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::UnaryLe(Box::new(lhs)));
-    Ok(())
-  }
-
-  fn action_comparison_unary_lt(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_unary_lt");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::UnaryLt(Box::new(lhs)));
-    Ok(())
-  }
-
-  fn action_comparison_unary_ne(&mut self) -> Result<()> {
-    trace_action!(self, "comparison_unary_ne");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::UnaryNe(Box::new(lhs)));
-    Ok(())
-  }
-
-  fn action_conjunction(&mut self) -> Result<()> {
-    trace_action!(self, "conjunction");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::And(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_context_begin(&mut self) -> Result<()> {
-    trace_action!(self, "context_begin");
-    self.yy_lexer.push_to_scope();
-    Ok(())
-  }
-
-  fn action_context_end(&mut self) -> Result<()> {
-    trace_action!(self, "context_end");
-    self.yy_lexer.pop_from_scope();
-    Ok(())
-  }
-
-  fn action_context_entry(&mut self) -> Result<()> {
-    trace_action!(self, "context_entry");
-    let value = self.yy_node_stack.pop().unwrap();
-    let key = self.yy_node_stack.pop().unwrap();
-    if let AstNode::ContextEntryKey(name) = &key {
-      self.yy_lexer.add_parsed_name(name.clone());
-    }
-    self.yy_node_stack.push(AstNode::ContextEntry(Box::new(key), Box::new(value)));
-    Ok(())
-  }
-
-  fn action_context_entry_tail(&mut self) -> Result<()> {
-    trace_action!(self, "context_entry_tail");
-    list_item!(self, Context, false);
-    Ok(())
-  }
-
-  fn action_context_entries(&mut self) -> Result<()> {
-    trace_action!(self, "context_entries");
-    list_item!(self, Context, true);
-    Ok(())
-  }
-
-  fn action_context_type_entry(&mut self) -> Result<()> {
-    trace_action!(self, "context_type_entry");
-    let type_node = self.yy_node_stack.pop().unwrap();
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
-      let lhs = Box::new(AstNode::ContextTypeEntryKey(name));
-      let rhs = Box::new(type_node);
-      self.yy_node_stack.push(AstNode::ContextTypeEntry(lhs, rhs));
-    }
-    Ok(())
-  }
-
-  fn action_context_type_entry_tail(&mut self) -> Result<()> {
-    trace_action!(self, "context_type_entry_tail");
-    list_item!(self, ContextType, false);
-    Ok(())
-  }
-
-  fn action_context_type_entries(&mut self) -> Result<()> {
-    trace_action!(self, "context_type_entries");
-    list_item!(self, ContextType, true);
-    Ok(())
-  }
-
-  fn action_disjunction(&mut self) -> Result<()> {
-    trace_action!(self, "disjunction");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Or(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_division(&mut self) -> Result<()> {
-    trace_action!(self, "division");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Div(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_empty_context(&mut self) -> Result<()> {
-    trace_action!(self, "empty context");
-    self.yy_node_stack.push(AstNode::Context(vec![]));
-    Ok(())
-  }
-
-  fn action_every(&mut self) -> Result<()> {
-    trace_action!(self, "every");
-    // pop temporary context from the top of the scope
-    self.yy_lexer.pop_from_scope();
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let mut lhs = self.yy_node_stack.pop().unwrap();
-    complete_list!(lhs, QuantifiedContexts);
-    let satisfies = Box::new(AstNode::Satisfies(Box::new(rhs)));
-    self.yy_node_stack.push(AstNode::Every(Box::new(lhs), satisfies));
-    Ok(())
-  }
-
-  fn action_every_begin(&mut self) -> Result<()> {
-    trace_action!(self, "every_begin");
-    // push temporary context on the top of the scope,
-    // this context will be used to store
-    // local variable names of quantified expressions
-    self.yy_lexer.push_to_scope();
-    Ok(())
-  }
-
-  fn action_exponentiation(&mut self) -> Result<()> {
-    trace_action!(self, "exponentiation");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Exp(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_expression_list(&mut self) -> Result<()> {
-    trace_action!(self, "expression_list");
-    if let Some(node) = self.yy_node_stack.last_mut() {
-      complete_list!(*node, ExpressionList);
-    }
-    Ok(())
-  }
-
-  fn action_expression_list_head(&mut self) -> Result<()> {
-    trace_action!(self, "expression_list_head");
-    list_item!(self, ExpressionList, true);
-    Ok(())
-  }
-
-  fn action_expression_list_tail(&mut self) -> Result<()> {
-    trace_action!(self, "expression_list_tail");
-    list_item!(self, ExpressionList, false);
-    Ok(())
-  }
-
-  fn action_filter(&mut self) -> Result<()> {
-    trace_action!(self, "filter");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Filter(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  /// Reduces `for` expression.
-  /// At the top of `yy_node_stack` there is a node representing an expression to be evaluated,
-  /// followed by the node representing iteration contexts.
-  fn action_for(&mut self) -> Result<()> {
-    trace_action!(self, "for");
-    // pop temporary context from the top of the scope
-    self.yy_lexer.pop_from_scope();
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let mut lhs = self.yy_node_stack.pop().unwrap();
-    complete_list!(lhs, IterationContexts);
-    let evaluated_expression = AstNode::EvaluatedExpression(Box::new(rhs));
-    self.yy_node_stack.push(AstNode::For(Box::new(lhs), Box::new(evaluated_expression)));
-    Ok(())
-  }
-
-  fn action_for_begin(&mut self) -> Result<()> {
-    trace_action!(self, "for_begin");
-    // push temporary context on the top of the scope,
-    // this context will be used to store
-    // local variable names in iteration contexts
-    self.yy_lexer.push_to_scope();
-    // add name `partial` to the temporary context present on top of the scope,
-    // this is the name of the implicit variable containing results of all previous iterations
-    self.yy_lexer.add_name_to_scope(Name::from("partial"));
-    Ok(())
-  }
-
-  fn action_formal_parameter_with_type(&mut self) -> Result<()> {
-    trace_action!(self, "function_formal_parameter_with_type");
-    // the type of the parameter is on top of node stack
-    let rhs = self.yy_node_stack.pop().unwrap();
-    // the name of the parameter is in value stack
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
-      // set the name of the parameter to local context on the top of the scope stack
-      // this name will be properly interpreted as a name while parsing the function body
-      self.scope.set_entry_name(name.clone());
-      // push the new formal parameter on top of node stack
-      let parameter_name = Box::new(AstNode::ParameterName(name));
-      let parameter_type = Box::new(rhs);
-      self.yy_node_stack.push(AstNode::FormalParameter(parameter_name, parameter_type));
-    }
-    Ok(())
-  }
-
-  fn action_formal_parameter_without_type(&mut self) -> Result<()> {
-    trace_action!(self, "function_formal_parameter_without_type");
-    // the name of the parameter is in value stack
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
-      // set the name of the parameter to local context on the top of the scope stack
-      // this name will be properly interpreted as a name while parsing the function body
-      self.scope.set_entry_name(name.clone());
-      // push the new formal parameter on top of node stack
-      let parameter_name = Box::new(AstNode::ParameterName(name));
-      let parameter_type = Box::new(AstNode::FeelType(FeelType::Any));
-      self.yy_node_stack.push(AstNode::FormalParameter(parameter_name, parameter_type));
-    }
-    Ok(())
-  }
-
-  fn action_formal_parameters_begin(&mut self) -> Result<()> {
-    trace_action!(self, "function_formal_parameters_begin");
-    // when the list of formal parameters begins, push an empty local context onto the scope stack
-    self.scope.push_default();
-    Ok(())
-  }
-
-  fn action_formal_parameters_empty(&mut self) -> Result<()> {
-    trace_action!(self, "function_formal_parameters_empty");
-    // push the empty list of formal parameters onto the node stack
-    self.yy_node_stack.push(AstNode::FormalParameters(vec![]));
-    Ok(())
-  }
-
-  fn action_formal_parameters_first(&mut self) -> Result<()> {
-    trace_action!(self, "function_formal_parameters_first");
-    // the first parameter is on the top of the node stack
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::FormalParameters(vec![lhs]));
-    Ok(())
-  }
-
-  fn action_formal_parameters_tail(&mut self) -> Result<()> {
-    trace_action!(self, "function_formal_parameters_tail");
-    // the next parameter is on the top of the node stack
-    let rhs = self.yy_node_stack.pop().unwrap();
-    // the collection of formal parameters is now on top of the node stack
-    if let Some(AstNode::FormalParameters(items)) = self.yy_node_stack.pop().as_mut() {
-      let mut items = std::mem::take(items);
-      items.push(rhs);
-      self.yy_node_stack.push(AstNode::FormalParameters(items));
-    }
-    Ok(())
-  }
-
-  /// Reduces the definition of the function body. This function body is **not** `external`.
-  /// The content of the function body is the [AstNode] on the top of the `yy_node-stack`.
-  /// After reducing the function body, the top context from scope is popped,
-  /// because this context is temporary and contains the function parameter names
-  /// to be properly interpreted while parsing the function's body.
-  fn action_function_body(&mut self) -> Result<()> {
-    trace_action!(self, "function_body");
-    if let Some(function_body_node) = self.yy_node_stack.pop() {
-      self.yy_node_stack.push(AstNode::FunctionBody(Box::new(function_body_node), false));
-    }
-    // pop temporary context from the top of scope stack
-    self.scope.pop();
-    Ok(())
-  }
-
-  /// Reduces the definition of the function body. This function body **is** `external`.
-  /// The content of the function body is the [AstNode] on the top of the `yy_node-stack`.
-  /// After reducing the function body, the top context from scope is popped,
-  /// because this context is temporary and contains the function parameter names
-  /// to be properly interpreted while parsing the function's body.
-  fn action_function_body_external(&mut self) -> Result<()> {
-    trace_action!(self, "function_body_external");
-    if let Some(function_body_node) = self.yy_node_stack.pop() {
-      self.yy_node_stack.push(AstNode::FunctionBody(Box::new(function_body_node), true));
-    }
-    // pop temporary context from the top of scope stack
-    self.scope.pop();
-    Ok(())
-  }
-
-  /// Reduces the function definition.
-  /// The top element on the `node stack` is the AstNode defining the function body.
-  /// The AstNode just below the function's body is the list of function's formal parameters.
-  fn action_function_definition(&mut self) -> Result<()> {
-    trace_action!(self, "function_definition");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::FunctionDefinition(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_function_invocation(&mut self) -> Result<()> {
-    trace_action!(self, "function_invocation");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::FunctionInvocation(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_function_invocation_no_parameters(&mut self) -> Result<()> {
-    trace_action!(self, "function_invocation_no_parameters");
-    if let Some(lhs) = self.yy_node_stack.pop() {
-      let rhs = AstNode::PositionalParameters(vec![]);
-      self.yy_node_stack.push(AstNode::FunctionInvocation(Box::new(lhs), Box::new(rhs)));
-    }
-    Ok(())
-  }
-
-  fn action_function_type(&mut self) -> Result<()> {
-    trace_action!(self, "function_type");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::FunctionType(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_function_type_parameters_empty(&mut self) -> Result<()> {
-    trace_action!(self, "function_type_parameters_empty");
-    self.yy_node_stack.push(AstNode::ParameterTypes(vec![]));
-    Ok(())
-  }
-
-  fn action_function_type_parameters_tail(&mut self) -> Result<()> {
-    trace_action!(self, "function_type_parameters_tail");
-    list_item!(self, ParameterTypes, false);
-    Ok(())
-  }
-
-  fn action_function_type_parameters(&mut self) -> Result<()> {
-    trace_action!(self, "function_type_parameters");
-    list_item!(self, ParameterTypes, true);
-    Ok(())
-  }
-
-  /// Reduces `if` expression.
-  fn action_if(&mut self) -> Result<()> {
-    trace_action!(self, "if");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let mid = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::If(Box::new(lhs), Box::new(mid), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_instance_of(&mut self) -> Result<()> {
-    trace_action!(self, "instance_of");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    let checked_value = Box::new(lhs);
-    let expected_type = Box::new(rhs);
-    self.yy_node_stack.push(AstNode::InstanceOf(checked_value, expected_type));
-    Ok(())
-  }
-
-  fn action_interval(&mut self) -> Result<()> {
-    trace_action!(self, "interval");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Range(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_interval_end(&mut self) -> Result<()> {
-    trace_action!(self, "interval_end");
-    let interval_type = if matches!(&self.yy_value_stack[self.yy_value_stack.len() - 1], TokenValue::RightBracket) {
-      IntervalType::Closed
-    } else {
-      IntervalType::Opened
-    };
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::IntervalEnd(Box::new(lhs), interval_type));
-    Ok(())
-  }
-
-  fn action_interval_start(&mut self) -> Result<()> {
-    trace_action!(self, "interval_start");
-    let interval_type = if matches!(&self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize], TokenValue::LeftBracket) {
-      IntervalType::Closed
-    } else {
-      IntervalType::Opened
-    };
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::IntervalStart(Box::new(lhs), interval_type));
-    Ok(())
-  }
-
-  /// Reduces iteration context containing a variable name and a range of values to iterate over.
-  /// Nodes are located on `yy_node_stack` in the following order (looking from top):
-  /// - range end,
-  /// - range start,
-  /// - variable name.
-  fn action_iteration_context_value_range(&mut self) -> Result<()> {
-    trace_action!(self, "iteration_context_value_range");
-    let rhs = self.yy_node_stack.pop().unwrap(); // range end
-    let mid = self.yy_node_stack.pop().unwrap(); // range start
-    let lhs = self.yy_node_stack.pop().unwrap(); // variable name
-    let node = AstNode::IterationContextInterval(Box::new(lhs), Box::new(mid), Box::new(rhs));
-    self.yy_node_stack.push(node);
-    Ok(())
-  }
-
-  /// Reduces iteration context containing a variable name and a single value to iterate over.
-  /// Nodes are located on `yy_node_stack` in the following order (looking from top):
-  /// - single value,
-  /// - variable name.
-  fn action_iteration_context_value_single(&mut self) -> Result<()> {
-    trace_action!(self, "iteration_context_value_single");
-    let rhs = self.yy_node_stack.pop().unwrap(); // single value
-    let lhs = self.yy_node_stack.pop().unwrap(); // variable name
-    let node = AstNode::IterationContextSingle(Box::new(lhs), Box::new(rhs));
-    self.yy_node_stack.push(node);
-    Ok(())
-  }
-
-  /// Reduces the variable name of iteration context.
-  /// Variable name is located on the top of the `yy_value_stack`.
-  /// This name is pushed onto `yy_node_stack`.
-  fn action_iteration_context_variable_name(&mut self) -> Result<()> {
-    trace_action!(self, "iteration_context_variable_name");
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::Name(name.clone()));
-      // add this variable name to the temporary context present on top of the scope
-      self.yy_lexer.add_name_to_scope(name);
-    }
-    Ok(())
-  }
-
-  fn action_iteration_context_variable_name_begin(&mut self) -> Result<()> {
-    trace_action!(self, "iteration_context_variable_name_begin");
-    self.yy_lexer.set_till_in();
-    Ok(())
-  }
-
-  /// Reduces the iteration context.
-  fn action_iteration_contexts_tail(&mut self) -> Result<()> {
-    trace_action!(self, "iteration_contexts_tail");
-    list_item!(self, IterationContexts, false);
-    Ok(())
-  }
-
-  fn action_key_name(&mut self) -> Result<()> {
-    trace_action!(self, "key_name");
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::ContextEntryKey(name));
-    }
-    Ok(())
-  }
-
-  fn action_key_string(&mut self) -> Result<()> {
-    trace_action!(self, "key_string");
-    if let TokenValue::String(value) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::ContextEntryKey(Name::from(value)));
-    }
-    Ok(())
-  }
-
-  fn action_list(&mut self) -> Result<()> {
-    trace_action!(self, "list");
-    convert_list!(self, CommaList, List);
-    Ok(())
-  }
-
-  fn action_list_empty(&mut self) -> Result<()> {
-    trace_action!(self, "list_empty");
-    self.yy_node_stack.push(AstNode::CommaList(vec![]));
-    Ok(())
-  }
-
-  fn action_list_tail(&mut self) -> Result<()> {
-    trace_action!(self, "list_tail");
-    list_item!(self, CommaList, false);
-    Ok(())
-  }
-
-  fn action_list_type(&mut self) -> Result<()> {
-    trace_action!(self, "list_type");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::ListType(Box::new(lhs)));
-    Ok(())
-  }
-
-  fn action_literal_at(&mut self) -> Result<()> {
-    trace_action!(self, "literal_at");
-    if let TokenValue::String(value) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::At(value));
-    }
-    Ok(())
-  }
-
-  fn action_literal_boolean(&mut self) -> Result<()> {
-    trace_action!(self, "literal_boolean");
-    if let Some(TokenValue::Boolean(value)) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::Boolean(*value));
-    }
-    Ok(())
-  }
-
-  fn action_literal_date_time(&mut self) -> Result<()> {
-    trace_action!(self, "literal_date_time");
-    // a mid-rule action: `NAME_DATE_TIME LEFT_PAREN` are the last two values
-    if let TokenValue::NameDateTime(name) = self.take_value(self.yy_value_stack.len() - 2) {
-      self.yy_node_stack.push(AstNode::Name(name));
-    }
-    Ok(())
-  }
-
-  fn action_literal_null(&mut self) -> Result<()> {
-    trace_action!(self, "literal_null");
-    if let Some(TokenValue::Null) = self.yy_value_stack.last() {
-      self.yy_node_stack.push(AstNode::Null);
-    }
-    Ok(())
-  }
-
-  fn action_literal_numeric(&mut self) -> Result<()> {
-    trace_action!(self, "numeric_literal");
-    if let TokenValue::Numeric(before, after, sign, exponent) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::Numeric(before, after, sign, exponent));
-    }
-    Ok(())
-  }
-
-  fn action_literal_string(&mut self) -> Result<()> {
-    trace_action!(self, "string_literal");
-    if let TokenValue::String(value) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::String(value));
-    }
-    Ok(())
-  }
-
-  fn action_multiplication(&mut self) -> Result<()> {
-    trace_action!(self, "multiplication");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Mul(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
-
-  fn action_name(&mut self) -> Result<()> {
-    trace_action!(self, "name");
-    if let TokenValue::Name(value) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::Name(value));
-    }
-    Ok(())
-  }
-
-  fn action_named_parameter(&mut self) -> Result<()> {
-    trace_action!(self, "named_parameter");
-    trace!(self, "{:?}", self.yy_value_stack);
-    // the name is the first symbol of the rule
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
-      let rhs = self.yy_node_stack.pop().unwrap();
-      let parameter_name = Box::new(AstNode::ParameterName(name));
-      let parameter_value = Box::new(rhs);
-      self.yy_node_stack.push(AstNode::NamedParameter(parameter_name, parameter_value));
-    }
-    Ok(())
-  }
-
-  fn action_named_parameters_tail(&mut self) -> Result<()> {
-    trace_action!(self, "named_parameters_tail");
-    list_item!(self, NamedParameters, false);
-    Ok(())
-  }
-
-  fn action_named_parameters(&mut self) -> Result<()> {
-    trace_action!(self, "named_parameters");
-    list_item!(self, NamedParameters, true);
-    Ok(())
-  }
-
-  fn action_negation(&mut self) -> Result<()> {
-    trace_action!(self, "negation");
-    if let Some(node) = self.yy_node_stack.pop() {
-      self.yy_node_stack.push(AstNode::Neg(Box::new(node)));
-    }
-    Ok(())
-  }
-
-  fn action_descendant(&mut self) -> Result<()> {
-    trace_action!(self, "descendant");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
-      let rhs = AstNode::Name(name);
-      self.yy_node_stack.push(AstNode::Descendant(Box::new(lhs), Box::new(rhs)));
-    }
-    Ok(())
-  }
-
-  fn action_path(&mut self) -> Result<()> {
-    trace_action!(self, "path");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
-      let rhs = AstNode::Name(name);
-      self.yy_node_stack.push(AstNode::Path(Box::new(lhs), Box::new(rhs)));
-    }
-    Ok(())
-  }
-
-  fn action_positional_parameters_tail(&mut self) -> Result<()> {
-    trace_action!(self, "positional_parameters_tail");
-    list_item!(self, PositionalParameters, false);
-    Ok(())
-  }
-
-  fn action_positional_parameters(&mut self) -> Result<()> {
-    trace_action!(self, "positional_parameters");
-    list_item!(self, PositionalParameters, true);
-    Ok(())
-  }
-
-  fn action_qualified_name(&mut self) -> Result<()> {
-    trace_action!(self, "action_qualified_name");
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::QualifiedName(vec![AstNode::QualifiedNameSegment(name)]));
-    }
-    Ok(())
-  }
-
-  fn action_qualified_name_complete(&mut self) -> Result<()> {
-    trace_action!(self, "qualified_name_complete");
-    if let Some(node) = self.yy_node_stack.last_mut() {
-      complete_list!(*node, QualifiedName);
-    }
-    Ok(())
-  }
-
-  fn action_qualified_name_tail(&mut self) -> Result<()> {
-    trace_action!(self, "action_qualified_name_tail");
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - self.yy_len as usize) {
-      // The parent name is the first symbol of the rule (`NAME DOT {/* after_dot */} qualified_name`).
-      // The segments are appended from the last to the first (see [Parser::list_item]).
-      if let Some(AstNode::QualifiedName(parts)) = self.yy_node_stack.last_mut() {
-        parts.push(AstNode::QualifiedNameSegment(name));
+    self.token = Some(token_value);
+    Ok(())
+  }
+
+  /// Reads the next token from the lexer in a tolerant parse: a character that starts no token
+  /// is passed, and a string or a comment that is not closed or has an escape that is none is
+  /// taken up to the end of its line or of the input. Each is an error of the record.
+  fn next_token_tolerant(&mut self) -> Result<(TokenType, TokenValue)> {
+    loop {
+      let read = self.lexer.next_token();
+      let start = self.lexer.token_start();
+      let rest = &self.input[start..];
+      match read {
+        Ok((_, TokenValue::YyUndef)) | Err(_) if rest.starts_with('"') => {
+          // up to the closing quote, the end of the line or the end of the input
+          let mut end = start + 1;
+          let mut escaped = false;
+          let mut closed = false;
+          for (offset, ch) in rest.char_indices().skip(1) {
+            end = start + offset;
+            if matches!(ch, '\u{000A}'..='\u{000D}') {
+              break;
+            }
+            end += ch.len_utf8();
+            if ch == '"' && !escaped {
+              closed = true;
+              break;
+            }
+            escaped = ch == '\\' && !escaped;
+          }
+          let (code, message) = if closed {
+            ("string-escape", "this string has an escape that is none")
+          } else {
+            ("string-open", "this string is not closed")
+          };
+          self.diagnostic(code, message.to_string(), start, end);
+          self.lexer.set_position(end);
+          let text = &self.input[start + 1..if closed { end - 1 } else { end }];
+          return Ok((TokenType::String, TokenValue::String(text.to_string())));
+        }
+        Ok((_, TokenValue::YyUndef)) => {
+          let (code, message, len) = if rest.starts_with("/*") {
+            ("comment-open", "this comment is not closed", rest.len())
+          } else {
+            ("character", "this character starts nothing in an expression", rest.chars().next().map_or(0, char::len_utf8))
+          };
+          if len == 0 {
+            return Ok((TokenType::YyEof, TokenValue::YyEof));
+          }
+          self.diagnostic(code, message.to_string(), start, start + len);
+          if let Some(syntax) = &mut self.syntax {
+            let class = if code == "comment-open" { TokenClass::Comment } else { TokenClass::Error };
+            syntax.tokens.push(SyntaxToken { class, start, end: start + len });
+          }
+          self.lexer.set_position(start + len);
+        }
+        other => return other,
       }
     }
+  }
+
+  /// Adds an error to the record of a tolerant parse; one error per place.
+  fn diagnostic(&mut self, code: &'static str, message: String, start: usize, end: usize) {
+    if let Some(syntax) = &mut self.syntax
+      && syntax.diagnostics.last().is_none_or(|last| last.start != start)
+      && syntax.diagnostics.len() < MAX_DIAGNOSTICS
+    {
+      syntax.diagnostics.push(Diagnostic { code, message, start, end });
+    }
+  }
+
+  /// The token the parser looks at is not what the grammar takes here: the syntax error of a
+  /// strict parse; in a tolerant parse an error of the record, and the parser goes on.
+  fn unexpected(&mut self, code: &'static str, message: &str) -> Result<()> {
+    if self.syntax.is_none() {
+      return self.error();
+    }
+    let (start, end) = if self.kind == T::Eof {
+      (self.input.len(), self.input.len())
+    } else {
+      (self.token_start, self.token_end)
+    };
+    let message = if self.kind == T::Eof {
+      format!("the expression ends here: {message}")
+    } else {
+      message.to_string()
+    };
+    self.diagnostic(code, message, start, end);
     Ok(())
   }
 
-  fn action_quantified_expression(&mut self) -> Result<()> {
-    trace_action!(self, "quantified_expression");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    let node = AstNode::QuantifiedContext(Box::new(lhs), Box::new(rhs));
-    self.yy_node_stack.push(node);
+  /// The token the parser looks at is neither a `,` nor the `closing` bracket of a list: the
+  /// syntax error of a strict parse. A tolerant parse records the error and passes the tokens up
+  /// to the next `,` or closing bracket that belongs to the list; returns `true` when it is a `,`.
+  fn skip_to(&mut self, closing: T, message: &str) -> Result<bool> {
+    self.unexpected("expected", message)?;
+    let start = self.token_start;
+    let mut open = 0usize;
+    loop {
+      match self.kind {
+        T::Eof => break,
+        T::LeftParen | T::LeftBracket | T::LeftBrace => open += 1,
+        T::RightParen | T::RightBracket | T::RightBrace if open == 0 => break,
+        T::RightParen | T::RightBracket | T::RightBrace => open -= 1,
+        T::Comma if open == 0 => break,
+        _ => {}
+      }
+      self.bump();
+      self.look(At::Start)?;
+    }
+    if self.last_end > start {
+      self.note("Error", start);
+    }
+    let _ = closing;
+    Ok(self.kind == T::Comma)
+  }
+
+  /// Records a node of a tolerant parse: it starts at `start` and ends with the token taken last.
+  fn note(&mut self, kind: &'static str, start: usize) {
+    if let Some(syntax) = &mut self.syntax {
+      let end = self.last_end.max(start);
+      syntax.nodes.push(SyntaxNode { kind, start, end });
+    }
+  }
+
+  /// Gives the token the parser looks at its part in the expression (a tolerant parse).
+  fn role(&mut self, class: TokenClass) {
+    if let Some(syntax) = &mut self.syntax
+      && self.token.is_some()
+      && let Some(token) = syntax.tokens.last_mut()
+    {
+      token.class = class;
+    }
+  }
+
+  /// Takes the token the parser looks at.
+  fn take(&mut self) -> TokenValue {
+    self.last_end = self.token_end;
+    self.token.take().unwrap_or(TokenValue::YyEmpty)
+  }
+
+  /// Passes the token the parser looks at.
+  fn bump(&mut self) {
+    self.last_end = self.token_end;
+    self.token = None;
+  }
+
+  /// Passes the next token, which must be of the kind `kind`.
+  fn expect(&mut self, kind: T, at: At) -> Result<()> {
+    if self.look(at)? == kind {
+      self.bump();
+      Ok(())
+    } else {
+      self.unexpected("expected", expected(kind))
+    }
+  }
+
+  /// Takes the next token, which must be a name.
+  #[inline(never)]
+  fn name(&mut self, at: At) -> Result<Name> {
+    if self.look(at)? == T::Name
+      && let TokenValue::Name(name) = self.take()
+    {
+      Ok(name)
+    } else {
+      self.unexpected("expected-name", "a name is expected here")?;
+      Ok(Name::from(""))
+    }
+  }
+
+  /// Takes the next token, which must be a name, in the part `class` of the expression.
+  fn name_as(&mut self, at: At, class: TokenClass) -> Result<Name> {
+    if self.look(at)? == T::Name {
+      self.role(class);
+    }
+    self.name(at)
+  }
+
+  //----------------------------------------------------------------------------------------------
+  // Start rules
+  //----------------------------------------------------------------------------------------------
+
+  /// A boxed expression alone: a list, a function definition or a context.
+  fn start_boxed_expression(&mut self) -> Result<AstNode> {
+    self.enter()?;
+    let node = match self.look(At::Start)? {
+      T::LeftBracket => self.list_or_interval(false)?,
+      T::Function => self.function_definition()?,
+      T::LeftBrace => self.context()?,
+      _ => return self.error(),
+    };
+    self.nesting -= 1;
+    Ok(node)
+  }
+
+  /// A textual expression: any expression but a boxed expression alone.
+  fn textual_expression(&mut self) -> Result<AstNode> {
+    let node = self.expression(LOWEST)?;
+    if self.made == Made::Boxed { self.error() } else { Ok(node) }
+  }
+
+  /// A simple expression: an arithmetic expression, a simple literal or a qualified name.
+  fn simple_expression(&mut self) -> Result<AstNode> {
+    if self.look(At::Start)? == T::Name {
+      let name = self.name(At::Start)?;
+      return match self.look(At::AfterOperand)? {
+        T::Dot => self.qualified_name(name),
+        T::Eof | T::Comma => Ok(AstNode::QualifiedName(vec![AstNode::QualifiedNameSegment(name)])),
+        _ => {
+          self.enter()?;
+          let mut node = AstNode::Name(name);
+          self.made = Made::Textual;
+          self.infix(&mut node, 0, LOWEST, false)?;
+          self.nesting -= 1;
+          if matches!(self.made, Made::Arithmetic | Made::Negation) {
+            Ok(node)
+          } else {
+            self.error()
+          }
+        }
+      };
+    }
+    let node = self.expression(LOWEST)?;
+    if matches!(self.made, Made::Arithmetic | Made::Negation | Made::SimpleLiteral) {
+      Ok(node)
+    } else {
+      self.error()
+    }
+  }
+
+  /// The segments of a qualified name after its first name, which a dot follows.
+  fn qualified_name(&mut self, first: Name) -> Result<AstNode> {
+    let mut segments = vec![AstNode::QualifiedNameSegment(first)];
+    while self.look(At::AfterOperand)? == T::Dot {
+      self.bump();
+      self.lexer.set_after_dot();
+      segments.push(AstNode::QualifiedNameSegment(self.name(At::Start)?));
+    }
+    Ok(AstNode::QualifiedName(segments))
+  }
+
+  /// A simple value: a qualified name or a simple literal.
+  fn start_simple_value(&mut self) -> Result<AstNode> {
+    match self.look(At::Start)? {
+      T::Name => {
+        let name = self.name(At::Start)?;
+        self.qualified_name(name)
+      }
+      T::Numeric | T::String | T::Boolean | T::At | T::NameDateTime => {
+        self.enter()?;
+        let node = self.operand()?;
+        self.nesting -= 1;
+        Ok(node)
+      }
+      _ => self.error(),
+    }
+  }
+
+  /// Unary tests: `-`, `not(` tests `)` or tests.
+  fn start_unary_tests(&mut self) -> Result<AstNode> {
+    self.lexer.set_unary_tests();
+    let mut items = vec![];
+    match self.look(At::Start)? {
+      T::Not => {
+        self.bump();
+        self.expect(T::LeftParen, At::Start)?;
+        loop {
+          self.push(&mut items)?;
+          match self.kind {
+            T::Comma => self.bump(),
+            T::RightParen => break self.bump(),
+            _ => {
+              self.unexpected("expected", "`,` or `)` is expected here")?;
+              break;
+            }
+          }
+        }
+        return Ok(AstNode::NegatedList(items));
+      }
+      T::Minus => {
+        let start = self.token_start;
+        self.bump();
+        if self.look(At::AfterOperand)? == T::Eof {
+          return Ok(AstNode::Irrelevant);
+        }
+        self.enter()?;
+        let mut node = AstNode::Neg(Box::new(self.expression(NEGATION)?));
+        self.made = Made::Negation;
+        self.note("Negation", start);
+        self.infix(&mut node, start, LOWEST, false)?;
+        self.nesting -= 1;
+        items.push(node);
+      }
+      _ => items.push(self.expression(LOWEST)?),
+    }
+    while self.kind == T::Comma {
+      self.bump();
+      self.push(&mut items)?;
+    }
+    Ok(AstNode::ExpressionList(items))
+  }
+
+  /// A range literal.
+  fn start_range_literal(&mut self) -> Result<AstNode> {
+    let closed = match self.look(At::Start)? {
+      T::LeftParen | T::RightBracket => false,
+      T::LeftBracket => true,
+      _ => return self.error(),
+    };
+    self.bump();
+    let (start, has_start) = if self.look(At::Start)? == T::Ellipsis {
+      if closed {
+        return self.error();
+      }
+      (AstNode::IntervalStart(AstNode::Null.into(), IntervalType::OpenedUndef), false)
+    } else {
+      let endpoint = self.range_literal_endpoint()?;
+      (
+        AstNode::IntervalStart(Box::new(endpoint), if closed { IntervalType::Closed } else { IntervalType::Opened }),
+        true,
+      )
+    };
+    self.expect(T::Ellipsis, At::Start)?;
+    let end = match self.look(At::Start)? {
+      T::RightParen | T::LeftBracket if has_start => {
+        self.bump();
+        AstNode::IntervalEnd(AstNode::Null.into(), IntervalType::OpenedUndef)
+      }
+      _ => {
+        let endpoint = self.range_literal_endpoint()?;
+        let interval_type = match self.look(At::Start)? {
+          T::RightParen | T::LeftBracket => IntervalType::Opened,
+          T::RightBracket => IntervalType::Closed,
+          _ => return self.error(),
+        };
+        self.bump();
+        AstNode::IntervalEnd(Box::new(endpoint), interval_type)
+      }
+    };
+    Ok(AstNode::Range(Box::new(start), Box::new(end)))
+  }
+
+  /// An endpoint of a range literal: a number with an optional sign, a string or a date and
+  /// time literal.
+  fn range_literal_endpoint(&mut self) -> Result<AstNode> {
+    match self.look(At::Start)? {
+      T::Numeric => self.numeric(),
+      T::Minus => {
+        self.bump();
+        if self.look(At::Start)? != T::Numeric {
+          return self.error();
+        }
+        Ok(AstNode::Neg(Box::new(self.numeric()?)))
+      }
+      T::String => self.string().map(AstNode::String),
+      T::At => {
+        self.bump();
+        if self.look(At::Start)? != T::String {
+          return self.error();
+        }
+        self.string().map(AstNode::At)
+      }
+      T::NameDateTime => {
+        let TokenValue::NameDateTime(name) = self.take() else { return self.error() };
+        self.expect(T::LeftParen, At::Start)?;
+        let parameters = match self.look(At::Start)? {
+          T::Name => {
+            let parameter_name = self.name(At::Start)?;
+            self.expect(T::Colon, At::Start)?;
+            if self.look(At::Start)? != T::String {
+              return self.error();
+            }
+            let value = self.string().map(AstNode::String)?;
+            AstNode::NamedParameters(vec![AstNode::NamedParameter(Box::new(AstNode::ParameterName(parameter_name)), Box::new(value))])
+          }
+          T::String => AstNode::PositionalParameters(vec![self.string().map(AstNode::String)?]),
+          _ => return self.error(),
+        };
+        self.expect(T::RightParen, At::Start)?;
+        Ok(AstNode::FunctionInvocation(Box::new(AstNode::Name(name)), Box::new(parameters)))
+      }
+      _ => self.error(),
+    }
+  }
+
+  //----------------------------------------------------------------------------------------------
+  // Expressions
+  //----------------------------------------------------------------------------------------------
+
+  /// Counts an open expression.
+  fn enter(&mut self) -> Result<()> {
+    self.nesting += 1;
+    #[cfg(test)]
+    {
+      let marker = 0u8;
+      let address = &marker as *const u8 as usize;
+      STACK_LOW.with(|low| low.set(low.get().min(address)));
+    }
+    if self.nesting > MAX_NESTING { Err(err_nested_too_deeply(MAX_NESTING)) } else { Ok(()) }
+  }
+
+  /// An expression whose operators bind tighter than the level `level` (as tight, for a level
+  /// that is right associative).
+  fn expression(&mut self, level: u8) -> Result<AstNode> {
+    self.expression_until(level, false)
+  }
+
+  /// An expression (see [Parser::expression]). With `end_endpoint` it is an endpoint of an
+  /// interval that a `[` after it ends.
+  fn expression_until(&mut self, level: u8, end_endpoint: bool) -> Result<AstNode> {
+    self.enter()?;
+    self.look(At::Start)?;
+    let start = self.token_start;
+    let mut node = self.operand()?;
+    self.infix(&mut node, start, level, end_endpoint)?;
+    self.nesting -= 1;
+    Ok(node)
+  }
+
+  /// An expression in a box (see [Parser::expression]): the caller holds a pointer, not the node,
+  /// while the expressions inside it are parsed.
+  #[inline(never)]
+  fn boxed(&mut self, level: u8) -> Result<Box<AstNode>> {
+    Ok(Box::new(self.expression_until(level, false)?))
+  }
+
+  /// An expression in a box that is no part of the expressions around it (see [Parser::inner]).
+  #[inline(never)]
+  fn boxed_inner(&mut self) -> Result<Box<AstNode>> {
+    let between = std::mem::replace(&mut self.between, false);
+    let node = self.boxed(LOWEST);
+    self.between = between;
+    node
+  }
+
+  /// An expression as the next item of `items`.
+  #[inline(never)]
+  fn push(&mut self, items: &mut Vec<AstNode>) -> Result<()> {
+    items.push(self.expression_until(LOWEST, false)?);
     Ok(())
   }
 
-  /// Reduces the variable name of quantified expression.
-  /// Variable name is located on the top of the `yy_value_stack`.
-  /// This name is pushed onto `yy_node_stack`.
-  fn action_quantified_expression_variable_name(&mut self) -> Result<()> {
-    trace_action!(self, "quantified_expression_variable_name");
-    if let TokenValue::Name(name) = self.take_value(self.yy_value_stack.len() - 1) {
-      self.yy_node_stack.push(AstNode::Name(name.clone()));
-      // add this variable name to the temporary context present on top of the scope
-      self.yy_lexer.add_name_to_scope(name);
+  /// An expression that is no part of the expressions around it: it is not the end of the
+  /// middle operand of a `between`.
+  fn inner(&mut self) -> Result<AstNode> {
+    let between = std::mem::replace(&mut self.between, false);
+    let node = self.expression(LOWEST);
+    self.between = between;
+    node
+  }
+
+  /// The operators after the operand `lhs` that bind tighter than the level `level`, with their
+  /// operands: `lhs` becomes the whole expression. With `end_endpoint` the expression is an
+  /// endpoint of an interval that a `[` after it ends.
+  #[inline(never)]
+  fn infix(&mut self, lhs: &mut AstNode, start: usize, level: u8, end_endpoint: bool) -> Result<()> {
+    loop {
+      let binary: fn(Box<AstNode>, Box<AstNode>) -> AstNode;
+      let operator_level;
+      match self.look(At::AfterOperand)? {
+        T::Dot | T::Descendant => {
+          self.path(lhs)?;
+          self.note("Path", start);
+          continue;
+        }
+        T::LeftBracket => {
+          if end_endpoint {
+            break;
+          }
+          self.filter(lhs)?;
+          self.note("Filter", start);
+          continue;
+        }
+        T::LeftParen => {
+          self.invocation(lhs)?;
+          self.note("Invocation", start);
+          continue;
+        }
+        T::Instance => {
+          self.instance_of(lhs)?;
+          self.note("InstanceOf", start);
+          continue;
+        }
+        T::Between => {
+          if BETWEEN <= level {
+            break;
+          }
+          self.between(lhs)?;
+          self.note("Between", start);
+          continue;
+        }
+        T::In => {
+          // right associative
+          if IN < level {
+            break;
+          }
+          self.comparison_in(lhs)?;
+          self.note("In", start);
+          continue;
+        }
+        T::Or => (binary, operator_level) = (AstNode::Or, OR),
+        T::And => (binary, operator_level) = (AstNode::And, AND),
+        T::Eq => (binary, operator_level) = (AstNode::Eq, COMPARISON),
+        T::Ne => (binary, operator_level) = (AstNode::Nq, COMPARISON),
+        T::Lt => (binary, operator_level) = (AstNode::Lt, COMPARISON),
+        T::Le => (binary, operator_level) = (AstNode::Le, COMPARISON),
+        T::Gt => (binary, operator_level) = (AstNode::Gt, COMPARISON),
+        T::Ge => (binary, operator_level) = (AstNode::Ge, COMPARISON),
+        T::Plus => (binary, operator_level) = (AstNode::Add, ADDITION),
+        T::Minus => (binary, operator_level) = (AstNode::Sub, ADDITION),
+        T::Mul => (binary, operator_level) = (AstNode::Mul, MULTIPLICATION),
+        T::Div => (binary, operator_level) = (AstNode::Div, MULTIPLICATION),
+        T::Exp => (binary, operator_level) = (AstNode::Exp, EXPONENTIATION),
+        _ => break,
+      }
+      // the binary operators are left associative; a comparison takes no comparison as an operand
+      if operator_level < level {
+        break;
+      }
+      if operator_level == level {
+        if level != COMPARISON {
+          break;
+        }
+        self.unexpected("comparison", "a comparison can not be compared again without parentheses")?;
+      }
+      self.binary(lhs, binary, operator_level)?;
+      self.note(operator_name(operator_level), start);
     }
     Ok(())
   }
 
-  fn action_quantified_expression_variable_name_begin(&mut self) -> Result<()> {
-    trace_action!(self, "quantified_expression_variable_name_begin");
-    self.yy_lexer.set_till_in();
+  /// A binary operator and its right operand. The parser looks at the operator.
+  #[inline(never)]
+  fn binary(&mut self, lhs: &mut AstNode, binary: fn(Box<AstNode>, Box<AstNode>) -> AstNode, operator_level: u8) -> Result<()> {
+    self.bump();
+    let rhs = self.boxed(operator_level)?;
+    wrap(lhs, |lhs| binary(lhs, rhs));
+    self.made = if operator_level >= ADDITION { Made::Arithmetic } else { Made::Textual };
     Ok(())
   }
 
-  fn action_quantified_expressions_tail(&mut self) -> Result<()> {
-    trace_action!(self, "quantified_expressions_tail");
-    list_item!(self, QuantifiedContexts, false);
+  /// A path or a descendant: `.` or `...` and a name.
+  #[inline(never)]
+  fn path(&mut self, lhs: &mut AstNode) -> Result<()> {
+    let descendant = self.kind == T::Descendant;
+    self.bump();
+    self.lexer.set_after_dot();
+    let name = Box::new(AstNode::Name(self.name_as(At::Start, TokenClass::Property)?));
+    wrap(lhs, |lhs| if descendant { AstNode::Descendant(lhs, name) } else { AstNode::Path(lhs, name) });
+    self.made = Made::Textual;
     Ok(())
   }
 
-  fn action_range_literal(&mut self) -> Result<()> {
-    trace_action!(self, "range_literal");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Range(Box::new(lhs), Box::new(rhs)));
+  /// A filter: `[`, an expression and `]`.
+  #[inline(never)]
+  fn filter(&mut self, lhs: &mut AstNode) -> Result<()> {
+    self.bump();
+    let filter = self.boxed_inner()?;
+    self.expect(T::RightBracket, At::AfterOperand)?;
+    wrap(lhs, |lhs| AstNode::Filter(lhs, filter));
+    self.made = Made::Textual;
     Ok(())
   }
 
-  fn action_range_literal_empty_end(&mut self) -> Result<()> {
-    trace_action!(self, "range_literal_empty_end");
-    let interval_type = if matches!(&self.yy_value_stack[self.yy_value_stack.len() - 1], TokenValue::RightBracket) {
-      IntervalType::ClosedUndef
+  /// An invocation: `(` and the parameters.
+  #[inline(never)]
+  fn invocation(&mut self, lhs: &mut AstNode) -> Result<()> {
+    self.bump();
+    let parameters = Box::new(self.parameters()?);
+    wrap(lhs, |lhs| AstNode::FunctionInvocation(lhs, parameters));
+    self.made = Made::Textual;
+    Ok(())
+  }
+
+  /// `instance of` and a type.
+  #[inline(never)]
+  fn instance_of(&mut self, lhs: &mut AstNode) -> Result<()> {
+    self.bump();
+    self.expect(T::Of, At::Start)?;
+    self.lexer.set_type_name();
+    let expected_type = Box::new(self.type_expression()?);
+    wrap(lhs, |lhs| AstNode::InstanceOf(lhs, expected_type));
+    self.made = Made::Textual;
+    Ok(())
+  }
+
+  /// `between`, the middle operand, `and` and the last operand.
+  #[inline(never)]
+  fn between(&mut self, lhs: &mut AstNode) -> Result<()> {
+    self.bump();
+    let between = std::mem::replace(&mut self.between, true);
+    let middle = self.boxed(LOWEST);
+    self.between = between;
+    let middle = middle?;
+    self.expect(T::BetweenAnd, At::AfterOperand)?;
+    let rhs = self.boxed(BETWEEN_AND)?;
+    wrap(lhs, |lhs| AstNode::Between(lhs, middle, rhs));
+    self.made = Made::Textual;
+    Ok(())
+  }
+
+  /// `in` and its right side: an operand, or tests in parentheses.
+  #[inline(never)]
+  fn comparison_in(&mut self, lhs: &mut AstNode) -> Result<()> {
+    self.bump();
+    let rhs = if self.look(At::Start)? == T::LeftParen {
+      let start = self.token_start;
+      self.bump();
+      let between = std::mem::replace(&mut self.between, false);
+      let mut first = self.expression(LOWEST)?;
+      match self.kind {
+        T::Comma => {
+          let mut items = vec![first];
+          while self.kind == T::Comma {
+            self.bump();
+            self.push(&mut items)?;
+          }
+          self.expect(T::RightParen, At::AfterOperand)?;
+          self.between = between;
+          // the tests in parentheses are no operand: no operator of the right side follows them
+          let tests = Box::new(AstNode::ExpressionList(items));
+          wrap(lhs, |lhs| AstNode::In(lhs, tests));
+          self.made = Made::Textual;
+          return Ok(());
+        }
+        T::RightParen => self.bump(),
+        T::Ellipsis => first = self.interval_end(first, IntervalType::Opened, start)?,
+        _ => self.unexpected("expected", "`,`, `)` or `..` is expected here")?,
+      }
+      self.between = between;
+      // the operators after the operand in parentheses: an open expression, as the operand
+      // without parentheses is
+      self.enter()?;
+      self.infix(&mut first, start, IN, false)?;
+      self.nesting -= 1;
+      first
     } else {
-      IntervalType::OpenedUndef
+      self.expression(IN)?
     };
-    self.yy_node_stack.push(AstNode::IntervalEnd(AstNode::Null.into(), interval_type));
+    let rhs = Box::new(rhs);
+    wrap(lhs, |lhs| AstNode::In(lhs, rhs));
+    self.made = Made::Textual;
     Ok(())
   }
 
-  fn action_range_literal_empty_start(&mut self) -> Result<()> {
-    trace_action!(self, "range_literal_empty_start");
-    let interval_type = if matches!(&self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize], TokenValue::LeftBracket) {
-      IntervalType::ClosedUndef
+  /// An operand: a literal, a name, a parenthesized expression, an interval, a boxed
+  /// expression, an expression that starts with a keyword, or an operand after a sign or a
+  /// comparison operator.
+  fn operand(&mut self) -> Result<AstNode> {
+    self.made = Made::Textual;
+    let kind = self.look(At::Start)?;
+    let start = self.token_start;
+    match kind {
+      T::Numeric => {
+        self.made = Made::SimpleLiteral;
+        let node = self.numeric();
+        self.note("Number", start);
+        node
+      }
+      T::String => {
+        self.made = Made::SimpleLiteral;
+        let node = self.string().map(AstNode::String);
+        self.note("String", start);
+        node
+      }
+      T::Boolean => {
+        self.made = Made::SimpleLiteral;
+        let node = if let TokenValue::Boolean(value) = self.take() {
+          Ok(AstNode::Boolean(value))
+        } else {
+          self.error()
+        };
+        self.note("Boolean", start);
+        node
+      }
+      T::At => self.at_literal(),
+      T::Null => {
+        self.bump();
+        self.note("Null", start);
+        Ok(AstNode::Null)
+      }
+      T::Name => {
+        let node = self.name(At::Start).map(AstNode::Name);
+        self.note("Name", start);
+        node
+      }
+      T::NameDateTime => self.date_time_literal(),
+      T::LeftParen => self.parenthesized(),
+      T::LeftBracket => self.list_or_interval(true),
+      T::RightBracket => self.interval_from_right_bracket(),
+      T::LeftBrace => self.context(),
+      T::Function => self.function_definition(),
+      T::If => self.if_expression(),
+      T::For => self.for_expression(),
+      T::Some | T::Every => self.quantified_expression(),
+      T::Minus => self.negation(),
+      T::Lt => self.unary_comparison(AstNode::UnaryLt),
+      T::Le => self.unary_comparison(AstNode::UnaryLe),
+      T::Gt => self.unary_comparison(AstNode::UnaryGt),
+      T::Ge => self.unary_comparison(AstNode::UnaryGe),
+      T::Eq => self.unary_comparison(AstNode::UnaryEq),
+      T::Ne => self.unary_comparison(AstNode::UnaryNe),
+      _ => {
+        // in a tolerant parse the operand is missing: nothing is taken
+        self.unexpected("expected-expression", "an expression is expected here")?;
+        let start = self.last_end;
+        self.note("Error", start);
+        Ok(AstNode::Null)
+      }
+    }
+  }
+
+  /// Takes the number the parser looks at.
+  #[inline(never)]
+  fn numeric(&mut self) -> Result<AstNode> {
+    let TokenValue::Numeric(before, after, sign, exponent) = self.take() else {
+      return self.error();
+    };
+    Ok(AstNode::Numeric(before, after, sign, exponent))
+  }
+
+  /// Takes the string the parser looks at.
+  #[inline(never)]
+  fn string(&mut self) -> Result<String> {
+    let TokenValue::String(value) = self.take() else { return self.error() };
+    Ok(value)
+  }
+
+  /// `@` and a string.
+  #[inline(never)]
+  fn at_literal(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    if self.look(At::Start)? != T::String {
+      self.unexpected("expected", "a string is expected after `@`")?;
+      return Ok(AstNode::Null);
+    }
+    let node = self.string().map(AstNode::At);
+    self.made = Made::SimpleLiteral;
+    self.note("Temporal", start);
+    node
+  }
+
+  /// A date and time literal: the name of its function, `(` and the parameters.
+  #[inline(never)]
+  fn date_time_literal(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.role(TokenClass::Function);
+    let TokenValue::NameDateTime(name) = self.take() else { return self.error() };
+    self.expect(T::LeftParen, At::Start)?;
+    let parameters = self.parameters()?;
+    self.made = Made::SimpleLiteral;
+    self.note("Temporal", start);
+    Ok(AstNode::FunctionInvocation(Box::new(AstNode::Name(name)), Box::new(parameters)))
+  }
+
+  /// An arithmetic negation: its operand takes only what binds tighter than the arithmetic.
+  #[inline(never)]
+  fn negation(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    let operand = self.boxed(NEGATION)?;
+    self.made = Made::Negation;
+    self.note("Negation", start);
+    Ok(AstNode::Neg(operand))
+  }
+
+  /// A unary comparison: its operand takes the arithmetic and the `in` after it.
+  #[inline(never)]
+  fn unary_comparison(&mut self, unary: fn(Box<AstNode>) -> AstNode) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    let operand = self.boxed(IN)?;
+    self.made = Made::Textual;
+    self.note("UnaryTest", start);
+    Ok(unary(operand))
+  }
+
+  /// An expression in parentheses, or an interval that starts with `(`.
+  #[inline(never)]
+  fn parenthesized(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    let between = std::mem::replace(&mut self.between, false);
+    let mut node = self.expression(LOWEST)?;
+    match self.kind {
+      T::RightParen => {
+        self.bump();
+        self.note("Parentheses", start);
+      }
+      T::Ellipsis => node = self.interval_end(node, IntervalType::Opened, start)?,
+      _ => self.unexpected("expected", "`)` is expected here")?,
+    }
+    self.between = between;
+    self.made = Made::Textual;
+    Ok(node)
+  }
+
+  /// `if`, a condition, `then`, an expression, `else` and an expression.
+  #[inline(never)]
+  fn if_expression(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    let between = std::mem::replace(&mut self.between, false);
+    let condition = self.boxed(LOWEST)?;
+    self.expect(T::Then, At::AfterOperand)?;
+    let then = self.boxed(LOWEST)?;
+    self.expect(T::Else, At::AfterOperand)?;
+    self.between = between;
+    let otherwise = self.boxed(LOWEST)?;
+    self.made = Made::Textual;
+    self.note("If", start);
+    Ok(AstNode::If(condition, then, otherwise))
+  }
+
+  /// The rest of an interval after its start endpoint: `..`, the end endpoint and the closing
+  /// bracket. The parser looks at the `..`.
+  #[inline(never)]
+  fn interval_end(&mut self, start: AstNode, start_type: IntervalType, from: usize) -> Result<AstNode> {
+    self.expect(T::Ellipsis, At::AfterOperand)?;
+    let start = Box::new(AstNode::IntervalStart(Box::new(start), start_type));
+    let end = Box::new(self.expression_until(LOWEST, true)?);
+    let end_type = match self.kind {
+      T::RightParen | T::LeftBracket => {
+        self.bump();
+        IntervalType::Opened
+      }
+      T::RightBracket => {
+        self.bump();
+        IntervalType::Closed
+      }
+      _ => {
+        self.unexpected("expected", "`)`, `[` or `]` is expected here")?;
+        IntervalType::Opened
+      }
+    };
+    self.note("Interval", from);
+    Ok(AstNode::Range(start, Box::new(AstNode::IntervalEnd(end, end_type))))
+  }
+
+  /// An interval that starts with `]`. The parser looks at the `]`.
+  #[inline(never)]
+  fn interval_from_right_bracket(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    let between = std::mem::replace(&mut self.between, false);
+    let interval = self.interval_after_right_bracket(start)?;
+    self.between = between;
+    self.made = Made::Textual;
+    Ok(interval)
+  }
+
+  /// An interval after the `]` that starts it. A `[` after its start endpoint is no filter, as
+  /// after an end endpoint.
+  fn interval_after_right_bracket(&mut self, from: usize) -> Result<AstNode> {
+    let start = self.expression_until(LOWEST, true)?;
+    self.interval_end(start, IntervalType::Opened, from)
+  }
+
+  /// A list or an interval that starts with `[`; only a list without `interval`.
+  #[inline(never)]
+  fn list_or_interval(&mut self, interval: bool) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    let first = if self.look(At::Start)? == T::RightBracket {
+      let inner_start = self.token_start;
+      self.bump();
+      // an operand after `[]`: the `]` starts an interval, the first item of the list
+      match self.look(At::AfterOperand)? {
+        T::At | T::Every | T::For | T::LeftBrace | T::Null | T::Function | T::If | T::Some | T::Numeric | T::String | T::Boolean | T::Name | T::NameDateTime => {
+          let between = std::mem::replace(&mut self.between, false);
+          let mut first = self.interval_after_right_bracket(inner_start)?;
+          self.infix(&mut first, inner_start, LOWEST, false)?;
+          self.between = between;
+          first
+        }
+        _ => {
+          self.made = Made::Boxed;
+          self.note("List", start);
+          return Ok(AstNode::List(vec![]));
+        }
+      }
     } else {
-      IntervalType::OpenedUndef
+      self.inner()?
     };
-    self.yy_node_stack.push(AstNode::IntervalStart(AstNode::Null.into(), interval_type));
-    Ok(())
+    let between = std::mem::replace(&mut self.between, false);
+    let node = match self.kind {
+      T::Ellipsis if interval => {
+        let node = self.interval_end(first, IntervalType::Closed, start)?;
+        self.made = Made::Textual;
+        node
+      }
+      _ => {
+        let mut items = vec![first];
+        loop {
+          while self.kind == T::Comma {
+            self.bump();
+            self.push(&mut items)?;
+          }
+          if self.kind == T::RightBracket || !self.skip_to(T::RightBracket, "`,` or `]` is expected here")? {
+            break;
+          }
+        }
+        self.expect(T::RightBracket, At::AfterOperand)?;
+        self.made = Made::Boxed;
+        self.note("List", start);
+        AstNode::List(items)
+      }
+    };
+    self.between = between;
+    Ok(node)
   }
 
-  fn action_range_literal_end(&mut self) -> Result<()> {
-    trace_action!(self, "range_literal_end");
-    let interval_type = if matches!(&self.yy_value_stack[self.yy_value_stack.len() - 1], TokenValue::RightBracket) {
-      IntervalType::Closed
+  /// The parameters of an invocation after its `(`.
+  #[inline(never)]
+  fn parameters(&mut self) -> Result<AstNode> {
+    let between = std::mem::replace(&mut self.between, false);
+    let parameters = match self.look(At::Start)? {
+      T::RightParen => {
+        self.bump();
+        AstNode::PositionalParameters(vec![])
+      }
+      T::Name => {
+        let start = self.token_start;
+        let name = self.name(At::Start)?;
+        if self.look(At::AfterOperand)? == T::Colon {
+          self.named_parameters(name)?
+        } else {
+          self.note("Name", start);
+          self.enter()?;
+          let mut first = AstNode::Name(name);
+          self.infix(&mut first, start, LOWEST, false)?;
+          self.nesting -= 1;
+          self.positional_parameters(first)?
+        }
+      }
+      _ => {
+        let first = self.expression(LOWEST)?;
+        self.positional_parameters(first)?
+      }
+    };
+    self.between = between;
+    Ok(parameters)
+  }
+
+  /// The named parameters after the name of the first one. The parser looks at the `:`.
+  #[inline(never)]
+  fn named_parameters(&mut self, mut name: Name) -> Result<AstNode> {
+    if let Some(syntax) = &mut self.syntax
+      && let Some(token) = syntax.tokens.iter_mut().rev().find(|token| token.class == TokenClass::Name)
+    {
+      // the name before the `:` the parser looks at
+      token.class = TokenClass::Parameter;
+    }
+    let mut items = vec![];
+    loop {
+      self.expect(T::Colon, At::Start)?;
+      let value = self.boxed(LOWEST)?;
+      items.push(AstNode::NamedParameter(Box::new(AstNode::ParameterName(name)), value));
+      match self.kind {
+        T::Comma => {
+          self.bump();
+          name = self.name_as(At::Start, TokenClass::Parameter)?;
+        }
+        T::RightParen => break self.bump(),
+        _ => {
+          self.unexpected("expected", "`,` or `)` is expected here")?;
+          break;
+        }
+      }
+    }
+    Ok(AstNode::NamedParameters(items))
+  }
+
+  /// The positional parameters after the first one.
+  #[inline(never)]
+  fn positional_parameters(&mut self, first: AstNode) -> Result<AstNode> {
+    let mut items = vec![first];
+    loop {
+      while self.kind == T::Comma {
+        self.bump();
+        self.push(&mut items)?;
+      }
+      if self.kind == T::RightParen || !self.skip_to(T::RightParen, "`,` or `)` is expected here")? {
+        break;
+      }
+    }
+    self.expect(T::RightParen, At::AfterOperand)?;
+    Ok(AstNode::PositionalParameters(items))
+  }
+
+  /// A context. The parser looks at its `{`.
+  #[inline(never)]
+  fn context(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    self.lexer.push_to_scope();
+    let between = std::mem::replace(&mut self.between, false);
+    let mut entries = vec![];
+    if self.look(At::Start)? == T::RightBrace {
+      self.bump();
     } else {
-      IntervalType::Opened
-    };
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::IntervalEnd(Box::new(lhs), interval_type));
-    Ok(())
+      loop {
+        let key = self.look(At::Start)?;
+        let entry_start = self.token_start;
+        let name = match key {
+          T::Name => self.name_as(At::Start, TokenClass::Key)?,
+          T::String => {
+            self.role(TokenClass::Key);
+            Name::from(self.string()?)
+          }
+          _ => {
+            self.unexpected("expected", "a name or a string is expected here, as the key of an entry")?;
+            Name::from("")
+          }
+        };
+        self.expect(T::Colon, At::Start)?;
+        let value = self.boxed(LOWEST)?;
+        self.lexer.add_parsed_name(name.clone());
+        entries.push(AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(name)), value));
+        self.note("Entry", entry_start);
+        match self.kind {
+          T::Comma => self.bump(),
+          T::RightBrace => break self.bump(),
+          _ => {
+            self.unexpected("expected", "`,` or `}` is expected here")?;
+            break;
+          }
+        }
+      }
+    }
+    self.lexer.pop_from_scope();
+    self.between = between;
+    self.made = Made::Boxed;
+    self.note("Context", start);
+    Ok(AstNode::Context(entries))
   }
 
-  fn action_range_literal_start(&mut self) -> Result<()> {
-    trace_action!(self, "range_literal_start");
-    let interval_type = if matches!(&self.yy_value_stack[self.yy_value_stack.len() - self.yy_len as usize], TokenValue::LeftBracket) {
-      IntervalType::Closed
+  /// A function definition. The parser looks at its `function`.
+  #[inline(never)]
+  fn function_definition(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    self.expect(T::LeftParen, At::Start)?;
+    self.scope.push_default();
+    let parameters = Box::new(self.formal_parameters()?);
+    let external = self.look(At::Start)? == T::External;
+    if external {
+      self.bump();
+    }
+    let body = self.boxed(LOWEST)?;
+    self.scope.pop();
+    self.made = Made::Boxed;
+    self.note("Function", start);
+    Ok(AstNode::FunctionDefinition(parameters, Box::new(AstNode::FunctionBody(body, external))))
+  }
+
+  /// The formal parameters of a function definition after their `(`.
+  #[inline(never)]
+  fn formal_parameters(&mut self) -> Result<AstNode> {
+    let between = std::mem::replace(&mut self.between, false);
+    let mut parameters = vec![];
+    if self.look(At::Start)? == T::RightParen {
+      self.bump();
     } else {
-      IntervalType::Opened
+      loop {
+        let name = self.name_as(At::Start, TokenClass::Parameter)?;
+        let parameter_type = if self.look(At::AfterOperand)? == T::Colon {
+          self.bump();
+          self.lexer.set_type_name();
+          self.type_expression()?
+        } else {
+          AstNode::FeelType(FeelType::Any)
+        };
+        self.scope.set_entry_name(name.clone());
+        parameters.push(AstNode::FormalParameter(Box::new(AstNode::ParameterName(name)), Box::new(parameter_type)));
+        match self.look(At::AfterOperand)? {
+          T::Comma => self.bump(),
+          T::RightParen => break self.bump(),
+          _ => {
+            self.unexpected("expected", "`,` or `)` is expected here")?;
+            break;
+          }
+        }
+      }
+    }
+    self.between = between;
+    Ok(AstNode::FormalParameters(parameters))
+  }
+
+  /// A `for` expression. The parser looks at its `for`.
+  #[inline(never)]
+  fn for_expression(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.bump();
+    self.lexer.push_to_scope();
+    self.lexer.add_name_to_scope(Name::from("partial"));
+    let contexts = Box::new(self.iteration_contexts()?);
+    let body = self.boxed(LOWEST)?;
+    self.lexer.pop_from_scope();
+    self.made = Made::Textual;
+    self.note("For", start);
+    Ok(AstNode::For(contexts, Box::new(AstNode::EvaluatedExpression(body))))
+  }
+
+  /// The iteration contexts of a `for` expression and its `return`.
+  #[inline(never)]
+  fn iteration_contexts(&mut self) -> Result<AstNode> {
+    let between = std::mem::replace(&mut self.between, false);
+    let mut contexts = vec![];
+    loop {
+      self.lexer.set_till_in();
+      let name = self.name_as(At::Start, TokenClass::Variable)?;
+      let variable = Box::new(AstNode::Name(name.clone()));
+      self.lexer.add_name_to_scope(name);
+      self.expect(T::In, At::Start)?;
+      let start = self.boxed(LOWEST)?;
+      contexts.push(if self.kind == T::Ellipsis {
+        self.bump();
+        let end = self.boxed(LOWEST)?;
+        AstNode::IterationContextInterval(variable, start, end)
+      } else {
+        AstNode::IterationContextSingle(variable, start)
+      });
+      if self.kind != T::Comma {
+        break;
+      }
+      self.bump();
+    }
+    self.expect(T::Return, At::AfterOperand)?;
+    self.between = between;
+    Ok(AstNode::IterationContexts(contexts))
+  }
+
+  /// A `some` or `every` expression. The parser looks at its first keyword.
+  #[inline(never)]
+  fn quantified_expression(&mut self) -> Result<AstNode> {
+    let every = self.kind == T::Every;
+    let start = self.token_start;
+    self.bump();
+    self.lexer.push_to_scope();
+    let contexts = Box::new(self.quantified_contexts()?);
+    let body = self.boxed(LOWEST)?;
+    self.lexer.pop_from_scope();
+    self.made = Made::Textual;
+    self.note("Quantified", start);
+    let satisfies = Box::new(AstNode::Satisfies(body));
+    Ok(if every {
+      AstNode::Every(contexts, satisfies)
+    } else {
+      AstNode::Some(contexts, satisfies)
+    })
+  }
+
+  /// The variables of a `some` or `every` expression with their lists, and its `satisfies`.
+  #[inline(never)]
+  fn quantified_contexts(&mut self) -> Result<AstNode> {
+    let between = std::mem::replace(&mut self.between, false);
+    let mut contexts = vec![];
+    loop {
+      self.lexer.set_till_in();
+      let name = self.name_as(At::Start, TokenClass::Variable)?;
+      let variable = Box::new(AstNode::Name(name.clone()));
+      self.lexer.add_name_to_scope(name);
+      self.expect(T::In, At::Start)?;
+      let domain = self.boxed(LOWEST)?;
+      contexts.push(AstNode::QuantifiedContext(variable, domain));
+      if self.kind != T::Comma {
+        break;
+      }
+      self.bump();
+    }
+    self.expect(T::Satisfies, At::AfterOperand)?;
+    self.between = between;
+    Ok(AstNode::QuantifiedContexts(contexts))
+  }
+
+  /// A type. The lexer was told that a type is expected.
+  #[inline(never)]
+  fn type_expression(&mut self) -> Result<AstNode> {
+    self.enter()?;
+    let kind = self.look(At::Start)?;
+    let start = self.token_start;
+    let node = match kind {
+      T::BuiltInTypeName => {
+        self.role(TokenClass::Type);
+        let TokenValue::BuiltInTypeName(name) = self.take() else { return self.error() };
+        AstNode::FeelType((&name).into())
+      }
+      T::Name => {
+        let name = self.name_as(At::Start, TokenClass::Type)?;
+        self.qualified_name(name)?
+      }
+      T::List | T::Range => self.list_or_range_type()?,
+      T::Context => self.context_type()?,
+      T::Function => self.function_type()?,
+      _ => {
+        self.unexpected("expected-type", "a type is expected here")?;
+        AstNode::Null
+      }
     };
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::IntervalStart(Box::new(lhs), interval_type));
-    Ok(())
+    self.nesting -= 1;
+    self.note("Type", start);
+    Ok(node)
   }
 
-  fn action_range_type(&mut self) -> Result<()> {
-    trace_action!(self, "range_type");
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::RangeType(Box::new(lhs)));
-    Ok(())
+  /// `list<` or `range<`, a type and `>`.
+  fn list_or_range_type(&mut self) -> Result<AstNode> {
+    let list = self.kind == T::List;
+    self.bump();
+    self.expect(T::Lt, At::Start)?;
+    self.lexer.set_type_name();
+    let between = std::mem::replace(&mut self.between, false);
+    let item_type = Box::new(self.type_expression()?);
+    self.expect(T::Gt, At::AfterOperand)?;
+    self.between = between;
+    Ok(if list { AstNode::ListType(item_type) } else { AstNode::RangeType(item_type) })
   }
 
-  fn action_some(&mut self) -> Result<()> {
-    trace_action!(self, "some");
-    // pop temporary context from the top of the scope
-    self.yy_lexer.pop_from_scope();
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let mut lhs = self.yy_node_stack.pop().unwrap();
-    complete_list!(lhs, QuantifiedContexts);
-    let satisfies = Box::new(AstNode::Satisfies(Box::new(rhs)));
-    self.yy_node_stack.push(AstNode::Some(Box::new(lhs), satisfies));
-    Ok(())
+  /// `context<`, the entries with their types and `>`.
+  fn context_type(&mut self) -> Result<AstNode> {
+    self.bump();
+    self.expect(T::Lt, At::Start)?;
+    let between = std::mem::replace(&mut self.between, false);
+    let mut entries = vec![];
+    loop {
+      let name = self.name(At::Start)?;
+      self.expect(T::Colon, At::Start)?;
+      self.lexer.set_type_name();
+      let entry_type = Box::new(self.type_expression()?);
+      entries.push(AstNode::ContextTypeEntry(Box::new(AstNode::ContextTypeEntryKey(name)), entry_type));
+      match self.look(At::AfterOperand)? {
+        T::Comma => self.bump(),
+        T::Gt => break self.bump(),
+        _ => {
+          self.unexpected("expected", "`,` or `>` is expected here")?;
+          break;
+        }
+      }
+    }
+    self.between = between;
+    Ok(AstNode::ContextType(entries))
   }
 
-  fn action_some_begin(&mut self) -> Result<()> {
-    trace_action!(self, "some_begin");
-    // push temporary context on the top of the scope,
-    // this context will be used to store
-    // local variable names of quantified expressions
-    self.yy_lexer.push_to_scope();
-    Ok(())
+  /// `function<`, the types of the parameters, `>`, `->` and the type of the result.
+  fn function_type(&mut self) -> Result<AstNode> {
+    self.bump();
+    self.expect(T::Lt, At::Start)?;
+    self.lexer.set_type_name();
+    let between = std::mem::replace(&mut self.between, false);
+    let mut parameter_types = vec![];
+    if self.look(At::Start)? == T::Gt {
+      self.bump();
+    } else {
+      loop {
+        parameter_types.push(self.type_expression()?);
+        match self.look(At::AfterOperand)? {
+          T::Comma => {
+            self.bump();
+            self.lexer.set_type_name();
+          }
+          T::Gt => break self.bump(),
+          _ => {
+            self.unexpected("expected", "`,` or `>` is expected here")?;
+            break;
+          }
+        }
+      }
+    }
+    self.expect(T::RightArrow, At::Start)?;
+    self.lexer.set_type_name();
+    self.between = between;
+    let result_type = Box::new(self.type_expression()?);
+    Ok(AstNode::FunctionType(Box::new(AstNode::ParameterTypes(parameter_types)), result_type))
   }
+}
 
-  fn action_subtraction(&mut self) -> Result<()> {
-    trace_action!(self, "subtraction");
-    let rhs = self.yy_node_stack.pop().unwrap();
-    let lhs = self.yy_node_stack.pop().unwrap();
-    self.yy_node_stack.push(AstNode::Sub(Box::new(lhs), Box::new(rhs)));
-    Ok(())
-  }
+#[cfg(test)]
+mod stack_tests {
+  use super::*;
 
-  fn action_type_name(&mut self) -> Result<()> {
-    trace_action!(self, "type_name");
-    self.yy_lexer.set_type_name();
-    Ok(())
-  }
-
-  fn action_unary_tests_begin(&mut self) -> Result<()> {
-    trace_action!(self, "unary_tests_begin");
-    self.yy_lexer.set_unary_tests();
-    Ok(())
-  }
-
-  fn action_unary_tests_irrelevant(&mut self) -> Result<()> {
-    trace_action!(self, "unary_tests_irrelevant");
-    self.yy_node_stack.push(AstNode::Irrelevant);
-    Ok(())
-  }
-
-  fn action_unary_tests_negated(&mut self) -> Result<()> {
-    trace_action!(self, "unary_tests_negated");
-    convert_list!(self, ExpressionList, NegatedList);
-    Ok(())
+  /// Prints the stack one level of nesting takes, for some kinds of nesting.
+  #[test]
+  fn stack_per_level() {
+    let n = 200;
+    let cases = [
+      ("parentheses", format!("{}1{}", "(".repeat(n), ")".repeat(n)), n),
+      ("sum in parentheses", format!("{}1{}", "(1+".repeat(n), ")".repeat(n)), 2 * n),
+      ("list", format!("{}1{}", "[".repeat(n), "]".repeat(n)), n),
+      ("context", format!("{}1{}", "{a:".repeat(n), "}".repeat(n)), n),
+      ("negation", format!("{}1", "-".repeat(n)), n),
+      ("if", format!("{}1", "if true then 1 else ".repeat(n)), n),
+      ("invocation", format!("{}1{}", "f(".repeat(n), ")".repeat(n)), n),
+      ("for", format!("{}x", "for x in [1] return ".repeat(n)), n),
+      ("function", format!("{}1", "function(a) ".repeat(n)), n),
+      ("filter", format!("{}1{}", "a[".repeat(n), "]".repeat(n)), n),
+      ("between", format!("{}1", "1 between 0 and ".repeat(n)), n),
+      ("in", format!("{}1", "1 in ".repeat(n)), n),
+    ];
+    for (name, input, levels) in cases {
+      let handle = std::thread::Builder::new()
+        .stack_size(64 * 1024 * 1024)
+        .spawn(move || {
+          let scope = ParsingScope::new(std::iter::empty());
+          let top = 0u8;
+          let top = &top as *const u8 as usize;
+          STACK_LOW.with(|low| low.set(usize::MAX));
+          let result = Parser::new(&scope, TokenType::StartExpression, &input, false).parse();
+          assert!(result.is_ok(), "{name}");
+          let low = STACK_LOW.with(|low| low.get());
+          println!("STACK {name}: {} bytes per level of {levels}", (top - low) / levels);
+        })
+        .unwrap();
+      handle.join().unwrap();
+    }
   }
 }

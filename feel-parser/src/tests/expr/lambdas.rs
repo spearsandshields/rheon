@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::lalr::TokenType::*;
+use crate::token::TokenType::*;
 
 #[test]
 fn _0001() {

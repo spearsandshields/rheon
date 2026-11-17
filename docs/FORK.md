@@ -4139,6 +4139,30 @@ looked up only when a name in scope has its length (232).
     Identity of the 0.7.0 build against the 0.7.0 module: the committed sources are 15,450
     requests, with `--release` 15,462 (5 trapping the reference), no difference.
 
+248. **The parser is written by hand.** `feel-parser/src/parser.rs` is a recursive-descent parser
+    with one loop for the operators, in place of the driver of the LALR tables that Bison
+    generated from `feel-grammar/src/feel.y` (`lalr.rs`, the table driver and `build.rs` are
+    deleted; the token types moved to `token.rs` with their numbers). It reads the tokens of
+    the same lexer and tells it what it expects at the places where the generated parser did
+    so through its actions; a token is read when the parser first looks at it. For every text,
+    start rule and scope it reads the same tokens and gives the same tree or the same error:
+    proven before the switch on about 61 million generated cases with both parsers side by
+    side, and after it by the recorded outcomes of the parser tests, which did not change.
+    One registered difference: the parser takes native stack for each level of nesting and
+    stops at 640 expressions open at once (`expression is nested too deeply (more than 640
+    levels of nesting)`). A text nested deeper than that was rejected before by the depth
+    check after the parser with the number of levels in the message; more than 639 nested
+    parentheses around one operand were accepted. Texts whose tree is at most 300 levels deep
+    and long chains without nesting answer as before. The ledger is
+    `tools/identity/registered/parser-nesting.json`. Also new, and used by nothing yet:
+    `parse_tolerant`, which never fails and returns the tokens, the nodes with their places
+    and every syntax error of a text (the base of the editor operations); the wasm module has
+    a prototype operation `syntax` behind the feature `editor-prototype`, outside the
+    contract. `rheon-feel-grammar` is no build dependency any more and is not published
+    (`publish = false`): it stays as the reference grammar. The `trace` argument of the entry
+    points is accepted and ignored. In a debug build of this workspace the parser crate is
+    compiled with `opt-level = 1`, so that the nesting limit fits the stack of a test thread.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,
