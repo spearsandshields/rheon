@@ -1779,3 +1779,49 @@ fn chosen_expressions_have_their_recorded_outcome() {
     "the outcome of a chosen expression is not the recorded one; after a change that is meant, write the file again with RHEON_GOLDEN=update\nrecorded and now:\n{differs:#?}"
   );
 }
+
+/// Prints the time of one parse with the table-driven and with the hand-written parser, for some
+/// texts (a measurement, run on request in a release build:
+/// `cargo test --release -p rheon-feel-parser parse_speed -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn parse_speed() {
+  let names: Vec<String> = (0..60).map(|i| format!("monthly amount of item {i}")).collect();
+  let name_refs: Vec<(&str, Value)> = names.iter().map(|name| (name.as_str(), number(1))).collect();
+  let many_names = ctx(&name_refs);
+  let few_names = ctx(&[("Monthly Salary", number(1)), ("Tax Rate", number(1)), ("Net Bonus", number(1)), ("items", number(1)), ("order", number(1))]);
+  let cases: Vec<(&str, Vec<FeelContext>, String)> = vec![
+    ("1 + 2", vec![], "1 + 2".to_string()),
+    ("formula, multi-word names", vec![few_names.clone()], "(Monthly Salary * 12 + Net Bonus) * (1 - Tax Rate) / 12".to_string()),
+    ("60 terms, multi-word names", vec![many_names], names.join(" + ")),
+    ("if, for, filter", vec![few_names.clone()], "if count(items[item > 10]) > 3 then sum(for i in items return i * 2) else order.total".to_string()),
+    ("functions in a context", vec![], "{f: function(a, b) a + b, g: function(x) if x > 0 then f(x, 1) else 0, r: g(5) + f(1, 2)}.r".to_string()),
+    ("list of 1,000 numbers", vec![], format!("[{}]", (0..1000).map(|i| i.to_string()).collect::<Vec<_>>().join(", "))),
+    ("context of 200 entries", vec![], format!("{{{}}}", (0..200).map(|i| format!("key {i}: {i}")).collect::<Vec<_>>().join(", "))),
+    ("lists nested 100 levels", vec![], format!("{}1{}", "[".repeat(100), "]".repeat(100))),
+    ("sum of 1,000 terms", vec![], format!("1{}", " + 1".repeat(999))),
+    ("unary tests", vec![], "< 10, [20..30], > 100, \"a\", not(5)".to_string()),
+  ];
+  for (name, frames, input) in &cases {
+    let start = if *name == "unary tests" { TokenType::StartUnaryTests } else { TokenType::StartExpression };
+    let rounds = 7;
+    let iterations = (200_000 / input.len().max(1)).clamp(20, 20_000);
+    let mut best = [f64::MAX; 2];
+    for _ in 0..rounds {
+      for (which, slot) in best.iter_mut().enumerate() {
+        let t0 = std::time::Instant::now();
+        for _ in 0..iterations {
+          let scope = ParsingScope::new(frames.iter());
+          let node = if which == 0 {
+            Parser::new(&scope, start.clone(), input, false).parse()
+          } else {
+            crate::hand::Parser::new(&scope, start.clone(), input).parse()
+          };
+          std::hint::black_box(node.is_ok());
+        }
+        *slot = slot.min(t0.elapsed().as_nanos() as f64 / iterations as f64);
+      }
+    }
+    println!("SPEED {name:<28} tables {:>10.0} ns   hand {:>10.0} ns   {:.2}x", best[0], best[1], best[0] / best[1]);
+  }
+}
