@@ -617,3 +617,116 @@ fn test_context_of_shared_names_is_the_context_of_its_entries() {
   assert!(empty.is_empty());
   assert_eq!(None, empty.get_first());
 }
+
+/// A context whose entries are read on the first use is, from then on and for every reader,
+/// the context that its source reads; it is read once, and not for its nesting depth.
+#[test]
+fn test_context_read_on_first_use_is_the_context_of_its_source() {
+  use crate::context::DeferredEntries;
+  use std::sync::Arc;
+  use std::sync::atomic::{AtomicUsize, Ordering};
+
+  struct Source(AtomicUsize);
+
+  impl Source {
+    fn context() -> FeelContext {
+      let mut inner = FeelContext::default();
+      inner.set_entry(&Name::from("x"), value_number!(1));
+      let mut context = FeelContext::default();
+      context.set_entry(&Name::from("a"), value_number!(10));
+      context.set_entry(&Name::from("b"), inner.into());
+      context
+    }
+  }
+
+  impl DeferredEntries for Source {
+    fn build(&self) -> FeelContext {
+      self.0.fetch_add(1, Ordering::Relaxed);
+      Self::context()
+    }
+  }
+
+  let expected = Source::context();
+  let depth = expected.nesting_depth();
+  assert_eq!(2, depth);
+  let deferred = || {
+    let source = Arc::new(Source(AtomicUsize::new(0)));
+    (FeelContext::deferred(source.clone(), depth), source)
+  };
+  let reads = |source: &Source| source.0.load(Ordering::Relaxed);
+
+  // not read for its depth, for a clone, or as a part of a value whose depth is asked
+  let (context, source) = deferred();
+  assert!(!context.is_built());
+  assert_eq!(depth, context.nesting_depth());
+  let copy = context.clone();
+  let value = Value::List(vec![Value::from(context.clone())].into());
+  assert_eq!(depth + 1, value.nesting_depth());
+  assert_eq!(0, reads(&source));
+  assert!(!copy.is_built());
+
+  // read once by the first use, whatever the use is; a copy made before is read on its own
+  let uses: [fn(&FeelContext) -> bool; 9] = [
+    |context| context.len() == 2,
+    |context| !context.is_empty(),
+    |context| context.get_entry(&Name::from("a")) == Some(&value_number!(10)),
+    |context| context.contains_entry("b") && !context.contains_entry("c"),
+    |context| context.iter().count() == 2,
+    |context| context.get_first() == Some(&value_number!(10)),
+    |context| context.keys_from("b").count() == 1,
+    |context| context.search_deep(&[Name::from("b"), Name::from("x")]) == Some(&value_number!(1)),
+    |context| context.to_string() == "{a: 10, b: {x: 1}}",
+  ];
+  for (index, used) in uses.iter().enumerate() {
+    let (context, source) = deferred();
+    assert!(used(&context), "use {index}");
+    assert!(context.is_built(), "use {index}");
+    assert_eq!(1, reads(&source), "use {index}");
+    assert!(used(&context), "use {index}");
+    assert_eq!(expected, context, "use {index}");
+    assert_eq!(format!("{expected:?}"), format!("{context:?}"), "use {index}");
+    assert_eq!(depth, context.nesting_depth(), "use {index}");
+    // a copy of a context that is read is read: it does not ask the source again
+    assert_eq!(expected, context.clone(), "use {index}");
+    assert_eq!(1, reads(&source), "use {index}");
+  }
+  let (context, source) = deferred();
+  let copy = context.clone();
+  assert_eq!(expected, context);
+  assert_eq!(expected, copy);
+  assert_eq!(2, reads(&source));
+
+  // a change reads it first, and the changed context has the depth of its entries
+  let (mut context, source) = deferred();
+  context.set_entry(&Name::from("c"), Value::List(vec![Value::List(vec![Value::from(FeelContext::default())].into())].into()));
+  assert_eq!(1, reads(&source));
+  assert_eq!(3, context.len());
+  assert_eq!(4, context.nesting_depth());
+  let mut changed = expected.clone();
+  changed.set_entry(&Name::from("c"), Value::List(vec![Value::List(vec![Value::from(FeelContext::default())].into())].into()));
+  assert_eq!(changed, context);
+  let (mut context, source) = deferred();
+  assert_eq!(Some(value_number!(10)), context.remove_entry(&Name::from("a")));
+  assert_eq!(1, context.len());
+  assert_eq!(1, reads(&source));
+
+  // equal to the context of its entries from both sides, and inside a value
+  let (context, _) = deferred();
+  assert_eq!(context, expected);
+  let (context, _) = deferred();
+  assert_eq!(Value::from(expected.clone()), Value::from(context));
+
+  // read from several threads at once, it is read once for all of them
+  let (context, source) = deferred();
+  let shared = Arc::new(context);
+  let threads: Vec<_> = (0..8)
+    .map(|_| {
+      let shared = shared.clone();
+      std::thread::spawn(move || shared.len())
+    })
+    .collect();
+  for thread in threads {
+    assert_eq!(2, thread.join().unwrap());
+  }
+  assert_eq!(1, reads(&source));
+}
