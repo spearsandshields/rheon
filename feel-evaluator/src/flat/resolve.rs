@@ -8,9 +8,10 @@
 //! - inside the predicate of a filter, first the item (the special name `item`, or the item's
 //!   entry of the name) while the filter visits its items, then what the name reads outside the
 //!   predicate;
-//! - otherwise a free name, read at run time from outside the body: from the closure of the
-//!   function, the scopes of its callers and the scope of the host, then the built-in function of
-//!   that name.
+//! - otherwise a free name, read at run time from where the body is written (DMN 1.6
+//!   §10.3.2.13.2, lexical closures): the entries of the context literals the function is
+//!   written in, the closure of the function, the scope of the host, then the built-in function
+//!   of that name. Nothing of whoever invokes the function is read.
 //!
 //! The scopes of an expression are kept as static regions: a region is one scope at
 //! a position of the code (the first entries of a layout, the item of a filter, the closure of a
@@ -57,6 +58,10 @@ pub(crate) struct Resolved<'a> {
   /// The names read from outside the bodies that read them, in the order of their first read:
   /// the report of free names.
   pub(crate) frees: Vec<Free>,
+  /// The layouts of the context literals with a function definition somewhere in their
+  /// entries: the functions written in such a literal see all its entries (DMN 1.6
+  /// §10.3.2.11.1), so its evaluation keeps them in a home.
+  pub(crate) homes: BTreeSet<u32>,
 }
 
 /// A node of the parser's tree with what the pass decided for it.
@@ -243,7 +248,7 @@ pub(crate) struct Free {
 pub(crate) mod uses {
   /// In the root expression: from the input.
   pub(crate) const ROOT: u8 = 1;
-  /// In the body of a function: from the closure or the scopes of its callers first.
+  /// In the body of a function: from the context literals it is written in and its closure first.
   pub(crate) const FUNCTION_BODY: u8 = 2;
   /// In the predicate of a filter: from the item first.
   pub(crate) const FILTER_PREDICATE: u8 = 4;
@@ -284,6 +289,7 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
         body: NONE,
       },
       functions: vec![],
+      homes: BTreeSet::new(),
       frees: vec![],
     },
     interned: HashMap::new(),
@@ -663,6 +669,7 @@ impl<'a> Resolver<'a> {
     let outer = self.body.region;
     let mut kids = Vec::with_capacity(entries.len());
     let mut region = NONE;
+    let functions = self.out.functions.len();
     for (index, entry) in entries.iter().enumerate() {
       let visible = (index as u32).min(count);
       if visible == index as u32 || region == NONE {
@@ -670,6 +677,9 @@ impl<'a> Resolver<'a> {
       }
       self.body.region = region;
       kids.push(self.node(entry));
+    }
+    if self.out.functions.len() > functions {
+      self.out.homes.insert(layout);
     }
     self.body.region = outer;
     self.body.next = mark;

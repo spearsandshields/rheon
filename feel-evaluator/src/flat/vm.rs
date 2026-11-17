@@ -6,9 +6,9 @@
 //! diagnostics in the order of the instructions.
 //!
 //! An invocation of a function whose body is code of a program is an activation of that body in
-//! the same run (on the heap: no recursion of the host). Its body reads the scopes
-//! of the invocation: its parameters, its closure, then the scopes of
-//! its caller where the caller invoked it, and so on down to the scope of the host.
+//! the same run (on the heap: no recursion of the host). Its body reads the scopes of where the
+//! function is written: its parameters, the entries of the context literals it is written in
+//! (its home), its closure, then the scope of the host. It reads nothing of its caller.
 
 use super::program::{CallInfo, Compare, Domain, Fold, Kernel1, Kernel2, ListKind, LoopKind, NONE, Op, Operand, Opnd, Pc, Program, Slot};
 use super::resolve::{Place, Region, RegionKind};
@@ -16,13 +16,13 @@ use crate::Dialect;
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
 use crate::filters::{ITEM, item_at, outcome};
-use crate::invocation::{Arguments, apply_feel_built_in, arity, closed_over, coerce_arguments, in_order, invoke};
+use crate::invocation::{Arguments, apply_feel_built_in, arity, coerce_arguments, in_order, invoke};
 use crate::iterations::Sequence;
 use crate::kernels::{self, Arithmetic, finite};
 use rheon_feel::bif::Bif;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::{FeelList, Value};
-use rheon_feel::{FeelCode, FeelScope, FeelType, FunctionBody, FunctionDefinition, Name, diagnostics, value_null};
+use rheon_feel::{FeelCode, FeelScope, FeelType, FunctionBody, FunctionDefinition, Home, Name, diagnostics, value_null};
 use std::collections::BTreeMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -89,9 +89,8 @@ impl FeelCode for Program {
 }
 
 /// Evaluates the body of `function`, the proto `proto` of `program`, with its parameters bound to
-/// `values` (one per parameter, in their order, converted to their types), in `scope` extended
-/// with the function's closure, as the body of any function is evaluated: then a function that it
-/// gives closes over the names it uses as they are where the body ends.
+/// `values` (one per parameter, in their order, converted to their types): the body reads its
+/// parameters, the function's home and closure, and then `scope`.
 #[inline(never)]
 pub(crate) fn run_function(scope: &FeelScope, function: &Arc<FunctionDefinition>, program: Arc<Program>, proto: u32, values: Vec<Value>) -> Value {
   let body = &program.protos[proto as usize];
@@ -120,6 +119,8 @@ struct Activation {
   records: usize,
   /// Where its cells start in [Vm::cells].
   cells: usize,
+  /// Where its homes start in [Vm::homes].
+  homes: usize,
 }
 
 impl Activation {
@@ -135,6 +136,7 @@ impl Activation {
       base,
       records,
       cells,
+      homes: 0,
     }
   }
 }
@@ -196,6 +198,9 @@ struct Vm<'p> {
   /// The scopes of the invocation being made, innermost first: the activation (its depth) and
   /// the region.
   chain: Vec<(usize, u32)>,
+  /// The homes of the context literals that are being evaluated, those of an activation above
+  /// those of the activations that wait for it.
+  homes: Vec<Arc<Home>>,
 }
 
 /// A context type or the formal parameters of a definition, being built.
@@ -286,6 +291,7 @@ impl<'p> Vm<'p> {
       layout_scopes: vec![],
       scopes: vec![],
       chain: vec![],
+      homes: vec![],
     }
   }
 
@@ -559,6 +565,24 @@ impl<'p> Vm<'p> {
           let value = self.take(s);
           *self.slot(s) = diagnostics::bound_depth(value);
         }
+        Op::HomeOpen { layout } => {
+          let names = program.layouts[layout as usize]
+            .entries
+            .iter()
+            .map(|&(name, _)| program.names[name as usize].clone())
+            .collect();
+          let home = Home::new(names, self.home());
+          self.homes.push(home);
+        }
+        Op::HomeSet { entry, s } => {
+          let value = self.slot(s).clone();
+          if let Some(home) = self.homes.last() {
+            home.set(entry as usize, value);
+          }
+        }
+        Op::HomeClose => {
+          self.homes.pop();
+        }
         Op::Clear { layout, visible } => {
           for &(_, place) in &program.layouts[layout as usize].entries[..visible as usize] {
             if let Place::Slot(slot) = place {
@@ -767,10 +791,37 @@ impl<'p> Vm<'p> {
     };
     let proto = &program.protos[info.proto as usize];
     let mut captures = proto.captures.iter();
-    kernels::function_definition(parameters, body, &proto.closure, |name| {
+    let function = kernels::function_definition(parameters, body, &proto.closure, |name| {
       let first = captures.next().copied().unwrap_or(NONE);
       self.search_from(info.region, first, name)
-    })
+    });
+    // a function sees the entries of the context literal it is written in
+    match (function, self.home()) {
+      (Value::FunctionDefinition(function), Some(home)) => Value::FunctionDefinition(Arc::new(function.at_home(home))),
+      (function, _) => function,
+    }
+  }
+
+  /// The home at the position of the run: that of the innermost context literal being
+  /// evaluated in the activation that runs, else that of the function whose body runs.
+  fn home(&self) -> Option<Arc<Home>> {
+    match self.homes.get(self.act.homes..).and_then(|homes| homes.last()) {
+      Some(home) => Some(Arc::clone(home)),
+      None => self.act.function.as_ref().and_then(|function| function.home.clone()),
+    }
+  }
+
+  /// The value of `name` in the homes of `function`, innermost first: the entry of a context
+  /// literal that the function is written in, when the entry has its value.
+  fn at_home(&self, function: &FunctionDefinition, name: &Name) -> Option<Value> {
+    let mut home = function.home.as_ref();
+    while let Some(entries) = home {
+      if let Some(value) = entries.entry(name) {
+        return Some(value);
+      }
+      home = entries.parent();
+    }
+    None
   }
 
   /// The program of the activation the run starts with.
@@ -876,7 +927,8 @@ impl<'p> Vm<'p> {
     self.cells.resize(cells + body.cells.len(), Cell::Unread);
     let entry = body.entry as usize;
     let same = std::ptr::eq(program, &*callee);
-    let activation = Activation::body(callee, Some(function), proto, base, self.records.len(), cells);
+    let mut activation = Activation::body(callee, Some(function), proto, base, self.records.len(), cells);
+    activation.homes = self.homes.len();
     let caller = std::mem::replace(&mut self.act, activation);
     self.frames.push(Frame {
       activation: caller,
@@ -887,18 +939,10 @@ impl<'p> Vm<'p> {
     if same { Next::At(entry) } else { Next::Switch(entry) }
   }
 
-  /// The end of the activation that runs, with `value`: a function that its body gives closes over
-  /// the names it uses as they are where the body ends; the activation that waits for it gets its
-  /// value converted to the function's result type; the run ends with the end of the activation it
-  /// starts with.
-  fn ret(&mut self, program: &Program, value: Value) -> Result<Next, Value> {
-    let value = match self.act.function {
-      Some(_) => {
-        let region = program.protos[self.act.proto as usize].region;
-        closed_over(|name| self.search_from(region, self.name_index(program, name.first()), name), value)
-      }
-      None => value,
-    };
+  /// The end of the activation that runs, with `value`: the activation that waits for it gets
+  /// the value converted to the function's result type; the run ends with the end of the
+  /// activation it starts with.
+  fn ret(&mut self, _program: &Program, value: Value) -> Result<Next, Value> {
     let Some(frame) = self.frames.pop() else {
       return Err(value);
     };
@@ -908,6 +952,7 @@ impl<'p> Vm<'p> {
     };
     self.stack.truncate(self.act.base);
     self.cells.truncate(self.act.cells);
+    self.homes.truncate(self.act.homes);
     let callee = std::mem::replace(&mut self.act, frame.activation);
     *self.slot(frame.dst) = value;
     let same = Arc::ptr_eq(&callee.program, &self.act.program);
@@ -931,54 +976,20 @@ impl<'p> Vm<'p> {
   }
 
   /// The value of `name`, `program.names[index]` of the program that runs, below the scopes of
-  /// the body that runs: in the closure of its function, then in the scopes of the activations
-  /// below it where each was invoked, then in the scope of the host. Where the walk reaches the
-  /// closure of an activation of the same program that has read the name, the value it read
-  /// (found, or the built-in function of that name) is the rest of the walk: it read it from
-  /// there down, and that chain has not changed since.
+  /// the body that runs: in the home and the closure of its function, then in the scope of the
+  /// host.
   #[cold]
   #[inline(never)]
   fn below(&self, index: u32, name: &Name) -> Option<Value> {
-    let program = &self.act.program;
-    let mut act = &self.act;
     let mut at = self.bottom_region();
-    let mut frames = self.frames.iter().rev();
-    let (mut here, mut same) = (index, true);
-    let mut other: Option<(*const Program, u32)> = None;
-    loop {
-      // the activation that runs has not read the name
-      let closure = if same && !std::ptr::eq(act, &self.act) { self.closure_region(act) } else { NONE };
-      while at != NONE {
-        if at == closure
-          && let Some(value) = self.cell_of(act, index)
-        {
-          return Some(value);
-        }
-        let region = act.program.regions[at as usize];
-        if let Some(value) = self.region_value(act, region, name, here) {
-          return Some(value);
-        }
-        at = region.parent;
+    while at != NONE {
+      let region = self.act.program.regions[at as usize];
+      if let Some(value) = self.region_value(&self.act, region, name, index) {
+        return Some(value);
       }
-      let Some(frame) = frames.next() else {
-        return self.host.get_value(name);
-      };
-      act = &frame.activation;
-      at = act.program.calls[frame.call as usize].region;
-      same = Arc::ptr_eq(&act.program, program);
-      here = if same {
-        index
-      } else {
-        match other {
-          Some((known, index)) if std::ptr::eq(known, &*act.program) => index,
-          _ => {
-            let found = self.name_index(&act.program, Some(name));
-            other = Some((&*act.program, found));
-            found
-          }
-        }
-      };
+      at = region.parent;
     }
+    self.host.get_value(name)
   }
 
   /// The closure region of the body of `act`, [NONE] for the root expression.
@@ -989,35 +1000,18 @@ impl<'p> Vm<'p> {
     }
   }
 
-  /// The value that `act` read for its free name `names[index]`, when it has read it.
-  fn cell_of(&self, act: &Activation, index: u32) -> Option<Value> {
-    let cells = &act.program.protos.get(act.proto as usize)?.cells;
-    let cell = cells.binary_search_by_key(&index, |&(name, _)| name).ok()?;
-    match &self.cells[act.cells + cells[cell].1 as usize] {
-      Cell::Read(value) => Some(value.clone()),
-      Cell::Unread => None,
-    }
-  }
-
   /// Visits the scopes from the region `region` of the activation that runs down, innermost
-  /// first: its regions, then those of each activation below it from where it invoked the one
-  /// above; the first value that `visit` gives.
+  /// first; the first value that `visit` gives.
   fn scopes_below(&self, region: u32, mut visit: impl FnMut(&Self, &Activation, Region) -> Option<Value>) -> Option<Value> {
-    let mut act = &self.act;
     let mut at = region;
-    let mut frames = self.frames.iter().rev();
-    loop {
-      while at != NONE {
-        let region = act.program.regions[at as usize];
-        if let Some(value) = visit(self, act, region) {
-          return Some(value);
-        }
-        at = region.parent;
+    while at != NONE {
+      let region = self.act.program.regions[at as usize];
+      if let Some(value) = visit(self, &self.act, region) {
+        return Some(value);
       }
-      let frame = frames.next()?;
-      act = &frame.activation;
-      at = act.program.calls[frame.call as usize].region;
+      at = region.parent;
     }
+    None
   }
 
   /// The value of `name` (`names[index]` of the activation's program) in the scope of `region`
@@ -1037,7 +1031,10 @@ impl<'p> Vm<'p> {
           None
         }
       }
-      RegionKind::Closure => act.function.as_ref()?.closure_ctx.get_entry(name).cloned(),
+      RegionKind::Closure => {
+        let function = act.function.as_ref()?;
+        self.at_home(function, name).or_else(|| function.closure_ctx.get_entry(name).cloned())
+      }
     }
   }
 
@@ -1322,7 +1319,12 @@ impl<'p> Vm<'p> {
               })
             })
           }
-          RegionKind::Closure => act.function.as_ref()?.closure_ctx.search_deep(segments).cloned(),
+          RegionKind::Closure => {
+            let function = act.function.as_ref()?;
+            vm.at_home(function, head)
+              .and_then(|value| search_in(&value, &segments[1..]))
+              .or_else(|| function.closure_ctx.search_deep(segments).cloned())
+          }
         }
       })
       .or_else(|| self.host.search(segments))

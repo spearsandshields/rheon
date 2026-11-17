@@ -165,10 +165,11 @@ Open in 1.6:
 - **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation goes through
   `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
   with input data, `sort` and `list replace`). Open:
-  - *Closures are not lexical.* A function returned by a body closes over the names as they are
-    where the body ends (`closed_over`, kept from dsntk), so `{f: function(x) {x: 10, g:
-    function(y) x + y}.g, h: f(1), r: h(5)}.r` is 6, not 15 (§10.3.2.13.2: "FEEL functions are
-    lexical closures"). A function returned by a boxed
+  - *The closures of boxed function bodies are not lexical.* A FEEL function is a lexical closure
+    (§10.3.2.13.2); the body of a boxed function of a DMN model still reads the names it does
+    not bind through the scope of its invocation, and a function it returns closes over the
+    names as they are where the body ends (`closed_over`, kept from dsntk). A function returned
+    by a boxed
     function body finds the entries of its boxed context through these writes (see *Boxed
     contexts write into the context below them* in "Lexer and evaluation limits"), so the two
     change together.

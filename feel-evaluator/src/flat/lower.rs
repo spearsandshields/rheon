@@ -507,12 +507,23 @@ impl<'a> Lower<'_, 'a> {
     };
     let entries = resolved.kids(node);
     let bound = &resolved.layouts[layout as usize].entries;
-    for (&entry, &(_, place)) in entries.iter().zip(bound.iter()) {
+    // the entries as the functions written in the literal see them
+    let home = resolved.homes.contains(&layout);
+    if home {
+      self.builder.emit(Op::HomeOpen { layout });
+    }
+    for (index, (&entry, &(_, place))) in entries.iter().zip(bound.iter()).enumerate() {
       let Place::Slot(slot) = place else {
         return Err(Malformed { at: rnode.ast });
       };
       self.into(resolved.kids(entry)[1], slot)?;
       self.builder.emit(Op::BoundDepth { s: slot });
+      if home {
+        self.builder.emit(Op::HomeSet { entry: index as u32, s: slot });
+      }
+    }
+    if home {
+      self.builder.emit(Op::HomeClose);
     }
     match stop {
       Stop::None => {

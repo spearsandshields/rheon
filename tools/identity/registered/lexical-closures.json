@@ -1,0 +1,3629 @@
+[
+  {
+    "expression": "{f: function() a, r: {a: 1, s: f()}.s}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() a, r: {a: 1, s: f()}.s}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'a'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{f: function() a, a: 2, r: {a: 1, s: f()}.s}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() a, a: 2, r: {a: 1, s: f()}.s}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function() partial, r: for i in 1..3 return f()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]], [[], [[]]]]",
+        "feel": "[[], [[]], [[], [[]]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'partial'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null, null]",
+        "feel": "[null(context has no value for key 'partial'), null(context has no value for key 'partial'), null(context has no value for key 'partial')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() partial, r: for i in 1..3 return f()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]], [[], [[]]]]",
+        "feel": "[[], [[]], [[], [[]]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    },
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": [
+                          {
+                            "components": null,
+                            "list": {
+                              "isNil": false,
+                              "items": []
+                            },
+                            "simple": null
+                          }
+                        ]
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'partial'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{f: function() count(partial), r: for i in 1..3 return f()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[0, 1, 2]",
+        "feel": "[0, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "0",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'partial'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 1, 1]",
+        "feel": "[1, 1, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() count(partial), r: for i in 1..3 return f()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[0, 1, 2]",
+        "feel": "[0, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "0",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'partial'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{f: function() x, r: for x in 1..3 return f()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2, 3]",
+        "feel": "[1, 2, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null, null]",
+        "feel": "[null(context has no value for key 'x'), null(context has no value for key 'x'), null(context has no value for key 'x')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() x, r: for x in 1..3 return f()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2, 3]",
+        "feel": "[1, 2, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{f: function() x, r: for x in 1..3, y in [f()] return y}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2, 3]",
+        "feel": "[1, 2, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null, null]",
+        "feel": "[null(context has no value for key 'x'), null(context has no value for key 'x'), null(context has no value for key 'x')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() x, r: for x in 1..3, y in [f()] return y}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2, 3]",
+        "feel": "[1, 2, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{f: function() x + y, r: for x in 1..2, y in [10, 20] return f()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'x+y'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null, null, null]",
+        "feel": "[null(context has no value for key 'x+y'), null(context has no value for key 'x+y'), null(context has no value for key 'x+y'), null(context has no value for key 'x+y')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 12,
+        "messages": [
+          "context has no value for key 'x'",
+          "context has no value for key 'y'",
+          "[addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y')",
+          "context has no value for key 'x'",
+          "context has no value for key 'y'",
+          "[addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y')",
+          "context has no value for key 'x'",
+          "context has no value for key 'y'",
+          "[addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y')",
+          "context has no value for key 'x'",
+          "context has no value for key 'y'",
+          "[addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null, null, null]",
+        "feel": "[null([addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y')), null([addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y')), null([addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y')), null([addition] incompatible types: null(context has no value for key 'x') + null(context has no value for key 'y'))]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() x + y, r: for x in 1..2, y in [10, 20] return f()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x+y'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{g: function() partial, r: for partial in [1, 2] return g()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'partial'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null]",
+        "feel": "[null(context has no value for key 'partial'), null(context has no value for key 'partial')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{g: function() partial, r: for partial in [1, 2] return g()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [[]]]",
+        "feel": "[[], [[]]]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": {
+                        "isNil": false,
+                        "items": []
+                      },
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'partial'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{g: function() amount, r: [{amount: 1}, {amount: 5}][g() > 2]}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"amount\": 5}]",
+        "feel": "[{amount: 5}]",
+        "isNull": false,
+        "type": "list<context<amount: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "amount",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "5",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'amount'",
+          "eval_greater_then",
+          "context has no value for key 'amount'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{g: function() amount, r: [{amount: 1}, {amount: 5}][g() > 2]}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"amount\": 5}]",
+        "feel": "[{amount: 5}]",
+        "isNull": false,
+        "type": "list<context<amount: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "amount",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "5",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'amount'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{g: function() item, r: [1, 5][g() > 2]}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5]",
+        "feel": "[5]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'item'",
+          "eval_greater_then",
+          "context has no value for key 'item'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{g: function() item, r: [1, 5][g() > 2]}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5]",
+        "feel": "[5]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'item'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{g: function() item.amount, r: [{amount: 1}, {amount: 5}][g() > 2]}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"amount\": 5}]",
+        "feel": "[{amount: 5}]",
+        "isNull": false,
+        "type": "list<context<amount: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "amount",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "5",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'item'",
+          "eval_greater_then",
+          "context has no value for key 'item'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{g: function() item.amount, r: [{amount: 1}, {amount: 5}][g() > 2]}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"amount\": 5}]",
+        "feel": "[{amount: 5}]",
+        "isNull": false,
+        "type": "list<context<amount: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "amount",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "5",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'item'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{f: function(a, b) x < 2, x: 1, r: sort([2, 1], f)}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[2, 1]",
+        "feel": "[2, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(a, b) x < 2, x: 1, r: sort([2, 1], f)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(item, newItem) x, x: true, r: list replace([1, 2], f, 3)}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "list replace: matching function must return boolean value"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(list replace: matching function must return boolean value)",
+        "isNull": true,
+        "nullReason": "list replace: matching function must return boolean value",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 3]",
+        "feel": "[3, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(item, newItem) x, x: true, r: list replace([1, 2], f, 3)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'x'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 3]",
+        "feel": "[3, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(x) {x: 10, g: function(y) x + y}.g, h: f(1), r: h(5)}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "6",
+        "feel": "6",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "6",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "15",
+        "feel": "15",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "15",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(x) {x: 10, g: function(y) x + y}.g, h: f(1), r: h(5)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "6",
+        "feel": "6",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "6",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "15",
+        "feel": "15",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "15",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(x) {x: 10, g: function(y) x + y}.g, h: f(1)}.h",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"y\"), Any)],_,false,[x],{x: 1},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"y\"), Any)],_,false,[x],{x: 10},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(x) {x: 10, g: function(y) x + y}.g, h: f(1)}.h",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"y\"), Any)],_,false,[x],{x: 1},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"y\"), Any)],_,false,[x],{x: 10},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{g: function() p, f: function(p) g(), r: f(7)}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "7",
+        "feel": "7",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "7",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'p'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'p')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'p'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{g: function() p, f: function(p) g(), r: f(7)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "7",
+        "feel": "7",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "7",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'p'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{g: function() p, f: function(p) g(), r: [f(7), f(8)]}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[7, 8]",
+        "feel": "[7, 8]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "7",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "8",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'p'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null]",
+        "feel": "[null(context has no value for key 'p'), null(context has no value for key 'p')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{g: function() p, f: function(p) g(), r: [f(7), f(8)]}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[7, 8]",
+        "feel": "[7, 8]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "7",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "8",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'p'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "{f: function() 2 instance of t, r: for t in [1] return f()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[true]",
+        "feel": "[true]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "no value for qualified name"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[false]",
+        "feel": "[false]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() 2 instance of t, r: for t in [1] return f()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[true]",
+        "feel": "[true]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: no value for qualified name"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() x, x: 2, r: f()}.r",
+      "context": {
+        "x": 1
+      }
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() d.year, r: for d in [{year: 1}] return f()}.r",
+      "contextFormat": "feel",
+      "context": "{d: date(\"2020-06-15\")}"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1]",
+        "feel": "[1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[2020]",
+        "feel": "[2020]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2020",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{a: function(x) b(x) + 1, b: function(x) x * 2}.a(1)",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'b'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'b')",
+          "[addition] incompatible types: null(expected built-in function name or function definition, actual is null(context has no value for key 'b')) + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null(expected built-in function name or function definition, actual is null(context has no value for key 'b')) + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null(expected built-in function name or function definition, actual is null(context has no value for key 'b')) + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{a: function(x) b(x) + 1, b: function(x) x * 2}.a(1)",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'b'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function() k, k: 10}.f()",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'k'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'k')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'k'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "10",
+        "feel": "10",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() k, k: 10}.f()",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'k'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "10",
+        "feel": "10",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{x: 1, c: {f: function() x, x: 2, r: f()}.r}.c",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{x: 1, c: {f: function() x, x: 2, r: f()}.r}.c",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{mk: {f: function() g(), g: function() 7}.f, r: mk()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'g'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'g')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'g'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'g')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "7",
+        "feel": "7",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "7",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{mk: {f: function() g(), g: function() 7}.f, r: mk()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'g'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "7",
+        "feel": "7",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "7",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(2)}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'c.f'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'c.f')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'c.f'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'c.f')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(2)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'c.f'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{c: {f: function(n) if n = 0 then 0 else f(n - 1)}, r: c.f(2)}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'f'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'f')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'f'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'f')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{c: {f: function(n) if n = 0 then 0 else f(n - 1)}, r: c.f(2)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'f'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function() a, a: 1, g: function() {a: 2, r: f()}.r, r: g()}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function() a, a: 1, g: function() {a: 2, r: f()}.r, r: g()}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for i in 1..2 return {f: function() k, k: i}.f()",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'k'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null, null]",
+        "feel": "[null(context has no value for key 'k'), null(context has no value for key 'k')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for i in 1..2 return {f: function() k, k: i}.f()",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'k'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{lt: function(a, b) key(a) < key(b), key: function(v) v.n, r: sort([{n: 2}, {n: 1}], lt)}.r",
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "diagnostics": {
+        "count": 5,
+        "messages": [
+          "context has no value for key 'key'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'key')",
+          "context has no value for key 'key'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'key')",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"n\": 2}, {\"n\": 1}]",
+        "feel": "[{n: 2}, {n: 1}]",
+        "isNull": false,
+        "type": "list<context<n: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "n",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "n",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"n\": 1}, {\"n\": 2}]",
+        "feel": "[{n: 1}, {n: 2}]",
+        "isNull": false,
+        "type": "list<context<n: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "n",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "n",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{lt: function(a, b) key(a) < key(b), key: function(v) v.n, r: sort([{n: 2}, {n: 1}], lt)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'key'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"n\": 1}, {\"n\": 2}]",
+        "feel": "[{n: 1}, {n: 2}]",
+        "isNull": false,
+        "type": "list<context<n: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "n",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "n",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(2)}.r"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Name\n │  │                    │  └─ `c.f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `2`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Path\n │  │                    │  ├─ Name\n │  │                    │  │  └─ `c`\n │  │                    │  └─ Name\n │  │                    │     └─ `f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `2`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{c: {f: function(n) if n = 0 then 0 else c.f(n - 1)}, r: c.f(2)}.r",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 section 10.3.2.13.2: FEEL functions are lexical closures, the body references the formal parameters and the names in scope where the function is written; section 10.3.2.11.1: all the entries of a context are in scope for an entry's expression, so a function sees the entries of the context literal it is written in, also the later ones once they have their values. 0.6.0 read the names a body did not bind through the scopes of whoever invoked it, and a returned function closed over the names as they were where the body ended",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Name\n │  │                    │  └─ `c.f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `2`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `c`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `f`\n │  │        └─ FunctionDefinition\n │  │           ├─ FormalParameters\n │  │           │  └─ FormalParameter\n │  │           │     ├─ ParameterName\n │  │           │     │  └─ `n`\n │  │           │     └─ FeelType\n │  │           │        └─ Any\n │  │           └─ FunctionBody\n │  │              └─ If\n │  │                 ├─ Eq\n │  │                 │  ├─ Name\n │  │                 │  │  └─ `n`\n │  │                 │  └─ Numeric\n │  │                 │     └─ `0`\n │  │                 ├─ Numeric\n │  │                 │  └─ `0`\n │  │                 └─ FunctionInvocation\n │  │                    ├─ Path\n │  │                    │  ├─ Name\n │  │                    │  │  └─ `c`\n │  │                    │  └─ Name\n │  │                    │     └─ `f`\n │  │                    └─ PositionalParameters\n │  │                       └─ Sub\n │  │                          ├─ Name\n │  │                          │  └─ `n`\n │  │                          └─ Numeric\n │  │                             └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `c`\n │        │  └─ Name\n │        │     └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `2`\n └─ Name\n    └─ `r`\n"
+    }
+  }
+]

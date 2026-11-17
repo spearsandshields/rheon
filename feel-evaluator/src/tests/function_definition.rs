@@ -15,15 +15,16 @@ fn _0001() {
 
 #[test]
 fn _0002() {
-  // A function returned by a function body closes over the names it uses as they are at the end
-  // of that body (`closed_over` in invocation.rs): the `k` that `f` returns captures `a` = 100, so
-  // `r` is 101. The function definition is shared with the entry `k` and copied before the
-  // capture, so the stored `k` is unchanged and still has no `a`: `s` is null.
-  // By §10.3.2.13.2 (FEEL functions are lexical closures) `k` sees no `a`, so `r` would be null
-  // as well; the case pins the current rule (docs/BACKLOG.md, *Closures are not lexical*), so
-  // that changing it is deliberate.
+  // FEEL functions are lexical closures (DMN 1.6 §10.3.2.13.2): `k` sees the names in scope
+  // where it is written, where no `a` is. That `f`, which returns it, has a parameter `a` gives
+  // `k` none: `r` is null, as `s` is.
   let expression = "{k: function(y) y + a, f: function(a) k, r: f(100)(1), s: k(1)}";
-  te_number(false, &scope!(), &format!("{expression}.r"), 101, 0);
+  te_null(
+    false,
+    &scope!(),
+    &format!("{expression}.r"),
+    "[addition] incompatible types: 1 + null(context has no value for key 'a')",
+  );
   te_null(
     false,
     &scope!(),

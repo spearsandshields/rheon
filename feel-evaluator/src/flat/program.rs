@@ -241,6 +241,13 @@ pub(crate) enum Op {
   BoundDepth { s: Slot },
   /// Sets the slots of the first `visible` entries of `layouts[layout]` to null.
   Clear { layout: Ix, visible: u32 },
+  /// Starts the home of the context literal of `layouts[layout]`: what the functions written
+  /// in the literal see of its entries.
+  HomeOpen { layout: Ix },
+  /// The entry `entry` of the innermost home has the value in the slot `s`.
+  HomeSet { entry: u32, s: Slot },
+  /// Ends the innermost home.
+  HomeClose,
   /// `dst` is the context of the entries of `layouts[layout]`, whose values are moved out of their
   /// slots, nested no deeper than values may nest.
   Context { dst: Slot, layout: Ix },
@@ -569,6 +576,9 @@ impl Program {
           check.region(info.region)?;
         }
         Op::BoundDepth { s } => check.slot(s)?,
+        Op::HomeOpen { layout } => check.layout(layout)?,
+        Op::HomeSet { s, .. } => check.slot(s)?,
+        Op::HomeClose => {}
         Op::Clear { layout, visible } => {
           check.layout(layout)?;
           if visible as usize > self.layouts[layout as usize].entries.len() {

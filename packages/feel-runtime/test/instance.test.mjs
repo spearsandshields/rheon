@@ -250,3 +250,22 @@ test('evaluateAll: a failure of the request has no results; the host offset is f
   const utc = feel.call({ op: 'evaluateAll', tzOffsetMinutes: 0, evaluations: [{ expression: 'string(now())' }] });
   assert.notEqual(hour(utc.results[0].result.display), hour(zone.results[0].result.display));
 });
+
+test('functions that see their own context leave no memory behind', async () => {
+  // a context literal whose functions and entries hold each other: the scopes of the functions
+  // are freed with the evaluation, so the memory of the instance does not grow with the calls
+  const { RawFeelInstance } = await import('../dist/index.js');
+  const raw = await RawFeelInstance.create(await WebAssembly.compile(await wasmBytes()));
+  for (const expression of [
+    '{f: function() 1, g: f, big: for i in 1..20000 return i, r: g()}.r',
+    '{o: {h: function() 1}, big: for i in 1..20000 return i, f: function() o.h(), r: f()}.r',
+    '{g: function() 1, f: function() g(), big: for i in 1..20000 return i, r: f()}.r',
+    '{f: function(n) if n = 0 then 0 else f(n - 1), big: for i in 1..20000 return i, r: f(20)}.r',
+  ]) {
+    const json = JSON.stringify({ op: 'evaluate', expression });
+    assert.equal(JSON.parse(raw.callJson(json)).ok, true, expression);
+    const before = raw.memoryBytes;
+    for (let i = 0; i < 300; i++) raw.callJson(json);
+    assert.ok(raw.memoryBytes - before < 8 * 1024 * 1024, `${expression}: grew by ${raw.memoryBytes - before} bytes`);
+  }
+});

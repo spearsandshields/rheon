@@ -4111,6 +4111,27 @@ looked up only when a name in scope has its length (232).
     (three workloads that build or read many contexts 0.94x to 0.95x), 1.50x against 0.6.0.
     Rust API: `FeelContext::deferred`,
     `FeelContext::is_built`, `DeferredEntries` (new).
+246. **FEEL functions are lexical closures.** The body of a function read the names it did not
+    bind through the scopes of whoever invoked it, and a function that a body returned closed
+    over the names as they were where the body ended (both kept from dsntk): `{f: function() a,
+    r: {a: 1, s: f()}.s}.r` was 1, and `{f: function(x) {x: 10, g: function(y) x + y}.g, h:
+    f(1), r: h(5)}.r` was 6. A body now reads its parameters, the names in scope where the
+    function is written, the scope of the host and the built-in functions (§10.3.2.13.2). Of
+    the context literal it is written in it sees every entry (§10.3.2.11.1: all the entries
+    of a context are in scope for an entry's expression), also a later one once that has its
+    value, so the functions of one context call each other in any order and themselves: each
+    evaluation of such a literal has a `Home` of its entries (rheon-feel), which the functions
+    written in it hold. A home can hold a value that holds the home (a function of the
+    literal), so the homes of an evaluation are emptied when the evaluation ends, which frees
+    them; a function that outlives its evaluation keeps what it closed over and no longer sees
+    the entries after it. The bodies of boxed functions of DMN
+    models keep the old behaviour (docs/BACKLOG.md). Tests: the pins of tests/scoping.rs (19
+    new cases, 9 changed), 29 records of the flat evaluator's tests; a test of the runtime
+    that the memory of an instance does not grow over 300 such evaluations. Identity ledger: 58
+    entries (`lexical-closures.json`), among them helper functions of a context used by
+    `sort`, which were null and work. The official TCK answers are unchanged. Rust API:
+    `Home` (new), `FunctionDefinition::home` and `FunctionDefinition::at_home` (new);
+    `FunctionDefinition` compares and prints as before.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

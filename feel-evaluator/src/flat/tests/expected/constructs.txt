@@ -1,18 +1,18 @@
 a_body_searches_the_scopes_of_its_callers #1 "{f: function() 2 instance of t, r: for t in [1] return f()}.r"
-List([Boolean(true)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Boolean(false)])
+Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #2 "{f: function() 2 instance of a.b, r: for a in [{b: 1}] return f()}.r"
-List([Boolean(true)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Boolean(false)])
+Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #3 "{f: function() 2 instance of a.b, r: [{a: {b: 1}}][f()]}.r"
-List([Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))}))])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([])
+Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #4 "{f: function() 2 instance of item, r: [1][f()]}.r"
-List([Number(+1E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([])
+Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 a_caller_that_has_read_a_name_gives_its_value_below_its_own_scopes #1 "{x: 1, g: function() x, f: function() [x, for x in [2] return g(), g()], r: f()}.r"
 List([Number(+1E+0), List([Number(+1E+0)]), Number(+1E+0)])
@@ -39,16 +39,16 @@ Number(+144E+0)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 a_function_of_the_host_sees_the_entries_before_its_invocation #1 "{a: 1, r: f(2)}.r"
-Number(+3E+0)
-Diagnostics { count: 0, messages: [], warnings: [] }
+Null(Some("[addition] incompatible types: 2 + null(context has no value for key 'a')"))
+Diagnostics { count: 2, messages: ["context has no value for key 'a'", "[addition] incompatible types: 2 + null(context has no value for key 'a')"], warnings: [] }
 
 a_function_of_the_host_sees_the_entries_before_its_invocation #2 "{r: f(2), a: 1}.r"
 Null(Some("[addition] incompatible types: 2 + null(context has no value for key 'a')"))
 Diagnostics { count: 2, messages: ["context has no value for key 'a'", "[addition] incompatible types: 2 + null(context has no value for key 'a')"], warnings: [] }
 
 a_function_of_the_host_sees_the_entries_before_its_invocation #3 "{a: 1, b: {a: 10, r: f(2)}, c: f(3)}"
-Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({Name("a"): Number(+10E+0), Name("r"): Number(+12E+0)})), Name("c"): Number(+4E+0)}))
-Diagnostics { count: 0, messages: [], warnings: [] }
+Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({Name("a"): Number(+10E+0), Name("r"): Null(Some("[addition] incompatible types: 2 + null(context has no value for key 'a')"))})), Name("c"): Null(Some("[addition] incompatible types: 3 + null(context has no value for key 'a')"))}))
+Diagnostics { count: 4, messages: ["context has no value for key 'a'", "[addition] incompatible types: 2 + null(context has no value for key 'a')", "context has no value for key 'a'", "[addition] incompatible types: 3 + null(context has no value for key 'a')"], warnings: [] }
 
 a_function_of_the_host_sees_the_entries_before_its_invocation #4 "{a: 1, r: g(a)}"
 Context(FeelContext({Name("a"): Number(+1E+0), Name("r"): Context(FeelContext({Name("r"): Number(+1E+0)}))}))
@@ -56,55 +56,55 @@ Diagnostics { count: 0, messages: [], warnings: [] }
 
 a_function_of_the_host_sees_the_entries_before_its_invocation #5 "{a: 1, a: f(1)}"
 Null(Some("duplicated context entry key: a"))
-Diagnostics { count: 1, messages: ["duplicated context entry key: a"], warnings: [] }
+Diagnostics { count: 3, messages: ["context has no value for key 'a'", "[addition] incompatible types: 1 + null(context has no value for key 'a')", "duplicated context entry key: a"], warnings: [] }
 
 a_function_of_the_host_sees_the_item_of_a_filter #1 "[{amount: 1}, {amount: 5}][f(0) > 2]"
-List([Context(FeelContext({Name("amount"): Number(+5E+0)}))])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([])
+Diagnostics { count: 6, messages: ["context has no value for key 'amount'", "[addition] incompatible types: 0 + null(context has no value for key 'amount')", "eval_greater_then", "context has no value for key 'amount'", "[addition] incompatible types: 0 + null(context has no value for key 'amount')", "eval_greater_then"], warnings: [] }
 
 a_function_of_the_host_sees_the_item_of_a_filter #2 "[1, 2, 3][g(0) > 1]"
-List([Number(+2E+0), Number(+3E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([])
+Diagnostics { count: 6, messages: ["context has no value for key 'item'", "eval_greater_then", "context has no value for key 'item'", "eval_greater_then", "context has no value for key 'item'", "eval_greater_then"], warnings: [] }
 
 a_function_of_the_host_sees_the_item_of_a_filter #3 "[1, 2, 3][g(0)]"
 List([])
-Diagnostics { count: 0, messages: [], warnings: [] }
+Diagnostics { count: 3, messages: ["context has no value for key 'item'"], warnings: [] }
 
 a_function_of_the_host_sees_the_item_of_a_filter #4 "[{amount: 1}, {amount: 5, item: {amount: 9}}][h(0) > 2]"
-List([Context(FeelContext({Name("amount"): Number(+5E+0), Name("item"): Context(FeelContext({Name("amount"): Number(+9E+0)}))}))])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([])
+Diagnostics { count: 4, messages: ["context has no value for key 'item'", "eval_greater_then", "context has no value for key 'item'", "eval_greater_then"], warnings: [] }
 
 a_function_of_the_host_sees_the_item_of_a_filter #5 "for i in [1, 2] return [{amount: i}][f(i) > 2]"
-List([List([]), List([Context(FeelContext({Name("amount"): Number(+2E+0)}))])])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([List([]), List([])])
+Diagnostics { count: 6, messages: ["context has no value for key 'amount'", "[addition] incompatible types: 1 + null(context has no value for key 'amount')", "eval_greater_then", "context has no value for key 'amount'", "[addition] incompatible types: 2 + null(context has no value for key 'amount')", "eval_greater_then"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #1 "for i in 1..3 return f(i)"
-List([Number(+2E+0), Number(+4E+0), Number(+6E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Null(Some("[addition] incompatible types: 1 + null(context has no value for key 'i')")), Null(Some("[addition] incompatible types: 2 + null(context has no value for key 'i')")), Null(Some("[addition] incompatible types: 3 + null(context has no value for key 'i')"))])
+Diagnostics { count: 6, messages: ["context has no value for key 'i'", "[addition] incompatible types: 1 + null(context has no value for key 'i')", "context has no value for key 'i'", "[addition] incompatible types: 2 + null(context has no value for key 'i')", "context has no value for key 'i'", "[addition] incompatible types: 3 + null(context has no value for key 'i')"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #2 "for i in 1..3 return g(i)"
-List([Number(+0E+0), Number(+1E+0), Number(+2E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Number(+1E+0), Number(+1E+0), Number(+1E+0)])
+Diagnostics { count: 3, messages: ["context has no value for key 'partial'"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #3 "for i in 1..2, j in h(i) return j"
-List([Number(+1E+0), Null(Some("context has no value for key 'partial'")), Number(+1E+0), Number(+2E+0), Null(Some("context has no value for key 'partial'")), Number(+2E+0)])
-Diagnostics { count: 2, messages: ["context has no value for key 'partial'"], warnings: [] }
+List([Number(+1E+0), Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'i'")), Number(+2E+0), Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'i'"))])
+Diagnostics { count: 4, messages: ["context has no value for key 'partial'", "context has no value for key 'i'", "context has no value for key 'partial'", "context has no value for key 'i'"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #4 "for i in 1..2, j in [f(0)] return j"
-List([Number(+1E+0), Number(+2E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Null(Some("[addition] incompatible types: 0 + null(context has no value for key 'i')")), Null(Some("[addition] incompatible types: 0 + null(context has no value for key 'i')"))])
+Diagnostics { count: 4, messages: ["context has no value for key 'i'", "[addition] incompatible types: 0 + null(context has no value for key 'i')", "context has no value for key 'i'", "[addition] incompatible types: 0 + null(context has no value for key 'i')"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #5 "some i in [1, 2] satisfies f(i) = 4"
-Boolean(true)
-Diagnostics { count: 0, messages: [], warnings: [] }
+Boolean(false)
+Diagnostics { count: 4, messages: ["context has no value for key 'i'", "[addition] incompatible types: 1 + null(context has no value for key 'i')", "context has no value for key 'i'", "[addition] incompatible types: 2 + null(context has no value for key 'i')"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #6 "{i: 10, r: for j in 1..2 return f(j)}.r"
-List([Number(+11E+0), Number(+12E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Null(Some("[addition] incompatible types: 1 + null(context has no value for key 'i')")), Null(Some("[addition] incompatible types: 2 + null(context has no value for key 'i')"))])
+Diagnostics { count: 4, messages: ["context has no value for key 'i'", "[addition] incompatible types: 1 + null(context has no value for key 'i')", "context has no value for key 'i'", "[addition] incompatible types: 2 + null(context has no value for key 'i')"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #7 "for i in 1..2 return {j: i, r: h(j)}"
-List([Context(FeelContext({Name("j"): Number(+1E+0), Name("r"): List([Number(+1E+0), List([]), Number(+1E+0)])})), Context(FeelContext({Name("j"): Number(+2E+0), Name("r"): List([Number(+2E+0), List([Context(FeelContext({Name("j"): Number(+1E+0), Name("r"): List([Number(+1E+0), List([]), Number(+1E+0)])}))]), Number(+2E+0)])}))])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Context(FeelContext({Name("j"): Number(+1E+0), Name("r"): List([Number(+1E+0), Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'i'"))])})), Context(FeelContext({Name("j"): Number(+2E+0), Name("r"): List([Number(+2E+0), Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'i'"))])}))])
+Diagnostics { count: 4, messages: ["context has no value for key 'partial'", "context has no value for key 'i'", "context has no value for key 'partial'", "context has no value for key 'i'"], warnings: [] }
 
 a_number_without_a_value_is_an_error_at_every_evaluation #1 a tree built by hand
 Null(Some("failed to convert text '1x' into number"))
@@ -15003,12 +15003,12 @@ List([Number(+1E+0), Number(+2E+0), Number(+3E+0)])
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #41 "{f: function(a, b) x < 2, x: 1, r: sort([2, 1], f)}.r"
-List([Number(+2E+0), Number(+1E+0)])
-Diagnostics { count: 2, messages: ["context has no value for key 'x'", "eval_less_then"], warnings: [] }
+List([Number(+1E+0), Number(+2E+0)])
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #42 "{f: function(a, b) x < 2, x: 1, r: sort([2, 1], f)}.r"
-List([Number(+2E+0), Number(+1E+0)])
-Diagnostics { count: 2, messages: ["context has no value for key 'x'", "eval_less_then"], warnings: [] }
+List([Number(+1E+0), Number(+2E+0)])
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #43 "[1, 2, 3][{f: function() item > 1}.f()]"
 List([Number(+2E+0), Number(+3E+0)])
@@ -15019,28 +15019,28 @@ List([Number(+2E+0), Number(+3E+0)])
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #45 "{g: function() item, r: [1, 2][g() > 1]}.r"
-List([Number(+2E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([])
+Diagnostics { count: 4, messages: ["context has no value for key 'item'", "eval_greater_then", "context has no value for key 'item'", "eval_greater_then"], warnings: [] }
 
 function_definitions_and_their_invocations #46 "{g: function() item, r: [1, 2][g() > 1]}.r"
-List([Number(+2E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([])
+Diagnostics { count: 4, messages: ["context has no value for key 'item'", "eval_greater_then", "context has no value for key 'item'", "eval_greater_then"], warnings: [] }
 
 function_definitions_and_their_invocations #47 "{g: function() partial, r: for i in [1, 2] return g()}.r"
-List([List([]), List([List([])])])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'partial'"))])
+Diagnostics { count: 2, messages: ["context has no value for key 'partial'"], warnings: [] }
 
 function_definitions_and_their_invocations #48 "{g: function() partial, r: for i in [1, 2] return g()}.r"
-List([List([]), List([List([])])])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'partial'"))])
+Diagnostics { count: 2, messages: ["context has no value for key 'partial'"], warnings: [] }
 
 function_definitions_and_their_invocations #49 "{g: function() k, r: for k in [1, 2] return g()}.r"
-List([Number(+1E+0), Number(+2E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Null(Some("context has no value for key 'k'")), Null(Some("context has no value for key 'k'"))])
+Diagnostics { count: 2, messages: ["context has no value for key 'k'"], warnings: [] }
 
 function_definitions_and_their_invocations #50 "{g: function() k, r: for k in [1, 2] return g()}.r"
-List([Number(+1E+0), Number(+2E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+List([Null(Some("context has no value for key 'k'")), Null(Some("context has no value for key 'k'"))])
+Diagnostics { count: 2, messages: ["context has no value for key 'k'"], warnings: [] }
 
 function_definitions_and_their_invocations #51 "function(x) external {java: {class: \"a\", method signature: \"b\"}}"
 FunctionDefinition(FunctionDefinition { parameters: [(Name("x"), Any)], body: FunctionBodyExternal, external: true, closure: Closure({}), closure_ctx: FeelContext({}), result_type: Any })
@@ -15115,12 +15115,12 @@ Boolean(true)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #69 "{f: function(x) x + y, g: function(y) f(1), r: g(2)}.r"
-Number(+3E+0)
-Diagnostics { count: 0, messages: [], warnings: [] }
+Null(Some("[addition] incompatible types: 1 + null(context has no value for key 'y')"))
+Diagnostics { count: 2, messages: ["context has no value for key 'y'", "[addition] incompatible types: 1 + null(context has no value for key 'y')"], warnings: [] }
 
 function_definitions_and_their_invocations #70 "{f: function(x) x + y, g: function(y) f(1), r: g(2)}.r"
-Number(+3E+0)
-Diagnostics { count: 0, messages: [], warnings: [] }
+Number(+1E+0)
+Diagnostics { count: 2, messages: ["context has no value for key 'y'", "[addition] incompatible types: 1 + null(context has no value for key 'y')"], warnings: [] }
 
 function_definitions_and_their_invocations #71 "{f: function(n) if n = 0 then [] else [count(f(n - 1))], r: f(5)}.r"
 List([Number(+1E+0)])

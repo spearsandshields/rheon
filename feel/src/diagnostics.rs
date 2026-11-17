@@ -395,6 +395,8 @@ impl Drop for Opened {
   fn drop(&mut self) {
     if self.0 {
       EVALUATION.with(Evaluation::clear);
+      // the scopes of the functions that the evaluation defined
+      crate::function::Home::end_evaluation();
     }
   }
 }

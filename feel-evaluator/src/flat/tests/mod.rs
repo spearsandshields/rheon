@@ -86,6 +86,13 @@ fn agree_case(dialect: Dialect, scope: &FeelScope, node: &AstNode, text: &str) {
   let Some(&[_, value, diagnostics]) = lines.chunks(3).find(|record| record[0] == header) else {
     panic!("no record of `{header}` in expected/{module}.txt");
   };
+  // after a change of answers that is meant, `RHEON_EXPECTED=report` lists the new records
+  if std::env::var_os("RHEON_EXPECTED").is_some() {
+    if (value, diagnostics) != (flat.0.as_str(), format!("{:?}", flat.1).as_str()) {
+      println!("RECORD\t{module}\t{header}\t{}\t{:?}", flat.0, flat.1);
+    }
+    return;
+  }
   assert_eq!((value, diagnostics), (flat.0.as_str(), format!("{:?}", flat.1).as_str()), "{header}");
 }
 
