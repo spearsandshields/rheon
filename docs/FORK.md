@@ -4003,6 +4003,70 @@ looked up only when a name in scope has its length (232).
     `a` in the context, the text `a.a...a`): 250 parts 164 ms to 0.74 ms, 500 parts 1,279 ms
     to 2.5 ms, 1,000 parts (4 KB) 9.5 ms; the cost is still a step per candidate (2,000 parts
     37 ms). Rust API: none.
+233. **`evaluateAll` evaluates several expressions over one context.** A host that evaluates
+    several expressions over the same context sent the context with each, and reading a large
+    context is nearly the whole request. `op: "evaluateAll"` takes the context once and a list
+    `evaluations` (each with the fields of one evaluation and an optional `id`); the response
+    has `results`, one answer per entry in their order, each what `evaluate` answers for that
+    entry, and `contextWarnings` once. An entry that fails is a failure in its place; the
+    entries do not see each other; nothing is kept after the request (docs/CONTRACT.md).
+    `evaluate` is unchanged. Tests: 20 evaluations over three contexts answered as the single
+    requests answer them. Measured (a context of 1.6 MB, medians of 30): one request each
+    14.6 ms; 10 entries in one request 15.2 ms. Rust API: none (the wasm boundary only).
+234. **The letter of an exponent belongs to a number only before exponent digits.** `1e` and
+    `1e+` were the number 1, and `1e + 2` was 3. The letter is part of the number only when
+    digits follow it, after an optional sign (DMN 1.6 grammar rule 35); otherwise the number
+    ends before the letter: `1e` is a syntax error, `if true then 1else 2` a conditional.
+    Identity ledger: 28 entries. Rust API: none.
+235. **A name that is not in scope ends before an operator symbol.** With no `x` in scope
+    `x - 1` was the one name `x-1` and `x.y` the name `x.y`, each null. Such a name ends before
+    `.`, `/`, `-`, `+` and `*`, as before a keyword that can follow an operand; the apostrophe
+    stays in the name. A name in scope is matched first, also one written with symbols side by
+    side. A name that is being declared (`parse_name`: `Approved/Declined`, `Profit and loss`)
+    is the whole text (`Parser::with_whole_names`). Identity ledger: 104 entries; a name that
+    is not in scope and has an operator symbol is the expression now (docs/BACKLOG.md). The
+    official TCK answers are unchanged. Rust API: none (`parse_name` keeps its signature).
+236. **The endpoint of a unary comparison takes the arithmetic after it.** The cell `> x + 1`
+    was `(? > x) + 1`, which is null, so a rule with such a cell never matched. The six unary
+    comparisons have the precedence of `in` (DMN 1.6 grammar rules 7 and 51); `and`, `or`, a
+    comparison and `between` end the endpoint as before. Tables regenerated with Bison 3.8.2,
+    the same tokens. Identity ledger: 44 entries. Rust API: none.
+237. **A range literal takes a negative number as an endpoint and has an endpoint.**
+    `range("[-1..1]")` was null, and `(..)` was a range of nothing. An endpoint is a number
+    with an optional minus (grammar rule 67 with the sign of rule 35), and a range literal has
+    at least one endpoint (rule 66). Identity ledger: 20 entries. Rust API: none.
+238. **The tests of the front end compare with recorded outcomes.** The tests compared every
+    input with a frozen copy of an older lexer and parser and a list of allowed differences,
+    which grew with every fix. The outcomes are recorded instead (`feel-parser/src/tests/golden`:
+    a digest per case at the default size, one per group at the full size, and 110 chosen
+    expressions in a readable file with their tokens and trees); the copy (3,900 lines) is
+    deleted. A fix that changes an answer rewrites the files in its commit
+    (`RHEON_GOLDEN=update`, at both sizes) and says which cases changed. Rust API: none.
+239. **`list`, `range` and `context` are names outside a type.** Before a `<` the three words
+    were keywords everywhere: `list < 2` and `{list: 1}.list < 2` were syntax errors. They are
+    keywords only where a type is expected, and a type is expected for the one token after the
+    parser asks; before, the request stood until a built-in type name used it, so a `date` or
+    `number` long after `x instance of T` was read as a type. A function type asks right after
+    `function <` (tables regenerated, the same tokens); no action that changes the lexer is
+    reduced after a lookahead any more. Identity ledger: 36 entries. Rust API: none.
+240. **The `and` of a `between` is the parser's choice, and a dot asks for one token.** After
+    `between` the next `and` anywhere was the between's, so `x between (if a and b then 1 else
+    2) and 5` was a syntax error. The lexer reads every `and` as a conjunction; while a between
+    is open the parser asks its tables whether it would shift the between's `and` in its state
+    (`Parser::takes`: the reductions are followed beside the stack, no action runs) and reads
+    the token as that one where it would. And a built-in property name is looked for in the
+    one token after a dot: before, until one was found, so `years and months duration` as a
+    parameter type after a path was the name `years`. Identity ledger: 24 entries; `a.b + start
+    included` with `start` in scope was null with a warning and is a syntax error, as any name
+    in scope followed by a word. Rust API: none.
+241. **A built-in name that is longer than the name in scope is the name.** With a variable
+    `string` in scope `string length(string)` was a syntax error; with `date` in scope `date
+    and time("...")` was a conjunction. After the lookup of the names in scope, the prefixes of
+    up to four words are compared with the built-in names: a function name with more words
+    than the name in scope wins (one with a keyword in it only before the `(` of its call),
+    and where a type is expected a built-in type name wins also with as many words. A variable
+    with the same name as a built-in function still stands for the variable. Identity ledger:
+    34 entries. Rust API: none.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
