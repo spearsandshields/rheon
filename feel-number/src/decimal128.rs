@@ -890,6 +890,8 @@ fn parse_v(s: &str) -> (V, bool) {
   // The coefficient is read as a number while it has at most 38 digits after its leading
   // zeros, which always fit; a longer one is rounded from the text of its digits.
   let first_digit = i;
+  // the first 19 digits fit in 64 bits, where a step costs a fraction of one in 128 bits
+  let mut low: u64 = 0;
   let mut coefficient: u128 = 0;
   let mut significant = 0;
   let mut after = 0_i64;
@@ -899,7 +901,12 @@ fn parse_v(s: &str) -> (V, bool) {
     if c.is_ascii_digit() {
       if significant > 0 || c != b'0' {
         significant += 1;
-        if significant <= 38 {
+        if significant <= 19 {
+          low = low * 10 + (c - b'0') as u64;
+        } else if significant <= 38 {
+          if significant == 20 {
+            coefficient = low as u128;
+          }
           coefficient = coefficient * 10 + (c - b'0') as u128;
         }
       }
@@ -912,6 +919,9 @@ fn parse_v(s: &str) -> (V, bool) {
       break;
     }
     i += 1;
+  }
+  if significant <= 19 {
+    coefficient = low as u128;
   }
   let last_digit = i;
   let mut exp: i64 = 0;

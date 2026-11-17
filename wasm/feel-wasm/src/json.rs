@@ -20,6 +20,7 @@ use crate::input::{DIRECT_ENTRIES, Path, number_value};
 use rheon_feel::Name;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
+use rheon_feel_number::FeelNumber;
 use std::borrow::Cow;
 
 /// A JSON number text with an exponent as `serde_json` hands it on: `e` in lower case and
@@ -231,6 +232,49 @@ fn skip_value(bytes: &[u8], at: usize, depth: usize) -> Option<usize> {
     b'-' | b'0'..=b'9' => skip_number(bytes, at),
     _ => None,
   }
+}
+
+/// Reads the JSON number that starts at `at` when it is written without an exponent and with
+/// at most 18 digits after its leading zeros: returns the position after it and the number,
+/// in the one pass over its digits. The number is the one that [number_value] gives for the
+/// text, which has no warning for such a number: the same digits with the same scale. `None`
+/// for every other text, a number or not.
+fn plain_number(bytes: &[u8], mut at: usize) -> Option<(usize, FeelNumber)> {
+  let negative = bytes.get(at) == Some(&b'-');
+  at += usize::from(negative);
+  let first = at;
+  let mut coefficient: u64 = 0;
+  // the digits after the leading zeros
+  let mut significant = 0;
+  while let Some(digit @ b'0'..=b'9') = bytes.get(at) {
+    coefficient = coefficient.wrapping_mul(10).wrapping_add(u64::from(digit - b'0'));
+    significant += usize::from(significant > 0 || *digit != b'0');
+    at += 1;
+  }
+  // no digit follows a leading zero
+  if at == first || (at - first > 1 && bytes[first] == b'0') {
+    return None;
+  }
+  let mut scale = 0;
+  if bytes.get(at) == Some(&b'.') {
+    let point = at;
+    at += 1;
+    while let Some(digit @ b'0'..=b'9') = bytes.get(at) {
+      coefficient = coefficient.wrapping_mul(10).wrapping_add(u64::from(digit - b'0'));
+      significant += usize::from(significant > 0 || *digit != b'0');
+      at += 1;
+    }
+    scale = at - point - 1;
+    if scale == 0 {
+      return None;
+    }
+  }
+  // 18 digits fit in 63 bits, so nothing wrapped
+  if significant > 18 || scale > 1000 || matches!(bytes.get(at), Some(b'e' | b'E')) {
+    return None;
+  }
+  let coefficient = i64::try_from(coefficient).ok()?;
+  Some((at, FeelNumber::new(if negative { -coefficient } else { coefficient }, scale as i32)))
 }
 
 /// Returns the position after the JSON number that starts at `at`.
@@ -471,6 +515,10 @@ impl<'a, 'w> Reader<'a, 'w> {
       b't' => self.word("true", Value::Boolean(true))?,
       b'f' => self.word("false", Value::Boolean(false))?,
       b'n' => self.word("null", Value::Null(None))?,
+      _ if let Some((end, number)) = plain_number(self.text.as_bytes(), self.at) => {
+        self.at = end;
+        Value::Number(number)
+      }
       _ => {
         let end = skip_number(self.text.as_bytes(), self.at).ok_or(Refused)?;
         let number = self.text.get(self.at..end).ok_or(Refused)?;
@@ -1103,6 +1151,100 @@ mod tests {
 
   /// [string_stop] finds the first quote, backslash or control character, wherever it stands in
   /// the eight bytes that are looked at together, and whatever stands around it.
+  /// A number read in one pass is the number of its text, digit for digit, and no number is
+  /// read from a text that is none or that the pass does not take.
+  #[test]
+  fn plain_numbers_are_the_numbers_of_their_texts() {
+    let mut texts: Vec<String> = [
+      "0",
+      "-0",
+      "1",
+      "-1",
+      "10",
+      "0.0",
+      "-0.0",
+      "0.5",
+      "-0.50",
+      "1.000",
+      "12.5",
+      "100",
+      "0.001",
+      "0.100",
+      "123456789012345678",
+      "-123456789012345678",
+      "999999999999999999",
+      "0.123456789012345678",
+      "1234567890.12345678",
+      "0.000000000000000000000000000001",
+      "9223372036854775807",
+      // not taken: 19 digits and more, an exponent, and what is no JSON number
+      "1234567890123456789",
+      "0.1234567890123456789",
+      "18446744073709551616",
+      "99999999999999999999999999999999999999",
+      "1e5",
+      "1E5",
+      "1.5e-3",
+      "0e0",
+      "01",
+      "-01",
+      "00",
+      "1.",
+      ".5",
+      "-",
+      "",
+      "-.5",
+      "+1",
+      "1.e1",
+      "a",
+    ]
+    .iter()
+    .map(|text| text.to_string())
+    .collect();
+    let mut rng = Rng(0x2545_F491_4F6C_DD1D, false);
+    for _ in 0..20_000 {
+      let mut text = String::new();
+      if rng.below(4) == 0 {
+        text.push('-');
+      }
+      let whole = if rng.below(8) == 0 { 22 } else { 6 };
+      for _ in 0..1 + rng.below(whole) {
+        text.push(char::from(b'0' + rng.below(10) as u8));
+      }
+      if rng.below(2) == 0 {
+        text.push('.');
+        let fraction = if rng.below(8) == 0 { 22 } else { 5 };
+        for _ in 0..rng.below(fraction) {
+          text.push(char::from(b'0' + rng.below(10) as u8));
+        }
+      }
+      texts.push(text);
+    }
+    let (mut taken, mut left) = (0, 0);
+    for text in texts {
+      // a number ends before what follows it
+      for after in ["", ",", "}", " ", "x"] {
+        let padded = format!("{text}{after}");
+        let read = plain_number(padded.as_bytes(), 0);
+        let is_number = skip_number(text.as_bytes(), 0) == Some(text.len());
+        match read {
+          Some((end, number)) => {
+            assert!(is_number, "{text:?} is no JSON number");
+            assert_eq!(text.len(), end, "{padded:?}");
+            let mut warnings = vec![];
+            let expected = number_value(&text, &Path::Root(""), &mut warnings).unwrap_or_else(|e| panic!("{text}: {e}"));
+            assert!(warnings.is_empty(), "{text}: {warnings:?}");
+            // the same digits and the same scale, not only an equal number
+            assert_eq!(format!("{expected:?}"), format!("{:?}", Value::Number(number)), "{text}");
+            taken += 1;
+          }
+          None => left += 1,
+        }
+      }
+    }
+    assert!(taken > 50_000 && left > 5_000, "{taken} taken, {left} left");
+  }
+
   #[test]
   fn string_stop_is_the_first_special_byte() {
     let mut rng = Rng(0x1234_5678_9ABC_DEF1, false);
