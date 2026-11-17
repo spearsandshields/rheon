@@ -17,7 +17,7 @@ use dsntk_common::Result;
 use rheon_feel::{FeelType, IntervalType, Name};
 
 /// The most expressions that are open at once while parsing: an operand inside an operand
-/// counts one. A text that is nested deeper is a syntax error.
+/// counts one. A text that is nested deeper is an error.
 pub const MAX_NESTING: usize = 640;
 
 /// The precedence levels of the operators, lowest first (the `%left`, `%right`, `%nonassoc`
@@ -579,7 +579,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       let address = &marker as *const u8 as usize;
       STACK_LOW.with(|low| low.set(low.get().min(address)));
     }
-    if self.nesting > MAX_NESTING { self.error() } else { Ok(()) }
+    if self.nesting > MAX_NESTING { Err(err_nested_too_deeply(MAX_NESTING)) } else { Ok(()) }
   }
 
   /// An expression whose operators bind tighter than the level `level` (as tight, for a level
