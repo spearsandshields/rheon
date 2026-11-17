@@ -1760,6 +1760,213 @@ in scope: a
           └─ Name
              └─ `time offset`
 
+## "string length(\"abc\")"
+in scope: string
+  StartExpression @0
+  Name(Name("string length")) @0
+  LeftParen @13
+  String("abc") @14
+  RightParen @19
+  YyEof @20
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `string length`
+       └─ PositionalParameters
+          └─ String
+             └─ `abc`
+
+## "list contains([1], 1)"
+in scope: list
+  StartExpression @0
+  Name(Name("list contains")) @0
+  LeftParen @13
+  LeftBracket @14
+  Numeric("1", "", '+', "") @15
+  RightBracket @16
+  Comma @17
+  Numeric("1", "", '+', "") @19
+  RightParen @20
+  YyEof @21
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `list contains`
+       └─ PositionalParameters
+          ├─ List
+          │  └─ Numeric
+          │     └─ `1`
+          └─ Numeric
+             └─ `1`
+
+## "day of week(date(\"2026-01-31\"))"
+in scope: day
+  StartExpression @0
+  Name(Name("day of week")) @0
+  LeftParen @11
+  NameDateTime(Name("date")) @12
+  LeftParen @16
+  String("2026-01-31") @17
+  RightParen @29
+  RightParen @30
+  YyEof @31
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `day of week`
+       └─ PositionalParameters
+          └─ FunctionInvocation
+             ├─ Name
+             │  └─ `date`
+             └─ PositionalParameters
+                └─ String
+                   └─ `2026-01-31`
+
+## "date and time(\"2026-01-31T10:00:00\")"
+in scope: date
+  StartExpression @0
+  NameDateTime(Name("date and time")) @0
+  LeftParen @13
+  String("2026-01-31T10:00:00") @14
+  RightParen @35
+  YyEof @36
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `date and time`
+       └─ PositionalParameters
+          └─ String
+             └─ `2026-01-31T10:00:00`
+
+## "date and time"
+in scope: date, time
+  StartExpression @0
+  Name(Name("date")) @0
+  And @5
+  Name(Name("time")) @9
+  YyEof @13
+
+       And
+       ├─ Name
+       │  └─ `date`
+       └─ Name
+          └─ `time`
+
+## "a instance of date and time"
+in scope: a, date
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  BuiltInTypeName(Name("date and time")) @14
+  YyEof @27
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FeelType
+          └─ date and time
+
+## "a instance of days and time duration"
+in scope: a, days
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  BuiltInTypeName(Name("days and time duration")) @14
+  YyEof @36
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FeelType
+          └─ days and time duration
+
+## "a instance of date and a"
+in scope: a, date
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  BuiltInTypeName(Name("date")) @14
+  And @19
+  Name(Name("a")) @23
+  YyEof @24
+
+       And
+       ├─ InstanceOf
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ FeelType
+       │     └─ date
+       └─ Name
+          └─ `a`
+
+## "string length x + string length(\"a\")"
+in scope: string length x
+  StartExpression @0
+  Name(Name("string length x")) @0
+  Plus @16
+  Name(Name("string length")) @18
+  LeftParen @31
+  String("a") @32
+  RightParen @35
+  YyEof @36
+
+       Add
+       ├─ Name
+       │  └─ `string length x`
+       └─ FunctionInvocation
+          ├─ Name
+          │  └─ `string length`
+          └─ PositionalParameters
+             └─ String
+                └─ `a`
+
+## "string length x"
+in scope: string
+  StartExpression @0
+  Name(Name("string length")) @0
+  Name(Name("x")) @14
+error: <ParserError> syntax error: string length x
+
+## "string + string length(string)"
+in scope: string
+  StartExpression @0
+  Name(Name("string")) @0
+  Plus @7
+  Name(Name("string length")) @9
+  LeftParen @22
+  Name(Name("string")) @23
+  RightParen @29
+  YyEof @30
+
+       Add
+       ├─ Name
+       │  └─ `string`
+       └─ FunctionInvocation
+          ├─ Name
+          │  └─ `string length`
+          └─ PositionalParameters
+             └─ Name
+                └─ `string`
+
+## "date(\"2026-01-31\")"
+in scope: date
+  StartExpression @0
+  Name(Name("date")) @0
+  LeftParen @4
+  String("2026-01-31") @5
+  RightParen @17
+  YyEof @18
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `date`
+       └─ PositionalParameters
+          └─ String
+             └─ `2026-01-31`
+
 ## "x between 1 and 2 and true"
 in scope: x
   StartExpression @0

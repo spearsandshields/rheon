@@ -1,0 +1,1011 @@
+[
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string length(string)",
+      "context": {
+        "string": "abc"
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string length(string)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string length(string)",
+      "context": {
+        "string": "abc"
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string length(string)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string + string(string length(string))",
+      "context": {
+        "string": "abc"
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string + string(string length(string))"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "expected built-in function name or function definition, actual is \"abc\"",
+          "[addition] incompatible types: \"abc\" + null(expected built-in function name or function definition, actual is \"abc\")"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: \"abc\" + null(expected built-in function name or function definition, actual is \"abc\"))",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: \"abc\" + null(expected built-in function name or function definition, actual is \"abc\")",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string + string(string length(string))",
+      "context": {
+        "string": "abc"
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string + string(string length(string))"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: expected built-in function name or function definition, actual is \"abc\""
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list contains(list, 2)",
+      "context": {
+        "list": [
+          1,
+          2
+        ]
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list contains(list, 2)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list contains(list, 2)",
+      "context": {
+        "list": [
+          1,
+          2
+        ]
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list contains(list, 2)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "day of week(date(\"2026-01-31\"))",
+      "context": {
+        "day": 1
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: day of week(date(\"2026-01-31\"))"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"Saturday\"",
+        "feel": "\"Saturday\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "Saturday",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "day of week(date(\"2026-01-31\"))",
+      "context": {
+        "day": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: day of week(date(\"2026-01-31\"))"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"Saturday\"",
+        "feel": "\"Saturday\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "Saturday",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date and time(\"2026-01-31T10:00:00\")",
+      "context": {
+        "date": 1
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '2026-01-31T10:00:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2026-01-31T10:00:00\"",
+        "feel": "2026-01-31T10:00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2026-01-31T10:00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date and time(\"2026-01-31T10:00:00\")",
+      "context": {
+        "date": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: time: invalid time literal '2026-01-31T10:00:00', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2026-01-31T10:00:00\"",
+        "feel": "2026-01-31T10:00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2026-01-31T10:00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a instance of date and time",
+      "context": {
+        "a": 1,
+        "date": true
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a instance of date and time"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a instance of date and time",
+      "context": {
+        "a": 1,
+        "date": true
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a instance of date and time"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a instance of days and time duration",
+      "context": {
+        "a": 1,
+        "days": 2
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'time duration'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a instance of days and time duration",
+      "context": {
+        "a": 1,
+        "days": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'time duration'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "string length(string)",
+      "context": {
+        "string": "abc"
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string length(string)"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `string length`\n └─ PositionalParameters\n    └─ Name\n       └─ `string`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "string length(string)",
+      "context": {
+        "string": "abc"
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string length(string)"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `string length`\n └─ PositionalParameters\n    └─ Name\n       └─ `string`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "string + string(string length(string))",
+      "context": {
+        "string": "abc"
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string + string(string length(string))"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `string`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `string`\n    └─ PositionalParameters\n       └─ FunctionInvocation\n          ├─ Name\n          │  └─ `string length`\n          └─ PositionalParameters\n             └─ Name\n                └─ `string`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "string + string(string length(string))",
+      "context": {
+        "string": "abc"
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: string + string(string length(string))"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `string`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `string`\n    └─ PositionalParameters\n       └─ FunctionInvocation\n          ├─ Name\n          │  └─ `string length`\n          └─ PositionalParameters\n             └─ Name\n                └─ `string`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list contains(list, 2)",
+      "context": {
+        "list": [
+          1,
+          2
+        ]
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list contains(list, 2)"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `list contains`\n └─ PositionalParameters\n    ├─ Name\n    │  └─ `list`\n    └─ Numeric\n       └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list contains(list, 2)",
+      "context": {
+        "list": [
+          1,
+          2
+        ]
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list contains(list, 2)"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `list contains`\n └─ PositionalParameters\n    ├─ Name\n    │  └─ `list`\n    └─ Numeric\n       └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "day of week(date(\"2026-01-31\"))",
+      "context": {
+        "day": 1
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: day of week(date(\"2026-01-31\"))"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `day of week`\n └─ PositionalParameters\n    └─ FunctionInvocation\n       ├─ Name\n       │  └─ `date`\n       └─ PositionalParameters\n          └─ String\n             └─ `2026-01-31`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "day of week(date(\"2026-01-31\"))",
+      "context": {
+        "day": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: day of week(date(\"2026-01-31\"))"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `day of week`\n └─ PositionalParameters\n    └─ FunctionInvocation\n       ├─ Name\n       │  └─ `date`\n       └─ PositionalParameters\n          └─ String\n             └─ `2026-01-31`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "date and time(\"2026-01-31T10:00:00\")",
+      "context": {
+        "date": 1
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ Name\n │  └─ `date`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `time`\n    └─ PositionalParameters\n       └─ String\n          └─ `2026-01-31T10:00:00`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `date and time`\n └─ PositionalParameters\n    └─ String\n       └─ `2026-01-31T10:00:00`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "date and time(\"2026-01-31T10:00:00\")",
+      "context": {
+        "date": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ Name\n │  └─ `date`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `time`\n    └─ PositionalParameters\n       └─ String\n          └─ `2026-01-31T10:00:00`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `date and time`\n └─ PositionalParameters\n    └─ String\n       └─ `2026-01-31T10:00:00`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of date and time",
+      "context": {
+        "a": 1,
+        "date": true
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a instance of date and time"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Name\n │  └─ `a`\n └─ FeelType\n    └─ date and time\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of date and time",
+      "context": {
+        "a": 1,
+        "date": true
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a instance of date and time"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Name\n │  └─ `a`\n └─ FeelType\n    └─ date and time\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of days and time duration",
+      "context": {
+        "a": 1,
+        "days": 2
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ QualifiedName\n │     └─ Name\n │        └─ `days`\n └─ Name\n    └─ `time duration`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Name\n │  └─ `a`\n └─ FeelType\n    └─ days and time duration\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of days and time duration",
+      "context": {
+        "a": 1,
+        "days": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ QualifiedName\n │     └─ Name\n │        └─ `days`\n └─ Name\n    └─ `time duration`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " InstanceOf\n ├─ Name\n │  └─ `a`\n └─ FeelType\n    └─ days and time duration\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of number and number > 1",
+      "context": {
+        "a": 1,
+        "number": 2
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ QualifiedName\n │     └─ Name\n │        └─ `number`\n └─ Gt\n    ├─ Name\n    │  └─ `number`\n    └─ Numeric\n       └─ `1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ FeelType\n │     └─ number\n └─ Gt\n    ├─ Name\n    │  └─ `number`\n    └─ Numeric\n       └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of number and number > 1",
+      "context": {
+        "a": 1,
+        "number": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ QualifiedName\n │     └─ Name\n │        └─ `number`\n └─ Gt\n    ├─ Name\n    │  └─ `number`\n    └─ Numeric\n       └─ `1`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ FeelType\n │     └─ number\n └─ Gt\n    ├─ Name\n    │  └─ `number`\n    └─ Numeric\n       └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of date and a > 0",
+      "context": {
+        "a": 1,
+        "date": true
+      }
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ QualifiedName\n │     └─ Name\n │        └─ `date`\n └─ Gt\n    ├─ Name\n    │  └─ `a`\n    └─ Numeric\n       └─ `0`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ FeelType\n │     └─ date\n └─ Gt\n    ├─ Name\n    │  └─ `a`\n    └─ Numeric\n       └─ `0`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a instance of date and a > 0",
+      "context": {
+        "a": 1,
+        "date": true
+      },
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ QualifiedName\n │     └─ Name\n │        └─ `date`\n └─ Gt\n    ├─ Name\n    │  └─ `a`\n    └─ Numeric\n       └─ `0`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `a`\n │  └─ FeelType\n │     └─ date\n └─ Gt\n    ├─ Name\n    │  └─ `a`\n    └─ Numeric\n       └─ `0`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{number: 1, r: 1 instance of number}.r"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `number`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ InstanceOf\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ QualifiedName\n │           └─ Name\n │              └─ `number`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `number`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ InstanceOf\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ FeelType\n │           └─ number\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{number: 1, r: 1 instance of number}.r",
+      "errorMode": "strict"
+    },
+    "why": "the name of a built-in function with more words than the name in scope that starts it is the name (longest match over the names in scope and the built-in names, DMN 1.6 section 10.3.1.2), and where a type is expected the name of a built-in type is the type also when a variable has that name; 0.6.0 took the shorter name in scope",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `number`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ InstanceOf\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ QualifiedName\n │           └─ Name\n │              └─ `number`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `number`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ InstanceOf\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ FeelType\n │           └─ number\n └─ Name\n    └─ `r`\n"
+    }
+  }
+]

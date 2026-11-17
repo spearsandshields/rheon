@@ -5,7 +5,7 @@ use crate::lalr::TokenType;
 use crate::scope::{ParsingScope, first_word};
 use dsntk_common::Result;
 use rheon_feel::Name;
-use rheon_feel::bif::is_built_in_date_time_function_name;
+use rheon_feel::bif::{is_built_in_date_time_function_name, is_built_in_function_name};
 use rheon_feel::bip::{BUILT_IN_PROPERTY_NAMES, is_built_in_property_name};
 use std::ops::Range;
 
@@ -47,6 +47,9 @@ const NAME_ENDING_SYMBOLS: [&str; 5] = [".", "/", "-", "+", "*"];
 /// The built-in names that have one of the [NAME_ENDING_KEYWORDS], as their words. They are
 /// names of functions and types, which are never in the parsing scope, so a name that starts
 /// with their words holds them whole.
+/// The most words of a built-in function or type name (`years and months duration`).
+const MAX_BUILT_IN_NAME_WORDS: usize = 4;
+
 const BUILT_IN_NAMES_WITH_KEYWORDS: [&[&str]; 3] = [&["date", "and", "time"], &["years", "and", "months", "duration"], &["days", "and", "time", "duration"]];
 
 /// Length in bytes of the longest built-in property name: after a dot, a candidate name that is
@@ -820,6 +823,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     if let Some((part_count, built_in_property)) = self.longest_name_in_scope(first) {
       if built_in_property {
         self.after_dot = false;
+      } else if let Some((part_count, token_type)) = self.longer_built_in_name(first, part_count) {
+        // a built-in name that starts here is longer than the name in scope
+        self.position = self.chain_parts[first + part_count - 1].end;
+        let name = self.chain_name(first, first + part_count);
+        return Ok(match token_type {
+          TokenType::BuiltInTypeName => (token_type, TokenValue::BuiltInTypeName(name)),
+          TokenType::NameDateTime => (token_type, TokenValue::NameDateTime(name)),
+          _ => (token_type, TokenValue::Name(name)),
+        });
       }
       // return to the input all characters that do not belong to the name that was found
       self.position = self.chain_parts[first + part_count - 1].end;
@@ -1048,6 +1060,54 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   fn is_one_part_before_keyword(&mut self, first: usize) -> bool {
     // parts that are not regular may be a longer name in scope that its flattened text misses
     !self.whole_names && first + 1 < self.chain_parts.len() && self.built_in_words(first) == 1 && self.ends_unknown_name(first + 1) && !self.has_irregular_parts(first)
+  }
+
+  /// Returns the number of leading name parts (from part `first` of the chain) that form a
+  /// built-in name of more parts than `in_scope`, the parts of the name in scope that starts
+  /// there, and the type of its token: the name of a built-in function, or where a type is
+  /// expected the name of a built-in type, which also wins with as many parts (a variable is
+  /// no type). A function name with a keyword in it (`date and time`) counts only before the
+  /// `(` of its call: elsewhere the keyword is the operator after the name in scope.
+  ///
+  /// The built-in names are words with one space between them, of at most
+  /// [MAX_BUILT_IN_NAME_WORDS] words, so a few prefixes of the parts are looked at, and none
+  /// when the part after the name in scope is not a word.
+  fn longer_built_in_name(&mut self, first: usize, in_scope: usize) -> Option<(usize, TokenType)> {
+    let parts = self.chain_parts.len() - first;
+    let word = |lexer: &Self, index: usize| {
+      let part = &lexer.chain_parts[first + index];
+      let text = &lexer.input[part.trimmed.clone()];
+      !text.is_empty() && !is_symbol_part(text)
+    };
+    let longer = in_scope < parts && word(self, in_scope);
+    if !longer && !self.type_name {
+      return None;
+    }
+    let most = if longer { parts.min(MAX_BUILT_IN_NAME_WORDS) } else { in_scope };
+    let least = if self.type_name { in_scope } else { in_scope + 1 };
+    for part_count in (least..=most).rev() {
+      if !(0..part_count).all(|index| word(self, index)) {
+        continue;
+      }
+      let texts = self.chain_parts[first..first + part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
+      flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
+      if self.type_name && is_built_in_type_name(&self.name_buf) {
+        return Some((part_count, TokenType::BuiltInTypeName));
+      }
+      if part_count > in_scope && is_built_in_function_name(&self.name_buf) {
+        // the character after the name: the position is the end of the chain now
+        let end_of_chain = std::mem::replace(&mut self.position, self.chain_parts[first + part_count - 1].end);
+        let called = self.is_next_character(&['('], 0);
+        self.position = end_of_chain;
+        let keyword = (1..part_count).any(|index| NAME_ENDING_KEYWORDS.contains(&&self.input[self.chain_parts[first + index].trimmed.clone()]));
+        if keyword && !called {
+          continue;
+        }
+        let date_time = called && is_built_in_date_time_function_name(&self.name_buf);
+        return Some((part_count, if date_time { TokenType::NameDateTime } else { TokenType::Name }));
+      }
+    }
+    None
   }
 
   /// Returns the number of leading name parts (from part `first` of the chain) that form the
