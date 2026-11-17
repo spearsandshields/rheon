@@ -17,6 +17,7 @@ mod closure;
 mod composite;
 mod context;
 mod errors;
+mod hand;
 mod index;
 mod lalr;
 mod lexer;

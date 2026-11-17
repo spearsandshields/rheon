@@ -82,10 +82,54 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
     .unwrap_or_default()
 }
 
-/// Runs the production front end; a panic is an outcome.
+/// Runs the production front end; a panic is an outcome. With `RHEON_HAND=use` the hand-written
+/// parser runs in its place; with `RHEON_HAND=compare` both run, and every case in which they
+/// differ is appended to the file named by `RHEON_HAND_OUT`.
 pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
+  match std::env::var("RHEON_HAND").as_deref() {
+    Ok("use") => run_hand(frames, start, input),
+    Ok("compare") => {
+      let production = run_tables(frames, start, input);
+      let hand = run_hand(frames, start, input);
+      if hand != production {
+        use std::io::Write;
+        let path = std::env::var("RHEON_HAND_OUT").expect("RHEON_HAND_OUT");
+        let mut file = std::fs::OpenOptions::new().create(true).append(true).open(path).unwrap();
+        let keys: Vec<Vec<String>> = frames.iter().map(|frame| frame.get_entries().iter().map(|(name, _)| name.to_string()).collect()).collect();
+        writeln!(
+          file,
+          "CASE start={} input={input:?} keys={keys:?}\n  tables: {:?}\n  hand:   {:?}",
+          start.clone() as i16,
+          production,
+          hand
+        )
+        .unwrap();
+      }
+      production
+    }
+    _ => run_tables(frames, start, input),
+  }
+}
+
+/// Runs the table-driven parser; a panic is an outcome.
+fn run_tables(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
   let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
+  let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
+  Run {
+    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
+    outcome: match outcome {
+      Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
+      Ok(Err(e)) => Outcome::Error(e.to_string()),
+      Err(payload) => Outcome::Panic(panic_message(payload)),
+    },
+  }
+}
+
+/// Runs the hand-written parser; a panic is an outcome.
+fn run_hand(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
+  let scope = ParsingScope::new(frames);
+  let mut parser = crate::hand::Parser::new(&scope, start.clone(), input).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   Run {
     tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
