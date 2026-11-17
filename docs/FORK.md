@@ -4095,6 +4095,22 @@ looked up only when a name in scope has its length (232).
     number texts against the conversion of their texts. No answer changes. Measured (wasm):
     the same input 11.3 to 8.1 ms; the ordinary speed suite 1.07x, input-heavy requests 1.4x
     to 1.95x. Rust API: none.
+245. **A record of an input list is read when it is first used.** A request paid for reading
+    all of its input, also when the expression used a small part. An object that is an item
+    of an array, of at least 128 bytes, is passed without reading it into values, and is a
+    context that reads it when something first uses it (`FeelContext::deferred`, the trait
+    `DeferredEntries`); at every depth, so the records inside a record that is read stay unread
+    until they are used. The pass validates the object and takes only one that the reader
+    reads without a warning and without refusing it; any other is read at once. So the values,
+    the warnings, the errors and their order are unchanged. Tests: whatever the pass takes is
+    read to the same end, without a warning, into a value of the depth the pass gave; lists of
+    records against the conversion through the tree; a context that reads on first use against
+    the context of its source. Measured (wasm): an input of 1.58 MB, expression reading 2
+    numbers 8.3 to 2.8 ms, reading one field of 160 records 8.3 to 4.9 ms; a field of every
+    record read 1.67 to 2.20 ms (the pass is paid on top); the ordinary speed suite 0.99x
+    (three workloads that build or read many contexts 0.94x to 0.95x), 1.50x against 0.6.0.
+    Rust API: `FeelContext::deferred`,
+    `FeelContext::is_built`, `DeferredEntries` (new).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
