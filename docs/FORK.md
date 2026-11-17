@@ -4132,6 +4132,12 @@ looked up only when a name in scope has its length (232).
     `sort`, which were null and work. The official TCK answers are unchanged. Rust API:
     `Home` (new), `FunctionDefinition::home` and `FunctionDefinition::at_home` (new);
     `FunctionDefinition` compares and prints as before.
+247. **The identity check compares with 0.7.0.** The baseline moves to the v0.7.0 release module,
+    and the ledgers of registered differences against 0.6.0 are removed (490 entries in 11 files
+    of `registered/`, one file of `release/registered/`): 0.7.0 answers every committed request
+    as registered. Git history keeps the ledgers; their requests stay in the request sources.
+    Identity of the 0.7.0 build against the 0.7.0 module: the committed sources are 15,450
+    requests, with `--release` 15,462 (5 trapping the reference), no difference.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
