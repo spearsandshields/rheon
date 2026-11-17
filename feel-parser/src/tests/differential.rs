@@ -1808,3 +1808,62 @@ fn tolerant_samples() {
     }
   }
 }
+
+/// Prints the work and the time of parsing some name-heavy texts (a measurement, on request:
+/// `cargo test --release -p rheon-feel-parser name_costs -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn name_costs() {
+  let names: Vec<String> = (0..60).map(|i| format!("monthly amount of item {i}")).collect();
+  let entries: Vec<(&str, Value)> = names.iter().map(|name| (name.as_str(), number(1))).collect();
+  let many = ctx(&entries);
+  let few = ctx(&[("Monthly Salary", number(1)), ("Tax Rate", number(1)), ("Net Bonus", number(1))]);
+  let spaced: Vec<String> = (0..60).map(|i| format!("item{i}")).collect();
+  let spaced_entries: Vec<(&str, Value)> = spaced.iter().map(|name| (name.as_str(), number(1))).collect();
+  let one_word = ctx(&spaced_entries);
+  let cases: Vec<(&str, FeelContext, String)> = vec![
+    ("60 multi-word names, +", many.clone(), names.join(" + ")),
+    ("60 multi-word names, and", many.clone(), names.join(" and ")),
+    ("60 multi-word names, commas in a list", many, format!("[{}]", names.join(", "))),
+    ("60 one-word names, +", one_word, spaced.join(" + ")),
+    ("60 unknown one-word names, +", FeelContext::default(), spaced.join(" + ")),
+    (
+      "formula of 5 names",
+      few,
+      "(Monthly Salary * 12 + Net Bonus) * (1 - Tax Rate) / 12 + Monthly Salary".to_string(),
+    ),
+  ];
+  for (name, frame, input) in &cases {
+    let frames = [frame.clone()];
+    let work = work_of(&frames, input);
+    let iterations = 2_000;
+    let mut best = f64::MAX;
+    for _ in 0..5 {
+      let t0 = std::time::Instant::now();
+      for _ in 0..iterations {
+        let scope = ParsingScope::new(&frames);
+        std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, input, false).parse().is_ok());
+      }
+      best = best.min(t0.elapsed().as_nanos() as f64 / iterations as f64);
+    }
+    println!("COST {name:<40} {best:>8.0} ns  {work:?}");
+  }
+}
+
+/// Parses one name-heavy text for some seconds, for a sampling profiler (on request).
+#[test]
+#[ignore]
+fn name_costs_loop() {
+  let one_word = std::env::var_os("RHEON_ONE_WORD").is_some();
+  let names: Vec<String> = (0..60).map(|i| if one_word { format!("item{i}") } else { format!("monthly amount of item {i}") }).collect();
+  let entries: Vec<(&str, Value)> = names.iter().map(|name| (name.as_str(), number(1))).collect();
+  let frames = [ctx(&entries)];
+  let input = names.join(" + ");
+  let t0 = std::time::Instant::now();
+  while t0.elapsed().as_secs() < 8 {
+    for _ in 0..1000 {
+      let scope = ParsingScope::new(&frames);
+      std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, &input, false).parse().is_ok());
+    }
+  }
+}

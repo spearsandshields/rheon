@@ -637,9 +637,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   fn read(&mut self, at: At) -> Result<()> {
     #[allow(unused_mut)]
     let (mut token_type, mut token_value) = if self.syntax.is_some() { self.next_token_tolerant()? } else { self.lexer.next_token()? };
-    self.token_start = self.lexer.token_start();
-    // the lexer passes the white space after a name of one word
-    self.token_end = self.token_start + self.input[self.token_start..self.lexer.position()].trim_end_matches(is_space).len();
+    // the places of the token: only a tolerant parse reads them
+    if self.syntax.is_some() {
+      self.token_start = self.lexer.token_start();
+      // the lexer passes the white space after a name of one word
+      self.token_end = self.token_start + self.input[self.token_start..self.lexer.position()].trim_end_matches(is_space).len();
+    }
     // the `and` after the middle operand of a `between`
     if at == At::AfterOperand && self.between && matches!(token_value, TokenValue::And) {
       token_type = TokenType::BetweenAnd;

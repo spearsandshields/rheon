@@ -901,60 +901,68 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.chain_in = NOT_SEARCHED;
     self.chain_flat_state = FlatChain::Unknown;
     self.chain_last_irregular = None;
+    let bytes = self.input.as_bytes();
     //------------------------------------------------------------------------------
     // The current character on input is already a `name start` character, the first
-    // character of the first part.
+    // character of the first part. `position` is the last character read; the state
+    // machine looks at the character after it.
     //------------------------------------------------------------------------------
-    let mut start = self.position;
-
-    //------------------------------------------------------------------------------
-    // Now parse the rest of the input using a state machine,
-    // looking for characters belonging to this name.
-    //------------------------------------------------------------------------------
+    let mut position = self.position;
+    let mut start = position;
     let mut state = 1;
     loop {
+      let next = position + utf8_len(bytes[position]);
+      let ch = match bytes.get(next) {
+        Some(&byte) if byte.is_ascii() => Some(byte as char),
+        Some(_) => self.input[next..].chars().next(),
+        None => None,
+      };
       match state {
+        // in a word
         1 => {
-          if self.is_next_name_part_char() {
-            self.advance();
+          if ch.is_some_and(is_name_part_char) {
+            position = next;
           } else {
-            self.push_chain_part(start);
+            self.push_chain_part(start, next);
             state = 2;
           }
         }
+        // after a part
         2 => {
-          if self.is_next_name_part_char() {
+          if ch.is_some_and(is_name_part_char) {
             // the next part starts with the next character
-            start = self.next_position();
+            start = next;
             state = 1;
-          } else if self.is_next_additional_name_symbol() {
+          } else if ch.is_some_and(is_additional_name_symbol) {
             state = 4;
-          } else if self.is_next_whitespace() {
+          } else if ch.is_some_and(is_whitespace) {
             state = 5;
           } else {
-            self.advance();
+            position = next;
             break;
           }
         }
+        // additional name symbols, each a part
         4 => {
-          if self.is_next_additional_name_symbol() {
-            self.advance();
-            self.push_chain_part(self.position);
+          if ch.is_some_and(is_additional_name_symbol) {
+            position = next;
+            self.push_chain_part(position, position + 1);
           } else {
             state = 2;
           }
         }
-        5 => {
-          if self.is_next_whitespace() {
-            self.advance();
+        // white space
+        _ => {
+          if ch.is_some_and(is_whitespace) {
+            position = next;
           } else {
             state = 2;
           }
         }
-        _ => {}
       }
     }
-    self.chain_end = self.position;
+    self.position = position;
+    self.chain_end = position;
   }
 
   /// Returns the index of the first part `in` of the chain at or after the part `first`. The
@@ -975,13 +983,18 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     Some(self.chain_in.1).filter(|&part| part < self.chain_parts.len())
   }
 
-  /// Ends a part of the chain: from `start` to the current character, the last of the part.
-  fn push_chain_part(&mut self, start: usize) {
+  /// Adds the part `start..end` of the input to the chain.
+  fn push_chain_part(&mut self, start: usize, end: usize) {
     work!(Parts, 1);
-    let end = self.next_position();
     let text = &self.input[start..end];
-    let trim_start = start + (text.len() - text.trim_start().len());
-    let trimmed = trim_start..trim_start + text.trim().len();
+    // only a part with other characters than ASCII can have white space at an end (U+1680 is
+    // a name part character too)
+    let trimmed = if text.is_ascii() {
+      start..end
+    } else {
+      let trim_start = start + (text.len() - text.trim_start().len());
+      trim_start..trim_start + text.trim().len()
+    };
     if trimmed.is_empty() {
       self.chain_last_empty = Some(self.chain_parts.len());
     }
@@ -1264,16 +1277,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     }
   }
 
-  /// Returns the position of the character after the current one.
-  fn next_position(&self) -> usize {
-    self.position + utf8_len(self.input.as_bytes()[self.position])
-  }
-
-  /// Moves the position to the next character.
-  fn advance(&mut self) {
-    self.position = self.next_position();
-  }
-
   /// Consumes Unicode literal in one of the following forms:
   /// - \u0000 ('\' + 'u' + four hexadecimal characters), or
   /// - \U000000 ('\' + 'U' + six hexadecimal characters).
@@ -1325,21 +1328,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       0xDC00..=0xDFFF => Err(err_unicode_surrogate_out_of_range(value)),
       other => u32::try_from(other).ok().and_then(char::from_u32).ok_or_else(|| err_unicode_value_out_of_range(other)),
     }
-  }
-
-  /// Checks if the next value on input is whitespace character.
-  fn is_next_whitespace(&self) -> bool {
-    if let Some(ch) = self.char_at(1) { is_whitespace(ch) } else { false }
-  }
-
-  /// Checks if the next character is the name part character.
-  fn is_next_name_part_char(&self) -> bool {
-    if let Some(ch) = self.char_at(1) { is_name_part_char(ch) } else { false }
-  }
-
-  /// Returns **true* when the next character on input is the additional name symbol.
-  fn is_next_additional_name_symbol(&self) -> bool {
-    if let Some(ch) = self.char_at(1) { is_additional_name_symbol(ch) } else { false }
   }
 
   /// Returns the character at the current position advanced with specified offset (in characters).
