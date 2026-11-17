@@ -61,12 +61,11 @@ const plain = [
   { op: 'parse', expression: 'a + b' },
   { op: 'evaluate', expression: 'today()' },
 ];
-// A recursion that exhausts the native stack of Node's main thread under the reference module. A candidate
-// that needs less stack for a call may answer it on some hosts, so no test relies on the candidate trapping.
-const depth = 60;
+// A request whose result exhausts the memory of the module (512 MiB), which traps on every host: a list
+// doubled 30 times holds 2^29 paths to one list, and `flatten` follows them all.
 const trapping = {
   op: 'evaluate',
-  expression: `{f: function(n) if n = 0 then 0 else ${'0 + ('.repeat(depth)}1 + f(n-1)${')'.repeat(depth)}, r: f(190)}.r`,
+  expression: 'count(flatten((for i in 1..30 return if i = 1 then [1] else [partial[-1], partial[-1]])[-1]))',
 };
 
 /** Up to `n` plain requests of the committed ledger, in the order of its files. */
