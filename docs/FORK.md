@@ -4192,7 +4192,21 @@ looked up only when a name in scope has its length (232).
     `parse` for a text that does not parse holds `diagnostics`, the errors of the text with
     their places and codes as `syntax` answers them; `message` is unchanged. The playground's
     result panel lists them. Registered as a rule: `error.diagnostics` is gained
-    (`tools/identity/registered/syntax-error-places.json`).
+    (`tools/identity/registered/syntax-error-places.json`). The messages of the syntax errors
+    say what was expected and what stands there ("Expected `then` after the condition of `if`,
+    but the expression ends here."); the playground shows each as its line and column, a link
+    that selects the place.
+
+252. **A formatter.** `feel-parser/src/format.rs` gives a text one layout from the tolerant
+    parse: spaces by the roles of the tokens, and a part that does not fit its line broken by
+    its kind with what is inside it indented (docs/CONTRACT.md §3, `op: "format"`). The layout
+    does not depend on the layout of the input, so it is stable; names, comments and
+    parentheses stay as written. The result is checked: it must parse to the same tree as the
+    input, otherwise the text comes back unchanged. On the 17,217 expressions of the corpus at
+    two widths every text is formatted and stable. The module has `op: "format"`,
+    `@rheon/feel-runtime` `FeelEngine.format`, `@rheon/feel-codemirror` the command
+    `formatDocument` (Shift-Alt-F), the playground a Format button. The message of an unknown
+    `op` names it (the entries of `editor-operations.json` are recorded again).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

@@ -196,6 +196,12 @@ export type CompleteResponse =
   | { ok: true; to: number; expects: string; items: CompletionItem[]; truncated: boolean; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
+/**
+ * The answer of `format`: the text in the formatter's one layout. `changed` is false when the
+ * text already has it; `reason` says why a text was left as it is although it parses.
+ */
+export type FormatResponse = { ok: true; formatted: string; changed: boolean; reason?: string; elapsedMicros: number } | { ok: false; error: FeelError };
+
 export type OutlineResponse = { ok: true; outline: Outline; elapsedMicros: number } | { ok: false; error: FeelError };
 
 export interface InfoResponse {

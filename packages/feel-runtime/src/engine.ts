@@ -16,7 +16,7 @@
  * - Restart failures: a worker that fails to start is retried with backoff; after
  *   `RESTART_BACKOFF_MS.length` consecutive failures the engine gives up (`unavailable`).
  */
-import { buildCompleteJson, buildEvaluateAllJson, buildEvaluateJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
+import { buildCompleteJson, buildEvaluateAllJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
 import type { FromWorker, ToWorker } from './protocol.js';
 import type {
   CompleteResponse,
@@ -27,6 +27,7 @@ import type {
   EvaluateAllResponse,
   EvaluateRequest,
   EvaluateResponse,
+  FormatResponse,
   InfoResponse,
   OutlineResponse,
   ParseOptions,
@@ -221,6 +222,14 @@ export class FeelEngine {
   /** For an editor: what can stand at `cursor` (a UTF-16 offset in `expression`). */
   complete(expression: string, cursor: number, opts: EditorOptions & RequestOptions = {}): Promise<CompleteResponse> {
     return this.built(() => buildCompleteJson(expression, cursor, opts), opts.signal);
+  }
+
+  /**
+   * The text in the formatter's one layout: lines of at most `width` characters (default 80)
+   * where the text can be broken, nested parts indented. A text with syntax errors is a failure.
+   */
+  format(expression: string, opts: EditorOptions & { width?: number } & RequestOptions = {}): Promise<FormatResponse> {
+    return this.built(() => buildFormatJson(expression, opts), opts.signal);
   }
 
   /** The names of a context without its values: give it to `syntax` and `complete` in place of the context. */

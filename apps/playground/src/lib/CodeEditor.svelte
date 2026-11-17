@@ -33,7 +33,7 @@
   import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
   import { json } from '@codemirror/lang-json';
   import { tags as t } from '@lezer/highlight';
-  import { feelEditor, setFeelScope, syntaxOf, type FeelSource } from '@rheon/feel-codemirror';
+  import { feelEditor, formatDocument, setFeelScope, syntaxOf, type FeelSource } from '@rheon/feel-codemirror';
   import type { Dialect } from '../engine';
 
   interface Props {
@@ -141,6 +141,11 @@
     const len = view.state.doc.length;
     view.dispatch({ selection: { anchor: Math.min(from, len), head: Math.min(to, len) }, scrollIntoView: true });
     view.focus();
+  }
+
+  /** FEEL mode: gives the text the formatter's layout. */
+  export function format() {
+    if (view) formatDocument(view);
   }
 
   function languageExt(): Extension {

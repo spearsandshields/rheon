@@ -11,14 +11,17 @@
  */
 import { autocompletion, snippetCompletion, type Completion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
 import { linter, type Diagnostic } from '@codemirror/lint';
+import { keymap } from '@codemirror/view';
 import { Compartment, Facet, StateEffect, StateField, type EditorState, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from '@codemirror/view';
-import type { CompleteResponse, CompletionItem, EditorOptions, SyntaxResponse } from '@rheon/feel-runtime';
+import type { CompleteResponse, CompletionItem, EditorOptions, FormatResponse, SyntaxResponse } from '@rheon/feel-runtime';
 
 /** What answers the editor: a `FeelEngine` (a worker), or anything with these two methods; the answers may be promises or values. */
 export interface FeelSource {
   syntax(expression: string, opts: EditorOptions & { tree?: boolean }): Promise<SyntaxResponse> | SyntaxResponse;
   complete(expression: string, cursor: number, opts: EditorOptions): Promise<CompleteResponse> | CompleteResponse;
+  /** Needed only for `formatDocument`. */
+  format?(expression: string, opts: EditorOptions & { width?: number }): Promise<FormatResponse> | FormatResponse;
 }
 
 /** The names in scope and the dialect of the text: see `EditorOptions` of `@rheon/feel-runtime`. */
@@ -34,6 +37,8 @@ export interface FeelEditorConfig extends FeelScope {
   tree?: boolean;
   /** Called with every answer that the editor takes. */
   onSyntax?: (syntax: FeelSyntax) => void;
+  /** The most characters of a line that `formatDocument` aims at (default 80). */
+  formatWidth?: number;
 }
 
 /** A `syntax` answer that succeeded. */
@@ -44,11 +49,13 @@ export function instanceSource(instance: { call(request: object): unknown }): Fe
   return {
     syntax: (expression, opts) => instance.call({ op: 'syntax', expression, ...opts }) as SyntaxResponse,
     complete: (expression, cursor, opts) => instance.call({ op: 'complete', expression, cursor, ...opts }) as CompleteResponse,
+    format: (expression, opts) => instance.call({ op: 'format', expression, ...opts }) as FormatResponse,
   };
 }
 
 const setSyntax = StateEffect.define<FeelSyntax | null>();
 const scopeOf = Facet.define<FeelScope, FeelScope>({ combine: (values) => values[0] ?? {} });
+const formatterOf = Facet.define<{ engine: FeelSource; width?: number }, { engine: FeelSource; width?: number } | null>({ combine: (values) => values[0] ?? null });
 
 interface Held {
   syntax: FeelSyntax | null;
@@ -201,7 +208,16 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     return options.length ? { from, to: context.pos, options, filter: false } : null;
   };
 
-  return [scopeCompartment.of(scopeOf.of(scope)), held, asker, colours, errors, autocompletion({ override: [complete] })];
+  return [
+    scopeCompartment.of(scopeOf.of(scope)),
+    formatterOf.of({ engine, width: config.formatWidth }),
+    held,
+    asker,
+    colours,
+    errors,
+    autocompletion({ override: [complete] }),
+    keymap.of([{ key: 'Shift-Alt-f', run: formatDocument }]),
+  ];
 }
 
 const scopeCompartment = new Compartment();
@@ -209,4 +225,27 @@ const scopeCompartment = new Compartment();
 /** The effect that gives an editor other names in scope or another dialect: `view.dispatch({ effects: setFeelScope(scope) })`. */
 export function setFeelScope(scope: FeelScope): StateEffect<unknown> {
   return scopeCompartment.reconfigure(scopeOf.of(scope));
+}
+
+/**
+ * A command: replaces the text of the editor with its formatted form (the engine's `format`).
+ * A text with syntax errors, or one that already has the layout, stays as it is. Bound to
+ * Shift-Alt-F by `feelEditor`. Returns false when the editor has no engine that formats.
+ */
+export function formatDocument(view: EditorView): boolean {
+  const formatter = view.state.facet(formatterOf);
+  if (!formatter?.engine.format) return false;
+  const text = view.state.doc.toString();
+  Promise.resolve()
+    .then(() => formatter.engine.format!(text, { ...view.state.facet(scopeOf), width: formatter.width }))
+    .then(
+      (answer) => {
+        // only for the text that was sent
+        if (!answer.ok || !answer.changed || view.state.doc.toString() !== text) return;
+        const cursor = Math.min(view.state.selection.main.head, answer.formatted.length);
+        view.dispatch({ changes: { from: 0, to: text.length, insert: answer.formatted }, selection: { anchor: cursor }, userEvent: 'input.format' });
+      },
+      () => undefined,
+    );
+  return true;
 }

@@ -1881,3 +1881,129 @@ fn name_costs_loop() {
     }
   }
 }
+
+/// Formats a text in a scope of the tests.
+fn formatted(frames: &[FeelContext], unary_tests: bool, input: &str, width: usize) -> crate::Formatted {
+  crate::format::format(&|| ParsingScope::new(frames), input, unary_tests, width)
+}
+
+/// The formatter on random and chosen texts, at several widths: a text without syntax errors is
+/// formatted unless its spacing decides how its names are read (the formatter checks that the
+/// formatted text is the same expression, and answers `Unchanged` when it is not), and
+/// formatting a formatted text again changes nothing.
+#[test]
+fn formatting_keeps_the_expression_and_is_stable() {
+  let count = if full_size() { 5_000 } else { 400 };
+  let mut rng = Rng(0xB5AD_4ECE_DA1C_E2A9);
+  let keys = random_text_keys();
+  let (mut texts, mut formatted_texts, mut unchanged) = (0, 0, vec![]);
+  for round in 0..count {
+    let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
+    let text = Feel {
+      rng: &mut rng,
+      keys: &keys,
+      budget: 24,
+    }
+    .text();
+    for width in [80, 30, 12, 1][..if round % 4 == 0 { 4 } else { 2 }].iter().copied() {
+      texts += 1;
+      match formatted(&frames, false, &text, width) {
+        crate::Formatted::Text(once) => {
+          formatted_texts += 1;
+          assert!(once.lines().all(|line| line == line.trim_end()), "white space at the end of a line of {once:?}");
+          assert_eq!(
+            formatted(&frames, false, &once, width),
+            crate::Formatted::Text(once.clone()),
+            "formatting twice at width {width}: {text:?} gave {once:?}"
+          );
+        }
+        crate::Formatted::Errors(_) => {}
+        crate::Formatted::Unchanged => unchanged.push(text.clone()),
+      }
+    }
+  }
+  println!("formatter: {texts} texts, {formatted_texts} formatted, {} left unchanged", unchanged.len());
+  // a text whose spacing decides how its names are read (a name in scope with a symbol in it,
+  // white space that is a name character) is left as it is; the scopes of these tests are full
+  // of such names
+  assert!(
+    unchanged.len() * 10 < formatted_texts,
+    "{} of {formatted_texts} texts are left unchanged: {:?}",
+    unchanged.len(),
+    &unchanged[..unchanged.len().min(5)]
+  );
+  assert!(formatted_texts * 10 > texts, "{formatted_texts} of {texts}");
+}
+
+/// Prints the layout of some texts (to read, on request:
+/// `cargo test -p rheon-feel-parser formatter_samples -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn formatter_samples() {
+  let frames = [ctx(&[
+    ("order", number(1)),
+    ("customer", number(1)),
+    ("items", number(1)),
+    ("Monthly Salary", number(1)),
+    ("Tax Rate", number(1)),
+  ])];
+  for (width, input) in [
+    (80, "if order.total>100 then sum(for i in items return i*2) else 0"),
+    (30, "if order.total>100 then sum(for i in items return i*2) else 0"),
+    (
+      40,
+      "{total:sum(for line in order.lines return line.price*line.quantity),discount:if customer.tier=\"gold\" then 0.15 else 0,tags:[\"priority\",\"reviewed\"]}",
+    ),
+    (30, "Monthly Salary*12*(1-Tax Rate)+order.total-customer.discount+items[item>10][1]"),
+    (80, "-x**2+f( a , b:1 )[ 1 ] . c instance  of list<number>"),
+    (30, "for a in [1,2,3], b in [4,5,6] return a*b+1"),
+    (40, "some x in items satisfies x>1 and x<10 or x=100 and not(x in [1..5])"),
+    (40, "function(a:number,b) if a>b then a else b // the larger\n"),
+    (20, "1 + /* one */ 2 // two\n + 3"),
+    (80, "x between 1 and 10 and y in (1,2,[3..4),>5) and date(\"2020-01-01\")<@\"2021-01-01\""),
+  ] {
+    println!("FORMAT width {width}: {input:?}");
+    match formatted(&frames, false, input, width) {
+      crate::Formatted::Text(text) => println!("{text}"),
+      other => println!("{other:?}"),
+    }
+    println!("--");
+  }
+  println!("FORMAT unary tests: {:?}", formatted(&frames, true, "<10,[20..30],not( 5 )", 80));
+}
+
+/// The formatter on the expressions of the FEEL corpus (see [corpus_equals_reference]), each in
+/// the scope of its context, at two widths: every expression that parses is formatted or left
+/// unchanged, and formatting a formatted text again changes nothing.
+#[test]
+#[ignore]
+fn formatter_on_the_corpus() {
+  let corpus = corpus();
+  assert!(!corpus.is_empty(), "set RHEON_PARSER_CORPUS to the absolute path of tools/feel-corpus");
+  let (mut texts, mut changed, mut unchanged) = (0, 0, vec![]);
+  for (ctx_text, expr) in &corpus {
+    let frames = vec![keys_of_context_literal(ctx_text)];
+    for width in [80, 24] {
+      match formatted(&frames, false, expr, width) {
+        crate::Formatted::Text(once) => {
+          texts += 1;
+          changed += usize::from(&once != expr);
+          assert_eq!(
+            formatted(&frames, false, &once, width),
+            crate::Formatted::Text(once.clone()),
+            "formatting twice at width {width}: {expr:?} gave {once:?}"
+          );
+        }
+        crate::Formatted::Errors(_) => {}
+        crate::Formatted::Unchanged => unchanged.push(expr.clone()),
+      }
+    }
+  }
+  println!(
+    "formatter on the corpus: {} lines, {texts} formatted ({changed} changed), {} left unchanged: {:?}",
+    corpus.len(),
+    unchanged.len(),
+    &unchanged[..unchanged.len().min(8)]
+  );
+  assert!(unchanged.len() * 100 < texts, "{} of {texts} left unchanged", unchanged.len());
+}

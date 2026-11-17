@@ -232,6 +232,11 @@ export function buildCompleteJson(expression: string, cursor: number, opts: Edit
   return serializeRequest({ op: 'complete', dialect: opts.dialect ?? 'expression', expression, cursor, ...editorFields(opts) });
 }
 
+/** `format` request → JSON text; `width` is the most characters of a line (default 80). */
+export function buildFormatJson(expression: string, opts: EditorOptions & { width?: number } = {}): string {
+  return serializeRequest({ op: 'format', dialect: opts.dialect ?? 'expression', expression, width: opts.width, ...editorFields(opts) });
+}
+
 /** `outline` request → JSON text. */
 export function buildOutlineJson(opts: ParseOptions = {}): string {
   return serializeRequest({ op: 'outline', ...contextFields(opts.context, opts.contextFormat) });

@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "evaluateAll" | "parse" | "syntax" | "complete" | "outline" | "info",
+  "op": "evaluate" | "evaluateAll" | "parse" | "syntax" | "complete" | "outline" | "format" | "info",
   "dialect": "expression" | "unaryTests",   // evaluate/parse; default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -198,6 +198,28 @@ context without its values, so an editor builds it once and sends it with every 
 instead of the context; a consumer can also write one itself. A list is read by its first
 item only.
 
+`op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
+optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers
+`{ "ok": true, "formatted": "<text>", "changed": true | false, "elapsedMicros": n }`.
+
+- The layout depends only on the tokens of the text and the width, so formatting a formatted
+  text changes nothing (`changed: false`). One space stands where the grammar reads better
+  with one (around operators and keywords, after `,` and `:`), none inside brackets, around
+  `.` and `..`, between a function and its `(`, or after a sign.
+- A part that does not fit the rest of its line is broken by its kind, and what is inside it is
+  indented by two spaces: a list, a context, the arguments of an invocation, a filter and an
+  expression in parentheses get an item per line between their brackets; `then`, `else`,
+  `return` and `satisfies` start a line; every operator of a chain of one kind (`and`, `or`,
+  comparisons, `+ -`, `* /`, `**`) starts a line. A part that can not be broken (a name, a
+  string, a type) may run past the width.
+- Names, numbers, strings, comments and parentheses are written as they stand in the input; a
+  comment that runs to the end of its line keeps the line break after it.
+- A text with syntax errors is the failure that `parse` answers, with its `diagnostics`.
+- The formatted text is checked before it is answered: it parses to the same tree as the
+  input. A text for which that does not hold comes back as it is, with `"reason"` (a string):
+  its spacing decides how its names are read (a name in scope with an operator in it), or it
+  is nested too deeply to be compared.
+
 `op: "info"` success: `{ "ok": true, "engine": "rheon", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<rheon-feel-wasm crate version>" }`. `engineCommit` is the rheon repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `.cargo_vcs_info.json` in a crate packaged by cargo, `"unknown"` when built outside both without `RHEON_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[package.metadata.rheon]` in `wasm/feel-wasm/Cargo.toml`), and `numberBackend` the feel-number backend (`rheon_feel_number::NUMBER_BACKEND`, always `"dashu"`).
 
 Failure (the instance stays healthy):
@@ -251,6 +273,7 @@ export class FeelEngine {
   syntax(expression: string, opts?: EditorOptions & { tree?: boolean } & RequestOptions): Promise<SyntaxResponse>;
   complete(expression: string, cursor: number, opts?: EditorOptions & RequestOptions): Promise<CompleteResponse>;
   outline(opts?: ParseOptions & RequestOptions): Promise<OutlineResponse>;
+  format(expression: string, opts?: EditorOptions & { width?: number } & RequestOptions): Promise<FormatResponse>;
   info(): Promise<unknown>;
   callJson(json: string, opts?: RequestOptions): Promise<any>;  // raw §2 request, sent as-is
   dispose(): void;                       // pending/later requests resolve {ok:false, error:{kind:'internal', message:'FeelEngine disposed'}}

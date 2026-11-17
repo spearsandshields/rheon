@@ -403,6 +403,7 @@
         <header class="card-head">
           <h2>{dialect === 'unaryTests' ? 'Unary tests' : 'Expression'}</h2>
           <span class="spacer"></span>
+          <button class="icon-btn" onclick={() => feelEditor?.format()} disabled={!engine} title="Format the text: one layout, long formulas broken into indented lines (Shift+Alt+F)" data-testid="format">Format</button>
           <div class="segmented" role="radiogroup" aria-label="Dialect">
             <button role="radio" aria-checked={dialect === 'expression'} class:on={dialect === 'expression'} onclick={() => (dialect = 'expression')} data-testid="dialect-expression">Expression</button>
             <button role="radio" aria-checked={dialect === 'unaryTests'} class:on={dialect === 'unaryTests'} onclick={() => (dialect = 'unaryTests')} data-testid="dialect-unary">Unary Tests</button>

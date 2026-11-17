@@ -8,7 +8,7 @@
 use super::*;
 use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
 use rheon_feel::values::Value;
-use rheon_feel_parser::{Syntax, TokenClass, parse_tolerant};
+use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, Syntax, TokenClass, parse_tolerant};
 
 /// The most items a `complete` answer holds.
 const MAX_ITEMS: usize = 200;
@@ -413,4 +413,45 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     "truncated": truncated,
     "elapsedMicros": elapsed_micros(started),
   }))
+}
+
+/// `op: "format"`: the text in the one layout of the formatter (lines of at most `width`
+/// characters where it can be broken, nested parts indented). A text with syntax errors is the
+/// failure that `parse` answers. A text that can not be formatted safely comes back as it is,
+/// with the reason.
+pub(super) fn format(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
+  const WIDTH: &str = "'width' must be a whole number from 1 to 1000";
+  let dialect = dialect(&req)?;
+  let expression = expression(&mut req)?;
+  let width = match req.remove("width") {
+    None | Some(Json::Null) => DEFAULT_WIDTH,
+    Some(Json::Number(width)) => match width.as_u64() {
+      Some(width @ 1..=1000) => width as usize,
+      _ => return fail(Kind::Request, WIDTH),
+    },
+    Some(_) => return fail(Kind::Request, WIDTH),
+  };
+  let scope = scope(req, unread, dialect)?;
+  let (formatted, reason) = match rheon_feel_parser::format(&scope, &expression, dialect == Dialect::UnaryTests, width) {
+    Formatted::Text(formatted) => (formatted, None),
+    Formatted::Unchanged => (
+      expression.clone(),
+      Some("the text is left as it is: its spacing decides how its names are read, or it is nested too deeply to be checked"),
+    ),
+    Formatted::Errors(_) => {
+      // the failure of `parse`, with the errors of the text
+      parse_node(&scope, dialect, &expression)?;
+      (expression.clone(), Some("the text is left as it is: it has syntax errors"))
+    }
+  };
+  let mut response = json!({
+    "ok": true,
+    "formatted": formatted,
+    "changed": formatted != expression,
+    "elapsedMicros": elapsed_micros(started),
+  });
+  if let Some(reason) = reason {
+    response["reason"] = json!(reason);
+  }
+  Ok(response)
 }

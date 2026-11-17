@@ -906,7 +906,7 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
     json!({"op": "y".repeat(300)}),
     "request",
     format!(
-      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
+      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
       "y".repeat(120)
     ),
   );
@@ -976,7 +976,7 @@ fn request_error_messages() {
   assert_error(
     &req(json!({"op": "explode"})),
     "request",
-    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
   );
   // the expression
   for op in ["evaluate", "parse"] {
@@ -1074,7 +1074,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')";
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1843,7 +1843,7 @@ fn evaluate_all_request_and_response() {
   assert_error(
     &req(json!({"op": "nothing"})),
     "request",
-    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
   );
   let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
   assert_eq!(
@@ -2074,4 +2074,32 @@ fn syntax_errors_carry_their_places() {
   assert!(req(json!({"op": "evaluate"}))["error"].get("diagnostics").is_none());
   let deep = format!("1{}", "+1".repeat(400));
   assert!(req(json!({"op": "evaluate", "expression": deep}))["error"].get("diagnostics").is_none());
+}
+
+/// `format` gives a text its one layout: spaces where they belong, and lines broken with
+/// indentation when the text is wider than `width`.
+#[test]
+fn format_lays_a_text_out() {
+  let format = |expression: &str, width: Json| req(json!({"op": "format", "expression": expression, "width": width, "context": {"order": {"total": 1}, "items": [1]}}));
+  let response = format("if order.total>100 then sum(for i in items return i*2) else 0", Json::Null);
+  assert_eq!(response["ok"], true, "{response}");
+  assert_eq!(response["formatted"], "if order.total > 100 then sum(for i in items return i * 2) else 0");
+  assert_eq!(response["changed"], true);
+  let response = format("if order.total>100 then sum(for i in items return i*2) else 0", json!(30));
+  assert_eq!(response["formatted"], "if order.total > 100\nthen sum(\n  for i in items return i * 2\n)\nelse 0");
+  // a formatted text stays as it is
+  let again = format(response["formatted"].as_str().unwrap(), json!(30));
+  assert_eq!(again["formatted"], response["formatted"]);
+  assert_eq!(again["changed"], false);
+  assert!(again.get("reason").is_none());
+  // comments stay, a line comment ends its line
+  assert_eq!(format("1+ /* one */2 // two\n+3", Json::Null)["formatted"], "1\n  + /* one */ 2 // two\n  + 3");
+  // unary tests
+  let response = req(json!({"op": "format", "dialect": "unaryTests", "expression": "<10,[20..30],not( 5 )"}));
+  assert_eq!(response["formatted"], "< 10, [20..30], not(5)");
+  // a text with a syntax error is the failure of parse, with its errors
+  let response = format("1 +", Json::Null);
+  assert_error(&response, "syntax", "syntax error: 1 +");
+  assert_eq!(response["error"]["diagnostics"][0]["code"], "expected-expression");
+  assert_error(&format("1", json!(0)), "request", "'width' must be a whole number from 1 to 1000");
 }

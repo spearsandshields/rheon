@@ -191,6 +191,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Syntax,
     Complete,
     Outline,
+    Format,
   }
   let op = match req.get("op") {
     Some(Json::String(op)) => match op.as_str() {
@@ -201,11 +202,12 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "syntax" => Op::Syntax,
       "complete" => Op::Complete,
       "outline" => Op::Outline,
+      "format" => Op::Format,
       other => {
         return fail(
           Kind::Request,
           format!(
-            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
+            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
             arg(other)
           ),
         );
@@ -223,6 +225,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Op::Syntax => editor::syntax(req, unread, started).map(Response::Tree),
     Op::Complete => editor::complete(req, unread, started).map(Response::Tree),
     Op::Outline => editor::outline(req, unread, started).map(Response::Tree),
+    Op::Format => editor::format(req, unread, started).map(Response::Tree),
   }
 }
 

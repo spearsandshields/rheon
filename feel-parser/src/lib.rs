@@ -17,6 +17,7 @@ mod closure;
 mod composite;
 mod context;
 mod errors;
+mod format;
 mod index;
 mod lexer;
 mod parser;
@@ -115,6 +116,7 @@ pub fn parse_range_literal(scope: &FeelScope, input: &str, trace: bool) -> Resul
   parse(scope, TokenType::StartRangeLiteral, input, trace)
 }
 
+pub use format::{DEFAULT_WIDTH, Formatted};
 pub use parser::{Diagnostic, MAX_DIAGNOSTICS, Syntax, SyntaxNode, SyntaxToken, TextEnd, TokenClass};
 
 /// Parses an `expression` (or `unary tests` with `unary_tests`) for an editor: never fails, and
@@ -124,4 +126,13 @@ pub fn parse_tolerant(scope: &FeelScope, input: &str, unary_tests: bool) -> Synt
   let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
   let start = if unary_tests { TokenType::StartUnaryTests } else { TokenType::StartExpression };
   Parser::new(&parsing_scope, start, input, false).parse_tolerant()
+}
+
+/// Formats an `expression` (or `unary tests` with `unary_tests`) in the one layout of the
+/// formatter: lines of at most `width` characters where the text can be broken, nested parts
+/// indented. A text with syntax errors is not formatted; the formatted text parses to the same
+/// tree as the input.
+pub fn format(scope: &FeelScope, input: &str, unary_tests: bool, width: usize) -> Formatted {
+  let frames = scope.frames();
+  format::format(&|| ParsingScope::new(frames.iter().map(|frame| &**frame)), input, unary_tests, width)
 }
