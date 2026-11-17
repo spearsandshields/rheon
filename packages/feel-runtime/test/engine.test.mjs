@@ -30,6 +30,31 @@ test('real worker (worker_threads running dist/worker.js): evaluate, parse, info
   assert.equal(today.result.display, JSON.stringify(iso));
 });
 
+test('real worker: evaluateAll answers every entry in its place', async (t) => {
+  const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 10000 });
+  t.after(() => engine.dispose());
+  const all = await engine.evaluateAll({
+    context: rawJson('{"price": 12.5, "qty": 4}'),
+    evaluations: [
+      { id: 'total', expression: 'price * qty' },
+      { id: 'bad input', dialect: 'unaryTests', expression: '> 1', input: rawJson('[') },
+      { id: 'syntax', expression: 'price *' },
+      { id: 'test', dialect: 'unaryTests', expression: '[10..20]', input: 12 },
+    ],
+  });
+  assert.equal(all.ok, true);
+  assert.deepEqual(all.results.map((r) => [r.id, r.ok]), [['total', true], ['bad input', false], ['syntax', false], ['test', true]]);
+  assert.equal(all.results[0].result.display, '50');
+  assert.equal(all.results[1].error.kind, 'context');
+  assert.equal(all.results[3].result.display, 'true');
+  assert.deepEqual(all.contextWarnings, []);
+  const bad = await engine.evaluateAll({ context: rawJson('{'), evaluations: [] });
+  assert.deepEqual([bad.ok, bad.error.kind], [false, 'context']);
+  // the worker is kept for the next request
+  assert.equal((await engine.evaluate({ expression: '1 + 1' })).result.display, '2');
+  assert.equal(engine.workerStarts, 1);
+});
+
 test('real worker: timeout terminates the worker, next request works on a fresh one', async (t) => {
   const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 400 });
   t.after(() => engine.dispose());

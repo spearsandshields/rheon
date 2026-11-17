@@ -4067,6 +4067,16 @@ looked up only when a name in scope has its length (232).
     and where a type is expected a built-in type name wins also with as many words. A variable
     with the same name as a built-in function still stands for the variable. Identity ledger:
     34 entries. Rust API: none.
+242. **`evaluateAll` in the npm runtime.** `FeelEngine.evaluateAll(req, opts)` and
+    `instantiateFeel(...).call({ op: 'evaluateAll', ... })` send the request of item 233: the
+    context once (a `rawJson` context spliced verbatim), `tzOffsetMinutes` filled in as for
+    `evaluate`, and each entry with its own fields (a `rawJson` input spliced; the input sent
+    for unary tests only). It is one request in the queue, under one timeout and one signal.
+    An entry that the runtime can not send (invalid raw JSON, an unpaired surrogate) is a
+    failure in its place in `results`, with its `id`, and the other entries are sent. The
+    existing methods are unchanged. Tests: every answer equals the answer of `evaluate` for
+    the entry; raw digits; failures in place; a failure of the request; a real worker.
+    Rust API: none.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

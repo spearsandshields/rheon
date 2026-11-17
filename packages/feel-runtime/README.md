@@ -37,6 +37,14 @@ await engine.evaluate({ expression: 'b * 2', context: '{a: 1, b: a + 1}' });
 // Unary tests: the input is bound to `?`; the result is `? in (<tests>)`
 await engine.evaluate({ dialect: 'unaryTests', expression: '[1..10], > 20', input: 25 });
 
+// Several expressions over one context: the context is sent and read once.
+// results[i] is what evaluate answers for evaluations[i], with its id; one that fails is a failure in its place.
+await engine.evaluateAll({
+  context: rawJson('{"price": 12.5, "qty": 4}'),
+  evaluations: [{ id: 'total', expression: 'price * qty' }, { id: 'large', expression: 'qty > 100' }],
+});
+// → { ok: true, results: [{ ok: true, id: "total", result: {...}, ... }, { ok: true, id: "large", ... }], contextWarnings: [], elapsedMicros }
+
 // Parse tree (dsntk AstNode::tree). Pass the context so multi-word names split correctly.
 await engine.parse('expression', 'first name + 1', { context: { 'first name': 1 } });
 

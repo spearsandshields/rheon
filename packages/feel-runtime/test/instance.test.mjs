@@ -185,3 +185,68 @@ test('trapMessage names a failed allocation at the memory cap as out of memory',
   assert.equal(trapMessage('RuntimeError: unreachable', ['thread panicked at x']), 'RuntimeError: unreachable\nthread panicked at x');
   assert.equal(trapMessage('RuntimeError: unreachable', []), 'RuntimeError: unreachable');
 });
+
+test('evaluateAll: several expressions over one context, each answered as evaluate answers it', () => {
+  const context = { price: 12.5, qty: 4, lines: [{ n: 1 }, { n: 2 }] };
+  const evaluations = [
+    { id: 'total', expression: 'price * qty' },
+    { expression: 'sum(lines.n)' },
+    { id: 7, dialect: 'unaryTests', expression: '> 10', input: 11 },
+    { expression: '1 +' },
+    { expression: 'price + "a"', errorMode: 'strict' },
+  ];
+  const all = feel.call({ op: 'evaluateAll', context, evaluations });
+  assert.equal(all.ok, true);
+  assert.deepEqual(all.contextWarnings, []);
+  assert.equal(all.results.length, evaluations.length);
+  for (const [index, entry] of evaluations.entries()) {
+    const { id, ...fields } = entry;
+    const single = feel.call({ op: 'evaluate', context, ...fields });
+    const { elapsedMicros: _a, id: answerId, ...answer } = all.results[index];
+    const { elapsedMicros: _b, ...expected } = single;
+    assert.deepEqual(answer, expected, entry.expression);
+    assert.equal(answerId, id);
+  }
+  assert.equal(all.results[0].result.display, '50');
+  assert.equal(all.results[3].error.kind, 'syntax');
+  assert.equal(all.results[4].error.kind, 'evaluation');
+});
+
+test('evaluateAll: raw JSON context and inputs keep their digits; an entry that can not be sent fails in its place', () => {
+  const all = feel.call({
+    op: 'evaluateAll',
+    context: rawJson('{"x": 0.1000000000000000000000000000000001}'),
+    evaluations: [
+      { id: 'a', expression: 'x + 0' },
+      { id: 'b', dialect: 'unaryTests', expression: '> 1', input: rawJson('{') },
+      { id: 'c', dialect: 'unaryTests', expression: '1.000000000000000000001', input: rawJson('1.000000000000000000001') },
+      { id: 'd', expression: '"\ud800"' },
+      'not an object',
+      { id: 'e', expression: 'x > 0' },
+    ],
+  });
+  assert.equal(all.ok, true);
+  assert.deepEqual(all.results.map((r) => r.id), ['a', 'b', 'c', 'd', undefined, 'e']);
+  assert.deepEqual(all.results.map((r) => r.ok), [true, false, true, false, false, true]);
+  assert.equal(all.results[0].result.display, '0.1000000000000000000000000000000001');
+  assert.equal(all.results[1].error.kind, 'context');
+  assert.equal(all.results[2].result.display, 'true');
+  assert.equal(all.results[3].error.kind, 'syntax');
+  assert.equal(all.results[4].error.kind, 'request');
+  assert.equal(all.results[5].result.display, 'true');
+});
+
+test('evaluateAll: a failure of the request has no results; the host offset is filled in', () => {
+  const bad = feel.call({ op: 'evaluateAll', context: rawJson('{'), evaluations: [{ expression: '1' }] });
+  assert.deepEqual([bad.ok, bad.error.kind, bad.results], [false, 'context', undefined]);
+  const none = feel.call({ op: 'evaluateAll', evaluations: 'x' });
+  assert.deepEqual([none.ok, none.error.kind], [false, 'request']);
+  const empty = feel.call({ op: 'evaluateAll', evaluations: [] });
+  assert.deepEqual([empty.ok, empty.results], [true, []]);
+  // tzOffsetMinutes: -240 of this instance
+  const hour = (display) => display.slice(0, 14);
+  const zone = feel.call({ op: 'evaluateAll', evaluations: [{ expression: 'string(now())' }] });
+  assert.equal(hour(zone.results[0].result.display), hour(ev('string(now())').result.display));
+  const utc = feel.call({ op: 'evaluateAll', tzOffsetMinutes: 0, evaluations: [{ expression: 'string(now())' }] });
+  assert.notEqual(hour(utc.results[0].result.display), hour(zone.results[0].result.display));
+});

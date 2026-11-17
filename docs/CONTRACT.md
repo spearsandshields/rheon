@@ -151,6 +151,11 @@ export interface FeelResult { display: string; feel: string; type: string; typed
 export type EvaluateResponse =
   | { ok: true; result: FeelResult; warnings: { message: string }[]; diagnostics?: { count: number; messages: string[] }; elapsedMicros: number }
   | { ok: false; error: { kind: 'request'|'syntax'|'context'|'evaluation'|'internal'|'timeout'|'crash'|'cancelled'; message: string } };
+export interface Evaluation { id?: string | number; dialect?: Dialect; expression: string; input?: unknown | RawJson; errorMode?: 'lenient' | 'strict'; maxSteps?: number; }
+export interface EvaluateAllRequest { context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; tzOffsetMinutes?: number; language?: 'feel' | 'b-feel'; evaluations: Evaluation[]; }
+export type EvaluateAllResponse =
+  | { ok: true; results: (EvaluateResponse & { id?: string | number })[]; contextWarnings: { message: string }[]; elapsedMicros: number }
+  | { ok: false; error: { kind: string; message: string } };
 export type ParseResponse = { ok: true; tree: string; elapsedMicros: number } | { ok: false; error: { kind: string; message: string } };
 export interface ParseOptions { context?: Record<string, unknown> | string | RawJson; contextFormat?: 'json' | 'feel'; }
 
@@ -167,6 +172,7 @@ export interface FeelEngineOptions {
 export class FeelEngine {
   static create(opts: FeelEngineOptions): Promise<FeelEngine>; // compiles wasm once, spawns the worker, resolves when it is ready
   evaluate(req: EvaluateRequest, opts?: RequestOptions): Promise<EvaluateResponse>;
+  evaluateAll(req: EvaluateAllRequest, opts?: RequestOptions): Promise<EvaluateAllResponse>;  // §2 `evaluateAll`: one request, the context sent once
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
   info(): Promise<unknown>;
   callJson(json: string, opts?: RequestOptions): Promise<any>;  // raw §2 request, sent as-is
@@ -198,6 +204,7 @@ Runtime guarantees:
 - `tzOffsetMinutes` is filled in automatically from `new Date().getTimezoneOffset()` (sign inverted) unless the caller supplies it (`EvaluateRequest.tzOffsetMinutes`; for `instantiateFeel`, `env.tzOffsetMinutes`, `null` = don't send).
 - `context` given as a string defaults to `contextFormat: 'feel'`; a JS object or `RawJson` defaults to `'json'`. Invalid `rawJson` (or a non-object `rawJson` context) resolves `{kind:'context'}` without reaching the wasm.
 - `input` is only sent for `dialect: 'unaryTests'`.
+- **`evaluateAll`** is one request: it takes one place in the queue, `timeoutMs` and the `signal` are for all of its evaluations, and a timeout, a crash or a cancellation has no `results`. A `RawJson` value is spliced as the `context` and as the `input` of an entry. An entry that the runtime can not send (invalid `rawJson` input, an unpaired surrogate) is a failure in its place in `results`, with its `id`, like an entry that the module refuses; the other entries are sent. `instantiateFeel(...).call({ op: 'evaluateAll', ... })` does the same.
 - WASI shim: no environment variables, no preopens, `fd_write` to fd 1/2 forwarded line-by-line to `console.log`/`console.error` (or `onOutput`); the last stderr lines (e.g. a Rust panic message) are appended to `crash` messages. `proc_exit` throws (→ crash).
 - A `crash` in `FeelEngine` terminates the worker and starts a fresh one (same compiled module). `instantiateFeel.call` re-instantiates synchronously.
 - `instantiateFeel` is for **trusted input only**: it runs on the calling thread and nothing can interrupt it, so a runaway expression blocks that thread (e.g. a server's event loop). Untrusted input belongs in `FeelEngine` (or a Wasmtime host with fuel/epoch interruption). It requires the `_initialize` export (rejects otherwise) and re-creates its instance after a call that left memory above `env.recycleMemoryBytes` (default 256 MiB).

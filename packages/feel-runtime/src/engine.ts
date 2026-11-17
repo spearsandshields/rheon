@@ -16,11 +16,13 @@
  * - Restart failures: a worker that fails to start is retried with backoff; after
  *   `RESTART_BACKOFF_MS.length` consecutive failures the engine gives up (`unavailable`).
  */
-import { buildEvaluateJson, buildParseJson, INFO_JSON, RequestError } from './request.js';
+import { buildEvaluateAllJson, buildEvaluateJson, buildParseJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
 import type { FromWorker, ToWorker } from './protocol.js';
 import type {
   Dialect,
   ErrorKind,
+  EvaluateAllRequest,
+  EvaluateAllResponse,
   EvaluateRequest,
   EvaluateResponse,
   InfoResponse,
@@ -164,6 +166,21 @@ export class FeelEngine {
       return Promise.resolve(failure('request', String(e)));
     }
     return this.enqueue(json, opts.signal);
+  }
+
+  /**
+   * Evaluates several expressions over one context, which is sent and read once. One request:
+   * the timeout and the `signal` are for all of it, and a timeout or a crash has no results.
+   */
+  evaluateAll(req: EvaluateAllRequest, opts: RequestOptions = {}): Promise<EvaluateAllResponse> {
+    let built: EvaluateAllJson;
+    try {
+      built = buildEvaluateAllJson(req);
+    } catch (e) {
+      if (e instanceof RequestError) return Promise.resolve({ ok: false, error: e.error });
+      return Promise.resolve(failure('request', String(e)));
+    }
+    return this.enqueue(built.json, opts.signal).then((response) => mergeEvaluateAll(response, built.failures));
   }
 
   parse(dialect: Dialect, expression: string, opts: ParseOptions & RequestOptions = {}): Promise<ParseResponse> {
