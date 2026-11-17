@@ -157,7 +157,7 @@ fn kind_of(value: &TokenValue) -> T {
 /// The most errors a tolerant parse records.
 pub const MAX_DIAGNOSTICS: usize = 100;
 
-/// What a tolerant parse records ([Parser::parse_tolerant]). The places are byte offsets in the
+/// What a tolerant parse records ([crate::parse_tolerant]). The places are byte offsets in the
 /// input.
 #[derive(Debug, Default)]
 pub struct Syntax {
