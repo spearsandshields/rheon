@@ -140,12 +140,6 @@ pub struct Lexer<'lexer, 'scope> {
   /// Token `not` is a keyword at the very beginning of the unary tests rule,
   /// in all other contexts it is just a name.
   unary_tests: bool,
-  /// Flag indicating if the `between` keyword was encountered.
-  /// When this flag is set, the next `and` token is returned as `band` keyword,
-  /// otherwise it is returned as `and`. This allows to disambiguate the `and`
-  /// operator used in between clause from conjunction.
-  /// After consuming first `and` as `band` this flag is cleared by the lexer.
-  between: bool,
   /// A type is expected: the next token may be the name of a built-in type or one of the
   /// keywords `list`, `range` and `context`. Set by the parser before every type, and over
   /// with the token read next.
@@ -155,7 +149,8 @@ pub struct Lexer<'lexer, 'scope> {
   /// The text is a name that is being declared ([crate::parse_name]): a name that is not in
   /// scope is the whole chain of its parts, keywords and symbols included.
   whole_names: bool,
-  /// ??
+  /// The token follows a dot: its name may be a built-in property (`year`, `time offset`,
+  /// `start included`). Set by the parser after every dot, and over with the token read next.
   after_dot: bool,
   /// Buffer for the flattened candidate names of [Lexer::longest_name_in_scope].
   name_buf: String,
@@ -209,7 +204,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       input,
       position: 0,
       unary_tests: false,
-      between: false,
       type_name: false,
       till_in: false,
       whole_names: false,
@@ -237,10 +231,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   pub fn set_unary_tests(&mut self) {
     self.unary_tests = true;
-  }
-
-  pub fn set_between(&mut self) {
-    self.between = true;
   }
 
   pub fn set_type_name(&mut self) {
@@ -292,11 +282,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         _ => (TokenType::YyError, TokenValue::YyError),
       });
     }
-    // a type is expected for one token: the parser asks again before every type
-    let type_name = self.type_name;
+    // a type, or a name after a dot, is expected for one token: the parser asks again before
+    // every type and after every dot
+    let (type_name, after_dot) = (self.type_name, self.after_dot);
     let result = self.read_next_token();
     if type_name {
       self.type_name = false;
+    }
+    if after_dot {
+      self.after_dot = false;
     }
     self.unary_tests = false;
     result
@@ -374,14 +368,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 4;
         Ok((TokenType::Boolean, TokenValue::Boolean(true)))
       }
-      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] if !self.between => {
+      // the parser reads it as the `and` of a `between` where one is open
+      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] => {
         self.position += 3;
         Ok((TokenType::And, TokenValue::And))
-      }
-      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] if self.between => {
-        self.between = false;
-        self.position += 3;
-        Ok((TokenType::BetweenAnd, TokenValue::BetweenAnd))
       }
       ['f', 'o', 'r', WS, _, _, _, _, _, _, _, _] => {
         self.position += 3;

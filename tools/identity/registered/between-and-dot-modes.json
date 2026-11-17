@@ -1,0 +1,763 @@
+[
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between (if a and b then 1 else 2) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between (if a and b then 1 else 2) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between (if a and b then 1 else 2) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between (if a and b then 1 else 2) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between max(1, if a and b then 2 else 1) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between max(1, if a and b then 2 else 1) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between max(1, if a and b then 2 else 1) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between max(1, if a and b then 2 else 1) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between {c: if a and b then 1 else 2}.c and 5 and a",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between {c: if a and b then 1 else 2}.c and 5 and a"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between {c: if a and b then 1 else 2}.c and 5 and a",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between {c: if a and b then 1 else 2}.c and 5 and a"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between [1, 2][if a and b then 1 else 2] and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between [1, 2][if a and b then 1 else 2] and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between [1, 2][if a and b then 1 else 2] and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between [1, 2][if a and b then 1 else 2] and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r",
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r",
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a.b + start included",
+      "context": {
+        "a": {
+          "b": 1
+        },
+        "start": 2
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'start included'",
+          "[addition] incompatible types: 1 + null(context has no value for key 'start included')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: 1 + null(context has no value for key 'start included'))",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: 1 + null(context has no value for key 'start included')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a.b + start included"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a.b + start included",
+      "context": {
+        "a": {
+          "b": 1
+        },
+        "start": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'start included'"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a.b + start included"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between (if a and b then 1 else 2) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between (if a and b then 1 else 2) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Name\n │  └─ `x`\n ├─ If\n │  ├─ And\n │  │  ├─ Name\n │  │  │  └─ `a`\n │  │  └─ Name\n │  │     └─ `b`\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `5`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between (if a and b then 1 else 2) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between (if a and b then 1 else 2) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Name\n │  └─ `x`\n ├─ If\n │  ├─ And\n │  │  ├─ Name\n │  │  │  └─ `a`\n │  │  └─ Name\n │  │     └─ `b`\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `5`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between max(1, if a and b then 2 else 1) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between max(1, if a and b then 2 else 1) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Name\n │  └─ `x`\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `max`\n │  └─ PositionalParameters\n │     ├─ Numeric\n │     │  └─ `1`\n │     └─ If\n │        ├─ And\n │        │  ├─ Name\n │        │  │  └─ `a`\n │        │  └─ Name\n │        │     └─ `b`\n │        ├─ Numeric\n │        │  └─ `2`\n │        └─ Numeric\n │           └─ `1`\n └─ Numeric\n    └─ `5`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between max(1, if a and b then 2 else 1) and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between max(1, if a and b then 2 else 1) and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Name\n │  └─ `x`\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `max`\n │  └─ PositionalParameters\n │     ├─ Numeric\n │     │  └─ `1`\n │     └─ If\n │        ├─ And\n │        │  ├─ Name\n │        │  │  └─ `a`\n │        │  └─ Name\n │        │     └─ `b`\n │        ├─ Numeric\n │        │  └─ `2`\n │        └─ Numeric\n │           └─ `1`\n └─ Numeric\n    └─ `5`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between {c: if a and b then 1 else 2}.c and 5 and a",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between {c: if a and b then 1 else 2}.c and 5 and a"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ Between\n │  ├─ Name\n │  │  └─ `x`\n │  ├─ Path\n │  │  ├─ Context\n │  │  │  └─ ContextEntry\n │  │  │     ├─ ContextEntryKey\n │  │  │     │  └─ `c`\n │  │  │     └─ If\n │  │  │        ├─ And\n │  │  │        │  ├─ Name\n │  │  │        │  │  └─ `a`\n │  │  │        │  └─ Name\n │  │  │        │     └─ `b`\n │  │  │        ├─ Numeric\n │  │  │        │  └─ `1`\n │  │  │        └─ Numeric\n │  │  │           └─ `2`\n │  │  └─ Name\n │  │     └─ `c`\n │  └─ Numeric\n │     └─ `5`\n └─ Name\n    └─ `a`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between {c: if a and b then 1 else 2}.c and 5 and a",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between {c: if a and b then 1 else 2}.c and 5 and a"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ Between\n │  ├─ Name\n │  │  └─ `x`\n │  ├─ Path\n │  │  ├─ Context\n │  │  │  └─ ContextEntry\n │  │  │     ├─ ContextEntryKey\n │  │  │     │  └─ `c`\n │  │  │     └─ If\n │  │  │        ├─ And\n │  │  │        │  ├─ Name\n │  │  │        │  │  └─ `a`\n │  │  │        │  └─ Name\n │  │  │        │     └─ `b`\n │  │  │        ├─ Numeric\n │  │  │        │  └─ `1`\n │  │  │        └─ Numeric\n │  │  │           └─ `2`\n │  │  └─ Name\n │  │     └─ `c`\n │  └─ Numeric\n │     └─ `5`\n └─ Name\n    └─ `a`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between [1, 2][if a and b then 1 else 2] and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between [1, 2][if a and b then 1 else 2] and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Name\n │  └─ `x`\n ├─ Filter\n │  ├─ List\n │  │  ├─ Numeric\n │  │  │  └─ `1`\n │  │  └─ Numeric\n │  │     └─ `2`\n │  └─ If\n │     ├─ And\n │     │  ├─ Name\n │     │  │  └─ `a`\n │     │  └─ Name\n │     │     └─ `b`\n │     ├─ Numeric\n │     │  └─ `1`\n │     └─ Numeric\n │        └─ `2`\n └─ Numeric\n    └─ `5`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between [1, 2][if a and b then 1 else 2] and 5",
+      "context": {
+        "x": 3,
+        "a": true,
+        "b": false
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: x between [1, 2][if a and b then 1 else 2] and 5"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Name\n │  └─ `x`\n ├─ Filter\n │  ├─ List\n │  │  ├─ Numeric\n │  │  │  └─ `1`\n │  │  └─ Numeric\n │  │     └─ `2`\n │  └─ If\n │     ├─ And\n │     │  ├─ Name\n │     │  │  └─ `a`\n │     │  └─ Name\n │     │     └─ `b`\n │     ├─ Numeric\n │     │  └─ `1`\n │     └─ Numeric\n │        └─ `2`\n └─ Numeric\n    └─ `5`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `a`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `b`\n │  │        └─ Numeric\n │  │           └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Add\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `a`\n │        │  └─ Name\n │        │     └─ `b`\n │        └─ FunctionInvocation\n │           ├─ FunctionDefinition\n │           │  ├─ FormalParameters\n │           │  │  └─ FormalParameter\n │           │  │     ├─ ParameterName\n │           │  │     │  └─ `v`\n │           │  │     └─ FeelType\n │           │  │        └─ years and months duration\n │           │  └─ FunctionBody\n │           │     └─ Numeric\n │           │        └─ `1`\n │           └─ PositionalParameters\n │              └─ FunctionInvocation\n │                 ├─ Name\n │                 │  └─ `duration`\n │                 └─ PositionalParameters\n │                    └─ String\n │                       └─ `P1Y`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r",
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {a: {b: 1}, r: a.b + (function(v: years and months duration) 1)(duration(\"P1Y\"))}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `a`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `b`\n │  │        └─ Numeric\n │  │           └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Add\n │        ├─ Path\n │        │  ├─ Name\n │        │  │  └─ `a`\n │        │  └─ Name\n │        │     └─ `b`\n │        └─ FunctionInvocation\n │           ├─ FunctionDefinition\n │           │  ├─ FormalParameters\n │           │  │  └─ FormalParameter\n │           │  │     ├─ ParameterName\n │           │  │     │  └─ `v`\n │           │  │     └─ FeelType\n │           │  │        └─ years and months duration\n │           │  └─ FunctionBody\n │           │     └─ Numeric\n │           │        └─ `1`\n │           └─ PositionalParameters\n │              └─ FunctionInvocation\n │                 ├─ Name\n │                 │  └─ `duration`\n │                 └─ PositionalParameters\n │                    └─ String\n │                       └─ `P1Y`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a.b + start included",
+      "context": {
+        "a": {
+          "b": 1
+        },
+        "start": 2
+      }
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `start included`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a.b + start included"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a.b + start included",
+      "context": {
+        "a": {
+          "b": 1
+        },
+        "start": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "the and of a between is the first and that the parser can take as one, so an and inside brackets or an if after the between is a conjunction (DMN 1.6 grammar rule 49); and a built-in property name is looked for in the one token after a dot, so later in the text years is the start of a type name and a name in scope followed by another word is a syntax error as everywhere else; 0.6.0 kept both modes until they were used",
+    "old": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `start included`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: a.b + start included"
+      },
+      "ok": false
+    }
+  }
+]

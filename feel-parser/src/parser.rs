@@ -93,6 +93,8 @@ pub struct Parser<'parser, 'scope> {
   yy_value_stack: Vec<TokenValue>,
   /// AST node stack.
   yy_node_stack: Vec<AstNode>,
+  /// The number of `between` keywords read whose `and` was not read yet.
+  open_betweens: usize,
   /// The token log: every token read from the lexer, with its start offset in the input (the
   /// differential tests compare it with the tokens of the frozen reference front end).
   #[cfg(test)]
@@ -117,6 +119,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       yy_state_stack: stack(0),
       yy_value_stack: stack(TokenValue::YyEmpty),
       yy_node_stack: Vec::with_capacity(NODE_STACK_CAPACITY),
+      open_betweens: 0,
       #[cfg(test)]
       token_log: None,
     }
@@ -144,12 +147,69 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
 
   /// Returns the next token from the lexer (and records it in the token log of tests).
   fn next_token(&mut self) -> Result<(TokenType, TokenValue)> {
-    let token = self.yy_lexer.next_token();
+    let mut token = self.yy_lexer.next_token();
+    // `and` is the `and` of an open `between` where the parser can take that one: not inside
+    // brackets or another expression that began after the `between`
+    if self.open_betweens > 0 && matches!(token, Ok((TokenType::And, _))) && self.takes(TokenType::BetweenAnd) {
+      self.open_betweens -= 1;
+      token = Ok((TokenType::BetweenAnd, TokenValue::BetweenAnd));
+    }
     #[cfg(test)]
     if let (Some(log), Ok((token_type, token_value))) = (&mut self.token_log, &token) {
       log.push((token_type.clone(), token_value.clone(), self.yy_lexer.token_start()));
     }
     token
+  }
+
+  /// Returns `true` when the parser shifts a token of the type `token_type` from its state now,
+  /// after the reductions that the token brings; no action runs and nothing changes. The states
+  /// that the reductions would push are kept apart from the state stack, which is only read.
+  fn takes(&self, token_type: TokenType) -> bool {
+    let token = YY_TRANSLATE[token_type as usize] as i16;
+    // the states of the stack that are left, and the states pushed on top of them
+    let mut left = self.yy_state_stack.len();
+    let mut pushed: Vec<usize> = vec![];
+    loop {
+      let state = pushed.last().copied().unwrap_or(self.yy_state_stack[left - 1]);
+      let mut n = YY_PACT[state];
+      if n != YY_PACT_N_INF {
+        n += token;
+        if (0..=YY_LAST).contains(&n) && YY_CHECK[n as usize] == token {
+          n = YY_TABLE[n as usize];
+          if n > 0 {
+            return true;
+          }
+          if n == 0 || n == YY_TABLE_N_INF {
+            return false;
+          }
+          n = -n;
+        } else {
+          n = YY_DEF_ACT[state] as i16;
+        }
+      } else {
+        n = YY_DEF_ACT[state] as i16;
+      }
+      if n == 0 {
+        return false;
+      }
+      // reduce with the rule `n`
+      let mut len = YY_R2[n as usize] as usize;
+      while len > 0 && pushed.pop().is_some() {
+        len -= 1;
+      }
+      if len >= left {
+        return false;
+      }
+      left -= len;
+      let lhs = (YY_R1[n as usize] as usize) - YY_N_TOKENS;
+      let top = pushed.last().copied().unwrap_or(self.yy_state_stack[left - 1]) as i16;
+      let i = YY_P_GOTO[lhs] + top;
+      pushed.push(if (0..=YY_LAST).contains(&i) && YY_CHECK[i as usize] == top {
+        YY_TABLE[i as usize] as usize
+      } else {
+        YY_DEF_GOTO[lhs] as usize
+      });
+    }
   }
 
   /// Parses the input.
@@ -384,7 +444,7 @@ impl ReduceActions for Parser<'_, '_> {
 
   fn action_between_begin(&mut self) -> Result<()> {
     trace_action!(self, "between_begin");
-    self.yy_lexer.set_between();
+    self.open_betweens += 1;
     Ok(())
   }
 

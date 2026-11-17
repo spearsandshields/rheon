@@ -1601,6 +1601,359 @@ in scope: nothing
        └─ Numeric
           └─ `2`
 
+## "a.b + start date"
+in scope: a, start date
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("start date")) @6
+  YyEof @16
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `start date`
+
+## "a.b.c = year end"
+in scope: a, year end
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Dot @3
+  Name(Name("c")) @4
+  Eq @6
+  Name(Name("year end")) @8
+  YyEof @16
+
+       Eq
+       ├─ Path
+       │  ├─ Path
+       │  │  ├─ Name
+       │  │  │  └─ `a`
+       │  │  └─ Name
+       │  │     └─ `b`
+       │  └─ Name
+       │     └─ `c`
+       └─ Name
+          └─ `year end`
+
+## "a.start + start date"
+in scope: a, start date
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("start")) @2
+  Plus @8
+  Name(Name("start date")) @10
+  YyEof @20
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `start`
+       └─ Name
+          └─ `start date`
+
+## "a...b + time offset x"
+in scope: a, time offset x
+  StartExpression @0
+  Name(Name("a")) @0
+  Descendant @1
+  Name(Name("b")) @4
+  Plus @6
+  Name(Name("time offset x")) @8
+  YyEof @21
+
+       Add
+       ├─ Descendant
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `time offset x`
+
+## "a.b + start included"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("start included")) @6
+  YyEof @20
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `start included`
+
+## "a.b + other words"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("other words")) @6
+  YyEof @17
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `other words`
+
+## "a.b + start included"
+in scope: a, start
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("start")) @6
+  Name(Name("included")) @12
+error: <ParserError> syntax error: a.b + start included
+
+## "a.start included + a.b.time offset"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("start included")) @2
+  Plus @17
+  Name(Name("a")) @19
+  Dot @20
+  Name(Name("b")) @21
+  Dot @22
+  Name(Name("time offset")) @23
+  YyEof @34
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `start included`
+       └─ Path
+          ├─ Path
+          │  ├─ Name
+          │  │  └─ `a`
+          │  └─ Name
+          │     └─ `b`
+          └─ Name
+             └─ `time offset`
+
+## "x between 1 and 2 and true"
+in scope: x
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  Numeric("1", "", '+', "") @10
+  BetweenAnd @12
+  Numeric("2", "", '+', "") @16
+  And @18
+  Boolean(true) @22
+  YyEof @26
+
+       And
+       ├─ Between
+       │  ├─ Name
+       │  │  └─ `x`
+       │  ├─ Numeric
+       │  │  └─ `1`
+       │  └─ Numeric
+       │     └─ `2`
+       └─ Boolean
+          └─ `true`
+
+## "x between (if a and b then 1 else 2) and 5"
+in scope: x, a, b
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  LeftParen @10
+  If @11
+  Name(Name("a")) @14
+  And @16
+  Name(Name("b")) @20
+  Then @22
+  Numeric("1", "", '+', "") @27
+  Else @29
+  Numeric("2", "", '+', "") @34
+  RightParen @35
+  BetweenAnd @37
+  Numeric("5", "", '+', "") @41
+  YyEof @42
+
+       Between
+       ├─ Name
+       │  └─ `x`
+       ├─ If
+       │  ├─ And
+       │  │  ├─ Name
+       │  │  │  └─ `a`
+       │  │  └─ Name
+       │  │     └─ `b`
+       │  ├─ Numeric
+       │  │  └─ `1`
+       │  └─ Numeric
+       │     └─ `2`
+       └─ Numeric
+          └─ `5`
+
+## "x between f(a and b) and [a and b, 5][2]"
+in scope: x, f, a, b
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  Name(Name("f")) @10
+  LeftParen @11
+  Name(Name("a")) @12
+  And @14
+  Name(Name("b")) @18
+  RightParen @19
+  BetweenAnd @21
+  LeftBracket @25
+  Name(Name("a")) @26
+  And @28
+  Name(Name("b")) @32
+  Comma @33
+  Numeric("5", "", '+', "") @35
+  RightBracket @36
+  LeftBracket @37
+  Numeric("2", "", '+', "") @38
+  RightBracket @39
+  YyEof @40
+
+       Between
+       ├─ Name
+       │  └─ `x`
+       ├─ FunctionInvocation
+       │  ├─ Name
+       │  │  └─ `f`
+       │  └─ PositionalParameters
+       │     └─ And
+       │        ├─ Name
+       │        │  └─ `a`
+       │        └─ Name
+       │           └─ `b`
+       └─ Filter
+          ├─ List
+          │  ├─ And
+          │  │  ├─ Name
+          │  │  │  └─ `a`
+          │  │  └─ Name
+          │  │     └─ `b`
+          │  └─ Numeric
+          │     └─ `5`
+          └─ Numeric
+             └─ `2`
+
+## "x between {c: a and b}.c and 5 and b"
+in scope: x, a, b
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  LeftBrace @10
+  Name(Name("c")) @11
+  Colon @12
+  Name(Name("a")) @14
+  And @16
+  Name(Name("b")) @20
+  RightBrace @21
+  Dot @22
+  Name(Name("c")) @23
+  BetweenAnd @25
+  Numeric("5", "", '+', "") @29
+  And @31
+  Name(Name("b")) @35
+  YyEof @36
+
+       And
+       ├─ Between
+       │  ├─ Name
+       │  │  └─ `x`
+       │  ├─ Path
+       │  │  ├─ Context
+       │  │  │  └─ ContextEntry
+       │  │  │     ├─ ContextEntryKey
+       │  │  │     │  └─ `c`
+       │  │  │     └─ And
+       │  │  │        ├─ Name
+       │  │  │        │  └─ `a`
+       │  │  │        └─ Name
+       │  │  │           └─ `b`
+       │  │  └─ Name
+       │  │     └─ `c`
+       │  └─ Numeric
+       │     └─ `5`
+       └─ Name
+          └─ `b`
+
+## "x between y between 1 and 2 and 3"
+in scope: x, y
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  Name(Name("y")) @10
+  Between @12
+  Numeric("1", "", '+', "") @20
+  BetweenAnd @22
+  Numeric("2", "", '+', "") @26
+  BetweenAnd @28
+  Numeric("3", "", '+', "") @32
+  YyEof @33
+
+       Between
+       ├─ Name
+       │  └─ `x`
+       ├─ Between
+       │  ├─ Name
+       │  │  └─ `y`
+       │  ├─ Numeric
+       │  │  └─ `1`
+       │  └─ Numeric
+       │     └─ `2`
+       └─ Numeric
+          └─ `3`
+
+## "[x between 1, a and b]"
+in scope: x, a, b
+  StartExpression @0
+  LeftBracket @0
+  Name(Name("x")) @1
+  Between @3
+  Numeric("1", "", '+', "") @11
+  Comma @12
+error: <ParserError> syntax error: [x between 1, a and b]
+
+## "(x between 1) and b"
+in scope: x, a, b
+  StartExpression @0
+  LeftParen @0
+  Name(Name("x")) @1
+  Between @3
+  Numeric("1", "", '+', "") @11
+  RightParen @12
+error: <ParserError> syntax error: (x between 1) and b
+
 ## ""
 in scope: nothing
   StartExpression @0

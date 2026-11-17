@@ -1655,6 +1655,23 @@ fn chosen_expressions_have_their_recorded_outcome() {
     (&["a"], "a instance of range<number>"),
     (&["a"], "a instance of function<list<number>, range<date>> -> context<n: number>"),
     (&[], "list<2"),
+    // a built-in property is looked for right after a dot only
+    (&["a", "start date"], "a.b + start date"),
+    (&["a", "year end"], "a.b.c = year end"),
+    (&["a", "start date"], "a.start + start date"),
+    (&["a", "time offset x"], "a...b + time offset x"),
+    (&["a"], "a.b + start included"),
+    (&["a"], "a.b + other words"),
+    (&["a", "start"], "a.b + start included"),
+    (&["a"], "a.start included + a.b.time offset"),
+    // `and` ends the `between` of its own bracket depth
+    (&["x"], "x between 1 and 2 and true"),
+    (&["x", "a", "b"], "x between (if a and b then 1 else 2) and 5"),
+    (&["x", "f", "a", "b"], "x between f(a and b) and [a and b, 5][2]"),
+    (&["x", "a", "b"], "x between {c: a and b}.c and 5 and b"),
+    (&["x", "y"], "x between y between 1 and 2 and 3"),
+    (&["x", "a", "b"], "[x between 1, a and b]"),
+    (&["x", "a", "b"], "(x between 1) and b"),
     // errors
     (&[], ""),
     (&[], "1 +"),
