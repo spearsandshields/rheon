@@ -494,6 +494,8 @@
         {showTyped}
         ontoggletyped={() => (showTyped = !showTyped)}
         onjumptoerror={firstSyntaxError ? jumpToError : null}
+        source={expression}
+        onselect={(from, to) => feelEditor?.select(from, to)}
       />
       </div>
 

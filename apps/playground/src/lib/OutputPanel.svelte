@@ -13,9 +13,30 @@
     ontoggletyped: () => void;
     /** Set when the engine located a syntax error: offers "Jump to error". */
     onjumptoerror?: (() => void) | null;
+    /** The expression the response is about: the reasons of a syntax error quote it. */
+    source?: string;
+    /** Selects a range of the expression in its editor: each reason of a syntax error is a link to its place. */
+    onselect?: ((from: number, to: number) => void) | null;
   }
 
-  let { response, busy, blocked, roundTripMs, timeoutMs, showTyped, ontoggletyped, onjumptoerror = null }: Props = $props();
+  let { response, busy, blocked, roundTripMs, timeoutMs, showTyped, ontoggletyped, onjumptoerror = null, source = '', onselect = null }: Props = $props();
+
+  /**
+   * Where a reason of a syntax error points, as a range to select and the text there: a reason
+   * about a missing part has an empty place, and points at the token before it.
+   */
+  function placeOf(detail: { from: number; to: number }): { from: number; to: number; text: string } {
+    let { from, to } = detail;
+    if (from === to) {
+      const before = source.slice(0, from).match(/(\S+)\s*$/);
+      if (before) {
+        to = from - (before[0].length - before[1].length);
+        from = to - before[1].length;
+      }
+    }
+    const text = source.slice(from, to);
+    return { from, to, text: text.length > 24 ? `${text.slice(0, 24)}…` : text };
+  }
   let copied = $state(false);
   let showAll = $state(false);
   let showAllTyped = $state(false);
@@ -143,7 +164,15 @@
           {#if response.error.kind === 'syntax' && response.error.diagnostics?.length}
             <ul class="why" data-testid="syntax-details">
               {#each response.error.diagnostics.slice(0, 5) as detail (detail.from + detail.code)}
-                <li><span class="mono">at {detail.from}</span> {detail.message}</li>
+                {@const place = placeOf(detail)}
+                <li>
+                  {#if onselect}
+                    <button class="link-btn" onclick={() => onselect(place.from, place.to)} title="Select this place in the editor" data-testid="syntax-detail">{detail.message}</button>
+                  {:else}
+                    {detail.message}
+                  {/if}
+                  {#if place.text}<span class="sub">{detail.from === detail.to ? 'after' : 'at'} <code class="mono">{place.text}</code></span>{/if}
+                </li>
               {/each}
               {#if response.error.diagnostics.length > 5}<li>and {response.error.diagnostics.length - 5} more</li>{/if}
             </ul>
