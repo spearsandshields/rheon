@@ -4077,6 +4077,24 @@ looked up only when a name in scope has its length (232).
     existing methods are unchanged. Tests: every answer equals the answer of `evaluate` for
     the entry; raw digits; failures in place; a failure of the request; a real worker.
     Rust API: none.
+243. **The records of an input list hold their names in common.** Each object of the input was
+    a context with a map of its own; for a list of records with the same keys a third of the
+    reading built and freed these maps. A context has a second form for its entries: a list
+    of names, ascending and each once, held in common by several contexts, and the values of
+    this one. Every reader sees the entries of a map, and the first change gives the context
+    a map of its own. The reader keeps only the values of an object while its keys are those
+    of the object before it at its depth. Tests: a context of shared names against the map of
+    the same entries, for every read and every change. No answer changes. Measured (wasm):
+    a 1.58 MB input of 3,400 records 13.9 to 11.3 ms. Rust API:
+    `FeelContext::from_shared_names` (new).
+244. **A plain number of the input is read in one pass.** A number was passed three times (its
+    end, a search for an exponent, its digits into 128 bits). A number without an exponent and
+    with at most 18 digits after its leading zeros is read in the pass that finds its end,
+    into 64 bits, with the digits and the scale of its text; every other number goes the way
+    it went. The parser of a number text reads its first 19 digits in 64 bits. Tests: 100,000
+    number texts against the conversion of their texts. No answer changes. Measured (wasm):
+    the same input 11.3 to 8.1 ms; the ordinary speed suite 1.07x, input-heavy requests 1.4x
+    to 1.95x. Rust API: none.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
