@@ -269,7 +269,7 @@ type:
   | LIST LT {/* type_name */} type GT {/* list_type */}
   | RANGE LT {/* type_name */} type GT {/* range_type */}
   | CONTEXT LT context_type_entries
-  | FUNCTION LT function_type_parameters RIGHT_ARROW {/* type_name */} type {/* function_type */}
+  | FUNCTION LT {/* type_name */} function_type_parameters RIGHT_ARROW {/* type_name */} type {/* function_type */}
   ;
 
 context_type_entries:
@@ -287,7 +287,7 @@ context_type_entry_tail:
 
 function_type_parameters:
     GT {/* function_type_parameters_empty */}
-  | {/* type_name */} type function_type_parameters_tail {/* function_type_parameters */}
+  | type function_type_parameters_tail {/* function_type_parameters */}
   ;
 
 function_type_parameters_tail:

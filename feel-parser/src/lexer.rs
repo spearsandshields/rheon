@@ -146,7 +146,9 @@ pub struct Lexer<'lexer, 'scope> {
   /// operator used in between clause from conjunction.
   /// After consuming first `and` as `band` this flag is cleared by the lexer.
   between: bool,
-  /// ???
+  /// A type is expected: the next token may be the name of a built-in type or one of the
+  /// keywords `list`, `range` and `context`. Set by the parser before every type, and over
+  /// with the token read next.
   type_name: bool,
   /// ???
   till_in: bool,
@@ -290,7 +292,12 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         _ => (TokenType::YyError, TokenValue::YyError),
       });
     }
+    // a type is expected for one token: the parser asks again before every type
+    let type_name = self.type_name;
     let result = self.read_next_token();
+    if type_name {
+      self.type_name = false;
+    }
     self.unary_tests = false;
     result
   }
@@ -323,7 +330,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 7;
         Ok((TokenType::Between, TokenValue::Between))
       }
-      ['c', 'o', 'n', 't', 'e', 'x', 't', _, _, _, _, _] if self.is_context_separator(7) => {
+      ['c', 'o', 'n', 't', 'e', 'x', 't', _, _, _, _, _] if self.type_name && self.is_context_separator(7) => {
         self.position += 7;
         Ok((TokenType::Context, TokenValue::Context))
       }
@@ -339,7 +346,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 5;
         Ok((TokenType::Boolean, TokenValue::Boolean(false)))
       }
-      ['r', 'a', 'n', 'g', 'e', _h, _, _, _, _, _, _] if self.is_range_separator(5) => {
+      ['r', 'a', 'n', 'g', 'e', _h, _, _, _, _, _, _] if self.type_name && self.is_range_separator(5) => {
         self.position += 5;
         Ok((TokenType::Range, TokenValue::Range))
       }
@@ -351,7 +358,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 4;
         Ok((TokenType::Else, TokenValue::Else))
       }
-      ['l', 'i', 's', 't', _, _, _, _, _, _, _, _] if self.is_list_separator(4) => {
+      ['l', 'i', 's', 't', _, _, _, _, _, _, _, _] if self.type_name && self.is_list_separator(4) => {
         self.position += 4;
         Ok((TokenType::List, TokenValue::List))
       }

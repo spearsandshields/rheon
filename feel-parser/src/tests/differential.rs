@@ -872,8 +872,7 @@ fn corpus_equals_reference() {
 
 /// Every reduction of a rule without symbols whose action changes the state of the lexer or of the
 /// scope happens before the lexer reads the next token: in a state with a default reduction that
-/// needs no lookahead. Rule 137 (`{/* type_name */}` at the start of `function_type_parameters`) is
-/// the known exception: it is reduced after the lookahead was read.
+/// needs no lookahead.
 #[test]
 fn feedback_actions_are_reduced_before_the_next_token() {
   use crate::lalr::*;
@@ -924,7 +923,7 @@ fn feedback_actions_are_reduced_before_the_next_token() {
   }
   late.sort();
   late.dedup();
-  assert_eq!(vec![(137, "type_name".to_string())], late);
+  assert_eq!(Vec::<(usize, String)>::new(), late);
 }
 
 /// The parser's use of the native stack does not depend on the input: deep and long inputs parse,
@@ -1645,6 +1644,17 @@ fn chosen_expressions_have_their_recorded_outcome() {
     (&["x"], "x in[1]"),
     (&["x"], "x in [1]"),
     (&["list"], "list < 2"),
+    // the words of the types outside a type
+    (&["list"], "list<2"),
+    (&["range", "context"], "range < context"),
+    (&[], "{list: 1, range: 2, context: 3}.list < 2"),
+    (&[], "for list in [1, 2] return list<3"),
+    (&[], "function(list: list<number>) list<2"),
+    (&["a", "list"], "a instance of list<number> and list<2"),
+    (&["a", "T", "list"], "a instance of T and list<2"),
+    (&["a"], "a instance of range<number>"),
+    (&["a"], "a instance of function<list<number>, range<date>> -> context<n: number>"),
+    (&[], "list<2"),
     // errors
     (&[], ""),
     (&[], "1 +"),

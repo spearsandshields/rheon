@@ -1318,8 +1318,288 @@ in scope: x
 ## "list < 2"
 in scope: list
   StartExpression @0
-  List @0
-error: <ParserError> syntax error: list < 2
+  Name(Name("list")) @0
+  Lt @5
+  Numeric("2", "", '+', "") @7
+  YyEof @8
+
+       Lt
+       ├─ Name
+       │  └─ `list`
+       └─ Numeric
+          └─ `2`
+
+## "list<2"
+in scope: list
+  StartExpression @0
+  Name(Name("list")) @0
+  Lt @4
+  Numeric("2", "", '+', "") @5
+  YyEof @6
+
+       Lt
+       ├─ Name
+       │  └─ `list`
+       └─ Numeric
+          └─ `2`
+
+## "range < context"
+in scope: range, context
+  StartExpression @0
+  Name(Name("range")) @0
+  Lt @6
+  Name(Name("context")) @8
+  YyEof @15
+
+       Lt
+       ├─ Name
+       │  └─ `range`
+       └─ Name
+          └─ `context`
+
+## "{list: 1, range: 2, context: 3}.list < 2"
+in scope: nothing
+  StartExpression @0
+  LeftBrace @0
+  Name(Name("list")) @1
+  Colon @5
+  Numeric("1", "", '+', "") @7
+  Comma @8
+  Name(Name("range")) @10
+  Colon @15
+  Numeric("2", "", '+', "") @17
+  Comma @18
+  Name(Name("context")) @20
+  Colon @27
+  Numeric("3", "", '+', "") @29
+  RightBrace @30
+  Dot @31
+  Name(Name("list")) @32
+  Lt @37
+  Numeric("2", "", '+', "") @39
+  YyEof @40
+
+       Lt
+       ├─ Path
+       │  ├─ Context
+       │  │  ├─ ContextEntry
+       │  │  │  ├─ ContextEntryKey
+       │  │  │  │  └─ `list`
+       │  │  │  └─ Numeric
+       │  │  │     └─ `1`
+       │  │  ├─ ContextEntry
+       │  │  │  ├─ ContextEntryKey
+       │  │  │  │  └─ `range`
+       │  │  │  └─ Numeric
+       │  │  │     └─ `2`
+       │  │  └─ ContextEntry
+       │  │     ├─ ContextEntryKey
+       │  │     │  └─ `context`
+       │  │     └─ Numeric
+       │  │        └─ `3`
+       │  └─ Name
+       │     └─ `list`
+       └─ Numeric
+          └─ `2`
+
+## "for list in [1, 2] return list<3"
+in scope: nothing
+  StartExpression @0
+  For @0
+  Name(Name("list")) @4
+  In @9
+  LeftBracket @12
+  Numeric("1", "", '+', "") @13
+  Comma @14
+  Numeric("2", "", '+', "") @16
+  RightBracket @17
+  Return @19
+  Name(Name("list")) @26
+  Lt @30
+  Numeric("3", "", '+', "") @31
+  YyEof @32
+
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `list`
+       │     └─ List
+       │        ├─ Numeric
+       │        │  └─ `1`
+       │        └─ Numeric
+       │           └─ `2`
+       └─ EvaluatedExpression
+          └─ Lt
+             ├─ Name
+             │  └─ `list`
+             └─ Numeric
+                └─ `3`
+
+## "function(list: list<number>) list<2"
+in scope: nothing
+  StartExpression @0
+  Function @0
+  LeftParen @8
+  Name(Name("list")) @9
+  Colon @13
+  List @15
+  Lt @19
+  BuiltInTypeName(Name("number")) @20
+  Gt @26
+  RightParen @27
+  Name(Name("list")) @29
+  Lt @33
+  Numeric("2", "", '+', "") @34
+  YyEof @35
+
+       FunctionDefinition
+       ├─ FormalParameters
+       │  └─ FormalParameter
+       │     ├─ ParameterName
+       │     │  └─ `list`
+       │     └─ ListType
+       │        └─ FeelType
+       │           └─ number
+       └─ FunctionBody
+          └─ Lt
+             ├─ Name
+             │  └─ `list`
+             └─ Numeric
+                └─ `2`
+
+## "a instance of list<number> and list<2"
+in scope: a, list
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  List @14
+  Lt @18
+  BuiltInTypeName(Name("number")) @19
+  Gt @25
+  And @27
+  Name(Name("list")) @31
+  Lt @35
+  Numeric("2", "", '+', "") @36
+  YyEof @37
+
+       And
+       ├─ InstanceOf
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ ListType
+       │     └─ FeelType
+       │        └─ number
+       └─ Lt
+          ├─ Name
+          │  └─ `list`
+          └─ Numeric
+             └─ `2`
+
+## "a instance of T and list<2"
+in scope: a, T, list
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  Name(Name("T")) @14
+  And @16
+  Name(Name("list")) @20
+  Lt @24
+  Numeric("2", "", '+', "") @25
+  YyEof @26
+
+       And
+       ├─ InstanceOf
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ QualifiedName
+       │     └─ Name
+       │        └─ `T`
+       └─ Lt
+          ├─ Name
+          │  └─ `list`
+          └─ Numeric
+             └─ `2`
+
+## "a instance of range<number>"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  Range @14
+  Lt @19
+  BuiltInTypeName(Name("number")) @20
+  Gt @26
+  YyEof @27
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ RangeType
+          └─ FeelType
+             └─ number
+
+## "a instance of function<list<number>, range<date>> -> context<n: number>"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  Function @14
+  Lt @22
+  List @23
+  Lt @27
+  BuiltInTypeName(Name("number")) @28
+  Gt @34
+  Comma @35
+  Range @37
+  Lt @42
+  BuiltInTypeName(Name("date")) @43
+  Gt @47
+  Gt @48
+  RightArrow @50
+  Context @53
+  Lt @60
+  Name(Name("n")) @61
+  Colon @62
+  BuiltInTypeName(Name("number")) @64
+  Gt @70
+  YyEof @71
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FunctionType
+          ├─ ParameterTypes
+          │  ├─ ListType
+          │  │  └─ FeelType
+          │  │     └─ number
+          │  └─ RangeType
+          │     └─ FeelType
+          │        └─ date
+          └─ ContextType
+             └─ ContextTypeEntry
+                ├─ Name
+                │  └─ `n`
+                └─ FeelType
+                   └─ number
+
+## "list<2"
+in scope: nothing
+  StartExpression @0
+  Name(Name("list")) @0
+  Lt @4
+  Numeric("2", "", '+', "") @5
+  YyEof @6
+
+       Lt
+       ├─ Name
+       │  └─ `list`
+       └─ Numeric
+          └─ `2`
 
 ## ""
 in scope: nothing
