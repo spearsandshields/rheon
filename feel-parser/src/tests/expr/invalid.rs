@@ -141,3 +141,77 @@ fn a_long_input_is_quoted_as_a_preview() {
   assert_eq!(120, input.len());
   te(&input, "ParserError", &format!("syntax error: {input}"));
 }
+
+/// A string literal or a block comment that the input does not close is a syntax error, with
+/// every start rule: the input does not end before it.
+#[test]
+fn unclosed_string_or_block_comment_is_a_syntax_error() {
+  let scope = scope!();
+  scope.set_entry_name("a".into());
+  for input in [
+    "1 + 2 \"never closed",
+    "1 \"never closed",
+    "\"never closed",
+    "\"",
+    "1 \"",
+    "\"closed\" + \"never closed",
+    "\"never \\\" closed",
+    "\"never closed\\",
+    "[1, 2] \"x",
+    "a \"x",
+    "1 /* never closed",
+    "1 + 2 /* never closed",
+    "/* never closed",
+    "/*",
+    "1 /*",
+    "1 /* closed */ + 2 /* never closed",
+    "1 /* never closed *",
+    "1 /* never closed * /",
+    "1 // line\n /* never closed",
+    "a /* never closed",
+    "1 /*/",
+  ] {
+    let starts = [
+      StartExpression,
+      StartTextualExpression,
+      StartTextualExpressions,
+      StartBoxedExpression,
+      StartUnaryTests,
+      StartSimpleExpression,
+      StartSimpleExpressions,
+      StartSimpleValue,
+      StartRangeLiteral,
+    ];
+    for (rule, start) in starts.into_iter().enumerate() {
+      let message = match Parser::new(&scope, start, input, false).parse() {
+        Ok(node) => node.trace(),
+        Err(reason) => reason.to_string(),
+      };
+      assert_eq!(format!("<ParserError> syntax error: {input}"), message, "start rule {rule}, {input:?}");
+    }
+  }
+}
+
+/// Closed strings and comments, and a line comment up to the end of the input, are read as before.
+#[test]
+fn closed_strings_and_comments_are_read() {
+  let scope = scope!();
+  for input in ["1 + 2 \"closed\"", "1 \"never closed"] {
+    assert!(Parser::new(&scope, StartExpression, input, false).parse().is_err(), "{input}");
+  }
+  for input in [
+    "1 /* closed */",
+    "1 /**/",
+    "1 /***/",
+    "1 /* a /* b */",
+    "1 // never ended",
+    "1 //",
+    "/* c */ 1 // d",
+    "\"/* never closed\"",
+    "\"a\\\"b\"",
+    "1 /* \" */",
+    "1 // \"",
+  ] {
+    assert!(Parser::new(&scope, StartExpression, input, false).parse().is_ok(), "{input}");
+  }
+}

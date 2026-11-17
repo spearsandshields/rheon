@@ -1,0 +1,6 @@
+# composite-shared: 5 cases, a digest of the outcome of each
+618d1bd85fa7228b
+343b9dd54f221923
+fc4dc5b0de70b002
+8f02a23386eb5c26
+ffccd059964edca4

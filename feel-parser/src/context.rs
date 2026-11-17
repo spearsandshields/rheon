@@ -115,6 +115,16 @@ impl ParsingContext {
     self.0.insert(name, ParsingEntry::Context(ctx));
   }
 
+  /// Returns the keys of this context itself.
+  pub(crate) fn keys(&self) -> impl Iterator<Item = &Name> {
+    self.0.keys()
+  }
+
+  /// Returns `true` when `name` is a key of this context itself.
+  pub(crate) fn has_key(&self, name: &str) -> bool {
+    self.0.contains_key(name)
+  }
+
   /// Returns `true` when `name` is a key of this context or of a nested context, at any depth.
   pub(crate) fn contains_key_deep(&self, name: &str) -> bool {
     // the nested contexts to visit (no allocation for a context without nested contexts)

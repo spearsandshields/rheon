@@ -5,7 +5,7 @@ use crate::lalr::TokenType;
 use crate::scope::{ParsingScope, first_word};
 use dsntk_common::Result;
 use rheon_feel::Name;
-use rheon_feel::bif::is_built_in_date_time_function_name;
+use rheon_feel::bif::{is_built_in_date_time_function_name, is_built_in_function_name};
 use rheon_feel::bip::{BUILT_IN_PROPERTY_NAMES, is_built_in_property_name};
 use std::ops::Range;
 
@@ -17,6 +17,40 @@ const BUF_SIZE: usize = 12;
 
 /// Definition of decimal separator.
 const DECIMAL_SEPARATOR: char = '.';
+
+/// The state of the flattened text of a chain (`Lexer::chain_flat`).
+#[derive(Clone, Copy, PartialEq)]
+enum FlatChain {
+  Unknown,
+  Written,
+  NotRegular,
+}
+
+/// The value of the remembered search for a part `in` (`Lexer::chain_in`) of a chain that was
+/// not searched: no part is in its range.
+const NOT_SEARCHED: (usize, usize) = (usize::MAX, 0);
+
+/// The keywords that can follow an operand. A name that is not in scope ends before a word of
+/// its chain that is one of them: `for s in x return s` and `x and y` have their keywords also
+/// when `x` is no name in scope. A name in scope is matched first, so it may hold these words
+/// (`tax return`). The other keywords never follow an operand, so a name ending before them
+/// would only be a syntax error.
+const NAME_ENDING_KEYWORDS: [&str; 9] = ["and", "between", "else", "in", "instance", "or", "return", "satisfies", "then"];
+
+/// The additional name symbols that are operators or punctuation of an expression. A name that
+/// is not in scope ends before one of them: `a + b` is a sum and `x.y` a path also when `a` and
+/// `x` are no names in scope (DMN 1.6 §10.3.1.6: a symbol is part of a name when the names in
+/// scope say so). The apostrophe is no such symbol: a name would end before it only to leave a
+/// text that is no expression.
+const NAME_ENDING_SYMBOLS: [&str; 5] = [".", "/", "-", "+", "*"];
+
+/// The built-in names that have one of the [NAME_ENDING_KEYWORDS], as their words. They are
+/// names of functions and types, which are never in the parsing scope, so a name that starts
+/// with their words holds them whole.
+/// The most words of a built-in function or type name (`years and months duration`).
+const MAX_BUILT_IN_NAME_WORDS: usize = 4;
+
+const BUILT_IN_NAMES_WITH_KEYWORDS: [&[&str]; 3] = [&["date", "and", "time"], &["years", "and", "months", "duration"], &["days", "and", "time", "duration"]];
 
 /// Length in bytes of the longest built-in property name: after a dot, a candidate name that is
 /// longer than this and than every name in scope can match nothing.
@@ -109,17 +143,17 @@ pub struct Lexer<'lexer, 'scope> {
   /// Token `not` is a keyword at the very beginning of the unary tests rule,
   /// in all other contexts it is just a name.
   unary_tests: bool,
-  /// Flag indicating if the `between` keyword was encountered.
-  /// When this flag is set, the next `and` token is returned as `band` keyword,
-  /// otherwise it is returned as `and`. This allows to disambiguate the `and`
-  /// operator used in between clause from conjunction.
-  /// After consuming first `and` as `band` this flag is cleared by the lexer.
-  between: bool,
-  /// ???
+  /// A type is expected: the next token may be the name of a built-in type or one of the
+  /// keywords `list`, `range` and `context`. Set by the parser before every type, and over
+  /// with the token read next.
   type_name: bool,
   /// ???
   till_in: bool,
-  /// ??
+  /// The text is a name that is being declared ([crate::parse_name]): a name that is not in
+  /// scope is the whole chain of its parts, keywords and symbols included.
+  whole_names: bool,
+  /// The token follows a dot: its name may be a built-in property (`year`, `time offset`,
+  /// `start included`). Set by the parser after every dot, and over with the token read next.
   after_dot: bool,
   /// Buffer for the flattened candidate names of [Lexer::longest_name_in_scope].
   name_buf: String,
@@ -131,6 +165,19 @@ pub struct Lexer<'lexer, 'scope> {
   chain_end: usize,
   /// Index of the last part of the chain that is empty after trimming (only U+1680), if any.
   chain_last_empty: Option<usize>,
+  /// The last search for a part `in` of the chain: the part it started at, and the first part
+  /// `in` at or after it (the number of parts when there is none). See [Lexer::next_in_part].
+  chain_in: (usize, usize),
+  /// The flattened text of the whole chain, written once, when the chain is regular (see
+  /// [Lexer::flat_chain]): the flattened name of the parts `a..=b` is a piece of it.
+  chain_flat: String,
+  /// For each part of the chain, where its text starts and ends in `chain_flat`.
+  chain_flat_parts: Vec<(usize, usize)>,
+  /// Whether `chain_flat` is written for the chain: not yet, written, or the chain is not regular.
+  chain_flat_state: FlatChain,
+  /// The index of the last part of the chain that is not regular (see
+  /// [Lexer::has_irregular_parts]), once it was looked for.
+  chain_last_irregular: Option<Option<usize>>,
   /// Start offset of the last token read from input: the hook of the token log of the parser
   /// (`Parser::with_token_log`), which the differential tests compare.
   #[cfg(test)]
@@ -160,15 +207,20 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       input,
       position: 0,
       unary_tests: false,
-      between: false,
       type_name: false,
       till_in: false,
+      whole_names: false,
       after_dot: false,
       name_buf: String::new(),
       name_tmp: String::new(),
       chain_parts: vec![],
       chain_end: 0,
       chain_last_empty: None,
+      chain_in: NOT_SEARCHED,
+      chain_flat: String::new(),
+      chain_flat_parts: vec![],
+      chain_flat_state: FlatChain::Unknown,
+      chain_last_irregular: None,
       #[cfg(test)]
       token_start: 0,
     }
@@ -184,16 +236,16 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.unary_tests = true;
   }
 
-  pub fn set_between(&mut self) {
-    self.between = true;
-  }
-
   pub fn set_type_name(&mut self) {
     self.type_name = true;
   }
 
   pub fn set_till_in(&mut self) {
     self.till_in = true;
+  }
+
+  pub fn set_whole_names(&mut self) {
+    self.whole_names = true;
   }
 
   pub fn set_after_dot(&mut self) {
@@ -233,7 +285,16 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         _ => (TokenType::YyError, TokenValue::YyError),
       });
     }
+    // a type, or a name after a dot, is expected for one token: the parser asks again before
+    // every type and after every dot
+    let (type_name, after_dot) = (self.type_name, self.after_dot);
     let result = self.read_next_token();
+    if type_name {
+      self.type_name = false;
+    }
+    if after_dot {
+      self.after_dot = false;
+    }
     self.unary_tests = false;
     result
   }
@@ -266,7 +327,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 7;
         Ok((TokenType::Between, TokenValue::Between))
       }
-      ['c', 'o', 'n', 't', 'e', 'x', 't', _, _, _, _, _] if self.is_context_separator(7) => {
+      ['c', 'o', 'n', 't', 'e', 'x', 't', _, _, _, _, _] if self.type_name && self.is_context_separator(7) => {
         self.position += 7;
         Ok((TokenType::Context, TokenValue::Context))
       }
@@ -282,7 +343,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 5;
         Ok((TokenType::Boolean, TokenValue::Boolean(false)))
       }
-      ['r', 'a', 'n', 'g', 'e', _h, _, _, _, _, _, _] if self.is_range_separator(5) => {
+      ['r', 'a', 'n', 'g', 'e', _h, _, _, _, _, _, _] if self.type_name && self.is_range_separator(5) => {
         self.position += 5;
         Ok((TokenType::Range, TokenValue::Range))
       }
@@ -294,7 +355,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 4;
         Ok((TokenType::Else, TokenValue::Else))
       }
-      ['l', 'i', 's', 't', _, _, _, _, _, _, _, _] if self.is_list_separator(4) => {
+      ['l', 'i', 's', 't', _, _, _, _, _, _, _, _] if self.type_name && self.is_list_separator(4) => {
         self.position += 4;
         Ok((TokenType::List, TokenValue::List))
       }
@@ -310,14 +371,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 4;
         Ok((TokenType::Boolean, TokenValue::Boolean(true)))
       }
-      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] if !self.between => {
+      // the parser reads it as the `and` of a `between` where one is open
+      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] => {
         self.position += 3;
         Ok((TokenType::And, TokenValue::And))
-      }
-      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] if self.between => {
-        self.between = false;
-        self.position += 3;
-        Ok((TokenType::BetweenAnd, TokenValue::BetweenAnd))
       }
       ['f', 'o', 'r', WS, _, _, _, _, _, _, _, _] => {
         self.position += 3;
@@ -372,6 +429,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 2;
         Ok((TokenType::RightArrow, TokenValue::RightArrow))
       }
+      // every closed comment was consumed before the token, so this one is not closed
+      ['/', '*', _, _, _, _, _, _, _, _, _, _] => Ok((TokenType::YyUndef, TokenValue::YyUndef)),
       ['.', ch, _, _, _, _, _, _, _, _, _, _] if is_digit(ch) => self.consume_number(),
       ['.', _, _, _, _, _, _, _, _, _, _, _] => {
         self.position += 1;
@@ -484,7 +543,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   /// Consumes single comment starting from the current position.
   /// After consuming a comment, the current position is advanced
-  /// to the next character after comment.
+  /// to the next character after comment. Returns `true` when more
+  /// white space or another comment can follow.
   fn consume_comment(&mut self) -> bool {
     let pair = (self.char_at(0), self.char_at(1));
     match pair {
@@ -498,15 +558,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         }
       }
       (Some('/'), Some('*')) => {
-        self.position += 2;
-        while let Some(ch) = self.char_at(0) {
-          if ch == '*'
-            && let Some('/') = self.char_at(1)
-          {
-            self.position += 2;
-            return true;
-          }
-          self.position += ch.len_utf8();
+        // a comment that the input does not close is no comment: the position stays at its
+        // `/*`, which the next token reports
+        if let Some(len) = self.input[self.position + 2..].find("*/") {
+          self.position += 2 + len + 2;
+          return true;
         }
       }
       _ => {}
@@ -572,7 +628,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
           string.push(ch);
           self.position += ch.len_utf8();
         }
-        _ => return Ok((TokenType::YyEof, TokenValue::YyEof)),
+        // the input ends inside the literal
+        _ => return Ok((TokenType::YyUndef, TokenValue::YyUndef)),
       }
     }
     Ok((TokenType::String, TokenValue::String(string)))
@@ -607,7 +664,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
             self.position += 1;
             state = 2
           }
-          'e' | 'E' => {
+          'e' | 'E' if self.exponent_follows() => {
             // consume exponent letter
             self.position += 1;
             state = 3
@@ -621,7 +678,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
             digits_after.push(ch);
             self.position += 1;
           }
-          'e' | 'E' => {
+          'e' | 'E' if self.exponent_follows() => {
             // consume exponent letter
             self.position += 1;
             state = 3
@@ -668,6 +725,17 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     Ok((TokenType::Numeric, TokenValue::Numeric(digits_before, digits_after, exponent_sign, digits_exponent)))
   }
 
+  /// Returns `true` when the digits of an exponent follow the exponent letter at the position,
+  /// after an optional sign: only then the letter belongs to the number (DMN 1.6 grammar rule
+  /// 35). Otherwise the number ends before the letter.
+  fn exponent_follows(&self) -> bool {
+    match self.char_at(1) {
+      Some('+' | '-') => self.is_digit_at(2),
+      Some(ch) => is_digit(ch),
+      None => false,
+    }
+  }
+
   /// Consumes a name.
   fn consume_name(&mut self) -> Result<(TokenType, TokenValue)> {
     //------------------------------------------------------------------------------
@@ -707,15 +775,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // can not start with `in`: then `in` is the keyword (and the variable name is missing).
     //-------------------------------------------------------------------------------
     if self.till_in
-      && let Some(index) = (first..self.chain_parts.len()).position(|part| self.part_text(part) == "in")
+      && let Some(part) = self.next_in_part(first)
     {
       self.till_in = false;
-      if index == 0 {
+      if part == first {
         self.position = self.chain_parts[first].end;
         return Ok((TokenType::In, TokenValue::In));
       }
-      self.position = self.chain_parts[first + index - 1].end;
-      return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, first + index))));
+      self.position = self.chain_parts[part - 1].end;
+      return Ok((TokenType::Name, TokenValue::Name(self.chain_name(first, part))));
     }
 
     //-------------------------------------------------------------------------------
@@ -755,6 +823,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     if let Some((part_count, built_in_property)) = self.longest_name_in_scope(first) {
       if built_in_property {
         self.after_dot = false;
+      } else if let Some((part_count, token_type)) = self.longer_built_in_name(first, part_count) {
+        // a built-in name that starts here is longer than the name in scope
+        self.position = self.chain_parts[first + part_count - 1].end;
+        let name = self.chain_name(first, first + part_count);
+        return Ok(match token_type {
+          TokenType::BuiltInTypeName => (token_type, TokenValue::BuiltInTypeName(name)),
+          TokenType::NameDateTime => (token_type, TokenValue::NameDateTime(name)),
+          _ => (token_type, TokenValue::Name(name)),
+        });
       }
       // return to the input all characters that do not belong to the name that was found
       self.position = self.chain_parts[first + part_count - 1].end;
@@ -763,9 +840,27 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     }
 
     //------------------------------------------------------------------------------
-    // Build the name from name parts.
+    // No name in scope starts here. Build the name from the name parts up to the first
+    // word that is a keyword which can follow an operand, or the first symbol that is an
+    // operator: the rest of the chain is read as the following tokens, as it is after a
+    // name in scope.
     //------------------------------------------------------------------------------
-    let name = self.chain_name(first, self.chain_parts.len());
+    let mut end = if self.whole_names { self.chain_parts.len() } else { self.unknown_name_end(first) };
+    // A name in scope that is written with symbols side by side (`fr**n*s`) is not found by its
+    // flattened text, which keeps a space between them: where the parts are of this kind, the
+    // longest run of them whose name is in scope is the name.
+    if end < self.chain_parts.len()
+      && self.has_irregular_parts(first)
+      && let Some(longer) = (end + 1..=self.chain_parts.len())
+        .rev()
+        .find(|&to| self.scope.contains(self.chain_name(first, to).as_str()))
+    {
+      end = longer;
+    }
+    if end < self.chain_parts.len() {
+      self.position = self.chain_parts[end - 1].end;
+    }
+    let name = self.chain_name(first, end);
 
     //------------------------------------------------------------------------------
     // Tweak with the names of built-in types.
@@ -797,6 +892,9 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   fn scan_chain(&mut self) {
     self.chain_parts.clear();
     self.chain_last_empty = None;
+    self.chain_in = NOT_SEARCHED;
+    self.chain_flat_state = FlatChain::Unknown;
+    self.chain_last_irregular = None;
     //------------------------------------------------------------------------------
     // The current character on input is already a `name start` character, the first
     // character of the first part.
@@ -853,6 +951,24 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.chain_end = self.position;
   }
 
+  /// Returns the index of the first part `in` of the chain at or after the part `first`. The
+  /// last search is remembered, so the name tokens of a chain compare each of its parts once:
+  /// the mode of the iteration variable stays set after a variable `item`, and then every later
+  /// name token asks.
+  fn next_in_part(&mut self, first: usize) -> Option<usize> {
+    let (from, found) = self.chain_in;
+    if !(from..=found).contains(&first) {
+      let found = (first..self.chain_parts.len())
+        .find(|&part| {
+          work!(InParts, 1);
+          self.part_text(part) == "in"
+        })
+        .unwrap_or(self.chain_parts.len());
+      self.chain_in = (first, found);
+    }
+    Some(self.chain_in.1).filter(|&part| part < self.chain_parts.len())
+  }
+
   /// Ends a part of the chain: from `start` to the current character, the last of the part.
   fn push_chain_part(&mut self, start: usize) {
     work!(Parts, 1);
@@ -875,6 +991,123 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// Returns the name made of the parts `from..to` of the chain.
   fn chain_name(&self, from: usize, to: usize) -> Name {
     Name::from_parts(self.chain_parts[from..to].iter().map(|part| &self.input[part.trimmed.clone()]))
+  }
+
+  /// Returns the index after the last part of the name that starts at part `first` of the chain
+  /// when no name in scope starts there: the index of the first later part that ends such a name
+  /// ([Lexer::ends_unknown_name]), or the length of the chain. The words of one of the
+  /// [BUILT_IN_NAMES_WITH_KEYWORDS] at the start of the name are skipped.
+  fn unknown_name_end(&self, first: usize) -> usize {
+    (first + self.built_in_words(first)..self.chain_parts.len())
+      .find(|&index| self.ends_unknown_name(index))
+      .unwrap_or(self.chain_parts.len())
+  }
+
+  /// Returns `true` when the parts of the chain from `first` on are not all words and single
+  /// symbols between them: a symbol follows a symbol, or a part is empty or has white space at
+  /// an end. The last such part of the chain is found once.
+  fn has_irregular_parts(&mut self, first: usize) -> bool {
+    let last = *self.chain_last_irregular.get_or_insert_with(|| {
+      let mut after_symbol = false;
+      let mut last = None;
+      for (index, part) in self.chain_parts.iter().enumerate() {
+        let text = &self.input[part.trimmed.clone()];
+        let symbol = is_symbol_part(text);
+        if text.is_empty() || part.trimmed != (part.start..part.end) || (symbol && after_symbol) {
+          last = Some(index);
+        }
+        after_symbol = symbol;
+      }
+      last
+    });
+    // a name starts at a word, so a symbol at `first` is no part of it
+    last.is_some_and(|last| last > first)
+  }
+
+  /// Returns `true` when the part `index` of the chain ends a name that is not in scope before
+  /// it: one of the [NAME_ENDING_KEYWORDS] as a word of its own, or one of the
+  /// [NAME_ENDING_SYMBOLS].
+  fn ends_unknown_name(&self, index: usize) -> bool {
+    NAME_ENDING_SYMBOLS.contains(&&self.input[self.chain_parts[index].trimmed.clone()]) || self.is_name_ending_keyword(index)
+  }
+
+  /// Returns the number of parts from part `first` of the chain that are no keywords whatever
+  /// they are: the words of one of the [BUILT_IN_NAMES_WITH_KEYWORDS] when the parts start with
+  /// them, otherwise the first part.
+  fn built_in_words(&self, first: usize) -> usize {
+    let parts = &self.chain_parts[first..];
+    BUILT_IN_NAMES_WITH_KEYWORDS
+      .iter()
+      .find(|words| parts.len() >= words.len() && words.iter().zip(parts).all(|(word, part)| &self.input[part.trimmed.clone()] == *word))
+      .map_or(1, |words| words.len())
+  }
+
+  /// Returns `true` when the part `index` of the chain is one of the [NAME_ENDING_KEYWORDS] as a
+  /// word of its own: white space before it, and white space or the end of the input after it,
+  /// as where the keyword starts a token.
+  fn is_name_ending_keyword(&self, index: usize) -> bool {
+    let start = self.chain_parts[index].start;
+    self.input[..start].chars().next_back().is_some_and(is_whitespace)
+      && NAME_ENDING_KEYWORDS
+        .iter()
+        .any(|keyword| self.input[start..].strip_prefix(keyword).is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace)))
+  }
+
+  /// Returns `true` when the name that starts at part `first` of the chain is this part alone
+  /// when no name in scope starts there: a keyword or a symbol that ends such a name follows
+  /// it. A name in scope of this one part is then the same token, so the scope need not be
+  /// asked for it.
+  fn is_one_part_before_keyword(&mut self, first: usize) -> bool {
+    // parts that are not regular may be a longer name in scope that its flattened text misses
+    !self.whole_names && first + 1 < self.chain_parts.len() && self.built_in_words(first) == 1 && self.ends_unknown_name(first + 1) && !self.has_irregular_parts(first)
+  }
+
+  /// Returns the number of leading name parts (from part `first` of the chain) that form a
+  /// built-in name of more parts than `in_scope`, the parts of the name in scope that starts
+  /// there, and the type of its token: the name of a built-in function, or where a type is
+  /// expected the name of a built-in type, which also wins with as many parts (a variable is
+  /// no type). A function name with a keyword in it (`date and time`) counts only before the
+  /// `(` of its call: elsewhere the keyword is the operator after the name in scope.
+  ///
+  /// The built-in names are words with one space between them, of at most
+  /// [MAX_BUILT_IN_NAME_WORDS] words, so a few prefixes of the parts are looked at, and none
+  /// when the part after the name in scope is not a word.
+  fn longer_built_in_name(&mut self, first: usize, in_scope: usize) -> Option<(usize, TokenType)> {
+    let parts = self.chain_parts.len() - first;
+    let word = |lexer: &Self, index: usize| {
+      let part = &lexer.chain_parts[first + index];
+      let text = &lexer.input[part.trimmed.clone()];
+      !text.is_empty() && !is_symbol_part(text)
+    };
+    let longer = in_scope < parts && word(self, in_scope);
+    if !longer && !self.type_name {
+      return None;
+    }
+    let most = if longer { parts.min(MAX_BUILT_IN_NAME_WORDS) } else { in_scope };
+    let least = if self.type_name { in_scope } else { in_scope + 1 };
+    for part_count in (least..=most).rev() {
+      if !(0..part_count).all(|index| word(self, index)) {
+        continue;
+      }
+      let texts = self.chain_parts[first..first + part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
+      flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
+      if self.type_name && is_built_in_type_name(&self.name_buf) {
+        return Some((part_count, TokenType::BuiltInTypeName));
+      }
+      if part_count > in_scope && is_built_in_function_name(&self.name_buf) {
+        // the character after the name: the position is the end of the chain now
+        let end_of_chain = std::mem::replace(&mut self.position, self.chain_parts[first + part_count - 1].end);
+        let called = self.is_next_character(&['('], 0);
+        self.position = end_of_chain;
+        let keyword = (1..part_count).any(|index| NAME_ENDING_KEYWORDS.contains(&&self.input[self.chain_parts[first + index].trimmed.clone()]));
+        if keyword && !called {
+          continue;
+        }
+        let date_time = called && is_built_in_date_time_function_name(&self.name_buf);
+        return Some((part_count, if date_time { TokenType::NameDateTime } else { TokenType::Name }));
+      }
+    }
+    None
   }
 
   /// Returns the number of leading name parts (from part `first` of the chain) that form the
@@ -908,11 +1141,55 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       }
       part_count = part_count.min(admitted_parts(parts, group_bound));
     }
+    let regular = part_count > 1 && !has_empty_part && self.flat_chain(first);
     while part_count > 0 {
+      // The last candidate, the first part alone, is the token whether it is a name in scope or
+      // not when a keyword ends the name after it (as the name of a chain of one part is), so
+      // it is not looked up: except a built-in property name after a dot, and a built-in type
+      // name where a type is read, which is another token when it is no name in scope.
+      if part_count == 1 && !has_empty_part {
+        let word = &self.input[self.chain_parts[first].trimmed.clone()];
+        if self.after_dot && is_built_in_property_name(word) {
+          return Some((1, true));
+        }
+        if !(self.type_name && is_built_in_type_name(word)) && self.is_one_part_before_keyword(first) {
+          return Some((1, false));
+        }
+      }
+      if regular {
+        // The candidate is a piece of the flattened chain, and its length is known before it is
+        // written: a candidate of a length that no name in scope has is not looked up, so a
+        // long chain costs a step per candidate, not a text.
+        let (start, last) = (self.chain_flat_parts[first].0, first + part_count - 1);
+        let symbol = is_symbol_part(&self.input[self.chain_parts[last].trimmed.clone()]);
+        // a symbol at the end of a name stands after a space: no part follows it
+        let end = if symbol { self.chain_flat_parts[last - 1].1 } else { self.chain_flat_parts[last].1 };
+        let len = end - start + if symbol { 2 } else { 0 };
+        let possible = self.scope.may_contain_length(len) || (self.after_dot && BUILT_IN_PROPERTY_NAMES.iter().any(|name| name.len() == len));
+        if !possible {
+          part_count -= 1;
+          continue;
+        }
+        self.name_buf.clear();
+        self.name_buf.push_str(&self.chain_flat[start..end]);
+        if symbol {
+          self.name_buf.push(WS);
+          self.name_buf.push_str(&self.input[self.chain_parts[last].trimmed.clone()]);
+        }
+        #[cfg(test)]
+        {
+          // the piece is the flattened name of these parts
+          let texts = self.chain_parts[first..first + part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
+          let mut flattened = String::new();
+          flatten_name_parts_into(texts, &mut flattened, &mut self.name_tmp);
+          assert_eq!(flattened, self.name_buf, "the flattened chain {:?}", self.chain_flat);
+        }
+      } else {
+        // flatten the name parts to compare it with built-in names and keys in current scope
+        let texts = self.chain_parts[first..first + part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
+        flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
+      }
       work!(Candidates, 1);
-      // flatten the name parts to compare it with built-in names and keys in current scope
-      let texts = parts[..part_count].iter().map(|part| &self.input[part.trimmed.clone()]);
-      flatten_name_parts_into(texts, &mut self.name_buf, &mut self.name_tmp);
       // check if the name is a built-in property name
       if self.after_dot && is_built_in_property_name(&self.name_buf) {
         return Some((part_count, true));
@@ -930,6 +1207,41 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       part_count -= 1;
     }
     None
+  }
+
+  /// Writes the flattened text of the whole chain once, when the chain is regular, and returns
+  /// whether the flattened name of parts from `first` on is a piece of it.
+  ///
+  /// A chain is regular when its parts are words and single additional name symbols, no part
+  /// has white space at an end or is empty, the first part is a word and no symbol follows a
+  /// symbol. The flattened name of some of its parts is then their texts, with a space between
+  /// two words and none around a symbol that parts stand on both sides of: the spaces around
+  /// such a symbol are the ones the flattening removes, and no other text of a part has a space.
+  fn flat_chain(&mut self, first: usize) -> bool {
+    if self.chain_flat_state == FlatChain::Unknown {
+      self.chain_flat.clear();
+      self.chain_flat_parts.clear();
+      let mut regular = true;
+      let mut after_symbol = true;
+      for (index, part) in self.chain_parts.iter().enumerate() {
+        let text = &self.input[part.trimmed.clone()];
+        let symbol = is_symbol_part(text);
+        if text.is_empty() || part.trimmed != (part.start..part.end) || (symbol && after_symbol) {
+          regular = false;
+          break;
+        }
+        if index > 0 && !symbol && !after_symbol {
+          self.chain_flat.push(WS);
+        }
+        let start = self.chain_flat.len();
+        self.chain_flat.push_str(text);
+        self.chain_flat_parts.push((start, self.chain_flat.len()));
+        after_symbol = symbol;
+      }
+      self.chain_flat_state = if regular { FlatChain::Written } else { FlatChain::NotRegular };
+    }
+    // a name starts at a word
+    self.chain_flat_state == FlatChain::Written && !is_symbol_part(&self.input[self.chain_parts[first].trimmed.clone()])
   }
 
   /// Consumes a HEX digit from input or reports an error.
@@ -1185,6 +1497,12 @@ fn is_built_in_type_name(name: &str) -> bool {
     name,
     "Any" | "Null" | "boolean" | "number" | "string" | "date" | "date and time" | "time" | "years and months duration" | "days and time duration"
   )
+}
+
+/// Returns `true` when the text of a part of a name chain is one additional name symbol.
+fn is_symbol_part(text: &str) -> bool {
+  let mut chars = text.chars();
+  matches!((chars.next(), chars.next()), (Some(symbol), None) if is_additional_name_symbol(symbol))
 }
 
 /// Returns the length in bytes of the longest of `names`.

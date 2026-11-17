@@ -10,7 +10,10 @@ use rheon_feel::diagnostics::{self, Abort};
 
 /// One evaluation request.
 #[derive(Debug, Default)]
-pub struct Session {}
+pub struct Session {
+  /// The steps the evaluation may take, when it has a budget.
+  steps: Option<u64>,
+}
 
 impl Session {
   /// A session with the default configuration.
@@ -18,9 +21,18 @@ impl Session {
     Self::default()
   }
 
-  /// Runs `f` in this session, or as part of the session already running on this thread.
+  /// A session whose evaluation may take at most `steps` steps: every function call and every
+  /// item of a loop or a filter is one, and the step after the last one stops the evaluation
+  /// ([Abort::Steps]). Without a budget an evaluation is bounded only by the other limits.
+  pub fn with_step_budget(mut self, steps: u64) -> Self {
+    self.steps = Some(steps);
+    self
+  }
+
+  /// Runs `f` in this session, or as part of the session already running on this thread (which
+  /// keeps its own budget).
   pub fn run<T>(self, f: impl FnOnce() -> T) -> Outcome<T> {
-    let (value, aborted) = diagnostics::evaluation(f);
+    let (value, aborted) = diagnostics::evaluation_within(self.steps, f);
     Outcome { value, aborted }
   }
 }

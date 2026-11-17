@@ -1,0 +1,95 @@
+a_function_of_the_host_sees_the_entries_of_a_context_before_its_invocation #1 "{a: 1, b: see(2), c: 3}"
+Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): List([Number(+2E+0), Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), Name("c"): Number(+3E+0)}))
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_entries_of_a_context_before_its_invocation #2 "{a: see(1), b: see(a), c: see(b)}"
+Context(FeelContext({Name("a"): List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), Name("b"): List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), Name("c"): List([List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")])}))
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_entries_of_a_context_before_its_invocation #3 "{a: 1, b: {c: see(a)}, c: see(b)}"
+Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({Name("c"): List([Number(+1E+0), Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")])})), Name("c"): List([Context(FeelContext({Name("c"): List([Number(+1E+0), Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")])})), Number(+1E+0), Context(FeelContext({Name("c"): List([Number(+1E+0), Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")])})), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")])}))
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_entries_of_a_context_before_its_invocation #4 "{a: 1, a: see(2), b: see(3)}"
+Null(Some("duplicated context entry key: a"))
+Diagnostics { count: 1, messages: ["duplicated context entry key: a"], warnings: [] }
+
+a_function_of_the_host_sees_the_item_of_a_filter #1 "[1, 2, 3][see(item)[8] = item]"
+List([Number(+1E+0), Number(+2E+0), Number(+3E+0)])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_item_of_a_filter #2 "[{a: 1}, {a: 2}][see(a)[2] = a]"
+List([Context(FeelContext({Name("a"): Number(+1E+0)})), Context(FeelContext({Name("a"): Number(+2E+0)}))])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_item_of_a_filter #3 "[{item: 1}, {item: 2}][see(item)[8] = 2]"
+List([Context(FeelContext({Name("item"): Number(+2E+0)}))])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_item_of_a_filter #4 "{a: 5, r: [{b: 1}, {b: 2}][count(see(b)) > a]}"
+Context(FeelContext({Name("a"): Number(+5E+0), Name("r"): List([Context(FeelContext({Name("b"): Number(+1E+0)})), Context(FeelContext({Name("b"): Number(+2E+0)}))])}))
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_item_of_a_filter #5 "for i in 1..2 return [10, 20][see(i)[8] > 10]"
+List([List([Number(+20E+0)]), List([Number(+20E+0)])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_scopes_of_every_activation_below_its_invocation #1 "f(1)"
+List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_scopes_of_every_activation_below_its_invocation #2 "{a: 1, r: f(a)}"
+Context(FeelContext({Name("a"): Number(+1E+0), Name("r"): List([Number(+1E+0), Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")])}))
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_scopes_of_every_activation_below_its_invocation #3 "for i in 1..2 return f(i)"
+List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")]), List([Number(+2E+0), String("-"), String("-"), String("-"), Number(+2E+0), String("-"), List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")])]), String("-"), String("-")])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_scopes_of_every_activation_below_its_invocation #4 "{g: function(n) if n = 0 then see(0) else [see(n), g(n - 1)], r: g(2)}.r"
+List([List([Number(+2E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), Number(+2E+0)]), List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), Number(+1E+0)]), List([Number(+0E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), Number(+0E+0)])])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_scopes_of_every_activation_below_its_invocation #5 "{g: function(n) if n = 0 then f(0) else [f(n), g(n - 1)], r: g(2)}.r"
+List([List([Number(+2E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), Number(+2E+0)]), List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), Number(+1E+0)]), List([Number(+0E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), Number(+0E+0)])])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_scopes_of_every_activation_below_its_invocation #6 "{a: 1, g: function(n) for i in 1..n return see(i), r: for j in 1..2 return g(j)}.r"
+List([List([List([Number(+1E+0), Number(+1E+0), String("-"), String("-"), Number(+1E+0), Number(+1E+0), List([]), String("-"), Number(+1E+0)])]), List([List([Number(+1E+0), Number(+1E+0), String("-"), String("-"), Number(+1E+0), Number(+2E+0), List([]), String("-"), Number(+2E+0)]), List([Number(+2E+0), Number(+1E+0), String("-"), String("-"), Number(+2E+0), Number(+2E+0), List([List([Number(+1E+0), Number(+1E+0), String("-"), String("-"), Number(+1E+0), Number(+2E+0), List([]), String("-"), Number(+2E+0)])]), String("-"), Number(+2E+0)])])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_scopes_of_every_activation_below_its_invocation #7 "{g: function(n) function(x) see(x + n), r: g(1)(2)}.r"
+List([Number(+3E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), Number(+1E+0)])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #1 "for i in 1..3 return see(i)"
+List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")]), List([Number(+2E+0), String("-"), String("-"), String("-"), Number(+2E+0), String("-"), List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")])]), String("-"), String("-")]), List([Number(+3E+0), String("-"), String("-"), String("-"), Number(+3E+0), String("-"), List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")]), List([Number(+2E+0), String("-"), String("-"), String("-"), Number(+2E+0), String("-"), List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")])]), String("-"), String("-")])]), String("-"), String("-")])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #2 "for i in 1..2, j in [see(i)] return see(j)"
+List([List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), Number(+1E+0), List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), String("-"), String("-"), String("-")]), List([]), String("-"), String("-")]), List([List([Number(+2E+0), String("-"), String("-"), String("-"), Number(+2E+0), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), Number(+2E+0), List([Number(+2E+0), String("-"), String("-"), String("-"), Number(+2E+0), String("-"), String("-"), String("-"), String("-")]), List([List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), Number(+1E+0), List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), String("-"), String("-"), String("-")]), List([]), String("-"), String("-")])]), String("-"), String("-")])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #3 "for i in 1..3 return count(see(i)[7])"
+List([Number(+0E+0), Number(+1E+0), Number(+2E+0)])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #4 "for partial in 1..2, j in [see(1)] return see(j)"
+List([List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), String("-"), List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([]), String("-"), String("-")]), List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), String("-"), List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([List([List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), String("-"), String("-"), String("-"), String("-"), List([Number(+1E+0), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-"), String("-")]), List([]), String("-"), String("-")])]), String("-"), String("-")])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #5 "for i in 1..2, partial in [see(i)] return see(i)"
+List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")]), List([Number(+2E+0), String("-"), String("-"), String("-"), Number(+2E+0), String("-"), List([List([Number(+1E+0), String("-"), String("-"), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")])]), String("-"), String("-")])])
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #6 "some i in [1, 2] satisfies see(i)[5] = i"
+Boolean(true)
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #7 "every i in [1, 2], j in [see(i)] satisfies count(see(j)) = 9"
+Boolean(true)
+Diagnostics { count: 0, messages: [], warnings: [] }
+
+a_function_of_the_host_sees_the_variables_of_a_walk_and_its_results #8 "{a: 1, r: for i in 1..2 return {b: i, c: see(a + i)}}"
+Context(FeelContext({Name("a"): Number(+1E+0), Name("r"): List([Context(FeelContext({Name("b"): Number(+1E+0), Name("c"): List([Number(+2E+0), Number(+1E+0), Number(+1E+0), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")])})), Context(FeelContext({Name("b"): Number(+2E+0), Name("c"): List([Number(+3E+0), Number(+1E+0), Number(+2E+0), String("-"), Number(+2E+0), String("-"), List([Context(FeelContext({Name("b"): Number(+1E+0), Name("c"): List([Number(+2E+0), Number(+1E+0), Number(+1E+0), String("-"), Number(+1E+0), String("-"), List([]), String("-"), String("-")])}))]), String("-"), String("-")])}))])}))
+Diagnostics { count: 0, messages: [], warnings: [] }

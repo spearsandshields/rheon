@@ -1,0 +1,2 @@
+# composite-chain: 8 cases at full size, one digest of all
+5e0c623d83b86ec5

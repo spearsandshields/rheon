@@ -79,9 +79,16 @@ pub fn parse_simple_value(scope: &FeelScope, input: &str, trace: bool) -> Result
   parse(scope, TokenType::StartSimpleValue, input, trace)
 }
 
-/// Parses a `name` as defined grammar rule `25`.
+/// Parses a `name` as defined grammar rule `25`: the text of a name that is being declared (an
+/// output of a decision table, an iteration variable of a boxed expression, an element of a
+/// model). It is one name with the keywords and symbols it has (`Approved/Declined`, `Profit
+/// and loss`), whether a name in scope starts it or not; in an expression such a name is read
+/// as one name only when it is in scope.
 pub fn parse_name(scope: &FeelScope, input: &str, trace: bool) -> Result<Name> {
-  if let AstNode::Name(name) = &mut parse(scope, TokenType::StartTextualExpression, input, trace)? {
+  let frames = scope.frames();
+  let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
+  let parsed = Parser::new(&parsing_scope, TokenType::StartTextualExpression, input, trace).with_whole_names().parse();
+  if let AstNode::Name(name) = &mut parsed? {
     Ok(std::mem::take(name))
   } else {
     Err(err_not_a_feel_name(input))

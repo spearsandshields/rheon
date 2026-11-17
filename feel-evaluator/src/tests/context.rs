@@ -29,7 +29,7 @@ fn _0002() {
 fn _0003() {
   let node = AstNode::Context(vec![AstNode::String("key".to_string())]);
   assert_eq!(
-    r#"null(expected context entry, actual value type is string)"#,
+    r#"null(malformed expression tree: unexpected Context node)"#,
     crate::tests::eval(&scope!(), &node).to_string()
   );
 }
@@ -41,7 +41,7 @@ fn _0004() {
     Box::new(AstNode::String("value".to_string())),
   )]);
   assert_eq!(
-    r#"null(expected context entry key, actual value type is string)"#,
+    r#"null(malformed expression tree: unexpected Context node)"#,
     crate::tests::eval(&scope!(), &node).to_string()
   );
 }

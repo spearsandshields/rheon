@@ -103,12 +103,12 @@ textual_expression:
   | expression DIV expression {/* division */}
   | expression EXP expression {/* exponentiation */}
   | MINUS expression %prec PREC_NEG {/* negation */}
-  | LT expression %prec PREC_NEG {/* comparison_unary_lt */}
-  | LE expression %prec PREC_NEG {/* comparison_unary_le */}
-  | GT expression %prec PREC_NEG {/* comparison_unary_gt */}
-  | GE expression %prec PREC_NEG {/* comparison_unary_ge */}
-  | EQ expression %prec PREC_NEG {/* comparison_unary_eq */}
-  | NE expression %prec PREC_NEG {/* comparison_unary_ne */}
+  | LT expression %prec IN {/* comparison_unary_lt */}
+  | LE expression %prec IN {/* comparison_unary_le */}
+  | GT expression %prec IN {/* comparison_unary_gt */}
+  | GE expression %prec IN {/* comparison_unary_ge */}
+  | EQ expression %prec IN {/* comparison_unary_eq */}
+  | NE expression %prec IN {/* comparison_unary_ne */}
   | expression INSTANCE OF {/* type_name */} type {/* instance_of */}
   | expression DOT {/* after_dot */} NAME {/* path */}
   | expression DESCENDANT {/* after_dot */} NAME {/* descendant */}
@@ -269,7 +269,7 @@ type:
   | LIST LT {/* type_name */} type GT {/* list_type */}
   | RANGE LT {/* type_name */} type GT {/* range_type */}
   | CONTEXT LT context_type_entries
-  | FUNCTION LT function_type_parameters RIGHT_ARROW {/* type_name */} type {/* function_type */}
+  | FUNCTION LT {/* type_name */} function_type_parameters RIGHT_ARROW {/* type_name */} type {/* function_type */}
   ;
 
 context_type_entries:
@@ -287,7 +287,7 @@ context_type_entry_tail:
 
 function_type_parameters:
     GT {/* function_type_parameters_empty */}
-  | {/* type_name */} type function_type_parameters_tail {/* function_type_parameters */}
+  | type function_type_parameters_tail {/* function_type_parameters */}
   ;
 
 function_type_parameters_tail:
@@ -344,12 +344,16 @@ external:
 
 range_literal:
     range_literal_start range_literal_end {/* range_literal */}
+  | range_literal_empty_start range_literal_end_with_endpoint {/* range_literal */}
+  ;
+
+range_literal_empty_start:
+    LEFT_PAREN ELLIPSIS {/* range_literal_empty_start */}
+  | RIGHT_BRACKET ELLIPSIS {/* range_literal_empty_start */}
   ;
 
 range_literal_start:
-    LEFT_PAREN ELLIPSIS {/* range_literal_empty_start */}
-  | RIGHT_BRACKET ELLIPSIS {/* range_literal_empty_start */}
-  | LEFT_PAREN range_literal_endpoint ELLIPSIS {/* range_literal_start */}
+    LEFT_PAREN range_literal_endpoint ELLIPSIS {/* range_literal_start */}
   | RIGHT_BRACKET range_literal_endpoint ELLIPSIS {/* range_literal_start */}
   | LEFT_BRACKET range_literal_endpoint ELLIPSIS {/* range_literal_start */}
   ;
@@ -357,13 +361,18 @@ range_literal_start:
 range_literal_end:
     RIGHT_PAREN {/* range_literal_empty_end */}
   | LEFT_BRACKET {/* range_literal_empty_end */}
-  | range_literal_endpoint RIGHT_PAREN {/* range_literal_end */}
+  | range_literal_end_with_endpoint
+  ;
+
+range_literal_end_with_endpoint:
+    range_literal_endpoint RIGHT_PAREN {/* range_literal_end */}
   | range_literal_endpoint LEFT_BRACKET {/* range_literal_end */}
   | range_literal_endpoint RIGHT_BRACKET {/* range_literal_end */}
   ;
 
 range_literal_endpoint:
-    NUMERIC {/* literal_numeric */}
+    range_literal_number
+  | MINUS range_literal_number {/* negation */}
   | STRING {/* literal_string */}
   | AT STRING {/* literal_at */}
   | NAME_DATE_TIME LEFT_PAREN {/* literal_date_time */} range_literal_temporal_parameters RIGHT_PAREN {/* function_invocation */}
@@ -376,6 +385,10 @@ range_literal_temporal_parameters:
 
 range_literal_named_parameter:
     NAME COLON range_literal_string {/* named_parameter */}
+  ;
+
+range_literal_number:
+    NUMERIC {/* literal_numeric */}
   ;
 
 range_literal_string:

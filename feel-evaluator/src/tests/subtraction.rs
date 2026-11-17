@@ -260,7 +260,7 @@ fn _0043() {
   let scope = &te_scope(r#"{a: "x"}"#);
   let expression = format!("a{}", " - 1".repeat(16));
   let node = rheon_feel_parser::parse_expression(scope, &expression, false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
+  let evaluator = build_evaluator(&node);
   let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(scope));
   assert!(value.is_null());
   assert_eq!(16, diagnostics.count);

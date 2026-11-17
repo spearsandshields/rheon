@@ -2,7 +2,8 @@
  * In-thread runner: instantiates dist/feel.wasm with the WASI shim and drives the
  * feel_alloc / feel_call / feel_free ABI (CONTRACT §1).
  */
-import { serializeRequest, localTzOffsetMinutes, RequestError } from './request.js';
+import { buildEvaluateAllJson, mergeEvaluateAll, serializeRequest, localTzOffsetMinutes, RequestError } from './request.js';
+import type { EvaluateAllRequest } from './types.js';
 import { createWasiShim, type WasiShimOptions } from './wasi.js';
 
 interface FeelExports {
@@ -124,7 +125,7 @@ export interface FeelEnv {
 export interface FeelInstance {
   /**
    * Runs one request synchronously. `req` is a request object (CONTRACT §2; top-level `{rawJson}`
-   * values are spliced verbatim) or a JSON string sent as-is. Returns the parsed response.
+   * values are spliced verbatim, and the `input` of an entry of `evaluateAll`) or a JSON string sent as-is. Returns the parsed response.
    * A trap yields `{ok:false, error:{kind:'crash'}}` and the instance is re-created.
    */
   call(req: object | string): any;
@@ -192,6 +193,12 @@ export async function instantiateFeel(
           obj.tzOffsetMinutes = env.tzOffsetMinutes ?? localTzOffsetMinutes();
         }
         try {
+          if (obj.op === 'evaluateAll') {
+            // the entries may hold `{rawJson}` inputs; one that can not be sent fails in its place
+            const tz = env.tzOffsetMinutes === null ? undefined : (env.tzOffsetMinutes ?? localTzOffsetMinutes());
+            const built = buildEvaluateAllJson(obj as unknown as EvaluateAllRequest, tz);
+            return mergeEvaluateAll(JSON.parse(callJson(built.json)), built.failures);
+          }
           json = serializeRequest(obj);
         } catch (e) {
           if (e instanceof RequestError) return { ok: false, error: e.error };

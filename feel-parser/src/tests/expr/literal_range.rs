@@ -331,3 +331,31 @@ fn _0024() {
     "#;
   accept(&scope!(), StartRangeLiteral, input, expected, false);
 }
+
+/// A range literal takes a negative number as an endpoint (grammar rule 67 with the sign of
+/// rule 35), and it has at least one endpoint (rule 66).
+#[test]
+fn signed_endpoints_and_no_range_without_an_endpoint() {
+  let scope = scope!();
+  let parse = |input: &str| Parser::new(&scope, StartRangeLiteral, input, false).parse().map(|node| node.trace());
+  for input in ["[-1..1]", "(-2.5..-1)", "]-1e3..0[", "[0..-1]", "(..-5]", "[-5..)", "]-1..["] {
+    let tree = parse(input).unwrap_or_else(|reason| panic!("{input}: {reason}"));
+    assert!(tree.contains("Neg") && tree.contains("Range"), "{input}: {tree}");
+  }
+  // as before
+  for input in [
+    "[1..2]",
+    "(1..2)",
+    "]1..2[",
+    "(..2]",
+    "[1..)",
+    "]..2)",
+    "[\"a\"..\"z\"]",
+    "[@\"2026-01-01\"..@\"2026-12-31\"]",
+  ] {
+    assert!(parse(input).is_ok(), "{input}");
+  }
+  for input in ["(..)", "]..[", "(..[", "]..)", "[--1..1]", "[- ..1]", "[-\"a\"..\"b\"]", "[1..-]", "[..]"] {
+    assert!(parse(input).is_err(), "{input}: {:?}", parse(input));
+  }
+}

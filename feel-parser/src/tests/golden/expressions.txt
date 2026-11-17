@@ -1,0 +1,2206 @@
+# Chosen expressions: the names in scope, the tokens read (each with its offset) and the tree or the error.
+
+## "1 + 2 * 3"
+in scope: nothing
+  StartExpression @0
+  Numeric("1", "", '+', "") @0
+  Plus @2
+  Numeric("2", "", '+', "") @4
+  Mul @6
+  Numeric("3", "", '+', "") @8
+  YyEof @9
+
+       Add
+       ├─ Numeric
+       │  └─ `1`
+       └─ Mul
+          ├─ Numeric
+          │  └─ `2`
+          └─ Numeric
+             └─ `3`
+
+## "-(1 - 2) ** 2 / 4"
+in scope: nothing
+  StartExpression @0
+  Minus @0
+  LeftParen @1
+  Numeric("1", "", '+', "") @2
+  Minus @4
+  Numeric("2", "", '+', "") @6
+  RightParen @7
+  Exp @9
+  Numeric("2", "", '+', "") @12
+  Div @14
+  Numeric("4", "", '+', "") @16
+  YyEof @17
+
+       Div
+       ├─ Exp
+       │  ├─ Neg
+       │  │  └─ Sub
+       │  │     ├─ Numeric
+       │  │     │  └─ `1`
+       │  │     └─ Numeric
+       │  │        └─ `2`
+       │  └─ Numeric
+       │     └─ `2`
+       └─ Numeric
+          └─ `4`
+
+## "1e3 + 1.5E-2 + .5"
+in scope: nothing
+  StartExpression @0
+  Numeric("1", "", '+', "3") @0
+  Plus @4
+  Numeric("1", "5", '-', "2") @6
+  Plus @13
+  Numeric("0", "5", '+', "") @15
+  YyEof @17
+
+       Add
+       ├─ Add
+       │  ├─ Numeric
+       │  │  └─ `1e+3`
+       │  └─ Numeric
+       │     └─ `1.5e-2`
+       └─ Numeric
+          └─ `0.5`
+
+## "1e"
+in scope: nothing
+  StartExpression @0
+  Numeric("1", "", '+', "") @0
+  Name(Name("e")) @1
+error: <ParserError> syntax error: 1e
+
+## "\"a\" + \"b\\n\\\"c\\\"\""
+in scope: nothing
+  StartExpression @0
+  String("a") @0
+  Plus @4
+  String("b\n\"c\"") @6
+  YyEof @16
+
+       Add
+       ├─ String
+       │  └─ `a`
+       └─ String
+          └─ `b
+"c"`
+
+## "\"never closed"
+in scope: nothing
+  StartExpression @0
+  YyUndef @0
+error: <ParserError> syntax error: "never closed
+
+## "1 /* never closed"
+in scope: nothing
+  StartExpression @0
+  Numeric("1", "", '+', "") @0
+  YyUndef @2
+error: <ParserError> syntax error: 1 /* never closed
+
+## "true and false or null"
+in scope: nothing
+  StartExpression @0
+  Boolean(true) @0
+  And @5
+  Boolean(false) @9
+  Or @15
+  Null @18
+  YyEof @22
+
+       Or
+       ├─ And
+       │  ├─ Boolean
+       │  │  └─ `true`
+       │  └─ Boolean
+       │     └─ `false`
+       └─ Null
+
+## "not(true)"
+in scope: nothing
+  StartExpression @0
+  Name(Name("not")) @0
+  LeftParen @3
+  Boolean(true) @4
+  RightParen @8
+  YyEof @9
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `not`
+       └─ PositionalParameters
+          └─ Boolean
+             └─ `true`
+
+## "a < b and b >= a or a != b"
+in scope: a, b
+  StartExpression @0
+  Name(Name("a")) @0
+  Lt @2
+  Name(Name("b")) @4
+  And @6
+  Name(Name("b")) @10
+  Ge @12
+  Name(Name("a")) @15
+  Or @17
+  Name(Name("a")) @20
+  Nq @22
+  Name(Name("b")) @25
+  YyEof @26
+
+       Or
+       ├─ And
+       │  ├─ Lt
+       │  │  ├─ Name
+       │  │  │  └─ `a`
+       │  │  └─ Name
+       │  │     └─ `b`
+       │  └─ Ge
+       │     ├─ Name
+       │     │  └─ `b`
+       │     └─ Name
+       │        └─ `a`
+       └─ Nq
+          ├─ Name
+          │  └─ `a`
+          └─ Name
+             └─ `b`
+
+## "a between 1 and 10"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Between @2
+  Numeric("1", "", '+', "") @10
+  BetweenAnd @12
+  Numeric("10", "", '+', "") @16
+  YyEof @18
+
+       Between
+       ├─ Name
+       │  └─ `a`
+       ├─ Numeric
+       │  └─ `1`
+       └─ Numeric
+          └─ `10`
+
+## "a in [1..10]"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  In @2
+  LeftBracket @5
+  Numeric("1", "", '+', "") @6
+  Ellipsis @7
+  Numeric("10", "", '+', "") @9
+  RightBracket @11
+  YyEof @12
+
+       In
+       ├─ Name
+       │  └─ `a`
+       └─ Range
+          ├─ IntervalStart (closed)
+          │  └─ Numeric
+          │     └─ `1`
+          └─ IntervalEnd (closed)
+             └─ Numeric
+                └─ `10`
+
+## "a in (< 5, [10..20), 30)"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  In @2
+  LeftParen @5
+  Lt @6
+  Numeric("5", "", '+', "") @8
+  Comma @9
+  LeftBracket @11
+  Numeric("10", "", '+', "") @12
+  Ellipsis @14
+  Numeric("20", "", '+', "") @16
+  RightParen @18
+  Comma @19
+  Numeric("30", "", '+', "") @21
+  RightParen @23
+  YyEof @24
+
+       In
+       ├─ Name
+       │  └─ `a`
+       └─ ExpressionList
+          ├─ UnaryLt
+          │  └─ Numeric
+          │     └─ `5`
+          ├─ Range
+          │  ├─ IntervalStart (closed)
+          │  │  └─ Numeric
+          │  │     └─ `10`
+          │  └─ IntervalEnd (opened)
+          │     └─ Numeric
+          │        └─ `20`
+          └─ Numeric
+             └─ `30`
+
+## "a instance of number"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  BuiltInTypeName(Name("number")) @14
+  YyEof @20
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FeelType
+          └─ number
+
+## "a instance of list<context<n: number, s: string>>"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  List @14
+  Lt @18
+  Context @19
+  Lt @26
+  Name(Name("n")) @27
+  Colon @28
+  BuiltInTypeName(Name("number")) @30
+  Comma @36
+  Name(Name("s")) @38
+  Colon @39
+  BuiltInTypeName(Name("string")) @41
+  Gt @47
+  Gt @48
+  YyEof @49
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ ListType
+          └─ ContextType
+             ├─ ContextTypeEntry
+             │  ├─ Name
+             │  │  └─ `n`
+             │  └─ FeelType
+             │     └─ number
+             └─ ContextTypeEntry
+                ├─ Name
+                │  └─ `s`
+                └─ FeelType
+                   └─ string
+
+## "a instance of function<number, string> -> boolean"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  Function @14
+  Lt @22
+  BuiltInTypeName(Name("number")) @23
+  Comma @29
+  BuiltInTypeName(Name("string")) @31
+  Gt @37
+  RightArrow @39
+  BuiltInTypeName(Name("boolean")) @42
+  YyEof @49
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FunctionType
+          ├─ ParameterTypes
+          │  ├─ FeelType
+          │  │  └─ number
+          │  └─ FeelType
+          │     └─ string
+          └─ FeelType
+             └─ boolean
+
+## "if a then 1 else 2"
+in scope: a
+  StartExpression @0
+  If @0
+  Name(Name("a")) @3
+  Then @5
+  Numeric("1", "", '+', "") @10
+  Else @12
+  Numeric("2", "", '+', "") @17
+  YyEof @18
+
+       If
+       ├─ Name
+       │  └─ `a`
+       ├─ Numeric
+       │  └─ `1`
+       └─ Numeric
+          └─ `2`
+
+## "for i in items return i * 2"
+in scope: items
+  StartExpression @0
+  For @0
+  Name(Name("i")) @4
+  In @6
+  Name(Name("items")) @9
+  Return @15
+  Name(Name("i")) @22
+  Mul @24
+  Numeric("2", "", '+', "") @26
+  YyEof @27
+
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `i`
+       │     └─ Name
+       │        └─ `items`
+       └─ EvaluatedExpression
+          └─ Mul
+             ├─ Name
+             │  └─ `i`
+             └─ Numeric
+                └─ `2`
+
+## "for i in 1..3, j in items return i + j"
+in scope: items
+  StartExpression @0
+  For @0
+  Name(Name("i")) @4
+  In @6
+  Numeric("1", "", '+', "") @9
+  Ellipsis @10
+  Numeric("3", "", '+', "") @12
+  Comma @13
+  Name(Name("j")) @15
+  In @17
+  Name(Name("items")) @20
+  Return @26
+  Name(Name("i")) @33
+  Plus @35
+  Name(Name("j")) @37
+  YyEof @38
+
+       For
+       ├─ IterationContexts
+       │  ├─ IterationContextInterval
+       │  │  ├─ Name
+       │  │  │  └─ `i`
+       │  │  ├─ Numeric
+       │  │  │  └─ `1`
+       │  │  └─ Numeric
+       │  │     └─ `3`
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `j`
+       │     └─ Name
+       │        └─ `items`
+       └─ EvaluatedExpression
+          └─ Add
+             ├─ Name
+             │  └─ `i`
+             └─ Name
+                └─ `j`
+
+## "some i in items satisfies i > 2"
+in scope: items
+  StartExpression @0
+  Some @0
+  Name(Name("i")) @5
+  In @7
+  Name(Name("items")) @10
+  Satisfies @16
+  Name(Name("i")) @26
+  Gt @28
+  Numeric("2", "", '+', "") @30
+  YyEof @31
+
+       Some
+       ├─ QuantifiedContexts
+       │  └─ QuantifiedContext
+       │     ├─ Name
+       │     │  └─ `i`
+       │     └─ Name
+       │        └─ `items`
+       └─ Satisfies
+          └─ Gt
+             ├─ Name
+             │  └─ `i`
+             └─ Numeric
+                └─ `2`
+
+## "every i in items satisfies i.n > 2"
+in scope: items
+  StartExpression @0
+  Every @0
+  Name(Name("i")) @6
+  In @8
+  Name(Name("items")) @11
+  Satisfies @17
+  Name(Name("i")) @27
+  Dot @28
+  Name(Name("n")) @29
+  Gt @31
+  Numeric("2", "", '+', "") @33
+  YyEof @34
+
+       Every
+       ├─ QuantifiedContexts
+       │  └─ QuantifiedContext
+       │     ├─ Name
+       │     │  └─ `i`
+       │     └─ Name
+       │        └─ `items`
+       └─ Satisfies
+          └─ Gt
+             ├─ Path
+             │  ├─ Name
+             │  │  └─ `i`
+             │  └─ Name
+             │     └─ `n`
+             └─ Numeric
+                └─ `2`
+
+## "items[n > 1].n"
+in scope: items
+  StartExpression @0
+  Name(Name("items")) @0
+  LeftBracket @5
+  Name(Name("n")) @6
+  Gt @8
+  Numeric("1", "", '+', "") @10
+  RightBracket @11
+  Dot @12
+  Name(Name("n")) @13
+  YyEof @14
+
+       Path
+       ├─ Filter
+       │  ├─ Name
+       │  │  └─ `items`
+       │  └─ Gt
+       │     ├─ Name
+       │     │  └─ `n`
+       │     └─ Numeric
+       │        └─ `1`
+       └─ Name
+          └─ `n`
+
+## "items[1]"
+in scope: items
+  StartExpression @0
+  Name(Name("items")) @0
+  LeftBracket @5
+  Numeric("1", "", '+', "") @6
+  RightBracket @7
+  YyEof @8
+
+       Filter
+       ├─ Name
+       │  └─ `items`
+       └─ Numeric
+          └─ `1`
+
+## "items[item > 1]"
+in scope: items
+  StartExpression @0
+  Name(Name("items")) @0
+  LeftBracket @5
+  Name(Name("item")) @6
+  Gt @11
+  Numeric("1", "", '+', "") @13
+  RightBracket @14
+  YyEof @15
+
+       Filter
+       ├─ Name
+       │  └─ `items`
+       └─ Gt
+          ├─ Name
+          │  └─ `item`
+          └─ Numeric
+             └─ `1`
+
+## "[1, [2, 3], []]"
+in scope: nothing
+  StartExpression @0
+  LeftBracket @0
+  Numeric("1", "", '+', "") @1
+  Comma @2
+  LeftBracket @4
+  Numeric("2", "", '+', "") @5
+  Comma @6
+  Numeric("3", "", '+', "") @8
+  RightBracket @9
+  Comma @10
+  LeftBracket @12
+  RightBracket @13
+  RightBracket @14
+  YyEof @15
+
+       List
+       ├─ Numeric
+       │  └─ `1`
+       ├─ List
+       │  ├─ Numeric
+       │  │  └─ `2`
+       │  └─ Numeric
+       │     └─ `3`
+       └─ List
+          └─ (empty)
+
+## "{a: 1, b: a + 1, \"c d\": {e: b}}.b"
+in scope: nothing
+  StartExpression @0
+  LeftBrace @0
+  Name(Name("a")) @1
+  Colon @2
+  Numeric("1", "", '+', "") @4
+  Comma @5
+  Name(Name("b")) @7
+  Colon @8
+  Name(Name("a")) @10
+  Plus @12
+  Numeric("1", "", '+', "") @14
+  Comma @15
+  String("c d") @17
+  Colon @22
+  LeftBrace @24
+  Name(Name("e")) @25
+  Colon @26
+  Name(Name("b")) @28
+  RightBrace @29
+  RightBrace @30
+  Dot @31
+  Name(Name("b")) @32
+  YyEof @33
+
+       Path
+       ├─ Context
+       │  ├─ ContextEntry
+       │  │  ├─ ContextEntryKey
+       │  │  │  └─ `a`
+       │  │  └─ Numeric
+       │  │     └─ `1`
+       │  ├─ ContextEntry
+       │  │  ├─ ContextEntryKey
+       │  │  │  └─ `b`
+       │  │  └─ Add
+       │  │     ├─ Name
+       │  │     │  └─ `a`
+       │  │     └─ Numeric
+       │  │        └─ `1`
+       │  └─ ContextEntry
+       │     ├─ ContextEntryKey
+       │     │  └─ `c d`
+       │     └─ Context
+       │        └─ ContextEntry
+       │           ├─ ContextEntryKey
+       │           │  └─ `e`
+       │           └─ Name
+       │              └─ `b`
+       └─ Name
+          └─ `b`
+
+## "{a: 1}.a.b.c"
+in scope: nothing
+  StartExpression @0
+  LeftBrace @0
+  Name(Name("a")) @1
+  Colon @2
+  Numeric("1", "", '+', "") @4
+  RightBrace @5
+  Dot @6
+  Name(Name("a")) @7
+  Dot @8
+  Name(Name("b")) @9
+  Dot @10
+  Name(Name("c")) @11
+  YyEof @12
+
+       Path
+       ├─ Path
+       │  ├─ Path
+       │  │  ├─ Context
+       │  │  │  └─ ContextEntry
+       │  │  │     ├─ ContextEntryKey
+       │  │  │     │  └─ `a`
+       │  │  │     └─ Numeric
+       │  │  │        └─ `1`
+       │  │  └─ Name
+       │  │     └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `c`
+
+## "function(a, b: number) a + b"
+in scope: nothing
+  StartExpression @0
+  Function @0
+  LeftParen @8
+  Name(Name("a")) @9
+  Comma @10
+  Name(Name("b")) @12
+  Colon @13
+  BuiltInTypeName(Name("number")) @15
+  RightParen @21
+  Name(Name("a")) @23
+  Plus @25
+  Name(Name("b")) @27
+  YyEof @28
+
+       FunctionDefinition
+       ├─ FormalParameters
+       │  ├─ FormalParameter
+       │  │  ├─ ParameterName
+       │  │  │  └─ `a`
+       │  │  └─ FeelType
+       │  │     └─ Any
+       │  └─ FormalParameter
+       │     ├─ ParameterName
+       │     │  └─ `b`
+       │     └─ FeelType
+       │        └─ number
+       └─ FunctionBody
+          └─ Add
+             ├─ Name
+             │  └─ `a`
+             └─ Name
+                └─ `b`
+
+## "function(a) external {java: {class: \"c\", method signature: \"m\"}}"
+in scope: nothing
+  StartExpression @0
+  Function @0
+  LeftParen @8
+  Name(Name("a")) @9
+  RightParen @10
+  External @12
+  LeftBrace @21
+  Name(Name("java")) @22
+  Colon @26
+  LeftBrace @28
+  Name(Name("class")) @29
+  Colon @34
+  String("c") @36
+  Comma @39
+  Name(Name("method signature")) @41
+  Colon @57
+  String("m") @59
+  RightBrace @62
+  RightBrace @63
+  YyEof @64
+
+       FunctionDefinition
+       ├─ FormalParameters
+       │  └─ FormalParameter
+       │     ├─ ParameterName
+       │     │  └─ `a`
+       │     └─ FeelType
+       │        └─ Any
+       └─ FunctionBody (external)
+          └─ Context
+             └─ ContextEntry
+                ├─ ContextEntryKey
+                │  └─ `java`
+                └─ Context
+                   ├─ ContextEntry
+                   │  ├─ ContextEntryKey
+                   │  │  └─ `class`
+                   │  └─ String
+                   │     └─ `c`
+                   └─ ContextEntry
+                      ├─ ContextEntryKey
+                      │  └─ `method signature`
+                      └─ String
+                         └─ `m`
+
+## "f(1, 2)"
+in scope: f
+  StartExpression @0
+  Name(Name("f")) @0
+  LeftParen @1
+  Numeric("1", "", '+', "") @2
+  Comma @3
+  Numeric("2", "", '+', "") @5
+  RightParen @6
+  YyEof @7
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `f`
+       └─ PositionalParameters
+          ├─ Numeric
+          │  └─ `1`
+          └─ Numeric
+             └─ `2`
+
+## "f(a: 1, b: 2)"
+in scope: f
+  StartExpression @0
+  Name(Name("f")) @0
+  LeftParen @1
+  Name(Name("a")) @2
+  Colon @3
+  Numeric("1", "", '+', "") @5
+  Comma @6
+  Name(Name("b")) @8
+  Colon @9
+  Numeric("2", "", '+', "") @11
+  RightParen @12
+  YyEof @13
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `f`
+       └─ NamedParameters
+          ├─ NamedParameter
+          │  ├─ ParameterName
+          │  │  └─ `a`
+          │  └─ Numeric
+          │     └─ `1`
+          └─ NamedParameter
+             ├─ ParameterName
+             │  └─ `b`
+             └─ Numeric
+                └─ `2`
+
+## "date(\"2026-01-31\") + duration(\"P1D\")"
+in scope: nothing
+  StartExpression @0
+  NameDateTime(Name("date")) @0
+  LeftParen @4
+  String("2026-01-31") @5
+  RightParen @17
+  Plus @19
+  NameDateTime(Name("duration")) @21
+  LeftParen @29
+  String("P1D") @30
+  RightParen @35
+  YyEof @36
+
+       Add
+       ├─ FunctionInvocation
+       │  ├─ Name
+       │  │  └─ `date`
+       │  └─ PositionalParameters
+       │     └─ String
+       │        └─ `2026-01-31`
+       └─ FunctionInvocation
+          ├─ Name
+          │  └─ `duration`
+          └─ PositionalParameters
+             └─ String
+                └─ `P1D`
+
+## "date and time(\"2026-01-31T10:00:00\")"
+in scope: nothing
+  StartExpression @0
+  NameDateTime(Name("date and time")) @0
+  LeftParen @13
+  String("2026-01-31T10:00:00") @14
+  RightParen @35
+  YyEof @36
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `date and time`
+       └─ PositionalParameters
+          └─ String
+             └─ `2026-01-31T10:00:00`
+
+## "@\"2026-01-31\""
+in scope: nothing
+  StartExpression @0
+  At @0
+  String("2026-01-31") @1
+  YyEof @13
+
+       At
+       └─ `2026-01-31`
+
+## "[1..2]"
+in scope: nothing
+  StartExpression @0
+  LeftBracket @0
+  Numeric("1", "", '+', "") @1
+  Ellipsis @2
+  Numeric("2", "", '+', "") @4
+  RightBracket @5
+  YyEof @6
+
+       Range
+       ├─ IntervalStart (closed)
+       │  └─ Numeric
+       │     └─ `1`
+       └─ IntervalEnd (closed)
+          └─ Numeric
+             └─ `2`
+
+## "(1..2]"
+in scope: nothing
+  StartExpression @0
+  LeftParen @0
+  Numeric("1", "", '+', "") @1
+  Ellipsis @2
+  Numeric("2", "", '+', "") @4
+  RightBracket @5
+  YyEof @6
+
+       Range
+       ├─ IntervalStart (opened)
+       │  └─ Numeric
+       │     └─ `1`
+       └─ IntervalEnd (closed)
+          └─ Numeric
+             └─ `2`
+
+## "]1..2["
+in scope: nothing
+  StartExpression @0
+  RightBracket @0
+  Numeric("1", "", '+', "") @1
+  Ellipsis @2
+  Numeric("2", "", '+', "") @4
+  LeftBracket @5
+  YyEof @6
+
+       Range
+       ├─ IntervalStart (opened)
+       │  └─ Numeric
+       │     └─ `1`
+       └─ IntervalEnd (opened)
+          └─ Numeric
+             └─ `2`
+
+## "> 5"
+in scope: nothing
+  StartExpression @0
+  Gt @0
+  Numeric("5", "", '+', "") @2
+  YyEof @3
+
+       UnaryGt
+       └─ Numeric
+          └─ `5`
+
+## "> x + 1"
+in scope: x
+  StartExpression @0
+  Gt @0
+  Name(Name("x")) @2
+  Plus @4
+  Numeric("1", "", '+', "") @6
+  YyEof @7
+
+       UnaryGt
+       └─ Add
+          ├─ Name
+          │  └─ `x`
+          └─ Numeric
+             └─ `1`
+
+## "<= 10 = (null..10]"
+in scope: x
+  StartExpression @0
+  Le @0
+  Numeric("10", "", '+', "") @3
+  Eq @6
+  LeftParen @8
+  Null @9
+  Ellipsis @13
+  Numeric("10", "", '+', "") @15
+  RightBracket @17
+  YyEof @18
+
+       Eq
+       ├─ UnaryLe
+       │  └─ Numeric
+       │     └─ `10`
+       └─ Range
+          ├─ IntervalStart (opened)
+          │  └─ Null
+          └─ IntervalEnd (closed)
+             └─ Numeric
+                └─ `10`
+
+## "x.y.z"
+in scope: x
+  StartExpression @0
+  Name(Name("x")) @0
+  Dot @1
+  Name(Name("y")) @2
+  Dot @3
+  Name(Name("z")) @4
+  YyEof @5
+
+       Path
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `x`
+       │  └─ Name
+       │     └─ `y`
+       └─ Name
+          └─ `z`
+
+## "x...y"
+in scope: x
+  StartExpression @0
+  Name(Name("x")) @0
+  Descendant @1
+  Name(Name("y")) @4
+  YyEof @5
+
+       Descendant
+       ├─ Name
+       │  └─ `x`
+       └─ Name
+          └─ `y`
+
+## "Grace's age + 1"
+in scope: Grace's age
+  StartExpression @0
+  Name(Name("Grace's age")) @0
+  Plus @12
+  Numeric("1", "", '+', "") @14
+  YyEof @15
+
+       Add
+       ├─ Name
+       │  └─ `Grace's age`
+       └─ Numeric
+          └─ `1`
+
+## "unit price * qty"
+in scope: unit price, qty
+  StartExpression @0
+  Name(Name("unit price")) @0
+  Mul @11
+  Name(Name("qty")) @13
+  YyEof @16
+
+       Mul
+       ├─ Name
+       │  └─ `unit price`
+       └─ Name
+          └─ `qty`
+
+## "for t in tax return return t"
+in scope: tax return
+  StartExpression @0
+  For @0
+  Name(Name("t")) @4
+  In @6
+  Name(Name("tax return")) @9
+  Return @20
+  Name(Name("t")) @27
+  YyEof @28
+
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `t`
+       │     └─ Name
+       │        └─ `tax return`
+       └─ EvaluatedExpression
+          └─ Name
+             └─ `t`
+
+## "a-b + a - b"
+in scope: a-b, a, b
+  StartExpression @0
+  Name(Name("a-b")) @0
+  Plus @4
+  Name(Name("a-b")) @6
+  YyEof @11
+
+       Add
+       ├─ Name
+       │  └─ `a-b`
+       └─ Name
+          └─ `a-b`
+
+## "profit/loss / 2"
+in scope: profit/loss
+  StartExpression @0
+  Name(Name("profit/loss")) @0
+  Div @12
+  Numeric("2", "", '+', "") @14
+  YyEof @15
+
+       Div
+       ├─ Name
+       │  └─ `profit/loss`
+       └─ Numeric
+          └─ `2`
+
+## "fr**n*s ** 2"
+in scope: fr**n*s
+  StartExpression @0
+  Name(Name("fr**n*s")) @0
+  Exp @8
+  Numeric("2", "", '+', "") @11
+  YyEof @12
+
+       Exp
+       ├─ Name
+       │  └─ `fr**n*s`
+       └─ Numeric
+          └─ `2`
+
+## "x and y and z"
+in scope: x and y
+  StartExpression @0
+  Name(Name("x and y")) @0
+  And @8
+  Name(Name("z")) @12
+  YyEof @13
+
+       And
+       ├─ Name
+       │  └─ `x and y`
+       └─ Name
+          └─ `z`
+
+## "x"
+in scope: nothing
+  StartExpression @0
+  Name(Name("x")) @0
+  YyEof @1
+
+       Name
+       └─ `x`
+
+## "unknown name + 1"
+in scope: nothing
+  StartExpression @0
+  Name(Name("unknown name")) @0
+  Plus @13
+  Numeric("1", "", '+', "") @15
+  YyEof @16
+
+       Add
+       ├─ Name
+       │  └─ `unknown name`
+       └─ Numeric
+          └─ `1`
+
+## "x - 1"
+in scope: nothing
+  StartExpression @0
+  Name(Name("x")) @0
+  Minus @2
+  Numeric("1", "", '+', "") @4
+  YyEof @5
+
+       Sub
+       ├─ Name
+       │  └─ `x`
+       └─ Numeric
+          └─ `1`
+
+## "x.y"
+in scope: nothing
+  StartExpression @0
+  Name(Name("x")) @0
+  Dot @1
+  Name(Name("y")) @2
+  YyEof @3
+
+       Path
+       ├─ Name
+       │  └─ `x`
+       └─ Name
+          └─ `y`
+
+## "x and y"
+in scope: nothing
+  StartExpression @0
+  Name(Name("x")) @0
+  And @2
+  Name(Name("y")) @6
+  YyEof @7
+
+       And
+       ├─ Name
+       │  └─ `x`
+       └─ Name
+          └─ `y`
+
+## "for s in x return s.z"
+in scope: nothing
+  StartExpression @0
+  For @0
+  Name(Name("s")) @4
+  In @6
+  Name(Name("x")) @9
+  Return @11
+  Name(Name("s")) @18
+  Dot @19
+  Name(Name("z")) @20
+  YyEof @21
+
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `s`
+       │     └─ Name
+       │        └─ `x`
+       └─ EvaluatedExpression
+          └─ Path
+             ├─ Name
+             │  └─ `s`
+             └─ Name
+                └─ `z`
+
+## "if x then y else z"
+in scope: nothing
+  StartExpression @0
+  If @0
+  Name(Name("x")) @3
+  Then @5
+  Name(Name("y")) @10
+  Else @12
+  Name(Name("z")) @17
+  YyEof @18
+
+       If
+       ├─ Name
+       │  └─ `x`
+       ├─ Name
+       │  └─ `y`
+       └─ Name
+          └─ `z`
+
+## "price list"
+in scope: nothing
+  StartExpression @0
+  Name(Name("price list")) @0
+  YyEof @10
+
+       Name
+       └─ `price list`
+
+## "Grace's age"
+in scope: nothing
+  StartExpression @0
+  Name(Name("Grace's age")) @0
+  YyEof @11
+
+       Name
+       └─ `Grace's age`
+
+## "opt-in rate"
+in scope: nothing
+  StartExpression @0
+  Name(Name("opt")) @0
+  Minus @3
+  In @4
+error: <ParserError> syntax error: opt-in rate
+
+## "Is in range"
+in scope: nothing
+  StartExpression @0
+  Name(Name("Is")) @0
+  In @3
+  Name(Name("range")) @6
+  YyEof @11
+
+       In
+       ├─ Name
+       │  └─ `Is`
+       └─ Name
+          └─ `range`
+
+## "date and time"
+in scope: nothing
+  StartExpression @0
+  Name(Name("date and time")) @0
+  YyEof @13
+
+       Name
+       └─ `date and time`
+
+## "for item in [1] return item"
+in scope: nothing
+  StartExpression @0
+  For @0
+  Name(Name("item")) @4
+  In @9
+  LeftBracket @12
+  Numeric("1", "", '+', "") @13
+  RightBracket @14
+  Return @16
+  Name(Name("item")) @23
+  YyEof @27
+
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `item`
+       │     └─ List
+       │        └─ Numeric
+       │           └─ `1`
+       └─ EvaluatedExpression
+          └─ Name
+             └─ `item`
+
+## "for in+1 in [1] return 1"
+in scope: nothing
+  StartExpression @0
+  For @0
+  In @4
+error: <ParserError> syntax error: for in+1 in [1] return 1
+
+## "for a b in [1] return a b"
+in scope: nothing
+  StartExpression @0
+  For @0
+  Name(Name("a b")) @4
+  In @8
+  LeftBracket @11
+  Numeric("1", "", '+', "") @12
+  RightBracket @13
+  Return @15
+  Name(Name("a b")) @22
+  YyEof @25
+
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `a b`
+       │     └─ List
+       │        └─ Numeric
+       │           └─ `1`
+       └─ EvaluatedExpression
+          └─ Name
+             └─ `a b`
+
+## "x in[1]"
+in scope: x
+  StartExpression @0
+  Name(Name("x")) @0
+  Name(Name("in")) @2
+error: <ParserError> syntax error: x in[1]
+
+## "x in [1]"
+in scope: x
+  StartExpression @0
+  Name(Name("x")) @0
+  In @2
+  LeftBracket @5
+  Numeric("1", "", '+', "") @6
+  RightBracket @7
+  YyEof @8
+
+       In
+       ├─ Name
+       │  └─ `x`
+       └─ List
+          └─ Numeric
+             └─ `1`
+
+## "list < 2"
+in scope: list
+  StartExpression @0
+  Name(Name("list")) @0
+  Lt @5
+  Numeric("2", "", '+', "") @7
+  YyEof @8
+
+       Lt
+       ├─ Name
+       │  └─ `list`
+       └─ Numeric
+          └─ `2`
+
+## "list<2"
+in scope: list
+  StartExpression @0
+  Name(Name("list")) @0
+  Lt @4
+  Numeric("2", "", '+', "") @5
+  YyEof @6
+
+       Lt
+       ├─ Name
+       │  └─ `list`
+       └─ Numeric
+          └─ `2`
+
+## "range < context"
+in scope: range, context
+  StartExpression @0
+  Name(Name("range")) @0
+  Lt @6
+  Name(Name("context")) @8
+  YyEof @15
+
+       Lt
+       ├─ Name
+       │  └─ `range`
+       └─ Name
+          └─ `context`
+
+## "{list: 1, range: 2, context: 3}.list < 2"
+in scope: nothing
+  StartExpression @0
+  LeftBrace @0
+  Name(Name("list")) @1
+  Colon @5
+  Numeric("1", "", '+', "") @7
+  Comma @8
+  Name(Name("range")) @10
+  Colon @15
+  Numeric("2", "", '+', "") @17
+  Comma @18
+  Name(Name("context")) @20
+  Colon @27
+  Numeric("3", "", '+', "") @29
+  RightBrace @30
+  Dot @31
+  Name(Name("list")) @32
+  Lt @37
+  Numeric("2", "", '+', "") @39
+  YyEof @40
+
+       Lt
+       ├─ Path
+       │  ├─ Context
+       │  │  ├─ ContextEntry
+       │  │  │  ├─ ContextEntryKey
+       │  │  │  │  └─ `list`
+       │  │  │  └─ Numeric
+       │  │  │     └─ `1`
+       │  │  ├─ ContextEntry
+       │  │  │  ├─ ContextEntryKey
+       │  │  │  │  └─ `range`
+       │  │  │  └─ Numeric
+       │  │  │     └─ `2`
+       │  │  └─ ContextEntry
+       │  │     ├─ ContextEntryKey
+       │  │     │  └─ `context`
+       │  │     └─ Numeric
+       │  │        └─ `3`
+       │  └─ Name
+       │     └─ `list`
+       └─ Numeric
+          └─ `2`
+
+## "for list in [1, 2] return list<3"
+in scope: nothing
+  StartExpression @0
+  For @0
+  Name(Name("list")) @4
+  In @9
+  LeftBracket @12
+  Numeric("1", "", '+', "") @13
+  Comma @14
+  Numeric("2", "", '+', "") @16
+  RightBracket @17
+  Return @19
+  Name(Name("list")) @26
+  Lt @30
+  Numeric("3", "", '+', "") @31
+  YyEof @32
+
+       For
+       ├─ IterationContexts
+       │  └─ IterationContextSingle
+       │     ├─ Name
+       │     │  └─ `list`
+       │     └─ List
+       │        ├─ Numeric
+       │        │  └─ `1`
+       │        └─ Numeric
+       │           └─ `2`
+       └─ EvaluatedExpression
+          └─ Lt
+             ├─ Name
+             │  └─ `list`
+             └─ Numeric
+                └─ `3`
+
+## "function(list: list<number>) list<2"
+in scope: nothing
+  StartExpression @0
+  Function @0
+  LeftParen @8
+  Name(Name("list")) @9
+  Colon @13
+  List @15
+  Lt @19
+  BuiltInTypeName(Name("number")) @20
+  Gt @26
+  RightParen @27
+  Name(Name("list")) @29
+  Lt @33
+  Numeric("2", "", '+', "") @34
+  YyEof @35
+
+       FunctionDefinition
+       ├─ FormalParameters
+       │  └─ FormalParameter
+       │     ├─ ParameterName
+       │     │  └─ `list`
+       │     └─ ListType
+       │        └─ FeelType
+       │           └─ number
+       └─ FunctionBody
+          └─ Lt
+             ├─ Name
+             │  └─ `list`
+             └─ Numeric
+                └─ `2`
+
+## "a instance of list<number> and list<2"
+in scope: a, list
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  List @14
+  Lt @18
+  BuiltInTypeName(Name("number")) @19
+  Gt @25
+  And @27
+  Name(Name("list")) @31
+  Lt @35
+  Numeric("2", "", '+', "") @36
+  YyEof @37
+
+       And
+       ├─ InstanceOf
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ ListType
+       │     └─ FeelType
+       │        └─ number
+       └─ Lt
+          ├─ Name
+          │  └─ `list`
+          └─ Numeric
+             └─ `2`
+
+## "a instance of T and list<2"
+in scope: a, T, list
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  Name(Name("T")) @14
+  And @16
+  Name(Name("list")) @20
+  Lt @24
+  Numeric("2", "", '+', "") @25
+  YyEof @26
+
+       And
+       ├─ InstanceOf
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ QualifiedName
+       │     └─ Name
+       │        └─ `T`
+       └─ Lt
+          ├─ Name
+          │  └─ `list`
+          └─ Numeric
+             └─ `2`
+
+## "a instance of range<number>"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  Range @14
+  Lt @19
+  BuiltInTypeName(Name("number")) @20
+  Gt @26
+  YyEof @27
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ RangeType
+          └─ FeelType
+             └─ number
+
+## "a instance of function<list<number>, range<date>> -> context<n: number>"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  Function @14
+  Lt @22
+  List @23
+  Lt @27
+  BuiltInTypeName(Name("number")) @28
+  Gt @34
+  Comma @35
+  Range @37
+  Lt @42
+  BuiltInTypeName(Name("date")) @43
+  Gt @47
+  Gt @48
+  RightArrow @50
+  Context @53
+  Lt @60
+  Name(Name("n")) @61
+  Colon @62
+  BuiltInTypeName(Name("number")) @64
+  Gt @70
+  YyEof @71
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FunctionType
+          ├─ ParameterTypes
+          │  ├─ ListType
+          │  │  └─ FeelType
+          │  │     └─ number
+          │  └─ RangeType
+          │     └─ FeelType
+          │        └─ date
+          └─ ContextType
+             └─ ContextTypeEntry
+                ├─ Name
+                │  └─ `n`
+                └─ FeelType
+                   └─ number
+
+## "list<2"
+in scope: nothing
+  StartExpression @0
+  Name(Name("list")) @0
+  Lt @4
+  Numeric("2", "", '+', "") @5
+  YyEof @6
+
+       Lt
+       ├─ Name
+       │  └─ `list`
+       └─ Numeric
+          └─ `2`
+
+## "a.b + start date"
+in scope: a, start date
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("start date")) @6
+  YyEof @16
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `start date`
+
+## "a.b.c = year end"
+in scope: a, year end
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Dot @3
+  Name(Name("c")) @4
+  Eq @6
+  Name(Name("year end")) @8
+  YyEof @16
+
+       Eq
+       ├─ Path
+       │  ├─ Path
+       │  │  ├─ Name
+       │  │  │  └─ `a`
+       │  │  └─ Name
+       │  │     └─ `b`
+       │  └─ Name
+       │     └─ `c`
+       └─ Name
+          └─ `year end`
+
+## "a.start + start date"
+in scope: a, start date
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("start")) @2
+  Plus @8
+  Name(Name("start date")) @10
+  YyEof @20
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `start`
+       └─ Name
+          └─ `start date`
+
+## "a...b + time offset x"
+in scope: a, time offset x
+  StartExpression @0
+  Name(Name("a")) @0
+  Descendant @1
+  Name(Name("b")) @4
+  Plus @6
+  Name(Name("time offset x")) @8
+  YyEof @21
+
+       Add
+       ├─ Descendant
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `time offset x`
+
+## "a.b + start included"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("start included")) @6
+  YyEof @20
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `start included`
+
+## "a.b + other words"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("other words")) @6
+  YyEof @17
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `b`
+       └─ Name
+          └─ `other words`
+
+## "a.b + start included"
+in scope: a, start
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("b")) @2
+  Plus @4
+  Name(Name("start")) @6
+  Name(Name("included")) @12
+error: <ParserError> syntax error: a.b + start included
+
+## "a.start included + a.b.time offset"
+in scope: a
+  StartExpression @0
+  Name(Name("a")) @0
+  Dot @1
+  Name(Name("start included")) @2
+  Plus @17
+  Name(Name("a")) @19
+  Dot @20
+  Name(Name("b")) @21
+  Dot @22
+  Name(Name("time offset")) @23
+  YyEof @34
+
+       Add
+       ├─ Path
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ Name
+       │     └─ `start included`
+       └─ Path
+          ├─ Path
+          │  ├─ Name
+          │  │  └─ `a`
+          │  └─ Name
+          │     └─ `b`
+          └─ Name
+             └─ `time offset`
+
+## "string length(\"abc\")"
+in scope: string
+  StartExpression @0
+  Name(Name("string length")) @0
+  LeftParen @13
+  String("abc") @14
+  RightParen @19
+  YyEof @20
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `string length`
+       └─ PositionalParameters
+          └─ String
+             └─ `abc`
+
+## "list contains([1], 1)"
+in scope: list
+  StartExpression @0
+  Name(Name("list contains")) @0
+  LeftParen @13
+  LeftBracket @14
+  Numeric("1", "", '+', "") @15
+  RightBracket @16
+  Comma @17
+  Numeric("1", "", '+', "") @19
+  RightParen @20
+  YyEof @21
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `list contains`
+       └─ PositionalParameters
+          ├─ List
+          │  └─ Numeric
+          │     └─ `1`
+          └─ Numeric
+             └─ `1`
+
+## "day of week(date(\"2026-01-31\"))"
+in scope: day
+  StartExpression @0
+  Name(Name("day of week")) @0
+  LeftParen @11
+  NameDateTime(Name("date")) @12
+  LeftParen @16
+  String("2026-01-31") @17
+  RightParen @29
+  RightParen @30
+  YyEof @31
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `day of week`
+       └─ PositionalParameters
+          └─ FunctionInvocation
+             ├─ Name
+             │  └─ `date`
+             └─ PositionalParameters
+                └─ String
+                   └─ `2026-01-31`
+
+## "date and time(\"2026-01-31T10:00:00\")"
+in scope: date
+  StartExpression @0
+  NameDateTime(Name("date and time")) @0
+  LeftParen @13
+  String("2026-01-31T10:00:00") @14
+  RightParen @35
+  YyEof @36
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `date and time`
+       └─ PositionalParameters
+          └─ String
+             └─ `2026-01-31T10:00:00`
+
+## "date and time"
+in scope: date, time
+  StartExpression @0
+  Name(Name("date")) @0
+  And @5
+  Name(Name("time")) @9
+  YyEof @13
+
+       And
+       ├─ Name
+       │  └─ `date`
+       └─ Name
+          └─ `time`
+
+## "a instance of date and time"
+in scope: a, date
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  BuiltInTypeName(Name("date and time")) @14
+  YyEof @27
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FeelType
+          └─ date and time
+
+## "a instance of days and time duration"
+in scope: a, days
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  BuiltInTypeName(Name("days and time duration")) @14
+  YyEof @36
+
+       InstanceOf
+       ├─ Name
+       │  └─ `a`
+       └─ FeelType
+          └─ days and time duration
+
+## "a instance of date and a"
+in scope: a, date
+  StartExpression @0
+  Name(Name("a")) @0
+  Instance @2
+  Of @11
+  BuiltInTypeName(Name("date")) @14
+  And @19
+  Name(Name("a")) @23
+  YyEof @24
+
+       And
+       ├─ InstanceOf
+       │  ├─ Name
+       │  │  └─ `a`
+       │  └─ FeelType
+       │     └─ date
+       └─ Name
+          └─ `a`
+
+## "string length x + string length(\"a\")"
+in scope: string length x
+  StartExpression @0
+  Name(Name("string length x")) @0
+  Plus @16
+  Name(Name("string length")) @18
+  LeftParen @31
+  String("a") @32
+  RightParen @35
+  YyEof @36
+
+       Add
+       ├─ Name
+       │  └─ `string length x`
+       └─ FunctionInvocation
+          ├─ Name
+          │  └─ `string length`
+          └─ PositionalParameters
+             └─ String
+                └─ `a`
+
+## "string length x"
+in scope: string
+  StartExpression @0
+  Name(Name("string length")) @0
+  Name(Name("x")) @14
+error: <ParserError> syntax error: string length x
+
+## "string + string length(string)"
+in scope: string
+  StartExpression @0
+  Name(Name("string")) @0
+  Plus @7
+  Name(Name("string length")) @9
+  LeftParen @22
+  Name(Name("string")) @23
+  RightParen @29
+  YyEof @30
+
+       Add
+       ├─ Name
+       │  └─ `string`
+       └─ FunctionInvocation
+          ├─ Name
+          │  └─ `string length`
+          └─ PositionalParameters
+             └─ Name
+                └─ `string`
+
+## "date(\"2026-01-31\")"
+in scope: date
+  StartExpression @0
+  Name(Name("date")) @0
+  LeftParen @4
+  String("2026-01-31") @5
+  RightParen @17
+  YyEof @18
+
+       FunctionInvocation
+       ├─ Name
+       │  └─ `date`
+       └─ PositionalParameters
+          └─ String
+             └─ `2026-01-31`
+
+## "x between 1 and 2 and true"
+in scope: x
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  Numeric("1", "", '+', "") @10
+  BetweenAnd @12
+  Numeric("2", "", '+', "") @16
+  And @18
+  Boolean(true) @22
+  YyEof @26
+
+       And
+       ├─ Between
+       │  ├─ Name
+       │  │  └─ `x`
+       │  ├─ Numeric
+       │  │  └─ `1`
+       │  └─ Numeric
+       │     └─ `2`
+       └─ Boolean
+          └─ `true`
+
+## "x between (if a and b then 1 else 2) and 5"
+in scope: x, a, b
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  LeftParen @10
+  If @11
+  Name(Name("a")) @14
+  And @16
+  Name(Name("b")) @20
+  Then @22
+  Numeric("1", "", '+', "") @27
+  Else @29
+  Numeric("2", "", '+', "") @34
+  RightParen @35
+  BetweenAnd @37
+  Numeric("5", "", '+', "") @41
+  YyEof @42
+
+       Between
+       ├─ Name
+       │  └─ `x`
+       ├─ If
+       │  ├─ And
+       │  │  ├─ Name
+       │  │  │  └─ `a`
+       │  │  └─ Name
+       │  │     └─ `b`
+       │  ├─ Numeric
+       │  │  └─ `1`
+       │  └─ Numeric
+       │     └─ `2`
+       └─ Numeric
+          └─ `5`
+
+## "x between f(a and b) and [a and b, 5][2]"
+in scope: x, f, a, b
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  Name(Name("f")) @10
+  LeftParen @11
+  Name(Name("a")) @12
+  And @14
+  Name(Name("b")) @18
+  RightParen @19
+  BetweenAnd @21
+  LeftBracket @25
+  Name(Name("a")) @26
+  And @28
+  Name(Name("b")) @32
+  Comma @33
+  Numeric("5", "", '+', "") @35
+  RightBracket @36
+  LeftBracket @37
+  Numeric("2", "", '+', "") @38
+  RightBracket @39
+  YyEof @40
+
+       Between
+       ├─ Name
+       │  └─ `x`
+       ├─ FunctionInvocation
+       │  ├─ Name
+       │  │  └─ `f`
+       │  └─ PositionalParameters
+       │     └─ And
+       │        ├─ Name
+       │        │  └─ `a`
+       │        └─ Name
+       │           └─ `b`
+       └─ Filter
+          ├─ List
+          │  ├─ And
+          │  │  ├─ Name
+          │  │  │  └─ `a`
+          │  │  └─ Name
+          │  │     └─ `b`
+          │  └─ Numeric
+          │     └─ `5`
+          └─ Numeric
+             └─ `2`
+
+## "x between {c: a and b}.c and 5 and b"
+in scope: x, a, b
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  LeftBrace @10
+  Name(Name("c")) @11
+  Colon @12
+  Name(Name("a")) @14
+  And @16
+  Name(Name("b")) @20
+  RightBrace @21
+  Dot @22
+  Name(Name("c")) @23
+  BetweenAnd @25
+  Numeric("5", "", '+', "") @29
+  And @31
+  Name(Name("b")) @35
+  YyEof @36
+
+       And
+       ├─ Between
+       │  ├─ Name
+       │  │  └─ `x`
+       │  ├─ Path
+       │  │  ├─ Context
+       │  │  │  └─ ContextEntry
+       │  │  │     ├─ ContextEntryKey
+       │  │  │     │  └─ `c`
+       │  │  │     └─ And
+       │  │  │        ├─ Name
+       │  │  │        │  └─ `a`
+       │  │  │        └─ Name
+       │  │  │           └─ `b`
+       │  │  └─ Name
+       │  │     └─ `c`
+       │  └─ Numeric
+       │     └─ `5`
+       └─ Name
+          └─ `b`
+
+## "x between y between 1 and 2 and 3"
+in scope: x, y
+  StartExpression @0
+  Name(Name("x")) @0
+  Between @2
+  Name(Name("y")) @10
+  Between @12
+  Numeric("1", "", '+', "") @20
+  BetweenAnd @22
+  Numeric("2", "", '+', "") @26
+  BetweenAnd @28
+  Numeric("3", "", '+', "") @32
+  YyEof @33
+
+       Between
+       ├─ Name
+       │  └─ `x`
+       ├─ Between
+       │  ├─ Name
+       │  │  └─ `y`
+       │  ├─ Numeric
+       │  │  └─ `1`
+       │  └─ Numeric
+       │     └─ `2`
+       └─ Numeric
+          └─ `3`
+
+## "[x between 1, a and b]"
+in scope: x, a, b
+  StartExpression @0
+  LeftBracket @0
+  Name(Name("x")) @1
+  Between @3
+  Numeric("1", "", '+', "") @11
+  Comma @12
+error: <ParserError> syntax error: [x between 1, a and b]
+
+## "(x between 1) and b"
+in scope: x, a, b
+  StartExpression @0
+  LeftParen @0
+  Name(Name("x")) @1
+  Between @3
+  Numeric("1", "", '+', "") @11
+  RightParen @12
+error: <ParserError> syntax error: (x between 1) and b
+
+## ""
+in scope: nothing
+  StartExpression @0
+  YyEof @0
+error: <ParserError> syntax error: 
+
+## "1 +"
+in scope: nothing
+  StartExpression @0
+  Numeric("1", "", '+', "") @0
+  Plus @2
+  YyEof @3
+error: <ParserError> syntax error: 1 +
+
+## "(1"
+in scope: nothing
+  StartExpression @0
+  LeftParen @0
+  Numeric("1", "", '+', "") @1
+  YyEof @2
+error: <ParserError> syntax error: (1
+
+## "1 2"
+in scope: nothing
+  StartExpression @0
+  Numeric("1", "", '+', "") @0
+  Numeric("2", "", '+', "") @2
+error: <ParserError> syntax error: 1 2
+
+## "a b c d"
+in scope: nothing
+  StartExpression @0
+  Name(Name("a b c d")) @0
+  YyEof @7
+
+       Name
+       └─ `a b c d`
+
+## "$"
+in scope: nothing
+  StartExpression @0
+  YyUndef @0
+error: <ParserError> syntax error: $

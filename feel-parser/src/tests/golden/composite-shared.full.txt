@@ -1,0 +1,2 @@
+# composite-shared: 5 cases at full size, one digest of all
+12c08bbda3b4271c

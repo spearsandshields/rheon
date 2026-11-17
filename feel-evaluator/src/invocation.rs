@@ -5,9 +5,9 @@
 
 use crate::bfeel::{self, Dialect};
 use crate::bifs;
-use crate::builders::finite;
 use crate::evaluator_java::evaluate_external_java_function;
 use crate::evaluator_pmml::evaluate_external_pmml_function;
+use crate::kernels::finite;
 use rheon_feel::bif::Bif;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
@@ -65,6 +65,8 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
       };
       let result = if function.external {
         apply_external(scope, &function.body, &values)
+      } else if let Some((program, proto)) = crate::flat::code_of(&function.body) {
+        crate::flat::run_function(scope, &function, program, proto, values)
       } else {
         apply_body(scope, &function, values)
       };
@@ -76,34 +78,65 @@ pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, d
 
 /// The argument values in the order of the parameters, each converted to its parameter's type
 /// (§10.3.2.9.4, invocation context), or why the arguments do not match the parameters.
+/// Not inlined: its frame is not on the stack while the body runs, so a nested call costs no
+/// more stack than its caller's own frame.
+#[inline(never)]
 fn bind(parameters: &[(Name, FeelType)], arguments: Arguments) -> Result<Vec<Value>, String> {
-  let values = match arguments {
+  let mut values = match arguments {
     Arguments::Positional(values) => {
-      if values.len() != parameters.len() {
-        return Err("invalid number of arguments".to_string());
-      }
+      arity(parameters, values.len())?;
       values
     }
     Arguments::Named(arguments) => {
-      let mut values = vec![value_null!(); parameters.len()];
-      for (name, value) in arguments {
-        let Some(index) = parameters.iter().position(|(parameter_name, _)| *parameter_name == name) else {
-          return Err(format!("function has no parameter named '{}'", arg(&name)));
-        };
-        values[index] = value;
-      }
+      let mut values = vec![];
+      in_order(parameters, arguments, &mut values)?;
       values
     }
   };
-  values
-    .into_iter()
-    .zip(parameters)
-    .map(|(value, (name, parameter_type))| {
-      value
-        .try_into_coerced(parameter_type)
-        .ok_or_else(|| format!("argument for parameter '{}' does not conform to type {}", arg(name), arg(parameter_type)))
-    })
-    .collect()
+  coerce_arguments(parameters, &mut values)?;
+  Ok(values)
+}
+
+/// Whether `count` positional arguments match `parameters`, or why they do not.
+pub(crate) fn arity(parameters: &[(Name, FeelType)], count: usize) -> Result<(), String> {
+  if count == parameters.len() {
+    Ok(())
+  } else {
+    Err("invalid number of arguments".to_string())
+  }
+}
+
+/// The values of the named `arguments` in `values`, in the order of `parameters` (null for a
+/// parameter that no argument names; an argument of a name that two parameters have goes to the
+/// first), or why they do not match the parameters.
+pub(crate) fn in_order<N: std::borrow::Borrow<Name>>(
+  parameters: &[(Name, FeelType)],
+  arguments: impl IntoIterator<Item = (N, Value)>,
+  values: &mut Vec<Value>,
+) -> Result<(), String> {
+  values.clear();
+  values.resize(parameters.len(), value_null!());
+  for (name, value) in arguments {
+    let name = name.borrow();
+    let Some(index) = parameters.iter().position(|(parameter_name, _)| parameter_name == name) else {
+      return Err(format!("function has no parameter named '{}'", arg(name)));
+    };
+    values[index] = value;
+  }
+  Ok(())
+}
+
+/// Converts the argument values in `values`, one per parameter and in the order of the
+/// parameters, to the types of their parameters in place, up to the first that does not conform,
+/// which gives why.
+pub(crate) fn coerce_arguments(parameters: &[(Name, FeelType)], values: &mut [Value]) -> Result<(), String> {
+  for (value, (name, parameter_type)) in values.iter_mut().zip(parameters) {
+    let argument = std::mem::replace(value, Value::Null(None));
+    *value = argument
+      .try_into_coerced(parameter_type)
+      .ok_or_else(|| format!("argument for parameter '{}' does not conform to type {}", arg(name), arg(parameter_type)))?;
+  }
+  Ok(())
 }
 
 /// Evaluates the body of a FEEL function with its parameters bound to the argument values, in the
@@ -117,21 +150,20 @@ fn apply_body(scope: &FeelScope, function: &FunctionDefinition, values: Vec<Valu
   let depth = scope.depth();
   scope.push_shared(Arc::clone(&function.closure_ctx));
   scope.push(params_ctx);
-  let result = closed_over(scope, function.body.evaluate(scope));
+  let result = closed_over(|name| scope.search_entry(name), function.body.evaluate(scope));
   scope.truncate(depth);
   result
 }
 
 /// A function returned by a body closes over the names it uses as they are where the body ends,
-/// including entries the body added (kept from dsntk).
-fn closed_over(scope: &FeelScope, result: Value) -> Value {
+/// including entries the body added (kept from dsntk): `search` finds the value of a name there.
+/// Not inlined, for the reason of [bind]: it runs after the body, whose nested calls would
+/// otherwise carry its frame.
+#[inline(never)]
+pub(crate) fn closed_over(search: impl Fn(&QualifiedName) -> Option<Value>, result: Value) -> Value {
   match result {
     Value::FunctionDefinition(mut function) => {
-      let closed: Vec<(QualifiedName, Value)> = function
-        .closure
-        .iter()
-        .filter_map(|name| scope.search_entry(name).map(|value| (name.clone(), value)))
-        .collect();
+      let closed: Vec<(QualifiedName, Value)> = function.closure.iter().filter_map(|name| search(name).map(|value| (name.clone(), value))).collect();
       if !closed.is_empty() {
         // a copy of the definition and of its closure context when they are shared (the function
         // value has value semantics)
@@ -155,12 +187,17 @@ fn apply_external(scope: &FeelScope, body: &FunctionBody, arguments: &[Value]) -
   }
 }
 
+/// Applies a built-in function in FEEL to positional arguments, which it reads where they are.
+pub(crate) fn apply_feel_built_in(bif: Bif, values: &[Value]) -> Value {
+  bifs::positional::evaluate_bif(bif, values)
+}
+
 /// Applies a built-in function; the dialect selects the FEEL or B-FEEL semantics.
 fn apply_built_in(bif: Bif, arguments: Arguments, dialect: Dialect) -> Value {
   match arguments {
     Arguments::Positional(values) => match dialect {
       Dialect::BFeel => bfeel::evaluate_positional_bif(bif, values),
-      Dialect::Feel => bifs::positional::evaluate_bif(bif, &values),
+      Dialect::Feel => apply_feel_built_in(bif, &values),
     },
     Arguments::Named(arguments) => {
       // positions tell `before(point, range)` from `before(range, point)` (bifs/named.rs)

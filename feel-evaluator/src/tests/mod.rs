@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use crate::builders::build_evaluator;
+use crate::Dialect;
 use rheon_feel::values::Value;
-use rheon_feel::{FeelNumber, FeelScope};
+use rheon_feel::{Evaluator, FeelNumber, FeelScope};
 use rheon_feel_parser::AstNode;
 use rheon_feel_temporal::{Day, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelTime, FeelYearsAndMonthsDuration, Month, Year};
 
@@ -53,6 +53,7 @@ mod previews;
 mod properties;
 mod range;
 mod satisfies;
+mod scoping;
 mod send_sync;
 mod shared_values;
 mod some_expression;
@@ -65,6 +66,11 @@ mod various;
 const SECONDS_IN_DAY: i64 = 86_400;
 const SECONDS_IN_HOUR: i64 = 3_600;
 const SECONDS_IN_MINUTE: i64 = 60;
+
+/// The evaluator of `node` as [crate::prepare] builds it, without a session of its own.
+pub(crate) fn build_evaluator(node: &AstNode) -> Evaluator {
+  crate::evaluators::build(node, Dialect::Feel)
+}
 
 /// Evaluates `node` in its own session; a stopped evaluation fails the test with its abort.
 pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {
@@ -392,7 +398,8 @@ pub fn te_date_time_local_after(trace: bool, scope: &FeelScope, expression: &str
   let (year, month, day) = date_time.date().as_tuple();
   let (hour, min, sec, nano, _) = date_time.time().as_tuple();
   let range_start = FeelDateTime::local(year, month, day, hour, min, sec, nano).unwrap();
-  let range_end = FeelDateTime::local(year, month, day, hour, min, sec + seconds, nano).unwrap();
+  // the end by adding a duration: the seconds of a time end at 59
+  let range_end = (range_start.clone() + rheon_feel_temporal::FeelDaysAndTimeDuration::from_s(seconds.into())).unwrap();
   match rheon_feel_parser::parse_textual_expression(scope, expression, trace) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);

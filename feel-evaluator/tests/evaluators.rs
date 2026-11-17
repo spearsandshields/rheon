@@ -99,7 +99,10 @@ fn _0011() {
 #[test]
 fn _0012() {
   let node = AstNode::CommaList(vec![]);
-  assert_eq!("null(unexpected AST node: CommaList([]))", evaluate(&scope!(), &node).into_result().unwrap().to_string());
+  assert_eq!(
+    "null(malformed expression tree: unexpected CommaList node)",
+    evaluate(&scope!(), &node).into_result().unwrap().to_string()
+  );
 }
 
 #[test]

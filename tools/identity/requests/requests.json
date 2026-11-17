@@ -1,0 +1,7 @@
+[
+  {"op": "explode"},
+  {"op": "explode", "dialect": "boxed"},
+  {"op": "evaluate"},
+  {"expression": "1"},
+  {"op": "info"}
+]

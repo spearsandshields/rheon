@@ -6,6 +6,7 @@ description = "rheon | FEEL parser (fork of dsntk-feel-parser)"
 categories = ["development-tools", "command-line-utilities", "finance", "parsing"]
 keywords = ["dmn", "decision", "rheon", "parser"]
 documentation = "https://docs.rs/rheon-feel-parser"
+exclude = ["src/tests/golden/"]
 repository = { workspace = true }
 homepage = { workspace = true }
 license = { workspace = true }

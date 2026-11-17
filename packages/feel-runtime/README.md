@@ -37,6 +37,14 @@ await engine.evaluate({ expression: 'b * 2', context: '{a: 1, b: a + 1}' });
 // Unary tests: the input is bound to `?`; the result is `? in (<tests>)`
 await engine.evaluate({ dialect: 'unaryTests', expression: '[1..10], > 20', input: 25 });
 
+// Several expressions over one context: the context is sent and read once.
+// results[i] is what evaluate answers for evaluations[i], with its id; one that fails is a failure in its place.
+await engine.evaluateAll({
+  context: rawJson('{"price": 12.5, "qty": 4}'),
+  evaluations: [{ id: 'total', expression: 'price * qty' }, { id: 'large', expression: 'qty > 100' }],
+});
+// → { ok: true, results: [{ ok: true, id: "total", result: {...}, ... }, { ok: true, id: "large", ... }], contextWarnings: [], elapsedMicros }
+
 // Parse tree (dsntk AstNode::tree). Pass the context so multi-word names split correctly.
 await engine.parse('expression', 'first name + 1', { context: { 'first name': 1 } });
 
@@ -84,7 +92,7 @@ feel.call('{"op":"info"}'); // a string is sent verbatim
 - For `evaluate` requests, `env.tzOffsetMinutes` is applied when the request has no offset of its own. It defaults to the host offset; set it to `null` to disable.
 - A trap returns `{ ok: false, error: { kind: 'crash' } }` and the instance is re-created synchronously, with the module reused.
 - **Trusted input only.** There is no timeout in-thread: a runaway expression blocks the calling thread (in a server, the event loop) until it finishes. Use `FeelEngine` for untrusted or long-running input.
-- **Stack.** On Node's main thread (about 1 MiB of stack) a recursion of 190 calls traps once its body is nested more than 14 to 18 levels; in a worker with Node's default 4 MiB stack the body can be nested 69 levels (CONTRACT §1). Run deeply nested input in a worker.
+- **Stack.** FEEL function calls take no native stack: a recursion of 200 calls with a body nested to the AST limit runs on Node's main thread (about 1 MiB of stack) as in a worker. A recursion through a callback of the engine (the comparison of `sort`) takes native stack per level; a worker with Node's default 4 MiB stack has the stack the engine is measured with (CONTRACT §1). Run untrusted input in a worker.
 - `env.recycleMemoryBytes` (default 256 MiB): the instance is re-created after a call that left its memory larger (wasm memory never shrinks).
 
 ## Known limits (from the core)

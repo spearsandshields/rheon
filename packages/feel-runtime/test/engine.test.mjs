@@ -30,12 +30,37 @@ test('real worker (worker_threads running dist/worker.js): evaluate, parse, info
   assert.equal(today.result.display, JSON.stringify(iso));
 });
 
+test('real worker: evaluateAll answers every entry in its place', async (t) => {
+  const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 10000 });
+  t.after(() => engine.dispose());
+  const all = await engine.evaluateAll({
+    context: rawJson('{"price": 12.5, "qty": 4}'),
+    evaluations: [
+      { id: 'total', expression: 'price * qty' },
+      { id: 'bad input', dialect: 'unaryTests', expression: '> 1', input: rawJson('[') },
+      { id: 'syntax', expression: 'price *' },
+      { id: 'test', dialect: 'unaryTests', expression: '[10..20]', input: 12 },
+    ],
+  });
+  assert.equal(all.ok, true);
+  assert.deepEqual(all.results.map((r) => [r.id, r.ok]), [['total', true], ['bad input', false], ['syntax', false], ['test', true]]);
+  assert.equal(all.results[0].result.display, '50');
+  assert.equal(all.results[1].error.kind, 'context');
+  assert.equal(all.results[3].result.display, 'true');
+  assert.deepEqual(all.contextWarnings, []);
+  const bad = await engine.evaluateAll({ context: rawJson('{'), evaluations: [] });
+  assert.deepEqual([bad.ok, bad.error.kind], [false, 'context']);
+  // the worker is kept for the next request
+  assert.equal((await engine.evaluate({ expression: '1 + 1' })).result.display, '2');
+  assert.equal(engine.workerStarts, 1);
+});
+
 test('real worker: timeout terminates the worker, next request works on a fresh one', async (t) => {
   const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 400 });
   t.after(() => engine.dispose());
   const t0 = Date.now();
-  // ~5 s of work (10M loop iterations in constant memory): far past the 400 ms budget on any host
-  const slow = engine.evaluate({ expression: 'count(for i in 1..10000 return sum(for j in 1..1000 return j))' });
+  // seconds of work (100M loop iterations in constant memory): far past the 400 ms budget on any host
+  const slow = engine.evaluate({ expression: 'count(for i in 1..100000 return sum(for j in 1..1000 return j))' });
   const next = engine.evaluate({ expression: '6 * 7' }); // queued behind the slow one
   const r = await slow;
   const elapsed = Date.now() - t0;
@@ -44,6 +69,19 @@ test('real worker: timeout terminates the worker, next request works on a fresh 
   assert.ok(elapsed >= 400 && elapsed < 3000, `elapsed ${elapsed}`);
   assert.equal((await next).result.display, '42');
   assert.equal(engine.workerStarts, 2);
+});
+
+test('real worker: maxSteps ends a long evaluation as an error, and the worker is kept', async (t) => {
+  const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker });
+  t.after(() => engine.dispose());
+  const long = 'count(for i in 1..100000 return sum(for j in 1..1000 return j))';
+  const stopped = await engine.evaluate({ expression: long, maxSteps: 10000 });
+  assert.equal(stopped.ok, false);
+  assert.equal(stopped.error.kind, 'evaluation');
+  assert.equal(stopped.error.message, 'evaluation took more than 10000 steps; evaluation stopped');
+  const next = await engine.evaluate({ expression: '6 * 7', maxSteps: 10000 });
+  assert.equal(next.result.display, '42');
+  assert.equal(engine.workerStarts, 1);
 });
 
 test('real worker: deep nesting and deep recursion are errors, not crashes (worker kept)', async (t) => {
@@ -92,9 +130,12 @@ test('real worker: cancelling a running runaway evaluation frees the engine at o
   t.after(() => engine.dispose());
   const t0 = Date.now();
   const first = new AbortController();
-  const slow = engine.evaluate({ expression: 'for i in 1..100000000 return i' }, { signal: first.signal });
+  // walks that keep little at a time, so the evaluation runs until it is stopped instead of
+  // filling the memory
+  const runaway = 'count(for i in 1..100000 return count(for j in 1..100000 return j))';
+  const slow = engine.evaluate({ expression: runaway }, { signal: first.signal });
   const queuedSlow = new AbortController();
-  const slow2 = engine.evaluate({ expression: 'for i in 1..100000000 return i' }, { signal: queuedSlow.signal });
+  const slow2 = engine.evaluate({ expression: runaway }, { signal: queuedSlow.signal });
   const parse = engine.parse('expression', 'count(for i in 1..10 return i)');
   const latest = engine.evaluate({ expression: 'count(for i in 1..10 return i)' });
   setTimeout(() => {

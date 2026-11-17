@@ -1,10 +1,10 @@
-//! Differential tests of the lexer and parser against the frozen reference front end
-//! ([super::oracle]).
+//! Tests of the lexer and parser against their recorded outcomes ([Golden]).
 //!
-//! For every input, start rule and scope, both front ends must read the same tokens (token type,
-//! Debug text of the value, start offset of the token in the input), and give the same AST (tree
-//! and Debug text) or the same error. The only allowed differences are the registered bug fixes
-//! ([registered_difference]).
+//! For every input, start rule and scope, the front end must not panic, and must read the
+//! recorded tokens (Debug text of the value, start offset of the token in the input) and give
+//! the recorded AST (tree and Debug text) or the recorded error. A change of an outcome is a
+//! change of an answer: the recorded outcomes are rewritten in the commit that makes it
+//! (`RHEON_GOLDEN=update`, at the default and at the full size), and the commit says why.
 //!
 //! Generators (default size, and full size with `RHEON_FULL_TESTS` set, see [super::full_size]):
 //! - short strings: every string of up to 2 characters (4) over [ALPHABET] (and over
@@ -23,7 +23,6 @@
 
 use super::full_size;
 use super::names_index::{KEYS, OGHAM, Rng, context, key_text, number};
-use super::oracle;
 use crate::lalr::TokenType;
 use crate::parser::Parser;
 use crate::scope::ParsingScope;
@@ -34,16 +33,16 @@ use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 /// The start rules of the grammar.
-const START_RULES: [(&str, TokenType, oracle::lalr::TokenType); 9] = [
-  ("expression", TokenType::StartExpression, oracle::lalr::TokenType::StartExpression),
-  ("boxed expression", TokenType::StartBoxedExpression, oracle::lalr::TokenType::StartBoxedExpression),
-  ("textual expression", TokenType::StartTextualExpression, oracle::lalr::TokenType::StartTextualExpression),
-  ("textual expressions", TokenType::StartTextualExpressions, oracle::lalr::TokenType::StartTextualExpressions),
-  ("unary tests", TokenType::StartUnaryTests, oracle::lalr::TokenType::StartUnaryTests),
-  ("simple expression", TokenType::StartSimpleExpression, oracle::lalr::TokenType::StartSimpleExpression),
-  ("simple expressions", TokenType::StartSimpleExpressions, oracle::lalr::TokenType::StartSimpleExpressions),
-  ("simple value", TokenType::StartSimpleValue, oracle::lalr::TokenType::StartSimpleValue),
-  ("range literal", TokenType::StartRangeLiteral, oracle::lalr::TokenType::StartRangeLiteral),
+const START_RULES: [(&str, TokenType); 9] = [
+  ("expression", TokenType::StartExpression),
+  ("boxed expression", TokenType::StartBoxedExpression),
+  ("textual expression", TokenType::StartTextualExpression),
+  ("textual expressions", TokenType::StartTextualExpressions),
+  ("unary tests", TokenType::StartUnaryTests),
+  ("simple expression", TokenType::StartSimpleExpression),
+  ("simple expressions", TokenType::StartSimpleExpressions),
+  ("simple value", TokenType::StartSimpleValue),
+  ("range literal", TokenType::StartRangeLiteral),
 ];
 
 /// The characters of the short strings: name characters, keyword letters, white space (U+1680 is a
@@ -98,151 +97,181 @@ pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &
   }
 }
 
-/// Runs the frozen reference front end; a panic is an outcome.
-fn run_reference(frames: &[FeelContext], start: &oracle::lalr::TokenType, input: &str) -> Run {
-  let scope = oracle::scope::ParsingScope::new(frames);
-  reference_run(oracle::parser::Parser::new(&scope, start.clone(), input, false).with_token_log(), input)
-}
-
-/// Runs the frozen reference front end on an expression, with its lexer in the flattened-key mode
-/// (it searches the set of all flattened keys); a panic is an outcome.
-pub(super) fn run_reference_flattened(frames: &[FeelContext], input: &str) -> Run {
-  let scope = oracle::scope::ParsingScope::new(frames);
-  let parser = oracle::parser::Parser::new(&scope, oracle::lalr::TokenType::StartExpression, input, false)
-    .with_token_log()
-    .with_oracle_lexer();
-  reference_run(parser, input)
-}
-
-/// Parses with a reference parser that records its tokens.
-fn reference_run(mut parser: oracle::parser::Parser<'_>, input: &str) -> Run {
-  let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
-  // the reference lexer counts positions in characters, the production lexer in bytes
-  let bytes: Vec<usize> = input.char_indices().map(|(offset, _)| offset).chain([input.len()]).collect();
-  Run {
-    tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt, tv, bytes[start.min(bytes.len() - 1)])).collect(),
-    outcome: match outcome {
-      Ok(Ok(node)) => Outcome::Ast(format!("{}\n{node:?}", node.trace())),
-      Ok(Err(e)) => Outcome::Error(e.to_string()),
-      Err(payload) => Outcome::Panic(panic_message(payload)),
-    },
-  }
-}
-
-/// The registered differences: bug fixes of the production front end, each with the reference's
-/// and the production behaviour. Returns the name of the fix when the difference between
-/// `reference` and `production` is one of them.
-fn registered_difference(start: &str, reference: &Run, production: &Run) -> Option<&'static str> {
-  // A name token in iteration-variable mode (the lexer's `till_in`) whose parts start with `in`:
-  // an iteration variable (`for in+1 in [1] return 1`), or the `in` after an iteration variable
-  // `item`, which leaves the mode set (`for item in[1] return item`):
-  // - reference: `consumed_positions[index - 1]` with index 0 in the lexer, an overflow panic (a
-  //   trap; an index out of bounds without overflow checks);
-  // - production: the tokens read before, then the keyword `in`; a syntax error, unless an
-  //   iteration variable `item` comes before (`for item in[1] return item` is a for expression).
-  if matches!(&reference.outcome, Outcome::Panic(message) if message == "attempt to subtract with overflow" || message.ends_with(&format!("the index is {}", usize::MAX)))
-    && production.tokens.starts_with(&reference.tokens)
-    && production
-      .tokens
-      .get(reference.tokens.len())
-      .is_some_and(|(tt, tv, _)| *tt == TokenType::In as i16 && tv == "In")
-    && (matches!(&production.outcome, Outcome::Error(message) if message.starts_with("<ParserError> syntax error")) || has_item_variable(&reference.tokens))
-  {
-    return Some("a name starting with `in` in iteration-variable mode");
-  }
-  // A named parameter of a temporal function in a range literal (`[date(from: "2012-01-01")..x]`):
-  // - reference: the parameter name was read from the slot of the colon, so the invocation had
-  //   `NamedParameters([String(..)])` (no name; the range() built-in returned null);
-  // - production: `NamedParameters([NamedParameter(ParameterName(..), String(..))])`, with the
-  //   name token before the colon; otherwise the same AST.
-  if start == "range literal"
-    && reference.tokens == production.tokens
-    && let (Outcome::Ast(reference_ast), Outcome::Ast(production_ast)) = (&reference.outcome, &production.outcome)
-    && let (Some((_, reference_debug)), Some((_, production_debug))) = (reference_ast.rsplit_once('\n'), production_ast.rsplit_once('\n'))
-    && reference_debug != production_debug
-    && with_named_parameters(reference_debug, &reference.tokens).is_some_and(|expected| expected == production_debug)
-  {
-    return Some("a named temporal parameter in a range literal");
-  }
-  None
-}
-
-/// Returns `true` when the tokens have an iteration variable `item`: a name `item` right after
-/// `for`, `some`, `every` or a comma.
-fn has_item_variable(tokens: &[(i16, String, usize)]) -> bool {
-  let heads = [TokenType::For, TokenType::Some, TokenType::Every, TokenType::Comma].map(|tt| tt as i16);
-  tokens.windows(2).any(|pair| heads.contains(&pair[0].0) && pair[1].1 == r#"Name(Name("item"))"#)
-}
-
-/// Returns the Debug text of a range literal's AST with the parameter names put into its named
-/// parameters: every `NamedParameters([String(s)])` becomes
-/// `NamedParameters([NamedParameter(ParameterName(name), String(s))])`, with the name of the
-/// name token before the corresponding colon. `None` when the names and parameters do not pair up.
-fn with_named_parameters(debug: &str, tokens: &[(i16, String, usize)]) -> Option<String> {
-  const PARAMETERS: &str = "NamedParameters([String(";
-  let mut names = tokens
-    .windows(2)
-    .filter(|pair| pair[1].0 == TokenType::Colon as i16)
-    .map(|pair| pair[0].1.strip_prefix("Name(").and_then(|name| name.strip_suffix(')')));
-  let mut text = String::new();
-  let mut rest = debug;
-  while let Some(at) = rest.find(PARAMETERS) {
-    let name = names.next()??;
-    text.push_str(&rest[..at]);
-    rest = &rest[at + PARAMETERS.len()..];
-    let literal = debug_string_len(rest)?;
-    text.push_str(&format!("NamedParameters([NamedParameter(ParameterName({name}), String({}))", &rest[..literal]));
-    rest = rest[literal..].strip_prefix(")")?;
-  }
-  if names.next().is_some() {
-    return None;
-  }
-  text.push_str(rest);
-  Some(text)
-}
-
-/// Returns the length in bytes of the Debug text of a string at the start of `text` (quotes
-/// included), or `None` when `text` does not start with one.
-fn debug_string_len(text: &str) -> Option<usize> {
-  let mut chars = text.char_indices();
-  if chars.next()?.1 != '"' {
-    return None;
-  }
-  while let Some((offset, ch)) = chars.next() {
-    match ch {
-      '\\' => {
-        chars.next();
-      }
-      '"' => return Some(offset + 1),
-      _ => {}
-    }
-  }
-  None
-}
-
-/// Statistics of a differential run.
+/// Statistics of a run over a group of cases.
 #[derive(Default, Debug)]
 struct Stats {
   cases: usize,
   asts: usize,
   errors: usize,
-  registered: BTreeMap<&'static str, usize>,
+  /// The recorded outcomes of the group of cases, when the run is one ([Stats::golden]).
+  golden: Option<Golden>,
 }
 
-impl Stats {
-  /// Compares both front ends on one input; panics on an unregistered difference.
-  fn check(&mut self, frames: &[FeelContext], input: &str) {
-    for (name, start, reference_start) in &START_RULES {
-      self.check_rule(frames, name, start, reference_start, input);
+/// The recorded outcomes of a group of generated cases (the golden data of the front end): for
+/// every case of the group, in the order in which the test makes them, a digest of what the
+/// parser did with it (the start rule, the input, the tokens it read and the tree or the
+/// error). The digests are kept in `src/tests/golden/<group>.txt`, one per line, for the
+/// default size of the tests; for the full size (`RHEON_FULL_TESTS`) one digest of all cases is
+/// kept in `<group>.full.txt`.
+///
+/// A case whose outcome is not the recorded one fails the test, which names the first of them
+/// with their new outcome. After a change that is meant, `RHEON_GOLDEN=update` writes the files
+/// again. `RHEON_GOLDEN_DUMP=<directory>` writes every case with its whole outcome to
+/// `<directory>/<group>.txt`, to compare two commits case by case.
+#[derive(Default)]
+pub(super) struct Golden {
+  group: &'static str,
+  /// The recorded digests (none when the files are written again or at full size).
+  expected: Vec<u64>,
+  recorded: Vec<u64>,
+  /// The number of cases with another outcome than the recorded one, and the first of them.
+  changed: usize,
+  first_changed: Vec<String>,
+  dump: Option<String>,
+}
+
+impl std::fmt::Debug for Golden {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{} recorded, {} changed", self.recorded.len(), self.changed)
+  }
+}
+
+/// FNV-1a over the bytes of a text: a digest that does not depend on the toolchain.
+fn digest(text: &str) -> u64 {
+  text
+    .bytes()
+    .fold(0xCBF2_9CE4_8422_2325, |hash, byte| (hash ^ u64::from(byte)).wrapping_mul(0x0000_0100_0000_01B3))
+}
+
+impl Golden {
+  fn file(group: &str, full: bool) -> std::path::PathBuf {
+    let name = if full { format!("{group}.full.txt") } else { format!("{group}.txt") };
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/tests/golden").join(name)
+  }
+
+  fn updating() -> bool {
+    std::env::var("RHEON_GOLDEN").is_ok_and(|value| value == "update")
+  }
+
+  pub(super) fn new(group: &'static str) -> Self {
+    let expected = if Self::updating() || full_size() {
+      vec![]
+    } else {
+      let path = Self::file(group, false);
+      let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}; write it with RHEON_GOLDEN=update", path.display()));
+      text
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .map(|line| u64::from_str_radix(line, 16).unwrap_or_else(|e| panic!("{}: {line}: {e}", path.display())))
+        .collect()
+    };
+    Self {
+      group,
+      expected,
+      dump: std::env::var_os("RHEON_GOLDEN_DUMP").map(|_| String::new()),
+      ..Default::default()
     }
   }
 
-  fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, reference_start: &oracle::lalr::TokenType, input: &str) {
+  pub(super) fn record(&mut self, start: &str, input: &str, run: &Run) {
+    // the tokens by their values and offsets, without the numbers the grammar gives their types
+    let tokens: Vec<(&str, usize)> = run.tokens.iter().map(|(_, value, offset)| (value.as_str(), *offset)).collect();
+    let outcome = format!("{start}\u{1f}{input}\u{1f}{tokens:?}\u{1f}{:?}", run.outcome);
+    self.record_outcome(start, input, &outcome, &|| format!("{run:#?}"));
+  }
+
+  /// Records the outcome `outcome` of a case; `shown` is its text for a person.
+  pub(super) fn record_outcome(&mut self, start: &str, input: &str, outcome: &str, shown: &dyn Fn() -> String) {
+    let index = self.recorded.len();
+    let recorded = digest(outcome);
+    self.recorded.push(recorded);
+    if self.expected.get(index).is_some_and(|expected| *expected != recorded) {
+      self.changed += 1;
+      if self.first_changed.len() < 5 {
+        self.first_changed.push(format!("case {index}, {start}, {input:?}:\n{}", shown()));
+      }
+    }
+    if let Some(dump) = &mut self.dump {
+      dump.push_str(&format!("case {index}, {start}, {input:?}:\n{}\n", shown()));
+    }
+  }
+
+  pub(super) fn finish(&self) {
+    let full = full_size();
+    if let (Some(dump), Some(directory)) = (&self.dump, std::env::var_os("RHEON_GOLDEN_DUMP")) {
+      let path = std::path::Path::new(&directory).join(format!("{}{}.txt", self.group, if full { ".full" } else { "" }));
+      std::fs::write(&path, dump).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    }
+    // one digest of all cases, for the full size
+    let all = digest(&self.recorded.iter().map(|digest| format!("{digest:016x}")).collect::<String>());
+    let path = Self::file(self.group, full);
+    if Self::updating() {
+      let text = if full {
+        format!("# {}: {} cases at full size, one digest of all\n{all:016x}\n", self.group, self.recorded.len())
+      } else {
+        let digests: String = self.recorded.iter().map(|digest| format!("{digest:016x}\n")).collect();
+        format!("# {}: {} cases, a digest of the outcome of each\n{digests}", self.group, self.recorded.len())
+      };
+      std::fs::write(&path, text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+      return;
+    }
+    if full {
+      // the full size is recorded when it was written once
+      if let Ok(text) = std::fs::read_to_string(&path) {
+        let expected = text.lines().find(|line| !line.starts_with('#')).unwrap_or_default();
+        assert_eq!(
+          expected,
+          format!("{all:016x}"),
+          "{}: the outcomes of the {} cases at full size are not the recorded ones",
+          self.group,
+          self.recorded.len()
+        );
+      }
+      return;
+    }
+    assert!(
+      self.changed == 0 && self.expected.len() == self.recorded.len(),
+      "{}: {} of {} cases have another outcome than the recorded one ({} recorded); after a change that is meant, write the files again with RHEON_GOLDEN=update. The first:\n{}",
+      self.group,
+      self.changed,
+      self.recorded.len(),
+      self.expected.len(),
+      self.first_changed.join("\n")
+    );
+  }
+}
+
+impl Stats {
+  /// The statistics of a group of cases whose outcomes are recorded ([Golden]).
+  fn golden(group: &'static str) -> Self {
+    Self {
+      golden: Some(Golden::new(group)),
+      ..Default::default()
+    }
+  }
+
+  /// Compares the outcomes of the group with the recorded ones.
+  fn finish(&self) {
+    if let Some(golden) = &self.golden {
+      golden.finish();
+    }
+  }
+
+  /// Parses one input with every start rule; panics when the parser panics, and records the
+  /// outcomes.
+  fn check(&mut self, frames: &[FeelContext], input: &str) {
+    for (name, start) in &START_RULES {
+      self.check_rule(frames, name, start, input);
+    }
+  }
+
+  fn check_rule(&mut self, frames: &[FeelContext], name: &str, start: &TokenType, input: &str) {
     let production = run_production(frames, start, input);
-    let reference = run_reference(frames, reference_start, input);
-    // a panic of the production front end fails in compare
-    if let Some(fix) = compare(name, frames, input, &reference, &production) {
-      *self.registered.entry(fix).or_default() += 1;
+    if let Outcome::Panic(message) = &production.outcome {
+      panic!("{name} {input:?} in {frames:?}: the parser panicked: {message}");
+    }
+    if let Some(golden) = &mut self.golden {
+      golden.record(name, input, &production);
     }
     self.cases += 1;
     if matches!(production.outcome, Outcome::Ast(_)) {
@@ -250,24 +279,6 @@ impl Stats {
     } else {
       self.errors += 1;
     }
-  }
-}
-
-/// Compares a run of the production front end with a run of the reference on the same input,
-/// start rule `start` and scope `frames`. Returns `None` when both read the same tokens and have
-/// the same outcome, and the name of the fix when they differ by a registered difference
-/// ([registered_difference]); panics when the production front end panicked or the difference is
-/// not registered.
-pub(super) fn compare(start: &str, frames: &[FeelContext], input: &str, reference: &Run, production: &Run) -> Option<&'static str> {
-  if let Outcome::Panic(message) = &production.outcome {
-    panic!("{start} {input:?} in {frames:?}: the parser panicked: {message}");
-  }
-  if (&production.tokens, &production.outcome) == (&reference.tokens, &reference.outcome) {
-    return None;
-  }
-  match registered_difference(start, reference, production) {
-    Some(fix) => Some(fix),
-    None => panic!("{start} {input:?} in {frames:?}:\nreference {reference:#?}\nproduction {production:#?}"),
   }
 }
 
@@ -346,11 +357,13 @@ fn for_each_string(alphabet: &[char], len: usize, mut f: impl FnMut(&str)) {
   }
 }
 
-/// Every registered difference is registered for the inputs of its fix: the reference traps on
-/// a name starting with `in` in iteration-variable mode, and drops the name of a named temporal
-/// parameter in a range literal.
+/// The inputs of the fixes of the front end have their recorded outcomes: names starting with
+/// `in` where an iteration variable is read, named temporal parameters in a range literal,
+/// string literals and block comments that are not closed, exponent letters without digits,
+/// unary comparisons with arithmetic after them, and signed and missing endpoints of a range
+/// literal.
 #[test]
-fn registered_fixes_differ_as_registered() {
+fn inputs_of_the_fixes_have_their_recorded_outcome() {
   let in_names = [
     "for in+1 in [1] return 1",
     "for in+1 in [1] return in+1",
@@ -371,17 +384,35 @@ fn registered_fixes_differ_as_registered() {
     r#"(date and time(from: "2012-01-01T10:00:00")..10]"#,
     r#"]"a"..duration(from: "P1D\"x")["#,
   ];
-  for (inputs, rule, fix) in [
-    (&in_names[..], 0, "a name starting with `in` in iteration-variable mode"),
-    (&range_literals[..], 8, "a named temporal parameter in a range literal"),
+  let signed = ["[-1..1]", "(-2.5..-1)", "]-1e3..0[", "[0..-1]", "(..)", "]..[", "(..[", "]..)"];
+  let endpoints = [
+    "> 1 + 2",
+    "< a * 2",
+    "[>= 1 - 1, 5]",
+    "= 1 in [1]",
+    "f(> 1 + 1)",
+    "!= 2 ** 2",
+    "> 1 < 2",
+    "<= 10 = (null..10]",
+  ];
+  let exponents = ["1e", "1e+", "1E-", "1.5e", "2e x", "1e + 2", "1else", "[1e, 2]", "1e+ 3"];
+  let unclosed = ["1 + 2 \"abc", "\"", "1 \"a\\\"b", "1 /* abc", "/*", "1 /* a */ + 2 /* b *", "1 /*/"];
+  let mut stats = Stats::golden("fixes");
+  for (inputs, rule) in [
+    (&in_names[..], 0),
+    (&range_literals[..], 8),
+    (&unclosed[..], 0),
+    (&exponents[..], 0),
+    (&endpoints[..], 0),
+    (&signed[..], 8),
   ] {
-    let (name, start, reference_start) = &START_RULES[rule];
+    let (name, start) = &START_RULES[rule];
     for input in inputs {
-      let mut stats = Stats::default();
-      stats.check_rule(&[], name, start, reference_start, input);
-      assert_eq!(Some(&1), stats.registered.get(fix), "{input}: {stats:?}");
+      stats.check_rule(&[], name, start, input);
     }
   }
+  println!("fixes: {stats:?}");
+  stats.finish();
 }
 
 /// The length of the longest short strings.
@@ -392,7 +423,7 @@ fn short_string_length() -> usize {
 #[test]
 fn short_strings_equal_reference() {
   let alphabets: &[&[char]] = if full_size() { &[&ALPHABET, &ALPHABET_2] } else { &[&ALPHABET] };
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("short-strings");
   for alphabet in alphabets {
     for frames in scopes() {
       for len in 0..=short_string_length() {
@@ -401,6 +432,7 @@ fn short_strings_equal_reference() {
     }
   }
   println!("short strings: {stats:?}");
+  stats.finish();
   assert!(stats.asts > 1000, "{stats:?}");
 }
 
@@ -408,24 +440,25 @@ fn short_strings_equal_reference() {
 fn short_strings_after_iteration_heads_equal_reference() {
   // the heads that set the lexer's `till_in` flag, followed by every short string
   let max_len = short_string_length();
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("short-strings-after-iteration-heads");
   for frames in &scopes()[..3] {
     for head in ["for ", "some ", "every ", "for x in [1], ", "for item in [1] return "] {
       for len in 0..=max_len {
         for_each_string(&ALPHABET, len, |text| {
           let input = format!("{head}{text}");
-          for (name, start, reference_start) in &START_RULES[..1] {
-            stats.check_rule(frames, name, start, reference_start, &input);
+          for (name, start) in &START_RULES[..1] {
+            stats.check_rule(frames, name, start, &input);
           }
           let input = format!("{head}{text} in [1] return 1");
-          for (name, start, reference_start) in &START_RULES[..1] {
-            stats.check_rule(frames, name, start, reference_start, &input);
+          for (name, start) in &START_RULES[..1] {
+            stats.check_rule(frames, name, start, &input);
           }
         });
       }
     }
   }
   println!("short strings after iteration heads: {stats:?}");
+  stats.finish();
 }
 
 /// Random FEEL texts: every construct of the grammar, names of the input contexts written in
@@ -672,7 +705,7 @@ fn random_texts_equal_reference() {
   let count = if full_size() { 20_000 } else { 1_000 };
   let mut rng = Rng(0x853C_49E6_748F_EA9B);
   let keys = random_text_keys();
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("random-texts");
   for _ in 0..count {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
     let input = Feel {
@@ -684,6 +717,7 @@ fn random_texts_equal_reference() {
     stats.check(&frames, &input);
   }
   println!("random texts: {stats:?}");
+  stats.finish();
   assert!(stats.asts > count, "{stats:?}");
 }
 
@@ -719,7 +753,7 @@ fn edited_and_cut_texts_equal_reference() {
   let count = if full_size() { 3_000 } else { 60 };
   let mut rng = Rng(0xDA94_2042_E4DD_58B5);
   let keys = random_text_keys();
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("edited-and-cut-texts");
   for _ in 0..count {
     let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
     let text = Feel {
@@ -740,6 +774,7 @@ fn edited_and_cut_texts_equal_reference() {
     }
   }
   println!("edited and cut texts: {stats:?}");
+  stats.finish();
 }
 
 /// An input context with the keys of a FEEL context literal (the values are numbers, nested
@@ -837,8 +872,7 @@ fn corpus_equals_reference() {
 
 /// Every reduction of a rule without symbols whose action changes the state of the lexer or of the
 /// scope happens before the lexer reads the next token: in a state with a default reduction that
-/// needs no lookahead. Rule 137 (`{/* type_name */}` at the start of `function_type_parameters`) is
-/// the known exception: it is reduced after the lookahead was read.
+/// needs no lookahead.
 #[test]
 fn feedback_actions_are_reduced_before_the_next_token() {
   use crate::lalr::*;
@@ -889,7 +923,7 @@ fn feedback_actions_are_reduced_before_the_next_token() {
   }
   late.sort();
   late.dedup();
-  assert_eq!(vec![(137, "type_name".to_string())], late);
+  assert_eq!(Vec::<(usize, String)>::new(), late);
 }
 
 /// The parser's use of the native stack does not depend on the input: deep and long inputs parse,
@@ -972,9 +1006,9 @@ fn lists_keep_source_order() {
     texts.push((0, format!("x instance of {path}")));
     texts.push((7, path));
     for (rule, text) in &texts {
-      let (name, start, reference_start) = &START_RULES[*rule];
+      let (name, start) = &START_RULES[*rule];
       let mut stats = Stats::default();
-      stats.check_rule(&frames, name, start, reference_start, text);
+      stats.check_rule(&frames, name, start, text);
       assert_eq!(1, stats.asts, "{n} items: {text:.80}");
     }
   }
@@ -1040,13 +1074,14 @@ fn reused_name_chains_equal_reference() {
   ] {
     inputs.push(text.to_string());
   }
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("reused-chains");
   for frames in scopes() {
     for input in &inputs {
       stats.check(&frames, input);
     }
   }
   println!("reused chains: {stats:?}");
+  stats.finish();
 }
 
 /// A chain of name tokens is scanned once: the parts scanned grow linearly with the length.
@@ -1068,6 +1103,204 @@ fn candidates_grow_linearly_with_the_chain() {
   let text = vec!["a"; terms].join(" + ");
   let candidates = work_of(&scope, &text).get("candidates").copied().unwrap_or(0);
   assert!(candidates <= terms, "{candidates} candidates for {terms} terms");
+}
+
+/// After an iteration variable `item` the lexer stays in iteration-variable mode, so every later
+/// name token looks for a part `in` in the rest of its chain: each part of a chain is compared
+/// once, whatever the number of name tokens that start in the chain.
+#[test]
+fn parts_compared_with_in_grow_linearly_with_the_chain() {
+  let scope = [ctx(&[("a", number(1))])];
+  let terms = 1_000;
+  for (head, chain) in [
+    ("for item in [1] return ", vec!["a"; terms].join(" + ")),
+    ("some item in [1] satisfies ", vec!["a"; terms].join(" * ")),
+    ("for item in [1] return ", vec!["b"; terms].join(" + ")),
+    ("for item in [1] return ", format!("{} + for x in a return a + x", vec!["a"; terms].join(" + "))),
+    (
+      "for item in [1], item in [2] return ",
+      format!("{} + (for item in [3] return a + a - a)", vec!["a"; terms].join(" + ")),
+    ),
+  ] {
+    let text = format!("{head}{chain}");
+    let work = work_of(&scope, &text);
+    let (parts, compared) = (work["parts"], work.get("in parts").copied().unwrap_or(0));
+    assert!(compared <= parts, "{compared} parts compared with `in` of {parts} parts: {text:.60}");
+  }
+}
+
+/// The tokens after an iteration variable `item`, which leaves the lexer in iteration-variable
+/// mode, equal the reference's: later names end before a part `in`, also names in scope that have
+/// it, and an `in` without white space after it is the keyword.
+#[test]
+fn names_after_an_item_variable_equal_reference() {
+  let frames = [ctx(&[("a", number(1)), ("x in y", number(2)), ("in", number(3)), ("b in", number(4))])];
+  let mut stats = Stats::golden("after-an-item-variable");
+  for text in [
+    "for item in [1] return a",
+    "for item in[1] return item",
+    "for item in [1] return x in y",
+    "for item in [1] return a + x in y + a",
+    "for item in [1] return a + a + x in y + x in y",
+    "for item in [1] return a + b in + a in a",
+    "for item in [1] return a + in + a",
+    "for item in [1] return a + (in) + a + x in y",
+    "for item in [1] return for x in a return x in y + a",
+    "for item in [1] return for item in a return x in y + a + x in y",
+    "for item in [1], x in [2] return a + x in y",
+    "for item in [1], item in [2] return a + x in y + x in y",
+    "some item in [1] satisfies a + x in y = a + x in y",
+    "every item in [1] satisfies a in[1]",
+    "for item in [1] return a + b + c in d in e",
+    "for item in [1] return a + a",
+    "for item in a + a + x in y return a",
+    "for item",
+    "for item in",
+    "for item in in",
+  ] {
+    stats.check(&frames, text);
+    stats.check(&[], text);
+  }
+  println!("after an item variable: {stats:?}");
+  stats.finish();
+}
+
+/// The input contexts of the tests of lists: `rows` holds contexts of the same type, `mixed`
+/// contexts of different types (so its item keys are no names in scope), `one` a single
+/// context, `deep` lists in the items of a list.
+fn contexts_with_lists() -> [FeelContext; 1] {
+  let row = |keys: &[&str]| Value::from(ctx(&keys.iter().map(|key| (*key, number(1))).collect::<Vec<_>>()));
+  let list = |items: Vec<Value>| Value::List(items.into());
+  let lines = |key: &str| Value::from(ctx(&[("id", number(1)), ("lines", list(vec![row(&[key, "qty"]), row(&[key, "qty"])]))]));
+  [ctx(&[
+    (
+      "rows",
+      list(vec![
+        row(&["amount", "unit price", "n"]),
+        row(&["amount", "unit price", "n"]),
+        row(&["amount", "unit price", "n"]),
+      ]),
+    ),
+    ("mixed", list(vec![row(&["net value", "m"]), row(&["gross value", "m"])])),
+    ("one", list(vec![row(&["only one"])])),
+    ("deep", list(vec![lines("line total"), lines("line total")])),
+    ("uneven", list(vec![lines("part total"), lines("other total")])),
+    ("total", number(1)),
+    ("grand total", number(2)),
+  ])]
+}
+
+/// The index of an input context compares the items of its lists with their first item only
+/// when a name is looked up that the items alone can hold. No list is decided by an expression
+/// whose names are keys of the input context itself, of nested contexts or of a list of one
+/// item, or names that are not looked up: a name of one word at the end of its chain or before
+/// a keyword that ends a name, such as the list of a `for` and the operands of `and`.
+#[test]
+fn lists_are_decided_when_a_lookup_needs_them() {
+  let frames = contexts_with_lists();
+  for (text, decided) in [
+    ("sum(rows.amount)", false),
+    ("sum(for r in rows return r.amount) + total", false),
+    ("grand total + total + count(rows)", false),
+    ("one[1].only one + grand total", false),
+    ("grand total + unknown name + rows", false),
+    ("for m in deep return sum(for s in m.lines return s.qty)", false),
+    ("for r in rows return if r.n in [1, 2] and r.amount between 1 and 2 then r.n else r.amount", false),
+    ("some r in rows satisfies r.n instance of number or r.amount", false),
+    ("rows . amount", false),
+    ("rows[n > 1].amount + grand total", false),
+    ("rows[1].amount * rows[2].n - total / 2", false),
+    ("rows[unit price > 1]", true),
+    ("grand total + unit price", true),
+    ("mixed[net value > 1]", true),
+    ("deep[1].lines[line total > 1]", true),
+    ("uneven[1].lines[part total > 1]", true),
+  ] {
+    let work = work_of(&frames, text);
+    assert_eq!(decided, work.contains_key("lists decided"), "{text}: {work:?}");
+  }
+}
+
+/// With lists in the input context, the tokens and trees equal the reference's, which compares
+/// the items of every list: the keys of items of one type are names in scope, the keys of
+/// items of different types are not.
+#[test]
+fn names_of_list_items_equal_reference() {
+  let frames = contexts_with_lists();
+  let mut stats = Stats::golden("names-of-list-items");
+  for text in [
+    "sum(rows.amount)",
+    "rows[unit price > 1]",
+    "unit price + 1",
+    "unit price x + grand total",
+    "net value + 1",
+    "net value x",
+    "gross value x + net value",
+    "mixed[net value > 1 and gross value < 2]",
+    "only one + only one x",
+    "line total x + qty",
+    "part total x + other total x",
+    "deep.lines.line total + deep . lines . line total",
+    "uneven.lines.part total + uneven . lines . part total",
+    "rows . unit price + rows.unit price + mixed . net value + one . only one",
+    "grand total + total + unit price + net value + only one + line total + part total",
+    "grand total x + unit price",
+    "for unit price in rows return unit price x",
+    "for m in deep return sum(for s in m.lines return s.qty)",
+    "for r in rows return if r.n in [1, 2] and r.amount between 1 and 2 then r.n else r.amount",
+    "amount and n or m and qty then id else lines in total between m and m return m satisfies m instance of m",
+    "rows[1].amount instance of number and x instance of date and time and y",
+    "x instance of n and y instance of amount",
+    "rows[1].amount.year and deep.lines.qty.value or one.only one.month",
+    "date and time and amount",
+    "years and months duration and n",
+  ] {
+    stats.check(&frames, text);
+    // the names in another order of the lookups
+    stats.check(&frames, &format!("net value + {text} + unit price"));
+  }
+  println!("names of list items: {stats:?}");
+  stats.finish();
+  assert!(stats.asts > 20, "{stats:?}");
+}
+
+/// Nested binders push one context each. A name is looked up among them in one step, and their
+/// keys are bounded together once there are many, so the contexts walked do not grow with the
+/// square of the nesting; the tokens and trees are the reference's.
+#[test]
+fn pushed_contexts_walked_grow_linearly_with_the_nesting() {
+  let nested = |levels: usize, body: &str| {
+    let mut text = String::new();
+    for level in 0..levels {
+      text.push_str(&format!("for v{level} in [1] return "));
+    }
+    text.push_str(body);
+    text
+  };
+  let levels = if full_size() { 2_000 } else { 400 };
+  for body in ["v0 + v1 + a", "v3 x + v5.b + a b", "some q in v1 satisfies q + v2 > a"] {
+    let text = nested(levels, body);
+    let walked = work_of(&[], &text).get("local contexts").copied().unwrap_or(0);
+    assert!(walked <= 40 * levels, "{walked} pushed contexts walked for {levels} levels: {body}");
+  }
+  let mut stats = Stats::golden("nested-binders");
+  let frames = [ctx(&[("a", number(1)), ("a b", number(2)), ("v3 x", number(3))])];
+  for levels in [1, 2, 15, 16, 17, 18, 40] {
+    for body in [
+      "v0 + v1 + a",
+      "v3 x + v5.b + a b",
+      "v0 v1 + v16 + v17 x",
+      "some q in v1 satisfies q + v2 > a",
+      "function(v1, p q) v1 + p q + v0",
+      "{v1: 1, w: v1 + v0, n: {m: w}}.n.m + v0",
+    ] {
+      let text = nested(levels, body);
+      stats.check(&frames, &text);
+      stats.check(&[], &text);
+    }
+  }
+  println!("nested binders: {stats:?}");
+  stats.finish();
 }
 
 /// The bound of the candidate names by the first word of the token (`ParsingScope::group_bound`):
@@ -1105,13 +1338,14 @@ fn first_word_bounds_equal_reference() {
     "date(\"2012-01-01\").year + d.a.b + time offset",
     "a\u{1680} b + a\u{FEFF} b + a\u{180E}b",
   ];
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("first-word-bounds");
   for frames in [vec![top.clone()], vec![nested.clone()], vec![top, nested], vec![]] {
     for input in inputs {
       stats.check(&frames, input);
     }
   }
   println!("first-word bounds: {stats:?}");
+  stats.finish();
 }
 
 /// The input contexts are indexed only when a name is looked up beyond their own keys.
@@ -1141,7 +1375,7 @@ fn one_part_names_equal_reference() {
     ("date", number(3)),
     ("number", number(4)),
   ])];
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("one-part-names");
   for frames in [vec![], frames_d] {
     for ws in ["\u{1680}", "\u{180E}", "", " "] {
       for input in [
@@ -1161,6 +1395,7 @@ fn one_part_names_equal_reference() {
     }
   }
   println!("one-part names: {stats:?}");
+  stats.finish();
 }
 
 /// String and number literals (taken in one allocation when they need no unescaping): escapes,
@@ -1211,19 +1446,20 @@ fn literals_equal_reference() {
   inputs.push(format!("\"{long}\\n{long}\""));
   inputs.push("9".repeat(10_000));
   inputs.push(format!("1.{}e-{}", "5".repeat(5_000), "3".repeat(5_000)));
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("literals");
   for input in &inputs {
     stats.check(&[], input);
     stats.check(&[], &format!("[{input}, {input}]"));
   }
   println!("literals: {stats:?}");
+  stats.finish();
 }
 
 /// U+1680 between words: after a symbol it starts a part (empty after trimming when alone), after
 /// white space it is white space; so two empty parts never follow each other.
 #[test]
 fn empty_parts_equal_reference() {
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("empty-parts");
   let frames = [ctx(&[("x", number(1)), ("x y", number(2)), ("a", number(3)), (&format!("x {OGHAM} y"), number(4))])];
   for n in [0, 1, 2, 3, 5, 20] {
     let run = format!(" {OGHAM}").repeat(n);
@@ -1240,6 +1476,7 @@ fn empty_parts_equal_reference() {
     }
   }
   println!("empty parts: {stats:?}");
+  stats.finish();
 }
 
 /// Composite names into deep input contexts are searched without recursion: a 2,000-level chain
@@ -1321,10 +1558,170 @@ fn unicode_texts_equal_reference() {
   let count = if full_size() { 20_000 } else { 1_000 };
   let mut rng = Rng(0x6A09_E667_F3BC_C908);
   let frames = [ctx(&[("é", number(1)), ("中 文", number(2)), ("😀", number(3)), ("x é", number(4))])];
-  let mut stats = Stats::default();
+  let mut stats = Stats::golden("unicode-texts");
   for _ in 0..count {
     let text: String = (0..1 + rng.below(12)).map(|_| *rng.pick(&PIECES)).collect();
     stats.check(&frames, &text);
   }
   println!("unicode texts: {stats:?}");
+  stats.finish();
+}
+
+/// A chosen set of expressions with their whole outcome, readable: for each, the names in scope,
+/// the tokens the parser reads and the tree or the error (`src/tests/golden/expressions.txt`).
+/// It states what the front end does in words a person can check, where the groups of generated
+/// cases keep digests. After a change that is meant, `RHEON_GOLDEN=update` writes it again.
+#[test]
+fn chosen_expressions_have_their_recorded_outcome() {
+  let cases: &[(&[&str], &str)] = &[
+    (&[], "1 + 2 * 3"),
+    (&[], "-(1 - 2) ** 2 / 4"),
+    (&[], "1e3 + 1.5E-2 + .5"),
+    (&[], "1e"),
+    (&[], "\"a\" + \"b\\n\\\"c\\\"\""),
+    (&[], "\"never closed"),
+    (&[], "1 /* never closed"),
+    (&[], "true and false or null"),
+    (&[], "not(true)"),
+    (&["a", "b"], "a < b and b >= a or a != b"),
+    (&["a"], "a between 1 and 10"),
+    (&["a"], "a in [1..10]"),
+    (&["a"], "a in (< 5, [10..20), 30)"),
+    (&["a"], "a instance of number"),
+    (&["a"], "a instance of list<context<n: number, s: string>>"),
+    (&["a"], "a instance of function<number, string> -> boolean"),
+    (&["a"], "if a then 1 else 2"),
+    (&["items"], "for i in items return i * 2"),
+    (&["items"], "for i in 1..3, j in items return i + j"),
+    (&["items"], "some i in items satisfies i > 2"),
+    (&["items"], "every i in items satisfies i.n > 2"),
+    (&["items"], "items[n > 1].n"),
+    (&["items"], "items[1]"),
+    (&["items"], "items[item > 1]"),
+    (&[], "[1, [2, 3], []]"),
+    (&[], "{a: 1, b: a + 1, \"c d\": {e: b}}.b"),
+    (&[], "{a: 1}.a.b.c"),
+    (&[], "function(a, b: number) a + b"),
+    (&[], "function(a) external {java: {class: \"c\", method signature: \"m\"}}"),
+    (&["f"], "f(1, 2)"),
+    (&["f"], "f(a: 1, b: 2)"),
+    (&[], "date(\"2026-01-31\") + duration(\"P1D\")"),
+    (&[], "date and time(\"2026-01-31T10:00:00\")"),
+    (&[], "@\"2026-01-31\""),
+    (&[], "[1..2]"),
+    (&[], "(1..2]"),
+    (&[], "]1..2["),
+    (&[], "> 5"),
+    (&["x"], "> x + 1"),
+    (&["x"], "<= 10 = (null..10]"),
+    (&["x"], "x.y.z"),
+    (&["x"], "x...y"),
+    (&["Grace's age"], "Grace's age + 1"),
+    (&["unit price", "qty"], "unit price * qty"),
+    (&["tax return"], "for t in tax return return t"),
+    (&["a-b", "a", "b"], "a-b + a - b"),
+    (&["profit/loss"], "profit/loss / 2"),
+    (&["fr**n*s"], "fr**n*s ** 2"),
+    (&["x and y"], "x and y and z"),
+    // names that are not in scope
+    (&[], "x"),
+    (&[], "unknown name + 1"),
+    (&[], "x - 1"),
+    (&[], "x.y"),
+    (&[], "x and y"),
+    (&[], "for s in x return s.z"),
+    (&[], "if x then y else z"),
+    (&[], "price list"),
+    (&[], "Grace's age"),
+    (&[], "opt-in rate"),
+    (&[], "Is in range"),
+    (&[], "date and time"),
+    // iteration variables
+    (&[], "for item in [1] return item"),
+    (&[], "for in+1 in [1] return 1"),
+    (&[], "for a b in [1] return a b"),
+    // keywords next to brackets
+    (&["x"], "x in[1]"),
+    (&["x"], "x in [1]"),
+    (&["list"], "list < 2"),
+    // the words of the types outside a type
+    (&["list"], "list<2"),
+    (&["range", "context"], "range < context"),
+    (&[], "{list: 1, range: 2, context: 3}.list < 2"),
+    (&[], "for list in [1, 2] return list<3"),
+    (&[], "function(list: list<number>) list<2"),
+    (&["a", "list"], "a instance of list<number> and list<2"),
+    (&["a", "T", "list"], "a instance of T and list<2"),
+    (&["a"], "a instance of range<number>"),
+    (&["a"], "a instance of function<list<number>, range<date>> -> context<n: number>"),
+    (&[], "list<2"),
+    // a built-in property is looked for right after a dot only
+    (&["a", "start date"], "a.b + start date"),
+    (&["a", "year end"], "a.b.c = year end"),
+    (&["a", "start date"], "a.start + start date"),
+    (&["a", "time offset x"], "a...b + time offset x"),
+    (&["a"], "a.b + start included"),
+    (&["a"], "a.b + other words"),
+    (&["a", "start"], "a.b + start included"),
+    (&["a"], "a.start included + a.b.time offset"),
+    // a built-in name that is longer than the name in scope
+    (&["string"], "string length(\"abc\")"),
+    (&["list"], "list contains([1], 1)"),
+    (&["day"], "day of week(date(\"2026-01-31\"))"),
+    (&["date"], "date and time(\"2026-01-31T10:00:00\")"),
+    (&["date", "time"], "date and time"),
+    (&["a", "date"], "a instance of date and time"),
+    (&["a", "days"], "a instance of days and time duration"),
+    (&["a", "date"], "a instance of date and a"),
+    (&["string length x"], "string length x + string length(\"a\")"),
+    (&["string"], "string length x"),
+    (&["string"], "string + string length(string)"),
+    (&["date"], "date(\"2026-01-31\")"),
+    // `and` ends the `between` of its own bracket depth
+    (&["x"], "x between 1 and 2 and true"),
+    (&["x", "a", "b"], "x between (if a and b then 1 else 2) and 5"),
+    (&["x", "f", "a", "b"], "x between f(a and b) and [a and b, 5][2]"),
+    (&["x", "a", "b"], "x between {c: a and b}.c and 5 and b"),
+    (&["x", "y"], "x between y between 1 and 2 and 3"),
+    (&["x", "a", "b"], "[x between 1, a and b]"),
+    (&["x", "a", "b"], "(x between 1) and b"),
+    // errors
+    (&[], ""),
+    (&[], "1 +"),
+    (&[], "(1"),
+    (&[], "1 2"),
+    (&[], "a b c d"),
+    (&[], "$"),
+  ];
+  let mut text = String::from("# Chosen expressions: the names in scope, the tokens read (each with its offset) and the tree or the error.\n");
+  for (names, input) in cases {
+    let frames = [ctx(&names.iter().map(|name| (*name, number(1))).collect::<Vec<_>>())];
+    let run = run_production(&frames, &TokenType::StartExpression, input);
+    text.push_str(&format!(
+      "\n## {input:?}\nin scope: {}\n",
+      if names.is_empty() { "nothing".to_string() } else { names.join(", ") }
+    ));
+    for (_, value, offset) in &run.tokens {
+      text.push_str(&format!("  {value} @{offset}\n"));
+    }
+    match &run.outcome {
+      // the tree, without the Debug text that follows it
+      Outcome::Ast(tree) => text.push_str(tree.rsplit_once('\n').map_or(tree.as_str(), |(tree, _)| tree).trim_end()),
+      Outcome::Error(message) => text.push_str(&format!("error: {message}")),
+      Outcome::Panic(message) => panic!("{input:?}: the parser panicked: {message}"),
+    }
+    text.push('\n');
+  }
+  let path = Golden::file("expressions", false);
+  if Golden::updating() {
+    std::fs::write(&path, &text).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    return;
+  }
+  let recorded = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}; write it with RHEON_GOLDEN=update", path.display()));
+  // the first case that differs
+  let differs = recorded.split("\n## ").zip(text.split("\n## ")).find(|(a, b)| a != b);
+  assert!(
+    recorded == text,
+    "the outcome of a chosen expression is not the recorded one; after a change that is meant, write the file again with RHEON_GOLDEN=update\nrecorded and now:\n{differs:#?}"
+  );
 }

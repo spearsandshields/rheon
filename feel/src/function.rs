@@ -4,13 +4,84 @@ use crate::closure::Closure;
 use crate::context::FeelContext;
 use crate::values::Value;
 use crate::{Evaluator, FeelScope, FeelType, Name};
+use std::cell::RefCell;
 use std::fmt;
 use std::fmt::Debug;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock, Weak};
+
+/// The entries of a context literal as the functions written in it see them: every entry of
+/// the context is in scope for the body of such a function (DMN 1.6 §10.3.2.11.1), also one
+/// that comes after the function, from the moment it has its value. One per evaluation of the
+/// literal; the functions hold it.
+///
+/// A home can hold a value that holds the home (a function written in the literal, or a value
+/// with one inside), so homes are not freed by their counts alone: every home is emptied when
+/// the evaluation that made it ends ([Home::end_evaluation]), which frees them all. A function
+/// that outlives its evaluation keeps what it closed over where it was written, and no longer
+/// sees the entries that came after it.
+pub struct Home {
+  names: Box<[Name]>,
+  /// The value of each entry once it has one.
+  values: RwLock<Box<[Option<Value>]>>,
+  /// The home of the context literal or of the function that this literal is written in.
+  parent: Option<Arc<Home>>,
+}
+
+thread_local! {
+  /// The homes made by the evaluation that runs on this thread.
+  static HOMES: RefCell<Vec<Weak<Home>>> = const { RefCell::new(Vec::new()) };
+}
+
+impl Home {
+  /// A home of the entries `names`, none of which has a value yet.
+  pub fn new(names: Box<[Name]>, parent: Option<Arc<Home>>) -> Arc<Self> {
+    let values = names.iter().map(|_| None).collect();
+    let home = Arc::new(Self {
+      names,
+      values: RwLock::new(values),
+      parent,
+    });
+    HOMES.with(|homes| homes.borrow_mut().push(Arc::downgrade(&home)));
+    home
+  }
+
+  /// Gives the entry `index` its value, once.
+  pub fn set(&self, index: usize, value: Value) {
+    if let Ok(mut values) = self.values.write()
+      && let Some(slot) = values.get_mut(index)
+      && slot.is_none()
+    {
+      *slot = Some(value);
+    }
+  }
+
+  /// The value of the entry `name`, when it is an entry that has its value.
+  pub fn entry(&self, name: &Name) -> Option<Value> {
+    let index = self.names.iter().position(|entry| entry == name)?;
+    self.values.read().ok()?.get(index)?.clone()
+  }
+
+  /// The home around this one.
+  pub fn parent(&self) -> Option<&Arc<Home>> {
+    self.parent.as_ref()
+  }
+
+  /// Empties the homes that the evaluation of this thread made: called when it ends.
+  pub fn end_evaluation() {
+    let homes = HOMES.with(|homes| std::mem::take(&mut *homes.borrow_mut()));
+    for home in homes {
+      if let Some(home) = home.upgrade() {
+        // the values are dropped after the lock: one of them may hold this home
+        let values = home.values.write().map(|mut values| std::mem::take(&mut *values));
+        drop(values);
+      }
+    }
+  }
+}
 
 /// A function: a FEEL function definition or a function built from a DMN model
 /// (the content of [Value::FunctionDefinition], shared: copying the value copies a pointer).
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub struct FunctionDefinition {
   /// Formal parameters of the function.
   parameters: Vec<(Name, FeelType)>,
@@ -25,9 +96,44 @@ pub struct FunctionDefinition {
   pub closure_ctx: Arc<FeelContext>,
   /// Return type of the function.
   result_type: FeelType,
+  /// The entries of the context literal that the function is written in, for a FEEL function
+  /// written in one. No part of what the function is: two functions that differ only in it
+  /// are equal and print alike.
+  pub home: Option<Arc<Home>>,
+}
+
+impl PartialEq for FunctionDefinition {
+  fn eq(&self, other: &Self) -> bool {
+    self.parameters == other.parameters
+      && self.body == other.body
+      && self.external == other.external
+      && self.closure == other.closure
+      && self.closure_ctx == other.closure_ctx
+      && self.result_type == other.result_type
+  }
+}
+
+impl Debug for FunctionDefinition {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("FunctionDefinition")
+      .field("parameters", &self.parameters)
+      .field("body", &self.body)
+      .field("external", &self.external)
+      .field("closure", &self.closure)
+      .field("closure_ctx", &self.closure_ctx)
+      .field("result_type", &self.result_type)
+      .finish()
+  }
 }
 
 impl FunctionDefinition {
+  /// This function with the home `home`.
+  pub fn at_home(&self, home: Arc<Home>) -> Self {
+    let mut function = self.clone();
+    function.home = Some(home);
+    function
+  }
+
   /// Creates a function definition.
   pub fn new(parameters: Vec<(Name, FeelType)>, body: FunctionBody, external: bool, closure: Closure, closure_ctx: FeelContext, result_type: FeelType) -> Self {
     Self {
@@ -37,6 +143,7 @@ impl FunctionDefinition {
       closure,
       closure_ctx: Arc::new(closure_ctx),
       result_type,
+      home: None,
     }
   }
 
@@ -60,6 +167,19 @@ impl From<FunctionDefinition> for Value {
 
 /// Type alias of the closure that evaluates FEEL or DMN function body into [Value].
 pub type FunctionBodyEvaluator = Arc<Evaluator>;
+
+/// Code built by an evaluator of FEEL that holds the bodies of FEEL function definitions, each
+/// by its index: the body of [FunctionBody::Feel]. The invocation of the evaluator that built it
+/// runs a body directly; any other caller evaluates it like any other body.
+pub trait FeelCode: std::any::Any + Send + Sync {
+  /// Evaluates the body `body` in a scope that already holds the bound arguments, as
+  /// [FunctionBody::evaluate] evaluates every body: the parameters are the values of their names
+  /// in `scope`.
+  fn evaluate(self: Arc<Self>, body: u32, scope: &FeelScope) -> Value;
+
+  /// The code as [std::any::Any], so that the evaluator that built it can recognize it.
+  fn into_any(self: Arc<Self>) -> Arc<dyn std::any::Any + Send + Sync>;
+}
 
 /// Function body may be defined multiple ways using FEEL or DMN.
 /// This enum is the representation of all of these cases.
@@ -95,6 +215,9 @@ pub enum FunctionBody {
   Relation(FunctionBodyEvaluator),
   /// Function body created from boxed `some` expression defined in DMN model.
   Some(FunctionBodyEvaluator),
+  /// Function body of a FEEL function definition: code of an evaluator of FEEL and the index of
+  /// the body in it. It compares and prints like [FunctionBody::LiteralExpression].
+  Feel(Arc<dyn FeelCode>, u32),
 }
 
 impl FunctionBody {
@@ -116,6 +239,7 @@ impl FunctionBody {
       FunctionBody::LiteralExpression(evaluator) => evaluator(scope),
       FunctionBody::Relation(evaluator) => evaluator(scope),
       FunctionBody::Some(evaluator) => evaluator(scope),
+      FunctionBody::Feel(code, body) => Arc::clone(code).evaluate(*body, scope),
     }
   }
 }
@@ -134,7 +258,7 @@ impl Debug for FunctionBody {
       FunctionBody::FunctionDefinition(_) => write!(f, "FunctionBodyFunctionDefinition"),
       FunctionBody::Invocation(_) => write!(f, "FunctionBodyInvocation"),
       FunctionBody::List(_) => write!(f, "FunctionBodyList"),
-      FunctionBody::LiteralExpression(_) => write!(f, "FunctionBodyLiteralExpression"),
+      FunctionBody::LiteralExpression(_) | FunctionBody::Feel(..) => write!(f, "FunctionBodyLiteralExpression"),
       FunctionBody::Relation(_) => write!(f, "FunctionBodyRelation"),
       FunctionBody::Some(_) => write!(f, "FunctionBodySome"),
     }
@@ -155,7 +279,7 @@ impl PartialEq for FunctionBody {
       FunctionBody::FunctionDefinition(_) => matches!(other, FunctionBody::FunctionDefinition(_)),
       FunctionBody::Invocation(_) => matches!(other, FunctionBody::Invocation(_)),
       FunctionBody::List(_) => matches!(other, FunctionBody::List(_)),
-      FunctionBody::LiteralExpression(_) => matches!(other, FunctionBody::LiteralExpression(_)),
+      FunctionBody::LiteralExpression(_) | FunctionBody::Feel(..) => matches!(other, FunctionBody::LiteralExpression(_) | FunctionBody::Feel(..)),
       FunctionBody::Relation(_) => matches!(other, FunctionBody::Relation(_)),
       FunctionBody::Some(_) => matches!(other, FunctionBody::Some(_)),
     }

@@ -1,5 +1,5 @@
 /** Builds the wasm request JSON (CONTRACT §2) from runtime requests, splicing `RawJson` verbatim. */
-import type { EvaluateRequest, FeelError, ParseOptions, RawJson } from './types.js';
+import type { EvaluateAllRequest, EvaluateAllResponse, EvaluateRequest, EvaluationAnswer, FeelError, ParseOptions, RawJson } from './types.js';
 
 /**
  * Private brand of `RawJson` values. `Symbol.for` so that values made by another copy of this
@@ -138,7 +138,71 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
     language: req.language,
     errorMode: req.errorMode,
+    maxSteps: req.maxSteps,
   });
+}
+
+/** An `evaluateAll` request as JSON text, and the entries that were not sent. */
+export interface EvaluateAllJson {
+  json: string;
+  /**
+   * The entries that are answered here, by their index in `evaluations`: an entry whose text
+   * can not be sent (invalid raw JSON, an unpaired surrogate) fails in its place, as an entry
+   * that the module refuses does, and the others are sent.
+   */
+  failures: Map<number, EvaluationAnswer>;
+}
+
+/**
+ * `evaluateAll` request → JSON text. Fills `tzOffsetMinutes` from the host unless given. A
+ * `{ rawJson }` value is spliced verbatim as the context and as the `input` of an entry.
+ * `evaluations` that is no array, and an entry that is no object, are sent as they are: the
+ * module answers them.
+ */
+export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number | undefined = localTzOffsetMinutes()): EvaluateAllJson {
+  const failures = new Map<number, EvaluationAnswer>();
+  const head = {
+    op: 'evaluateAll',
+    ...contextFields(req.context, req.contextFormat),
+    tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    language: req.language,
+  };
+  const evaluations: unknown = req.evaluations;
+  if (!Array.isArray(evaluations)) return { json: serializeRequest({ ...head, evaluations }), failures };
+  const entries: string[] = [];
+  evaluations.forEach((entry: unknown, index) => {
+    try {
+      if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+        const text = JSON.stringify(entry);
+        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', message: 'an evaluation must be an object' });
+        entries.push(text);
+      } else {
+        // as for `evaluate`, the input is sent for unary tests only
+        const fields = entry as Record<string, unknown>;
+        entries.push(serializeRequest(fields.dialect === 'unaryTests' ? fields : { ...fields, input: undefined }));
+      }
+    } catch (e) {
+      if (!(e instanceof RequestError)) throw e;
+      const id = (entry as { id?: unknown } | null)?.id;
+      failures.set(index, { ok: false, error: e.error, ...(typeof id === 'string' || typeof id === 'number' ? { id } : {}) });
+    }
+  });
+  // the head is an object with `op` at least, so it ends with `}` after a field
+  const json = `${serializeRequest(head).slice(0, -1)},"evaluations":[${entries.join(',')}]}`;
+  return { json, failures };
+}
+
+/** Puts the entries that were answered here ([EvaluateAllJson.failures]) into their places in the response. */
+export function mergeEvaluateAll(response: EvaluateAllResponse, failures: Map<number, EvaluationAnswer>): EvaluateAllResponse {
+  if (failures.size === 0 || !response.ok || !Array.isArray(response.results)) return response;
+  const sent = response.results;
+  const results: EvaluationAnswer[] = [];
+  let next = 0;
+  for (let index = 0; index < sent.length + failures.size; index++) {
+    const failure = failures.get(index);
+    results.push(failure ?? sent[next++]);
+  }
+  return { ...response, results };
 }
 
 export function buildParseJson(dialect: EvaluateRequest['dialect'], expression: string, opts: ParseOptions = {}): string {

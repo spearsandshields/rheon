@@ -1,5 +1,5 @@
 use crate::iterations::{Domain, Iteration, Sequence};
-use crate::tests::te_scope;
+use crate::tests::{build_evaluator, te_scope};
 use rheon_feel::values::{Value, values_to_string};
 use rheon_feel::{Evaluator, FeelNumber, FeelScope, Name, value_number};
 use rheon_feel_temporal::FeelDate;
@@ -89,7 +89,7 @@ fn collected_in(scope: &str, states: &[State], body: &str) -> String {
   });
   let names = te_scope(&format!("{{{}}}", names.collect::<Vec<_>>().join(", ")));
   let node = rheon_feel_parser::parse_expression(&names, body, false).unwrap();
-  let evaluator = crate::builders::build_evaluator(&node);
+  let evaluator = build_evaluator(&node);
   let Value::List(values) = iteration(states).collect(scope, &evaluator) else {
     panic!("expected a list")
   };
@@ -373,4 +373,61 @@ fn _0024() {
     "[7, 7]",
     collected_in("{partial: 7}", &[State::List("x", numbers(&[1, 2])), State::Variable("y", "partial")], "y")
   );
+}
+
+/// The numbers of the interval `start..end` by adding or subtracting one, as a number does.
+fn stepped(start: FeelNumber, end: FeelNumber) -> Vec<FeelNumber> {
+  let ascending = start <= end;
+  let mut items = vec![];
+  let mut next = Some(start);
+  while let Some(current) = next {
+    let following = if ascending { current + FeelNumber::one() } else { current - FeelNumber::one() };
+    let within = if ascending { following <= end } else { following >= end };
+    next = (within && following != current).then_some(following);
+    items.push(current);
+  }
+  items
+}
+
+#[test]
+fn an_interval_of_integers_gives_the_numbers_that_stepping_by_one_gives() {
+  let edge = i64::MAX;
+  let cases = [
+    ("1", "5"),
+    ("5", "1"),
+    ("-3", "3"),
+    ("3", "-3"),
+    ("0", "0"),
+    ("-1", "0"),
+    ("1", "0"),
+    ("9007199254740990", "9007199254740994"),
+    // held with a scale, or not integers: stepped as numbers
+    ("1.0", "4"),
+    ("1", "4.0"),
+    ("1.5", "4"),
+    ("1", "3.5"),
+    ("4", "1.5"),
+    ("1e2", "103"),
+  ];
+  let mut pairs: Vec<(FeelNumber, FeelNumber)> = cases
+    .iter()
+    .map(|(start, end)| (FeelNumber::from_str(start).unwrap(), FeelNumber::from_str(end).unwrap()))
+    .collect();
+  // the ends of the integer range: the count stops where a step would leave it
+  pairs.push((FeelNumber::from(edge - 2), FeelNumber::from(edge)));
+  pairs.push((FeelNumber::from(-edge + 2), FeelNumber::from(-edge)));
+  for (start, end) in pairs {
+    let mut sequence = Sequence::interval(Value::Number(start), Value::Number(end)).unwrap();
+    let expected = stepped(start, end);
+    let mut count = 0;
+    while let Some(item) = sequence.next_item() {
+      let Value::Number(item) = item else { panic!("an item of {start}..{end} is no number") };
+      let wanted = expected.get(count).unwrap_or_else(|| panic!("{start}..{end} has more than {} items", expected.len()));
+      assert!(item == *wanted, "{start}..{end}: item {count} is {item}, stepping gives {wanted}");
+      // the same number in the same cohort
+      assert_eq!(item.unscaled_i64(), wanted.unscaled_i64(), "{start}..{end}: item {count}");
+      count += 1;
+    }
+    assert_eq!(count, expected.len(), "{start}..{end}");
+  }
 }

@@ -29,6 +29,35 @@ export interface EvaluateRequest {
   language?: Language;
   /** `'strict'` turns any error during evaluation into an `evaluation` error (DMN 1.6 §7.3.8). */
   errorMode?: ErrorMode;
+  /**
+   * A budget of steps for the evaluation, a positive integer: every function call and every item
+   * of a loop or a filter is a step, and an evaluation that takes more ends as an `evaluation`
+   * error. No budget by default.
+   */
+  maxSteps?: number;
+}
+
+/** One entry of `evaluateAll`: the fields of an evaluation that are its own. */
+export interface Evaluation {
+  /** Repeated in the answer of the entry. */
+  id?: string | number;
+  dialect?: Dialect;
+  expression: string;
+  /** Unary tests only: the tested value (`?`). */
+  input?: unknown | RawJson;
+  errorMode?: ErrorMode;
+  maxSteps?: number;
+}
+
+/** Several expressions over one context, which is sent and read once (CONTRACT §2, `evaluateAll`). */
+export interface EvaluateAllRequest {
+  /** As for `evaluate`; for all evaluations. */
+  context?: Record<string, unknown> | string | RawJson;
+  contextFormat?: 'json' | 'feel';
+  /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
+  tzOffsetMinutes?: number;
+  language?: Language;
+  evaluations: Evaluation[];
 }
 
 /** FEEL or B-FEEL (DMN 1.6 chapter 11). */
@@ -74,6 +103,18 @@ export interface FeelError {
 
 export type EvaluateResponse =
   | { ok: true; result: FeelResult; warnings: { message: string }[]; diagnostics?: Diagnostics; elapsedMicros: number }
+  | { ok: false; error: FeelError };
+
+/** The answer of one entry of `evaluateAll`: what `evaluate` answers for it, with its `id`. */
+export type EvaluationAnswer = EvaluateResponse & { id?: string | number };
+
+/**
+ * `results` has one answer per entry of `evaluations`, in their order; an entry that fails is a
+ * failure in its place. `contextWarnings` are the warnings of reading the context, once. A
+ * failure of the request itself (the context, a timeout, a crash) has no results.
+ */
+export type EvaluateAllResponse =
+  | { ok: true; results: EvaluationAnswer[]; contextWarnings: { message: string }[]; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 export type ParseResponse =

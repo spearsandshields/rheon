@@ -231,3 +231,163 @@ fn a_call_puts_the_closure_in_scope_without_a_copy() {
   let (many, one) = (more_calls(50), more_calls(1));
   assert!(many <= one + 8, "1,000 more calls closing over 50 names: {many} allocations more, over 1 name: {one}");
 }
+
+/// The allocations and the bytes of the evaluation of `expression` with `{n}` replaced by 10,000,
+/// less those with it replaced by 1: the cost that grows with the number of iterations.
+fn cost_of_iterations(expression: &str) -> (i64, i64) {
+  let measure = |n: usize| {
+    let scope = scope!();
+    let node = parse_expression(&scope, &expression.replace("{n}", &n.to_string()), false).expect("the expression parses");
+    let evaluator = prepare(&node);
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (_, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    ((ALLOCATIONS.with(Cell::get) - allocations) as i64, bytes as i64)
+  };
+  let (many, one) = (measure(10_000), measure(1));
+  (many.0 - one.0, many.1 - one.1)
+}
+
+/// The results of 10,000 iterations grow a vector of 10,000 values by doubling: 12 allocations of
+/// 2,096,640 bytes in all. The caps are those figures and a tenth.
+const RESULTS_ALLOCATIONS: i64 = 13;
+const RESULTS_BYTES: i64 = 2_306_304;
+
+/// A walk allocates nothing per iteration: only its results grow.
+#[test]
+fn loops_allocate_only_for_their_results() {
+  for expression in [
+    "count(for i in 1..{n} return i)",
+    "(for i in 1..{n} return if i = 1 then 1 else partial[-1] + 1)[-1]",
+    "some i in for j in 1..{n} return j satisfies i < 0",
+    "every i in for j in 1..{n} return j satisfies i > 0",
+  ] {
+    let (allocations, bytes) = cost_of_iterations(expression);
+    assert!(
+      allocations <= RESULTS_ALLOCATIONS && bytes <= RESULTS_BYTES,
+      "{expression}: {allocations} allocations and {bytes} bytes more over 10,000 than over one"
+    );
+  }
+  // two variables: the domain of the second is made again for each value of the first
+  let (allocations, _) = cost_of_iterations("count(for i in 1..2, j in 1..{n} return j)");
+  assert!(allocations <= RESULTS_ALLOCATIONS + 1, "{allocations} allocations");
+}
+
+/// `partial` is the walk's results, not a copy of them: an iteration that reads it and invokes a
+/// built-in allocates for the invocation, never the results again.
+#[test]
+fn partial_is_read_without_a_copy_of_the_results() {
+  let (_, bytes) = cost_of_iterations("count(for i in 1..{n} return count(partial))");
+  // 2,816,568 bytes measured, and a tenth
+  assert!(bytes <= 3_098_225, "{bytes} bytes more over 10,000 iterations than over one");
+}
+
+/// A filter allocates nothing per item: only the items it keeps grow.
+#[test]
+fn filters_allocate_only_for_the_items_they_keep() {
+  let number = |n: i64| Value::Number(n.into());
+  for (kind, (allocations, bytes)) in [
+    ("numbers", cost_of_a_long_list("count(items[item >= 0])", number)),
+    ("contexts", cost_of_a_long_list("count(items[n >= 0])", record)),
+    ("contexts", cost_of_a_long_list("count(items[item.n >= 0])", record)),
+    ("contexts", cost_of_a_long_list("count(items[s != null])", record)),
+  ] {
+    assert!(
+      allocations <= RESULTS_ALLOCATIONS && bytes <= RESULTS_BYTES,
+      "over 10,000 {kind}: {allocations} allocations and {bytes} bytes more than over one"
+    );
+  }
+  let (allocations, bytes) = cost_of_a_long_list("count(items[item >= 0][item >= 0])", number);
+  assert!(
+    allocations <= 2 * RESULTS_ALLOCATIONS && bytes <= 2 * RESULTS_BYTES,
+    "{allocations} allocations, {bytes} bytes"
+  );
+}
+
+/// A function of the host invoked in a walk gets the walk's variables and `partial` in its scope,
+/// and they are not held after the invocation: the results grow without a copy.
+#[test]
+fn a_function_of_the_host_invoked_in_a_walk_holds_no_copy_of_its_results() {
+  let measure = |n: usize| {
+    let input = parse_expression(&scope!(), "{f: function(x) x}", false).expect("the context parses");
+    let Value::Context(input) = prepare(&input)(&scope!()) else { panic!("not a context") };
+    let scope = FeelScope::from(std::sync::Arc::unwrap_or_clone(input));
+    let evaluator = prepare(&parse_expression(&scope, &format!("count(for i in 1..{n} return f(i))"), false).expect("the expression parses"));
+    let allocations = ALLOCATIONS.with(Cell::get);
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    assert_eq!(Value::Number(n.into()), value);
+    ((ALLOCATIONS.with(Cell::get) - allocations) as i64, bytes as i64)
+  };
+  let (many, one) = (measure(10_000), measure(1));
+  let (allocations, bytes) = (many.0 - one.0, many.1 - one.1);
+  // 30,009 allocations and 12,665,583 bytes measured (3 allocations and about 1 KiB an
+  // invocation), and a tenth; a copy of the results in each iteration would take gigabytes
+  assert!(
+    allocations <= 33_010 && bytes <= 13_932_141,
+    "{allocations} allocations and {bytes} bytes more over 10,000 than over one"
+  );
+}
+
+/// An invocation of a function of FEEL allocates nothing: its arguments are bound in place and its
+/// frame is a window of slots that the run keeps; positional, named, typed and recursive.
+#[test]
+fn invocations_of_functions_of_feel_allocate_nothing() {
+  for expression in [
+    "{f: function(x) x + 1, r: count(for i in 1..{n} return f(i))}.r",
+    "{f: function(a, b) a - b, r: count(for i in 1..{n} return f(b: 1, a: i))}.r",
+    "{f: function(a: number) a + 1, r: count(for i in 1..{n} return f(i))}.r",
+    "{f: function(n) if n = 0 then 0 else f(n - 1), r: count(for i in 1..{n} return f(3))}.r",
+  ] {
+    let (allocations, bytes) = cost_of_iterations(expression);
+    assert!(
+      allocations <= RESULTS_ALLOCATIONS && bytes <= RESULTS_BYTES,
+      "{expression}: {allocations} allocations and {bytes} bytes more over 10,000 than over one"
+    );
+  }
+}
+
+/// In FEEL a built-in function reads its positional arguments where they are: an invocation
+/// allocates only what the function itself allocates (`abs` one value).
+#[test]
+fn invocations_of_built_in_functions_allocate_no_arguments() {
+  let (allocations, bytes) = cost_of_iterations("count(for i in 1..{n} return abs(i))");
+  // 10,011 allocations and 2,176,632 bytes measured, and a tenth of the bytes
+  assert!(
+    allocations <= 10_000 + RESULTS_ALLOCATIONS && bytes <= 2_394_295,
+    "{allocations} allocations and {bytes} bytes more over 10,000 than over one"
+  );
+}
+
+/// Functions of the host invoked from the entries of a context literal get the entries before
+/// them in one scope that the literal keeps and extends: what the invocations allocate grows
+/// with the entries, not with their square.
+#[test]
+fn functions_of_the_host_invoked_from_context_entries_share_one_scope() {
+  use rheon_feel::closure::Closure;
+  use rheon_feel::context::FeelContext;
+  use rheon_feel::{Evaluator, FeelType, FunctionBody, FunctionDefinition, Name};
+  use std::sync::Arc;
+  // a function whose body is the host's: it reads its parameter from the scope it is given
+  let body: Evaluator = Box::new(|scope: &FeelScope| scope.get_value(&Name::from("x")).unwrap_or(Value::Null(None)));
+  let function = FunctionDefinition::new(
+    vec![(Name::from("x"), FeelType::Any)],
+    FunctionBody::Context(Arc::new(body)),
+    false,
+    Closure::default(),
+    FeelContext::default(),
+    FeelType::Any,
+  );
+  let mut input = FeelContext::default();
+  input.set_entry(&Name::from("f"), Value::FunctionDefinition(Arc::new(function)));
+  let scope = FeelScope::from(input);
+  let measure = |n: usize| {
+    let entries: Vec<String> = (1..=n).map(|i| format!("a{i}: f({i})")).collect();
+    let evaluator = prepare(&parse_expression(&scope, &format!("{{{}}}.a{n}", entries.join(", ")), false).expect("the expression parses"));
+    let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
+    assert_eq!(Value::Number(n.into()), value);
+    bytes as i64
+  };
+  let (small, large) = (measure(200), measure(400));
+  // twice the entries allocate about twice the bytes; a scope for each entry would allocate
+  // about four times as many
+  assert!(large <= 3 * small, "{large} bytes for 400 entries, {small} bytes for 200");
+}

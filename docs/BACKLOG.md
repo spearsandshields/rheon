@@ -40,21 +40,22 @@ was written.
 
 ## Engine
 
-- **Unknown names swallow the following keyword** `[fork]` (2026-10-20). The lexer reads the
-  longest run of words as one name and only cuts it back to a name known in scope. A path into
-  an untyped value followed by a keyword (`for i in current(p).incomeItems return …`,
-  `then i.amount else …`, `some id in item.ids satisfies …`) becomes one name including the
-  keyword: a syntax error, upstream too (`for l in zz return l` is the smallest case). Legal per
-  the FEEL grammar; hidden in DMN models because item definitions put every name in scope, so the
-  TCK does not catch it. The name is read by `consume_name` in `feel-parser/src/lexer.rs`.
-  Workaround: parenthesise the path, `for i in (current(p).incomeItems) return …`.
+- **A name that is not in scope is a run of words** `[fork]` (2026-11-16). When no name in scope
+  starts at a name token, the name runs to the next punctuation, to a keyword that can follow an
+  operand (`and`, `between`, `else`, `in`, `instance`, `or`, `return`, `satisfies`, `then`)
+  written as a word of its own, or to a symbol that is an operator (`.`, `/`, `-`, `+`, `*`). So
+  with no `x` in scope `x - 1` is a subtraction and `x.y` a path (null, with an error about
+  `x`). What stays in such a name: the other keywords (`x for y`) and an apostrophe (`Grace's
+  age`). A name with a keyword or an operator symbol must be in scope to be read as one name: a
+  name that is not in scope and has one (`Is in range`, `opt-in rate`) is read as the
+  expression, often a syntax error. A name in scope is found by its text with single spaces
+  between words and none around symbols, so a key written with other spacing (`Date  -  Time`)
+  is not found. The name is read by `consume_name` in `feel-parser/src/lexer.rs`.
 - **Decision-table bounds** `[fork]` (2026-10-18). Rules and outputs are indexed by clause position
   with no count check (`model-evaluator/src/decision_table.rs`): a short rule or a zero-output table
   panics.
 - **Nanosecond rule** `[fork]` (2026-10-18). Time/date-time equality drops nanoseconds, ordering
   keeps them, so `=` and `<` can both hold.
-- **Grammar precedence for unary endpoints** `[fork]` (2026-10-17). `> 0.1 + 0.2` parses as
-  `(? > 0.1) + 0.2` (`feel-grammar/src/feel.y`).
 - **Zoned `now()`** `[fork]` (2026-10-17). `now()` is zone-less, so
   `now() - date and time("…Z")` is null.
 - **`sort` reads a non-boolean answer as "does not precede"** `[fork]` (2026-10-18). A
@@ -164,10 +165,11 @@ Open in 1.6:
 - **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation goes through
   `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
   with input data, `sort` and `list replace`). Open:
-  - *Closures are not lexical.* A function returned by a body closes over the names as they are
-    where the body ends (`closed_over`, kept from dsntk), so `{f: function(x) {x: 10, g:
-    function(y) x + y}.g, h: f(1), r: h(5)}.r` is 6, not 15 (§10.3.2.13.2: "FEEL functions are
-    lexical closures"). A function returned by a boxed
+  - *The closures of boxed function bodies are not lexical.* A FEEL function is a lexical closure
+    (§10.3.2.13.2); the body of a boxed function of a DMN model still reads the names it does
+    not bind through the scope of its invocation, and a function it returns closes over the
+    names as they are where the body ends (`closed_over`, kept from dsntk). A function returned
+    by a boxed
     function body finds the entries of its boxed context through these writes (see *Boxed
     contexts write into the context below them* in "Lexer and evaluation limits"), so the two
     change together.

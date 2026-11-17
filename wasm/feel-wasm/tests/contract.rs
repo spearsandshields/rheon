@@ -6,17 +6,10 @@ use serde_json::{Value as Json, json};
 
 mod corpus;
 
-/// Runs `body` on a thread with a big stack natively, and directly on wasm32. The nesting and
-/// call-depth limits are sized for the release wasm build in a browser worker; unoptimized native
-/// test builds use much bigger stack frames than that.
-fn with_big_stack(body: fn()) {
-  #[cfg(not(target_arch = "wasm32"))]
-  if let Err(panic) = std::thread::Builder::new().stack_size(512 * 1024 * 1024).spawn(body).unwrap().join() {
-    std::panic::resume_unwind(panic);
-  }
-  #[cfg(target_arch = "wasm32")]
-  body();
-}
+#[path = "shared/big_stack.rs"]
+mod big_stack;
+
+use big_stack::with_big_stack;
 
 /// Sends a raw request text and parses the response.
 fn raw(request: &str) -> Json {
@@ -836,6 +829,38 @@ fn context_keys_are_trimmed_but_inner_whitespace_is_kept() {
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a b", "context": {"a  b": 1}}))["isNull"], true);
   // a trimmed key is the same name as the untrimmed one; the later entry in key order (" a" < "a") wins
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a", "context": {"a": 1, " a": 2}}))["display"], "1");
+  // ("a" < "a "), also between other keys, in a nested context, and with several keys of one name
+  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a", "context": {"a": 1, "a ": 2}}))["display"], "2");
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "[a, b, c]", "context": {"a": 1, "b": 2, "c": 3, " b": 4, "b ": 5}}))["display"],
+    "[1, 5, 3]"
+  );
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "[a, b, c]", "context": {"a": 1, "b": 2, "c": 3, " b": 4, "\tc": 5}}))["display"],
+    "[1, 2, 3]"
+  );
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "x.a + x.z", "context": {"x": {"z": 10, "a": 1, "a ": 2}}}))["display"],
+    "12"
+  );
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "[x[1].a, x[2].a]", "context": {"x": [{"a": 1, " a": 2}, {"a ": 3, "a": 4}]}}))["display"],
+    "[1, 3]"
+  );
+  // the same in contexts of more entries than are inserted one by one: the keys in key order
+  // are "\tk39\n", " k05", "k00" to "k07", "k07 ", "k08" to "k39", "k39  "
+  let mut wide: serde_json::Map<String, Json> = (0..40).map(|i| (format!("k{i:02}"), json!(i))).collect();
+  wide.extend([
+    (" k05".to_string(), json!(-1)),
+    ("k07 ".to_string(), json!(-2)),
+    ("\tk39\n".to_string(), json!(-3)),
+    ("k39  ".to_string(), json!(-4)),
+  ]);
+  let mut context = wide.clone();
+  context.insert("w".to_string(), Json::Object(wide));
+  let expression = "[k04, k05, k06, k07, k08, k38, k39, count(get entries(w)), w.k05, w.k07, w.k39]";
+  let r = eval_ok(json!({"op": "evaluate", "expression": expression, "context": context}));
+  assert_eq!(r["display"], "[4, 5, 6, -2, 8, 38, -4, 40, 5, -2, -4]", "{r}");
 }
 
 #[test]
@@ -876,7 +901,7 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
   check(
     json!({"op": "y".repeat(300)}),
     "request",
-    format!("unknown op '{}… (300 characters)' (expected 'evaluate', 'parse' or 'info')", "y".repeat(120)),
+    format!("unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')", "y".repeat(120)),
   );
   check(
     json!({"op": "evaluate", "expression": "1", "contextFormat": (1..=300).collect::<Vec<_>>()}),
@@ -941,7 +966,11 @@ fn request_error_messages() {
   // the operation
   assert_error(&raw("{}"), "request", "missing 'op'");
   assert_error(&req(json!({"op": 1})), "request", "'op' must be a string");
-  assert_error(&req(json!({"op": "explode"})), "request", "unknown op 'explode' (expected 'evaluate', 'parse' or 'info')");
+  assert_error(
+    &req(json!({"op": "explode"})),
+    "request",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')",
+  );
   // the expression
   for op in ["evaluate", "parse"] {
     assert_error(&req(json!({"op": op})), "request", "missing 'expression'");
@@ -1038,7 +1067,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'parse' or 'info')";
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1544,4 +1573,317 @@ fn zoned_date_time_display_keeps_the_seconds_of_the_offset() {
   assert_eq!(display(r#"@"1900-01-01T12:00:00@Europe/Paris""#), r#""1900-01-01T12:00:00+00:09:21[Europe/Paris]""#);
   assert_eq!(display(r#"@"1880-01-01T12:00:00@America/New_York""#), r#""1880-01-01T12:00:00-04:56:02[America/New_York]""#);
   assert_eq!(display(r#"@"2020-01-01T12:00:00@Asia/Kolkata""#), r#""2020-01-01T12:00:00+05:30[Asia/Kolkata]""#);
+}
+
+/// `maxSteps` is a budget of steps for one evaluation: function calls and the items of loops and
+/// filters. The step after the last one stops the evaluation.
+#[test]
+fn a_step_budget_stops_an_evaluation_that_takes_more_steps() {
+  let stopped = |steps: u64| format!("evaluation took more than {steps} steps; evaluation stopped");
+  let with = |expression: &str, steps: u64| req(json!({"op": "evaluate", "expression": expression, "maxSteps": steps}));
+  for (expression, few, enough, display) in [
+    ("count(for i in 1..1000 return i)", 100, 100_000, "1000"),
+    ("count([1, 2, 3, 4, 5][item > 0])", 3, 100, "5"),
+    ("some i in [1, 2, 3, 4, 5] satisfies i > 4", 3, 100, "true"),
+    ("{f: function(n) if n = 0 then 0 else f(n - 1), r: f(50)}.r", 10, 1_000, "0"),
+    ("sort([3, 1, 2], function(a, b) a < b)[1]", 1, 100, "1"),
+    ("abs(abs(abs(-1)))", 2, 3, "1"),
+  ] {
+    assert_error(&with(expression, few), "evaluation", &stopped(few));
+    let response = with(expression, enough);
+    assert_eq!(response["result"]["display"], display, "{expression}: {response}");
+    // without the field the evaluation has no budget
+    assert_eq!(expr(expression)["display"], display, "{expression}");
+  }
+  // the budget is exact: a loop over 10 numbers visits its level 11 times and calls one function
+  let counted = "count(for i in 1..10 return i)";
+  assert_error(&with(counted, 11), "evaluation", &stopped(11));
+  assert_eq!(with(counted, 12)["result"]["display"], "10");
+  // in strict mode the abort is the error, as for every limit
+  let strict = req(json!({"op": "evaluate", "expression": counted, "maxSteps": 5, "errorMode": "strict"}));
+  assert_error(&strict, "evaluation", &stopped(5));
+  // the budget of one request does not reach the next
+  assert_eq!(expr(counted)["display"], "10");
+}
+
+#[test]
+fn a_step_budget_is_a_positive_integer() {
+  for (value, shown) in [
+    (json!(0), "0"),
+    (json!(-1), "-1"),
+    (json!(1.5), "1.5"),
+    (json!("10"), "\"10\""),
+    (json!(true), "true"),
+    (json!([1]), "[1]"),
+  ] {
+    let response = req(json!({"op": "evaluate", "expression": "1", "maxSteps": value}));
+    assert_error(&response, "request", &format!("invalid 'maxSteps' {shown} (expected a positive integer)"));
+  }
+  // null is no budget; the field is read after `errorMode` and before the expression
+  assert_eq!(req(json!({"op": "evaluate", "expression": "1", "maxSteps": null}))["result"]["display"], "1");
+  let response = req(json!({"op": "evaluate", "errorMode": "x", "maxSteps": 0}));
+  assert_error(&response, "request", "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")");
+  assert_error(
+    &req(json!({"op": "evaluate", "maxSteps": 0})),
+    "request",
+    "invalid 'maxSteps' 0 (expected a positive integer)",
+  );
+  // only an evaluation has a budget
+  assert_eq!(req(json!({"op": "parse", "expression": "1", "maxSteps": 0}))["ok"], true);
+}
+
+/// The JSON of `context` and `input` is read into values straight from the request text. A
+/// request answers the same when its text makes the module read it as a tree of JSON values
+/// first, which a top-level key written with an escape does: values, warnings and their order,
+/// errors and their texts.
+#[test]
+fn context_and_input_read_from_the_text_answer_as_read_through_a_tree() {
+  let long = "1234567890123456789012345678901234567890";
+  let requests = [
+    // keys in any order, twice, with outer spaces, with escapes
+    r#"{"op":"evaluate","expression":"[a, b, c]","context":{"c":3,"a":1,"b":2}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"[a, b]","context":{"b":1,"a":2,"b":3,"a":4}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"[a, b]","context":{"a ":1,"a":2," b":3,"b":4,"\ta\n":5}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"\u0061":1}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"get entries(c)","context":{"c":{"k\"q":"\ud83d\ude00\u00e9\/\\\n","é":[true,false,null,{}],"":1}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"x","context":{"x":{"":1}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"x","context":{"  ":1}}"#.to_string(),
+    // warnings, in the order of the keys, and not of a value that a later entry replaces
+    format!(r#"{{"op":"evaluate","expression":"[z, a, m.q]","context":{{"z":{long},"a":{long}.5,"m":{{"q":1e-6200,"b":[{long}]}}}}}}"#),
+    format!(r#"{{"op":"evaluate","expression":"a","context":{{"a":{long},"b":{long},"a":1}}}}"#),
+    format!(r#"{{"op":"evaluate","expression":"a","context":{{"b":{long},"a":1e999999999,"a":2}}}}"#),
+    // errors with their paths
+    r#"{"op":"evaluate","expression":"a","context":{"b":{"list":[1,{"n":1e999999999}]},"a":1e999999999}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"z":1e999999999,"a":{"":1}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":[1,2]}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":1},"contextFormat":"feel"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":1},"contextFormat":"xml"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":"{a: 1}"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":null}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":1},"context":"{a: 2}","contextFormat":"feel"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":"{a: 2}","context":{"a":1}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":{"$serde_json::private::Number":"42"}}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","context":{"a":{"b":1,"$serde_json::private::Number":"42"}}}"#.to_string(),
+    // white space, nesting
+    "\n {\t\"op\" : \"evaluate\" , \"expression\" : \"count(a) + b.c[2]\" ,\r\n \"context\" : { \"a\" : [ ] , \"b\" : { \"c\" : [ 1 , 2 ] } } } \n".to_string(),
+    format!(r#"{{"op":"evaluate","expression":"count(a)","context":{{"a":{}1{}}}}}"#, "[".repeat(125), "]".repeat(125)),
+    // the input of unary tests
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":7}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"? = [1, 2]","input":[1,2]}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"?.b = 2","input":{"b":2,"a":1,"b":2}}"#.to_string(),
+    format!(r#"{{"op":"evaluate","dialect":"unaryTests","expression":"count(?) = 2","input":[{long},{{"z":{long},"a":{long}}}],"context":{{"k":{long}}}}}"#),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":{"":1}}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":[1e999999999]}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","input":[1],"input":9}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5","context":{"?":7}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"1","input":[1e999999999]}"#.to_string(),
+    // parse, and errors of other fields before the context is read
+    r#"{"op":"parse","expression":"unit price + 1","context":{"unit price":1}}"#.to_string(),
+    r#"{"op":"parse","expression":"a","context":{"":1}}"#.to_string(),
+    r#"{"op":"evaluate","context":{"":1}}"#.to_string(),
+    r#"{"op":"evaluate","expression":"a","errorMode":"x","context":{"":1}}"#.to_string(),
+    r#"{"op":"info","context":{"":1}}"#.to_string(),
+    r#"{"context":{"a":1}}"#.to_string(),
+  ];
+  let answer = |text: &str| {
+    let mut response = raw(text);
+    response.as_object_mut().unwrap().remove("elapsedMicros");
+    response
+  };
+  let (mut read, mut failed) = (0, 0);
+  for text in requests {
+    let through_a_tree = text.replace("\"context\"", "\"\\u0063ontext\"").replace("\"input\"", "\"\\u0069nput\"");
+    assert_ne!(text, through_a_tree, "{text}");
+    let response = answer(&text);
+    assert_eq!(answer(&through_a_tree), response, "{text}");
+    if response["ok"] == true {
+      read += 1;
+    } else {
+      failed += 1;
+    }
+  }
+  assert!(read >= 15 && failed >= 10, "{read} answered, {failed} failed");
+  // an object that serde_json refuses is refused as before (the text of the error has a column,
+  // so the request cannot be compared with a longer spelling of itself)
+  assert_error(
+    &raw(r#"{"op":"evaluate","expression":"a","context":{"a":{"$serde_json::private::Number":true}}}"#),
+    "request",
+    "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 85",
+  );
+  // one level deeper than the deepest JSON that is read
+  let too_deep = raw(&format!(
+    r#"{{"op":"evaluate","expression":"count(a)","context":{{"a":{}1{}}}}}"#,
+    "[".repeat(126),
+    "]".repeat(126)
+  ));
+  assert_error(
+    &too_deep,
+    "context",
+    "context or input JSON is nested too deeply (at most about 125 levels): recursion limit exceeded at line 1 column 182",
+  );
+  // the warnings come in the order of the keys
+  let response = raw(&format!(r#"{{"op":"evaluate","expression":"1","context":{{"z":{long},"a":{long}}}}}"#));
+  let warnings: Vec<&str> = response["warnings"].as_array().unwrap().iter().map(|w| w["message"].as_str().unwrap()).collect();
+  assert!(warnings.len() == 2 && warnings[0].starts_with("a: ") && warnings[1].starts_with("z: "), "{response}");
+}
+
+/// The text of a response is what `serde_json` writes for the response as a tree: the keys of
+/// every object in alphabetical order, no white space, its escapes. The response of an
+/// evaluation is written without that tree, so its text is read back and written again here.
+#[test]
+fn response_text_is_the_text_of_its_tree() {
+  let long = "1234567890123456789012345678901234567890";
+  let requests = [
+    r#"{"op":"evaluate","expression":"1 + 2"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"missing + 1"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"null"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"[1, \"a\\n\\\"b\\\"\", {\"k \\\\ é\": date(\"2026-01-31\")}, [1..2], abs]"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"for i in 1..50 return {n: i, t: string(i) + \"\\t\"}"}"#.to_string(),
+    format!(r#"{{"op":"evaluate","expression":"[a, b + 1, \"x\" + 1]","context":{{"a":{long},"b":"text \"quoted\"\n"}}}}"#),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"> 5"}"#.to_string(),
+    r#"{"op":"evaluate","dialect":"unaryTests","expression":"true","input":[1,{"a":null}]}"#.to_string(),
+    r#"{"op":"evaluate","expression":"1 +"}"#.to_string(),
+    r#"{"op":"evaluate","expression":"1 + \"a\"","errorMode":"strict"}"#.to_string(),
+    r#"{"op":"parse","expression":"a + 1"}"#.to_string(),
+    r#"{"op":"info"}"#.to_string(),
+    "not json".to_string(),
+  ];
+  for request in requests {
+    let text = feel_wasm::call(&request);
+    let tree: Json = serde_json::from_str(&text).unwrap_or_else(|e| panic!("{request}: {e}: {text}"));
+    assert_eq!(serde_json::to_string(&tree).unwrap(), text, "{request}");
+  }
+}
+
+/// `evaluateAll` reads the context once and answers each entry of `evaluations` as an `evaluate`
+/// request with that context answers it: the same result, diagnostics and error. The warnings
+/// of reading the context are those of the request, so the warnings of the `evaluate` response
+/// are `contextWarnings` followed by the warnings of the entry.
+#[test]
+fn evaluate_all_answers_each_evaluation_as_evaluate_does() {
+  let long = "1234567890123456789012345678901234567890";
+  let contexts = [
+    json!({"a": 1, "unit price": 2.5, "items": [{"n": 1}, {"n": 2}, {"n": 3}], "s": "text"}),
+    serde_json::from_str::<Json>(&format!(r#"{{"big": {long}, "a": 7, "?": 9}}"#)).unwrap(),
+    json!({}),
+  ];
+  let evaluations = [
+    json!({"expression": "a + 1"}),
+    json!({"expression": "unit price * count(items)"}),
+    json!({"expression": "for i in items return i.n * a"}),
+    json!({"expression": "sum(items[n > 1].n)"}),
+    json!({"expression": "missing + 1"}),
+    json!({"expression": "missing + 1", "errorMode": "strict"}),
+    json!({"expression": "1 +"}),
+    json!({"expression": "count(for i in 1..100 return i)", "maxSteps": 10}),
+    json!({"expression": "count(for i in 1..100 return i)", "maxSteps": 1000}),
+    json!({"expression": "> 5", "dialect": "unaryTests", "input": 7}),
+    json!({"expression": "> 5", "dialect": "unaryTests"}),
+    json!({"expression": "? = {\"k\": [1, 2]}", "dialect": "unaryTests", "input": {"k": [1, 2]}}),
+    json!({"expression": "> 5", "dialect": "unaryTests", "input": {"": 1}}),
+    json!({"expression": "a", "dialect": "xml"}),
+    json!({"expression": "a", "errorMode": "soft"}),
+    json!({"expression": "a", "maxSteps": 0}),
+    json!({"expression": 5}),
+    json!({}),
+    json!({"expression": "{a: 100, r: a + 1}.r + a"}),
+    json!({"expression": "a + 1"}),
+  ];
+  let without_time = |mut response: Json| {
+    response.as_object_mut().unwrap().remove("elapsedMicros");
+    response
+  };
+  for context in contexts {
+    let all = req(json!({"op": "evaluateAll", "context": context, "evaluations": evaluations}));
+    assert_eq!(all["ok"], true, "{all}");
+    assert!(all["elapsedMicros"].is_u64(), "{all}");
+    let context_warnings = all["contextWarnings"].as_array().unwrap().clone();
+    let results = all["results"].as_array().unwrap();
+    assert_eq!(evaluations.len(), results.len(), "{all}");
+    for (evaluation, result) in evaluations.iter().zip(results) {
+      let mut single = evaluation.as_object().unwrap().clone();
+      single.insert("op".to_string(), json!("evaluate"));
+      single.insert("context".to_string(), context.clone());
+      let mut expected = without_time(req(Json::Object(single)));
+      let mut result = without_time(result.clone());
+      if expected["ok"] == true {
+        // the warnings of the context stand first in the response of `evaluate`
+        let warnings = expected["warnings"].as_array().unwrap().clone();
+        assert!(warnings.starts_with(&context_warnings), "{evaluation}: {expected}");
+        expected["warnings"] = Json::Array(warnings[context_warnings.len()..].to_vec());
+        assert!(result["elapsedMicros"].is_null() && result["warnings"].is_array(), "{result}");
+      }
+      result.as_object_mut().unwrap().remove("elapsedMicros");
+      assert_eq!(expected, result, "{evaluation} in {context}");
+    }
+  }
+}
+
+/// The request of `evaluateAll`: its own failures fail the request, an entry that is no object
+/// is an error in its place, the text of the response is that of its tree, and the tested
+/// value of one entry is not seen by the next.
+#[test]
+fn evaluate_all_request_and_response() {
+  assert_error(&req(json!({"op": "evaluateAll"})), "request", "missing 'evaluations'");
+  assert_error(&req(json!({"op": "evaluateAll", "evaluations": {}})), "request", "'evaluations' must be an array");
+  assert_error(
+    &req(json!({"op": "evaluateAll", "evaluations": [], "context": {"": 1}})),
+    "context",
+    "context: empty context key",
+  );
+  assert_eq!(error_kind(&req(json!({"op": "evaluateAll", "evaluations": [], "language": "x"}))), "request");
+  assert_eq!(error_kind(&req(json!({"op": "evaluateAll", "evaluations": [], "tzOffsetMinutes": 5000}))), "request");
+  assert_error(
+    &req(json!({"op": "nothing"})),
+    "request",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')",
+  );
+  let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
+  assert_eq!(
+    (&empty["ok"], &empty["results"], &empty["contextWarnings"]),
+    (&json!(true), &json!([]), &json!([])),
+    "{empty}"
+  );
+  let request = json!({"op": "evaluateAll", "context": {"a": 1}, "language": "b-feel", "evaluations": [
+    5,
+    {"expression": "= 7", "dialect": "unaryTests", "input": 7},
+    {"expression": "?"},
+    {"expression": "= 7", "dialect": "unaryTests"},
+    {"expression": "1 + \"a\\n\\\"b\\\"\""},
+    {"expression": "a + 1"},
+  ]});
+  let text = feel_wasm::call(&request.to_string());
+  let response: Json = serde_json::from_str(&text).unwrap();
+  assert_eq!(serde_json::to_string(&response).unwrap(), text);
+  let results = response["results"].as_array().unwrap();
+  assert_error(&results[0], "request", "'evaluations[0]' must be an object");
+  assert_eq!(results[1]["result"]["display"], "true", "{response}");
+  // `?` of the entry before is gone
+  assert_eq!(results[2]["result"]["isNull"], true, "{response}");
+  assert_eq!(results[3]["result"]["display"], "false", "{response}");
+  assert!(results[3]["warnings"][0]["message"].as_str().unwrap().starts_with("no input value given"), "{response}");
+  // an `id` stands in the answer of its entry, a result or an error, and only there
+  let text = feel_wasm::call(
+    &json!({"op": "evaluateAll", "evaluations": [
+      {"id": "first", "expression": "1"},
+      {"id": 2, "expression": "1 +"},
+      {"expression": "3"},
+      {"id": "q\"\n", "expression": "4", "errorMode": "x"},
+      {"id": [1], "expression": "5"},
+      {"id": null, "expression": "6"},
+    ]})
+    .to_string(),
+  );
+  let with_ids: Json = serde_json::from_str(&text).unwrap();
+  assert_eq!(serde_json::to_string(&with_ids).unwrap(), text);
+  let ids: Vec<&Json> = with_ids["results"].as_array().unwrap().iter().map(|result| &result["id"]).collect();
+  assert_eq!(ids, [&json!("first"), &json!(2), &Json::Null, &json!("q\"\n"), &Json::Null, &Json::Null], "{with_ids}");
+  assert_eq!(with_ids["results"][0]["result"]["display"], "1", "{with_ids}");
+  assert_eq!(error_kind(&with_ids["results"][1]), "syntax", "{with_ids}");
+  assert_eq!(error_kind(&with_ids["results"][3]), "request", "{with_ids}");
+  assert_error(&with_ids["results"][4], "request", "'id' must be a string or a number, got [1]");
+  assert_eq!(with_ids["results"][5]["result"]["display"], "6", "{with_ids}");
+  // B-FEEL for every entry: a number is added to a string as text
+  assert_eq!(results[4]["result"]["type"], "string", "{response}");
+  assert_eq!(results[5]["result"]["display"], "2", "{response}");
 }

@@ -224,6 +224,60 @@ Rules:
 | 176 | `047ee58` | tools/identity: the depth probes of the large sets that 0.5.0 answers are committed | fork |
 | 177 | `40c7ec5` | tools/identity: the large-set run leaves out two chains by name | fork |
 | 178 | `ef0081f` | tools/identity: the order test compares differences without their source | fork |
+| 179 | `d1eab1d` | tools: the identity check compares with 0.6.0 | fork |
+| 180 | `8a34c4c` | feel-evaluator: value kernels by name | fork |
+| 181 | `b7ddea6` | feel: a tentative mark without a closure; the deep search is a loop | fork |
+| 182 | `fd820d6` | tools/identity: request sets for scoping, functions, order, types, cells and names | fork |
+| 183 | `d78c977` | feel-evaluator: the evaluator is chosen in one place; feel-wasm: backends harness | fork |
+| 184 | `6c40e04` | feel-wasm tests: random evaluable expressions with shrinking | fork |
+| 185 | `f3de4a6` | model-evaluator tests: backend twins | fork |
+| 186 | `f2da3e8` | scripts: tier steps for the backends harness and twins; stack report probes | fork |
+| 187 | `682c4f1` | feel-evaluator: name resolution for the flat evaluator | fork |
+| 188 | `5828c52` | feel-evaluator: the flat program, its run loop and the seam, with literals | fork |
+| 189 | `59520de` | feel-evaluator: the flat evaluator runs names, qualified names and paths | fork |
+| 190 | `48f989e` | feel-evaluator: the flat evaluator runs arithmetic, comparisons and between | fork |
+| 191 | `e34aa74` | feel-evaluator: the flat evaluator runs logic, if, lists, ranges, in and unary tests | fork |
+| 192 | `129cf87` | feel-evaluator: the flat evaluator runs invocations of built-ins and host functions | fork |
+| 193 | `2b5c622` | feel-evaluator: the flat evaluator runs instance of and type expressions | fork |
+| 194 | `33131b6` | feel-evaluator: the flat evaluator builds and runs small expressions with fewer allocations | fork |
+| 195 | `89f3b40` | feel-wasm tests: the backends harness sends each request once | fork |
+| 196 | `972980f` | feel-wasm tests: one helper runs a test body on a thread with a big stack | fork |
+| 197 | `5da8aec` | model-evaluator tests: the twins compare whole diagnostics and note what was lowered | fork |
+| 198 | `624781b` | feel-wasm tests: the backends harness compares responses without recursion | fork |
+| 199 | `a55c369` | feel-evaluator: the flat evaluator runs context literals | fork |
+| 200 | `23be293` | feel-evaluator: the flat evaluator runs for, some and every | fork |
+| 201 | `7875acf` | feel-evaluator: the flat evaluator runs filters | fork |
+| 202 | `adf572a` | feel-evaluator tests: allocation caps for loops and filters | fork |
+| 203 | `2e714ac` | feel-evaluator: host invocations inside binders reuse one scope per region | fork |
+| 204 | `2130045` | feel-evaluator: the resolution reports where a free name is read | fork |
+| 205 | `ec17200` | feel-wasm tests: the sample of the backends harness has a refused request | fork |
+| 206 | `a82f5ff` | feel-evaluator: the flat evaluator runs function definitions and their invocations | fork |
+| 207 | `8b90d06` | feel-evaluator: a body finds a free name its caller has read at the caller's closure | fork |
+| 208 | `00c72e6` | feel-evaluator: invocations of the flat evaluator allocate no arguments | fork |
+| 209 | `6d47106` | scripts, docs: the stack check asserts FEEL recursion at the AST limit | fork |
+| 210 | `aef8331` | feel-evaluator: an interval of integers is counted as integers | fork |
+| 211 | `63ffdcf` | feel-evaluator: the root expression reads a free name of the host once | fork |
+| 212 | `51b8221` | feel-evaluator: the scopes kept for functions of the host are one per layout | fork |
+| 213 | `66beec7` | feel-evaluator: tests of what a function of the host sees; a body of another program gets its own scope | fork |
+| 214 | `a8b20ed` | feel-runtime tests: the runaway evaluation that is cancelled keeps little memory | fork |
+| 215 | `c2043b9` | tools/identity: a recursion that overflowed the stack of the host is registered | fork |
+| 216 | `cfb2027` | feel-evaluator tests: the answers of the evaluator of closures are recorded | fork |
+| 217 | `4567d9f` | feel-evaluator: the flat evaluator is the only evaluator of expressions | fork |
+| 218 | `0bdf6b5` | feel-evaluator: the evaluator of closures is deleted | fork |
+| 219 | `56b24c9` | feel-evaluator tests: the end of a time range is found by adding a duration | fork |
+| 220 | `8cea6e1` | feel-evaluator: the recorded answers of the tests are not part of the package | fork |
+| 221 | `360df97` | feel, feel-evaluator, feel-wasm: an evaluation can have a budget of steps | fork |
+| 222 | `5c052cb` | feel-parser: a name that is not in scope ends before a keyword | fork |
+| 223 | `d01efb7` | feel-parser: a string literal or a block comment that is not closed is a syntax error | fork |
+| 224 | `6d233e3` | feel-parser: the name tokens after an iteration variable `item` compare each part with `in` once | fork |
+| 225 | `d3e6945` | feel, feel-wasm: a JSON input context of more than 11 entries is built in one pass | fork |
+| 226 | `d5bfeab` | feel-parser: the name index compares the items of a list only when a lookup depends on it | fork |
+| 227 | `f1407dc` | feel-wasm: the JSON of context and input is read straight into values | fork |
+| 228 | `795c84b` | feel-wasm: the response of an evaluation is written straight from the result | fork |
+| 229 | `544f67f` | feel, feel-wasm: the records of an input list share their names and the order of their keys | fork |
+| 230 | `cd5e6d8` | feel-number: the digits of a number text are read as a number, not collected as text | fork |
+| 231 | `5f3494c` | feel-parser: a name is looked up among the pushed contexts in one step | fork |
+| 232 | `c00944b` | feel-parser: a candidate name is a piece of its chain, looked up only when a name has its length | fork |
 
 (The commits are on `main`, after the base commit; `git rev-parse <sha>` gives a full SHA.)
 
@@ -3205,6 +3259,879 @@ stated in their items. The totals are under "Verification" below.
     input error, and `run.sh` passes the list only with `--large`). The large-set run against
     0.5.0: 13,109 requests, 2 left out by name, 63 registered differences reproduced, 0 others,
     34 s uncached (peak RSS 2.5 GB). Tooling only; no API change.
+Commits 179-221 replace the evaluator of expressions. The identity check moves to 0.6.0 and the
+tools of the replacement come first: the value kernels as named functions, request sets and pins for
+scoping, functions, order, types, cells and names, a seam where the evaluator is chosen, a harness
+that compares two evaluators on every request, random expressions and twins of the model tests
+(179-186). The flat evaluator is then built beside the evaluator of closures, one kind of expression
+at a time: name resolution, the program and its run loop, names and paths, operators, logic,
+invocations, types, context literals, walks, filters, function definitions and calls on the heap,
+with the comparison showing no difference at each step (187-209). Intervals of integers are counted
+as integers, the root expression reads a free name of the host once, the scopes kept for functions
+of the host are bounded, and tests compare what a function of the host sees (210-213). After two
+test and ledger commits (214, 215) the answers of the evaluator of closures are recorded, the flat
+evaluator becomes the only one and the evaluator of closures is deleted (216-218); two small commits
+follow (219, 220), and an evaluation can have a budget of steps (221). No answer of a parsed
+expression changes against 0.6.0 but one registered request (215); a tree built by hand of a shape
+that the parser never produces gets one defined error (217). Boxed expressions of DMN models (boxed
+for, some, every, filter, context) are composed by the DMN layer from evaluators as before; they
+share the sequence, item and outcome kernels with the run loop and are not lowered to programs. The
+totals are under "Verification" below.
+
+Commits 222-226 are five changes of the lexer, the parser's name index and the input conversion.
+Two change answers, each registered with its basis: a name that is not in scope ends before a
+keyword that can follow an operand, so `for s in x return 1` and `x and y` have their keywords when
+`x` is no name in scope (222), and a string literal or a block comment that the input does not close
+is a syntax error instead of the end of the input (223). Three change no answer: the name tokens
+after an iteration variable `item` no longer search their chain again and again (224), a JSON input
+context of more than 11 entries is built in one pass (225), and the name index compares the items
+of a list only when a lookup depends on it (226).
+
+Commits 227-232 are the boundary of the wasm module and two inputs of the parser that cost out of
+proportion. No answer changes. The JSON of `context` and `input` is read straight into values by a
+strict reader, with the tree of JSON values as the answer to everything the reader refuses (227);
+the response of an evaluation is written straight from the result, byte for byte as before (228);
+the records of an input list share their names and the order of their keys (229); and the digits
+of a number are read as a number (230). In the parser, a name is looked up among the pushed
+contexts in one step (231), and a candidate name is a piece of the flattened text of its chain,
+looked up only when a name in scope has its length (232).
+
+179. **The identity check compares with 0.6.0.** The baseline moves to the v0.6.0 release module,
+    and the ledgers of registered differences against 0.5.0 are emptied: 0.6.0 answers every
+    committed request as registered. The 61 entries and 3 rule entries of `registered/` and the 21
+    entries of `release/registered/` stay in git history; their requests stay in the request
+    sources. The release-tier requests that 0.6.0 answers in well under a second move out of the
+    release tier: `values-deep.json` (12, at most 4 ms each) to `requests/`, the 17 of
+    `memory-exhausting.json` that 0.6.0 answers (at most 9 ms each) to `requests/doubled-values.json`,
+    and the 4 of `value-depth-deep.json` (at most 17 ms each) only stay in
+    `wasm/feel-wasm/tests/corpus/no-trap.json`, which already holds them. The 5 that exhaust the
+    memory of 0.6.0 stay in `release/requests/memory-exhausting.json`. The two chains that
+    `large-left-out.json` named answer the value-depth error on both sides now, so the list is
+    empty and the large-set run compares them. Identity of the 0.6.0 build against the 0.6.0
+    module: the committed sources are 12,997 requests, with `--release` 13,007 (5 trapping the
+    reference), with the large sets 13,176 (2 trapping the reference); 0 differences in each, and
+    0 cache mismatches with `--verify-cache`. Tooling only; no API change.
+180. **The value kernels of the evaluator are named functions.** The closures that the evaluator
+    builder made for an expression computed its value from the evaluated operands inside their own
+    bodies, so no other evaluator could reach that computation without copying it. It is now in
+    named functions in `feel-evaluator/src/kernels/`, which read no scope and evaluate nothing:
+    the arithmetic (moved whole, with `finite`), the comparisons and `between`, `in` against every
+    right-hand form, `instance of`, the types built from evaluated parts (list, range, context and
+    function types, formal parameters), paths, properties and descendants, the value of a name or
+    a qualified name that no scope holds, the number and `@` literals, list and range literals,
+    the entries of context literals, the value of a function definition and of an external
+    mapping. The builder's closures evaluate their parts in the same order and call them. The
+    message of an invalid operand of addition names the module of its call site's file, so the
+    macro gains the form `invalid_argument_type!(module "builders", …)`, which addition now uses:
+    the texts stay `[builders::add] …`. The binding of arguments converts them in place
+    (`coerce_arguments`), and the closure of a returned function takes the search of its names as
+    a function. `bind` and `closed_over` are not inlined into the application of a body, so their
+    frames are not on the stack while the body runs: a nested call takes no more stack than in
+    0.6.0 (`npm run stack -- --report`: every host reaches the depth of 0.6.0 or one more). Test first: a kernel test that `add` of a date and a boolean still says
+    `[builders::add]`; the evaluator's tests and the TCK copies unchanged. Identity step: no answer
+    changes. Rust API: none (crate-private).
+181. **A tentative mark is taken without a closure, and the deep search of a context is a loop.**
+    `diagnostics::tentative(f)` ran `f` and returned its result with the mark of what the running
+    collection held before it, so only code that evaluates through a closure could take one.
+    `diagnostics::tentative_mark()` takes the mark alone; the evaluation that follows it is the
+    tentative one, and the filter's evaluation in the enclosing scope takes it so. The deep search
+    of a context (`FeelContext::search_deep`, under `search_entry` and the scope's qualified
+    search) called itself once per name; it now takes one step per name in a loop, so the search
+    itself is not bounded by the host stack. The other walks of a qualified name still call
+    themselves once per name: `FeelContext::create_entries` (under `create_entry`, which writes
+    the names a function closes over into its closure context) and `contains_deep`. Tests: the tests of the mark
+    take it alone, as before around the same records; the deep search stops at a value that is no
+    context and follows a context nested 500 levels deep. Identity step: no answer changes. Rust
+    API: `rheon_feel::diagnostics::tentative` is removed; `rheon_feel::diagnostics::tentative_mark`
+    is added.
+182. **Request sets and native pins for scoping, functions, order, types, cells and names.** Six
+    request sets in `tools/identity/requests/` cover what an evaluator must reproduce besides the
+    values: `scoping.json` (145 requests), `functions.json` (177), `order.json` (165),
+    `types.json` (116), `cells.json` (161) and `names.json` (105), described in
+    `tools/identity/README.md`. Among them: the hidden `partial` of a `for` stays out of sight in
+    later iteration contexts, also when a variable is named `partial` and when a called function
+    reads it (`for partial in [1, 2], y in [partial] return y` is `[null, null]` with two errors);
+    nested calls 198 and 201 deep through `abs(abs(f(n - 1)))`, within the AST depth of a request;
+    a callback that reads an outer name through a function entry, so that its scope is empty. None
+    traps 0.6.0, and each answers in at most 7 ms on it. `feel-evaluator/src/tests/scoping.rs`
+    pins 33 of them natively, evaluated as a request evaluates them, with their values, messages
+    and counts. Identity against 0.6.0: 0 differences by construction. Tests only; no API change.
+183. **The evaluator of an expression is chosen in one place, and a harness compares two.**
+    `prepare`, `prepare_with_dialect` and `evaluate` build through one private function, which
+    asks the flat evaluator (`feel-evaluator/src/flat.rs`) to lower the expression and builds the
+    closures of the whole expression when it refuses; it refuses every expression yet, so every
+    expression is built as before. The cargo feature `backends` of rheon-feel-evaluator, enabled
+    only by the dev-dependencies of rheon-feel-wasm, adds the hidden module `testing`:
+    `with_backend` chooses on the thread, inside a closure, between the evaluator of closures, the
+    flat evaluator with that fallback, the flat evaluator alone (a refused expression is an error
+    null naming the refusal) and a mutant that negates boolean results; `take_refusals` reads the
+    refusals. `wasm/feel-wasm/tests/backends.rs` sends every request of the identity request
+    sets, of the ledgers, of `no-trap.json` and of the edge-operand product (the product moved
+    into `tests/corpus/product.rs`, shared with the contract test) through the evaluator of
+    closures and through the flat evaluator alone, and compares the responses whole; a refused
+    request is counted by the kind of its node. `RHEON_PARSER_CORPUS` adds the FEEL corpus and
+    `RHEON_FULL_TESTS` the release-tier requests, without those that exhaust the module's memory
+    (natively no cap stops them; the identity check compares them in the module). The comparison
+    is `#[ignore]`d, for the group tier. Test: `harness_detects_a_difference` (two equal
+    evaluators give no difference; the mutant gives the three boolean answers of five). Since the
+    flat evaluator refuses every expression yet, only requests that build no expression are
+    compared. Identity step: no answer changes. Rust API: none
+    without the feature; with it, `rheon_feel_evaluator::testing::{Backend, Refusal,
+    with_backend, take_refusals}` (hidden, for tests).
+184. **Random evaluable expressions for the backends harness, with shrinking.**
+    `wasm/feel-wasm/tests/backends/gen.rs` builds a request from a seed (SplitMix64, the same on
+    every host): an expression directed by the grammar and by the scope, so that most names refer
+    to a binder that exists where they are written (iteration variables, `partial`, parameters,
+    context entries, `item` and the entries of filtered items, names of an input context), over
+    arithmetic, comparisons, logic, `if`, `between`, `in` with unary tests, `instance of`, `for`
+    with one and two iteration contexts over ranges and lists, `partial`, `some` and `every`,
+    filters by a predicate and by an index (0, negative, not an integer, not a number), context
+    literals with repeated keys, forward references and entries named `item`, `partial` and
+    `abs`, function definitions called positionally, by name, with the wrong arity and with typed
+    parameters, functions whose bodies read a name that only their caller binds where it calls
+    them (a loop variable, `partial`, the item of a filter or its entry, a later entry),
+    recursion of 3 to 250 calls, `sort` and `list replace` callbacks, unary-test
+    requests, B-FEEL, strict mode and a JSON input context. The harness sends 2,000 of them after
+    the committed requests (50,000 with `RHEON_FULL_TESTS`, one with `RHEON_BACKENDS_SEED`); a
+    request whose responses differ is shrunk, by replacing nodes with literals or with their
+    children while the difference stays, and reported with its seed. Tests: the same seed gives
+    the same request; at least 95% of 2,000 parse (measured 98%); 2,000 cover every construct;
+    shrinking a request that the mutant answers differently keeps the difference and gives a
+    shorter request. A difference that a request shows only after the requests before it fails
+    the step too. Measured: the 2,000 random requests are all refused, since the flat evaluator
+    lowers nothing yet. Tests only; no API change.
+185. **The model tests can compare every evaluation with a twin.** With `RHEON_BACKEND_TWINS`
+    set, `build_model_evaluator(s)` of the model-evaluator tests builds each model twice, by the
+    flat evaluator (with its fallback) and by the evaluator of closures, and `assert_decision`,
+    `assert_business_knowledge_model` and `assert_decision_service` evaluate both: the outcome
+    texts and the diagnostics (count, messages and warnings) must be equal, besides the pinned
+    text. With `RHEON_BACKEND_COVERAGE` naming a file, they add a line to it for each expression
+    the flat evaluator lowered or refused (by the kind of the node) and for each evaluation, with
+    or without a twin. A model
+    is held weakly beside its twin, so the tests of a model's lifetime see it dropped. The feature
+    `backends` of rheon-feel-evaluator is enabled from the dev-dependencies of
+    rheon-model-evaluator; it now records refusals only inside `with_backend`, so other tests
+    record nothing. Test: `a_model_has_a_twin`. Measured: the model-evaluator tests (3,722) in
+    3.97 s alone and 4.35 s with the twins. Tests only; no API change.
+186. **The tiers run the comparison of the two evaluators, and the stack report measures two more
+    recursions.** The group tier runs the backends harness (`backends`: `cargo test -p
+    rheon-feel-wasm --test backends -- --ignored`, with the FEEL corpus) and sets
+    `RHEON_BACKEND_TWINS` for the model tests and the TCK copies; the release tier runs the harness
+    at full size (`backends-full`, release build, `RHEON_FULL_TESTS`). The fix tier is unchanged.
+    `npm run test:tier` checks the three steps. `npm run stack -- --report` also prints, on every
+    host, the deepest body of a recursion of 200 nested calls (the call depth limit) and of a
+    recursion of 66 levels through a `sort` callback (199 nested calls), the native stack of a
+    host re-entry; the checks without `--report` are unchanged. Measured on the 0.6.0 module
+    (macOS arm64, Node 26, Wasmtime 49.0.3), the deepest body of 200 calls: Node main thread 43
+    (Liftoff and TurboFan), 4 MiB worker 199 and 200, Wasmtime 18 (512 KiB), 210 (4 MiB) and the
+    AST limit (16 MiB); of 66 levels through `sort`: main thread 111 and 157, Wasmtime 55 (512 KiB),
+    138 (1 MiB), and the AST limit (284) from 2 MiB and in the 3 and 4 MiB workers. Tooling only;
+    no API change.
+187. **Name resolution for the flat evaluator.** `feel-evaluator/src/flat/resolve.rs` (the module
+    `flat` became a directory) decides from the parser's tree alone, with no scope and no input,
+    what every name of an expression reads and where every binder is kept. The scopes of the
+    evaluator of closures become static regions: a region is one scope at a position of the code
+    (the first entries of a context literal's or an iteration's layout, the item of a filter, the
+    closure of a function), and a name reads the slot of a binder of its own body, `partial` (the
+    results so far of a `for`), the item of each filter around it first, or else a free name, read
+    at run time from outside the body. A context entry is seen by the entries after it only and a
+    literal stops at a repeated key; the first domain of an iteration is outside it and each later
+    domain sees the variables before it, and in a `for` no later domain sees `partial`, a variable
+    of that name included, as the walk removes it; parameters of one name share a slot; the types
+    of parameters and an external mapping are read where the function is defined; a qualified name
+    of one segment reads as a name (without a built-in), of several it is searched along the chain
+    at run time. Only the shapes that the evaluator of closures binds bind names; other shapes are
+    kept unbound. Indices are `u32` (no new limit). The free names, with where they are read (root,
+    function body, filter predicate, callee), are a crate-private report. Nothing calls the pass
+    yet. Tests: `flat::tests::names` (20 rules, on the names each expression reads and on the
+    dump of the resolved tree). Identity step: no answer changes. Rust API: none.
+188. **The flat evaluator runs literals.** The flat evaluator is now the evaluator of every
+    expression it lowers: `prepare`, `prepare_with_dialect` and `evaluate` resolve the expression,
+    lower it to a program (`flat/program.rs`: instructions of at most 16 bytes over numbered
+    slots, with tables of constants and messages, checked for indices out of range in builds with
+    debug assertions) and run it in one loop (`flat/vm.rs`), one run per evaluation, in the
+    evaluation's session and diagnostics. A node that is not lowered refuses the whole expression,
+    which is then built as closures, as before. Lowered: number, string, boolean, null and `@`
+    literals; a literal whose evaluation records nothing is a constant, a truncated `@` literal
+    records its warning and a literal without a value its error at every evaluation. Values are
+    computed into temporaries that their one reader moves out. The backends harness also counts
+    the compared requests in which an expression was lowered (`testing::take_lowered`). Tests:
+    `flat::tests::machine` (programs built by hand: verification, the order of a run's errors and
+    warnings), `flat::tests::constructs` (each literal against the evaluator of closures, value
+    and diagnostics). Measured (harness, debug): 59,069 requests, 29,595 compared, 366 lowered,
+    0 differences; random 4,000, 224 lowered, 0 differences. Identity step: no answer changes.
+    Rust API: none without the feature `backends`; with it, `testing::take_lowered` (hidden).
+189. **The flat evaluator runs names, qualified names, paths and descendants.** A free name reads
+    the scope of the host (`FeelScope::get_value`), else the built-in function of that name, else
+    the error null `context has no value for key`, built at every read; a qualified name is
+    searched in the scope of the host (`FeelScope::search`), else the error null `no value for
+    qualified name`; a path and a descendant apply the kernels `path` and `descendants` to their
+    evaluated base, and one whose name node is no name is the builder's error at every evaluation
+    without evaluating the base. Tests: `flat::tests::constructs` (names from the input and
+    built-ins, shadowed built-ins, `?`; qualified names of 0 to 3 segments over five inputs;
+    paths over contexts, lists, dates, durations and strings, descendants, malformed paths).
+    Measured (harness, debug): 717 lowered of 29,946 compared, random 262, 0 differences.
+    Identity step: no answer changes. Rust API: none.
+190. **The flat evaluator runs arithmetic, comparisons and `between`, FEEL and B-FEEL.** `+ - *
+    / **` apply `Arithmetic::apply` (B-FEEL: `bfeel::arithmetic`), `-e` `Arithmetic::negation`,
+    `= != < <= > >=` the kernels `equal`, `not_equal` and `compare_*`, and `between` the kernel of
+    that name on its three operands, all evaluated first, in order; in B-FEEL a null of a
+    comparison or of `between` becomes `false` (`true` for `!=`), as `bfeel::boolean_result` makes
+    it. Tests: `flat::tests::constructs` (every operator on every pair of 12 operands of every
+    kind, in both dialects; negation; `between` on 80 triples; nested operators). Measured
+    (harness, debug): 8,036 lowered of 37,265 compared, random 440, 0 differences. Identity step:
+    no answer changes. Rust API: none.
+191. **The flat evaluator runs logic, `if`, lists, ranges, `in` and unary tests.** `and` and `or`
+    evaluate the right operand only when the left one does not decide (Table 51; a jump past the
+    right operand's code), `if` takes the then branch only when the condition is `true`; list
+    literals are built item by item (`bound_depth` on the list, as `list_of` does), comma lists
+    and negated comma lists of unary tests likewise without the check; range literals and their
+    ends, the unary tests `= != < <= > >=`, `-` and parenthesised expressions give the values the
+    builder gives; `in` applies `in_operator` and `not in` (a hand-built `Out`) evaluates the whole
+    `in`, then its left operand again; in B-FEEL `and`, `or` and `in` never give null. The
+    program check now also rejects a jump that is not forward into the code and lists that are
+    not opened and closed in nesting order on every path. Tests: `flat::tests::constructs`
+    (`and`/`or` on 36 pairs and `if` on 6 conditions in both dialects, lists and ranges, `in`
+    with 8 right-hand forms on 6 values, `not in`, unary tests on 5 inputs), `flat::tests::machine`
+    (unstructured code). Measured (harness, debug): 9,509 lowered of 38,738 compared, random 744,
+    0 differences. Identity step: no answer changes. Rust API: none.
+192. **The flat evaluator runs invocations of built-in functions and of functions of the host.**
+    Every invocation node is entered before its function and arguments are evaluated
+    (`diagnostics::enter_call`, the call depth limit: a refused invocation evaluates nothing and is
+    null) and left after it (`finite`, `bound_depth`, then the guard is dropped), as the builder's
+    guard does; the function and the arguments, in the order written, go to `invoke` with the
+    program's dialect, positionally or by name, so built-in functions, functions of the host's
+    scope (DMN business knowledge models and decision services, functions of the input) and
+    values that are no function give what they give today. A malformed invocation is the
+    builder's error inside the invocation. A run that ends early leaves the invocations it
+    entered innermost first. The program check rejects a leave without an enter, an open
+    invocation at the return and an enter whose refusal does not continue past its leave. Tests:
+    `flat::tests::constructs` (22 invocations of built-ins in both dialects, positional and named,
+    wrong arity, non-functions; 199 to 250 nested invocations, with the invocations after the
+    abort; functions of the input, a `sort` callback, typed parameters; malformed invocations),
+    `flat::tests::machine` (enter and leave). Measured (harness, debug): 26,352 lowered of 55,581
+    compared, random 900, 0 differences. Identity step: no answer changes. Rust API: none.
+193. **The flat evaluator runs `instance of` and type expressions.** A type is evaluated at every
+    evaluation, as the builder evaluates it: a named type of the grammar is a constant, a type name
+    is a qualified-name search, `list<t>` and `range<t>` apply `list_type` and `range_type`, a
+    context type adds its entries (`context_type_entry`, `add_context_type_entry`) in order and
+    stops at the first that is no entry, without evaluating the rest, and a function type applies
+    `function_type` to its parameter types and result type; `instance of` applies `instance_of`
+    (not wrapped in B-FEEL). Every construct without binders is now lowered: what the flat
+    evaluator still refuses are context literals, iterations, filters and function definitions.
+    Tests: `flat::tests::constructs` (11 values against 19 types in both dialects, malformed
+    types). Measured (harness, debug): 26,588 lowered of 55,817 compared, random 926, 0
+    differences; refused `Context` 2,408, `FunctionDefinition` 311, `Filter` 297, `For` 213,
+    `Every` 12 and 11 of kinds the report did not name then (it named five kinds). Identity
+    step: no answer changes. Rust API: none.
+194. **The flat evaluator builds and runs a small expression with fewer allocations.** Every
+    expression is built once per request in the module, so the build is part of each request's
+    time. The resolution pass sizes its node tables from the size of the tree; a few names are
+    found by comparing them with each, more in a hash map (the standard one, whose hasher is keyed
+    at random, so no input makes its lookups slow), and the tables of names and free names are
+    allocated only when there are names; the root expression's proto is not in a vector; the
+    program keeps its tables as they were built and takes the resolved names (only when the
+    expression is lowered) instead of interning them again, and paths read their entry names
+    from the resolution; a run whose frame has at most 4 slots keeps it on the host's stack.
+    Measured (native, release, the build and one run of an evaluation, evaluator of closures /
+    flat evaluator): `a` 126 / 352 ns (470 before this change), `1 + 2` 307 / 515 (595),
+    `(a * b + c) / d` 858 / 1,180 (1,299), `abs(1)` 416 / 774 (845); one run alone: `a` 53 /
+    74 ns (96), `1 + 2` 60 / 89 (110).
+    Allocations per request (native, `feel_wasm::call`, 0.6.0 engine / this one): `tiny` 92 /
+    95 (97 before), `names-10f` 248 / 233. Speed suite (V8, build and run per request, two
+    rounds, against 0.6.0): `tiny` 0.95x and 0.94x, `names-10f` 0.96x and 0.96x (0.81x before),
+    `decimal-arith` 0.95x and 0.96x, `ut-gt` 0.92x and 0.93x: the build of a small expression
+    still costs more than the builder's. Identity step: no answer changes. Rust API: none.
+195. **The backends harness sends each request once, and leaves out the requests that exhaust
+    memory.** The parse twin of an evaluate request builds no evaluator from a JSON input, so it
+    can not differ, and the identity check already sends it; the counts of the harness are the
+    requests whose expressions both evaluators built. With `RHEON_FULL_TESTS` the requests of
+    the release tier that exhaust the module's memory are left out: natively no memory cap stops
+    them. Tooling only: no answer changes. Rust API: none.
+196. **One helper runs a test body on a thread with a big stack.** The contract test and the
+    backends harness share `tests/shared/big_stack.rs` instead of a copy each. Tooling only.
+    Rust API: none.
+197. **The twins compare whole diagnostics and note what was lowered.** The twins of the model
+    tests compare the whole diagnostics of an evaluation, its warnings included. With
+    `RHEON_BACKEND_COVERAGE` naming a file, the model tests note in it every expression that the
+    flat evaluator lowered, every one it refused (by the kind of the node) and every evaluation,
+    with a twin or without one, so a run with twins shows how much flat code it compared.
+    Tooling only. Rust API: `rheon_feel_evaluator::testing::take_lowered` is new (doc-hidden,
+    behind the `backends` feature).
+198. **The backends harness compares responses without recursion.** It compares the texts of the
+    two responses without the members that name the build or the time, read without recursion,
+    so a response that holds a value nested hundreds of levels deep is compared too; parsed as
+    JSON it would stop at the JSON parser's recursion limit. Tooling only. Rust API: none.
+199. **The flat evaluator runs context literals.** A context literal's entries are binders: each
+    has a slot of the frame, before the temporaries, and its value is evaluated into it and nested
+    no deeper than values may nest (`BoundDepth`); the entries after it read it from the slot, by
+    a copy, with no instruction of their own. `Context` builds the context of the entries in
+    order, moving their values out of the slots. At a repeated key the value of its entry is
+    evaluated, then the key's error (`duplicated context entry key: …`, the kernel's text, now one
+    function) is the value, and the slots of the entries before it are cleared. A context with an
+    entry that is no entry with a key (only a tree built by hand has one) is refused. The program
+    keeps the layouts and the regions of name resolution, for two cold paths: a function of the
+    host invoked inside a context literal (a DMN body, an external function, a function of a FEEL
+    input context) gets the scope that the evaluator of closures has there, the context of the
+    entries visible at the invocation pushed on the host's scope for the call (an empty one is left
+    out: it changes no read); and a qualified name of several segments is searched in the entries
+    visible at its position, a scope at a time and going on below where it fails, then in the
+    host's scope. Tests: `flat::tests::constructs` (entries that read earlier, later and outer
+    entries, shadowed built-ins, repeated keys, B-FEEL, a function of the host that reads the
+    entries before its invocation, qualified names over nested contexts, an irregular entry
+    refused). Measured (harness, debug): 28,138 of 29,540 requests compared, 28,001 lowered, 0
+    differences; random 1,097 compared, 1,076 lowered, 0 differences; model tests with twins
+    3,723 passed, 4,987 expressions lowered, 3,635 evaluations compared with a twin. Identity
+    step: no answer changes. Rust API: none.
+200. **The flat evaluator runs `for`, `some` and `every`.** An iteration is a walk, the record of
+    its nesting depth: the domain of the first variable is evaluated before it opens
+    (`LoopOpen`), and `LevelPush` adds a domain (an interval, a range literal of a `for`, or the
+    items of a value, as `Sequence` makes them; a domain that fails ends the walk with its null).
+    `Step` takes the walk's next step as the walk of the closures does: unless the evaluation
+    was stopped, the next value of the innermost variable that has one, into the variable's
+    slot, followed by the domain of the next variable or by the body; a variable whose domain
+    has no value left is cleared. `Visit` takes the body's value: a `for` adds it to its results
+    and bounds their depth, a `some` or an `every` ends at a value that decides, and at one that
+    is no boolean with null. `LoopClose` gives the value and clears the variables. `partial` is
+    the walk's results (`LoadPartial`); a variable named `partial` is hidden from the domains
+    after it, as the walk of the closures removes that name before each of them, and loses to the
+    results in the body. A variable named twice is the builder's error (its text, now one
+    function), and so are the malformed `some` and `every` of a tree built by hand. A function of
+    the host invoked inside an iteration gets the variables (and `partial`) that have values
+    there; qualified names search them. The program check verifies that every walk is the record
+    of its depth and that its steps lie inside it. Tests: `flat::tests::constructs` (intervals,
+    ranges, dates, lists, single values and null as domains, failing domains, dependent domains,
+    `partial` and its depth bound, variables named twice, `partial` hidden in later domains, the
+    quantifiers' deciding values, functions of the host that read the variables and `partial`,
+    qualified names, malformed iterations, FEEL and B-FEEL); `model-evaluator` `host_calls` (a
+    business knowledge model whose body reads the variables, `partial` and earlier entries of its
+    invocation). Measured (harness, debug): 28,345 of 29,540 requests compared, 28,208 lowered, 0
+    differences; random 1,270 compared, 1,249 lowered, 0 differences; model tests with twins
+    3,723 passed, 5,026 expressions lowered. Identity step: no answer changes. Rust API: none.
+201. **The flat evaluator runs filters.** A filter's items are a record of its nesting depth.
+    `FilterOpen` takes the value of the list: a null is the filter's value at once, without the
+    predicate; a value that is no list is filtered as the list of it, and the value is then bounded
+    a level deeper. The predicate is first evaluated in the scope around the filter, after a
+    tentative mark of the diagnostics: `FilterStep` selects the item at a number's index
+    (`item_at`, unless the evaluation was stopped), and on any other value discards what the
+    predicate recorded and visits the items, evaluating the same code of the predicate for each:
+    the evaluation stopped ends the filter with null before each item and before its value, an
+    item is kept when the predicate is `true`, and a value that is no boolean, number or null
+    ends the filter with its null (`outcome`). A name in a predicate reads, while the filter
+    visits its items, first the item: `item` is the item, or its entry `item` when it is a
+    context that has one (`ItemSelf`), and another name the item's entry of that name
+    (`ProbeItem`), innermost filter first; then what the name reads around the filter. A function
+    of the host invoked in a predicate gets the item's entries and `{item: …}` as the scope of the
+    closures has them, and a qualified name searches them. Only function definitions are refused
+    now. Tests: `flat::tests::constructs` (indices in and out of range, not integers, empty
+    lists, booleans, nulls and other values as predicates, non-lists, context items with and
+    without an entry `item`, nested filters, `partial[-1]`, predicates reading context entries,
+    loop variables and the input, functions of the host that read the item, qualified names,
+    FEEL and B-FEEL). Measured (harness, debug): 28,735 of 29,540 requests compared, 28,598
+    lowered, 0 differences, refused only `FunctionDefinition` 805; random 1,527 compared, 1,506
+    lowered, 0 differences; model tests with twins 3,724 passed, 5,086 expressions lowered,
+    refused only 173 function definitions. Identity step: no answer changes. Rust API: none.
+202. **Allocation caps for the walks and filters of the flat evaluator.** `feel-evaluator/tests/
+    allocations.rs` measures what 10,000 iterations or items cost more than one: `for`, `some` and
+    `every` over intervals and lists, `partial[-1]`, and filters over numbers and contexts (by
+    `item`, by an entry and by `item.n`) allocate only for their results, 12 allocations of
+    2,096,640 bytes as the vector of 10,000 values doubles (capped at those and a tenth); two
+    variables cost one allocation more; reading `partial` costs no copy of the results (an
+    iteration that passes it to a built-in allocates 2 allocations and 72 bytes, for the
+    invocation). Tests only; no API change.
+203. **A function of the host invoked inside binders gets one reused scope per region.** An
+    invocation of a function of the host inside a context literal, an iteration or a filter pushes
+    the scopes that the evaluator of closures has there; each was a context built for the call.
+    Now each region keeps one context for the run, created at its first invocation: its names are
+    the region's, its values are assigned for each invocation without copying the names, and set
+    back to null after it, so no value (`partial`'s results above all, which would then be copied
+    as they grow) is held between invocations. The regions of the invocation are kept in one
+    vector of the run. Test: `allocations.rs` (10,000 invocations in a walk cost 3 allocations and
+    about 1 KiB each, no copy of the results). Measured (native, release, a business knowledge
+    model invoked in a `for` over 10,000 numbers, minimum of 30 rounds): 4.38 ms with a context
+    built per call, 3.41 ms now (0.6.0 engine: 2.84 ms). Identity step: no answer changes. Rust
+    API: none.
+204. **The resolution reports where a free name is read.** For every free name the resolution
+    keeps where it is read: in the root expression or in a body, in the predicate of a filter,
+    as the function of an invocation, and for a qualified name the read of its first segment.
+    The report is private to the crate; it is what a layer that resolves names before an
+    evaluation would read. Identity step: no answer changes. Rust API: none.
+205. **The sample of the backends harness has a request that the flat evaluator refuses.** The
+    harness's own test counts one refusal by kind and node, and the test of the size of an
+    instruction is gone (the program's verification covers the encoding). Tooling only. Rust
+    API: none.
+206. **The flat evaluator runs function definitions and their invocations, on the heap.** A
+    function definition evaluates its formal parameters (a constant when every type is a named type
+    of the grammar; otherwise each parameter's type in order, up to the first that fails, as the
+    builder's fold), then the mapping of an external body (even when a parameter failed), then
+    makes the function with the kernel of the builder (`function_definition`): its closure holds
+    the value of each name it closes over, searched where it is defined, a scope at a time down to
+    the host's. The body of FEEL is a proto of the program, lowered after the root expression (one
+    body after the other, so no body is lowered inside another), and the function's body is
+    `FunctionBody::Feel` with the program and the index of the proto (the program is the code of
+    its bodies, so a definition allocates no code).
+    An invocation of such a function is an activation of the body in the same run: the arguments
+    are bound as `invoke` binds them (`bind`'s parts: the number of positional arguments, named
+    arguments in the order of the parameters, then each converted to its parameter's type, the same
+    texts; positional ones in their temporaries, named ones in one vector of the run), its slots
+    are a window above those of its caller, which waits in a frame record on the heap, and its
+    `Return` makes a function that the body gives close over the names it uses as they are there
+    (`closed_over`) and converts the value to the result type. So FEEL recursion, nesting and
+    loops take no stack of the host. A body reads its parameters and binders from slots and every
+    other name as the evaluator of closures reads it in the scope of the call: its closure, then
+    the scopes of its caller where the caller invoked it (its binders, the item of a filter, its
+    closure), and so on down to the host's scope, then the built-in function of that name; the
+    value of such a name is kept in a cell of the activation once read (the chain below an
+    activation does not change while it runs), and a name that nothing has is null with its error
+    at every read. Qualified names are searched along the same chain. A function of the host
+    invoked in a body gets the scopes of the whole chain pushed on the host's scope; the function
+    of another program (a decision that gives a function) is an activation too, which runs that
+    program's code. The host's invocations of such a function (`sort` and `list replace`, DMN
+    bodies, `evaluate_invocation`) run its body as a run of its own (`invoke`'s one new arm), with
+    the closure and the parameters as `apply_body` has them. Tests: `flat::tests::constructs`
+    (definitions, captures, a body that reads its caller's loop variable, `partial`, item and
+    later entries, a returned function that closes over a later entry, typed and named
+    parameters, external bodies, recursion to 250 calls, mutual recursion, callbacks of `sort`,
+    searches in the callers' scopes), `feel::tests::function` (`Feel` compares and prints like
+    `LiteralExpression`). Measured (harness, debug): every request of the committed sources is
+    compared and nothing is refused, 29,540 requests, 29,403 lowered, 0 differences; random 2,000
+    compared, 1,979 lowered, 0 differences; model tests with twins 3,724 passed, 5,259
+    expressions lowered and none refused, 3,641 evaluations compared with a twin. Speed suite (V8,
+    two rounds, against 0.6.0): `closure-call-10k` 1.07x and 1.08x, `typed-call-10k` 1.20x and
+    1.20x, `named-call-10k` 1.09x and 1.11x, `fn-in-ctx-1k` 1.14x and 1.16x; `fib20` 0.78x and
+    0.79x, `mutual-rec-150` 0.60x and 0.60x, `deep-rec-190x40` 0.68x and 0.69x, where a free name
+    is found the first time in each activation by a walk through every caller. Identity step: no
+    answer changes. Rust API: `rheon_feel::FeelCode` added (code that holds numbered bodies);
+    `FunctionBody` gains the variant `Feel(Arc<dyn FeelCode>, u32)` (an exhaustive `match` on
+    `FunctionBody` breaks).
+207. **A body finds a free name its caller has read at the caller's closure.** The walk for a
+    free name of a body goes through every activation below it, so recursion read its callee's
+    name in time proportional to its depth. Now, where the walk reaches the closure of a waiting
+    activation of the same program that has read the same name, the value in that activation's
+    cell (what it found, or the built-in function of that name) is the rest of the walk: that
+    activation read it from its closure down, and the chain below an activation does not change
+    while it waits. The scopes above its closure (its binders and items where it invoked the
+    body) are still searched first. Each proto keeps the names of its cells, by name. Tests:
+    `flat::tests::constructs` (a caller that rebinds the name around the invocation, an item, a
+    parameter of the same name, a built-in function, a missing name, recursion). Measured (speed
+    suite, V8, two rounds, against the build before this change): `fib20` 1.24x and 1.24x,
+    `fib15` 1.19x and 1.17x, `mutual-rec-150` 2.26x and 2.27x, `deep-rec-190x40` 1.48x and
+    1.49x, the other call workloads 0.97x to 1.02x; against 0.6.0: `fib20` 0.98x and 0.98x,
+    `mutual-rec-150` 1.34x and 1.35x, `deep-rec-190x40` 1.00x and 1.01x. Identity step: no
+    answer changes. Rust API: none.
+208. **Invocations of the flat evaluator allocate no arguments.** In FEEL a built-in function
+    invoked with positional arguments reads them in their temporaries (the binder of the built-in
+    takes a slice), which are then cleared: the vector of arguments is gone. Named arguments of a
+    function of FEEL are put in the order of the parameters straight from their temporaries, and
+    those of a function of the host and a built-in function into the one vector the invocation
+    takes. Tests: `allocations.rs` (10,000 invocations of a function of FEEL, positional, named,
+    typed or recursive, allocate nothing but the walk's results: 12 allocations and 2,096,640
+    bytes more than one invocation; 10,000 of `abs` allocate 10,011 times, the value `abs` makes
+    and the results). Identity step: no answer changes. Rust API: none.
+209. **The stack check asserts FEEL recursion at the AST limit on every host.** FEEL calls run
+    on the heap, so `scripts/stack-headroom.mjs` now asserts that a recursion of 200 calls (the
+    call depth limit) whose body is nested to the AST limit evaluates on every host it runs:
+    Node's main thread and a 4 MiB worker, with Liftoff and with TurboFan, and Wasmtime with its
+    default 512 KiB wasm stack (newly checked) and with 4 MiB; and that a recursion of 66 levels
+    through a `sort` comparison (199 nested calls) whose body is nested to the AST limit
+    evaluates in the worker and in Wasmtime with 4 MiB, the hosts the contract requires for a
+    callback, which takes native stack per level. The recursion of 190 calls and its floors of 60
+    levels are gone. CONTRACT §1, the README and the runtime's README say that FEEL recursion
+    takes no native stack, with the measured figures. Measured (`--report`, macOS arm64, Node 26,
+    Wasmtime 49.0.3): every host, Node's main thread and Wasmtime with 512 KiB included, reaches
+    the AST limit with both recursions (a body nested 289 levels in the recursion, 284 in the
+    comparison); 0.6.0 reaches 43 levels with 200 calls on Node's main thread, 199 (Liftoff) and
+    200 (TurboFan) in the 4 MiB worker, 18 and 210 in Wasmtime with 512 KiB and 4 MiB (so it
+    fails the recursion of the new check on every host), and through `sort` 111 (Liftoff) on the
+    main thread and 55 in Wasmtime with 512 KiB. No
+    committed request traps 0.6.0 for want of stack, so the identity step shows no change.
+    Rust API: none.
+210. **An interval of integers is counted as integers.** The numbers of `a..b` and `[a..b]`
+    whose ends are integers held without a scale are produced by counting an `i64` and
+    converting each count, instead of adding one to a number and comparing it with the end at
+    every step. Each count converts to the number that the addition gives, in the same cohort;
+    an end with a scale or a fraction, a zero with a sign and an end outside the `i64` range
+    step as numbers as before. Tests: `tests/iterations.rs` (both ways compared item by item, at
+    the ends of the integer range as well). Measured (wasm, Node 26, against 0.6.0, two rounds,
+    with the items up to this one): the counting loop over 10,000 numbers 1.01 ms to 366 us
+    (2.75x), nested loops 2.6x to 3.0x. Identity step: no answer changes. Rust API:
+    `FeelNumber::unscaled_i64` is new.
+211. **The root expression reads a free name of the host once.** A free name of the root
+    expression has a cell, as a free name of a body has: its first read looks the name up in the
+    scope of the host, or finds the built-in function of that name, and later reads give that
+    value. The scope of the host has the name or not for the whole run (a function of the host
+    writes only into the scopes it pushes), so the answers are the same; a name that nothing has
+    stays an error recorded at every read. Before, every read looked the name up by its text,
+    and a built-in function was found from its name as a string each time. A conditional jump
+    tests its operand where it is. Measured: natively, one input name read in a loop of 10,000
+    iterations over a context of 1,000 entries 1,709 us to 988 us; on the speed suite a built-in
+    function called in a loop 2.1x, short-circuit logic 1.9x against 0.6.0. Identity step: no
+    answer changes. Rust API: none.
+212. **The scopes kept for functions of the host are one per layout.** A function of the host
+    that an expression invokes gets the binders of the invocation's position in a scope that the
+    run keeps to use again. The run kept one such scope for each region, and every entry of a
+    context literal is a region of its own, so a literal of n entries that each invoke a
+    function of the host kept n scopes with n(n-1)/2 entries until the run ended. The run keeps
+    one scope for each layout: a region that sees more entries than the one before extends it,
+    one that sees fewer starts it again. Test: `allocations.rs` (400 entries allocated
+    13,359,551 bytes where 200 allocated 3,428,607; now about twice as much). Identity step: no
+    answer changes. Rust API: none.
+213. **Tests of what a function of the host sees; a body of another program gets a scope of its
+    own.** `flat/tests/host.rs` invokes a function whose body is the host's and gives what its
+    scope holds for a set of names: from the entries of a context literal, from the domains and
+    the body of a walk (with a variable named `partial`), from the predicate of a filter, from
+    recursive calls and from a function of another expression (24 cases). The last case
+    panicked: the scope kept for a layout was looked up by the layout's index before the layout
+    was known to be one of the program that the run starts with. Such a body gets a scope of its
+    own, which is not kept. No wasm request reaches the case (it needs a function of the host
+    and a function of another expression). Rust API: none.
+214. **The runaway evaluation that a runtime test cancels keeps little memory.** The test
+    cancels a running evaluation after 200 ms. Its expression collected 100,000,000 numbers,
+    which a walk over integers does fast enough to fill the 512 MiB of the instance before that,
+    so the request ended as a crash. The expression is a walk of walks that keeps at most
+    100,000 numbers at a time. Tooling only. Rust API: none.
+215. **A recursion that overflowed the stack of the host is registered.** A function that wraps
+    the value of each call in 250 lists, called 190 levels deep, overflowed the stack of Node's
+    main thread in 0.6.0, and the instance trapped. Calls of FEEL functions do not use the stack
+    of the host, so the evaluation reaches the limit of 500 levels of nesting and stops with the
+    value-depth error. The request is in `tools/identity/release/requests/deep-recursion.json`
+    with its entry in `release/registered/host-stack.json`: the one registered difference of
+    this series against 0.6.0. Rust API: none.
+216. **The answers of the evaluator of closures are recorded.** The tests of `flat/tests/`
+    compared the two evaluators. The answers of the evaluator of closures for their 4,775 cases
+    (value and diagnostics; 259 of them trees built by hand) are recorded in
+    `flat/tests/expected/`, and the tests compare the flat evaluator with the record; a missing
+    or unequal record fails. Tooling only. Rust API: none.
+217. **The flat evaluator is the only evaluator of expressions.** The seam no longer falls back
+    to the evaluator of closures. A tree of a shape that the parser never produces, which the
+    lowering does not take, evaluates to null with one error at every evaluation, `malformed
+    expression tree: unexpected <Kind> node`, where the kind is the name of the node that
+    stopped the lowering and never its content. Every expression that the parser produces
+    answers as before: the records of item 216 and the identity check are unchanged.
+    **Behaviour change for trees built by hand only:** four crate tests of malformed trees
+    changed their expected error (a context whose entry or key is not of its shape, a function
+    definition without formal parameters, an empty comma list), from the error of the part to
+    this one. Rust API: the behaviour above for `prepare`, `prepare_with_dialect` and `evaluate`
+    on malformed trees.
+218. **The evaluator of closures is deleted.** `builders.rs`, the `backends` feature with
+    `rheon_feel_evaluator::testing`, the backends harness with its generator, the twins of the
+    model tests and their tier steps are gone (2,349 lines). What the DMN layer uses for boxed
+    expressions stays (`Iteration`, `Domain`, `Sequence`, the boxed filter, `invoke`,
+    `closed_over`, `ClosureBuilder`): boxed `for`, `some`, `every` and filters compose
+    evaluators of the host, and share the sequence, the item and the outcome kernels with the
+    run loop. The error texts that name `builders` stay byte for byte. Checks: the group tier,
+    with the identity check at 0 differences. Rust API: the doc-hidden module
+    `rheon_feel_evaluator::testing` and the feature `backends` are removed.
+219. **The end of a time range in a test is found by adding a duration.** The helper that checks
+    that `now()` lies within a second of a time built the end of its range by adding to the
+    seconds of the time, so it failed whenever it ran in the last second of a minute. Tooling
+    only. Rust API: none.
+220. **The recorded answers of the tests are not part of the package.**
+    `feel-evaluator/Cargo.toml` excludes `src/flat/tests/expected/` (1.3 MB). Rust API: none.
+221. **An evaluation can have a budget of steps.** An evaluate request can carry `maxSteps`, a
+    positive integer: every function call (of a user-defined, built-in or model function) and
+    every item that a `for`, `some`, `every` or a filter visits is a step, and the step after
+    the last one of the budget stops the evaluation with the `evaluation` error `evaluation took
+    more than <n> steps; evaluation stopped`; the instance stays healthy. Without the field an
+    evaluation has no budget and answers as before; a value that is not a positive integer is a
+    `request` error, read after `errorMode`. The budget is part of the evaluation state beside
+    the call depth, so nested runs and callbacks share it. Tests: `contract.rs` (loops, filters,
+    quantifiers, recursion, callbacks, built-in calls; the exact count of `count(for i in 1..10
+    return i)`: 12 steps; the field's values and its place in the order of request errors),
+    `engine.test.mjs` (through a worker, which is kept). A runtime test of the timeout walks
+    100,000,000 items instead of 10,000,000. Additive to the wasm request and to
+    `@rheon/feel-runtime` (`EvaluateRequest.maxSteps`). Rust API:
+    `diagnostics::evaluation_within`, `diagnostics::step`, `Abort::Steps` and
+    `Session::with_step_budget` are new.
+222. **A name that is not in scope ends before a keyword.** When no name in scope starts at a
+    name token, the name took every word up to the next punctuation, keywords included: `for s in
+    x return 1`, `if x then y else z` and `some s in x satisfies s.z` were syntax errors when `x`
+    was no name in scope, and `x and y` was one unknown name. Such a name now ends before the
+    first of its words that is a keyword which can follow an operand (`and`, `between`, `else`,
+    `in`, `instance`, `or`, `return`, `satisfies`, `then`), written as a word of its own: white
+    space before it, and white space or the end of the input after it, as where the keyword
+    starts a token. The rest is read as the following tokens, as after a name in scope (DMN 1.6
+    §10.3.1.6 resolves a keyword inside a name by the names in scope, and here no name in scope
+    has it). Unchanged: a name in scope is matched first, so it holds its keywords (`tax
+    return`); the built-in names `date and time`, `years and months duration` and `days and time
+    duration` are read whole; the other keywords never follow an operand, so `price list` stays
+    one name; `opt-in rate` and `x and(y)` have no keyword as a word of its own. **Behaviour
+    change beyond the fix:** a name that is not in scope and has one of the nine keywords as a
+    word (`Is in range`) was null with an error and is another expression now, often a syntax
+    error. The frozen reference lexer of the differential tests has the same rule, written in
+    its own terms: as a registered difference it would leave the tokens after every such name
+    uncompared. Tests: `expr::name` (the tree without the names in scope equals the tree with
+    them; names in scope with keywords; the words that stay), `expr::various` (a filter of four
+    conjunctions parses without its names in scope). Identity: the 10 requests of the committed
+    sets whose answers change and those of 72 new requests of `names.json`, each with its parse
+    twin, 104 entries in `registered/unknown-name-ends-before-keyword.json`; every changed
+    answer of the 10 equals what 0.6.0 answers for the form with the name in parentheses. The
+    official TCK is unchanged, test by test. `docs/BACKLOG.md` states what remains (a name that
+    is not in scope still takes the symbols and other words after it). Rust API: none; the
+    tokens and trees of `rheon-feel-parser` change as above.
+223. **A string literal or a block comment that is not closed is a syntax error.** The lexer
+    read the end of the input where the text ended inside a string literal or a block comment,
+    and the parser accepted what came before: `1 + 2 "never closed` was 3 and `1 /* never
+    closed` was 1. The token at the quote or at the `/*` is now an undefined token, so the input
+    is a syntax error, as a string literal with a line break already was (DMN 1.6 §10.3.1.2:
+    grammar rule 33 ends a string literal with its quote, and a block comment is `/* ... */`). A
+    line comment still ends with the input. The differential tests register the difference with
+    the reference: the same tokens, then the undefined token where the reference reads the end
+    of the input. Tests: `expr::invalid` (21 texts under every start rule; closed forms).
+    Identity: the new request set `syntax.json` (57 requests) and the 38 entries of
+    `registered/unclosed-string-or-comment.json` (10 requests, lenient and strict, with their
+    parse twins, and a FEEL-format input context). Rust API: none.
+224. **The name tokens after an iteration variable `item` compare each part with `in` once.**
+    The mode of the iteration variable (the name ends before a part `in`) stays set after a
+    variable `item`, which is read before the mode is looked at (`docs/BACKLOG.md`,
+    *Iteration-variable mode outlives `item`*). Every later name token then searched the rest of
+    its chain for a part `in`: 1,000,000 comparisons for a chain of 1,000 names. The lexer
+    remembers the last search of the chain, and a name token inside its range takes the answer.
+    The tokens are the same, also where the mode shows. Tests:
+    `parts_compared_with_in_grow_linearly_with_the_chain` (a work counter),
+    `names_after_an_item_variable_equal_reference`. Measured (wasm, V8, best of 5, `for item in
+    [1] return a + a + ...`): 1,000 terms 2.28 ms to 0.94 ms, 4,000 terms 30.4 ms to 1.64 ms,
+    16,000 terms 463 ms to 6.2 ms, as with any other variable name. No answer changes. Rust API:
+    none.
+225. **A JSON input context of more than 11 entries is built in one pass.** Every entry of a
+    JSON object was inserted into its context with a search of the map, though the entries come
+    in the order of their keys, which is the order of the names unless a key was trimmed.
+    `FeelContext` can be collected from entries: those in ascending order of their names,
+    without a repeated name, build the map in one pass, and from the first entry out of that
+    order on each is inserted, so an entry with the name of an earlier one replaces it as
+    before. The input conversion collects an object of more than 11 entries this way; a smaller
+    one, whose entries are one node of the map, is inserted as before, which is cheaper there.
+    Of two keys that are one name after trimming, the later one in key order still gives the
+    entry. Tests: `test_context_collected_from_entries` (equal to inserting, in every order),
+    `context_keys_are_trimmed_but_inner_whitespace_is_kept` (both orders, nested contexts, a
+    context of 44 keys). Measured (wasm, V8, whole requests): a context of 100 names 0.032 ms to
+    0.028 ms, 1,000 names 0.310 ms to 0.247 ms, 5,000 names 1.69 ms to 1.31 ms, 100,000 names
+    39.8 ms to 29.7 ms; rows of 24 keys 0.94x the time, of 64 keys 0.87x, of 128 keys 0.82x, of
+    1 to 16 keys within 3% either way. The memory of the instance after a context of 100,000
+    names is 33.3 MiB (30.8 MiB before: the entries are held once more while the map is built).
+    No answer changes. Rust API: `impl FromIterator<(Name, Value)> for FeelContext` is new.
+226. **The name index compares the items of a list only when a lookup depends on it.** The keys
+    of the items of a list are names in scope when the items conform to the first one, and the
+    index of an input context decided that for every list when it was built, which reads every
+    item of every list; a parse that looked up one name of two parts paid for it. The index is
+    now built without the comparison: the keys of the first item of a list of two or more items
+    are held as not decided. It answers every lookup that these keys do not decide: a name it
+    does not hold is no name in scope, a name held without such a list on the way is one, and
+    its lengths are upper bounds of the lengths of the names in scope (a larger bound admits
+    more candidate names, and each is looked up). A lookup of a name that only such lists hold
+    builds the index with every list decided, which answers from then on; a composite name found
+    through such a list is searched again there. The lexer does not look up the last candidate
+    of a name token, its first part alone, when a keyword that ends a name follows it (item
+    222): the token is this part whether it is a name in scope or not, so the list of a `for`
+    and the operands of `and` decide no list (`for s in m.lines return s.qty`); a built-in
+    property after a dot and a built-in type name where a type is read are still recognised.
+    Tests: `lists_are_decided_when_a_lookup_needs_them` (a work counter),
+    `names_of_list_items_equal_reference` (lists of items of one and of several types), and the
+    random texts and contexts of the differential tests. Measured (wasm, V8, best of 60 whole
+    requests): `sum(items.amount)` over 10,000 rows 8.85 ms to 7.76 ms; a `for` over the same
+    rows 9.09 ms to 7.92 ms; a nested `for` over 200 lists of 50 rows 6.32 ms to 5.09 ms; a
+    filter by a key of two words, which decides its list, 9.18 ms and 9.18 ms. No answer
+    changes. Rust API: none.
+227. **The JSON of context and input is read straight into values.** A request was read into a
+    tree of JSON values and the tree converted into FEEL values: two walks, and the input held
+    twice. A strict reader of the request text (`wasm/feel-wasm/src/json.rs`) walks the top-level
+    object once and reads the JSON of `context` (an object) and of `input` (an object or an
+    array) into values where it stands; the other fields are read as before. The reader answers
+    only what it is sure of: it takes a text only when it is JSON as serde_json accepts it (the
+    same grammar, escapes and nesting limit), and whatever it refuses is answered by the tree as
+    before: a text that is no request, a top-level key written with an escape, an object with
+    serde_json's private number key, a key with white space at an end, an empty key, a number
+    that does not convert, and an object whose keys are not ascending when one of its values
+    has a warning. So every error and its text are unchanged, of two entries with one key the
+    later one counts, the warnings of an object come in the order of its keys, and a warning
+    quotes a number as serde_json hands it on. Tests: random objects, a third of them damaged,
+    read exactly as through the tree or refused (20,000; 400,000 at full size); random and
+    damaged texts taken only when serde_json reads them as an object; the nesting limit; the
+    scan of a string eight bytes at a time; a contract test that answers 37 requests both
+    ways. Measured (wasm, V8, whole requests): `1` with 5,000 input names 1.31 ms to 0.61 ms,
+    with 10,000 small contexts 6.87 ms to 5.47 ms, with 160 records of 200 fields in nested
+    lists 7.63 ms to 4.16 ms; slower: a 1 MiB string without escapes 0.37 ms to 0.41 ms. The
+    four changes that would let the tree go (exact keys, a repeated key as an error, warnings
+    in the order of the text, own texts for malformed JSON) are not made. Rust API: none.
+228. **The response of an evaluation is written straight from the result.** The result was
+    walked four times, copied into a tree of its typed form and that into a tree of JSON
+    values, and the response written from the tree: about 36 allocations for every number of a
+    list. The response of a successful evaluation is now written as text
+    (`wasm/feel-wasm/src/output.rs`), the typed form straight from the value and the `feel` and
+    `type` texts through a writer that escapes what is written to it; byte for byte what
+    serde_json wrote for the tree. Tests: the result of 30 expressions equals the text of its
+    tree, which stays in the tests as the reference; strings are escaped as serde_json escapes
+    them; a contract test reads 13 responses back and writes them again. Measured: a list of
+    10,000 numbers returned 13.7 ms to 5.3 ms, 10,000 small contexts 79.5 ms to 37.3 ms, with
+    the memory of the instance growing by 19.3 MiB instead of 84.4 MiB; `1 + 2` 5.2 us to
+    3.8 us; slower: a 1 MiB string of which every fifth character is escaped, echoed, 14.5 ms
+    to 17.0 ms. Rust API: none.
+229. **The records of an input list share their names and the order of their keys.** The reader
+    remembers, for each depth, the keys of the object it read last: their names, whether they
+    are ascending, and the order that makes them so; the next object at that depth with the
+    same keys in the same order takes the names and the order, for one comparison per key. A
+    `Name` holds its text shared, so the name of a key is one text for all records. Tests: the
+    differential tests of the reader, and lists of records whose key orders repeat, change,
+    differ in number and repeat a key. Measured: `1` with 10,000 rows of 8 keys 9.9 ms to
+    7.9 ms; a nested input of 3,400 records with 129,000 numbers 21.0 ms to 16.5 ms; small
+    expressions 0.97x to 1.03x. Rust API: `Name` holds shared text (`From<Name> for String`
+    copies); `FeelContext::from_ascending_entries` is new.
+230. **The digits of a number text are read as a number.** The parser of a number text collected
+    its digits in a string that the rounding read again. The coefficient is read as a number
+    while it has at most 38 digits after its leading zeros and handed to the rounding that
+    takes a number; a longer one is rounded from its digits as before. Test:
+    `parse_equals_parse_by_text` compares the parser with the one it replaces on 55 chosen and
+    50,000 random texts (2,000,000 at full size). Measured: `1` with a list of 40,000 numbers
+    2.98 ms to 2.41 ms; the nested input of item 229 16.6 ms to 14.3 ms. Rust API: none.
+231. **A name is looked up among the pushed contexts in one step.** Every binder pushes a
+    context, and a name of two or more parts was looked up in each pushed context in turn: n
+    nested binders with such names cost n² steps. The scope counts, for each key of the pushed
+    contexts themselves, the contexts that have it; with more than 16 pushed contexts the
+    bound of the candidates by their first word is the bound of all their keys. Tests:
+    `pushed_contexts_walked_grow_linearly_with_the_nesting` (a work counter, and the tokens of
+    binders nested 1 to 40 deep against the reference). Measured (op parse):
+    `for v in a b return ` 2,000 times around `a b + v` 34.7 ms to 2.5 ms. The depth limit is
+    still checked after the parse. Rust API: none.
+232. **A candidate name is a piece of its chain, looked up only when a name has its length.** A
+    name token tried every prefix of its chain of name parts and wrote the flattened text of
+    each anew: with a long key in scope that shares its first word with the text, a text of n
+    parts cost n³ byte steps. The flattened text of a regular chain is written once, a
+    candidate is a piece of it, and a candidate of a length that no name in scope has is not
+    written or looked up (`ParsingScope::may_contain_length`; the index of an input context
+    keeps the lengths of its keys). Tests: the differential tests, in which every candidate
+    piece is also compared with the flattening it replaces. Measured (the key `a.a...a.b` and
+    `a` in the context, the text `a.a...a`): 250 parts 164 ms to 0.74 ms, 500 parts 1,279 ms
+    to 2.5 ms, 1,000 parts (4 KB) 9.5 ms; the cost is still a step per candidate (2,000 parts
+    37 ms). Rust API: none.
+233. **`evaluateAll` evaluates several expressions over one context.** A host that evaluates
+    several expressions over the same context sent the context with each, and reading a large
+    context is nearly the whole request. `op: "evaluateAll"` takes the context once and a list
+    `evaluations` (each with the fields of one evaluation and an optional `id`); the response
+    has `results`, one answer per entry in their order, each what `evaluate` answers for that
+    entry, and `contextWarnings` once. An entry that fails is a failure in its place; the
+    entries do not see each other; nothing is kept after the request (docs/CONTRACT.md).
+    `evaluate` is unchanged. Tests: 20 evaluations over three contexts answered as the single
+    requests answer them. Measured (a context of 1.6 MB, medians of 30): one request each
+    14.6 ms; 10 entries in one request 15.2 ms. Rust API: none (the wasm boundary only).
+234. **The letter of an exponent belongs to a number only before exponent digits.** `1e` and
+    `1e+` were the number 1, and `1e + 2` was 3. The letter is part of the number only when
+    digits follow it, after an optional sign (DMN 1.6 grammar rule 35); otherwise the number
+    ends before the letter: `1e` is a syntax error, `if true then 1else 2` a conditional.
+    Identity ledger: 28 entries. Rust API: none.
+235. **A name that is not in scope ends before an operator symbol.** With no `x` in scope
+    `x - 1` was the one name `x-1` and `x.y` the name `x.y`, each null. Such a name ends before
+    `.`, `/`, `-`, `+` and `*`, as before a keyword that can follow an operand; the apostrophe
+    stays in the name. A name in scope is matched first, also one written with symbols side by
+    side. A name that is being declared (`parse_name`: `Approved/Declined`, `Profit and loss`)
+    is the whole text (`Parser::with_whole_names`). Identity ledger: 104 entries; a name that
+    is not in scope and has an operator symbol is the expression now (docs/BACKLOG.md). The
+    official TCK answers are unchanged. Rust API: none (`parse_name` keeps its signature).
+236. **The endpoint of a unary comparison takes the arithmetic after it.** The cell `> x + 1`
+    was `(? > x) + 1`, which is null, so a rule with such a cell never matched. The six unary
+    comparisons have the precedence of `in` (DMN 1.6 grammar rules 7 and 51); `and`, `or`, a
+    comparison and `between` end the endpoint as before. Tables regenerated with Bison 3.8.2,
+    the same tokens. Identity ledger: 44 entries. Rust API: none.
+237. **A range literal takes a negative number as an endpoint and has an endpoint.**
+    `range("[-1..1]")` was null, and `(..)` was a range of nothing. An endpoint is a number
+    with an optional minus (grammar rule 67 with the sign of rule 35), and a range literal has
+    at least one endpoint (rule 66). Identity ledger: 20 entries. Rust API: none.
+238. **The tests of the front end compare with recorded outcomes.** The tests compared every
+    input with a frozen copy of an older lexer and parser and a list of allowed differences,
+    which grew with every fix. The outcomes are recorded instead (`feel-parser/src/tests/golden`:
+    a digest per case at the default size, one per group at the full size, and 110 chosen
+    expressions in a readable file with their tokens and trees); the copy (3,900 lines) is
+    deleted. A fix that changes an answer rewrites the files in its commit
+    (`RHEON_GOLDEN=update`, at both sizes) and says which cases changed. Rust API: none.
+239. **`list`, `range` and `context` are names outside a type.** Before a `<` the three words
+    were keywords everywhere: `list < 2` and `{list: 1}.list < 2` were syntax errors. They are
+    keywords only where a type is expected, and a type is expected for the one token after the
+    parser asks; before, the request stood until a built-in type name used it, so a `date` or
+    `number` long after `x instance of T` was read as a type. A function type asks right after
+    `function <` (tables regenerated, the same tokens); no action that changes the lexer is
+    reduced after a lookahead any more. Identity ledger: 36 entries. Rust API: none.
+240. **The `and` of a `between` is the parser's choice, and a dot asks for one token.** After
+    `between` the next `and` anywhere was the between's, so `x between (if a and b then 1 else
+    2) and 5` was a syntax error. The lexer reads every `and` as a conjunction; while a between
+    is open the parser asks its tables whether it would shift the between's `and` in its state
+    (`Parser::takes`: the reductions are followed beside the stack, no action runs) and reads
+    the token as that one where it would. And a built-in property name is looked for in the
+    one token after a dot: before, until one was found, so `years and months duration` as a
+    parameter type after a path was the name `years`. Identity ledger: 24 entries; `a.b + start
+    included` with `start` in scope was null with a warning and is a syntax error, as any name
+    in scope followed by a word. Rust API: none.
+241. **A built-in name that is longer than the name in scope is the name.** With a variable
+    `string` in scope `string length(string)` was a syntax error; with `date` in scope `date
+    and time("...")` was a conjunction. After the lookup of the names in scope, the prefixes of
+    up to four words are compared with the built-in names: a function name with more words
+    than the name in scope wins (one with a keyword in it only before the `(` of its call),
+    and where a type is expected a built-in type name wins also with as many words. A variable
+    with the same name as a built-in function still stands for the variable. Identity ledger:
+    34 entries. Rust API: none.
+242. **`evaluateAll` in the npm runtime.** `FeelEngine.evaluateAll(req, opts)` and
+    `instantiateFeel(...).call({ op: 'evaluateAll', ... })` send the request of item 233: the
+    context once (a `rawJson` context spliced verbatim), `tzOffsetMinutes` filled in as for
+    `evaluate`, and each entry with its own fields (a `rawJson` input spliced; the input sent
+    for unary tests only). It is one request in the queue, under one timeout and one signal.
+    An entry that the runtime can not send (invalid raw JSON, an unpaired surrogate) is a
+    failure in its place in `results`, with its `id`, and the other entries are sent. The
+    existing methods are unchanged. Tests: every answer equals the answer of `evaluate` for
+    the entry; raw digits; failures in place; a failure of the request; a real worker.
+    Rust API: none.
+243. **The records of an input list hold their names in common.** Each object of the input was
+    a context with a map of its own; for a list of records with the same keys a third of the
+    reading built and freed these maps. A context has a second form for its entries: a list
+    of names, ascending and each once, held in common by several contexts, and the values of
+    this one. Every reader sees the entries of a map, and the first change gives the context
+    a map of its own. The reader keeps only the values of an object while its keys are those
+    of the object before it at its depth. Tests: a context of shared names against the map of
+    the same entries, for every read and every change. No answer changes. Measured (wasm):
+    a 1.58 MB input of 3,400 records 13.9 to 11.3 ms. Rust API:
+    `FeelContext::from_shared_names` (new).
+244. **A plain number of the input is read in one pass.** A number was passed three times (its
+    end, a search for an exponent, its digits into 128 bits). A number without an exponent and
+    with at most 18 digits after its leading zeros is read in the pass that finds its end,
+    into 64 bits, with the digits and the scale of its text; every other number goes the way
+    it went. The parser of a number text reads its first 19 digits in 64 bits. Tests: 100,000
+    number texts against the conversion of their texts. No answer changes. Measured (wasm):
+    the same input 11.3 to 8.1 ms; the ordinary speed suite 1.07x, input-heavy requests 1.4x
+    to 1.95x. Rust API: none.
+245. **A record of an input list is read when it is first used.** A request paid for reading
+    all of its input, also when the expression used a small part. An object that is an item
+    of an array, of at least 128 bytes, is passed without reading it into values, and is a
+    context that reads it when something first uses it (`FeelContext::deferred`, the trait
+    `DeferredEntries`); at every depth, so the records inside a record that is read stay unread
+    until they are used. The pass validates the object and takes only one that the reader
+    reads without a warning and without refusing it; any other is read at once. So the values,
+    the warnings, the errors and their order are unchanged. Tests: whatever the pass takes is
+    read to the same end, without a warning, into a value of the depth the pass gave; lists of
+    records against the conversion through the tree; a context that reads on first use against
+    the context of its source. Measured (wasm): an input of 1.58 MB, expression reading 2
+    numbers 8.3 to 2.8 ms, reading one field of 160 records 8.3 to 4.9 ms; a field of every
+    record read 1.67 to 2.20 ms (the pass is paid on top); the ordinary speed suite 0.99x
+    (three workloads that build or read many contexts 0.94x to 0.95x), 1.50x against 0.6.0.
+    Rust API: `FeelContext::deferred`,
+    `FeelContext::is_built`, `DeferredEntries` (new).
+246. **FEEL functions are lexical closures.** The body of a function read the names it did not
+    bind through the scopes of whoever invoked it, and a function that a body returned closed
+    over the names as they were where the body ended (both kept from dsntk): `{f: function() a,
+    r: {a: 1, s: f()}.s}.r` was 1, and `{f: function(x) {x: 10, g: function(y) x + y}.g, h:
+    f(1), r: h(5)}.r` was 6. A body now reads its parameters, the names in scope where the
+    function is written, the scope of the host and the built-in functions (§10.3.2.13.2). Of
+    the context literal it is written in it sees every entry (§10.3.2.11.1: all the entries
+    of a context are in scope for an entry's expression), also a later one once that has its
+    value, so the functions of one context call each other in any order and themselves: each
+    evaluation of such a literal has a `Home` of its entries (rheon-feel), which the functions
+    written in it hold. A home can hold a value that holds the home (a function of the
+    literal), so the homes of an evaluation are emptied when the evaluation ends, which frees
+    them; a function that outlives its evaluation keeps what it closed over and no longer sees
+    the entries after it. The bodies of boxed functions of DMN
+    models keep the old behaviour (docs/BACKLOG.md). Tests: the pins of tests/scoping.rs (19
+    new cases, 9 changed), 29 records of the flat evaluator's tests; a test of the runtime
+    that the memory of an instance does not grow over 300 such evaluations. Identity ledger: 58
+    entries (`lexical-closures.json`), among them helper functions of a context used by
+    `sort`, which were null and work. The official TCK answers are unchanged. Rust API:
+    `Home` (new), `FunctionDefinition::home` and `FunctionDefinition::at_home` (new);
+    `FunctionDefinition` compares and prints as before.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -3246,6 +4173,94 @@ existed.
   of such results (`exp(74.971090)`, `exp(log(2.5))`, `log(exp(7))`).
 
 ## Verification (native, cargo 1.95.0 / rustc 1.95.0)
+
+Commits 227-232 (2026-11-16), on the tree of commit 232, by the release tier (`npm run
+tier:release`, 814 s of run time and 57 s of builds, budget 1,800 s; 32 of 32 steps): workspace
+8,903 passed, 0 failed, 24 ignored (CI's skips: the Rust TCK copies 3,555, the model evaluator 168,
+the other crates 5,180); clippy on the workspace without warnings, also on every one of commits 227-232 on its own, each
+of which passes `cargo check --workspace --all-targets`; the API documentation builds with
+rustdoc's warnings denied; feel.wasm tests 93 native and 94 under Wasmtime; runtime 34; the
+identity tool's tests pass; smoke passes, with its two memory checks growing by 12.0 MiB and
+22.8 MiB (bound 32 MiB) and the 26 string doublings by 256.0 MiB (at most 281.6); the randomized
+and exhaustive tests at full size 1,051 passed and the parser corpus 512; the playground builds.
+The number oracle judges every case right with no exemption: 35,939 cases quick and 2,896,591 at
+full size, in 188 families. DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum
+312 of 312, and the result of every test equal to that on the tree of commit 221. Full responses
+against the 0.6.0 release module, every cached reference answer equal to a live one: the committed
+sources 14,976 requests, the release sources 14,988, the two sets kept outside the repository
+15,153; the registered differences are those of items 215, 222 and 223 and no other, none
+unregistered in any run. Speed against 0.6.0 (the speed suite of 58 workloads, wasm, Node 26,
+Apple M2, two alternating rounds): geomean 1.44x and 1.43x (1.20x on the tree of commit 226).
+`1 + 2` 4.8 us to 3.9 us (1.25x), a formula over 1,000 input names 453 us to 237 us (1.92x), over
+5,000 names 1.98x, a `for` over an input list of 10,000 contexts 1.76x, a filter over it 1.40x,
+counting 10,000 numbers in a loop 2.58x. Slower than 0.6.0 in both rounds: a recursion through
+`sort` callbacks, 0.92x and 0.94x. The boundary workloads (15 requests whose cost is the reading
+of the input or the writing of the result, kept outside the repository) against the tree of
+commit 226: a list of 10,000 numbers returned 2.6x, 10,000 input contexts echoed 2.3x, `1` with
+5,000 input names 2.2x. The module is 3,904,418 bytes (commit 226: 3,849,528; +1.4%). Commits 227
+to 230 passed the group tier one by one; commits 231 and 232 the fix tier and the group tier on
+the tree of 232. Not run: CI, Node 24 and Node 22.
+
+Commits 222-226 (2026-11-16), on the code of commit 226 (two corrections of documentation were
+folded into commits 222 and 223 after the run), by the release tier (`npm run tier:release`, 803 s
+of run time and 48 s of builds, budget 1,800 s; 32 of 32 steps): workspace 8,891 passed, 0 failed,
+24 ignored (CI's skips: the Rust TCK copies 3,555, the model evaluator 168, the other crates 5,168);
+clippy on the workspace without warnings, also on every one of commits 222-226 on its own, each of
+which passes `cargo check --workspace --all-targets`; the API documentation builds with rustdoc's
+warnings denied; feel.wasm tests 83 native and 84 under Wasmtime; runtime 34; the identity tool's
+tests pass; smoke passes, with its two memory checks growing by 12.0 MiB and 27.3 MiB (bound 32
+MiB) and the 26 string doublings by 256.0 MiB (at most 281.6); the randomized and exhaustive tests
+at full size 1,039 passed and the parser corpus 511; the playground builds. The number oracle judges
+every case right with no exemption: 35,939 cases quick and 2,896,591 at full size, in 188 families.
+DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407, tck-addendum 312 of 312, and the result of
+every test equal to that on the tree of commit 221. Full responses against the 0.6.0 release
+module, every cached reference answer equal to a live one: the committed sources 14,976 requests,
+142 registered differences reproduced (items 222 and 223: 104 and 38); with the release sources
+14,988 requests, 143 reproduced (with item 215), 6 trapping 0.6.0; with the two sets kept outside
+the repository 15,153 requests, 142 reproduced; none unregistered in any run. Speed against 0.6.0
+(the speed suite of 58 workloads, wasm, Node 26, Apple M2, two alternating rounds): geomean 1.20x
+and 1.20x (1.18x on the tree of commit 221). Against that tree, in both rounds: a formula over
+1,000 input names 1.00x to 1.16x, over 5,000 names 1.00x to 1.20x, a `for` over an input list of
+10,000 contexts 1.04x to 1.19x, a deep path with 1,000 input names 1.01x to 1.17x, a filter that
+calls a function 1.01x to 1.13x, `context put` on the input context 1.01x to 1.12x; no workload
+is slower than on that tree beyond the difference between two rounds (0.03x). The module is
+3,849,528 bytes (commit 221: 3,830,095; +0.5%). Not run: CI, Node 24 and Node 22.
+
+Commits 179-221 (2026-11-16), on the tree of commit 221, by the release tier (`npm run
+tier:release`, 904 s of run time and 95 s of builds, budget 1,800 s; 32 of 32 steps): workspace
+8,881 passed, 0 failed, 24 ignored (CI's skips: the Rust TCK copies 3,555, the model evaluator 168,
+the other crates 5,158); clippy on the workspace without warnings, also on every one of commits
+179-221 on its own, each of which passes `cargo check --workspace --all-targets`; the API
+documentation builds with rustdoc's warnings denied; feel.wasm tests 83 native and 84 under
+Wasmtime; runtime 34; the identity tool's tests pass; smoke passes, with its two memory checks
+growing by 12.0 MiB and 27.3 MiB (bound 32 MiB) and the 26 string doublings by 256.0 MiB (at most
+281.6); the randomized and exhaustive tests at full size 1,029 passed and the parser corpus 502; the
+playground builds. The number oracle judges every case right with no exemption: 35,939 cases quick
+and 2,896,591 at full size, in 188 families. DMN TCK via `scripts/tck.sh`: official 3,392 of 3,407,
+tck-addendum 312 of 312. Full responses against the 0.6.0 release module, every cached reference
+answer equal to a live one: the committed sources 14,718 requests with no difference; with the
+release sources 14,730 requests, 1 registered difference reproduced (item 215), 6 trapping 0.6.0;
+with the two sets kept outside the repository 14,895 requests; none unregistered in any run. Before
+the evaluator of closures was deleted, on the tree of commit 215, the two evaluators were compared
+in one process: 38,204 requests and 50,000 random expressions without a difference and without an
+expression that the flat evaluator did not take, and the 3,724 model tests with a twin for every
+evaluation. The stack report: a recursion of 200 calls whose body is nested to the limit of the
+parser (depth 289) is answered on every host measured, and so is the recursion through `sort` (depth
+284): Node's main thread and workers of 2, 3 and 4 MiB with Liftoff and TurboFan, and Wasmtime with
+512 KiB, 1, 2, 4 and 16 MiB; 0.6.0 reached depth 45 on Node's main thread and 19 under Wasmtime with
+512 KiB. Speed against 0.6.0 (the speed suite of 58 workloads, wasm, Node 26, Apple M2, two
+alternating rounds): geomean 1.18x and 1.18x. Loops: counting 10,000 numbers 1.02 ms to 390 us
+(2.6x), summing them 2.0x, nested loops 2.5x to 2.8x, a built-in function in a loop 2.1x, `instance
+of` in a loop 2.2x, a context built in a loop 1.9x, short-circuit logic 1.9x. Calls of functions in
+a loop 1.3x to 1.5x; `fib(20)` 1.09x; sort 1.14x. Filters and quantifiers over an input list 0.98x
+to 1.01x (their requests are mostly the reading of the input). Slower in both rounds: small
+expressions that are built for one evaluation (tiny 0.93x, unary tests 0.88x to 0.93x, a date
+addition 0.88x, a comparison of two date and times 0.88x to 0.91x, decimal arithmetic 0.92x, a
+formula over ten names 0.93x to 0.95x, a deep path 0.90x to 0.92x, a string concatenation 0.91x to
+0.93x: about 0.3 us to 0.6 us each) and a recursion through `sort` callbacks (0.87x). The first
+request of a new instance takes about 1 ms longer on V8 (5.5 ms against 4.5 ms, measured on the tree
+of commit 203). The module is 3,830,095 bytes (0.6.0: 3,759,555; +1.9%). Not run: CI, Node 24 and
+Node 22.
 
 Commits 135-177 (2026-11-16), on the tree of commit 177, by the release tier (`npm run
 tier:release`, 1,320 s of run time and 77 s of builds, budget 1,800 s): workspace 8,798 passed, 0
@@ -3645,6 +4660,45 @@ The API changes of commits 85-133 (the item of each change is in parentheses):
   and `rheon-model` change only by the removed features (95). The wasm module's ABI and its
   request and response JSON are unchanged; what changes there are answers, registered with both
   answers as "Verification" states.
+
+The API changes of commits 227-232 (the item of each change is in parentheses):
+
+- Changed:
+  - `rheon-feel`: `Name` holds its text shared, so a clone is no copy and `From<Name> for String`
+    copies the text (229).
+- Added:
+  - `rheon-feel`: `FeelContext::from_ascending_entries` (229).
+- The wasm ABI, its request and response JSON and every answer are unchanged.
+
+The API changes of commits 222-226 (the item of each change is in parentheses):
+
+- Changed:
+  - `rheon-feel-parser`: behaviour: a name that is not in scope ends before a keyword that can
+    follow an operand (222); a string literal or a block comment that is not closed is a syntax
+    error (223).
+- Added:
+  - `rheon-feel`: `impl FromIterator<(Name, Value)> for FeelContext` (225).
+- The wasm ABI and its request and response JSON are unchanged; the answers that change (222,
+  223) are registered with both answers as "Verification" states.
+
+The API changes of commits 179-221 (the item of each change is in parentheses):
+
+- Changed:
+  - `rheon-feel-evaluator`: behaviour: a tree built by hand of a shape that the parser never
+    produces evaluates to null with the error `malformed expression tree: unexpected <Kind> node`
+    (217); the numbers of an interval of integers are counted as integers, with the same items (210).
+- Removed:
+  - `rheon-feel`: `diagnostics::tentative` (181).
+- Added:
+  - `rheon-feel`: `diagnostics::tentative_mark` (181); the trait `FeelCode` and the variant
+    `FunctionBody::Feel`, which holds the code of a body and the index of the body in it (206);
+    `diagnostics::evaluation_within`, `diagnostics::step` and `Abort::Steps` (221).
+  - `rheon-feel-number`: `FeelNumber::unscaled_i64` (210).
+  - `rheon-feel-evaluator`: `Session::with_step_budget` (221).
+- Added and removed within the series: the feature `backends` and the doc-hidden module
+  `rheon_feel_evaluator::testing` (183, 218).
+- wasm request, additive: `maxSteps` in evaluate requests, and `EvaluateRequest.maxSteps` in
+  `@rheon/feel-runtime` (221). The wasm ABI and every response are unchanged.
 
 The API changes of commits 135-177 (the item of each change is in parentheses):
 

@@ -170,6 +170,39 @@ fn test_context_search_entry() {
 }
 
 #[test]
+fn test_context_search_deep_stops_at_a_value_that_is_no_context() {
+  let name_a = Name::from("a");
+  let name_b = Name::from("b");
+  let mut ctx_b = FeelContext::default();
+  ctx_b.set_entry(&name_b, value_number!(2));
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&name_a, ctx_b.into());
+  assert_eq!(None, ctx.search_deep(&[]));
+  assert_eq!("{b: 2}", ctx.search_deep(slice::from_ref(&name_a)).unwrap().to_string());
+  assert_eq!("2", ctx.search_deep(&[name_a.clone(), name_b.clone()]).unwrap().to_string());
+  // a name after a value that is no context, and a name that no context holds
+  assert_eq!(None, ctx.search_deep(&[name_a.clone(), name_b.clone(), name_b.clone()]));
+  assert_eq!(None, ctx.search_deep(&[name_a.clone(), name_a.clone()]));
+  assert_eq!(None, ctx.search_deep(slice::from_ref(&name_b)));
+}
+
+#[test]
+fn test_context_search_deep_follows_many_names() {
+  // a context nested as deeply as values may nest (diagnostics::MAX_VALUE_DEPTH)
+  let name = Name::from("a");
+  let mut value = value_number!(1);
+  for _ in 0..500 {
+    let mut ctx = FeelContext::default();
+    ctx.set_entry(&name, value);
+    value = ctx.into();
+  }
+  let Value::Context(ctx) = value else { unreachable!() };
+  let names = vec![name.clone(); 500];
+  assert_eq!("1", ctx.search_deep(&names).unwrap().to_string());
+  assert_eq!(None, ctx.search_deep(&vec![name; 501]));
+}
+
+#[test]
 fn test_context_search_entries() {
   // prepare names
   let name_a = Name::from("a");
@@ -464,4 +497,236 @@ fn test_value_is_not_a_context() {
     "<ContextError> 'true' is not a value containing context",
     <Value as TryInto<FeelContext>>::try_into(Value::Boolean(true)).err().unwrap().to_string()
   );
+}
+
+/// A context collected from entries has the entries that inserting them one after another gives:
+/// an entry with the name of an earlier one replaces it, whatever the order of the names.
+#[test]
+fn test_context_collected_from_entries() {
+  let entries = |names: &[&str]| -> Vec<(Name, Value)> { names.iter().enumerate().map(|(i, name)| (Name::from(*name), value_number!(i as i64))).collect() };
+  for names in [
+    &[][..],
+    &["a"],
+    &["a", "b", "c", "d"],
+    &["d", "c", "b", "a"],
+    &["a", "a"],
+    &["a", "b", "b", "c"],
+    &["a", "b", "a"],
+    &["b", "a", "b", "a", "c"],
+    &["a", "c", "b", "d"],
+    &["a b", "a", "a  b", "a b"],
+    &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "c", "n", "a", "z", "y"],
+    &["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "m"],
+  ] {
+    let mut inserted = FeelContext::default();
+    for (name, value) in entries(names) {
+      inserted.insert(name, value);
+    }
+    let collected: FeelContext = entries(names).into_iter().collect();
+    assert_eq!(inserted, collected, "{names:?}");
+    assert_eq!(inserted.get_entries(), collected.get_entries(), "{names:?}");
+  }
+  let many: Vec<(Name, Value)> = (0..1000).map(|i| (Name::from(format!("k{i:04}")), value_number!(i))).collect();
+  let collected: FeelContext = many.clone().into_iter().collect();
+  assert_eq!(many.iter().map(|(name, value)| (name, value)).collect::<Vec<_>>(), collected.get_entries());
+}
+
+/// A context of shared names is, for every reader, the context of the same entries, and it
+/// changes like one: the first change gives it entries of its own, and the names of the other
+/// records stay as they were.
+#[test]
+fn test_context_of_shared_names_is_the_context_of_its_entries() {
+  use rheon_feel_number::FeelNumber;
+  use std::sync::Arc;
+  let texts = ["a", "a b", "b", "k10", "k2", "z"];
+  let names: Arc<[Name]> = texts.iter().map(|text| Name::from(*text)).collect();
+  let values = |seed: i64| -> Vec<Value> {
+    (0..texts.len() as i64)
+      .map(|index| {
+        if index == 2 {
+          Value::from(FeelContext::default())
+        } else {
+          Value::Number(FeelNumber::new(seed + index, 0))
+        }
+      })
+      .collect()
+  };
+  let record = FeelContext::from_shared_names(names.clone(), values(10));
+  let other = FeelContext::from_shared_names(names.clone(), values(20));
+  let plain: FeelContext = texts.iter().map(|text| Name::from(*text)).zip(values(10)).collect();
+  // equal, in both directions, and with the same texts
+  assert_eq!(plain, record);
+  assert_eq!(record, plain);
+  assert_ne!(record, other);
+  assert_eq!(format!("{plain:?}"), format!("{record:?}"));
+  assert_eq!(plain.to_string(), record.to_string());
+  assert_eq!(plain.to_feel_string(), record.to_feel_string());
+  assert_eq!(plain.jsonify(), record.jsonify());
+  // every read
+  assert_eq!(plain.len(), record.len());
+  assert!(!record.is_empty());
+  assert_eq!(plain.get_entries(), record.get_entries());
+  assert_eq!(plain.iter().len(), record.iter().len());
+  assert_eq!(plain.get_first(), record.get_first());
+  for text in texts.iter().chain(&["", "a ", "aa", "k1", "k3", "zz"]) {
+    let name = Name::from(*text);
+    assert_eq!(plain.get_entry(&name), record.get_entry(&name), "{text}");
+    assert_eq!(plain.contains_entry(&name), record.contains_entry(&name), "{text}");
+    assert_eq!(plain.contains_entry(*text), record.contains_entry(*text), "{text}");
+    assert_eq!(plain.is_context(&name), record.is_context(&name), "{text}");
+    assert_eq!(plain.keys_from(text).collect::<Vec<_>>(), record.keys_from(text).collect::<Vec<_>>(), "{text}");
+    assert_eq!(plain.search_deep(std::slice::from_ref(&name)), record.search_deep(std::slice::from_ref(&name)), "{text}");
+    assert_eq!(
+      plain.contains_deep(std::slice::from_ref(&name)),
+      record.contains_deep(std::slice::from_ref(&name)),
+      "{text}"
+    );
+  }
+  // a clone, and a value that holds the record
+  assert_eq!(plain, record.clone());
+  assert_eq!(Value::from(plain.clone()), Value::from(record.clone()));
+  // every change
+  let changes: [fn(&mut FeelContext); 7] = [
+    |context| context.set_entry(&Name::from("k2"), Value::Boolean(true)),
+    |context| context.insert(Name::from("new"), Value::Boolean(true)),
+    |context| {
+      context.assign_entry(&Name::from("a"), Value::Boolean(false));
+    },
+    |context| {
+      context.remove_entry(&Name::from("a b"));
+    },
+    |context| context.set_null(Name::from("z")),
+    |context| context.create_entries(&[Name::from("b"), Name::from("inner")], Value::Boolean(true)),
+    |context| context.move_entry(Name::from("k10"), Name::from("moved")),
+  ];
+  for (index, change) in changes.iter().enumerate() {
+    let (mut changed_plain, mut changed_record) = (plain.clone(), record.clone());
+    change(&mut changed_plain);
+    change(&mut changed_record);
+    assert_eq!(changed_plain, changed_record, "change {index}");
+    assert_eq!(format!("{changed_plain:?}"), format!("{changed_record:?}"), "change {index}");
+    assert_ne!(plain, changed_record, "change {index}");
+  }
+  // the records that share the names are as they were
+  assert_eq!(plain, record);
+  assert_eq!(names.len(), other.len());
+  assert_eq!(Some(&Value::Number(FeelNumber::new(25, 0))), other.get_entry(&Name::from("z")));
+  // no entries
+  let empty = FeelContext::from_shared_names(Arc::from(Vec::<Name>::new()), vec![]);
+  assert_eq!(FeelContext::default(), empty);
+  assert!(empty.is_empty());
+  assert_eq!(None, empty.get_first());
+}
+
+/// A context whose entries are read on the first use is, from then on and for every reader,
+/// the context that its source reads; it is read once, and not for its nesting depth.
+#[test]
+fn test_context_read_on_first_use_is_the_context_of_its_source() {
+  use crate::context::DeferredEntries;
+  use std::sync::Arc;
+  use std::sync::atomic::{AtomicUsize, Ordering};
+
+  struct Source(AtomicUsize);
+
+  impl Source {
+    fn context() -> FeelContext {
+      let mut inner = FeelContext::default();
+      inner.set_entry(&Name::from("x"), value_number!(1));
+      let mut context = FeelContext::default();
+      context.set_entry(&Name::from("a"), value_number!(10));
+      context.set_entry(&Name::from("b"), inner.into());
+      context
+    }
+  }
+
+  impl DeferredEntries for Source {
+    fn build(&self) -> FeelContext {
+      self.0.fetch_add(1, Ordering::Relaxed);
+      Self::context()
+    }
+  }
+
+  let expected = Source::context();
+  let depth = expected.nesting_depth();
+  assert_eq!(2, depth);
+  let deferred = || {
+    let source = Arc::new(Source(AtomicUsize::new(0)));
+    (FeelContext::deferred(source.clone(), depth), source)
+  };
+  let reads = |source: &Source| source.0.load(Ordering::Relaxed);
+
+  // not read for its depth, for a clone, or as a part of a value whose depth is asked
+  let (context, source) = deferred();
+  assert!(!context.is_built());
+  assert_eq!(depth, context.nesting_depth());
+  let copy = context.clone();
+  let value = Value::List(vec![Value::from(context.clone())].into());
+  assert_eq!(depth + 1, value.nesting_depth());
+  assert_eq!(0, reads(&source));
+  assert!(!copy.is_built());
+
+  // read once by the first use, whatever the use is; a copy made before is read on its own
+  let uses: [fn(&FeelContext) -> bool; 9] = [
+    |context| context.len() == 2,
+    |context| !context.is_empty(),
+    |context| context.get_entry(&Name::from("a")) == Some(&value_number!(10)),
+    |context| context.contains_entry("b") && !context.contains_entry("c"),
+    |context| context.iter().count() == 2,
+    |context| context.get_first() == Some(&value_number!(10)),
+    |context| context.keys_from("b").count() == 1,
+    |context| context.search_deep(&[Name::from("b"), Name::from("x")]) == Some(&value_number!(1)),
+    |context| context.to_string() == "{a: 10, b: {x: 1}}",
+  ];
+  for (index, used) in uses.iter().enumerate() {
+    let (context, source) = deferred();
+    assert!(used(&context), "use {index}");
+    assert!(context.is_built(), "use {index}");
+    assert_eq!(1, reads(&source), "use {index}");
+    assert!(used(&context), "use {index}");
+    assert_eq!(expected, context, "use {index}");
+    assert_eq!(format!("{expected:?}"), format!("{context:?}"), "use {index}");
+    assert_eq!(depth, context.nesting_depth(), "use {index}");
+    // a copy of a context that is read is read: it does not ask the source again
+    assert_eq!(expected, context.clone(), "use {index}");
+    assert_eq!(1, reads(&source), "use {index}");
+  }
+  let (context, source) = deferred();
+  let copy = context.clone();
+  assert_eq!(expected, context);
+  assert_eq!(expected, copy);
+  assert_eq!(2, reads(&source));
+
+  // a change reads it first, and the changed context has the depth of its entries
+  let (mut context, source) = deferred();
+  context.set_entry(&Name::from("c"), Value::List(vec![Value::List(vec![Value::from(FeelContext::default())].into())].into()));
+  assert_eq!(1, reads(&source));
+  assert_eq!(3, context.len());
+  assert_eq!(4, context.nesting_depth());
+  let mut changed = expected.clone();
+  changed.set_entry(&Name::from("c"), Value::List(vec![Value::List(vec![Value::from(FeelContext::default())].into())].into()));
+  assert_eq!(changed, context);
+  let (mut context, source) = deferred();
+  assert_eq!(Some(value_number!(10)), context.remove_entry(&Name::from("a")));
+  assert_eq!(1, context.len());
+  assert_eq!(1, reads(&source));
+
+  // equal to the context of its entries from both sides, and inside a value
+  let (context, _) = deferred();
+  assert_eq!(context, expected);
+  let (context, _) = deferred();
+  assert_eq!(Value::from(expected.clone()), Value::from(context));
+
+  // read from several threads at once, it is read once for all of them
+  let (context, source) = deferred();
+  let shared = Arc::new(context);
+  let threads: Vec<_> = (0..8)
+    .map(|_| {
+      let shared = shared.clone();
+      std::thread::spawn(move || shared.len())
+    })
+    .collect();
+  for thread in threads {
+    assert_eq!(2, thread.join().unwrap());
+  }
+  assert_eq!(1, reads(&source));
 }

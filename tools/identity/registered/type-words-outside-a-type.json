@@ -1,0 +1,1057 @@
+[
+  {
+    "expression": "{list: 1, range: 2, context: 3}.list < 2",
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {list: 1, range: 2, context: 3}.list < 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{list: 1, range: 2, context: 3}.list < 2",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {list: 1, range: 2, context: 3}.list < 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list < 7",
+      "context": {
+        "list": 5
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list < 7"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list < 7",
+      "context": {
+        "list": 5
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list < 7"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list<7",
+      "context": {
+        "list": 5
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<7"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list<7",
+      "context": {
+        "list": 5
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<7"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "range < context",
+      "context": {
+        "range": 1,
+        "context": 2
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: range < context"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "range < context",
+      "context": {
+        "range": 1,
+        "context": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: range < context"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for list in [1, 2] return list<3",
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for list in [1, 2] return list<3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[true, true]",
+        "feel": "[true, true]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for list in [1, 2] return list<3",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for list in [1, 2] return list<3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[true, true]",
+        "feel": "[true, true]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(list: number) list<2, r: f(1)}.r",
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {f: function(list: number) list<2, r: f(1)}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(list: number) list<2, r: f(1)}.r",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {f: function(list: number) list<2, r: f(1)}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1] instance of list<number> and list<2",
+      "context": {
+        "list": 1
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1] instance of list<number> and list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1] instance of list<number> and list<2",
+      "context": {
+        "list": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1] instance of list<number> and list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{date: 5, r: if 1 instance of T then 0 else date < 6}.r",
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {date: 5, r: if 1 instance of T then 0 else date < 6}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "no value for qualified name"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{date: 5, r: if 1 instance of T then 0 else date < 6}.r",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {date: 5, r: if 1 instance of T then 0 else date < 6}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: no value for qualified name"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "list<2",
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'list'",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_less_then)",
+        "isNull": true,
+        "nullReason": "eval_less_then",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list<2",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: context has no value for key 'list'"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{list: 1, range: 2, context: 3}.list < 2"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {list: 1, range: 2, context: 3}.list < 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Path\n │  ├─ Context\n │  │  ├─ ContextEntry\n │  │  │  ├─ ContextEntryKey\n │  │  │  │  └─ `list`\n │  │  │  └─ Numeric\n │  │  │     └─ `1`\n │  │  ├─ ContextEntry\n │  │  │  ├─ ContextEntryKey\n │  │  │  │  └─ `range`\n │  │  │  └─ Numeric\n │  │  │     └─ `2`\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `context`\n │  │     └─ Numeric\n │  │        └─ `3`\n │  └─ Name\n │     └─ `list`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{list: 1, range: 2, context: 3}.list < 2",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {list: 1, range: 2, context: 3}.list < 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Path\n │  ├─ Context\n │  │  ├─ ContextEntry\n │  │  │  ├─ ContextEntryKey\n │  │  │  │  └─ `list`\n │  │  │  └─ Numeric\n │  │  │     └─ `1`\n │  │  ├─ ContextEntry\n │  │  │  ├─ ContextEntryKey\n │  │  │  │  └─ `range`\n │  │  │  └─ Numeric\n │  │  │     └─ `2`\n │  │  └─ ContextEntry\n │  │     ├─ ContextEntryKey\n │  │     │  └─ `context`\n │  │     └─ Numeric\n │  │        └─ `3`\n │  └─ Name\n │     └─ `list`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list < 7",
+      "context": {
+        "list": 5
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list < 7"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `list`\n └─ Numeric\n    └─ `7`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list < 7",
+      "context": {
+        "list": 5
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list < 7"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `list`\n └─ Numeric\n    └─ `7`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list<7",
+      "context": {
+        "list": 5
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<7"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `list`\n └─ Numeric\n    └─ `7`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list<7",
+      "context": {
+        "list": 5
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<7"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `list`\n └─ Numeric\n    └─ `7`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "range < context",
+      "context": {
+        "range": 1,
+        "context": 2
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: range < context"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `range`\n └─ Name\n    └─ `context`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "range < context",
+      "context": {
+        "range": 1,
+        "context": 2
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: range < context"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `range`\n └─ Name\n    └─ `context`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for list in [1, 2] return list<3"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for list in [1, 2] return list<3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `list`\n │     └─ List\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ Numeric\n │           └─ `2`\n └─ EvaluatedExpression\n    └─ Lt\n       ├─ Name\n       │  └─ `list`\n       └─ Numeric\n          └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for list in [1, 2] return list<3",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: for list in [1, 2] return list<3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `list`\n │     └─ List\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ Numeric\n │           └─ `2`\n └─ EvaluatedExpression\n    └─ Lt\n       ├─ Name\n       │  └─ `list`\n       └─ Numeric\n          └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{f: function(list: number) list<2, r: f(1)}.r"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {f: function(list: number) list<2, r: f(1)}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ FormalParameter\n │  │     │     ├─ ParameterName\n │  │     │     │  └─ `list`\n │  │     │     └─ FeelType\n │  │     │        └─ number\n │  │     └─ FunctionBody\n │  │        └─ Lt\n │  │           ├─ Name\n │  │           │  └─ `list`\n │  │           └─ Numeric\n │  │              └─ `2`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `1`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{f: function(list: number) list<2, r: f(1)}.r",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {f: function(list: number) list<2, r: f(1)}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `f`\n │  │  └─ FunctionDefinition\n │  │     ├─ FormalParameters\n │  │     │  └─ FormalParameter\n │  │     │     ├─ ParameterName\n │  │     │     │  └─ `list`\n │  │     │     └─ FeelType\n │  │     │        └─ number\n │  │     └─ FunctionBody\n │  │        └─ Lt\n │  │           ├─ Name\n │  │           │  └─ `list`\n │  │           └─ Numeric\n │  │              └─ `2`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `f`\n │        └─ PositionalParameters\n │           └─ Numeric\n │              └─ `1`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[1] instance of list<number> and list<2",
+      "context": {
+        "list": 1
+      }
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1] instance of list<number> and list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ List\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ ListType\n │     └─ FeelType\n │        └─ number\n └─ Lt\n    ├─ Name\n    │  └─ `list`\n    └─ Numeric\n       └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[1] instance of list<number> and list<2",
+      "context": {
+        "list": 1
+      },
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1] instance of list<number> and list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " And\n ├─ InstanceOf\n │  ├─ List\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ ListType\n │     └─ FeelType\n │        └─ number\n └─ Lt\n    ├─ Name\n    │  └─ `list`\n    └─ Numeric\n       └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{date: 5, r: if 1 instance of T then 0 else date < 6}.r"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {date: 5, r: if 1 instance of T then 0 else date < 6}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `date`\n │  │  └─ Numeric\n │  │     └─ `5`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ If\n │        ├─ InstanceOf\n │        │  ├─ Numeric\n │        │  │  └─ `1`\n │        │  └─ QualifiedName\n │        │     └─ Name\n │        │        └─ `T`\n │        ├─ Numeric\n │        │  └─ `0`\n │        └─ Lt\n │           ├─ Name\n │           │  └─ `date`\n │           └─ Numeric\n │              └─ `6`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{date: 5, r: if 1 instance of T then 0 else date < 6}.r",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: {date: 5, r: if 1 instance of T then 0 else date < 6}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `date`\n │  │  └─ Numeric\n │  │     └─ `5`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ If\n │        ├─ InstanceOf\n │        │  ├─ Numeric\n │        │  │  └─ `1`\n │        │  └─ QualifiedName\n │        │     └─ Name\n │        │        └─ `T`\n │        ├─ Numeric\n │        │  └─ `0`\n │        └─ Lt\n │           ├─ Name\n │           │  └─ `date`\n │           └─ Numeric\n │              └─ `6`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list<2"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `list`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "list<2",
+      "errorMode": "strict"
+    },
+    "why": "list, range and context are keywords only where a type is expected, and a type is expected for one token: outside a type the three words, and after a named type the names of the built-in types, are names (DMN 1.6 grammar rules 27 and 54); 0.6.0 gave a syntax error",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: list<2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Name\n │  └─ `list`\n └─ Numeric\n    └─ `2`\n"
+    }
+  }
+]

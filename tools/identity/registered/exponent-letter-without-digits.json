@@ -1,0 +1,801 @@
+[
+  {
+    "expression": "1e",
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1e",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "1e+",
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e+"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1e+",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e+"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "1E-",
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1E-"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1E-",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1E-"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "1.5e",
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1.5",
+        "feel": "1.5",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1.5",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1.5e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1.5e",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1.5",
+        "feel": "1.5",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1.5",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1.5e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "1e + 2",
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e + 2"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1e + 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e + 2"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "[1e, 2]",
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1e, 2]"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1e, 2]",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1e, 2]"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "if true then 1else 2",
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if true then 1else 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "if true then 1else 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if true then 1else 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1e"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1e",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1e+"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e+"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1e+",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e+"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1E-"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1E-"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1E-",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1E-"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1.5e"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1.5`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1.5e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1.5e",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Numeric\n └─ `1.5`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1.5e"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1e + 2"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Add\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `2`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e + 2"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1e + 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " Add\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `2`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: 1e + 2"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[1e, 2]"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " List\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `2`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1e, 2]"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[1e, 2]",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "ok": true,
+      "tree": " List\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `2`\n"
+    },
+    "new": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: [1e, 2]"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "if true then 1else 2"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if true then 1else 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " If\n ├─ Boolean\n │  └─ `true`\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "if true then 1else 2",
+      "errorMode": "strict"
+    },
+    "why": "DMN 1.6 §10.3.1.2, grammar rule 35: the exponent of a numeric literal is its letter, an optional sign and at least one digit. A letter that no exponent digit follows is not part of the number, which ends before it; it was read as part of the number, with an empty exponent.",
+    "old": {
+      "error": {
+        "kind": "syntax",
+        "message": "syntax error: if true then 1else 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " If\n ├─ Boolean\n │  └─ `true`\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `2`\n"
+    }
+  }
+]

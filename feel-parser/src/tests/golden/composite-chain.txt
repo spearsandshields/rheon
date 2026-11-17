@@ -1,0 +1,9 @@
+# composite-chain: 8 cases, a digest of the outcome of each
+e45204636c632f26
+bd7ee09d95ca14da
+9c3a4cb79fc5779d
+ca2a6a297f18132e
+414d7b37260cbac1
+dc7c337c63b88b28
+0b5a47f68b43d0c1
+3cb82fab15c7486d
