@@ -140,7 +140,7 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
 ```jsonc
 { "ok": true,
   "tokens": [["keyword", 0, 2], ["whitespace", 2, 3], ["name", 3, 17], …],   // [class, from, to]
-  "diagnostics": [{ "code": "expected-expression", "message": "the expression ends here: an expression is expected here", "from": 26, "to": 26 }],
+  "diagnostics": [{ "code": "expected-expression", "message": "Expected an expression after `then`, but the expression ends here.", "from": 26, "to": 26 }],
   "truncated": false,
   "nodes": [["If", 0, 26], ["Comparison", 3, 21], …],                         // only with "tree": true: [kind, from, to]
   "elapsedMicros": n }
@@ -154,7 +154,8 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   the engine reads it, with its spaces. A new class is a change of this contract.
 - `diagnostics` are the syntax errors in the order of their places, at most 100 (`truncated`
   says that the text has more), one per place. `code` is for programs and stable; `message` is
-  for people and may change. The codes: `expected` (a certain token is missing), `expected-expression`,
+  for people and may change: it says what was expected and what stands there instead
+  (``Expected `,` or `]` in the list, found `3`.``). The codes: `expected` (a certain token is missing), `expected-expression`,
   `expected-name`, `expected-type`, `unexpected` (a token that fits nowhere), `comparison` (a
   comparison compared again without parentheses), `string-open`, `string-escape`,
   `comment-open`, `character`, `failed` (the parser gave up, as at its nesting limit; the rest of

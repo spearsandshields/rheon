@@ -397,26 +397,27 @@ fn starts_operand(kind: T) -> bool {
   )
 }
 
-/// Returns what is expected where a token of the kind `kind` is missing, in words.
+/// Returns what is expected where a token of the kind `kind` is missing: the token and what it
+/// is for, to stand after "Expected" in the message of the error.
 fn expected(kind: T) -> &'static str {
   match kind {
-    T::RightParen => "`)` is expected here",
-    T::RightBracket => "`]` is expected here",
-    T::RightBrace => "`}` is expected here",
-    T::LeftParen => "`(` is expected here",
-    T::Colon => "`:` is expected here",
-    T::Ellipsis => "`..` is expected here",
-    T::Then => "`then` is expected here",
-    T::Else => "`else` is expected here",
-    T::In => "`in` is expected here",
-    T::Return => "`return` is expected here",
-    T::Satisfies => "`satisfies` is expected here",
-    T::Of => "`of` is expected here",
-    T::BetweenAnd => "`and` is expected here, after the first bound of `between`",
-    T::Lt => "`<` is expected here",
-    T::Gt => "`>` is expected here",
-    T::RightArrow => "`->` is expected here",
-    _ => "another token is expected here",
+    T::RightParen => "`)` to close the `(`",
+    T::RightBracket => "`]` to close the `[`",
+    T::RightBrace => "`}` to close the context",
+    T::LeftParen => "`(`",
+    T::Colon => "`:` after the name",
+    T::Ellipsis => "`..` between the endpoints of the interval",
+    T::Then => "`then` after the condition of `if`",
+    T::Else => "`else` to complete the `if` expression",
+    T::In => "`in` after the variable name",
+    T::Return => "`return` to complete the `for` expression",
+    T::Satisfies => "`satisfies` to complete the `some` or `every` expression",
+    T::Of => "`of` after `instance`",
+    T::BetweenAnd => "`and` after the lower bound of `between`",
+    T::Lt => "`<` to open the type",
+    T::Gt => "`>` to close the type",
+    T::RightArrow => "`->` before the result type of the function type",
+    _ => "another token",
   }
 }
 
@@ -506,7 +507,8 @@ pub struct Parser<'parser, 'scope> {
   /// Where the token the parser looks at starts and ends in the input.
   token_start: usize,
   token_end: usize,
-  /// Where the token taken last ends.
+  /// Where the token taken last starts and ends.
+  last_start: usize,
   last_end: usize,
   /// What a tolerant parse records; a strict parse has none and stops at the first error.
   syntax: Option<Box<Syntax>>,
@@ -546,6 +548,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       nesting: 0,
       token_start: 0,
       token_end: 0,
+      last_start: 0,
       last_end: 0,
       syntax: None,
       expected_token: T::Other,
@@ -614,7 +617,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     if self.look(At::AfterOperand)? == T::Eof {
       return Ok(());
     }
-    self.unexpected("unexpected", "this fits nowhere in the expression")?;
+    self.unexpected("unexpected", "")?;
     let start = self.token_start;
     self.bump();
     self.note("Error", start);
@@ -741,9 +744,9 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             escaped = ch == '\\' && !escaped;
           }
           let (code, message) = if closed {
-            ("string-escape", "this string has an escape that is none")
+            ("string-escape", "Invalid escape sequence in this string.")
           } else {
-            ("string-open", "this string is not closed")
+            ("string-open", "Unterminated string: the closing `\"` is missing.")
           };
           self.diagnostic(code, message.to_string(), start, end);
           self.lexer.set_position(end);
@@ -752,14 +755,16 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         Ok((_, TokenValue::YyUndef)) => {
           let (code, message, len) = if rest.starts_with("/*") {
-            ("comment-open", "this comment is not closed", rest.len())
+            ("comment-open", "Unterminated comment: the closing `*/` is missing.".to_string(), rest.len())
           } else {
-            ("character", "this character starts nothing in an expression", rest.chars().next().map_or(0, char::len_utf8))
+            let character = rest.chars().next();
+            let message = character.map_or_else(String::new, |ch| format!("Unexpected character `{ch}`: it is not part of the FEEL syntax."));
+            ("character", message, character.map_or(0, char::len_utf8))
           };
           if len == 0 {
             return Ok((TokenType::YyEof, TokenValue::YyEof));
           }
-          self.diagnostic(code, message.to_string(), start, start + len);
+          self.diagnostic(code, message, start, start + len);
           if let Some(syntax) = &mut self.syntax {
             let class = if code == "comment-open" { TokenClass::Comment } else { TokenClass::Error };
             syntax.tokens.push(SyntaxToken { class, start, end: start + len });
@@ -786,7 +791,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
 
   /// The token the parser looks at is not what the grammar takes here: the syntax error of a
   /// strict parse; in a tolerant parse an error of the record, and the parser goes on.
-  fn unexpected(&mut self, code: &'static str, message: &str) -> Result<()> {
+  ///
+  /// The message says what was expected and what stands there instead: `what` is the expected
+  /// part, as it reads after "Expected".
+  fn unexpected(&mut self, code: &'static str, what: &str) -> Result<()> {
     if self.syntax.is_none() {
       return self.error();
     }
@@ -807,10 +815,24 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     } else {
       (self.token_start, self.token_end)
     };
-    let message = if self.kind == T::Eof {
-      format!("the expression ends here: {message}")
+    // a piece of the text in a message: in backticks, cut when it is long
+    let quoted = |text: &str| match text.char_indices().nth(24) {
+      Some((cut, _)) => format!("`{}…`", &text[..cut]),
+      None => format!("`{text}`"),
+    };
+    let found = quoted(&self.input[start..end]);
+    // an expression is missing after the token before it
+    let after = if code == "expected-expression" && self.last_end > self.last_start {
+      format!(" after {}", quoted(&self.input[self.last_start..self.last_end]))
     } else {
-      message.to_string()
+      String::new()
+    };
+    let message = match code {
+      "unexpected" => format!("Unexpected {found}: an operator or the end of the expression is expected here."),
+      "comparison" => format!("Comparison operators cannot be chained: {found} follows a comparison. Use parentheses, or join two comparisons with `and`."),
+      _ if self.input.trim().is_empty() => "The expression is empty.".to_string(),
+      _ if self.kind == T::Eof => format!("Expected {what}{after}, but the expression ends here."),
+      _ => format!("Expected {what}{after}, found {found}."),
     };
     self.diagnostic(code, message, start, end);
     Ok(())
@@ -819,8 +841,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// The token the parser looks at is neither a `,` nor the `closing` bracket of a list: the
   /// syntax error of a strict parse. A tolerant parse records the error and passes the tokens up
   /// to the next `,` or closing bracket that belongs to the list; returns `true` when it is a `,`.
-  fn skip_to(&mut self, closing: T, message: &str) -> Result<bool> {
-    self.unexpected("expected", message)?;
+  fn skip_to(&mut self, closing: T, what: &str) -> Result<bool> {
+    self.unexpected("expected", what)?;
     let start = self.token_start;
     let mut open = 0usize;
     loop {
@@ -862,12 +884,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
 
   /// Takes the token the parser looks at.
   fn take(&mut self) -> TokenValue {
+    self.last_start = self.token_start;
     self.last_end = self.token_end;
     self.token.take().unwrap_or(TokenValue::YyEmpty)
   }
 
   /// Passes the token the parser looks at.
   fn bump(&mut self) {
+    self.last_start = self.token_start;
     self.last_end = self.token_end;
     self.token = None;
   }
@@ -891,7 +915,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     {
       Ok(name)
     } else {
-      self.unexpected("expected-name", "a name is expected here")?;
+      let what = match self.expected_role {
+        TokenClass::Property => "a name after `.`",
+        TokenClass::Variable => "a variable name",
+        TokenClass::Parameter => "a parameter name",
+        TokenClass::Type => "the name of a type",
+        _ => "a name",
+      };
+      self.unexpected("expected-name", what)?;
       Ok(Name::from(""))
     }
   }
@@ -1001,7 +1032,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             T::Comma => self.bump(),
             T::RightParen => break self.bump(),
             _ => {
-              self.unexpected("expected", "`,` or `)` is expected here")?;
+              self.unexpected("expected", "`,` or `)` in the list of tests")?;
               break;
             }
           }
@@ -1252,7 +1283,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         if level != COMPARISON {
           break;
         }
-        self.unexpected("comparison", "a comparison can not be compared again without parentheses")?;
+        self.unexpected("comparison", "")?;
       }
       self.binary(lhs, binary, operator_level)?;
       self.note(operator_name(operator_level), start);
@@ -1356,7 +1387,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         T::RightParen => self.bump(),
         T::Ellipsis => first = self.interval_end(first, IntervalType::Opened, start)?,
-        _ => self.unexpected("expected", "`,`, `)` or `..` is expected here")?,
+        _ => self.unexpected("expected", "`,`, `)` or `..` after the expression")?,
       }
       self.between = between;
       // the operators after the operand in parentheses: an open expression, as the operand
@@ -1433,7 +1464,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       T::Ne => self.unary_comparison(AstNode::UnaryNe),
       _ => {
         // in a tolerant parse the operand is missing: nothing is taken
-        self.unexpected("expected-expression", "an expression is expected here")?;
+        self.unexpected("expected-expression", "an expression")?;
         let start = self.last_end;
         self.note("Error", start);
         Ok(AstNode::Null)
@@ -1463,7 +1494,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let start = self.token_start;
     self.bump();
     if self.look(At::Start)? != T::String {
-      self.unexpected("expected", "a string is expected after `@`")?;
+      self.unexpected("expected", "a string after `@`")?;
       return Ok(AstNode::Null);
     }
     let node = self.string().map(AstNode::At);
@@ -1520,7 +1551,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         self.note("Parentheses", start);
       }
       T::Ellipsis => node = self.interval_end(node, IntervalType::Opened, start)?,
-      _ => self.unexpected("expected", "`)` is expected here")?,
+      _ => self.unexpected("expected", "`)` to close the `(`")?,
     }
     self.between = between;
     self.made = Made::Textual;
@@ -1561,7 +1592,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         IntervalType::Closed
       }
       _ => {
-        self.unexpected("expected", "`)`, `[` or `]` is expected here")?;
+        self.unexpected("expected", "`)`, `[` or `]` to close the interval")?;
         IntervalType::Opened
       }
     };
@@ -1628,7 +1659,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             self.bump();
             self.push(&mut items)?;
           }
-          if self.kind == T::RightBracket || !self.skip_to(T::RightBracket, "`,` or `]` is expected here")? {
+          if self.kind == T::RightBracket || !self.skip_to(T::RightBracket, "`,` or `]` in the list")? {
             break;
           }
         }
@@ -1695,7 +1726,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         T::RightParen => break self.bump(),
         _ => {
-          self.unexpected("expected", "`,` or `)` is expected here")?;
+          self.unexpected("expected", "`,` or `)` in the argument list")?;
           break;
         }
       }
@@ -1712,7 +1743,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         self.bump();
         self.push(&mut items)?;
       }
-      if self.kind == T::RightParen || !self.skip_to(T::RightParen, "`,` or `)` is expected here")? {
+      if self.kind == T::RightParen || !self.skip_to(T::RightParen, "`,` or `)` in the argument list")? {
         break;
       }
     }
@@ -1741,7 +1772,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             Name::from(self.string()?)
           }
           _ => {
-            self.unexpected("expected", "a name or a string is expected here, as the key of an entry")?;
+            self.unexpected("expected", "a key (a name or a string) for the context entry")?;
             Name::from("")
           }
         };
@@ -1754,7 +1785,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           T::Comma => self.bump(),
           T::RightBrace => break self.bump(),
           _ => {
-            self.unexpected("expected", "`,` or `}` is expected here")?;
+            self.unexpected("expected", "`,` or `}` in the context")?;
             break;
           }
         }
@@ -1809,7 +1840,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           T::Comma => self.bump(),
           T::RightParen => break self.bump(),
           _ => {
-            self.unexpected("expected", "`,` or `)` is expected here")?;
+            self.unexpected("expected", "`,` or `)` in the argument list")?;
             break;
           }
         }
@@ -1926,7 +1957,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       T::Context => self.context_type()?,
       T::Function => self.function_type()?,
       _ => {
-        self.unexpected("expected-type", "a type is expected here")?;
+        self.unexpected("expected-type", "a type")?;
         AstNode::Null
       }
     };
@@ -1964,7 +1995,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         T::Comma => self.bump(),
         T::Gt => break self.bump(),
         _ => {
-          self.unexpected("expected", "`,` or `>` is expected here")?;
+          self.unexpected("expected", "`,` or `>` in the type")?;
           break;
         }
       }
@@ -1992,7 +2023,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           }
           T::Gt => break self.bump(),
           _ => {
-            self.unexpected("expected", "`,` or `>` is expected here")?;
+            self.unexpected("expected", "`,` or `>` in the type")?;
             break;
           }
         }

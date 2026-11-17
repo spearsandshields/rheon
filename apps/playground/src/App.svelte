@@ -74,7 +74,6 @@
   // Stable list identity: only changes when the set of names changes.
   // The context as the FEEL editor's scope: an object only when the text is a JSON object.
   const scope = $derived(contextObject(context));
-  const firstSyntaxError = $derived(syntax?.errors[0] ?? null);
 
   onMount(() => {
     try {
@@ -147,10 +146,6 @@
     history.pushState(null, '', await encodeState(snapshot()));
     apply({ ...snapshot(), dialect: ex.dialect, expression: ex.expression, context: ex.context, input: ex.input ?? input });
     linkNotice = null;
-  }
-
-  function jumpToError() {
-    if (firstSyntaxError) feelEditor?.select(firstSyntaxError.from, firstSyntaxError.to);
   }
 
   /** The engine gave up restarting its worker: stop evaluating, offer a reload. */
@@ -493,7 +488,6 @@
         timeoutMs={engine?.timeoutMs ?? 2000}
         {showTyped}
         ontoggletyped={() => (showTyped = !showTyped)}
-        onjumptoerror={firstSyntaxError ? jumpToError : null}
         source={expression}
         onselect={(from, to) => feelEditor?.select(from, to)}
       />
@@ -531,9 +525,6 @@
                 <div class="tree-error" data-testid="tree-error-{tree.error.kind}">
                   <strong>{TREE_ERROR_TITLES[tree.error.kind] ?? tree.error.kind}</strong>
                   {tree.error.message}
-                  {#if tree.error.kind === 'syntax' && firstSyntaxError}
-                    <button class="link-btn" onclick={jumpToError} data-testid="tree-jump-to-error">Jump to error</button>
-                  {/if}
                 </div>
                 {#if tree.error.kind === 'syntax' && syntax?.nodes.length}
                   <p class="sub partial-note">What the engine reads of the text up to and around the error:</p>

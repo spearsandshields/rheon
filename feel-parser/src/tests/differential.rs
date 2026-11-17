@@ -1775,17 +1775,31 @@ fn tolerant_samples() {
   let frames = [ctx(&[("price", number(1)), ("order", number(1)), ("Monthly Salary", number(1))])];
   for input in [
     "if a > 1 then",
+    "if a > 1",
     "sum(price, ",
     "{ a: 1, b: ",
+    "{ a 1 }",
     "order.",
     "\"abc",
     "a + ",
-    "Monthly Salary * (1 + ",
     "[1, 2 3]",
     "a = b = c",
     "for x in",
-    "price # 2 +",
+    "for in [1] return 1",
+    "some x in [1]",
+    "price # 2",
     "f(a: 1, 2)",
+    "1 2",
+    "(1..2",
+    "x between 1",
+    "x instance of",
+    "x instance number",
+    "function(a: ) a",
+    "@ 1",
+    "1 /* open",
+    "\"a\\q\"",
+    ")",
+    "",
   ] {
     let scope = ParsingScope::new(&frames);
     let syntax = Parser::new(&scope, TokenType::StartExpression, input, false).parse_tolerant();

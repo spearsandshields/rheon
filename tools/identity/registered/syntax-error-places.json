@@ -30,7 +30,7 @@
               {
                 "code": "expected-expression",
                 "from": 5,
-                "message": "an expression is expected here",
+                "message": "Expected an expression after `-`, found `)`.",
                 "to": 6
               }
             ],

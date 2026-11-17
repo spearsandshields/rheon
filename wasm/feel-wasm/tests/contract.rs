@@ -1934,7 +1934,7 @@ fn syntax_tokens_and_errors() {
   assert_eq!(tokens[2], json!(["name", 3, 4]));
   assert_eq!(
     response["diagnostics"],
-    json!([{"code": "expected-expression", "message": "the expression ends here: an expression is expected here", "from": 13, "to": 13}])
+    json!([{"code": "expected-expression", "message": "Expected an expression after `then`, but the expression ends here.", "from": 13, "to": 13}])
   );
   assert_eq!(response["truncated"], false);
   assert!(response.get("nodes").is_none(), "{response}");
@@ -2055,14 +2055,14 @@ fn syntax_errors_carry_their_places() {
     assert_error(&response, "syntax", "syntax error: if a > 1 then");
     assert_eq!(
       response["error"]["diagnostics"],
-      json!([{"code": "expected-expression", "message": "the expression ends here: an expression is expected here", "from": 13, "to": 13}]),
+      json!([{"code": "expected-expression", "message": "Expected an expression after `then`, but the expression ends here.", "from": 13, "to": 13}]),
       "{response}"
     );
   }
   let response = req(json!({"op": "evaluate", "expression": "[1, 2 3]"}));
   assert_eq!(
     response["error"]["diagnostics"],
-    json!([{"code": "expected", "message": "`,` or `]` is expected here", "from": 6, "to": 7}])
+    json!([{"code": "expected", "message": "Expected `,` or `]` in the list, found `3`.", "from": 6, "to": 7}])
   );
   let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "> ", "input": 1}));
   assert_eq!(response["error"]["diagnostics"][0]["code"], "expected-expression");
