@@ -366,6 +366,9 @@ struct Shape {
   /// When they are not: for each place of the ascending order, the index of its entry in the
   /// order of the text; of the entries with one key only the last.
   order: Vec<usize>,
+  /// The names in ascending order, each once: one list for all the objects with these keys.
+  /// Empty for the outermost object, which takes no names.
+  sorted: Option<std::sync::Arc<[Name]>>,
 }
 
 /// Reads JSON text into FEEL values. It accepts only JSON that `serde_json` accepts: what it
@@ -385,6 +388,11 @@ pub(crate) struct Reader<'a, 'w> {
   outermost: usize,
   /// The entries of an object while they are put into the order of their keys.
   unordered: Vec<Option<(Name, Value)>>,
+  /// The values of the objects that are being read while their keys are those of the object
+  /// before at their depth: without names, an inner object's above those around it.
+  values: Vec<Value>,
+  /// The values of such an object while they are put into the order of its keys.
+  unordered_values: Vec<Option<Value>>,
 }
 
 impl<'a, 'w> Reader<'a, 'w> {
@@ -399,6 +407,8 @@ impl<'a, 'w> Reader<'a, 'w> {
       shapes: vec![],
       outermost: depth + 1,
       unordered: vec![],
+      values: vec![],
+      unordered_values: vec![],
     }
   }
 
@@ -530,8 +540,10 @@ impl<'a, 'w> Reader<'a, 'w> {
     }
     let first_warning = self.warnings.len();
     let first_entry = self.entries.len();
-    // whether the keys so far are those of the object read before at this depth, in its order
-    let mut same = true;
+    let first_value = self.values.len();
+    // whether the keys so far are those of the object read before at this depth, in its order:
+    // while they are, only the values are kept, and the names are those of that object
+    let mut same = self.shapes[level].sorted.is_some();
     loop {
       self.skip_white();
       let key = self.read_string()?;
@@ -541,20 +553,18 @@ impl<'a, 'w> Reader<'a, 'w> {
       }
       self.expect(b':')?;
       let value = self.read_value(&Path::Key(path, &key))?;
-      let index = self.entries.len() - first_entry;
-      let known = if same {
-        self.shapes[level].names.get(index).filter(|name| name.as_str() == key)
-      } else {
-        None
-      };
-      let name = match known {
-        Some(name) => name.clone(),
-        None => {
+      if same {
+        let index = self.values.len() - first_value;
+        if self.shapes[level].names.get(index).is_some_and(|name| name.as_str() == key) {
+          self.values.push(value);
+        } else {
           same = false;
-          Name::from(&*key)
+          self.name_values(level, first_value);
+          self.entries.push((Name::from(&*key), value));
         }
-      };
-      self.entries.push((name, value));
+      } else {
+        self.entries.push((Name::from(&*key), value));
+      }
       match self.peek() {
         Some(b',') => self.at += 1,
         Some(b'}') => {
@@ -564,10 +574,36 @@ impl<'a, 'w> Reader<'a, 'w> {
         _ => return Err(Refused),
       }
     }
-    let count = self.entries.len() - first_entry;
-    if !same || count != self.shapes[level].names.len() || level == self.outermost {
-      self.remember_shape(level, first_entry);
+    if same {
+      let shape = &self.shapes[level];
+      if self.values.len() - first_value == shape.names.len()
+        && let Some(names) = &shape.sorted
+      {
+        // the keys of the object before, all of them: the names are shared
+        let values = if shape.ascending {
+          self.values.drain(first_value..).collect()
+        } else {
+          // the warnings would have to follow the entries into the order of the keys
+          if self.warnings.len() > first_warning {
+            return Err(Refused);
+          }
+          self.unordered_values.clear();
+          self.unordered_values.extend(self.values.drain(first_value..).map(Some));
+          // every index is that of one entry, once
+          let values = shape
+            .order
+            .iter()
+            .filter_map(|index| self.unordered_values.get_mut(*index).and_then(Option::take))
+            .collect();
+          self.unordered_values.clear();
+          values
+        };
+        return Ok(FeelContext::from_shared_names(names.clone(), values));
+      }
+      // fewer keys than the object before
+      self.name_values(level, first_value);
     }
+    self.remember_shape(level, first_entry);
     if !self.shapes[level].ascending {
       // the warnings would have to follow the entries into the order of the keys
       if self.warnings.len() > first_warning {
@@ -588,6 +624,13 @@ impl<'a, 'w> Reader<'a, 'w> {
       // the outermost object takes the buffer as it is, without a copy of its entries
       return Ok(FeelContext::from_ascending_entries(std::mem::take(&mut self.entries)));
     }
+    // the first object with its keys at its depth shares the names with those after it
+    if let Some(names) = &self.shapes[level].sorted
+      && names.len() == self.entries.len() - first_entry
+    {
+      let values = self.entries.drain(first_entry..).map(|entry| entry.1).collect();
+      return Ok(FeelContext::from_shared_names(names.clone(), values));
+    }
     let entries = self.entries.drain(first_entry..);
     Ok(if entries.len() <= DIRECT_ENTRIES {
       let mut context = FeelContext::default();
@@ -598,6 +641,13 @@ impl<'a, 'w> Reader<'a, 'w> {
     } else {
       FeelContext::from_ascending_entries(entries)
     })
+  }
+
+  /// Moves the values from `first` on, which were kept without names, to the entries, each
+  /// with the name of its place in the shape of `level`.
+  fn name_values(&mut self, level: usize, first: usize) {
+    let names = &self.shapes[level].names;
+    self.entries.extend(names.iter().cloned().zip(self.values.drain(first..)));
   }
 
   /// Remembers the keys of the object whose entries start at `first` as the shape of `level`:
@@ -626,6 +676,13 @@ impl<'a, 'w> Reader<'a, 'w> {
       }
       shape.order.truncate(kept + 1);
     }
+    shape.sorted = (level > self.outermost).then(|| {
+      if shape.ascending {
+        entries.iter().map(|entry| entry.0.clone()).collect()
+      } else {
+        shape.order.iter().map(|index| entries[*index].0.clone()).collect()
+      }
+    });
   }
 
   /// Reads the string whose opening quote is at the position: its text as written when it has

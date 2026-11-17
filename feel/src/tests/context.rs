@@ -530,3 +530,90 @@ fn test_context_collected_from_entries() {
   let collected: FeelContext = many.clone().into_iter().collect();
   assert_eq!(many.iter().map(|(name, value)| (name, value)).collect::<Vec<_>>(), collected.get_entries());
 }
+
+/// A context of shared names is, for every reader, the context of the same entries, and it
+/// changes like one: the first change gives it entries of its own, and the names of the other
+/// records stay as they were.
+#[test]
+fn test_context_of_shared_names_is_the_context_of_its_entries() {
+  use rheon_feel_number::FeelNumber;
+  use std::sync::Arc;
+  let texts = ["a", "a b", "b", "k10", "k2", "z"];
+  let names: Arc<[Name]> = texts.iter().map(|text| Name::from(*text)).collect();
+  let values = |seed: i64| -> Vec<Value> {
+    (0..texts.len() as i64)
+      .map(|index| {
+        if index == 2 {
+          Value::from(FeelContext::default())
+        } else {
+          Value::Number(FeelNumber::new(seed + index, 0))
+        }
+      })
+      .collect()
+  };
+  let record = FeelContext::from_shared_names(names.clone(), values(10));
+  let other = FeelContext::from_shared_names(names.clone(), values(20));
+  let plain: FeelContext = texts.iter().map(|text| Name::from(*text)).zip(values(10)).collect();
+  // equal, in both directions, and with the same texts
+  assert_eq!(plain, record);
+  assert_eq!(record, plain);
+  assert_ne!(record, other);
+  assert_eq!(format!("{plain:?}"), format!("{record:?}"));
+  assert_eq!(plain.to_string(), record.to_string());
+  assert_eq!(plain.to_feel_string(), record.to_feel_string());
+  assert_eq!(plain.jsonify(), record.jsonify());
+  // every read
+  assert_eq!(plain.len(), record.len());
+  assert!(!record.is_empty());
+  assert_eq!(plain.get_entries(), record.get_entries());
+  assert_eq!(plain.iter().len(), record.iter().len());
+  assert_eq!(plain.get_first(), record.get_first());
+  for text in texts.iter().chain(&["", "a ", "aa", "k1", "k3", "zz"]) {
+    let name = Name::from(*text);
+    assert_eq!(plain.get_entry(&name), record.get_entry(&name), "{text}");
+    assert_eq!(plain.contains_entry(&name), record.contains_entry(&name), "{text}");
+    assert_eq!(plain.contains_entry(*text), record.contains_entry(*text), "{text}");
+    assert_eq!(plain.is_context(&name), record.is_context(&name), "{text}");
+    assert_eq!(plain.keys_from(text).collect::<Vec<_>>(), record.keys_from(text).collect::<Vec<_>>(), "{text}");
+    assert_eq!(plain.search_deep(std::slice::from_ref(&name)), record.search_deep(std::slice::from_ref(&name)), "{text}");
+    assert_eq!(
+      plain.contains_deep(std::slice::from_ref(&name)),
+      record.contains_deep(std::slice::from_ref(&name)),
+      "{text}"
+    );
+  }
+  // a clone, and a value that holds the record
+  assert_eq!(plain, record.clone());
+  assert_eq!(Value::from(plain.clone()), Value::from(record.clone()));
+  // every change
+  let changes: [fn(&mut FeelContext); 7] = [
+    |context| context.set_entry(&Name::from("k2"), Value::Boolean(true)),
+    |context| context.insert(Name::from("new"), Value::Boolean(true)),
+    |context| {
+      context.assign_entry(&Name::from("a"), Value::Boolean(false));
+    },
+    |context| {
+      context.remove_entry(&Name::from("a b"));
+    },
+    |context| context.set_null(Name::from("z")),
+    |context| context.create_entries(&[Name::from("b"), Name::from("inner")], Value::Boolean(true)),
+    |context| context.move_entry(Name::from("k10"), Name::from("moved")),
+  ];
+  for (index, change) in changes.iter().enumerate() {
+    let (mut changed_plain, mut changed_record) = (plain.clone(), record.clone());
+    change(&mut changed_plain);
+    change(&mut changed_record);
+    assert_eq!(changed_plain, changed_record, "change {index}");
+    assert_eq!(format!("{changed_plain:?}"), format!("{changed_record:?}"), "change {index}");
+    assert_ne!(plain, changed_record, "change {index}");
+  }
+  // the records that share the names are as they were
+  assert_eq!(plain, record);
+  assert_eq!(names.len(), other.len());
+  assert_eq!(Some(&Value::Number(FeelNumber::new(25, 0))), other.get_entry(&Name::from("z")));
+  // no entries
+  let empty = FeelContext::from_shared_names(Arc::from(Vec::<Name>::new()), vec![]);
+  assert_eq!(FeelContext::default(), empty);
+  assert!(empty.is_empty());
+  assert_eq!(None, empty.get_first());
+}

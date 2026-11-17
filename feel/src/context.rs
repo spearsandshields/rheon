@@ -16,8 +16,142 @@ use std::ops::Bound;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-/// Type alias for context entries.
-type FeelContextEntries = BTreeMap<Name, Value>;
+/// The entries of a context, in the order of their names, each name once.
+#[derive(Clone)]
+enum FeelContextEntries {
+  /// A map from the names to the values.
+  Map(BTreeMap<Name, Value>),
+  /// The names, ascending and each once, and the value of each: the form of a record that has
+  /// its names in common with other records ([FeelContext::from_shared_names]). It becomes a
+  /// map when an entry changes.
+  Record(Arc<[Name]>, Vec<Value>),
+}
+
+impl Default for FeelContextEntries {
+  fn default() -> Self {
+    Self::Map(BTreeMap::new())
+  }
+}
+
+/// The entries of a context in the order of their names.
+enum Entries<'a> {
+  Map(std::collections::btree_map::Iter<'a, Name, Value>),
+  Record(std::iter::Zip<std::slice::Iter<'a, Name>, std::slice::Iter<'a, Value>>),
+}
+
+impl<'a> Iterator for Entries<'a> {
+  type Item = (&'a Name, &'a Value);
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      Self::Map(entries) => entries.next(),
+      Self::Record(entries) => entries.next(),
+    }
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    match self {
+      Self::Map(entries) => entries.size_hint(),
+      Self::Record(entries) => entries.size_hint(),
+    }
+  }
+}
+
+impl ExactSizeIterator for Entries<'_> {}
+
+/// The names of a context from one name on, in their order.
+enum NamesFrom<'a> {
+  Map(std::collections::btree_map::Range<'a, Name, Value>),
+  Record(std::slice::Iter<'a, Name>),
+}
+
+impl<'a> Iterator for NamesFrom<'a> {
+  type Item = &'a Name;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      Self::Map(names) => names.next().map(|(name, _)| name),
+      Self::Record(names) => names.next(),
+    }
+  }
+}
+
+impl FeelContextEntries {
+  fn iter(&self) -> Entries<'_> {
+    match self {
+      Self::Map(map) => Entries::Map(map.iter()),
+      Self::Record(names, values) => Entries::Record(names.iter().zip(values)),
+    }
+  }
+
+  fn values(&self) -> impl Iterator<Item = &Value> {
+    self.iter().map(|(_, value)| value)
+  }
+
+  fn len(&self) -> usize {
+    match self {
+      Self::Map(map) => map.len(),
+      Self::Record(_, values) => values.len(),
+    }
+  }
+
+  fn is_empty(&self) -> bool {
+    self.len() == 0
+  }
+
+  fn get<Q: Ord + ?Sized>(&self, name: &Q) -> Option<&Value>
+  where
+    Name: Borrow<Q>,
+  {
+    match self {
+      Self::Map(map) => map.get(name),
+      Self::Record(names, values) => names
+        .binary_search_by(|entry| Borrow::<Q>::borrow(entry).cmp(name))
+        .ok()
+        .and_then(|index| values.get(index)),
+    }
+  }
+
+  fn contains_key<Q: Ord + ?Sized>(&self, name: &Q) -> bool
+  where
+    Name: Borrow<Q>,
+  {
+    self.get(name).is_some()
+  }
+
+  /// The names from the first one not less than `name` on, in their order.
+  fn names_from(&self, name: &str) -> NamesFrom<'_> {
+    match self {
+      Self::Map(map) => NamesFrom::Map(map.range::<str, _>((Bound::Included(name), Bound::Unbounded))),
+      Self::Record(names, _) => NamesFrom::Record(names[names.partition_point(|entry| Borrow::<str>::borrow(entry) < name)..].iter()),
+    }
+  }
+
+  /// The entries as a map, to be changed: a record becomes one.
+  fn map_mut(&mut self) -> &mut BTreeMap<Name, Value> {
+    if let Self::Record(names, values) = self {
+      // ascending and each name once, so the map is built in one pass
+      *self = Self::Map(names.iter().cloned().zip(std::mem::take(values)).collect());
+    }
+    match self {
+      Self::Map(map) => map,
+      Self::Record(..) => unreachable!("a record became a map"),
+    }
+  }
+}
+
+impl PartialEq for FeelContextEntries {
+  fn eq(&self, other: &Self) -> bool {
+    self.len() == other.len() && self.iter().eq(other.iter())
+  }
+}
+
+impl fmt::Debug for FeelContextEntries {
+  /// The form of a map, whatever the form of the entries.
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_map().entries(self.iter()).finish()
+  }
+}
 
 /// The FEEL context.
 ///
@@ -74,12 +208,12 @@ impl FromIterator<(Name, Value)> for FeelContext {
     let in_order = ascending.windows(2).position(|pair| pair[0].0 >= pair[1].0).map_or(ascending.len(), |index| index + 1);
     let rest = ascending.split_off(in_order);
     // sorted and without equal names, so the result does not depend on how the map treats either
-    let mut entries = FeelContextEntries::from_iter(ascending);
+    let mut entries = BTreeMap::from_iter(ascending);
     for (name, value) in rest {
       entries.insert(name, value);
     }
     Self {
-      entries,
+      entries: FeelContextEntries::Map(entries),
       depth: AtomicU32::new(0),
     }
   }
@@ -91,7 +225,19 @@ impl FeelContext {
   /// context too, but which of two entries with one name it keeps is not defined.
   pub fn from_ascending_entries(entries: impl IntoIterator<Item = (Name, Value)>) -> Self {
     Self {
-      entries: FeelContextEntries::from_iter(entries),
+      entries: FeelContextEntries::Map(BTreeMap::from_iter(entries)),
+      depth: AtomicU32::new(0),
+    }
+  }
+
+  /// Builds a context of the entries `names[i]: values[i]`. The names are shared: the records
+  /// of a list that have the same names hold one list of them, and each its values. The names
+  /// must be ascending, each once, and as many as the values; a context of other names and
+  /// values is not defined (it stays memory-safe: a lookup may miss an entry).
+  pub fn from_shared_names(names: Arc<[Name]>, values: Vec<Value>) -> Self {
+    debug_assert!(names.len() == values.len() && names.windows(2).all(|pair| pair[0] < pair[1]));
+    Self {
+      entries: FeelContextEntries::Record(names, values),
       depth: AtomicU32::new(0),
     }
   }
@@ -131,13 +277,9 @@ impl fmt::Display for FeelContext {
   /// Convert [FeelContext] to string.
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str("{")?;
-    write_separated(
-      f,
-      &self.entries,
-      |f, (name, value)| {
-        if name.is_empty() { write!(f, r#""": {value}"#) } else { write!(f, "{name}: {value}") }
-      },
-    )?;
+    write_separated(f, self.entries.iter(), |f, (name, value)| {
+      if name.is_empty() { write!(f, r#""": {value}"#) } else { write!(f, "{name}: {value}") }
+    })?;
     f.write_str("}")
   }
 }
@@ -252,7 +394,7 @@ impl FeelContext {
 
   /// Returns an iterator over the names of the entries from the first name not less than `name` on, in their order.
   pub fn keys_from(&self, name: &str) -> impl Iterator<Item = &Name> {
-    self.entries.range::<str, _>((Bound::Included(name), Bound::Unbounded)).map(|(key, _)| key)
+    self.entries.names_from(name)
   }
 
   /// Returns a first value contained by context.
@@ -276,13 +418,13 @@ impl FeelContext {
   }
 
   pub fn zip(&mut self, other: &FeelContext) {
-    for (name, value) in &other.entries {
+    for (name, value) in other.entries.iter() {
       self.put(name.clone(), value.clone());
     }
   }
 
   pub fn overwrite(&mut self, other: &FeelContext) {
-    for (name, value) in &other.entries {
+    for (name, value) in other.entries.iter() {
       if self.entries.contains_key(name) {
         self.put(name.clone(), value.clone());
       }
@@ -401,9 +543,9 @@ impl FeelContext {
   }
 
   /// The entries, to be changed: the nesting depth is forgotten.
-  fn entries_mut(&mut self) -> &mut FeelContextEntries {
+  fn entries_mut(&mut self) -> &mut BTreeMap<Name, Value> {
     *self.depth.get_mut() = 0;
-    &mut self.entries
+    self.entries.map_mut()
   }
 
   /// Inserts an entry.
