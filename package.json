@@ -27,6 +27,7 @@
     "tier:fix": "node scripts/tier.mjs fix",
     "tier:group": "node scripts/tier.mjs group",
     "tier:release": "node scripts/tier.mjs release",
+    "tier:speed": "node scripts/tier.mjs speed",
     "identity": "bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm",
     "identity:large": "bash tools/identity/fetch-baseline.sh && bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm --large",
     "smoke": "node scripts/smoke.mjs",

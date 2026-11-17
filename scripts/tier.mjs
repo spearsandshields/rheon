@@ -4,18 +4,20 @@
 //
 //   node scripts/tier.mjs fix [-p <crate>]… [--test <filter>] [--base <rev>] [--logs <dir>]
 //   node scripts/tier.mjs group [--only rust|module|carried] [--logs <dir>]
-//   node scripts/tier.mjs release [--without-large-sets] [--without-speed-suite] [--logs <dir>]
+//   node scripts/tier.mjs release [--without-large-sets] [--logs <dir>]
+//   node scripts/tier.mjs speed [--logs <dir>]
 //
 // Every tier takes --jobs <n>: the most steps that run at once (default: half the cores, at most
 // 4; 1 runs them in the order of the table). Steps that share a build directory or write the same
-// files run one after the other whatever --jobs says; the speed suite runs last and alone.
+// files run one after the other whatever --jobs says. The speed tier is the speed suite by
+// itself (RHEON_BENCH, the directory of bench.mjs): a measurement, to run on a quiet machine.
 //
 // (npm run tier:fix, tier:group, tier:release; arguments after `--`.) A step is a build (compile
 // steps: cargo check, test builds with --no-run, the wasm build, clippy, documentation) or a run
 // (everything else); the budget judges the run total, so a cold build does not fail a tier. The
 // fix tier stops at the first failing step. The group and release tiers run every step and report
 // every failure; a step whose prerequisite failed is skipped. An input kept outside the repository
-// (the large request sets, IDENTITY_LARGE_SETS; the speed suite, RHEON_BENCH) is required by the
+// (the large request sets, IDENTITY_LARGE_SETS) is required by the
 // release tier: without it the step fails, unless its --without flag is given, and then the step
 // is NOT RUN and counted in the verdict.
 //
@@ -44,6 +46,7 @@ export const BUDGETS = {
   fix: { local: 120, ci: null },
   group: { local: 360, ci: null },
   release: { local: 1800, ci: null },
+  speed: { local: null, ci: null },
 };
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -266,6 +269,18 @@ function releaseSteps() {
     ...cargoTest('full-size', `--release ${FULL_SIZE}`, '', { env: { RHEON_FULL_TESTS: '1' }, ...RELEASE }),
     { name: 'parser-corpus', kind: 'run', command: `RHEON_PARSER_CORPUS="$PWD/tools/feel-corpus" cargo test --release -p rheon-feel-parser -- --include-ignored`, needs: ['full-size-build'], ...RELEASE },
     { name: 'stack-report', kind: 'run', command: 'npm run stack -- --report', needs: ['build-wasm'] },
+    { name: 'doc', kind: 'build', command: `cargo doc --no-deps ${PUBLISHED.map((c) => `-p ${c}`).join(' ')}`, env: { RUSTDOCFLAGS: '-D warnings' }, ...DEBUG },
+  ];
+}
+
+/**
+ * The speed tier: the speed suite on the module, the previous release and the build back to back.
+ * It is a measurement, so it runs by itself and on a quiet machine: right after another tier the
+ * machine is warm and the build, measured second, reads slower than it is.
+ */
+function speedSteps() {
+  return [
+    wasmBuild,
     {
       name: 'speed-suite',
       kind: 'run',
@@ -273,9 +288,7 @@ function releaseSteps() {
       command: 'for m in reference:' + BASELINE + ' candidate:dist/feel.wasm; do node --expose-gc --no-warnings "$RHEON_BENCH/bench.mjs" --modes engine --wasm "$PWD/${m#*:}" --label "${m%%:*}" --json "$TIER_LOGS/speed-${m%%:*}.json" || exit 1; done',
       needs: ['build-wasm'],
       input: { env: 'RHEON_BENCH', flag: '--without-speed-suite' },
-      alone: true,
     },
-    { name: 'doc', kind: 'build', command: `cargo doc --no-deps ${PUBLISHED.map((c) => `-p ${c}`).join(' ')}`, env: { RUSTDOCFLAGS: '-D warnings' }, ...DEBUG },
   ];
 }
 
@@ -338,7 +351,7 @@ function parseArgs(argv) {
     else if (tier === 'fix' && arg === '-p') options.crates.push(value());
     else if (tier === 'fix' && arg === '--test') options.test = value();
     else if (tier === 'fix' && arg === '--base') options.base = value();
-    else if (tier === 'release' && (arg === '--without-large-sets' || arg === '--without-speed-suite')) options.without.add(arg);
+    else if (tier === 'release' && arg === '--without-large-sets') options.without.add(arg);
     else throw new UsageError(`unknown option ${arg} for the ${tier} tier`);
   }
   return options;
@@ -352,7 +365,8 @@ async function main(argv) {
     const fix = fixSteps(options);
     console.log(`fix tier: ${fix.packages.length ? fix.packages.join(' ') : 'no crate touched'}${options.test ? `, own test ${options.test}` : ''}`);
     steps = fix.steps;
-  } else steps = options.tier === 'group' ? groupSteps().filter((step) => options.only === null || step.set === options.only) : releaseSteps();
+  } else if (options.tier === 'group') steps = groupSteps().filter((step) => options.only === null || step.set === options.only);
+  else steps = options.tier === 'release' ? releaseSteps() : speedSteps();
   const budget = BUDGETS[options.tier][env.CI ? 'ci' : 'local'];
   return runSteps(options.tier, withWasmTarget(steps, env), { budget, stopAtFailure: options.tier === 'fix', without: options.without, logs: options.logs, env, jobs: options.jobs });
 }
@@ -362,7 +376,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     process.exitCode = await main(process.argv.slice(2));
   } catch (e) {
     console.error(`tier: ${e instanceof UsageError ? e.message : e.stack ?? e}`);
-    if (e instanceof UsageError) console.error('usage: node scripts/tier.mjs fix [-p <crate>]… [--test <filter>] [--base <rev>] | group [--only rust|module|carried] | release [--without-large-sets] [--without-speed-suite]  [--logs <dir>] [--jobs <n>]');
+    if (e instanceof UsageError) console.error('usage: node scripts/tier.mjs fix [-p <crate>]… [--test <filter>] [--base <rev>] | group [--only rust|module|carried] | release [--without-large-sets] | speed  [--logs <dir>] [--jobs <n>]');
     process.exitCode = 2;
   }
 }
