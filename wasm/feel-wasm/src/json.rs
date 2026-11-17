@@ -11,6 +11,11 @@
 //! - of two entries of an object with the same key, the later one in the text gives the value;
 //! - the warnings of the entries of an object come in the order of its keys, not of the text.
 //!
+//! An object that is an item of an array is not read at once when [plain_end] passes it, which
+//! validates it and shows that it is read without a warning: it becomes a context that reads
+//! the object when the context is first used ([Record]). What is read then is what would have
+//! been read at once, so the values, the warnings and what is refused are the same.
+//!
 //! The reader refuses what it would have to work for to answer the same: a key with white space
 //! at an end (the name is the key without it, and of two such keys the later one in the order of
 //! the keys gives the entry), and an object whose keys do not come in ascending order when one
@@ -18,10 +23,189 @@
 
 use crate::input::{DIRECT_ENTRIES, Path, number_value};
 use rheon_feel::Name;
-use rheon_feel::context::FeelContext;
+use rheon_feel::context::{DeferredEntries, FeelContext};
 use rheon_feel::values::Value;
 use rheon_feel_number::FeelNumber;
 use std::borrow::Cow;
+use std::sync::{Arc, Mutex};
+
+/// An object that is an item of an array is read when it is first used, when its text has at
+/// least this many bytes ([Record]).
+const DEFER_FROM: usize = 128;
+
+/// Returns the position after the JSON value that starts at `at`, inside `depth` arrays and
+/// objects, and the nesting depth of the value it is read into; `None` unless the value is
+/// one that [Reader] reads into a value without a warning and without refusing it, whatever
+/// stands around it. It answers `None` for more than it has to: for a string with an escape,
+/// a number with an exponent or more than 34 digits, and a key that does not start and end
+/// with a visible ASCII character or starts with `$`, and an object that has a key twice when
+/// the value of one of the two is an array or an object (the depth of the object is that of
+/// the entries it keeps), or that has too many keys with such values to compare them.
+///
+/// Every object passed on the way that is an item of an array is added to the items of
+/// `passed`, with its start, its end and its nesting depth: also when the value around it is
+/// not passed.
+fn plain_end(bytes: &[u8], at: usize, depth: usize, passed: &mut Passed) -> Option<(usize, u32)> {
+  match bytes.get(at)? {
+    b'"' => {
+      let end = string_stop(bytes, at + 1);
+      (bytes.get(end) == Some(&b'"')).then_some((end + 1, 0))
+    }
+    open @ (b'{' | b'[') => {
+      let depth = depth + 1;
+      if depth >= NESTING_LIMIT {
+        return None;
+      }
+      let (object, close) = if *open == b'{' { (true, b'}') } else { (false, b']') };
+      let mut at = skip_white(bytes, at + 1);
+      if bytes.get(at) == Some(&close) {
+        return Some((at + 1, 1));
+      }
+      let mut deepest = 0;
+      let first_key = passed.keys.len();
+      // the keys whose values are arrays or objects
+      let mut nested = 0;
+      loop {
+        let key = at + 1;
+        if object {
+          if bytes.get(at) != Some(&b'"') {
+            return None;
+          }
+          let end = string_stop(bytes, at + 1);
+          let visible = |byte: &u8| (0x21..=0x7E).contains(byte);
+          if bytes.get(end) != Some(&b'"') || end == at + 1 || bytes[at + 1] == b'$' || !visible(&bytes[at + 1]) || !visible(&bytes[end - 1]) {
+            return None;
+          }
+          passed.keys.push((key, end, false));
+          at = skip_white(bytes, end + 1);
+          if bytes.get(at) != Some(&b':') {
+            return None;
+          }
+          at = skip_white(bytes, at + 1);
+        }
+        let (end, nesting) = plain_end(bytes, at, depth, passed)?;
+        if object {
+          if nesting > 0 {
+            nested += 1;
+            // the keys of the values inside are gone again: the last one is this one
+            if let Some(key) = passed.keys.last_mut() {
+              key.2 = true;
+            }
+          }
+        } else if bytes[at] == b'{' {
+          passed.items.push((at, end, nesting));
+        }
+        deepest = deepest.max(nesting);
+        at = skip_white(bytes, end);
+        match bytes.get(at)? {
+          b',' => at = skip_white(bytes, at + 1),
+          byte if *byte == close => {
+            if object {
+              let keys = &passed.keys[first_key..];
+              // each key of an array or an object against every other key
+              let twice = nested > 0
+                && (nested * keys.len() > KEY_COMPARISONS
+                  || keys.iter().enumerate().filter(|(_, key)| key.2).any(|(index, key)| {
+                    keys
+                      .iter()
+                      .enumerate()
+                      .any(|(other, entry)| other != index && bytes[entry.0..entry.1] == bytes[key.0..key.1])
+                  }));
+              passed.keys.truncate(first_key);
+              if twice {
+                return None;
+              }
+            }
+            return Some((at + 1, deepest + 1));
+          }
+          _ => return None,
+        }
+      }
+    }
+    b't' => bytes.get(at..at + 4).filter(|word| *word == b"true").map(|_| (at + 4, 0)),
+    b'f' => bytes.get(at..at + 5).filter(|word| *word == b"false").map(|_| (at + 5, 0)),
+    b'n' => bytes.get(at..at + 4).filter(|word| *word == b"null").map(|_| (at + 4, 0)),
+    b'-' | b'0'..=b'9' => {
+      // a number without an exponent: `-`, digits without a leading zero, `.` and digits
+      let mut end = at + usize::from(bytes[at] == b'-');
+      let first = end;
+      while let Some(b'0'..=b'9') = bytes.get(end) {
+        end += 1;
+      }
+      let whole = end - first;
+      if whole == 0 || (whole > 1 && bytes[first] == b'0') {
+        return None;
+      }
+      let mut digits = whole;
+      if bytes.get(end) == Some(&b'.') {
+        let point = end;
+        end += 1;
+        while let Some(b'0'..=b'9') = bytes.get(end) {
+          end += 1;
+        }
+        digits += end - point - 1;
+        if end == point + 1 {
+          return None;
+        }
+      }
+      (digits <= 34 && !matches!(bytes.get(end), Some(b'e' | b'E'))).then_some((end, 0))
+    }
+    _ => None,
+  }
+}
+
+/// What [plain_end] keeps of a pass.
+#[derive(Default)]
+struct Passed {
+  /// The objects that are items of arrays: the start, the end and the nesting depth of each.
+  items: Vec<(usize, usize, u32)>,
+  /// The keys of the objects that are being passed, those of an inner object above those of
+  /// the objects around it: the start and the end of each, and whether its value is an array
+  /// or an object.
+  keys: Vec<(usize, usize, bool)>,
+}
+
+/// The most comparisons of keys that [plain_end] makes for one object, to see that no key
+/// with an array or an object as its value comes twice.
+const KEY_COMPARISONS: usize = 4096;
+
+/// An object of the request text that is read when the context it stands for is first used:
+/// one that [plain_end] passed, so the reader reads it without a warning.
+struct Record {
+  shared: Arc<Shared>,
+  at: usize,
+  /// The number of arrays and objects around the object.
+  depth: usize,
+}
+
+/// What the records of a text that are read later have in common.
+struct Shared {
+  text: Arc<str>,
+  /// The shapes of the records read so far.
+  shapes: Mutex<Vec<Shape>>,
+  /// The objects that [plain_end] passed as items of arrays inside other values: for the start
+  /// of each, its end and its nesting depth. The reader of the value around one finds it here.
+  passed: Mutex<std::collections::HashMap<usize, (usize, u32)>>,
+}
+
+impl DeferredEntries for Record {
+  fn build(&self) -> FeelContext {
+    let mut warnings = vec![];
+    let mut reader = Reader::new(&self.shared.text, self.at, self.depth, &mut warnings);
+    reader.shared = Some(self.shared.clone());
+    // no object of this reader comes once: every one takes the names of the one before
+    reader.outermost = 0;
+    if let Ok(mut shapes) = self.shared.shapes.lock() {
+      reader.shapes = std::mem::take(&mut *shapes);
+    }
+    let context = reader.read_object(&Path::Root(""));
+    if let Ok(mut shapes) = self.shared.shapes.lock() {
+      *shapes = std::mem::take(&mut reader.shapes);
+    }
+    // [plain_end] passed the object, so it is read
+    context.unwrap_or_else(|Refused| unreachable!("an object that was passed as plain is read"))
+  }
+}
 
 /// A JSON number text with an exponent as `serde_json` hands it on: `e` in lower case and
 /// always a sign. A warning quotes this text.
@@ -437,6 +621,9 @@ pub(crate) struct Reader<'a, 'w> {
   values: Vec<Value>,
   /// The values of such an object while they are put into the order of its keys.
   unordered_values: Vec<Option<Value>>,
+  /// The text as the records that are read later hold it, with their shapes; made for the
+  /// first of them.
+  shared: Option<Arc<Shared>>,
 }
 
 impl<'a, 'w> Reader<'a, 'w> {
@@ -453,6 +640,7 @@ impl<'a, 'w> Reader<'a, 'w> {
       unordered: vec![],
       values: vec![],
       unordered_values: vec![],
+      shared: None,
     }
   }
 
@@ -485,6 +673,17 @@ impl<'a, 'w> Reader<'a, 'w> {
   pub(crate) fn object(text: &'a str, path: &Path, warnings: &'w mut Vec<String>) -> Result<FeelContext, Refused> {
     let (context, end) = Reader::object_at(text, 0, path, warnings)?;
     if end == text.len() { Ok(context) } else { Err(Refused) }
+  }
+
+  /// What the records that are read later have in common, made for the first of them.
+  fn shared(&mut self) -> &Arc<Shared> {
+    self.shared.get_or_insert_with(|| {
+      Arc::new(Shared {
+        text: Arc::from(self.text),
+        shapes: Mutex::default(),
+        passed: Mutex::default(),
+      })
+    })
   }
 
   fn peek(&self) -> Option<u8> {
@@ -563,8 +762,48 @@ impl<'a, 'w> Reader<'a, 'w> {
       self.leave();
       return Ok(Value::List(items.into()));
     }
+    // whether the objects among the items are looked at for reading them later
+    let mut defer = true;
     loop {
-      items.push(self.read_value(&Path::Index(path, items.len()))?);
+      if defer {
+        self.skip_white();
+      }
+      if defer && self.peek() == Some(b'{') {
+        // the end of the object, from the pass over a value around it or from one now
+        let known = self.shared.as_ref().and_then(|shared| shared.passed.lock().ok()?.get(&self.at).copied());
+        let passed = known.or_else(|| {
+          let mut inner = Passed::default();
+          let passed = plain_end(self.text.as_bytes(), self.at, self.depth, &mut inner);
+          if !inner.items.is_empty()
+            && let Ok(mut all) = self.shared().passed.lock()
+          {
+            all.extend(inner.items.into_iter().map(|(start, end, depth)| (start, (end, depth))));
+          }
+          passed
+        });
+        match passed {
+          Some((end, depth)) if end - self.at >= DEFER_FROM => {
+            let record = Record {
+              shared: self.shared().clone(),
+              at: self.at,
+              depth: self.depth,
+            };
+            items.push(Value::Context(Arc::new(FeelContext::deferred(Arc::new(record), depth))));
+            self.at = end;
+            self.skip_white();
+          }
+          // the items of an array are mostly alike: after a short one the others are read at once
+          Some(_) => {
+            defer = false;
+            continue;
+          }
+          None => items.push(self.read_value(&Path::Index(path, items.len()))?),
+        }
+      } else {
+        // the items of an array are mostly alike: after one that is no object none is looked at
+        defer = false;
+        items.push(self.read_value(&Path::Index(path, items.len()))?);
+      }
       match self.peek() {
         Some(b',') => self.at += 1,
         Some(b']') => {
@@ -1029,6 +1268,183 @@ mod tests {
     assert!(
       read > cases() / 4 && refused > cases() / 20 && with_warnings > cases() / 40,
       "{read} read, {with_warnings} with warnings, {refused} refused"
+    );
+  }
+
+  /// The nesting depth of a value: a list or a context is one deeper than its deepest part.
+  fn nesting(value: &Value) -> u32 {
+    match value {
+      Value::List(items) => 1 + items.iter().map(nesting).max().unwrap_or(0),
+      Value::Context(context) => 1 + context.iter().map(|(_, entry)| nesting(entry)).max().unwrap_or(0),
+      _ => 0,
+    }
+  }
+
+  /// Whether a value holds a context that is not read yet.
+  fn has_unread(value: &Value) -> bool {
+    match value {
+      Value::List(items) => items.iter().any(has_unread),
+      Value::Context(context) => !context.is_built() || context.iter().any(|(_, entry)| has_unread(entry)),
+      _ => false,
+    }
+  }
+
+  /// A value that is passed as plain is read: to the same end, without a warning, into a
+  /// value of the nesting depth that the pass gives. So an object that is read later is read
+  /// then, and has the depth it was given before.
+  #[test]
+  fn a_plain_value_is_read_without_a_warning() {
+    let mut rng = Rng(0x0123_4567_89AB_CDEF, false);
+    let (mut plain, mut other, mut items) = (0, 0, 0);
+    for case in 0..cases() {
+      let mut text = String::new();
+      rng.1 = false;
+      object(&mut rng, 0, &mut text);
+      if rng.below(3) == 0 {
+        text = damage(&mut rng, &text);
+      }
+      // what follows the value does not count
+      text.push_str(rng.pick(&["", " ", ",1", "}", "x"]));
+      let mut passed = Passed::default();
+      let Some((end, depth)) = plain_end(text.as_bytes(), 0, 1, &mut passed) else {
+        other += 1;
+        // the objects that were passed inside a value that is not plain are plain
+        for (start, end, depth) in passed.items {
+          let mut warnings = vec![];
+          let (value, read_end) = Reader::value_at(&text, start, &Path::Root(""), &mut warnings).unwrap_or_else(|Refused| panic!("case {case}: {start} of {text}"));
+          assert_eq!((end, depth, true), (read_end, nesting(&value), warnings.is_empty()), "case {case}: {start} of {text}");
+          items += 1;
+        }
+        continue;
+      };
+      // (a damaged text may start with a value that is no object)
+      if !text.starts_with('{') {
+        continue;
+      }
+      let mut warnings = vec![];
+      let (value, read_end) = Reader::value_at(&text, 0, &Path::Root(""), &mut warnings).unwrap_or_else(|Refused| panic!("case {case}: {text}"));
+      assert_eq!(end, read_end, "case {case}: {text}");
+      assert_eq!(Vec::<String>::new(), warnings, "case {case}: {text}");
+      assert_eq!(depth, nesting(&value), "case {case}: {text}");
+      // and it is the value of the tree
+      let (expected, expected_warnings) = through_the_tree(&text[..end]).unwrap_or_else(|e| panic!("case {case}: {text}: {e}"));
+      assert_eq!(Value::from(expected), value, "case {case}: {text}");
+      assert!(expected_warnings.is_empty(), "case {case}: {text}");
+      plain += 1;
+    }
+    println!("{plain} plain, {other} not, {items} items passed inside those");
+    assert!(
+      plain > cases() / 20 && other > cases() / 4 && items > cases() / 100,
+      "{plain} plain, {other} not, {items} items"
+    );
+  }
+
+  /// One record of at least [DEFER_FROM] bytes: fields of numbers, texts and a list of small
+  /// records; with `odd`, one thing that keeps it from being read later.
+  fn record(rng: &mut Rng, odd: bool, out: &mut String) {
+    out.push('{');
+    let fields = 10 + rng.below(8);
+    let odd_at = if odd { rng.below(fields) } else { usize::MAX };
+    for field in 0..fields {
+      if field > 0 {
+        out.push_str(rng.pick(&[",", ", ", ",\n  "]));
+      }
+      if field == odd_at {
+        out.push_str(rng.pick(&[
+          "\"big\": 1234567890123456789012345678901234567890",
+          "\"small\": 1e-7000",
+          "\"exponent\": 12e3",
+          "\"escape\": \"a\\nb\"",
+          "\"key\\u0041\": 1",
+          "\" spaced\": 1",
+          "\"spaced \": 1",
+          "\"field0\": \"again\"",
+          "\"é\": 1",
+          "\"$x\": 1",
+          "\"deep\": [[[[{\"a\": [1, {\"b\": 12345678901234567890123456789012345}]}]]]]",
+        ]));
+        continue;
+      }
+      out.push_str(&format!("\"field{field}\": "));
+      match rng.below(6) {
+        0 => out.push_str(&format!("\"text {}\"", rng.below(1000))),
+        1 => out.push_str(rng.pick(&["true", "false", "null"])),
+        2 => {
+          out.push('[');
+          for item in 0..rng.below(4) {
+            if item > 0 {
+              out.push(',');
+            }
+            out.push_str(&format!("{{\"n\": {}, \"t\": \"{}\"}}", rng.below(100), rng.below(10)));
+          }
+          out.push(']');
+        }
+        _ => out.push_str(&format!("{}{}.{:02}", rng.pick(&["", "-"]), rng.below(100_000), rng.below(100))),
+      }
+    }
+    out.push('}');
+  }
+
+  /// A list of records is read as through the tree, with the same warnings, whether its
+  /// records are read at once or when they are first used; a record with something that could
+  /// warn or be refused is read at once, and the others stay unread until something uses them.
+  #[test]
+  fn records_read_on_first_use_equal_the_conversion_through_the_tree() {
+    let mut rng = Rng(0x0F1E_2D3C_4B5A_6978, false);
+    let (mut read, mut refused, mut unread) = (0, 0, 0);
+    for case in 0..cases() / 20 {
+      let mut text = String::from("{\"small\": [{\"a\": 1}, {\"a\": 2}], \"rows\": [");
+      let rows = 1 + rng.below(6);
+      let mut any_odd = false;
+      for row in 0..rows {
+        if row > 0 {
+          text.push_str(rng.pick(&[",", " , "]));
+        }
+        let odd = rng.below(5) == 0;
+        any_odd |= odd;
+        if rng.below(4) == 0 {
+          // records inside a record
+          text.push_str("{\"inner\": [");
+          record(&mut rng, false, &mut text);
+          text.push(',');
+          record(&mut rng, odd, &mut text);
+          text.push_str("], \"n\": 1}");
+        } else {
+          record(&mut rng, odd, &mut text);
+        }
+      }
+      text.push_str("]}");
+      let mut warnings = vec![];
+      match (Reader::object(&text, &Path::Root(""), &mut warnings), through_the_tree(&text)) {
+        (Ok(context), Ok((expected, expected_warnings))) => {
+          let rows_value = context.get_entry(&Name::from("rows")).cloned().unwrap_or_else(|| panic!("case {case}: {text}"));
+          let small = context.get_entry(&Name::from("small")).cloned().unwrap_or_else(|| panic!("case {case}: {text}"));
+          // short records are read at once; of the others, those with nothing odd are not yet
+          assert!(!has_unread(&small), "case {case}: {text}");
+          let unread_before = has_unread(&rows_value);
+          assert!(unread_before || any_odd, "case {case}: every record was read at once: {text}");
+          unread += usize::from(unread_before);
+          // a copy made before the records are read is read on its own
+          let copy = context.clone();
+          assert_eq!(expected, context, "case {case}: {text}");
+          assert_eq!(format!("{expected:?}"), format!("{context:?}"), "case {case}: {text}");
+          assert_eq!(expected, copy, "case {case}: {text}");
+          assert_eq!(expected_warnings, warnings, "case {case}: {text}");
+          assert!(!has_unread(&rows_value), "case {case}: {text}");
+          read += 1;
+        }
+        (Ok(context), Err(error)) => panic!("case {case}: {text}\nread {context:?}\nthe tree refuses: {error}"),
+        (Err(Refused), _) => {
+          assert!(any_odd, "case {case}: refused {text}");
+          refused += 1;
+        }
+      }
+    }
+    println!("{read} read ({unread} with records left unread), {refused} refused");
+    let cases = cases() / 20;
+    assert!(
+      read > cases / 2 && unread > cases / 2 && refused > cases / 50,
+      "{read} read, {unread} unread, {refused} refused"
     );
   }
 
