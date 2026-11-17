@@ -180,6 +180,8 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Evaluate,
     EvaluateAll,
     Parse,
+    #[cfg(feature = "hand-parser")]
+    Syntax,
   }
   let op = match req.get("op") {
     Some(Json::String(op)) => match op.as_str() {
@@ -187,6 +189,8 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "evaluate" => Op::Evaluate,
       "evaluateAll" => Op::EvaluateAll,
       "parse" => Op::Parse,
+      #[cfg(feature = "hand-parser")]
+      "syntax" => Op::Syntax,
       other => {
         return fail(
           Kind::Request,
@@ -203,6 +207,8 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
     Op::EvaluateAll => evaluate_all(req, unread, started).map(Response::Text),
     Op::Parse => parse(req, unread, started).map(Response::Tree),
+    #[cfg(feature = "hand-parser")]
+    Op::Syntax => syntax(req, unread, started).map(Response::Tree),
   }
 }
 
@@ -661,6 +667,44 @@ fn evaluated(
   response.push_str(&warnings);
   response.push('}');
   Ok(response)
+}
+
+/// The tokens, the nodes and the syntax errors of an expression, for an editor (`op: "syntax"`,
+/// a prototype behind the feature `hand-parser`). It answers for every text. The places are
+/// offsets in UTF-16 code units: `[class, from, to]` for a token, `[kind, from, to]` for a node.
+#[cfg(feature = "hand-parser")]
+fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
+  let dialect = dialect(&req)?;
+  let expression = expression(&mut req)?;
+  let scope = prepare_scope(req, unread, dialect, &mut vec![])?;
+  let syntax = rheon_feel_parser::parse_tolerant(&scope, &expression, matches!(dialect, Dialect::UnaryTests));
+  // byte offsets to UTF-16 offsets, for places in ascending order
+  let mut places: Vec<usize> = syntax.tokens.iter().flat_map(|t| [t.start, t.end]).collect();
+  places.extend(syntax.nodes.iter().flat_map(|n| [n.start, n.end]));
+  places.extend(syntax.diagnostics.iter().flat_map(|d| [d.start, d.end]));
+  places.sort_unstable();
+  places.dedup();
+  let mut units = std::collections::HashMap::with_capacity(places.len());
+  let (mut at, mut count) = (0, 0);
+  for place in places {
+    count += expression[at..place].encode_utf16().count();
+    at = place;
+    units.insert(place, count);
+  }
+  let tokens: Vec<Json> = syntax.tokens.iter().map(|t| json!([t.class.as_str(), units[&t.start], units[&t.end]])).collect();
+  let nodes: Vec<Json> = syntax.nodes.iter().map(|n| json!([n.kind, units[&n.start], units[&n.end]])).collect();
+  let diagnostics: Vec<Json> = syntax
+    .diagnostics
+    .iter()
+    .map(|d| json!({"code": d.code, "message": d.message, "from": units[&d.start], "to": units[&d.end]}))
+    .collect();
+  Ok(json!({
+    "ok": true,
+    "tokens": tokens,
+    "nodes": nodes,
+    "diagnostics": diagnostics,
+    "elapsedMicros": elapsed_micros(started),
+  }))
 }
 
 fn parse(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {

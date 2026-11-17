@@ -35,6 +35,7 @@
   import { feel } from 'lang-feel';
   import { tags as t } from '@lezer/highlight';
   import type { Dialect } from '../engine';
+  import { RHEON_PARSER, configureRheonSyntax, loadRheonSyntax, refreshRheonSyntax, rheonSyntaxExtension, rheonSyntaxOf } from './rheonSyntax';
 
 
   interface Props {
@@ -102,6 +103,7 @@
 
   /** lezer-feel parse of the document: flattened tree with ranges, and its error nodes. */
   function analyse(state: EditorState): SyntaxInfo {
+    if (RHEON_PARSER && language === 'feel') return analyseRheon(state);
     const tree = ensureSyntaxTree(state, state.doc.length, 200);
     const doc = state.doc.toString();
     const nodes: LezerNode[] = [];
@@ -145,14 +147,41 @@
     return { nodes, truncated, errors, cursor: state.selection.main.head, anchor: state.selection.main.anchor };
   }
 
+  /** The engine's own parse of the document (`?parser=rheon`): its nodes with their depth, and its errors. */
+  function analyseRheon(state: EditorState): SyntaxInfo {
+    const syntax = rheonSyntaxOf(state);
+    const doc = state.doc.toString();
+    const nodes: LezerNode[] = [];
+    const open: number[] = [];
+    for (const [name, from, to] of (syntax?.nodes ?? []).slice(0, MAX_NODES)) {
+      while (open.length && open[open.length - 1] < to) open.pop();
+      if (open.length && open[open.length - 1] === to && from === to) open.pop();
+      nodes.push({ name: name === 'Error' ? 'ERROR' : name, from, to, depth: open.length, error: name === 'Error' });
+      open.push(to);
+    }
+    const errors = (syntax?.diagnostics ?? []).map((d) => {
+      let { from, to } = d;
+      if (to === from) {
+        // an error at the end of the input: underline the token before it
+        const before = doc.slice(0, from).match(/(\S+)\s*$/);
+        if (before) {
+          to = from - (before[0].length - before[1].length);
+          from = to - before[1].length;
+        }
+      }
+      return { from, to, message: d.message };
+    });
+    return { nodes, truncated: (syntax?.nodes.length ?? 0) > MAX_NODES, errors, cursor: state.selection.main.head, anchor: state.selection.main.anchor };
+  }
+
   const syntaxLinter = linter(
     (v): Diagnostic[] =>
       analyse(v.state).errors.slice(0, 20).map((e) => ({
         from: e.from,
         to: e.to,
         severity: 'error',
-        source: 'lezer-feel',
-        message: `Syntax error: ${e.message} (position ${e.from})`,
+        source: RHEON_PARSER ? 'rheon' : 'lezer-feel',
+        message: RHEON_PARSER ? e.message : `Syntax error: ${e.message} (position ${e.from})`,
       })),
     { delay: 250 },
   );
@@ -167,6 +196,8 @@
 
   function languageExt(): Extension {
     if (language === 'json') return json();
+    // the engine's own parser colours the text: no grammar of the editor
+    if (RHEON_PARSER) return [];
     const context: Record<string, null> = {};
     for (const n of contextNames) context[n] = null;
     return feel({ dialect, context });
@@ -194,6 +225,7 @@
           cmPlaceholder(placeholder),
           EditorView.contentAttributes.of(describedby ? { 'aria-label': label, 'aria-describedby': describedby } : { 'aria-label': label }),
           ...(language === 'feel' ? [syntaxLinter, lintGutter()] : []),
+          ...(language === 'feel' && RHEON_PARSER ? [rheonSyntaxExtension] : []),
           keymap.of([
             { key: 'Mod-Enter', run: () => (onsubmit?.(), true) },
             ...closeBracketsKeymap,
@@ -206,12 +238,20 @@
           lang.of(languageExt()),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) onchange(u.state.doc.toString());
-            if (onsyntax && (u.docChanged || u.selectionSet || syntaxChanged(u))) onsyntax(analyse(u.state));
+            const refreshed = u.transactions.some((tr) => tr.effects.some((effect) => effect.is(refreshRheonSyntax)));
+            if (onsyntax && (u.docChanged || u.selectionSet || refreshed || syntaxChanged(u))) onsyntax(analyse(u.state));
           }),
         ],
       }),
     });
     if (onsyntax && view) onsyntax(analyse(view.state));
+    if (RHEON_PARSER && language === 'feel') {
+      configureRheonSyntax(dialect, contextNames);
+      void loadRheonSyntax().then(() => {
+        view?.dispatch({ effects: refreshRheonSyntax.of(null) });
+        if (view) forceLinting(view);
+      });
+    }
     return () => view?.destroy();
   });
 
@@ -232,7 +272,8 @@
   $effect(() => {
     void dialect;
     void contextNames;
-    view?.dispatch({ effects: lang.reconfigure(languageExt()) });
+    if (RHEON_PARSER && language === 'feel') configureRheonSyntax(dialect, contextNames);
+    view?.dispatch({ effects: [lang.reconfigure(languageExt()), refreshRheonSyntax.of(null)] });
     if (view && language === 'feel') {
       forceLinting(view);
       onsyntax?.(analyse(view.state));

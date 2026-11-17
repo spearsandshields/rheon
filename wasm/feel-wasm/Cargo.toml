@@ -22,6 +22,10 @@ upstream-commit = "c76aee02187183b3659a9051f3ebb283630066f7"
 name = "feel_wasm"
 crate-type = ["cdylib", "rlib"]
 
+[features]
+# The hand-written parser (prototype) and the `syntax` operation for editors.
+hand-parser = ["rheon-feel-parser/hand-parser"]
+
 [dependencies]
 # The engine crates of this repository (pure Rust; no C toolchain is involved), as path
 # dependencies with the versions that the published crate depends on.
