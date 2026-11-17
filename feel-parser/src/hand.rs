@@ -8,6 +8,8 @@
 //! A token is read from the lexer when the parser first looks at it, never earlier: the lexer
 //! reads a name with the scope and the expectations of that moment.
 
+#![allow(dead_code)] // a prototype: the tolerant parse has callers only with the feature `hand-parser`
+
 use crate::AstNode;
 use crate::errors::*;
 use crate::lalr::TokenType;
@@ -153,6 +155,265 @@ fn kind_of(value: &TokenValue) -> T {
   }
 }
 
+/// The most errors a tolerant parse records.
+pub const MAX_DIAGNOSTICS: usize = 100;
+
+/// What a tolerant parse records ([Parser::parse_tolerant]). The places are byte offsets in the
+/// input.
+#[derive(Debug, Default)]
+pub struct Syntax {
+  /// Every token of the input in its order, white space and comments included: together they
+  /// are the whole input.
+  pub tokens: Vec<SyntaxToken>,
+  /// The nodes, each before the nodes inside it.
+  pub nodes: Vec<SyntaxNode>,
+  /// The errors, in the order of their places.
+  pub diagnostics: Vec<Diagnostic>,
+}
+
+/// A token of a tolerant parse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SyntaxToken {
+  pub class: TokenClass,
+  pub start: usize,
+  pub end: usize,
+}
+
+/// What a token is in its expression.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenClass {
+  Whitespace,
+  Comment,
+  Keyword,
+  Name,
+  Number,
+  String,
+  Constant,
+  Operator,
+  Punctuation,
+  /// The name of the function of a date and time literal.
+  Function,
+  /// The name of a type.
+  Type,
+  /// The key of a context entry.
+  Key,
+  /// The name of a parameter.
+  Parameter,
+  /// The variable of an iteration.
+  Variable,
+  /// The name after a dot.
+  Property,
+  /// Text that starts no token.
+  Error,
+}
+
+impl TokenClass {
+  /// The name of the class in the answers of the editor operations.
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      TokenClass::Whitespace => "whitespace",
+      TokenClass::Comment => "comment",
+      TokenClass::Keyword => "keyword",
+      TokenClass::Name => "name",
+      TokenClass::Number => "number",
+      TokenClass::String => "string",
+      TokenClass::Constant => "constant",
+      TokenClass::Operator => "operator",
+      TokenClass::Punctuation => "punctuation",
+      TokenClass::Function => "function",
+      TokenClass::Type => "type",
+      TokenClass::Key => "key",
+      TokenClass::Parameter => "parameter",
+      TokenClass::Variable => "variable",
+      TokenClass::Property => "property",
+      TokenClass::Error => "error",
+    }
+  }
+}
+
+/// A node of a tolerant parse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SyntaxNode {
+  pub kind: &'static str,
+  pub start: usize,
+  pub end: usize,
+}
+
+/// An error of a tolerant parse.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Diagnostic {
+  /// What kind of error it is, for a program.
+  pub code: &'static str,
+  /// The error in words.
+  pub message: String,
+  pub start: usize,
+  pub end: usize,
+}
+
+impl Syntax {
+  /// Puts the white space and the comments between the tokens, and the nodes in their order.
+  fn finish(&mut self, input: &str) {
+    let mut tokens = Vec::with_capacity(self.tokens.len() * 2 + 1);
+    let mut position = 0;
+    self.tokens.sort_by_key(|token| token.start);
+    let end = SyntaxToken {
+      class: TokenClass::Error,
+      start: input.len(),
+      end: input.len(),
+    };
+    for token in self.tokens.iter().copied().chain(std::iter::once(end)) {
+      if token.start < position {
+        continue;
+      }
+      trivia(input, position, token.start, &mut tokens);
+      if token.end > token.start {
+        tokens.push(token);
+      }
+      position = token.end.max(token.start);
+    }
+    self.tokens = tokens;
+    // a node stands before the nodes inside it; of two nodes of the same place, the one made
+    // later holds the other
+    let mut order: Vec<usize> = (0..self.nodes.len()).collect();
+    order.sort_by(|&a, &b| {
+      let (x, y) = (&self.nodes[a], &self.nodes[b]);
+      x.start.cmp(&y.start).then(y.end.cmp(&x.end)).then(b.cmp(&a))
+    });
+    self.nodes = order.into_iter().map(|index| self.nodes[index]).collect();
+    self.diagnostics.sort_by_key(|diagnostic| diagnostic.start);
+  }
+}
+
+/// Writes the white space and the comments of `input[start..end]` as tokens.
+fn trivia(input: &str, start: usize, end: usize, tokens: &mut Vec<SyntaxToken>) {
+  let mut position = start;
+  while position < end {
+    let rest = &input[position..end];
+    let (class, len) = if rest.starts_with("//") {
+      (TokenClass::Comment, rest.find('\n').unwrap_or(rest.len()))
+    } else if let Some(comment) = rest.strip_prefix("/*") {
+      (TokenClass::Comment, comment.find("*/").map_or(rest.len(), |len| len + 4))
+    } else {
+      (TokenClass::Whitespace, rest.find('/').filter(|&len| len > 0).unwrap_or(rest.len()).max(1))
+    };
+    let len = (position + len..=end).find(|&at| input.is_char_boundary(at)).unwrap_or(end) - position;
+    tokens.push(SyntaxToken {
+      class,
+      start: position,
+      end: position + len,
+    });
+    position += len;
+  }
+}
+
+/// Returns the class of a token of the kind `kind`.
+fn class_of(kind: T) -> TokenClass {
+  match kind {
+    T::Name => TokenClass::Name,
+    T::NameDateTime => TokenClass::Function,
+    T::BuiltInTypeName => TokenClass::Type,
+    T::Numeric => TokenClass::Number,
+    T::String => TokenClass::String,
+    T::Boolean | T::Null => TokenClass::Constant,
+    T::And
+    | T::Between
+    | T::BetweenAnd
+    | T::Context
+    | T::Else
+    | T::Every
+    | T::External
+    | T::For
+    | T::Function
+    | T::If
+    | T::In
+    | T::Instance
+    | T::List
+    | T::Not
+    | T::Of
+    | T::Or
+    | T::Range
+    | T::Return
+    | T::Satisfies
+    | T::Some
+    | T::Then => TokenClass::Keyword,
+    T::Div | T::Eq | T::Exp | T::Ge | T::Gt | T::Le | T::Lt | T::Minus | T::Mul | T::Ne | T::Plus | T::Dot | T::Descendant | T::Ellipsis | T::RightArrow | T::At => {
+      TokenClass::Operator
+    }
+    T::Colon | T::Comma | T::LeftBrace | T::LeftBracket | T::LeftParen | T::RightBrace | T::RightBracket | T::RightParen => TokenClass::Punctuation,
+    T::Eof | T::Other => TokenClass::Error,
+  }
+}
+
+/// Returns `true` for white space of an expression.
+fn is_space(ch: char) -> bool {
+  ch.is_whitespace() || matches!(ch, '\u{180E}' | '\u{200B}' | '\u{FEFF}')
+}
+
+/// Returns `true` when a token of the kind `kind` starts an operand.
+fn starts_operand(kind: T) -> bool {
+  matches!(
+    kind,
+    T::At
+      | T::Every
+      | T::For
+      | T::LeftBrace
+      | T::Null
+      | T::Function
+      | T::If
+      | T::Some
+      | T::Numeric
+      | T::String
+      | T::Boolean
+      | T::Eq
+      | T::Ne
+      | T::Lt
+      | T::Le
+      | T::Gt
+      | T::Ge
+      | T::Minus
+      | T::Name
+      | T::NameDateTime
+      | T::LeftParen
+      | T::LeftBracket
+      | T::RightBracket
+  )
+}
+
+/// Returns what is expected where a token of the kind `kind` is missing, in words.
+fn expected(kind: T) -> &'static str {
+  match kind {
+    T::RightParen => "`)` is expected here",
+    T::RightBracket => "`]` is expected here",
+    T::RightBrace => "`}` is expected here",
+    T::LeftParen => "`(` is expected here",
+    T::Colon => "`:` is expected here",
+    T::Ellipsis => "`..` is expected here",
+    T::Then => "`then` is expected here",
+    T::Else => "`else` is expected here",
+    T::In => "`in` is expected here",
+    T::Return => "`return` is expected here",
+    T::Satisfies => "`satisfies` is expected here",
+    T::Of => "`of` is expected here",
+    T::BetweenAnd => "`and` is expected here, after the first bound of `between`",
+    T::Lt => "`<` is expected here",
+    T::Gt => "`>` is expected here",
+    T::RightArrow => "`->` is expected here",
+    _ => "another token is expected here",
+  }
+}
+
+/// Returns the name of the node of a binary operator of the level `level`.
+fn operator_name(level: u8) -> &'static str {
+  match level {
+    OR => "Disjunction",
+    AND => "Conjunction",
+    COMPARISON => "Comparison",
+    ADDITION => "Addition",
+    MULTIPLICATION => "Multiplication",
+    _ => "Exponentiation",
+  }
+}
+
 /// How an expression was made, for the start rules that take only some expressions.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Made {
@@ -201,6 +462,13 @@ pub struct Parser<'parser, 'scope> {
   between: bool,
   /// The number of expressions that are open.
   nesting: usize,
+  /// Where the token the parser looks at starts and ends in the input.
+  token_start: usize,
+  token_end: usize,
+  /// Where the token taken last ends.
+  last_end: usize,
+  /// What a tolerant parse records; a strict parse has none and stops at the first error.
+  syntax: Option<Box<Syntax>>,
   /// The token log: every token read from the lexer, with its start offset in the input.
   #[cfg(test)]
   token_log: Option<Vec<(TokenType, TokenValue, usize)>>,
@@ -231,6 +499,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       made: Made::Textual,
       between: false,
       nesting: 0,
+      token_start: 0,
+      token_end: 0,
+      last_end: 0,
+      syntax: None,
       #[cfg(test)]
       token_log: None,
     }
@@ -257,6 +529,56 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
 
   /// Parses the input.
   pub fn parse(&mut self) -> Result<AstNode> {
+    let node = self.start_rule()?;
+    // the end of the input
+    self.look(At::AfterOperand)?;
+    if self.kind == T::Eof { Ok(node) } else { self.error() }
+  }
+
+  /// Parses the input and never fails: returns the tokens, the nodes with their places and
+  /// every error. After an error the parser goes on as if the missing part were there, and
+  /// passes a token that fits nowhere.
+  pub fn parse_tolerant(mut self) -> Syntax {
+    self.syntax = Some(Box::default());
+    let mut parsed = self.start_rule().map(|_| ());
+    while parsed.is_ok() {
+      parsed = self.rest();
+      if parsed.is_ok() && self.kind == T::Eof {
+        break;
+      }
+    }
+    if let Err(reason) = parsed {
+      // the parser gave up: the rest of the input is read for its tokens only
+      let (start, end) = (self.last_end, self.input.len());
+      self.diagnostic("failed", reason.to_string().trim_start_matches("<ParserError> ").to_string(), start, end);
+      self.token = None;
+      while !matches!(self.look(At::Start), Ok(T::Eof) | Err(_)) {
+        self.bump();
+      }
+    }
+    let mut syntax = *self.syntax.take().unwrap_or_default();
+    syntax.finish(self.input);
+    syntax
+  }
+
+  /// What follows the expression in a tolerant parse: nothing, or tokens that fit nowhere. One
+  /// such token is passed, and an expression after it is parsed.
+  fn rest(&mut self) -> Result<()> {
+    if self.look(At::AfterOperand)? == T::Eof {
+      return Ok(());
+    }
+    self.unexpected("unexpected", "this fits nowhere in the expression")?;
+    let start = self.token_start;
+    self.bump();
+    self.note("Error", start);
+    if starts_operand(self.look(At::Start)?) {
+      self.expression(LOWEST)?;
+    }
+    Ok(())
+  }
+
+  /// Parses what the start rule asks for.
+  fn start_rule(&mut self) -> Result<AstNode> {
     // the start token of the lexer
     let (_token_type, _token_value) = self.lexer.next_token()?;
     #[cfg(test)]
@@ -289,9 +611,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       Some(TokenType::StartRangeLiteral) => self.start_range_literal()?,
       _ => return self.error(),
     };
-    // the end of the input
-    self.look(At::AfterOperand)?;
-    if self.kind == T::Eof { Ok(node) } else { self.error() }
+    Ok(node)
   }
 
   //----------------------------------------------------------------------------------------------
@@ -316,7 +636,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   #[inline(never)]
   fn read(&mut self, at: At) -> Result<()> {
     #[allow(unused_mut)]
-    let (mut token_type, mut token_value) = self.lexer.next_token()?;
+    let (mut token_type, mut token_value) = if self.syntax.is_some() { self.next_token_tolerant()? } else { self.lexer.next_token()? };
+    self.token_start = self.lexer.token_start();
+    // the lexer passes the white space after a name of one word
+    self.token_end = self.token_start + self.input[self.token_start..self.lexer.position()].trim_end_matches(is_space).len();
     // the `and` after the middle operand of a `between`
     if at == At::AfterOperand && self.between && matches!(token_value, TokenValue::And) {
       token_type = TokenType::BetweenAnd;
@@ -328,17 +651,159 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       log.push((token_type.clone(), token_value.clone(), self.lexer.token_start()));
     }
     let _ = token_type;
+    if let Some(syntax) = &mut self.syntax
+      && self.kind != T::Eof
+    {
+      syntax.tokens.push(SyntaxToken {
+        class: class_of(self.kind),
+        start: self.token_start,
+        end: self.token_end,
+      });
+    }
     self.token = Some(token_value);
     Ok(())
   }
 
+  /// Reads the next token from the lexer in a tolerant parse: a character that starts no token
+  /// is passed, and a string or a comment that is not closed or has an escape that is none is
+  /// taken up to the end of its line or of the input. Each is an error of the record.
+  fn next_token_tolerant(&mut self) -> Result<(TokenType, TokenValue)> {
+    loop {
+      let read = self.lexer.next_token();
+      let start = self.lexer.token_start();
+      let rest = &self.input[start..];
+      match read {
+        Ok((_, TokenValue::YyUndef)) | Err(_) if rest.starts_with('"') => {
+          // up to the closing quote, the end of the line or the end of the input
+          let mut end = start + 1;
+          let mut escaped = false;
+          let mut closed = false;
+          for (offset, ch) in rest.char_indices().skip(1) {
+            end = start + offset;
+            if matches!(ch, '\u{000A}'..='\u{000D}') {
+              break;
+            }
+            end += ch.len_utf8();
+            if ch == '"' && !escaped {
+              closed = true;
+              break;
+            }
+            escaped = ch == '\\' && !escaped;
+          }
+          let (code, message) = if closed {
+            ("string-escape", "this string has an escape that is none")
+          } else {
+            ("string-open", "this string is not closed")
+          };
+          self.diagnostic(code, message.to_string(), start, end);
+          self.lexer.set_position(end);
+          let text = &self.input[start + 1..if closed { end - 1 } else { end }];
+          return Ok((TokenType::String, TokenValue::String(text.to_string())));
+        }
+        Ok((_, TokenValue::YyUndef)) => {
+          let (code, message, len) = if rest.starts_with("/*") {
+            ("comment-open", "this comment is not closed", rest.len())
+          } else {
+            ("character", "this character starts nothing in an expression", rest.chars().next().map_or(0, char::len_utf8))
+          };
+          if len == 0 {
+            return Ok((TokenType::YyEof, TokenValue::YyEof));
+          }
+          self.diagnostic(code, message.to_string(), start, start + len);
+          if let Some(syntax) = &mut self.syntax {
+            let class = if code == "comment-open" { TokenClass::Comment } else { TokenClass::Error };
+            syntax.tokens.push(SyntaxToken { class, start, end: start + len });
+          }
+          self.lexer.set_position(start + len);
+        }
+        other => return other,
+      }
+    }
+  }
+
+  /// Adds an error to the record of a tolerant parse; one error per place.
+  fn diagnostic(&mut self, code: &'static str, message: String, start: usize, end: usize) {
+    if let Some(syntax) = &mut self.syntax
+      && syntax.diagnostics.last().is_none_or(|last| last.start != start)
+      && syntax.diagnostics.len() < MAX_DIAGNOSTICS
+    {
+      syntax.diagnostics.push(Diagnostic { code, message, start, end });
+    }
+  }
+
+  /// The token the parser looks at is not what the grammar takes here: the syntax error of a
+  /// strict parse; in a tolerant parse an error of the record, and the parser goes on.
+  fn unexpected(&mut self, code: &'static str, message: &str) -> Result<()> {
+    if self.syntax.is_none() {
+      return self.error();
+    }
+    let (start, end) = if self.kind == T::Eof {
+      (self.input.len(), self.input.len())
+    } else {
+      (self.token_start, self.token_end)
+    };
+    let message = if self.kind == T::Eof {
+      format!("the expression ends here: {message}")
+    } else {
+      message.to_string()
+    };
+    self.diagnostic(code, message, start, end);
+    Ok(())
+  }
+
+  /// The token the parser looks at is neither a `,` nor the `closing` bracket of a list: the
+  /// syntax error of a strict parse. A tolerant parse records the error and passes the tokens up
+  /// to the next `,` or closing bracket that belongs to the list; returns `true` when it is a `,`.
+  fn skip_to(&mut self, closing: T, message: &str) -> Result<bool> {
+    self.unexpected("expected", message)?;
+    let start = self.token_start;
+    let mut open = 0usize;
+    loop {
+      match self.kind {
+        T::Eof => break,
+        T::LeftParen | T::LeftBracket | T::LeftBrace => open += 1,
+        T::RightParen | T::RightBracket | T::RightBrace if open == 0 => break,
+        T::RightParen | T::RightBracket | T::RightBrace => open -= 1,
+        T::Comma if open == 0 => break,
+        _ => {}
+      }
+      self.bump();
+      self.look(At::Start)?;
+    }
+    if self.last_end > start {
+      self.note("Error", start);
+    }
+    let _ = closing;
+    Ok(self.kind == T::Comma)
+  }
+
+  /// Records a node of a tolerant parse: it starts at `start` and ends with the token taken last.
+  fn note(&mut self, kind: &'static str, start: usize) {
+    if let Some(syntax) = &mut self.syntax {
+      let end = self.last_end.max(start);
+      syntax.nodes.push(SyntaxNode { kind, start, end });
+    }
+  }
+
+  /// Gives the token the parser looks at its part in the expression (a tolerant parse).
+  fn role(&mut self, class: TokenClass) {
+    if let Some(syntax) = &mut self.syntax
+      && self.token.is_some()
+      && let Some(token) = syntax.tokens.last_mut()
+    {
+      token.class = class;
+    }
+  }
+
   /// Takes the token the parser looks at.
   fn take(&mut self) -> TokenValue {
+    self.last_end = self.token_end;
     self.token.take().unwrap_or(TokenValue::YyEmpty)
   }
 
   /// Passes the token the parser looks at.
   fn bump(&mut self) {
+    self.last_end = self.token_end;
     self.token = None;
   }
 
@@ -348,7 +813,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       self.bump();
       Ok(())
     } else {
-      self.error()
+      self.unexpected("expected", expected(kind))
     }
   }
 
@@ -360,8 +825,17 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     {
       Ok(name)
     } else {
-      self.error()
+      self.unexpected("expected-name", "a name is expected here")?;
+      Ok(Name::from(""))
     }
+  }
+
+  /// Takes the next token, which must be a name, in the part `class` of the expression.
+  fn name_as(&mut self, at: At, class: TokenClass) -> Result<Name> {
+    if self.look(at)? == T::Name {
+      self.role(class);
+    }
+    self.name(at)
   }
 
   //----------------------------------------------------------------------------------------------
@@ -398,7 +872,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           self.enter()?;
           let mut node = AstNode::Name(name);
           self.made = Made::Textual;
-          self.infix(&mut node, LOWEST, false)?;
+          self.infix(&mut node, 0, LOWEST, false)?;
           self.nesting -= 1;
           if matches!(self.made, Made::Arithmetic | Made::Negation) {
             Ok(node)
@@ -457,7 +931,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           match self.kind {
             T::Comma => self.bump(),
             T::RightParen => break self.bump(),
-            _ => return self.error(),
+            _ => {
+              self.unexpected("expected", "`,` or `)` is expected here")?;
+              break;
+            }
           }
         }
         return Ok(AstNode::NegatedList(items));
@@ -470,7 +947,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         self.enter()?;
         let mut node = AstNode::Neg(Box::new(self.expression(NEGATION)?));
         self.made = Made::Negation;
-        self.infix(&mut node, LOWEST, false)?;
+        self.infix(&mut node, 0, LOWEST, false)?;
         self.nesting -= 1;
         items.push(node);
       }
@@ -592,8 +1069,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// interval that a `[` after it ends.
   fn expression_until(&mut self, level: u8, end_endpoint: bool) -> Result<AstNode> {
     self.enter()?;
+    self.look(At::Start)?;
+    let start = self.token_start;
     let mut node = self.operand()?;
-    self.infix(&mut node, level, end_endpoint)?;
+    self.infix(&mut node, start, level, end_endpoint)?;
     self.nesting -= 1;
     Ok(node)
   }
@@ -611,13 +1090,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// operands: `lhs` becomes the whole expression. With `end_endpoint` the expression is an
   /// endpoint of an interval that a `[` after it ends.
   #[inline(never)]
-  fn infix(&mut self, lhs: &mut AstNode, level: u8, end_endpoint: bool) -> Result<()> {
+  fn infix(&mut self, lhs: &mut AstNode, start: usize, level: u8, end_endpoint: bool) -> Result<()> {
     loop {
       let binary: fn(Box<AstNode>, Box<AstNode>) -> AstNode;
       let operator_level;
       match self.look(At::AfterOperand)? {
         T::Dot | T::Descendant => {
           self.path(lhs)?;
+          self.note("Path", start);
           continue;
         }
         T::LeftBracket => {
@@ -625,14 +1105,17 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             break;
           }
           self.filter(lhs)?;
+          self.note("Filter", start);
           continue;
         }
         T::LeftParen => {
           self.invocation(lhs)?;
+          self.note("Invocation", start);
           continue;
         }
         T::Instance => {
           self.instance_of(lhs)?;
+          self.note("InstanceOf", start);
           continue;
         }
         T::Between => {
@@ -640,6 +1123,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             break;
           }
           self.between(lhs)?;
+          self.note("Between", start);
           continue;
         }
         T::In => {
@@ -648,6 +1132,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             break;
           }
           self.comparison_in(lhs)?;
+          self.note("In", start);
           continue;
         }
         T::Or => (binary, operator_level) = (AstNode::Or, OR),
@@ -670,12 +1155,13 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         break;
       }
       if operator_level == level {
-        if level == COMPARISON {
-          return self.error();
+        if level != COMPARISON {
+          break;
         }
-        break;
+        self.unexpected("comparison", "a comparison can not be compared again without parentheses")?;
       }
       self.binary(lhs, binary, operator_level)?;
+      self.note(operator_name(operator_level), start);
     }
     Ok(())
   }
@@ -696,7 +1182,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let descendant = self.kind == T::Descendant;
     self.bump();
     self.lexer.set_after_dot();
-    let name = Box::new(AstNode::Name(self.name(At::Start)?));
+    let name = Box::new(AstNode::Name(self.name_as(At::Start, TokenClass::Property)?));
     wrap(lhs, |lhs| if descendant { AstNode::Descendant(lhs, name) } else { AstNode::Path(lhs, name) });
     self.made = Made::Textual;
     Ok(())
@@ -755,6 +1241,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   fn comparison_in(&mut self, lhs: &mut AstNode) -> Result<()> {
     self.bump();
     let rhs = if self.look(At::Start)? == T::LeftParen {
+      let start = self.token_start;
       self.bump();
       let between = std::mem::replace(&mut self.between, false);
       let mut first = self.expression(LOWEST)?;
@@ -774,11 +1261,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           return Ok(());
         }
         T::RightParen => self.bump(),
-        T::Ellipsis => first = self.interval_end(first, IntervalType::Opened)?,
-        _ => return self.error(),
+        T::Ellipsis => first = self.interval_end(first, IntervalType::Opened, start)?,
+        _ => self.unexpected("expected", "`,`, `)` or `..` is expected here")?,
       }
       self.between = between;
-      self.infix(&mut first, IN, false)?;
+      self.infix(&mut first, start, IN, false)?;
       first
     } else {
       self.expression(IN)?
@@ -794,29 +1281,42 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// comparison operator.
   fn operand(&mut self) -> Result<AstNode> {
     self.made = Made::Textual;
-    match self.look(At::Start)? {
+    let kind = self.look(At::Start)?;
+    let start = self.token_start;
+    match kind {
       T::Numeric => {
         self.made = Made::SimpleLiteral;
-        self.numeric()
+        let node = self.numeric();
+        self.note("Number", start);
+        node
       }
       T::String => {
         self.made = Made::SimpleLiteral;
-        self.string().map(AstNode::String)
+        let node = self.string().map(AstNode::String);
+        self.note("String", start);
+        node
       }
       T::Boolean => {
         self.made = Made::SimpleLiteral;
-        if let TokenValue::Boolean(value) = self.take() {
+        let node = if let TokenValue::Boolean(value) = self.take() {
           Ok(AstNode::Boolean(value))
         } else {
           self.error()
-        }
+        };
+        self.note("Boolean", start);
+        node
       }
       T::At => self.at_literal(),
       T::Null => {
         self.bump();
+        self.note("Null", start);
         Ok(AstNode::Null)
       }
-      T::Name => self.name(At::Start).map(AstNode::Name),
+      T::Name => {
+        let node = self.name(At::Start).map(AstNode::Name);
+        self.note("Name", start);
+        node
+      }
       T::NameDateTime => self.date_time_literal(),
       T::LeftParen => self.parenthesized(),
       T::LeftBracket => self.list_or_interval(true),
@@ -833,7 +1333,13 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       T::Ge => self.unary_comparison(AstNode::UnaryGe),
       T::Eq => self.unary_comparison(AstNode::UnaryEq),
       T::Ne => self.unary_comparison(AstNode::UnaryNe),
-      _ => self.error(),
+      _ => {
+        // in a tolerant parse the operand is missing: nothing is taken
+        self.unexpected("expected-expression", "an expression is expected here")?;
+        let start = self.last_end;
+        self.note("Error", start);
+        Ok(AstNode::Null)
+      }
     }
   }
 
@@ -856,53 +1362,67 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// `@` and a string.
   #[inline(never)]
   fn at_literal(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     if self.look(At::Start)? != T::String {
-      return self.error();
+      self.unexpected("expected", "a string is expected after `@`")?;
+      return Ok(AstNode::Null);
     }
     let node = self.string().map(AstNode::At);
     self.made = Made::SimpleLiteral;
+    self.note("Temporal", start);
     node
   }
 
   /// A date and time literal: the name of its function, `(` and the parameters.
   #[inline(never)]
   fn date_time_literal(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
+    self.role(TokenClass::Function);
     let TokenValue::NameDateTime(name) = self.take() else { return self.error() };
     self.expect(T::LeftParen, At::Start)?;
     let parameters = self.parameters()?;
     self.made = Made::SimpleLiteral;
+    self.note("Temporal", start);
     Ok(AstNode::FunctionInvocation(Box::new(AstNode::Name(name)), Box::new(parameters)))
   }
 
   /// An arithmetic negation: its operand takes only what binds tighter than the arithmetic.
   #[inline(never)]
   fn negation(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     let operand = self.expression(NEGATION)?;
     self.made = Made::Negation;
+    self.note("Negation", start);
     Ok(AstNode::Neg(Box::new(operand)))
   }
 
   /// A unary comparison: its operand takes the arithmetic and the `in` after it.
   #[inline(never)]
   fn unary_comparison(&mut self, unary: fn(Box<AstNode>) -> AstNode) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     let operand = self.expression(IN)?;
     self.made = Made::Textual;
+    self.note("UnaryTest", start);
     Ok(unary(Box::new(operand)))
   }
 
   /// An expression in parentheses, or an interval that starts with `(`.
   #[inline(never)]
   fn parenthesized(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     let between = std::mem::replace(&mut self.between, false);
     let mut node = self.expression(LOWEST)?;
     match self.kind {
-      T::RightParen => self.bump(),
-      T::Ellipsis => node = self.interval_end(node, IntervalType::Opened)?,
-      _ => return self.error(),
+      T::RightParen => {
+        self.bump();
+        self.note("Parentheses", start);
+      }
+      T::Ellipsis => node = self.interval_end(node, IntervalType::Opened, start)?,
+      _ => self.unexpected("expected", "`)` is expected here")?,
     }
     self.between = between;
     self.made = Made::Textual;
@@ -912,6 +1432,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// `if`, a condition, `then`, an expression, `else` and an expression.
   #[inline(never)]
   fn if_expression(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     let between = std::mem::replace(&mut self.between, false);
     let condition = Box::new(self.expression(LOWEST)?);
@@ -921,31 +1442,42 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.between = between;
     let otherwise = Box::new(self.expression(LOWEST)?);
     self.made = Made::Textual;
+    self.note("If", start);
     Ok(AstNode::If(condition, then, otherwise))
   }
 
   /// The rest of an interval after its start endpoint: `..`, the end endpoint and the closing
   /// bracket. The parser looks at the `..`.
   #[inline(never)]
-  fn interval_end(&mut self, start: AstNode, start_type: IntervalType) -> Result<AstNode> {
+  fn interval_end(&mut self, start: AstNode, start_type: IntervalType, from: usize) -> Result<AstNode> {
     self.expect(T::Ellipsis, At::AfterOperand)?;
     let start = Box::new(AstNode::IntervalStart(Box::new(start), start_type));
     let end = Box::new(self.expression_until(LOWEST, true)?);
     let end_type = match self.kind {
-      T::RightParen | T::LeftBracket => IntervalType::Opened,
-      T::RightBracket => IntervalType::Closed,
-      _ => return self.error(),
+      T::RightParen | T::LeftBracket => {
+        self.bump();
+        IntervalType::Opened
+      }
+      T::RightBracket => {
+        self.bump();
+        IntervalType::Closed
+      }
+      _ => {
+        self.unexpected("expected", "`)`, `[` or `]` is expected here")?;
+        IntervalType::Opened
+      }
     };
-    self.bump();
+    self.note("Interval", from);
     Ok(AstNode::Range(start, Box::new(AstNode::IntervalEnd(end, end_type))))
   }
 
   /// An interval that starts with `]`. The parser looks at the `]`.
   #[inline(never)]
   fn interval_from_right_bracket(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     let between = std::mem::replace(&mut self.between, false);
-    let interval = self.interval_after_right_bracket()?;
+    let interval = self.interval_after_right_bracket(start)?;
     self.between = between;
     self.made = Made::Textual;
     Ok(interval)
@@ -953,31 +1485,31 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
 
   /// An interval after the `]` that starts it. A `[` after its start endpoint is no filter, as
   /// after an end endpoint.
-  fn interval_after_right_bracket(&mut self) -> Result<AstNode> {
+  fn interval_after_right_bracket(&mut self, from: usize) -> Result<AstNode> {
     let start = self.expression_until(LOWEST, true)?;
-    if self.kind != T::Ellipsis {
-      return self.error();
-    }
-    self.interval_end(start, IntervalType::Opened)
+    self.interval_end(start, IntervalType::Opened, from)
   }
 
   /// A list or an interval that starts with `[`; only a list without `interval`.
   #[inline(never)]
   fn list_or_interval(&mut self, interval: bool) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     let first = if self.look(At::Start)? == T::RightBracket {
+      let inner_start = self.token_start;
       self.bump();
       // an operand after `[]`: the `]` starts an interval, the first item of the list
       match self.look(At::AfterOperand)? {
         T::At | T::Every | T::For | T::LeftBrace | T::Null | T::Function | T::If | T::Some | T::Numeric | T::String | T::Boolean | T::Name | T::NameDateTime => {
           let between = std::mem::replace(&mut self.between, false);
-          let mut first = self.interval_after_right_bracket()?;
-          self.infix(&mut first, LOWEST, false)?;
+          let mut first = self.interval_after_right_bracket(inner_start)?;
+          self.infix(&mut first, inner_start, LOWEST, false)?;
           self.between = between;
           first
         }
         _ => {
           self.made = Made::Boxed;
+          self.note("List", start);
           return Ok(AstNode::List(vec![]));
         }
       }
@@ -987,21 +1519,26 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let between = std::mem::replace(&mut self.between, false);
     let node = match self.kind {
       T::Ellipsis if interval => {
-        let node = self.interval_end(first, IntervalType::Closed)?;
+        let node = self.interval_end(first, IntervalType::Closed, start)?;
         self.made = Made::Textual;
         node
       }
-      T::Comma | T::RightBracket => {
+      _ => {
         let mut items = vec![first];
-        while self.kind == T::Comma {
-          self.bump();
-          items.push(self.expression(LOWEST)?);
+        loop {
+          while self.kind == T::Comma {
+            self.bump();
+            items.push(self.expression(LOWEST)?);
+          }
+          if self.kind == T::RightBracket || !self.skip_to(T::RightBracket, "`,` or `]` is expected here")? {
+            break;
+          }
         }
         self.expect(T::RightBracket, At::AfterOperand)?;
         self.made = Made::Boxed;
+        self.note("List", start);
         AstNode::List(items)
       }
-      _ => return self.error(),
     };
     self.between = between;
     Ok(node)
@@ -1017,13 +1554,15 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         AstNode::PositionalParameters(vec![])
       }
       T::Name => {
+        let start = self.token_start;
         let name = self.name(At::Start)?;
         if self.look(At::AfterOperand)? == T::Colon {
           self.named_parameters(name)?
         } else {
+          self.note("Name", start);
           self.enter()?;
           let mut first = AstNode::Name(name);
-          self.infix(&mut first, LOWEST, false)?;
+          self.infix(&mut first, start, LOWEST, false)?;
           self.nesting -= 1;
           self.positional_parameters(first)?
         }
@@ -1040,6 +1579,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// The named parameters after the name of the first one. The parser looks at the `:`.
   #[inline(never)]
   fn named_parameters(&mut self, mut name: Name) -> Result<AstNode> {
+    if let Some(syntax) = &mut self.syntax
+      && let Some(token) = syntax.tokens.iter_mut().rev().nth(1)
+    {
+      // the name before the `:` the parser looks at
+      token.class = TokenClass::Parameter;
+    }
     let mut items = vec![];
     loop {
       self.expect(T::Colon, At::Start)?;
@@ -1048,10 +1593,13 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       match self.kind {
         T::Comma => {
           self.bump();
-          name = self.name(At::Start)?;
+          name = self.name_as(At::Start, TokenClass::Parameter)?;
         }
         T::RightParen => break self.bump(),
-        _ => return self.error(),
+        _ => {
+          self.unexpected("expected", "`,` or `)` is expected here")?;
+          break;
+        }
       }
     }
     Ok(AstNode::NamedParameters(items))
@@ -1061,9 +1609,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   #[inline(never)]
   fn positional_parameters(&mut self, first: AstNode) -> Result<AstNode> {
     let mut items = vec![first];
-    while self.kind == T::Comma {
-      self.bump();
-      items.push(self.expression(LOWEST)?);
+    loop {
+      while self.kind == T::Comma {
+        self.bump();
+        items.push(self.expression(LOWEST)?);
+      }
+      if self.kind == T::RightParen || !self.skip_to(T::RightParen, "`,` or `)` is expected here")? {
+        break;
+      }
     }
     self.expect(T::RightParen, At::AfterOperand)?;
     Ok(AstNode::PositionalParameters(items))
@@ -1072,6 +1625,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// A context. The parser looks at its `{`.
   #[inline(never)]
   fn context(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     self.lexer.push_to_scope();
     let between = std::mem::replace(&mut self.between, false);
@@ -1080,31 +1634,45 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       self.bump();
     } else {
       loop {
-        let name = match self.look(At::Start)? {
-          T::Name => self.name(At::Start)?,
-          T::String => Name::from(self.string()?),
-          _ => return self.error(),
+        let key = self.look(At::Start)?;
+        let entry_start = self.token_start;
+        let name = match key {
+          T::Name => self.name_as(At::Start, TokenClass::Key)?,
+          T::String => {
+            self.role(TokenClass::Key);
+            Name::from(self.string()?)
+          }
+          _ => {
+            self.unexpected("expected", "a name or a string is expected here, as the key of an entry")?;
+            Name::from("")
+          }
         };
         self.expect(T::Colon, At::Start)?;
         let value = Box::new(self.expression(LOWEST)?);
         self.lexer.add_parsed_name(name.clone());
         entries.push(AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(name)), value));
+        self.note("Entry", entry_start);
         match self.kind {
           T::Comma => self.bump(),
           T::RightBrace => break self.bump(),
-          _ => return self.error(),
+          _ => {
+            self.unexpected("expected", "`,` or `}` is expected here")?;
+            break;
+          }
         }
       }
     }
     self.lexer.pop_from_scope();
     self.between = between;
     self.made = Made::Boxed;
+    self.note("Context", start);
     Ok(AstNode::Context(entries))
   }
 
   /// A function definition. The parser looks at its `function`.
   #[inline(never)]
   fn function_definition(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     self.expect(T::LeftParen, At::Start)?;
     self.scope.push_default();
@@ -1116,6 +1684,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let body = Box::new(self.expression(LOWEST)?);
     self.scope.pop();
     self.made = Made::Boxed;
+    self.note("Function", start);
     Ok(AstNode::FunctionDefinition(parameters, Box::new(AstNode::FunctionBody(body, external))))
   }
 
@@ -1128,7 +1697,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       self.bump();
     } else {
       loop {
-        let name = self.name(At::Start)?;
+        let name = self.name_as(At::Start, TokenClass::Parameter)?;
         let parameter_type = if self.look(At::AfterOperand)? == T::Colon {
           self.bump();
           self.lexer.set_type_name();
@@ -1141,7 +1710,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         match self.look(At::AfterOperand)? {
           T::Comma => self.bump(),
           T::RightParen => break self.bump(),
-          _ => return self.error(),
+          _ => {
+            self.unexpected("expected", "`,` or `)` is expected here")?;
+            break;
+          }
         }
       }
     }
@@ -1152,6 +1724,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// A `for` expression. The parser looks at its `for`.
   #[inline(never)]
   fn for_expression(&mut self) -> Result<AstNode> {
+    let start = self.token_start;
     self.bump();
     self.lexer.push_to_scope();
     self.lexer.add_name_to_scope(Name::from("partial"));
@@ -1159,6 +1732,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let body = Box::new(self.expression(LOWEST)?);
     self.lexer.pop_from_scope();
     self.made = Made::Textual;
+    self.note("For", start);
     Ok(AstNode::For(contexts, Box::new(AstNode::EvaluatedExpression(body))))
   }
 
@@ -1169,7 +1743,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let mut contexts = vec![];
     loop {
       self.lexer.set_till_in();
-      let name = self.name(At::Start)?;
+      let name = self.name_as(At::Start, TokenClass::Variable)?;
       let variable = Box::new(AstNode::Name(name.clone()));
       self.lexer.add_name_to_scope(name);
       self.expect(T::In, At::Start)?;
@@ -1195,12 +1769,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   #[inline(never)]
   fn quantified_expression(&mut self) -> Result<AstNode> {
     let every = self.kind == T::Every;
+    let start = self.token_start;
     self.bump();
     self.lexer.push_to_scope();
     let contexts = Box::new(self.quantified_contexts()?);
     let body = Box::new(self.expression(LOWEST)?);
     self.lexer.pop_from_scope();
     self.made = Made::Textual;
+    self.note("Quantified", start);
     let satisfies = Box::new(AstNode::Satisfies(body));
     Ok(if every {
       AstNode::Every(contexts, satisfies)
@@ -1216,7 +1792,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let mut contexts = vec![];
     loop {
       self.lexer.set_till_in();
-      let name = self.name(At::Start)?;
+      let name = self.name_as(At::Start, TokenClass::Variable)?;
       let variable = Box::new(AstNode::Name(name.clone()));
       self.lexer.add_name_to_scope(name);
       self.expect(T::In, At::Start)?;
@@ -1236,21 +1812,28 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   #[inline(never)]
   fn type_expression(&mut self) -> Result<AstNode> {
     self.enter()?;
-    let node = match self.look(At::Start)? {
+    let kind = self.look(At::Start)?;
+    let start = self.token_start;
+    let node = match kind {
       T::BuiltInTypeName => {
+        self.role(TokenClass::Type);
         let TokenValue::BuiltInTypeName(name) = self.take() else { return self.error() };
         AstNode::FeelType((&name).into())
       }
       T::Name => {
-        let name = self.name(At::Start)?;
+        let name = self.name_as(At::Start, TokenClass::Type)?;
         self.qualified_name(name)?
       }
       T::List | T::Range => self.list_or_range_type()?,
       T::Context => self.context_type()?,
       T::Function => self.function_type()?,
-      _ => return self.error(),
+      _ => {
+        self.unexpected("expected-type", "a type is expected here")?;
+        AstNode::Null
+      }
     };
     self.nesting -= 1;
+    self.note("Type", start);
     Ok(node)
   }
 
@@ -1282,7 +1865,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       match self.look(At::AfterOperand)? {
         T::Comma => self.bump(),
         T::Gt => break self.bump(),
-        _ => return self.error(),
+        _ => {
+          self.unexpected("expected", "`,` or `>` is expected here")?;
+          break;
+        }
       }
     }
     self.between = between;
@@ -1307,7 +1893,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             self.lexer.set_type_name();
           }
           T::Gt => break self.bump(),
-          _ => return self.error(),
+          _ => {
+            self.unexpected("expected", "`,` or `>` is expected here")?;
+            break;
+          }
         }
       }
     }

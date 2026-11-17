@@ -17,10 +17,13 @@ mod closure;
 mod composite;
 mod context;
 mod errors;
+#[cfg(any(test, feature = "hand-parser"))]
 mod hand;
 mod index;
+#[cfg_attr(feature = "hand-parser", allow(dead_code))]
 mod lalr;
 mod lexer;
+#[cfg_attr(feature = "hand-parser", allow(dead_code))]
 mod parser;
 mod scope;
 
@@ -33,6 +36,7 @@ pub use scope::ParsingScope;
 
 use crate::errors::*;
 use crate::lalr::TokenType;
+#[cfg(not(feature = "hand-parser"))]
 use crate::parser::Parser;
 use dsntk_common::Result;
 use rheon_feel::{FeelScope, Name};
@@ -42,9 +46,12 @@ use rheon_feel::{FeelScope, Name};
 fn parse(scope: &FeelScope, start_token_type: TokenType, input: &str, trace: bool) -> Result<AstNode> {
   let frames = scope.frames();
   let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
-  if cfg!(feature = "hand-parser") {
-    return hand::Parser::new(&parsing_scope, start_token_type, input).parse();
+  #[cfg(feature = "hand-parser")]
+  {
+    let _ = trace;
+    hand::Parser::new(&parsing_scope, start_token_type, input).parse()
   }
+  #[cfg(not(feature = "hand-parser"))]
   Parser::new(&parsing_scope, start_token_type, input, trace).parse()
 }
 
@@ -91,11 +98,13 @@ pub fn parse_simple_value(scope: &FeelScope, input: &str, trace: bool) -> Result
 pub fn parse_name(scope: &FeelScope, input: &str, trace: bool) -> Result<Name> {
   let frames = scope.frames();
   let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
-  let parsed = if cfg!(feature = "hand-parser") {
+  #[cfg(feature = "hand-parser")]
+  let parsed = {
+    let _ = trace;
     hand::Parser::new(&parsing_scope, TokenType::StartTextualExpression, input).with_whole_names().parse()
-  } else {
-    Parser::new(&parsing_scope, TokenType::StartTextualExpression, input, trace).with_whole_names().parse()
   };
+  #[cfg(not(feature = "hand-parser"))]
+  let parsed = Parser::new(&parsing_scope, TokenType::StartTextualExpression, input, trace).with_whole_names().parse();
   if let AstNode::Name(name) = &mut parsed? {
     Ok(std::mem::take(name))
   } else {
@@ -121,4 +130,17 @@ pub fn parse_context(scope: &FeelScope, input: &str, trace: bool) -> Result<AstN
 /// Parses a `range literal` as defined in grammar rule `66`.
 pub fn parse_range_literal(scope: &FeelScope, input: &str, trace: bool) -> Result<AstNode> {
   parse(scope, TokenType::StartRangeLiteral, input, trace)
+}
+
+#[cfg(feature = "hand-parser")]
+pub use hand::{Diagnostic, MAX_DIAGNOSTICS, Syntax, SyntaxNode, SyntaxToken, TokenClass};
+
+/// Parses an `expression` (or `unary tests` with `unary_tests`) for an editor: never fails, and
+/// returns every token, the nodes with their places and every error (prototype).
+#[cfg(feature = "hand-parser")]
+pub fn parse_tolerant(scope: &FeelScope, input: &str, unary_tests: bool) -> Syntax {
+  let frames = scope.frames();
+  let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
+  let start = if unary_tests { TokenType::StartUnaryTests } else { TokenType::StartExpression };
+  hand::Parser::new(&parsing_scope, start, input).parse_tolerant()
 }

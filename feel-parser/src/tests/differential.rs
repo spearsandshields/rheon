@@ -1789,21 +1789,51 @@ fn parse_speed() {
   let names: Vec<String> = (0..60).map(|i| format!("monthly amount of item {i}")).collect();
   let name_refs: Vec<(&str, Value)> = names.iter().map(|name| (name.as_str(), number(1))).collect();
   let many_names = ctx(&name_refs);
-  let few_names = ctx(&[("Monthly Salary", number(1)), ("Tax Rate", number(1)), ("Net Bonus", number(1)), ("items", number(1)), ("order", number(1))]);
+  let few_names = ctx(&[
+    ("Monthly Salary", number(1)),
+    ("Tax Rate", number(1)),
+    ("Net Bonus", number(1)),
+    ("items", number(1)),
+    ("order", number(1)),
+  ]);
   let cases: Vec<(&str, Vec<FeelContext>, String)> = vec![
     ("1 + 2", vec![], "1 + 2".to_string()),
-    ("formula, multi-word names", vec![few_names.clone()], "(Monthly Salary * 12 + Net Bonus) * (1 - Tax Rate) / 12".to_string()),
+    (
+      "formula, multi-word names",
+      vec![few_names.clone()],
+      "(Monthly Salary * 12 + Net Bonus) * (1 - Tax Rate) / 12".to_string(),
+    ),
     ("60 terms, multi-word names", vec![many_names], names.join(" + ")),
-    ("if, for, filter", vec![few_names.clone()], "if count(items[item > 10]) > 3 then sum(for i in items return i * 2) else order.total".to_string()),
-    ("functions in a context", vec![], "{f: function(a, b) a + b, g: function(x) if x > 0 then f(x, 1) else 0, r: g(5) + f(1, 2)}.r".to_string()),
-    ("list of 1,000 numbers", vec![], format!("[{}]", (0..1000).map(|i| i.to_string()).collect::<Vec<_>>().join(", "))),
-    ("context of 200 entries", vec![], format!("{{{}}}", (0..200).map(|i| format!("key {i}: {i}")).collect::<Vec<_>>().join(", "))),
+    (
+      "if, for, filter",
+      vec![few_names.clone()],
+      "if count(items[item > 10]) > 3 then sum(for i in items return i * 2) else order.total".to_string(),
+    ),
+    (
+      "functions in a context",
+      vec![],
+      "{f: function(a, b) a + b, g: function(x) if x > 0 then f(x, 1) else 0, r: g(5) + f(1, 2)}.r".to_string(),
+    ),
+    (
+      "list of 1,000 numbers",
+      vec![],
+      format!("[{}]", (0..1000).map(|i| i.to_string()).collect::<Vec<_>>().join(", ")),
+    ),
+    (
+      "context of 200 entries",
+      vec![],
+      format!("{{{}}}", (0..200).map(|i| format!("key {i}: {i}")).collect::<Vec<_>>().join(", ")),
+    ),
     ("lists nested 100 levels", vec![], format!("{}1{}", "[".repeat(100), "]".repeat(100))),
     ("sum of 1,000 terms", vec![], format!("1{}", " + 1".repeat(999))),
     ("unary tests", vec![], "< 10, [20..30], > 100, \"a\", not(5)".to_string()),
   ];
   for (name, frames, input) in &cases {
-    let start = if *name == "unary tests" { TokenType::StartUnaryTests } else { TokenType::StartExpression };
+    let start = if *name == "unary tests" {
+      TokenType::StartUnaryTests
+    } else {
+      TokenType::StartExpression
+    };
     let rounds = 7;
     let iterations = (200_000 / input.len().max(1)).clamp(20, 20_000);
     let mut best = [f64::MAX; 2];
@@ -1823,5 +1853,133 @@ fn parse_speed() {
       }
     }
     println!("SPEED {name:<28} tables {:>10.0} ns   hand {:>10.0} ns   {:.2}x", best[0], best[1], best[0] / best[1]);
+  }
+}
+
+/// What the tolerant parse of the hand-written parser must hold for every text: it does not
+/// panic, its tokens are the whole input in order, its nodes and errors lie inside the input,
+/// and it records no error exactly when the strict parse accepts the text.
+fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> bool {
+  let scope = ParsingScope::new(frames);
+  let syntax = catch_unwind(AssertUnwindSafe(|| crate::hand::Parser::new(&scope, start.clone(), input).parse_tolerant()))
+    .unwrap_or_else(|payload| panic!("the tolerant parse of {input:?} panicked: {}", panic_message(payload)));
+  let mut position = 0;
+  for token in &syntax.tokens {
+    assert_eq!(token.start, position, "the tokens of {input:?} leave a gap or overlap: {:?}", syntax.tokens);
+    assert!(token.end > token.start && input.is_char_boundary(token.end), "a token of {input:?}: {token:?}");
+    position = token.end;
+  }
+  assert_eq!(position, input.len(), "the tokens of {input:?} end early: {:?}", syntax.tokens);
+  for node in &syntax.nodes {
+    assert!(node.start <= node.end && node.end <= input.len(), "a node of {input:?}: {node:?}");
+  }
+  for diagnostic in &syntax.diagnostics {
+    assert!(diagnostic.start <= diagnostic.end && diagnostic.end <= input.len(), "an error of {input:?}: {diagnostic:?}");
+  }
+  let scope = ParsingScope::new(frames);
+  let strict = crate::hand::Parser::new(&scope, start.clone(), input).parse();
+  assert_eq!(
+    strict.is_ok(),
+    syntax.diagnostics.is_empty(),
+    "{input:?}: strict {:?}, tolerant {:?}",
+    strict.as_ref().map(|_| ()),
+    syntax.diagnostics
+  );
+  strict.is_ok()
+}
+
+/// The tolerant parse on every prefix and on random edits of random texts and of chosen texts,
+/// as expressions and as unary tests.
+#[test]
+fn tolerant_parse_never_fails() {
+  let count = if full_size() { 3_000 } else { 150 };
+  let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
+  let keys = random_text_keys();
+  let chosen = [
+    "if a > 1 then \"x\" else \"y\"",
+    "sum(price, 2) + order.total",
+    "{ a: 1, b: [1, 2, 3], \"c d\": a + 1 }.b[item > 1]",
+    "for i in 1..3, j in [1, 2] return i * j",
+    "some x in items satisfies x instance of list<number>",
+    "function(a: number, b) external { java: { class: \"c\" } }",
+    "x between 1 + 1 and y or z in (1, [2..3), > 5)",
+    "date(\"2020-01-01\") < @\"2021-01-01\" // a comment\n and /* another */ true",
+    "substring(string: \"abc\", start position: 2)",
+    "a.b.c...d + -e ** 2",
+    "\"not closed",
+    "1 /* not closed",
+    "\"bad \\uZZZZ escape\" + 1",
+    "a # b",
+  ];
+  let (mut cases, mut accepted) = (0, 0);
+  let mut run = |frames: &[FeelContext], input: &str| {
+    for start in [TokenType::StartExpression, TokenType::StartUnaryTests] {
+      cases += 1;
+      accepted += usize::from(check_tolerant(frames, &start, input));
+    }
+  };
+  for text in chosen {
+    for (end, _) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+      run(&[], &text[..end]);
+    }
+  }
+  for _ in 0..count {
+    let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
+    let text = Feel {
+      rng: &mut rng,
+      keys: &keys,
+      budget: 24,
+    }
+    .text();
+    for (end, _) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+      run(&frames, &text[..end]);
+    }
+    for _ in 0..3 {
+      run(&frames, &mutate(&mut rng, &text));
+    }
+  }
+  println!("tolerant parse: {cases} cases, {accepted} without an error");
+  assert!(accepted > count, "{accepted} of {cases}");
+}
+
+/// Prints what the tolerant parse records for some unfinished texts (to read, on request:
+/// `cargo test -p rheon-feel-parser tolerant_samples -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn tolerant_samples() {
+  let frames = [ctx(&[("price", number(1)), ("order", number(1)), ("Monthly Salary", number(1))])];
+  for input in [
+    "if a > 1 then",
+    "sum(price, ",
+    "{ a: 1, b: ",
+    "order.",
+    "\"abc",
+    "a + ",
+    "Monthly Salary * (1 + ",
+    "[1, 2 3]",
+    "a = b = c",
+    "for x in",
+    "price # 2 +",
+    "f(a: 1, 2)",
+  ] {
+    let scope = ParsingScope::new(&frames);
+    let syntax = crate::hand::Parser::new(&scope, TokenType::StartExpression, input).parse_tolerant();
+    println!("SAMPLE {input:?}");
+    println!(
+      "  tokens: {}",
+      syntax
+        .tokens
+        .iter()
+        .map(|t| format!("{}:{:?}", t.class.as_str(), &input[t.start..t.end]))
+        .collect::<Vec<_>>()
+        .join(" ")
+    );
+    println!(
+      "  nodes:  {}",
+      syntax.nodes.iter().map(|n| format!("{}[{}..{}]", n.kind, n.start, n.end)).collect::<Vec<_>>().join(" ")
+    );
+    for d in &syntax.diagnostics {
+      println!("  error:  {} [{}..{}] {}", d.code, d.start, d.end, d.message);
+    }
   }
 }

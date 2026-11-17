@@ -179,8 +179,9 @@ pub struct Lexer<'lexer, 'scope> {
   /// [Lexer::has_irregular_parts]), once it was looked for.
   chain_last_irregular: Option<Option<usize>>,
   /// Start offset of the last token read from input: the hook of the token log of the parser
-  /// (`Parser::with_token_log`), which the differential tests compare.
-  #[cfg(test)]
+  /// (`Parser::with_token_log`), which the differential tests compare, and the place of a
+  /// token for the hand-written parser.
+  #[cfg(any(test, feature = "hand-parser"))]
   token_start: usize,
 }
 
@@ -221,15 +222,27 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       chain_flat_parts: vec![],
       chain_flat_state: FlatChain::Unknown,
       chain_last_irregular: None,
-      #[cfg(test)]
+      #[cfg(any(test, feature = "hand-parser"))]
       token_start: 0,
     }
   }
 
   /// Returns the start offset of the last token read from input (a byte offset).
-  #[cfg(test)]
+  #[cfg(any(test, feature = "hand-parser"))]
   pub fn token_start(&self) -> usize {
     self.token_start
+  }
+
+  /// Returns the position after the last token read from input (a byte offset).
+  #[cfg(any(test, feature = "hand-parser"))]
+  pub fn position(&self) -> usize {
+    self.position
+  }
+
+  /// Moves the position: the next token is read from there.
+  #[cfg(any(test, feature = "hand-parser"))]
+  pub fn set_position(&mut self, position: usize) {
+    self.position = position;
   }
 
   pub fn set_unary_tests(&mut self) {
@@ -302,7 +315,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   /// Reads the next token starting from current position.
   fn read_next_token(&mut self) -> Result<(TokenType, TokenValue)> {
     let chars = self.read_input();
-    #[cfg(test)]
+    #[cfg(any(test, feature = "hand-parser"))]
     {
       self.token_start = self.position;
     }
