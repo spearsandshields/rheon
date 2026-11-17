@@ -4188,6 +4188,12 @@ looked up only when a name in scope has its length (232).
     The package has no tests of its own yet: the playground's build and a check in a browser
     exercise it.
 
+251. **A syntax error says where and what.** The error of `evaluate`, `evaluateAll` and
+    `parse` for a text that does not parse holds `diagnostics`, the errors of the text with
+    their places and codes as `syntax` answers them; `message` is unchanged. The playground's
+    result panel lists them. Registered as a rule: `error.diagnostics` is gained
+    (`tools/identity/registered/syntax-error-places.json`).
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

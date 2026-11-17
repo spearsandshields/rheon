@@ -99,6 +99,8 @@ export interface RequestOptions {
 export interface FeelError {
   kind: ErrorKind;
   message: string;
+  /** For a syntax error of the expression: where and what its errors are, as `syntax` answers them. */
+  diagnostics?: SyntaxDiagnostic[];
 }
 
 export type EvaluateResponse =

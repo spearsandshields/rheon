@@ -140,6 +140,14 @@
               <button class="link-btn" onclick={onjumptoerror} data-testid="jump-to-error">Jump to error</button>
             {/if}
           </div>
+          {#if response.error.kind === 'syntax' && response.error.diagnostics?.length}
+            <ul class="why" data-testid="syntax-details">
+              {#each response.error.diagnostics.slice(0, 5) as detail (detail.from + detail.code)}
+                <li><span class="mono">at {detail.from}</span> {detail.message}</li>
+              {/each}
+              {#if response.error.diagnostics.length > 5}<li>and {response.error.diagnostics.length - 5} more</li>{/if}
+            </ul>
+          {/if}
           <pre class="mono">{response.error.message}</pre>
         </div>
       {/if}
@@ -392,5 +400,12 @@
     border-radius: 10px;
     max-height: 40vh;
     overflow: auto;
+  }
+  .why {
+    margin: 6px 0;
+    padding-left: 18px;
+  }
+  .why li {
+    margin: 2px 0;
   }
 </style>

@@ -11,6 +11,14 @@
     },
     "new": {
       "error": {
+        "diagnostics": [
+          {
+            "code": "failed",
+            "from": 640,
+            "message": "expression is nested too deeply (more than 640 levels of nesting)",
+            "to": 10001
+          }
+        ],
         "kind": "syntax",
         "message": "expression is nested too deeply (more than 640 levels of nesting)"
       },
@@ -45,6 +53,14 @@
     },
     "new": {
       "error": {
+        "diagnostics": [
+          {
+            "code": "failed",
+            "from": 640,
+            "message": "expression is nested too deeply (more than 640 levels of nesting)",
+            "to": 10001
+          }
+        ],
         "kind": "syntax",
         "message": "expression is nested too deeply (more than 640 levels of nesting)"
       },
@@ -63,6 +79,14 @@
     },
     "new": {
       "error": {
+        "diagnostics": [
+          {
+            "code": "failed",
+            "from": 1920,
+            "message": "expression is nested too deeply (more than 640 levels of nesting)",
+            "to": 12001
+          }
+        ],
         "kind": "syntax",
         "message": "expression is nested too deeply (more than 640 levels of nesting)"
       },
@@ -107,6 +131,14 @@
     },
     "new": {
       "error": {
+        "diagnostics": [
+          {
+            "code": "failed",
+            "from": 640,
+            "message": "expression is nested too deeply (more than 640 levels of nesting)",
+            "to": 10001
+          }
+        ],
         "kind": "syntax",
         "message": "expression is nested too deeply (more than 640 levels of nesting)"
       },
@@ -125,6 +157,14 @@
     },
     "new": {
       "error": {
+        "diagnostics": [
+          {
+            "code": "failed",
+            "from": 640,
+            "message": "expression is nested too deeply (more than 640 levels of nesting)",
+            "to": 10001
+          }
+        ],
         "kind": "syntax",
         "message": "expression is nested too deeply (more than 640 levels of nesting)"
       },
@@ -146,6 +186,14 @@
     },
     "new": {
       "error": {
+        "diagnostics": [
+          {
+            "code": "failed",
+            "from": 1920,
+            "message": "expression is nested too deeply (more than 640 levels of nesting)",
+            "to": 12001
+          }
+        ],
         "kind": "syntax",
         "message": "expression is nested too deeply (more than 640 levels of nesting)"
       },

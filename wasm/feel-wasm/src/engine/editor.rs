@@ -140,6 +140,21 @@ pub(super) fn outline(req: Map<String, Json>, unread: Unread, started: Instant) 
   Ok(json!({ "ok": true, "outline": outline, "elapsedMicros": elapsed_micros(started) }))
 }
 
+/// The syntax errors of a text as the answers hold them.
+fn diagnostics_json(syntax: &Syntax, places: &Places) -> Vec<Json> {
+  syntax
+    .diagnostics
+    .iter()
+    .map(|d| json!({"code": d.code, "message": d.message, "from": places.of(d.start), "to": places.of(d.end)}))
+    .collect()
+}
+
+/// The syntax errors of a text that `parse` refused, for the error of the response.
+pub(super) fn diagnostics(scope: &FeelScope, expression: &str, unary_tests: bool) -> Json {
+  let syntax = parse_tolerant(scope, expression, unary_tests);
+  Json::Array(diagnostics_json(&syntax, &Places::new(expression)))
+}
+
 /// `op: "syntax"`: every token of the text with its class, and every syntax error; with
 /// `"tree": true` also the nodes with their places.
 pub(super) fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
@@ -154,11 +169,7 @@ pub(super) fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instan
   let syntax = parse_tolerant(&scope, &expression, dialect == Dialect::UnaryTests);
   let places = Places::new(&expression);
   let tokens: Vec<Json> = syntax.tokens.iter().map(|t| json!([t.class.as_str(), places.of(t.start), places.of(t.end)])).collect();
-  let diagnostics: Vec<Json> = syntax
-    .diagnostics
-    .iter()
-    .map(|d| json!({"code": d.code, "message": d.message, "from": places.of(d.start), "to": places.of(d.end)}))
-    .collect();
+  let diagnostics = diagnostics_json(&syntax, &places);
   let mut response = json!({
     "ok": true,
     "tokens": tokens,

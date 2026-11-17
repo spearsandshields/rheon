@@ -2045,3 +2045,33 @@ fn outline_in_place_of_the_context() {
     "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
   );
 }
+
+/// A syntax error of `evaluate` and `parse` says where and what: the errors of the text, as
+/// `syntax` answers them, beside the message.
+#[test]
+fn syntax_errors_carry_their_places() {
+  for op in ["evaluate", "parse"] {
+    let response = req(json!({"op": op, "expression": "if a > 1 then", "context": {"a": 1}}));
+    assert_error(&response, "syntax", "syntax error: if a > 1 then");
+    assert_eq!(
+      response["error"]["diagnostics"],
+      json!([{"code": "expected-expression", "message": "the expression ends here: an expression is expected here", "from": 13, "to": 13}]),
+      "{response}"
+    );
+  }
+  let response = req(json!({"op": "evaluate", "expression": "[1, 2 3]"}));
+  assert_eq!(
+    response["error"]["diagnostics"],
+    json!([{"code": "expected", "message": "`,` or `]` is expected here", "from": 6, "to": 7}])
+  );
+  let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "> ", "input": 1}));
+  assert_eq!(response["error"]["diagnostics"][0]["code"], "expected-expression");
+  // an entry of evaluateAll that is no expression
+  let response = req(json!({"op": "evaluateAll", "evaluations": [{"expression": "1 +"}, {"expression": "1"}]}));
+  assert_eq!(response["results"][0]["error"]["diagnostics"][0]["from"], 3, "{response}");
+  assert_eq!(response["results"][1]["ok"], true);
+  // other errors have none
+  assert!(req(json!({"op": "evaluate"}))["error"].get("diagnostics").is_none());
+  let deep = format!("1{}", "+1".repeat(400));
+  assert!(req(json!({"op": "evaluate", "expression": deep}))["error"].get("diagnostics").is_none());
+}
