@@ -22,10 +22,6 @@ upstream-commit = "c76aee02187183b3659a9051f3ebb283630066f7"
 name = "feel_wasm"
 crate-type = ["cdylib", "rlib"]
 
-[features]
-# The `syntax` operation for editors (a prototype: not part of the contract).
-editor-prototype = []
-
 [dependencies]
 # The engine crates of this repository (pure Rust; no C toolchain is involved), as path
 # dependencies with the versions that the published crate depends on.

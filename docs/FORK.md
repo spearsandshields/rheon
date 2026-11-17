@@ -4163,6 +4163,20 @@ looked up only when a name in scope has its length (232).
     points is accepted and ignored. In a debug build of this workspace the parser crate is
     compiled with `opt-level = 1`, so that the nesting limit fits the stack of a test thread.
 
+249. **Editor operations.** The module answers three new operations (docs/CONTRACT.md §3):
+    `syntax` (every token of a text with its class, every syntax error with a place and a
+    code, and on request the nodes with their places), `complete` (what can stand at a cursor:
+    names of the context and of the text, entries after a dot, keywords by position, built-in
+    functions, types) and `outline` (the names of a context without its values, which the other
+    two take in place of the context). They read the tolerant parse of the hand-written parser
+    and answer for every text; places are UTF-16 code units. `@rheon/feel-runtime` has
+    `FeelEngine.syntax`, `complete` and `outline` with their types. The prototype feature
+    `editor-prototype` is gone. One registered difference: the message of an unknown `op` names
+    the new operations (`tools/identity/registered/editor-operations.json`, 2 entries). Not in
+    this version: the type and the signature of an item (`type` and `detail` are null), named
+    parameters of built-in functions, and entries after a dot for anything but names that lead
+    into the context.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

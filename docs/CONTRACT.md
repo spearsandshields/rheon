@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "evaluateAll" | "parse" | "info",
+  "op": "evaluate" | "evaluateAll" | "parse" | "syntax" | "complete" | "outline" | "info",
   "dialect": "expression" | "unaryTests",   // evaluate/parse; default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -126,6 +126,77 @@ Scale rounding (`round up/down/half up/half down`, `floor`, `ceiling` with a sca
 
 `op: "parse"` success: `{ "ok": true, "tree": "<dsntk AstNode::tree() ascii, no color>", "elapsedMicros": n }`
 
+### The editor operations
+
+`syntax`, `complete` and `outline` serve an editor. `syntax` and `complete` answer for every
+text: a text that is no expression has its errors in the answer, and a failure is only a bad
+request or a context that does not convert. Places are offsets in UTF-16 code units (the unit
+of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take `expression`,
+`dialect`, and for the names in scope either `context`/`contextFormat` as `parse` does or
+`outline` (below), not both. The module keeps nothing between calls.
+
+`op: "syntax"`, with the optional field `"tree": true`:
+
+```jsonc
+{ "ok": true,
+  "tokens": [["keyword", 0, 2], ["whitespace", 2, 3], ["name", 3, 17], …],   // [class, from, to]
+  "diagnostics": [{ "code": "expected-expression", "message": "the expression ends here: an expression is expected here", "from": 26, "to": 26 }],
+  "truncated": false,
+  "nodes": [["If", 0, 26], ["Comparison", 3, 21], …],                         // only with "tree": true: [kind, from, to]
+  "elapsedMicros": n }
+```
+
+- The tokens are the whole text in order, white space and comments included. The classes are
+  `whitespace`, `comment`, `keyword`, `name`, `number`, `string`, `constant` (`true`, `false`,
+  `null`), `operator`, `punctuation`, `function` (the name of a date and time literal), `type`,
+  `key` (of a context entry), `parameter`, `variable` (of `for`, `some`, `every`), `property`
+  (the name after a dot) and `error` (a character that starts no token). A name is one token as
+  the engine reads it, with its spaces. A new class is a change of this contract.
+- `diagnostics` are the syntax errors in the order of their places, at most 100 (`truncated`
+  says that the text has more), one per place. `code` is for programs and stable; `message` is
+  for people and may change. The codes: `expected` (a certain token is missing), `expected-expression`,
+  `expected-name`, `expected-type`, `unexpected` (a token that fits nowhere), `comparison` (a
+  comparison compared again without parentheses), `string-open`, `string-escape`,
+  `comment-open`, `character`, `failed` (the parser gave up, as at its nesting limit; the rest of
+  the text has tokens but no nodes). After an error the parser goes on as if the missing part
+  were there. `diagnostics` is empty exactly when `parse` accepts the text.
+- `nodes` are the parts of the expression, each before the nodes inside it; a consumer reads
+  the nesting from the places. A missing part is a node `Error` of an empty place. The kinds
+  are not a stable list yet.
+
+`op: "complete"`, with the optional field `"cursor"` (a UTF-16 offset; default: the end of the text):
+
+```jsonc
+{ "ok": true,
+  "to": 15,                              // the cursor
+  "expects": "expression",               // what the grammar takes at the cursor
+  "items": [{ "label": "Monthly Salary", "kind": "name", "from": 4, "type": null, "detail": null }],
+  "truncated": false,
+  "elapsedMicros": n }
+```
+
+- An accepted item replaces the text from its `from` to `to` with its `label`. The items of one
+  answer can have different `from`s: in `if a th` the lexer reads `a th` as one name, so names
+  are offered for `a th` and keywords for `th`.
+- `kind`: `name` (a name of the context, or one the text declares before the cursor: an
+  iteration variable, a parameter, `partial`, a key of a context being written), `entry` (an
+  entry after a dot, when the names before the dot lead to a context, or to a list of contexts,
+  in the context or the outline), `keyword`, `function` (a built-in function), `type`.
+  The items are ordered by kind in this order and then by label; at most 200 (`truncated`).
+  An item fits when it starts with what is typed, letters compared without case.
+- `expects`: `expression`, `operator` (after a complete operand: `and`, `or`, `between`, `in`,
+  `instance of`), `keyword:<word>` (a keyword the grammar needs here, such as `keyword:then`),
+  `property` (after a dot), `type`, `name` (a new name is written here: nothing is offered).
+- `type` and `detail` are null in this version: the type of an item and the signature of a
+  function come with type inference, without a change of the shape.
+
+`op: "outline"` takes `context`/`contextFormat` and answers `{ "ok": true, "outline": <outline>, "elapsedMicros": n }`.
+An outline is `null` (a name without entries), `{"names": {<name>: <outline>, …}}` (a context)
+or `{"items": <outline>}` (a list whose first item is a context). It holds the names of a
+context without its values, so an editor builds it once and sends it with every keystroke
+instead of the context; a consumer can also write one itself. A list is read by its first
+item only.
+
 `op: "info"` success: `{ "ok": true, "engine": "rheon", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<rheon-feel-wasm crate version>" }`. `engineCommit` is the rheon repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `.cargo_vcs_info.json` in a crate packaged by cargo, `"unknown"` when built outside both without `RHEON_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[package.metadata.rheon]` in `wasm/feel-wasm/Cargo.toml`), and `numberBackend` the feel-number backend (`rheon_feel_number::NUMBER_BACKEND`, always `"dashu"`).
 
 Failure (the instance stays healthy):
@@ -175,6 +246,10 @@ export class FeelEngine {
   evaluate(req: EvaluateRequest, opts?: RequestOptions): Promise<EvaluateResponse>;
   evaluateAll(req: EvaluateAllRequest, opts?: RequestOptions): Promise<EvaluateAllResponse>;  // §2 `evaluateAll`: one request, the context sent once
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
+  // the editor operations (§3): `opts` names the dialect and either the context or its outline
+  syntax(expression: string, opts?: EditorOptions & { tree?: boolean } & RequestOptions): Promise<SyntaxResponse>;
+  complete(expression: string, cursor: number, opts?: EditorOptions & RequestOptions): Promise<CompleteResponse>;
+  outline(opts?: ParseOptions & RequestOptions): Promise<OutlineResponse>;
   info(): Promise<unknown>;
   callJson(json: string, opts?: RequestOptions): Promise<any>;  // raw §2 request, sent as-is
   dispose(): void;                       // pending/later requests resolve {ok:false, error:{kind:'internal', message:'FeelEngine disposed'}}

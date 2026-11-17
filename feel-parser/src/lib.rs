@@ -115,7 +115,7 @@ pub fn parse_range_literal(scope: &FeelScope, input: &str, trace: bool) -> Resul
   parse(scope, TokenType::StartRangeLiteral, input, trace)
 }
 
-pub use parser::{Diagnostic, MAX_DIAGNOSTICS, Syntax, SyntaxNode, SyntaxToken, TokenClass};
+pub use parser::{Diagnostic, MAX_DIAGNOSTICS, Syntax, SyntaxNode, SyntaxToken, TextEnd, TokenClass};
 
 /// Parses an `expression` (or `unary tests` with `unary_tests`) for an editor: never fails, and
 /// returns every token, the nodes with their places and every error.

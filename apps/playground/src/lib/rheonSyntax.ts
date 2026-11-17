@@ -1,7 +1,6 @@
 /**
  * Prototype: highlighting, error marks and the positions tree from the engine's own parser
- * (`op: "syntax"`), switched on with `?parser=rheon`. The operation exists only in a module
- * built with the feature `editor-prototype` of rheon-feel-wasm; with any other module the editor shows plain text.
+ * (`op: "syntax"`), switched on with `?parser=rheon`.
  *
  * The engine runs in this thread here: one call per edit, a few microseconds for a formula.
  */
@@ -46,7 +45,7 @@ function syntaxOf(expression: string): RheonSyntax | null {
   if (!instance) return null;
   const context = Object.fromEntries(config.names.map((name) => [name, null]));
   try {
-    const response = instance.call({ op: 'syntax', expression, dialect: config.dialect, context });
+    const response = instance.call({ op: 'syntax', expression, dialect: config.dialect, context, tree: true });
     return response && response.ok ? (response as RheonSyntax) : null;
   } catch {
     // the editor keeps working without colours when the engine fails on a text

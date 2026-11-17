@@ -14,6 +14,8 @@ use serde_json::{Map, Value as Json, json};
 use std::sync::Mutex;
 use std::time::Instant;
 
+mod editor;
+
 /// The rheon repository commit this engine is built from (`build.rs`: git HEAD, `-dirty`
 /// when the tree had uncommitted changes, or `RHEON_COMMIT` from the environment).
 const ENGINE_COMMIT: &str = env!("RHEON_COMMIT");
@@ -180,8 +182,9 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Evaluate,
     EvaluateAll,
     Parse,
-    #[cfg(feature = "editor-prototype")]
     Syntax,
+    Complete,
+    Outline,
   }
   let op = match req.get("op") {
     Some(Json::String(op)) => match op.as_str() {
@@ -189,12 +192,16 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "evaluate" => Op::Evaluate,
       "evaluateAll" => Op::EvaluateAll,
       "parse" => Op::Parse,
-      #[cfg(feature = "editor-prototype")]
       "syntax" => Op::Syntax,
+      "complete" => Op::Complete,
+      "outline" => Op::Outline,
       other => {
         return fail(
           Kind::Request,
-          format!("unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')", arg(other)),
+          format!(
+            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
+            arg(other)
+          ),
         );
       }
     },
@@ -207,8 +214,9 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
     Op::EvaluateAll => evaluate_all(req, unread, started).map(Response::Text),
     Op::Parse => parse(req, unread, started).map(Response::Tree),
-    #[cfg(feature = "editor-prototype")]
-    Op::Syntax => syntax(req, unread, started).map(Response::Tree),
+    Op::Syntax => editor::syntax(req, unread, started).map(Response::Tree),
+    Op::Complete => editor::complete(req, unread, started).map(Response::Tree),
+    Op::Outline => editor::outline(req, unread, started).map(Response::Tree),
   }
 }
 
@@ -667,44 +675,6 @@ fn evaluated(
   response.push_str(&warnings);
   response.push('}');
   Ok(response)
-}
-
-/// The tokens, the nodes and the syntax errors of an expression, for an editor (`op: "syntax"`,
-/// a prototype behind the feature `editor-prototype`). It answers for every text. The places are
-/// offsets in UTF-16 code units: `[class, from, to]` for a token, `[kind, from, to]` for a node.
-#[cfg(feature = "editor-prototype")]
-fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
-  let dialect = dialect(&req)?;
-  let expression = expression(&mut req)?;
-  let scope = prepare_scope(req, unread, dialect, &mut vec![])?;
-  let syntax = rheon_feel_parser::parse_tolerant(&scope, &expression, matches!(dialect, Dialect::UnaryTests));
-  // byte offsets to UTF-16 offsets, for places in ascending order
-  let mut places: Vec<usize> = syntax.tokens.iter().flat_map(|t| [t.start, t.end]).collect();
-  places.extend(syntax.nodes.iter().flat_map(|n| [n.start, n.end]));
-  places.extend(syntax.diagnostics.iter().flat_map(|d| [d.start, d.end]));
-  places.sort_unstable();
-  places.dedup();
-  let mut units = std::collections::HashMap::with_capacity(places.len());
-  let (mut at, mut count) = (0, 0);
-  for place in places {
-    count += expression[at..place].encode_utf16().count();
-    at = place;
-    units.insert(place, count);
-  }
-  let tokens: Vec<Json> = syntax.tokens.iter().map(|t| json!([t.class.as_str(), units[&t.start], units[&t.end]])).collect();
-  let nodes: Vec<Json> = syntax.nodes.iter().map(|n| json!([n.kind, units[&n.start], units[&n.end]])).collect();
-  let diagnostics: Vec<Json> = syntax
-    .diagnostics
-    .iter()
-    .map(|d| json!({"code": d.code, "message": d.message, "from": units[&d.start], "to": units[&d.end]}))
-    .collect();
-  Ok(json!({
-    "ok": true,
-    "tokens": tokens,
-    "nodes": nodes,
-    "diagnostics": diagnostics,
-    "elapsedMicros": elapsed_micros(started),
-  }))
 }
 
 fn parse(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {

@@ -905,7 +905,10 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
   check(
     json!({"op": "y".repeat(300)}),
     "request",
-    format!("unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')", "y".repeat(120)),
+    format!(
+      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
+      "y".repeat(120)
+    ),
   );
   check(
     json!({"op": "evaluate", "expression": "1", "contextFormat": (1..=300).collect::<Vec<_>>()}),
@@ -973,7 +976,7 @@ fn request_error_messages() {
   assert_error(
     &req(json!({"op": "explode"})),
     "request",
-    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
   );
   // the expression
   for op in ["evaluate", "parse"] {
@@ -1071,7 +1074,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')";
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1840,7 +1843,7 @@ fn evaluate_all_request_and_response() {
   assert_error(
     &req(json!({"op": "nothing"})),
     "request",
-    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')",
   );
   let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
   assert_eq!(
@@ -1890,4 +1893,155 @@ fn evaluate_all_request_and_response() {
   // B-FEEL for every entry: a number is added to a string as text
   assert_eq!(results[4]["result"]["type"], "string", "{response}");
   assert_eq!(results[5]["result"]["display"], "2", "{response}");
+}
+
+/// The labels of the items of a `complete` answer, each with its kind and its `from`.
+fn items(response: &Json) -> Vec<(String, String, u64)> {
+  assert_eq!(response["ok"], true, "{response}");
+  response["items"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .map(|item| {
+      (
+        item["label"].as_str().unwrap().to_string(),
+        item["kind"].as_str().unwrap().to_string(),
+        item["from"].as_u64().unwrap(),
+      )
+    })
+    .collect()
+}
+
+fn has(items: &[(String, String, u64)], label: &str, kind: &str, from: u64) -> bool {
+  items.iter().any(|(l, k, f)| l == label && k == kind && *f == from)
+}
+
+/// `syntax` answers for every text: the tokens are the whole text in order, an unfinished text
+/// has its error at its place, and the places are UTF-16 code units.
+#[test]
+fn syntax_tokens_and_errors() {
+  let text = "if a > 1 then";
+  let response = req(json!({"op": "syntax", "expression": text, "context": {"a": 1}}));
+  assert_eq!(response["ok"], true, "{response}");
+  let tokens = response["tokens"].as_array().unwrap();
+  let mut at = 0;
+  for token in tokens {
+    assert_eq!(token[1].as_u64().unwrap(), at, "{response}");
+    at = token[2].as_u64().unwrap();
+  }
+  assert_eq!(at, text.len() as u64);
+  assert_eq!(tokens[0], json!(["keyword", 0, 2]));
+  assert_eq!(tokens[2], json!(["name", 3, 4]));
+  assert_eq!(
+    response["diagnostics"],
+    json!([{"code": "expected-expression", "message": "the expression ends here: an expression is expected here", "from": 13, "to": 13}])
+  );
+  assert_eq!(response["truncated"], false);
+  assert!(response.get("nodes").is_none(), "{response}");
+  // a text without an error, with the tree
+  let response = req(json!({"op": "syntax", "expression": "1 + 2", "tree": true}));
+  assert_eq!(response["diagnostics"], json!([]));
+  assert_eq!(response["nodes"], json!([["Addition", 0, 5], ["Number", 0, 1], ["Number", 4, 5]]));
+  // a character outside the basic plane is two code units
+  let response = req(json!({"op": "syntax", "expression": "\"\u{1F600}\" + x"}));
+  assert_eq!(response["tokens"][0], json!(["string", 0, 4]));
+  assert_eq!(response["tokens"][4], json!(["name", 7, 8]));
+  // unary tests, and text that is no expression at all
+  let response = req(json!({"op": "syntax", "dialect": "unaryTests", "expression": "< 10, [20..30]"}));
+  assert_eq!(response["diagnostics"], json!([]));
+  let response = req(json!({"op": "syntax", "expression": ")) # \"open"}));
+  assert_eq!(response["ok"], true, "{response}");
+  assert!(!response["diagnostics"].as_array().unwrap().is_empty());
+  // the request
+  assert_error(&req(json!({"op": "syntax"})), "request", "missing 'expression'");
+  assert_error(&req(json!({"op": "syntax", "expression": "1", "tree": 1})), "request", "'tree' must be true or false");
+}
+
+/// `complete` offers what the grammar takes at the cursor.
+#[test]
+fn complete_at_a_cursor() {
+  let context = json!({"Monthly Salary": 1, "Tax Rate": 2, "a": 1, "order": {"total": 1, "lines": [{"price": 1, "unit count": 2}]}});
+  let complete = |expression: &str| req(json!({"op": "complete", "expression": expression, "context": context}));
+  // a name being typed, of several words
+  let response = complete("1 + Monthly Sal");
+  assert_eq!(response["expects"], "expression");
+  assert_eq!(response["to"], 15);
+  assert_eq!(items(&response), vec![("Monthly Salary".to_string(), "name".to_string(), 4)]);
+  // an empty text: names, keywords and functions, in this order
+  let all = items(&complete(""));
+  assert!(
+    has(&all, "Tax Rate", "name", 0) && has(&all, "if", "keyword", 0) && has(&all, "sum", "function", 0),
+    "{all:?}"
+  );
+  let kinds: Vec<&str> = all.iter().map(|(_, kind, _)| kind.as_str()).collect();
+  let mut sorted = kinds.clone();
+  sorted.sort_by_key(|kind| ["name", "entry", "keyword", "function", "type"].iter().position(|k| k == kind));
+  assert_eq!(kinds, sorted);
+  // a keyword after an operand: the last word of what the lexer reads as one name
+  let response = complete("if a th");
+  assert!(has(&items(&response), "then", "keyword", 5), "{response}");
+  assert_eq!(complete("if a ")["expects"], "keyword:then");
+  // after a complete expression: operators
+  let response = complete("1 ");
+  assert_eq!(response["expects"], "operator");
+  assert!(has(&items(&response), "and", "keyword", 2) && !has(&items(&response), "Tax Rate", "name", 2), "{response}");
+  // entries after a dot, also through a list
+  assert_eq!(
+    items(&complete("order.")),
+    vec![("lines".to_string(), "entry".to_string(), 6), ("total".to_string(), "entry".to_string(), 6)]
+  );
+  assert_eq!(items(&complete("order.lines.un")), vec![("unit count".to_string(), "entry".to_string(), 12)]);
+  assert_eq!(items(&complete("a.")), vec![]);
+  // types
+  let response = complete("a instance of ");
+  assert_eq!(response["expects"], "type");
+  assert!(has(&items(&response), "number", "type", 14) && has(&items(&response), "list<", "type", 14), "{response}");
+  // the names the text declares: the variable of an iteration and `partial`
+  let declared = items(&complete("for i in [1] return "));
+  assert!(has(&declared, "i", "name", 20) && has(&declared, "partial", "name", 20), "{declared:?}");
+  // where a new name is written, nothing is offered
+  let response = complete("for ");
+  assert_eq!(response["expects"], "name");
+  assert_eq!(items(&response), vec![]);
+  // the cursor inside the text
+  let response = req(json!({"op": "complete", "expression": "Tax + 1", "cursor": 3, "context": context}));
+  assert_eq!(items(&response), vec![("Tax Rate".to_string(), "name".to_string(), 0)]);
+  assert_eq!(response["to"], 3);
+  // unary tests have `?`
+  let response = req(json!({"op": "complete", "dialect": "unaryTests", "expression": "> ", "context": context}));
+  assert!(has(&items(&response), "?", "name", 2), "{response}");
+  assert_error(
+    &req(json!({"op": "complete", "expression": "1", "cursor": -1})),
+    "request",
+    "'cursor' must be a whole number that is not negative",
+  );
+}
+
+/// `outline` gives the names of a context without its values, and the editor operations take
+/// it in place of the context.
+#[test]
+fn outline_in_place_of_the_context() {
+  let context = json!({"Tax Rate": 2, "order": {"total": 1, "lines": [{"price": 1}], "tags": ["a"]}});
+  let response = req(json!({"op": "outline", "context": context}));
+  let outline = json!({"names": {"Tax Rate": null, "order": {"names": {"lines": {"items": {"names": {"price": null}}}, "tags": null, "total": null}}}});
+  assert_eq!(response["outline"], outline, "{response}");
+  for expression in ["", "Tax", "order.", "order.lines.", "order.lines.price + Tax Ra"] {
+    let with_context = req(json!({"op": "complete", "expression": expression, "context": context}));
+    let with_outline = req(json!({"op": "complete", "expression": expression, "outline": outline}));
+    assert_eq!(with_context["items"], with_outline["items"], "{expression}");
+    let with_context = req(json!({"op": "syntax", "expression": expression, "context": context}));
+    let with_outline = req(json!({"op": "syntax", "expression": expression, "outline": outline}));
+    assert_eq!(with_context["tokens"], with_outline["tokens"], "{expression}");
+  }
+  assert_eq!(req(json!({"op": "outline"}))["outline"], json!({"names": {}}));
+  assert_error(
+    &req(json!({"op": "syntax", "expression": "1", "context": {}, "outline": outline})),
+    "request",
+    "give 'context' or 'outline', not both",
+  );
+  assert_error(
+    &req(json!({"op": "syntax", "expression": "1", "outline": {"names": 1}})),
+    "context",
+    "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+  );
 }

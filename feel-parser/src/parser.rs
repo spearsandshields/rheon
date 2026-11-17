@@ -168,6 +168,25 @@ pub struct Syntax {
   pub nodes: Vec<SyntaxNode>,
   /// The errors, in the order of their places.
   pub diagnostics: Vec<Diagnostic>,
+  /// Whether the text has more errors than the [MAX_DIAGNOSTICS] that are recorded.
+  pub truncated: bool,
+  /// What the parser expected where the text ends, when it ends before the expression does.
+  pub end: Option<TextEnd>,
+}
+
+/// What a tolerant parse expected at the end of a text that ends too early: what an editor can
+/// offer there.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TextEnd {
+  /// The code of the error at the end of the text (see [Diagnostic::code]).
+  pub code: &'static str,
+  /// For the code `expected`: the missing token as it is written (`then`, `)`).
+  pub token: &'static str,
+  /// For the code `expected-name`: the part of the expression the name has.
+  pub role: TokenClass,
+  /// The names in scope there that the text itself declares (iteration variables, parameters,
+  /// keys of the contexts around the place), sorted.
+  pub names: Vec<String>,
 }
 
 /// A token of a tolerant parse.
@@ -401,6 +420,29 @@ fn expected(kind: T) -> &'static str {
   }
 }
 
+/// Returns a token of the kind `kind` as it is written, for the tokens that are written one way.
+fn written(kind: T) -> &'static str {
+  match kind {
+    T::RightParen => ")",
+    T::RightBracket => "]",
+    T::RightBrace => "}",
+    T::LeftParen => "(",
+    T::Colon => ":",
+    T::Ellipsis => "..",
+    T::Then => "then",
+    T::Else => "else",
+    T::In => "in",
+    T::Return => "return",
+    T::Satisfies => "satisfies",
+    T::Of => "of",
+    T::BetweenAnd => "and",
+    T::Lt => "<",
+    T::Gt => ">",
+    T::RightArrow => "->",
+    _ => "",
+  }
+}
+
 /// Returns the name of the node of a binary operator of the level `level`.
 fn operator_name(level: u8) -> &'static str {
   match level {
@@ -468,6 +510,9 @@ pub struct Parser<'parser, 'scope> {
   last_end: usize,
   /// What a tolerant parse records; a strict parse has none and stops at the first error.
   syntax: Option<Box<Syntax>>,
+  /// The token and the part of a name that the parser asks for now (for [TextEnd]).
+  expected_token: T,
+  expected_role: TokenClass,
   /// The token log: every token read from the lexer, with its start offset in the input.
   #[cfg(test)]
   token_log: Option<Vec<(TokenType, TokenValue, usize)>>,
@@ -503,6 +548,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       token_end: 0,
       last_end: 0,
       syntax: None,
+      expected_token: T::Other,
+      expected_role: TokenClass::Name,
       #[cfg(test)]
       token_log: None,
     }
@@ -728,9 +775,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   fn diagnostic(&mut self, code: &'static str, message: String, start: usize, end: usize) {
     if let Some(syntax) = &mut self.syntax
       && syntax.diagnostics.last().is_none_or(|last| last.start != start)
-      && syntax.diagnostics.len() < MAX_DIAGNOSTICS
     {
-      syntax.diagnostics.push(Diagnostic { code, message, start, end });
+      if syntax.diagnostics.len() < MAX_DIAGNOSTICS {
+        syntax.diagnostics.push(Diagnostic { code, message, start, end });
+      } else {
+        syntax.truncated = true;
+      }
     }
   }
 
@@ -739,6 +789,18 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   fn unexpected(&mut self, code: &'static str, message: &str) -> Result<()> {
     if self.syntax.is_none() {
       return self.error();
+    }
+    if self.kind == T::Eof
+      && let Some(syntax) = &mut self.syntax
+      && syntax.end.is_none()
+    {
+      // the first thing that is missing where the text ends
+      syntax.end = Some(TextEnd {
+        code,
+        token: if code == "expected" { written(self.expected_token) } else { "" },
+        role: self.expected_role,
+        names: self.scope.local_names(),
+      });
     }
     let (start, end) = if self.kind == T::Eof {
       (self.input.len(), self.input.len())
@@ -816,6 +878,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       self.bump();
       Ok(())
     } else {
+      self.expected_token = kind;
       self.unexpected("expected", expected(kind))
     }
   }
@@ -838,7 +901,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     if self.look(at)? == T::Name {
       self.role(class);
     }
-    self.name(at)
+    self.expected_role = class;
+    let name = self.name(at);
+    self.expected_role = TokenClass::Name;
+    name
   }
 
   //----------------------------------------------------------------------------------------------

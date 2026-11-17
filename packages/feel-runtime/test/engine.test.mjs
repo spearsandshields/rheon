@@ -399,3 +399,28 @@ test('create() rejects with the HTTP status when the wasm URL is missing (404)',
   const url = `http://127.0.0.1:${server.address().port}/feel.wasm`;
   await assert.rejects(FeelEngine.create({ wasmUrl: url, createWorker: createNodeWorker }), /HTTP 404/);
 });
+
+test('real worker: the editor operations (syntax, complete, outline)', async (t) => {
+  const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 10000 });
+  t.after(() => engine.dispose());
+  const context = { 'Monthly Salary': 1, order: { total: 1, lines: [{ price: 1 }] } };
+  // syntax answers for an unfinished text, with its error at the end
+  const syntax = await engine.syntax('if Monthly Salary > 1 then', { context, tree: true });
+  assert.equal(syntax.ok, true);
+  assert.deepEqual(syntax.tokens[2], ['name', 3, 17]);
+  assert.deepEqual(syntax.diagnostics.map((d) => [d.code, d.from, d.to]), [['expected-expression', 26, 26]]);
+  assert.ok(syntax.nodes.some(([kind]) => kind === 'If'));
+  // complete: a name being typed, and the entries after a dot
+  const names = await engine.complete('1 + Monthly', 11, { context });
+  assert.deepEqual(names.items.map((i) => [i.label, i.kind, i.from]), [['Monthly Salary', 'name', 4]]);
+  assert.equal(names.to, 11);
+  // the outline stands in for the context
+  const outline = await engine.outline({ context });
+  assert.deepEqual(outline.outline, { names: { 'Monthly Salary': null, order: { names: { lines: { items: { names: { price: null } } }, total: null } } } });
+  const entries = await engine.complete('order.lines.', 12, { outline: outline.outline });
+  assert.deepEqual(entries.items.map((i) => i.label), ['price']);
+  // a context and an outline together are refused before the module is asked
+  const both = await engine.syntax('1', { context, outline: outline.outline });
+  assert.deepEqual(both, { ok: false, error: { kind: 'request', message: "give 'context' or 'outline', not both" } });
+  assert.equal(engine.workerStarts, 1);
+});

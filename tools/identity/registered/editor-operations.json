@@ -1,0 +1,43 @@
+[
+  {
+    "request": {
+      "op": "explode"
+    },
+    "why": "the message of an unknown op names the editor operations syntax, complete and outline",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "explode",
+      "dialect": "boxed"
+    },
+    "why": "the message of an unknown op names the editor operations syntax, complete and outline",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline' or 'info')"
+      },
+      "ok": false
+    }
+  }
+]
