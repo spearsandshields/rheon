@@ -6,7 +6,8 @@
 //! of its kind, and the parts inside it are indented by [INDENT] spaces:
 //!
 //! - a list, a context, the arguments of an invocation, a filter and an expression in
-//!   parentheses: every item on a line of its own between the brackets;
+//!   parentheses: every item on a line of its own between the brackets; a context of two or
+//!   more entries is always written this way, whatever its length;
 //! - `if`: `then` and `else` start a line; `for`, `some` and `every`: `return` or `satisfies`
 //!   starts a line, and so does every variable after the first;
 //! - a chain of one kind of operator (`and`, `or`, a comparison, `+ -`, `* /`, `**`): every
@@ -114,7 +115,8 @@ struct Formatter<'a> {
   tokens: Vec<Token>,
   nodes: Vec<Node>,
   /// For each token, the length of the flat text of the tokens up to and with it, and the
-  /// number of line comments up to and with it.
+  /// number of tokens up to and with it that keep a part from standing on one line: a comment
+  /// that runs to the end of its line, and the `{` of a context of two or more entries.
   flat: Vec<usize>,
   line_comments: Vec<usize>,
   width: usize,
@@ -209,13 +211,25 @@ impl<'a> Formatter<'a> {
       must_break: false,
     };
     formatter.assign_roles();
+    // a context of two or more entries has every entry on a line of its own
+    let mut always_broken = vec![false; formatter.tokens.len()];
+    for node in &formatter.nodes {
+      let entries = node
+        .children
+        .iter()
+        .filter(|child| matches!(child, Child::Node(entry) if formatter.nodes[*entry].kind == "Entry"))
+        .count();
+      if node.kind == "Context" && entries >= 2 {
+        always_broken[node.first] = true;
+      }
+    }
     let (mut length, mut comments) = (0, 0);
-    for index in 0..formatter.tokens.len() {
+    for (index, &broken) in always_broken.iter().enumerate() {
       if index > 0 && formatter.space_between(index - 1, index) {
         length += 1;
       }
       length += formatter.tokens[index].end - formatter.tokens[index].start;
-      comments += usize::from(formatter.tokens[index].line_comment);
+      comments += usize::from(formatter.tokens[index].line_comment || broken);
       formatter.flat.push(length);
       formatter.line_comments.push(comments);
     }
@@ -304,7 +318,8 @@ impl<'a> Formatter<'a> {
     self.flat[last] - self.flat[first] + (self.tokens[first].end - self.tokens[first].start)
   }
 
-  /// Whether the node can stand on one line: it holds no comment that runs to the end of a line.
+  /// Whether the node can stand on one line: it holds no comment that runs to the end of a line
+  /// and no context of two or more entries.
   fn can_be_flat(&self, node: usize) -> bool {
     let (first, last) = (self.nodes[node].first, self.nodes[node].last);
     let before = if first == 0 { 0 } else { self.line_comments[first - 1] };
@@ -397,8 +412,9 @@ impl<'a> Formatter<'a> {
           // a bracketed value closes below its key; the body of a function below `function`
           Break::Entry => self.node(child, indent),
           Break::None if kind == "Function" || kind == "Root" => self.node(child, indent),
-          // a bracketed part after a keyword closes below the keyword
-          Break::Keywords if break_of(self.nodes[child].kind) == Break::Brackets => self.node(child, indent),
+          // a bracketed part after a keyword, or one that a path or an operator of one operand
+          // continues, closes at the indentation of its line
+          Break::Keywords | Break::None if break_of(self.nodes[child].kind) == Break::Brackets => self.node(child, indent),
           _ => self.node(child, inner),
         },
       }

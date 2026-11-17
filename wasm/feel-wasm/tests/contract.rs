@@ -2103,3 +2103,14 @@ fn format_lays_a_text_out() {
   assert_eq!(response["error"]["diagnostics"][0]["code"], "expected-expression");
   assert_error(&format("1", json!(0)), "request", "'width' must be a whole number from 1 to 1000");
 }
+
+/// A context of two or more entries has an entry per line, however short it is.
+#[test]
+fn format_breaks_a_context_of_several_entries() {
+  let format = |expression: &str| req(json!({"op": "format", "expression": expression}))["formatted"].as_str().unwrap().to_string();
+  assert_eq!(format("{a:1,b:2}"), "{\n  a: 1,\n  b: 2\n}");
+  assert_eq!(format("{a:1}"), "{a: 1}");
+  assert_eq!(format("{}"), "{}");
+  assert_eq!(format("f({a:1,b:{c:2,d:3}}).a"), "f(\n  {\n    a: 1,\n    b: {\n      c: 2,\n      d: 3\n    }\n  }\n).a");
+  assert_eq!(format("{a:[1,2],b:{c:1}}"), "{\n  a: [1, 2],\n  b: {c: 1}\n}");
+}

@@ -212,6 +212,8 @@ optional field `"width"` (the most characters of a line, 1 to 1000; default 80).
   `return` and `satisfies` start a line; every operator of a chain of one kind (`and`, `or`,
   comparisons, `+ -`, `* /`, `**`) starts a line. A part that can not be broken (a name, a
   string, a type) may run past the width.
+- A context of two or more entries always has every entry on a line of its own, whatever its
+  length; a context of one entry stays on its line when it fits.
 - Names, numbers, strings, comments and parentheses are written as they stand in the input; a
   comment that runs to the end of its line keeps the line break after it.
 - A text with syntax errors is the failure that `parse` answers, with its `diagnostics`.
