@@ -42,6 +42,9 @@ use rheon_feel::{FeelScope, Name};
 fn parse(scope: &FeelScope, start_token_type: TokenType, input: &str, trace: bool) -> Result<AstNode> {
   let frames = scope.frames();
   let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
+  if cfg!(feature = "hand-parser") {
+    return hand::Parser::new(&parsing_scope, start_token_type, input).parse();
+  }
   Parser::new(&parsing_scope, start_token_type, input, trace).parse()
 }
 
@@ -88,7 +91,11 @@ pub fn parse_simple_value(scope: &FeelScope, input: &str, trace: bool) -> Result
 pub fn parse_name(scope: &FeelScope, input: &str, trace: bool) -> Result<Name> {
   let frames = scope.frames();
   let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
-  let parsed = Parser::new(&parsing_scope, TokenType::StartTextualExpression, input, trace).with_whole_names().parse();
+  let parsed = if cfg!(feature = "hand-parser") {
+    hand::Parser::new(&parsing_scope, TokenType::StartTextualExpression, input).with_whole_names().parse()
+  } else {
+    Parser::new(&parsing_scope, TokenType::StartTextualExpression, input, trace).with_whole_names().parse()
+  };
   if let AstNode::Name(name) = &mut parsed? {
     Ok(std::mem::take(name))
   } else {

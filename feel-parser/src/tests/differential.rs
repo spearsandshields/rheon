@@ -971,31 +971,41 @@ fn feedback_actions_are_reduced_before_the_next_token() {
 }
 
 /// The parser's use of the native stack does not depend on the input: deep and long inputs parse,
-/// and their ASTs are dropped, in a thread with a small stack.
+/// and their ASTs are dropped, in a thread with a small stack. The hand-written parser takes
+/// stack for every level of nesting, up to its limit: a text nested deeper is a syntax error,
+/// and a long text that is not nested parses.
 #[test]
 fn deep_inputs_parse_in_a_small_stack() {
   let n = 5_000;
+  let hand = cfg!(feature = "hand-parser");
+  // the inputs, and whether they are nested `n` levels deep
   let inputs = vec![
-    format!("{}1{}", "(1+".repeat(n), ")".repeat(n)),
-    format!("{}1{}", "[".repeat(n), "]".repeat(n)),
-    format!("{}1{}", "{a:".repeat(n), "}".repeat(n)),
-    format!("{}1", "-".repeat(n)),
-    format!("{}1", "if true then 1 else ".repeat(n)),
-    format!("{}1{}", "f(".repeat(n), ")".repeat(n)),
-    format!("1{}", "+1".repeat(4 * n)),
-    format!("a{}", ".a".repeat(4 * n)),
-    format!("a{}", " + a".repeat(4 * n)),
-    format!("{{{}}}", (0..n).map(|i| format!("k{i}: {i}")).collect::<Vec<_>>().join(", ")),
-    format!("[{}]", (0..n).map(|i| i.to_string()).collect::<Vec<_>>().join(", ")),
-    format!("{}x", "for x in [1] return ".repeat(n / 10)),
+    (format!("{}1{}", "(1+".repeat(n), ")".repeat(n)), true),
+    (format!("{}1{}", "[".repeat(n), "]".repeat(n)), true),
+    (format!("{}1{}", "{a:".repeat(n), "}".repeat(n)), true),
+    (format!("{}1", "-".repeat(n)), true),
+    (format!("{}1", "if true then 1 else ".repeat(n)), true),
+    (format!("{}1{}", "f(".repeat(n), ")".repeat(n)), true),
+    (format!("1{}", "+1".repeat(4 * n)), false),
+    (format!("a{}", ".a".repeat(4 * n)), false),
+    (format!("a{}", " + a".repeat(4 * n)), false),
+    (format!("{{{}}}", (0..n).map(|i| format!("k{i}: {i}")).collect::<Vec<_>>().join(", ")), false),
+    (format!("[{}]", (0..n).map(|i| i.to_string()).collect::<Vec<_>>().join(", ")), false),
+    (format!("{}x", "for x in [1] return ".repeat(n / 10)), n / 10 > crate::hand::MAX_NESTING),
   ];
   // the stack of a debug build: about 10x the frames of an optimized one
+  let stack_size = if hand { crate::hand::MAX_NESTING * 6 * 1024 } else { 256 * 1024 };
   let handle = std::thread::Builder::new()
-    .stack_size(256 * 1024)
+    .stack_size(stack_size)
     .spawn(move || {
-      for input in inputs {
-        let node = crate::parse_expression(&Default::default(), &input, false).unwrap_or_else(|e| panic!("{e}: {}", &input[..80]));
-        drop(node);
+      for (input, nested) in inputs {
+        let parsed = crate::parse_expression(&Default::default(), &input, false);
+        if hand && nested {
+          assert!(parsed.is_err(), "{}", &input[..80]);
+        } else {
+          let node = parsed.unwrap_or_else(|e| panic!("{e}: {}", &input[..80]));
+          drop(node);
+        }
       }
     })
     .unwrap();
