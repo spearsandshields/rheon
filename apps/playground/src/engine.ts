@@ -36,6 +36,9 @@ export interface EngineInfo {
 export interface PlaygroundEngine {
   evaluate: FeelEngine['evaluate'];
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
+  /** The editor operations: the tokens and errors of a text, and what can stand at a cursor. */
+  syntax: FeelEngine['syntax'];
+  complete: FeelEngine['complete'];
   info(): Promise<EngineInfo>;
   dispose(): void;
   readonly timeoutMs: number;
@@ -54,6 +57,8 @@ export async function createEngine(): Promise<PlaygroundEngine> {
     },
     evaluate: (req, opts) => engine.evaluate(req, opts),
     parse: (dialect, expression, opts) => engine.parse(dialect, expression, opts),
+    syntax: (expression, opts) => engine.syntax(expression, opts),
+    complete: (expression, cursor, opts) => engine.complete(expression, cursor, opts),
     async info() {
       const r = await engine.info();
       return {

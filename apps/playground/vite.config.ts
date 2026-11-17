@@ -27,7 +27,7 @@ export default defineConfig({
   optimizeDeps: { exclude: ['@rheon/feel-runtime'] },
   // The runtime's worker is an ES module (it imports the WASI shim).
   worker: { format: 'es' },
-  // CodeMirror + lang-feel (with its built-in docs for completion) is ~500 kB minified.
+  // CodeMirror is most of the JS bundle.
   // feel.wasm (~3.6 MB) is emitted as a separate hashed asset, never inlined.
   build: { target: 'es2022', sourcemap: true, chunkSizeWarningLimit: 700, assetsInlineLimit: 4096 },
 });

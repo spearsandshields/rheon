@@ -110,13 +110,14 @@ export function checkJson(text: string, mustBeObject: boolean): string | null {
   }
 }
 
-/** Top-level keys of a JSON object (for FEEL completions); [] when invalid. */
-export function topLevelKeys(text: string): string[] {
+
+/** The context text as an object when it is a JSON object, else an empty object. */
+export function contextObject(text: string): Record<string, unknown> {
   try {
     const v: unknown = JSON.parse(text);
-    return v && typeof v === 'object' && !Array.isArray(v) ? Object.keys(v) : [];
+    return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
   } catch {
-    return [];
+    return {};
   }
 }
 

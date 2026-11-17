@@ -67,8 +67,9 @@ jobs:
           tag="${GITHUB_REF_NAME#v}"
           crate=$(grep -m1 '^version = ' Cargo.toml | sed 's/.*"\(.*\)"/\1/')
           pkg=$(node -p "require('./packages/feel-runtime/package.json').version")
-          echo "tag $tag, workspace $crate, npm $pkg"
-          test "$tag" = "$crate" && test "$tag" = "$pkg"
+          editor=$(node -p "require('./packages/feel-codemirror/package.json').version")
+          echo "tag $tag, workspace $crate, npm $pkg, editor package $editor"
+          test "$tag" = "$crate" && test "$tag" = "$pkg" && test "$tag" = "$editor"
       - run: npm run build:wasm
       - run: npm run test:rust:wasm
       - run: npm run build:runtime
@@ -81,6 +82,7 @@ jobs:
           cp dist/feel.wasm release/feel.wasm
           (cd release && sha256sum feel.wasm > feel.wasm.sha256)
           npm pack -w @rheon/feel-runtime --pack-destination release
+          npm pack -w @rheon/feel-codemirror --pack-destination release
           (cd apps/playground/dist && zip -qr ../../../release/playground.zip .)
           ls -la release
       - uses: actions/upload-artifact@v7

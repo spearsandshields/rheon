@@ -11,7 +11,7 @@
     timeoutMs: number;
     showTyped: boolean;
     ontoggletyped: () => void;
-    /** Set when the lezer parser located a syntax error: offers "Jump to error". */
+    /** Set when the engine located a syntax error: offers "Jump to error". */
     onjumptoerror?: (() => void) | null;
   }
 

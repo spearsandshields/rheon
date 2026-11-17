@@ -4,7 +4,7 @@
   import OutputPanel from './lib/OutputPanel.svelte';
   import ExamplesMenu from './lib/ExamplesMenu.svelte';
   import { EXAMPLES, type Example } from './lib/examples';
-  import { decodeState, encodeState, checkJson, topLevelKeys, fmtMicros, MAX_HASH_LENGTH, type ShareState } from './lib/share';
+  import { decodeState, encodeState, checkJson, contextObject, fmtMicros, MAX_HASH_LENGTH, type ShareState } from './lib/share';
   import { createEngine, rawJson, type Dialect, type EngineInfo, type EvaluateResponse, type ParseResponse, type PlaygroundEngine } from './engine';
 
   const DEBOUNCE_MS = 250;
@@ -46,7 +46,7 @@
   let pending = $state(0);
   let tree = $state<ParseResponse | null>(null);
   let treeBusy = $state(false);
-  let treeView = $state<'dsntk' | 'lezer'>('dsntk');
+  let treeView = $state<'dsntk' | 'positions'>('dsntk');
   let treeCopied = $state(false);
   let syntax = $state<SyntaxInfo | null>(null);
   let feelEditor = $state<CodeEditor>();
@@ -72,8 +72,8 @@
               : null,
   );
   // Stable list identity: only changes when the set of names changes.
-  const namesKey = $derived(topLevelKeys(context).join('\u0000'));
-  const contextNames = $derived(namesKey ? namesKey.split('\u0000') : []);
+  // The context as the FEEL editor's scope: an object only when the text is a JSON object.
+  const scope = $derived(contextObject(context));
   const firstSyntaxError = $derived(syntax?.errors[0] ?? null);
 
   onMount(() => {
@@ -251,13 +251,13 @@
     request: 'Bad request',
   };
 
-  /** Plain-text form of the lezer tree, for copying. */
-  function lezerText(info: SyntaxInfo): string {
+  /** Plain-text form of the positions tree, for copying. */
+  function positionsText(info: SyntaxInfo): string {
     return info.nodes.map((n) => `${'  '.repeat(n.depth)}${n.name}  ${n.from}–${n.to}`).join('\n');
   }
 
   async function copyTree() {
-    const text = treeView === 'lezer' ? (syntax ? lezerText(syntax) : '') : tree?.ok ? tree.tree : '';
+    const text = treeView === 'positions' ? (syntax ? positionsText(syntax) : '') : tree?.ok ? tree.tree : '';
     try {
       await navigator.clipboard.writeText(text);
       treeCopied = true;
@@ -267,7 +267,7 @@
     }
   }
 
-  /** Index of the lezer node to highlight: the one matching the selection, else the innermost one under the cursor. */
+  /** Index of the node of the positions tree to highlight: the one matching the selection, else the innermost one under the cursor. */
   const cursorNode = $derived.by(() => {
     if (!syntax) return -1;
     const { nodes, cursor, anchor } = syntax;
@@ -324,8 +324,8 @@
   }
 </script>
 
-{#snippet lezerTree(info: SyntaxInfo)}
-  <ul class="ltree mono" data-testid="lezer-tree">
+{#snippet positionsTree(info: SyntaxInfo)}
+  <ul class="ltree mono" data-testid="positions-tree">
     {#each info.nodes as n, i (i)}
       <li style="padding-left: {n.depth * 14}px">
         <button
@@ -419,7 +419,8 @@
             value={expression}
             language="feel"
             {dialect}
-            {contextNames}
+            {engine}
+            {scope}
             label="FEEL editor"
             describedby="feel-help"
             placeholder={dialect === 'unaryTests' ? '> 10, [1..5], "gold"' : 'e.g. sum([1, 2, 3]) / 3'}
@@ -505,13 +506,13 @@
           {#if showTree}
             <div class="segmented small" role="radiogroup" aria-label="Tree">
               <button role="radio" aria-checked={treeView === 'dsntk'} class:on={treeView === 'dsntk'} onclick={() => (treeView = 'dsntk')} data-testid="tree-dsntk" title="dsntk's AST (what the engine evaluates)">dsntk</button>
-              <button role="radio" aria-checked={treeView === 'lezer'} class:on={treeView === 'lezer'} onclick={() => (treeView = 'lezer')} data-testid="tree-lezer" title="lezer-feel parse tree with source positions; click a node to select it">positions</button>
+              <button role="radio" aria-checked={treeView === 'positions'} class:on={treeView === 'positions'} onclick={() => (treeView = 'positions')} data-testid="tree-positions" title="the parts of the text as the engine reads them, with source positions; click a node to select it">positions</button>
             </div>
           {/if}
           <span class="spacer"></span>
           {#if showTree && treeView === 'dsntk' && treeBusy}<span class="sub">parsing…</span>{/if}
           {#if showTree && treeView === 'dsntk' && !treeBusy && tree?.ok}<span class="sub">{fmtMicros(tree.elapsedMicros)}</span>{/if}
-          {#if showTree && ((treeView === 'dsntk' && tree?.ok) || (treeView === 'lezer' && syntax?.nodes.length))}
+          {#if showTree && ((treeView === 'dsntk' && tree?.ok) || (treeView === 'positions' && syntax?.nodes.length))}
             <button class="icon-btn" onclick={copyTree} title="Copy the tree as text" data-testid="copy-tree">{treeCopied ? 'Copied' : 'Copy'}</button>
           {/if}
         </header>
@@ -533,15 +534,15 @@
                   {/if}
                 </div>
                 {#if tree.error.kind === 'syntax' && syntax?.nodes.length}
-                  <p class="sub partial-note">Partial parse by lezer-feel (dsntk has no partial tree):</p>
-                  {@render lezerTree(syntax)}
+                  <p class="sub partial-note">What the engine reads of the text up to and around the error:</p>
+                  {@render positionsTree(syntax)}
                 {/if}
               {/if}
             {:else if !syntax?.nodes.length}
               <p class="sub">Nothing to parse yet.</p>
             {:else}
-              <p class="sub partial-note">lezer-feel parse tree (it can differ from dsntk's); click a node to select it in the editor.</p>
-              {@render lezerTree(syntax)}
+              <p class="sub partial-note">The parts of the text as the engine reads them; click a node to select it in the editor.</p>
+              {@render positionsTree(syntax)}
             {/if}
           </div>
         {/if}

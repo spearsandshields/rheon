@@ -50,7 +50,7 @@ The edge-case comparison with other FEEL engines is in
 ```
  ┌──────────────────────────── browser ─────────────────────────────────────────┐
  │                                                                               │
- │  apps/playground  (Vite + Svelte 5 + CodeMirror 6 / lang-feel)                │
+ │  apps/playground  (Vite + Svelte 5 + CodeMirror 6 / @rheon/feel-codemirror)   │
  │     │  evaluate / parse / info   (CONTRACT §4: FeelEngine)                     │
  │     ▼                                                                         │
  │  packages/feel-runtime  ── main thread: fetch + compile feel.wasm once,       │
@@ -238,7 +238,7 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   same toolchain, lock file and commit give a byte-identical `feel.wasm`
   from any directory (verified by rebuilding from a copy at another path). A plain
   `cargo build` without the script still works but embeds the builder's paths. The JS bundle is
-  about 523 kB (175 kB gzip), mostly CodeMirror and lang-feel's completion docs.
+  mostly CodeMirror.
 - **Long loops** were quadratic in upstream dsntk (`for i in 1..100000` took tens of seconds);
   this repository makes them linear (`count(for i in 1..1000000 return i)` takes about 0.11 s
   in wasm). Expressions that are still too slow hit the 2 s timeout; the worker is terminated
@@ -282,9 +282,10 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   type … actual type is boolean"), while `> (0.1 + 0.2)` and `>= (x + 1)` work. See CONTRACT §2.
 - **Parsing needs context.** Names with spaces or operators (`Grace's age`, `a+b`) are only split
   correctly when they are in the context, so the playground sends the context to `parse` too.
-- **Syntax errors have no position in dsntk.** The playground locates them with the lezer-feel
-  parser (squiggle, gutter marker, "Jump to error", and a lezer tree with positions); lezer-feel
-  and dsntk can disagree on edge cases.
+- **The editor reads a text as the engine does.** The playground's FEEL editor takes its
+  colours, its error marks (squiggle, gutter marker, "Jump to error"), its completions and the
+  tree with positions from the engine's own parser (`syntax` and `complete`, docs/CONTRACT.md
+  §3), through `@rheon/feel-codemirror`. An `evaluate` syntax error itself carries no position.
 - **Context entries are sorted.** dsntk keeps contexts in a `BTreeMap`, so results list keys in
   name order.
 - **Only Chromium was tested** in a real browser.
@@ -315,6 +316,6 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
 
 rheon is licensed under either of the Apache License 2.0 ([`LICENSE`](LICENSE)) or the MIT
 license ([`LICENSE-MIT`](LICENSE-MIT)), at your option, the same terms as dsntk, whose copyright
-notices are retained ([`NOTICE`](NOTICE)). The dashu crates are MIT OR Apache-2.0; CodeMirror,
-lang-feel and lezer-feel are MIT. The playground ships the full notices of everything in its
+notices are retained ([`NOTICE`](NOTICE)). The dashu crates are MIT OR Apache-2.0; CodeMirror
+is MIT. The playground ships the full notices of everything in its
 bundle and in `feel.wasm` as `third-party-notices.txt`.

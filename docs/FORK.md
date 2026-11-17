@@ -4177,6 +4177,17 @@ looked up only when a name in scope has its length (232).
     parameters of built-in functions, and entries after a dot for anything but names that lead
     into the context.
 
+250. **`@rheon/feel-codemirror`, and the playground on it.** A new npm package holds the
+    CodeMirror 6 support for FEEL: it asks the engine (`syntax`, `complete`) after every change
+    and shows its answers as colours, error marks and completions, with templates of `if`,
+    `for`, `some`, `every`, a function and a context where an expression can start; an answer
+    for a text that has changed since is dropped. The playground's FEEL editor uses it, and
+    its tree with positions is the engine's; `lang-feel`, `lezer-feel` and the lezer runtime
+    are no dependencies of the playground any more, and their notices leave
+    `third-party-notices.txt`. The release workflow packs the package beside the runtime's.
+    The package has no tests of its own yet: the playground's build and a check in a browser
+    exercise it.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,
