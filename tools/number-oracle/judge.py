@@ -1,6 +1,12 @@
 """Judges the module's answers to the oracle's cases.
 
   python3 -I judge.py <quick|full> [--seed N] <answers.jsonl | -> <known-wrong.json>
+  python3 -I judge.py --shard I/N --part <out.json> <quick|full> [--seed N] <answers.jsonl | -> <known-wrong.json>
+  python3 -I judge.py --merge <quick|full> [--seed N] <known-wrong.json> <part.json>...
+
+With --shard I/N the answers are those of the cases whose number is I modulo N (counted from 0),
+and the counts are written to the part file; --merge prints the report of a run from the parts of
+all its shards. A run in shards judges the same cases as a run in one piece.
 
 The cases are drawn again from cases.py with the same size and seed, so the n-th answer is the
 answer to the n-th request that cases.py printed.
@@ -129,21 +135,17 @@ def load_known(path):
     return entries
 
 
-def main(argv):
-    usage = 'judge.py <quick|full> [--seed N] <answers.jsonl | -> <known-wrong.json>'
-    if len(argv) < 3:
-        print(f'usage: {usage}', file=sys.stderr)
-        return 2
-    size, seed = generator.parse_arguments(argv[:-2], usage)
-    answers_path, known_path = argv[-2:]
-    known = load_known(known_path)
+def collect(size, seed, answers, known, shard=None):
+    """Judges the answers; with shard (i, n) only the cases whose number is i modulo n, whose
+    answers alone the answers hold. Returns the counts as plain data (see report)."""
     alive = [False] * len(known)
     per_family = defaultdict(Counter)
-    failing = defaultdict(list)  # (family, verdict) -> example lines
+    failing = defaultdict(list)  # 'family\tverdict' -> example lines
     classes = Counter()
     total = 0
-    answers = sys.stdin if answers_path == '-' else open(answers_path)
-    for case in generator.cases(size, seed):
+    for number, case in enumerate(generator.cases(size, seed)):
+        if shard is not None and number % shard[1] != shard[0]:
+            continue
         answer_line = answers.readline()
         if not answer_line:
             fail('fewer answers than cases')
@@ -153,7 +155,8 @@ def main(argv):
         if verdict == 'ok':
             per_family[name]['ok'] += 1
             continue
-        classes[(name, verdict)] += 1
+        key = f'{name}\t{verdict}'
+        classes[key] += 1
         matches = [i for i, e in enumerate(known)
                    if e['verdict'] == verdict and fnmatch.fnmatchcase(name, e['family'])]
         for i in matches:
@@ -162,24 +165,47 @@ def main(argv):
             per_family[name]['exempt'] += 1
             continue
         per_family[name]['failing'] += 1
-        if len(failing[(name, verdict)]) < EXAMPLES:
-            failing[(name, verdict)].append(f'{case["request"]}    # {detail}')
+        if len(failing[key]) < EXAMPLES:
+            failing[key].append(f'{case["request"]}    # {detail}')
     if answers.readline():
         fail('more answers than cases')
+    return {'total': total, 'alive': alive, 'per_family': {name: dict(c) for name, c in per_family.items()},
+            'failing': dict(failing), 'classes': dict(classes)}
 
+
+def merge(parts):
+    """The counts of the shards of one run as the counts of the whole run."""
+    whole = {'total': 0, 'alive': None, 'per_family': defaultdict(Counter), 'failing': defaultdict(list), 'classes': Counter()}
+    for part in parts:
+        whole['total'] += part['total']
+        whole['alive'] = part['alive'] if whole['alive'] is None else [a or b for a, b in zip(whole['alive'], part['alive'])]
+        for name, counts in part['per_family'].items():
+            whole['per_family'][name].update(counts)
+        whole['classes'].update(part['classes'])
+        for key, lines in part['failing'].items():
+            whole['failing'][key] = (whole['failing'][key] + lines)[:EXAMPLES]
+    return whole
+
+
+def report(size, seed, known, state):
+    """Prints the table, the failing classes and the stale entries; returns the exit status."""
+    per_family = {name: Counter(c) for name, c in state['per_family'].items()}
     print(f'{"family":40} {"cases":>7} {"ok":>7} {"exempt":>7} {"failing":>7}')
     for name in sorted(per_family):
         c = per_family[name]
         print(f'{name:40} {sum(c.values()):>7} {c["ok"]:>7} {c["exempt"]:>7} {c["failing"]:>7}')
-    if classes:
+    if state['classes']:
         print('\nclasses (family, verdict: cases):')
-        for (name, verdict), n in sorted(classes.items()):
+        for key, n in sorted(state['classes'].items()):
+            name, verdict = key.split('\t')
             print(f'  {name}, {verdict}: {n}')
     status = 0
-    for (name, verdict), lines in sorted(failing.items()):
+    for key, lines in sorted(state['failing'].items()):
+        name, verdict = key.split('\t')
         status = 1
         print(f'\nFAIL {name} {verdict}:')
         print('\n'.join(f'  {line}' for line in lines))
+    alive = state['alive']
     for entry, used in zip(known, alive):
         if not used:
             status = 1
@@ -188,9 +214,55 @@ def main(argv):
     for c in per_family.values():
         counts.update(c)
     stale = alive.count(False)
-    print(f'\njudge: {size}, seed {seed}, {len(generator.FAMILIES)} families, {total} cases, {counts["ok"]} right, '
+    print(f'\njudge: {size}, seed {seed}, {len(generator.FAMILIES)} families, {state["total"]} cases, {counts["ok"]} right, '
           f'{counts["exempt"]} exempt, {counts["failing"]} failing' + (f', {stale} stale entries' if stale else ''))
     return status
+
+
+def main(argv):
+    usage = ('judge.py <quick|full> [--seed N] <answers.jsonl | -> <known-wrong.json>\n'
+             '       judge.py --shard I/N --part <out.json> <quick|full> [--seed N] <answers.jsonl | -> <known-wrong.json>\n'
+             '       judge.py --merge <quick|full> [--seed N] <known-wrong.json> <part.json>...')
+    if argv[:1] == ['--merge']:
+        split = 4 if argv[2:3] == ['--seed'] else 2
+        if len(argv) < split + 2:
+            print(f'usage: {usage}', file=sys.stderr)
+            return 2
+        size, seed = generator.parse_arguments(argv[1:split], usage)
+        known = load_known(argv[split])
+        parts = []
+        for path in argv[split + 1:]:
+            try:
+                with open(path) as f:
+                    parts.append(json.load(f))
+            except (OSError, ValueError) as e:
+                fail(f'{path}: {e}')
+        if any(len(part['alive']) != len(known) for part in parts):
+            fail('a part was judged with another known-wrong.json')
+        return report(size, seed, known, merge(parts))
+    shard = part_path = None
+    if argv[:1] == ['--shard'] and len(argv) > 4 and argv[2] == '--part':
+        try:
+            i, n = (int(x) for x in argv[1].split('/'))
+        except ValueError:
+            i, n = 0, 0
+        if not 0 <= i < n:
+            print(f'usage: {usage}', file=sys.stderr)
+            return 2
+        shard, part_path, argv = (i, n), argv[3], argv[4:]
+    if len(argv) < 3:
+        print(f'usage: {usage}', file=sys.stderr)
+        return 2
+    size, seed = generator.parse_arguments(argv[:-2], usage)
+    answers_path, known_path = argv[-2:]
+    known = load_known(known_path)
+    answers = sys.stdin if answers_path == '-' else open(answers_path)
+    state = collect(size, seed, answers, known, shard)
+    if part_path is not None:
+        with open(part_path, 'w') as f:
+            json.dump(state, f)
+        return 0
+    return report(size, seed, known, state)
 
 
 if __name__ == '__main__':
