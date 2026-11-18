@@ -1,0 +1,348 @@
+[
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10]\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"[10..)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(10..)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\").start"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\").start included"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"[10..)\").end"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"[10..)\").end included"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10).start"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10).end"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(> 10).end"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(<= 10).start included"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\") = (< 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = range(\"(..10)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10]\") = (<= 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"[10..)\") = (>= 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(10..)\") = (> 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(> 10) = range(\"(10..)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = (< 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = (<= 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = (1..10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(1..10) = (< 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = 10"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) != range(\"(..10)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"[..10)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\") = range(\"(..10)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "[1..10] = [1..10]"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(= 10) = (= 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = (< \"a\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\") instance of range<number>"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\") instance of range<string>"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) instance of range<number>"
+ },
+ {
+  "op": "evaluate",
+  "expression": "[1..null] "
+ },
+ {
+  "op": "evaluate",
+  "expression": "(1..null) = (> 1)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "[range(\"(..10)\"), < 10]"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(1, range(\"[5..)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(1, >= 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after(20, range(\"(..10)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after(20, < 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes(range(\"(..10)\"), 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes(< 10, 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "during(5, range(\"(..10)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "during(5, < 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps(range(\"(..10)\"), [5..20])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps(< 10, [5..20])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes(10, range(\"(..10]\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes(10, <= 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts(10, range(\"[10..)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts(10, >= 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "meets([1..5], range(\"[5..)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "coincides(range(\"(..10)\"), range(\"(..10)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "coincides(< 10, < 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "5 in range(\"(..10)\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "5 in (< 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(null..10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(null..10).start"
+ },
+ {
+  "op": "evaluate",
+  "expression": "5 in (null..10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "string(range(\"(..10)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(<= 10).start"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(>= 10).end"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = (null..10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(null..10) = (< 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\") = (null..10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(<= 10) = (null..10]"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(> 10) = (10..null)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(>= 10) = [10..null)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..\\\"d\\\"]\") = (<= \"d\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"[@\\\"2024-01-06\\\"..)\") = (>= @\"2024-01-06\")"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"[@\\\"2024-01-06\\\"..)\") instance of range<date>"
+ },
+ {
+  "op": "evaluate",
+  "expression": "[range(\"(..10)\")] = [< 10]"
+ },
+ {
+  "op": "evaluate",
+  "expression": "{a: range(\"(..10)\")} = {a: < 10}"
+ },
+ {
+  "op": "evaluate",
+  "expression": "index of([< 10, > 1], range(\"(1..)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "list contains([< 10], range(\"(..10)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "distinct values([< 10, range(\"(..10)\"), <= 10])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(> 1) = (< 1)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(= 10) = (10..10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "[1..10] = (1..10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "function(r: range<number>) r.end"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(function(r: range<number>) r.end)(range(\"(..10)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\") = (< 10)",
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "range(\"(..10)\") = (< 10)",
+  "language": "b-feel"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10).start",
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10).start",
+  "language": "b-feel"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = (<= 10)",
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "(< 10) = (<= 10)",
+  "language": "b-feel"
+ }
+]

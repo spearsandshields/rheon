@@ -65,7 +65,7 @@ use static_context;
 /// Utility function that creates a `FEEL` context from specified input expression.
 pub fn context(input: &str) -> FeelContext {
   let scope = FeelScope::default();
-  match rheon_feel_parser::parse_context(&scope, input, false) {
+  match rheon_feel_parser::parse_context(&scope, input) {
     Ok(node) => {
       let evaluator = rheon_feel_evaluator::prepare(&node);
       match evaluator(&scope) {

@@ -8,6 +8,7 @@
 //! An expression is resolved ([resolve]: what every name reads, where every binder is kept),
 //! lowered to a [program::Program] ([lower]) and run by the loop of [vm], one run per evaluation.
 
+mod depends;
 mod lower;
 mod program;
 mod resolve;
@@ -15,6 +16,7 @@ mod resolve;
 mod tests;
 mod vm;
 
+pub(crate) use resolve::variables;
 pub(crate) use vm::{code_of, run_function};
 
 use crate::Dialect;

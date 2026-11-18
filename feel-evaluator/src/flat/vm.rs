@@ -448,12 +448,18 @@ impl<'p> Vm<'p> {
             Kernel1::ListType => kernels::list_type(a),
             Kernel1::RangeType => kernels::range_type(a),
             Kernel1::ExternalBody => kernels::external_body(a),
+            Kernel1::TestAnswer(boolean) => match a {
+              answer @ Value::Boolean(_) => Value::TestAnswer(Box::new(answer)),
+              answer @ Value::Null(_) if boolean => Value::TestAnswer(Box::new(answer)),
+              value => value,
+            },
           };
         }
         Op::Kernel2 { kernel, dst, a, b } => {
           let (a, b) = (self.read(a), self.read(b));
           *self.slot(dst) = match kernel {
-            Kernel2::In => kernels::in_operator(a, b),
+            Kernel2::In => kernels::in_operator(a, b, false),
+            Kernel2::InTwoValued => kernels::in_operator(a, b, true),
             Kernel2::Out => match a {
               Value::Boolean(true) => b,
               _ => value_null!(),
@@ -597,6 +603,9 @@ impl<'p> Vm<'p> {
               let value = self.take(slot);
               context.set_entry(&program.names[name as usize], value);
             }
+          }
+          if program.layouts[layout as usize].other_forms {
+            context = context.with_other_key_forms(true);
           }
           *self.slot(dst) = diagnostics::bound_depth(context.into());
         }
@@ -769,7 +778,7 @@ impl<'p> Vm<'p> {
     }
     let value = match self.below(name, text) {
       Some(value) => value,
-      None => match Bif::from_str(&text.to_string()) {
+      None => match Bif::from_str(text.as_str()) {
         Ok(bif) => Value::BuiltInFunction(bif),
         Err(_) => return kernels::free_name(text),
       },

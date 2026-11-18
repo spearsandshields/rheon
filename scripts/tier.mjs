@@ -246,6 +246,8 @@ function groupSteps() {
     { name: 'oracle-quick', kind: 'run', command: 'bash tools/number-oracle/run.sh quick', needs: ['build-wasm'], ...MODULE },
     ...cargoTest('test-rust-wasm', '-p rheon-feel-wasm --target wasm32-wasip1', '', { env: {}, ...WASM_LANE, ...MODULE }).map((s) => ({ ...s, command: `source ./scripts/env.sh && ${s.command}` })),
     { name: 'test-runtime', kind: 'run', command: 'npm run test:runtime', needs: ['build-wasm'], ...NODE, ...MODULE },
+    // after the runtime tests: both build the runtime package
+    { name: 'test-codemirror', kind: 'run', command: 'npm run test:codemirror', needs: ['test-runtime'], ...NODE, ...MODULE },
     { name: 'smoke', kind: 'run', command: 'npm run smoke', needs: ['build-wasm'], ...MODULE },
     { name: 'stack', kind: 'run', command: 'npm run stack', needs: ['build-wasm'], ...MODULE },
     { name: 'build-playground', kind: 'build', command: 'npm run build:playground', needs: ['build-wasm'], ...NODE, ...MODULE },

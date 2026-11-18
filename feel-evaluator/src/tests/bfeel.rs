@@ -9,9 +9,9 @@ use rheon_feel::{FeelScope, scope};
 /// when `feel` is given, the plain FEEL result.
 fn bf(expr: &str, expected: &str, feel: Option<&str>) {
   let scope: FeelScope = scope!();
-  let node = rheon_feel_parser::parse_expression(&scope, expr, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope, expr).unwrap();
   let actual = build(&node, Dialect::BFeel)(&scope);
-  let expected_value = build_evaluator(&rheon_feel_parser::parse_expression(&scope, expected, false).unwrap())(&scope);
+  let expected_value = build_evaluator(&rheon_feel_parser::parse_expression(&scope, expected).unwrap())(&scope);
   assert_eq!(actual.to_string(), expected_value.to_string(), "B-FEEL {expr}");
   if let Some(feel) = feel {
     let feel_actual = build_evaluator(&node)(&scope);

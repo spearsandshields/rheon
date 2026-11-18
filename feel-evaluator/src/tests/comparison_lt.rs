@@ -8,12 +8,22 @@ fn _0001() {
 
 #[test]
 fn _0002() {
-  te_null(false, &scope!(), r#" 1 < "2" "#, "eval_less_then_number");
+  te_null(
+    false,
+    &scope!(),
+    r#" 1 < "2" "#,
+    "comparison '<' expected number on the right, as on the left, found string",
+  );
 }
 
 #[test]
 fn _0003() {
-  te_null(false, &scope!(), r#" false < 21 "#, "eval_less_then");
+  te_null(
+    false,
+    &scope!(),
+    r#" false < 21 "#,
+    "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
 }
 
 #[test]
@@ -68,7 +78,12 @@ fn _0013() {
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), r#" "alfa" < 23 "#, "eval_less_then_string");
+  te_null(
+    false,
+    &scope!(),
+    r#" "alfa" < 23 "#,
+    "comparison '<' expected string on the right, as on the left, found number",
+  );
 }
 
 #[test]
@@ -88,7 +103,12 @@ fn _0017() {
 
 #[test]
 fn _0018() {
-  te_null(false, &scope!(), r#" @"2021-11-10" < "2021-11-11" "#, "eval_less_then_date");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"2021-11-10" < "2021-11-11" "#,
+    "comparison '<' expected date on the right, as on the left, found string",
+  );
 }
 
 #[test]
@@ -108,7 +128,12 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  te_null(false, &scope!(), r#" @"2021-11-01T11:10:12" < "2021-11-01T11:10:12" "#, "eval_less_then_date_time");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"2021-11-01T11:10:12" < "2021-11-01T11:10:12" "#,
+    "comparison '<' expected date and time on the right, as on the left, found string",
+  );
 }
 
 #[test]
@@ -128,7 +153,12 @@ fn _0025() {
 
 #[test]
 fn _0026() {
-  te_null(false, &scope!(), r#" @"11:10:12" < "11:10:12" "#, "eval_less_then_time");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"11:10:12" < "11:10:12" "#,
+    "comparison '<' expected time on the right, as on the left, found string",
+  );
 }
 
 #[test]
@@ -153,7 +183,12 @@ fn _0030() {
 
 #[test]
 fn _0031() {
-  te_null(false, &scope!(), r#" @"P1D" < "P1D" "#, "eval_less_then_days_and_time_duration");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"P1D" < "P1D" "#,
+    "comparison '<' expected days and time duration on the right, as on the left, found string",
+  );
 }
 
 #[test]
@@ -173,7 +208,12 @@ fn _0034() {
 
 #[test]
 fn _0035() {
-  te_null(false, &scope!(), r#" @"P1Y" < "P1Y" "#, "eval_less_then_years_and_months_duration");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"P1Y" < "P1Y" "#,
+    "comparison '<' expected years and months duration on the right, as on the left, found string",
+  );
 }
 
 #[test]

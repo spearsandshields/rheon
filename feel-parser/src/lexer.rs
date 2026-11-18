@@ -116,11 +116,7 @@ pub enum TokenValue {
   StartExpression,
   StartBoxedExpression,
   StartRangeLiteral,
-  StartSimpleExpression,
-  StartSimpleExpressions,
-  StartSimpleValue,
   StartTextualExpression,
-  StartTextualExpressions,
   StartUnaryTests,
   String(String),
   Then,
@@ -154,6 +150,8 @@ pub struct Lexer<'lexer, 'scope> {
   /// The token follows a dot: its name may be a built-in property (`year`, `time offset`,
   /// `start included`). Set by the parser after every dot, and over with the token read next.
   after_dot: bool,
+  /// How many predicates of filters are open: the names in them can be entries of an item.
+  filters: usize,
   /// Buffer for the flattened candidate names of [Lexer::longest_name_in_scope].
   name_buf: String,
   /// Second buffer for flattening names (the replacements alternate between the buffers).
@@ -210,6 +208,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       till_in: false,
       whole_names: false,
       after_dot: false,
+      filters: 0,
       name_buf: String::new(),
       name_tmp: String::new(),
       chain_parts: vec![],
@@ -259,6 +258,16 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.after_dot = true;
   }
 
+  /// The predicate of a filter starts.
+  pub fn enter_filter(&mut self) {
+    self.filters += 1;
+  }
+
+  /// The predicate of a filter ends.
+  pub fn leave_filter(&mut self) {
+    self.filters = self.filters.saturating_sub(1);
+  }
+
   pub fn push_to_scope(&mut self) {
     self.scope.push_default();
   }
@@ -269,6 +278,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   pub fn add_name_to_scope(&mut self, name: Name) {
     self.scope.set_entry_name(name);
+  }
+
+  pub fn remove_name_from_scope(&mut self, name: &Name) {
+    self.scope.remove_entry_name(name);
   }
 
   pub fn add_parsed_name(&mut self, name: Name) {
@@ -283,11 +296,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         tt @ TokenType::StartExpression => (tt, TokenValue::StartExpression),
         tt @ TokenType::StartBoxedExpression => (tt, TokenValue::StartBoxedExpression),
         tt @ TokenType::StartRangeLiteral => (tt, TokenValue::StartRangeLiteral),
-        tt @ TokenType::StartSimpleExpression => (tt, TokenValue::StartSimpleExpression),
-        tt @ TokenType::StartSimpleExpressions => (tt, TokenValue::StartSimpleExpressions),
-        tt @ TokenType::StartSimpleValue => (tt, TokenValue::StartSimpleValue),
         tt @ TokenType::StartTextualExpression => (tt, TokenValue::StartTextualExpression),
-        tt @ TokenType::StartTextualExpressions => (tt, TokenValue::StartTextualExpressions),
         tt @ TokenType::StartUnaryTests => (tt, TokenValue::StartUnaryTests),
         _ => (TokenType::YyError, TokenValue::YyError),
       });
@@ -295,6 +304,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // a type, or a name after a dot, is expected for one token: the parser asks again before
     // every type and after every dot
     let (type_name, after_dot) = (self.type_name, self.after_dot);
+    self.scope.set_members(after_dot || self.filters > 0);
     let result = self.read_next_token();
     if type_name {
       self.type_name = false;
@@ -313,11 +323,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       self.token_start = self.position;
     }
     match chars {
-      ['s', 'a', 't', 'i', 's', 'f', 'i', 'e', 's', WS, _, _] => {
+      ['s', 'a', 't', 'i', 's', 'f', 'i', 'e', 's', ch, _, _] if ends_word(ch) => {
         self.position += 9;
         Ok((TokenType::Satisfies, TokenValue::Satisfies))
       }
-      ['e', 'x', 't', 'e', 'r', 'n', 'a', 'l', WS, _, _, _] => {
+      ['e', 'x', 't', 'e', 'r', 'n', 'a', 'l', ch, _, _, _] if ends_word(ch) => {
         self.position += 8;
         Ok((TokenType::External, TokenValue::External))
       }
@@ -325,11 +335,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 8;
         Ok((TokenType::Function, TokenValue::Function))
       }
-      ['i', 'n', 's', 't', 'a', 'n', 'c', 'e', WS, _, _, _] => {
+      ['i', 'n', 's', 't', 'a', 'n', 'c', 'e', ch, _, _, _] if ends_word(ch) => {
         self.position += 8;
         Ok((TokenType::Instance, TokenValue::Instance))
       }
-      ['b', 'e', 't', 'w', 'e', 'e', 'n', WS, _, _, _, _] => {
+      ['b', 'e', 't', 'w', 'e', 'e', 'n', ch, _, _, _, _] if ends_word(ch) => {
         self.position += 7;
         Ok((TokenType::Between, TokenValue::Between))
       }
@@ -337,15 +347,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 7;
         Ok((TokenType::Context, TokenValue::Context))
       }
-      ['r', 'e', 't', 'u', 'r', 'n', WS, _, _, _, _, _] => {
+      ['r', 'e', 't', 'u', 'r', 'n', ch, _, _, _, _, _] if ends_word(ch) => {
         self.position += 6;
         Ok((TokenType::Return, TokenValue::Return))
       }
-      ['e', 'v', 'e', 'r', 'y', WS, _, _, _, _, _, _] => {
+      ['e', 'v', 'e', 'r', 'y', ch, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 5;
         Ok((TokenType::Every, TokenValue::Every))
       }
-      ['f', 'a', 'l', 's', 'e', ch, _, _, _, _, _, _] if is_separator(ch) => {
+      ['f', 'a', 'l', 's', 'e', ch, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 5;
         Ok((TokenType::Boolean, TokenValue::Boolean(false)))
       }
@@ -353,11 +363,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 5;
         Ok((TokenType::Range, TokenValue::Range))
       }
-      ['n', 'u', 'l', 'l', ch, _, _, _, _, _, _, _] if is_separator(ch) => {
+      ['n', 'u', 'l', 'l', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Null, TokenValue::Null))
       }
-      ['e', 'l', 's', 'e', WS, _, _, _, _, _, _, _] => {
+      ['e', 'l', 's', 'e', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Else, TokenValue::Else))
       }
@@ -365,24 +375,24 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 4;
         Ok((TokenType::List, TokenValue::List))
       }
-      ['s', 'o', 'm', 'e', WS, _, _, _, _, _, _, _] => {
+      ['s', 'o', 'm', 'e', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Some, TokenValue::Some))
       }
-      ['t', 'h', 'e', 'n', WS, _, _, _, _, _, _, _] => {
+      ['t', 'h', 'e', 'n', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Then, TokenValue::Then))
       }
-      ['t', 'r', 'u', 'e', ch, _, _, _, _, _, _, _] if is_separator(ch) => {
+      ['t', 'r', 'u', 'e', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Boolean, TokenValue::Boolean(true)))
       }
       // the parser reads it as the `and` of a `between` where one is open
-      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] => {
+      ['a', 'n', 'd', ch, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 3;
         Ok((TokenType::And, TokenValue::And))
       }
-      ['f', 'o', 'r', WS, _, _, _, _, _, _, _, _] => {
+      ['f', 'o', 'r', ch, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 3;
         Ok((TokenType::For, TokenValue::For))
       }
@@ -390,19 +400,19 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 3;
         Ok((TokenType::Not, TokenValue::Not))
       }
-      ['i', 'f', WS, _, _, _, _, _, _, _, _, _] => {
+      ['i', 'f', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::If, TokenValue::If))
       }
-      ['i', 'n', WS, _, _, _, _, _, _, _, _, _] => {
+      ['i', 'n', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::In, TokenValue::In))
       }
-      ['o', 'f', WS, _, _, _, _, _, _, _, _, _] => {
+      ['o', 'f', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::Of, TokenValue::Of))
       }
-      ['o', 'r', WS, _, _, _, _, _, _, _, _, _] => {
+      ['o', 'r', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::Or, TokenValue::Or))
       }
@@ -764,15 +774,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // There is at least one part. Now decide, what kind of name it is.
     //==============================================================================
 
-    //------------------------------------------------------------------------------
-    // Tweak with the name `item` used in filters.
-    // If the first part is `item`, then treat it as a resulting name.
-    //-------------------------------------------------------------------------------
-    if self.part_text(first) == "item" {
-      self.position = self.chain_parts[first].end;
-      return Ok((TokenType::Name, TokenValue::Name("item".into())));
-    }
-
     //-------------------------------------------------------------------------------
     // Tweak with the name in `for` and `quantified` expressions.
     // The variable's name is the name until the keyword `in` appears.
@@ -966,9 +967,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 
   /// Returns the index of the first part `in` of the chain at or after the part `first`. The
-  /// last search is remembered, so the name tokens of a chain compare each of its parts once:
-  /// the mode of the iteration variable stays set after a variable `item`, and then every later
-  /// name token asks.
+  /// last search is remembered, so the name tokens of a chain compare each of its parts once.
   fn next_in_part(&mut self, first: usize) -> Option<usize> {
     let (from, found) = self.chain_in;
     if !(from..=found).contains(&first) {
@@ -992,8 +991,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     let trimmed = if text.is_ascii() {
       start..end
     } else {
-      let trim_start = start + (text.len() - text.trim_start().len());
-      trim_start..trim_start + text.trim().len()
+      let trim_start = start + (text.len() - text.trim_start_matches(is_whitespace).len());
+      trim_start..trim_start + text.trim_matches(is_whitespace).len()
     };
     if trimmed.is_empty() {
       self.chain_last_empty = Some(self.chain_parts.len());
@@ -1396,9 +1395,120 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 }
 
-/// Returns `true` when the specified character is a separator (white space equivalent).
-fn is_separator(ch: char) -> bool {
-  matches!(ch, WS | '=' | '!' | '<' | '>' | '+' | '-' | '*' | '/' | '%' | '.' | ',' | ')' | '[' | ']' | '}')
+/// The keys of the context literal whose `{` is at or after `open` that are names of several tokens, found
+/// before its entries are parsed: an entry can read an entry written after it (DMN 1.6 clause
+/// 10.3.2.11.1), and a name of several tokens is read as one name only when it is in scope.
+///
+/// One pass over the text of the literal: a key is the text between the start of an entry (after
+/// the `{`, or after a `,` of the literal itself) and its `:`. Strings, comments and what stands
+/// in brackets are passed over. The commas of a `context<...>` or `function<...>` type are not
+/// told from those of the literal, so a type can give a name that is no key; such a name only
+/// adds a candidate.
+pub(crate) fn literal_keys(input: &str, open: usize) -> Vec<Name> {
+  let bytes = input.as_bytes();
+  let mut keys = vec![];
+  // white space can stand between `open` and the brace
+  let Some(brace) = bytes.get(open..).and_then(|rest| rest.iter().position(|&byte| byte == b'{')) else {
+    return keys;
+  };
+  let (mut braces, mut brackets) = (1usize, 0isize);
+  let mut position = open + brace + 1;
+  // the start of the entry whose key is not read yet
+  let mut entry = Some(position);
+  while position < bytes.len() {
+    match bytes[position] {
+      b'"' => {
+        position += 1;
+        while position < bytes.len() && bytes[position] != b'"' {
+          position += if bytes[position] == b'\\' { 2 } else { 1 };
+        }
+      }
+      b'/' if matches!(bytes.get(position + 1), Some(b'/' | b'*')) => {
+        let comment = position;
+        if bytes[position + 1] == b'/' {
+          while position < bytes.len() && bytes[position] != b'\n' {
+            position += 1;
+          }
+        } else {
+          position += 2;
+          while position < bytes.len() && !(bytes[position] == b'*' && bytes.get(position + 1) == Some(&b'/')) {
+            position += 1;
+          }
+          position += 1;
+        }
+        // a comment before the key is no part of it
+        if let Some(start) = entry
+          && input[start..comment].chars().all(is_whitespace)
+        {
+          entry = Some((position + 1).min(bytes.len()));
+        }
+      }
+      b'{' => braces += 1,
+      b'}' => {
+        braces -= 1;
+        if braces == 0 {
+          break;
+        }
+      }
+      b'(' | b'[' => brackets += 1,
+      b')' | b']' => brackets -= 1,
+      b',' if braces == 1 && brackets == 0 => entry = Some(position + 1),
+      b':' if braces == 1 && brackets == 0 => {
+        if let Some(start) = entry.take() {
+          let key = input[start..position].trim_matches(is_whitespace);
+          // a key that is a string without an escape is read by the name its text is
+          let key = match key.strip_prefix('"').and_then(|key| key.strip_suffix('"')) {
+            Some(text) if !text.contains(['"', '\\']) => text,
+            _ => key,
+          };
+          if let Some(name) = key_of_several_tokens(key) {
+            keys.push(name);
+          }
+        }
+      }
+      _ => {}
+    }
+    position += 1;
+  }
+  keys
+}
+
+/// The name that `text` is when it is a name of several tokens: words and additional name
+/// symbols, with white space between them or not.
+fn key_of_several_tokens(text: &str) -> Option<Name> {
+  let mut parts: Vec<&str> = vec![];
+  let mut word: Option<usize> = None;
+  for (at, ch) in text.char_indices() {
+    if is_whitespace(ch) || is_additional_name_symbol(ch) {
+      if let Some(start) = word.take() {
+        parts.push(&text[start..at]);
+      }
+      if !is_whitespace(ch) {
+        parts.push(&text[at..at + ch.len_utf8()]);
+      }
+    } else if is_name_part_char(ch) {
+      if word.is_none() {
+        if !parts.is_empty() || is_name_start_char(ch) {
+          word = Some(at);
+        } else {
+          return None;
+        }
+      }
+    } else {
+      return None;
+    }
+  }
+  if let Some(start) = word {
+    parts.push(&text[start..]);
+  }
+  (parts.len() > 1 && parts.first().is_some_and(|part| part.chars().next().is_some_and(is_name_start_char))).then(|| Name::from_parts(parts))
+}
+
+/// Returns `true` when a word ends before the specified character: a word that is a keyword is
+/// the keyword whatever follows it (DMN 1.6 clause 10.3.1.4: a name start is never a literal
+/// terminal), and a longer word (`iffy`, `in1`) is none.
+fn ends_word(ch: char) -> bool {
+  !is_name_part_char(ch)
 }
 
 /// Returns the length in bytes of the UTF-8 encoded character that starts with `byte`.
@@ -1558,10 +1668,10 @@ fn flatten_name_parts_into<'a>(parts: impl Iterator<Item = &'a str>, out: &mut S
     if index > 0 {
       tmp.push(WS);
     }
-    tmp.push_str(part.trim());
+    tmp.push_str(part.trim_matches(is_whitespace));
   }
   out.clear();
-  out.push_str(tmp.trim());
+  out.push_str(tmp.trim_matches(is_whitespace));
   for (symbol, from, to) in NAME_SYMBOL_REPLACEMENTS {
     // a replacement leaves a text without the symbol unchanged
     if out.contains(symbol) {

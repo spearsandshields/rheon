@@ -250,3 +250,35 @@ fn _00011() {
     false,
   );
 }
+
+/// A `[` after the start endpoint of an interval that starts with `]` is a filter, as after the
+/// start endpoint of the other intervals; after an end endpoint it closes the interval.
+#[test]
+fn a_filter_follows_the_start_endpoint_of_any_interval() {
+  let scope = scope!();
+  for name in ["a", "b"] {
+    scope.set_entry_name(name.into());
+  }
+  let tree = |input: &str| match Parser::new(&scope, StartExpression, input).parse() {
+    Ok(node) => node.trace(),
+    Err(reason) => panic!("{input}: {reason}"),
+  };
+  for (input, with_parentheses) in [
+    ("]a[1]..b]", "](a[1])..b]"),
+    ("]a[1]..b[", "](a[1])..b["),
+    ("]a[1][2]..b[", "]((a[1])[2])..b["),
+    ("]a[1].b..b[", "]((a[1]).b)..b["),
+    ("[]a[1]..b[, 2]", "[(a[1]..b), 2]"),
+    ("1 in ]a[1]..b[", "1 in ](a[1])..b["),
+  ] {
+    assert_eq!(tree(with_parentheses), tree(input), "{input}");
+  }
+  // the same endpoints as in the intervals that start with `[` and `(`
+  assert_eq!(tree("[a[1]..b]").replace("(closed)", "(opened)"), tree("]a[1]..b["));
+  assert_eq!(tree("(a[1]..b)"), tree("]a[1]..b["));
+  // the `[` after the end endpoint closes the interval
+  assert_eq!(tree("(a..b)"), tree("]a..b["));
+  for input in ["]a..b[1]", "]a[1]", "]a[1]..", "]a[..b]"] {
+    assert!(Parser::new(&scope, StartExpression, input).parse().is_err(), "{input}");
+  }
+}

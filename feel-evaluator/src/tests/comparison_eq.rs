@@ -391,3 +391,24 @@ fn _0069() {
   te_bool(false, &scope!(), "[null] = [1]", false);
   te_bool(false, &scope!(), "[1] = [null]", false);
 }
+
+/// Grammar rule 49: a comparison takes the comparison on its left as its operand.
+#[test]
+fn comparisons_are_left_associative() {
+  let scope = &te_scope(r#"{a: 1, b: 1, c: [true], x: 5}"#);
+  te_bool(false, scope, "a = b = true", true);
+  te_bool(false, scope, "a != b = false", true);
+  te_bool(false, scope, "a = b in c", true);
+  te_bool(false, scope, "a in b = true", true);
+  te_bool(false, scope, "x between 1 and 10 = true", true);
+  te_bool(false, scope, "x between 1 and 10 in c", true);
+  te_bool(false, scope, "a = b = true = true", true);
+  te_bool(false, scope, "x < 10 = (a = b)", true);
+  // a boolean is not compared with a number
+  te_null(
+    false,
+    scope,
+    "1 < 2 < 3",
+    "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
+}

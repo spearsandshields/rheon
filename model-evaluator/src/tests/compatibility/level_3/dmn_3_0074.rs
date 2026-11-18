@@ -372,7 +372,7 @@ fn _0051() {
 #[test]
 fn _0052() {
   let invocable = "range_009";
-  let expected = "null(no such property in unary less: start)";
+  let expected = "null";
 
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
@@ -380,7 +380,7 @@ fn _0052() {
 #[test]
 fn _0053() {
   let invocable = "range_010";
-  let expected = "null(no such property in unary less or equal: start)";
+  let expected = "null";
 
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
@@ -416,7 +416,7 @@ fn _0057() {
 #[test]
 fn _0058() {
   let invocable = "range_015";
-  let expected = "null(no such property in unary greater: end)";
+  let expected = "null";
 
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
@@ -424,7 +424,7 @@ fn _0058() {
 #[test]
 fn _0059() {
   let invocable = "range_016";
-  let expected = "null(no such property in unary greater or equal: end)";
+  let expected = "null";
 
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }

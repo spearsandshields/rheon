@@ -302,3 +302,38 @@ fn _0015() {
     false,
   );
 }
+
+/// Grammar rule 49: the comparisons are one level of precedence and left associative.
+#[test]
+fn comparisons_are_one_left_associative_level() {
+  let scope = scope!();
+  for name in ["a", "b", "c", "x"] {
+    scope.set_entry_name(name.into());
+  }
+  let tree = |input: &str| match Parser::new(&scope, StartExpression, input).parse() {
+    Ok(node) => node.trace(),
+    Err(reason) => panic!("{input}: {reason}"),
+  };
+  for (input, with_parentheses) in [
+    ("1 < 2 < 3", "(1 < 2) < 3"),
+    ("a = b = true", "(a = b) = true"),
+    ("a != b = c", "(a != b) = c"),
+    ("a = b in c", "(a = b) in c"),
+    ("a in b = c", "(a in b) = c"),
+    ("a in b in c", "(a in b) in c"),
+    ("a in (b, c) in x", "(a in (b, c)) in x"),
+    ("a in (b) in c", "(a in (b)) in c"),
+    ("a = x between 1 and 2", "(a = x) between 1 and 2"),
+    ("x between 1 and 2 = a", "(x between 1 and 2) = a"),
+    ("x between 1 and 2 in a", "(x between 1 and 2) in a"),
+    ("x between 1 and 2 between a and b", "(x between 1 and 2) between a and b"),
+    ("x in a between 1 and 2", "(x in a) between 1 and 2"),
+    // the operands are arithmetic expressions
+    ("a + 1 = b * 2 in c - 1", "((a + 1) = (b * 2)) in (c - 1)"),
+    ("x between a + 1 and b + 1 = c + 1", "(x between (a + 1) and (b + 1)) = (c + 1)"),
+    // a conjunction or a disjunction takes comparisons as its operands
+    ("a = b and b in c or x between 1 and 2", "((a = b) and (b in c)) or (x between 1 and 2)"),
+  ] {
+    assert_eq!(tree(with_parentheses), tree(input), "{input}");
+  }
+}

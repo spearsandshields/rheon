@@ -288,6 +288,10 @@ pub enum Value {
     Box<Value>,
   ),
 
+  /// The answer of a unary test that is a boolean expression using `?` (DMN 1.6 clause 7.3.2 d):
+  /// `true`, `false`, or the null of the expression.
+  TestAnswer(Box<Value>),
+
   /// Value for storing years and months duration.
   YearsAndMonthsDuration(FeelYearsAndMonthsDuration),
 }
@@ -348,13 +352,14 @@ impl Display for Value {
         f.write_str(if end_type.closed() { "]" } else { ")" })
       }
       Value::String(s) => write!(f, "\"{s}\""),
+      Value::TestAnswer(answer) => write!(f, "{answer}"),
       Value::Time(time) => write!(f, "{time}"),
-      Value::UnaryGreater(value) => write!(f, "UnaryGreater({value})"),
-      Value::UnaryGreaterOrEqual(value) => write!(f, "UnaryGreaterOrEqual({value})"),
-      Value::UnaryLess(value) => write!(f, "UnaryLess({value})"),
-      Value::UnaryLessOrEqual(value) => write!(f, "UnaryLessOrEqual({value})"),
-      Value::UnaryEqual(value) => write!(f, "UnaryEqual({value})"),
-      Value::UnaryNotEqual(value) => write!(f, "UnaryNotEqual({value})"),
+      Value::UnaryGreater(value) => write!(f, "> {value}"),
+      Value::UnaryGreaterOrEqual(value) => write!(f, ">= {value}"),
+      Value::UnaryLess(value) => write!(f, "< {value}"),
+      Value::UnaryLessOrEqual(value) => write!(f, "<= {value}"),
+      Value::UnaryEqual(value) => write!(f, "= {value}"),
+      Value::UnaryNotEqual(value) => write!(f, "!= {value}"),
       Value::YearsAndMonthsDuration(ym_duration) => write!(f, "{ym_duration}"),
     }
   }
@@ -388,7 +393,13 @@ impl Jsonify for Value {
       Value::Context(ctx) => ctx.jsonify(),
       Value::ContextEntryKey(name) => name.to_string(),
       Value::List(items) => values_to_jsonify(items),
-      range @ Value::Range(..) => format!(r#""{}""#, range),
+      range @ (Value::Range(..)
+      | Value::UnaryGreater(_)
+      | Value::UnaryGreaterOrEqual(_)
+      | Value::UnaryLess(_)
+      | Value::UnaryLessOrEqual(_)
+      | Value::UnaryEqual(_)
+      | Value::UnaryNotEqual(_)) => format!(r#""{}""#, range),
       Value::Null(message) => {
         if let Some(details) = message {
           format!(r#""null({details})""#)
@@ -489,6 +500,7 @@ impl Value {
       Value::ContextEntry(_, value)
       | Value::IntervalEnd(value, _)
       | Value::IntervalStart(value, _)
+      | Value::TestAnswer(value)
       | Value::UnaryGreater(value)
       | Value::UnaryGreaterOrEqual(value)
       | Value::UnaryLess(value)
@@ -635,22 +647,22 @@ impl Value {
       Value::ParameterName(_) => FeelType::Any,
       Value::ParameterTypes(_) => FeelType::Any,
       Value::QualifiedNameSegment(_) => FeelType::Any,
-      Value::Range(range_start, _, range_end, _) => {
-        let range_start_type = range_start.type_of_within(budget)?;
-        let range_end_type = range_end.type_of_within(budget)?;
+      Value::Range(range_start, start_type, range_end, end_type) => {
+        // an undefined endpoint has the type of the other one
+        let range_end_type = if end_type.undefined() { range_start } else { range_end }.type_of_within(budget)?;
+        let range_start_type = if start_type.undefined() { range_end } else { range_start }.type_of_within(budget)?;
         if range_start_type == range_end_type {
           return Some(FeelType::Range(Box::new(range_start_type)));
         }
         FeelType::Range(Box::new(FeelType::Any))
       }
       Value::String(_) => FeelType::String,
+      Value::TestAnswer(answer) => answer.type_of_within(budget)?,
       Value::Time(_) => FeelType::Time,
-      Value::UnaryGreater(_) => FeelType::Boolean,
-      Value::UnaryGreaterOrEqual(_) => FeelType::Boolean,
-      Value::UnaryLess(_) => FeelType::Boolean,
-      Value::UnaryLessOrEqual(_) => FeelType::Boolean,
-      Value::UnaryEqual(_) => FeelType::Boolean,
-      Value::UnaryNotEqual(_) => FeelType::Boolean,
+      // a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7)
+      Value::UnaryGreater(end) | Value::UnaryGreaterOrEqual(end) | Value::UnaryLess(end) | Value::UnaryLessOrEqual(end) | Value::UnaryEqual(end) | Value::UnaryNotEqual(end) => {
+        FeelType::Range(Box::new(end.type_of_within(budget)?))
+      }
       Value::YearsAndMonthsDuration(_) => FeelType::YearsAndMonthsDuration,
     })
   }

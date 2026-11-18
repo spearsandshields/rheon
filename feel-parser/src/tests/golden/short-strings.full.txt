@@ -1,2 +1,2 @@
-# short-strings: 49852944 cases at full size, one digest of all
-c31db2b40d0d1be1
+# short-strings: 27696080 cases at full size, one digest of all
+3d784efe0e7351a5

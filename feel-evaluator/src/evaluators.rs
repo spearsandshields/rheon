@@ -72,7 +72,7 @@ pub fn evaluate_invocation(scope: &FeelScope, function: Value, arguments: Vec<(N
 
 /// Evaluates a context from text containing `FEEL` expression.
 pub fn evaluate_context(scope: &FeelScope, input: &str) -> Result<FeelContext> {
-  let node = &rheon_feel_parser::parse_context(scope, input, false)?;
+  let node = &rheon_feel_parser::parse_context(scope, input)?;
   evaluate_context_node(scope, node)
 }
 
@@ -87,7 +87,7 @@ pub fn evaluate_context_node(scope: &FeelScope, node: &AstNode) -> Result<FeelCo
 
 /// Evaluates a range value from range literal expression.
 pub fn evaluate_range_literal(scope: &FeelScope, input: &str) -> Result<Value> {
-  let node = &rheon_feel_parser::parse_range_literal(scope, input, false)?;
+  let node = &rheon_feel_parser::parse_range_literal(input)?;
   evaluate_range_literal_node(scope, node)
 }
 

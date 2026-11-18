@@ -275,10 +275,17 @@ fn unary_tests_strings_and_misc() {
   // `?` is bound to the input and can be used in expressions...
   assert_eq!(unary("[? - 2]", json!(7))["display"], "false");
   assert_eq!(unary("(? * 0) + 7", json!(7))["display"], "true");
-  // ...but dsntk (at the pinned commit) does NOT treat a boolean expression such as `? > 5`
-  // as "satisfied when true" (DMN 1.2+ semantics): it compares the
-  // input with the boolean result (`7 = true` is false). This documents current dsntk behaviour.
-  assert_eq!(unary("? > 5 and ? < 10", json!(7))["display"], "false");
+  // a boolean expression using `?` is satisfied when it is true (DMN 1.6 clause 7.3.2 d)
+  assert_eq!(unary("? > 5 and ? < 10", json!(7))["display"], "true");
+  assert_eq!(unary("? > 5 and ? < 10", json!(12))["display"], "false");
+  assert_eq!(unary("? > 5, 1", json!(1))["display"], "true");
+  assert_eq!(unary("not(? > 5)", json!(7))["display"], "false");
+  // a tested value of another kind than the tests has no answer: null, not false (Table 56)
+  assert_eq!(unary("? > 5", json!("a"))["display"], "null");
+  assert_eq!(unary("< 10", json!("a"))["display"], "null");
+  assert_eq!(unary("1, 2", json!("a"))["display"], "null");
+  assert_eq!(unary("not(1, 2)", json!("a"))["display"], "null");
+  assert_eq!(unary("1, \"a\"", json!("a"))["display"], "true");
   assert_eq!(unary("null", json!(null))["display"], "true");
   // exact decimal comparison
   let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","dialect":"unaryTests","expression":"0.3","input":0.3,"context":{}}"#).unwrap());
@@ -468,23 +475,23 @@ fn huge_positions_and_lengths_are_null_with_native_reasons() {
   let cases = [
     (
       "substring(\"abcdef\", 2, 4294967295)",
-      "sublist: invalid range, len = 6, start position = 2, end position = 4294967297",
+      "substring: invalid range, len = 6, start position = 2, end position = 4294967297",
     ),
     (
       "substring(\"abcdef\", 4, 4294967293)",
-      "sublist: invalid range, len = 6, start position = 4, end position = 4294967297",
+      "substring: invalid range, len = 6, start position = 4, end position = 4294967297",
     ),
     (
       "substring(\"abcdef\", -3, 4294967295)",
-      "sublist: invalid range, len = 6, start position = 4, end position = 4294967299",
+      "substring: invalid range, len = 6, start position = 4, end position = 4294967299",
     ),
     (
       "substring(\"abcdef\", 2, 18446744073709551615)",
-      "sublist: invalid range, len = 6, start position = 2, end position = 18446744073709551617",
+      "substring: invalid range, len = 6, start position = 2, end position = 18446744073709551617",
     ),
     (
       "substring(\"abc\", 2, 4294967296)",
-      "sublist: invalid range, len = 3, start position = 2, end position = 4294967298",
+      "substring: invalid range, len = 3, start position = 2, end position = 4294967298",
     ),
     ("substring(\"abc\", -4294967296)", "substring: position is out of range, len = 3, position = -4294967296"),
     (
@@ -804,14 +811,11 @@ fn input_messages_name_the_place_of_the_value() {
 }
 
 #[test]
-fn boolean_unary_tests_with_question_mark_warn() {
-  for (tests, number) in [("? > 5", 1), ("? > 5 and ? < 10", 1), ("not(? = 1)", 1), ("> 1, ? < 3", 2)] {
+fn boolean_unary_tests_with_question_mark_are_satisfied_when_true() {
+  for (tests, satisfied) in [("? > 5", true), ("? > 5 and ? < 10", true), ("not(? = 1)", true), ("> 9, ? < 3", false), ("? > 9, 7", true)] {
     let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": tests, "input": 7}));
-    let expected = format!(
-      "unary test #{number} is a boolean expression using '?': dsntk compares the input with its result (input = true/false) \
-       instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
-    );
-    assert_eq!(warnings(&response), [expected.as_str()], "{tests}");
+    assert_eq!(response["result"]["feel"], satisfied.to_string(), "{tests}: {response}");
+    assert_eq!(response["warnings"].as_array().unwrap().len(), 0, "{tests}: {response}");
   }
   for tests in ["> 5", "[1..10]", "(? * 0) + 7", "-", "\"a\""] {
     let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": tests, "input": 7}));
@@ -830,7 +834,12 @@ fn syntax_error_messages_have_no_type_prefix() {
 #[test]
 fn context_keys_are_trimmed_but_inner_whitespace_is_kept() {
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "x", "context": {" x ": 1}}))["display"], "1");
-  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a b", "context": {"a  b": 1}}))["isNull"], true);
+  // the key keeps its inner white space, and the name `a b` reads it (a name is a list of tokens)
+  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a b", "context": {"a  b": 1}}))["display"], "1");
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "{r: x}.r", "context": {"x": {"a  b": 1}}}))["feel"],
+    "{a  b: 1}"
+  );
   // a trimmed key is the same name as the untrimmed one; the later entry in key order (" a" < "a") wins
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a", "context": {"a": 1, " a": 2}}))["display"], "1");
   // ("a" < "a "), also between other keys, in a nested context, and with several keys of one name
@@ -2028,7 +2037,18 @@ fn outline_in_place_of_the_context() {
   for expression in ["", "Tax", "order.", "order.lines.", "order.lines.price + Tax Ra"] {
     let with_context = req(json!({"op": "complete", "expression": expression, "context": context}));
     let with_outline = req(json!({"op": "complete", "expression": expression, "outline": outline}));
-    assert_eq!(with_context["items"], with_outline["items"], "{expression}");
+    // the same items; an outline has the names and their nesting, so the type of a name that
+    // is no context and no list is known only with the context
+    let untyped = |response: &serde_json::Value| {
+      let mut items = response["items"].clone();
+      for item in items.as_array_mut().unwrap() {
+        if item["kind"] != "function" {
+          item["type"] = serde_json::Value::Null;
+        }
+      }
+      items
+    };
+    assert_eq!(untyped(&with_context), untyped(&with_outline), "{expression}");
     let with_context = req(json!({"op": "syntax", "expression": expression, "context": context}));
     let with_outline = req(json!({"op": "syntax", "expression": expression, "outline": outline}));
     assert_eq!(with_context["tokens"], with_outline["tokens"], "{expression}");
@@ -2042,7 +2062,7 @@ fn outline_in_place_of_the_context() {
   assert_error(
     &req(json!({"op": "syntax", "expression": "1", "outline": {"names": 1}})),
     "context",
-    "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
   );
 }
 
@@ -2113,4 +2133,394 @@ fn format_breaks_a_context_of_several_entries() {
   assert_eq!(format("{}"), "{}");
   assert_eq!(format("f({a:1,b:{c:2,d:3}}).a"), "f(\n  {\n    a: 1,\n    b: {\n      c: 2,\n      d: 3\n    }\n  }\n).a");
   assert_eq!(format("{a:[1,2],b:{c:1}}"), "{\n  a: [1, 2],\n  b: {c: 1}\n}");
+}
+
+/// `complete` knows the built-in functions: an item of a function has its signature, inside the
+/// parentheses of an invocation the answer has the `call`, and the parameters can be named.
+/// Inside a comment or a string that is not closed nothing is offered.
+#[test]
+fn complete_offers_nothing_inside_a_comment_or_a_string() {
+  let context = json!({"a": 1, "abc": 2});
+  let complete = |expression: &str| req(json!({"op": "complete", "expression": expression, "context": context}));
+  for (expression, expects) in [
+    ("1 + // no", "comment"),
+    ("// a", "comment"),
+    ("a // ab", "comment"),
+    ("1 + /* a", "comment"),
+    ("1 + /*", "comment"),
+    ("a./* x", "comment"),
+    ("\"ab", "string"),
+    ("1 + \"a", "string"),
+    ("@\"2024", "string"),
+  ] {
+    let response = complete(expression);
+    assert_eq!(response["ok"], true, "{expression}");
+    assert_eq!(response["expects"], expects, "{expression}");
+    assert_eq!(response["items"], json!([]), "{expression}");
+  }
+  // after the comment or the string the grammar is asked again
+  for (expression, expects) in [
+    ("1 + // no\n", "expression"),
+    ("1 + /* a */ ", "expression"),
+    ("a /* b */", "operator"),
+    ("\"ab\"", "operator"),
+    ("a // b\n", "operator"),
+  ] {
+    let response = complete(expression);
+    assert_eq!(response["expects"], expects, "{expression}");
+    assert_ne!(response["items"], json!([]), "{expression}");
+  }
+  // the call around the cursor is still told
+  let response = complete("substring(\"ab");
+  assert_eq!(response["expects"], "string");
+  assert_eq!(response["call"]["function"], "substring");
+}
+
+/// `complete` knows the type of an expression without evaluating it: after a dot it offers the
+/// entries or properties of the value before it, whatever expression that is, and the items
+/// have their types.
+#[test]
+fn complete_offers_the_members_of_the_value_before_a_dot() {
+  let context = json!({
+    "n": 1,
+    "order": {"id": 7, "customer": {"name": "Ann"}, "lines": [{"price": 2, "unit count": 3}]},
+    "orders": [{"id": 1, "lines": [{"price": 2}]}],
+  });
+  let entries = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "context": context}));
+    assert_eq!(response["ok"], true, "{expression}");
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "entry")
+      .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("?")))
+      .collect()
+  };
+  for (expression, expected) in [
+    // a path into the context
+    ("order.", vec!["customer: context", "id: number", "lines: list<context>"]),
+    ("order.customer.", vec!["name: string"]),
+    ("n + order.cu", vec!["customer: context"]),
+    // a list gives the members of its items, each as a list; an item gives them as they are
+    ("order.lines.", vec!["price: list<number>", "unit count: list<number>"]),
+    ("order.lines[1].", vec!["price: number", "unit count: number"]),
+    ("order.lines[price > 1].", vec!["price: list<number>", "unit count: list<number>"]),
+    // the variables of an iteration have the type of an item of their domain
+    ("for l in order.lines return l.", vec!["price: number", "unit count: number"]),
+    ("for o in orders, l in o.lines return l.price + o.", vec!["id: number", "lines: list<context>"]),
+    ("some o in orders satisfies o.", vec!["id: number", "lines: list<context>"]),
+    ("for i in 1..3 return i.", vec![]),
+    // in the predicate of a filter the entries of an item are names, and `item` is the item
+    ("orders[lines.", vec!["price: list<number>"]),
+    ("orders[item.", vec!["id: number", "lines: list<context>"]),
+    // the entries of a context literal written before the place
+    ("{a: {b: 1}, c: a.", vec!["b: number"]),
+    ("{a: {b: 1}}.a.", vec!["b: number"]),
+    // the results of functions, and of other expressions
+    ("sort(order.lines, function(a, b) a.price < b.price)[1].", vec!["price: number", "unit count: number"]),
+    ("get value(order, \"customer\").", vec!["name: string"]),
+    ("(if n > 1 then order else null).", vec!["customer: context", "id: number", "lines: list<context>"]),
+    ("{f: function() order, r: f().", vec!["customer: context", "id: number", "lines: list<context>"]),
+    // the properties of a date, a date and time, a duration and a range
+    (
+      "date(\"2024-01-02\").",
+      vec!["day: number", "month: number", "value: number", "weekday: number", "year: number"],
+    ),
+    ("@\"P1Y2M\".", vec!["months: number", "value: number", "years: number"]),
+    ("[1..5].", vec!["end: number", "end included: boolean", "start: number", "start included: boolean"]),
+    ("today().", vec!["day: number", "month: number", "value: number", "weekday: number", "year: number"]),
+    // a value without members, and a value that is not known
+    ("n.", vec![]),
+    ("unknown name.", vec![]),
+    // a parameter hides the name of the context: its type is not known
+    ("function(order) order.", vec![]),
+  ] {
+    assert_eq!(entries(expression), expected, "{expression}");
+  }
+  // the names where an expression starts have their types too
+  let names = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "context": context}));
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "name")
+      .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("?")))
+      .collect()
+  };
+  assert_eq!(names(""), ["n: number", "order: context", "orders: list<context>"]);
+  assert_eq!(
+    names("for l in order.lines return "),
+    ["l: context", "n: number", "order: context", "orders: list<context>", "partial: ?"]
+  );
+  assert_eq!(
+    names("orders["),
+    [
+      "id: number",
+      "item: context",
+      "lines: list<context>",
+      "n: number",
+      "order: context",
+      "orders: list<context>"
+    ]
+  );
+  assert_eq!(
+    names("{a: 1, b: \"x\", c: "),
+    ["a: number", "b: string", "n: number", "order: context", "orders: list<context>"]
+  );
+  // a name of the text hides the name of the context
+  assert_eq!(names("for n in [\"a\"] return "), ["n: string", "order: context", "orders: list<context>", "partial: ?"]);
+}
+
+/// An outline can have the types of its names: `outline` writes them when asked, and the
+/// editor operations take them, so completion with such an outline is completion with the context.
+#[test]
+fn an_outline_can_have_the_types_of_its_names() {
+  let context = json!({
+    "Tax Rate": 0.2, "name": "Ann", "ok": true, "nothing": null, "tags": ["a", "b"], "empty": [], "matrix": [[1, 2]],
+    "order": {"total": 99.5, "lines": [{"price": 2, "labels": ["x"]}]},
+  });
+  let typed = json!({"names": {
+    "Tax Rate": {"type": "number"}, "name": {"type": "string"}, "ok": {"type": "boolean"}, "nothing": null,
+    "tags": {"type": "list<string>"}, "empty": {"type": "list<Any>"}, "matrix": {"type": "list<list<number>>"},
+    "order": {"names": {"total": {"type": "number"}, "lines": {"items": {"names": {"price": {"type": "number"}, "labels": {"type": "list<string>"}}}}}},
+  }});
+  // without the option, and with it false, the answer is the one without types
+  let plain = req(json!({"op": "outline", "context": context}))["outline"].clone();
+  assert_eq!(plain["names"]["Tax Rate"], json!(null));
+  assert_eq!(req(json!({"op": "outline", "context": context, "types": false}))["outline"], plain);
+  let response = req(json!({"op": "outline", "context": context, "types": true}));
+  assert_eq!(response["outline"], typed, "{response}");
+  assert_error(
+    &req(json!({"op": "outline", "context": context, "types": "yes"})),
+    "request",
+    "'types' must be true or false, found \"yes\"",
+  );
+  // typed values of the context: a date has its type
+  let response = req(json!({"op": "outline", "contextFormat": "feel", "context": "{due: @\"2026-12-01\", span: [1..5], d: @\"P1D\"}", "types": true}));
+  assert_eq!(
+    response["outline"],
+    json!({"names": {"due": {"type": "date"}, "span": {"type": "range<number>"}, "d": {"type": "days and time duration"}}}),
+    "{response}"
+  );
+  // completion with the typed outline is completion with the context
+  for expression in [
+    "",
+    "Tax",
+    "order.",
+    "order.lines.",
+    "order.lines[1].",
+    "for l in order.lines return l.",
+    "tags.",
+    "name + ",
+    "order.lines[labels.",
+  ] {
+    let with_context = req(json!({"op": "complete", "expression": expression, "context": context}));
+    let with_outline = req(json!({"op": "complete", "expression": expression, "outline": typed}));
+    assert_eq!(with_context["items"], with_outline["items"], "{expression}");
+    assert_eq!(with_context["expects"], with_outline["expects"], "{expression}");
+  }
+  // a type that the consumer states is taken as it is: also where a value would say nothing
+  let stated =
+    json!({"names": {"due": {"type": "date"}, "discount": {"type": "number"}, "window": {"type": "range<date>"}, "people": {"type": "list<context<name: string, born: date>>"}}});
+  let members = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": stated}));
+    assert_eq!(response["ok"], true, "{expression}: {response}");
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] != "function" && item["kind"] != "keyword")
+      .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("?")))
+      .collect()
+  };
+  assert_eq!(members(""), ["discount: number", "due: date", "people: list<context>", "window: range<date>"]);
+  assert_eq!(members("due."), ["day: number", "month: number", "value: number", "weekday: number", "year: number"]);
+  assert_eq!(members("window."), ["end: date", "end included: boolean", "start: date", "start included: boolean"]);
+  assert_eq!(
+    members("window.start."),
+    ["day: number", "month: number", "value: number", "weekday: number", "year: number"]
+  );
+  assert_eq!(members("people[1]."), ["born: date", "name: string"]);
+  assert_eq!(
+    members("for p in people return p.born."),
+    ["day: number", "month: number", "value: number", "weekday: number", "year: number"]
+  );
+  assert_eq!(members("discount."), Vec::<String>::new());
+  // the other editor operations take the outline too
+  assert_eq!(
+    req(json!({"op": "syntax", "expression": "due.year + discount", "outline": stated}))["diagnostics"],
+    json!([])
+  );
+  // a text that is no type of FEEL is a failure that names the entry
+  assert_error(
+    &req(json!({"op": "complete", "expression": "", "outline": {"names": {"order": {"names": {"total": {"type": "numbr"}}}}}})),
+    "context",
+    "outline.order.total: expected a FEEL type (such as number, date, list<string> or range<date>), found \"numbr\"",
+  );
+  assert_error(
+    &req(json!({"op": "complete", "expression": "", "outline": {"names": {"lines": {"items": {"type": 5}}}}})),
+    "context",
+    "outline.lines[]: expected a FEEL type as a string, found 5",
+  );
+  assert_error(
+    &req(json!({"op": "complete", "expression": "", "outline": {"names": {"a": {"type": "number", "names": {}}}}})),
+    "context",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+  );
+}
+
+/// A text reaches a key of the context whatever white space the key has between its tokens: a
+/// name is a list of tokens (DMN 1.6 clause 10.3.1.4). The key comes back as it was sent.
+#[test]
+fn a_key_in_another_form_than_feel_reads_a_name_is_found_by_its_name() {
+  let context = json!({
+    "Date - Time": 1, "a  b": 2, "Profit / Loss": 5, "Date": 10, "Time": 3,
+    "order": {"Net - Price": 7, "unit  count": 2},
+    "lines": [{"Net - Price": 5, "id": 1}, {"Net - Price": 1, "id": 2}],
+  });
+  let feel = |expression: &str| {
+    req(json!({"op": "evaluate", "expression": expression, "context": context}))["result"]["feel"]
+      .as_str()
+      .unwrap_or("?")
+      .to_string()
+  };
+  for (expression, expected) in [
+    ("Date - Time", "1"),
+    ("Date-Time", "1"),
+    ("Date  -  Time + 1", "2"),
+    ("a b", "2"),
+    ("a  b * 2", "4"),
+    ("Profit/Loss", "5"),
+    ("Profit / Loss", "5"),
+    ("Date - Time + Date - Time", "2"),
+    // after a dot and in a filter
+    ("order.Net - Price", "7"),
+    ("order.Net-Price * order.unit count", "14"),
+    ("lines[Net - Price > 1].id", "[1]"),
+    ("sum(lines.Net - Price)", "6"),
+    ("for l in lines return l.Net - Price", "[5, 1]"),
+    // the keys come back as they were sent
+    ("order", "{Net - Price: 7, unit  count: 2}"),
+    ("get entries(order)[1].key", "\"Net - Price\""),
+    ("{r: Date - Time}", "{r: 1}"),
+    ("get value(order, \"Net - Price\")", "7"),
+    // a string that is the name reads the key too
+    ("get value(order, \"Net-Price\")", "7"),
+    ("get value(order, \"Net Price\")", "null"),
+  ] {
+    assert_eq!(feel(expression), expected, "{expression}");
+  }
+  // unary tests, parse, syntax and complete read the same names
+  let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "Date - Time, 5", "context": context, "input": 1}));
+  assert_eq!(response["result"]["feel"], "true");
+  let response = req(json!({"op": "syntax", "expression": "Date - Time + 1", "context": context, "tree": true}));
+  assert_eq!(response["nodes"][1], json!(["Name", 0, 11]), "{response}");
+  let response = req(json!({"op": "complete", "expression": "order.", "context": context}));
+  let labels: Vec<&str> = response["items"].as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+  assert_eq!(labels, ["Net - Price", "unit  count"]);
+  // a context given as FEEL text, with keys that are strings
+  let response = req(json!({"op": "evaluate", "expression": "Net - Price + 1", "contextFormat": "feel", "context": "{\"Net - Price\": 5}"}));
+  assert_eq!(response["result"]["feel"], "6");
+  // a key in the form of a name is read as before, and a key of the same text first
+  let response = req(json!({"op": "evaluate", "expression": "[a b, Date-Time]", "context": {"a b": 1, "a  b": 2, "Date-Time": 3, "Date - Time": 4}}));
+  assert_eq!(response["result"]["feel"], "[1, 3]");
+}
+
+/// `complete` answers at every cursor of a text, whole or broken, also with characters of
+/// several bytes and of two UTF-16 units.
+#[test]
+fn complete_answers_at_every_cursor() {
+  let context = json!({"order": {"lines": [{"price": 2, "ünit cöunt": 3}], "id": 1}, "orders": [{"id": 1}], "n": 1, "a-b": 2});
+  for expression in [
+    "for o in orders, l in order.lines return {p: l.price * n, q: o.id, r: [l][item.price > 1].ünit cöunt}.p",
+    "{a: {b: 1}, c: a.b, d: [a][b = 1], \"ké y\": function(x: number, y) x + y, e: d(1, 2).}",
+    "some x in order.lines satisfies x.price in [1..n] and every y in orders satisfies y.id between 1 and a-b",
+    "order.lines[price > 1][1].price + sum(order.lines.price) - (if n > 1 then order else null).id // 😀 note\n+ @\"2024-01-02\".year",
+    "orders[[{😀: 1}][item.😀 = 1].😀 > 0].id.x.y",
+    "]]..[[{{((..,, in in for for . . [ . ] { . } ( . )",
+  ] {
+    let units = expression.encode_utf16().count();
+    for cursor in 0..=units {
+      for dialect in ["expression", "unaryTests"] {
+        let response = req(json!({"op": "complete", "dialect": dialect, "expression": expression, "cursor": cursor, "context": context}));
+        assert_eq!(response["ok"], true, "{expression} at {cursor}: {response}");
+      }
+    }
+  }
+}
+
+#[test]
+fn complete_knows_the_built_in_functions() {
+  let complete = |expression: &str| req(json!({"op": "complete", "expression": expression, "context": {"text": "abc"}}));
+  let item = |response: &Json, label: &str| {
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .find(|item| item["label"] == label)
+      .cloned()
+      .unwrap_or(Json::Null)
+  };
+  // a function item
+  let response = complete("subs");
+  let substring = item(&response, "substring");
+  assert_eq!(substring["kind"], "function");
+  assert_eq!(substring["detail"], "substring(string, start position, length?): string");
+  assert_eq!(substring["info"], "The characters from a position, as many as the length says or all that follow.");
+  assert_eq!(substring["type"], "string");
+  assert!(response.get("call").is_none(), "{response}");
+  // the first signature of several
+  assert_eq!(item(&complete("dat"), "date")["detail"], "date(from): date");
+  // inside the parentheses: the call, and the parameters to name before the other items
+  let response = complete("1 + substring(");
+  assert_eq!(response["call"]["function"], "substring");
+  assert_eq!(response["call"]["argument"], 0);
+  assert_eq!(response["call"]["signatures"][0]["text"], "substring(string, start position, length?): string");
+  assert_eq!(
+    response["call"]["signatures"][0]["parameters"][2],
+    json!({"name": "length", "type": "number", "optional": true, "rest": false})
+  );
+  let labels: Vec<&str> = response["items"].as_array().unwrap().iter().take(4).map(|item| item["label"].as_str().unwrap()).collect();
+  assert_eq!(labels, vec!["length", "start position", "string", "text"]);
+  assert_eq!(
+    item(&response, "start position"),
+    json!({"label": "start position", "kind": "parameter", "from": 14, "type": "number", "detail": null, "insert": "start position: "})
+  );
+  // after a named parameter: the others, and the argument index
+  let response = complete(r#"substring(string: text, sta"#);
+  assert_eq!(response["call"]["argument"], 1);
+  assert_eq!(response["expects"], "parameter");
+  assert_eq!(response["items"][0]["label"], "start position");
+  assert_eq!(response["items"][0]["from"], 24);
+  assert!(item(&response, "string").is_null(), "{response}");
+  // the value of a named parameter, and a positional argument: no names
+  let response = complete("substring(string: ");
+  assert_eq!(response["call"]["argument"], 0);
+  assert!(response["items"].as_array().unwrap().iter().all(|item| item["kind"] != "parameter"), "{response}");
+  let response = complete("substring(text, ");
+  assert_eq!(response["call"]["argument"], 1);
+  assert!(response["items"].as_array().unwrap().iter().all(|item| item["kind"] != "parameter"), "{response}");
+  // the innermost invocation; brackets and strings inside an argument do not count
+  let response = complete(r#"sum([1, 2], string length("a(,"), contains(text, "#);
+  assert_eq!(response["call"]["function"], "contains");
+  assert_eq!(response["call"]["argument"], 1);
+  let response = complete(r#"string join(["a,(", "b"], "#);
+  assert_eq!(response["call"]["function"], "string join");
+  assert_eq!(response["call"]["argument"], 1);
+  // only the names of the signatures that have the names given
+  let response = complete("date(year: 2020, ");
+  let names: Vec<&str> = response["items"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .filter(|item| item["kind"] == "parameter")
+    .map(|item| item["label"].as_str().unwrap())
+    .collect();
+  assert_eq!(names, vec!["day", "month"]);
+  // outside an invocation, and in the parentheses of something else: no call
+  assert!(complete("sum(1) + ").get("call").is_none());
+  assert!(complete("(1 + ").get("call").is_none());
+  assert!(complete("text(").get("call").is_none());
 }

@@ -1,7 +1,8 @@
 /**
  * CodeMirror 6 support for FEEL from the rheon engine's own parser: the colours, the error
- * marks and the completions are what the engine answers for the text (`syntax`, `complete`,
- * docs/CONTRACT.md §3), so the editor reads a text as the engine evaluates it.
+ * marks, the completions and the hint of the invoked function are what the engine answers for
+ * the text (`syntax`, `complete`, docs/CONTRACT.md §3), so the editor reads a text as the
+ * engine evaluates it.
  *
  *   const engine = await FeelEngine.create({ wasmUrl });
  *   new EditorView({ parent, extensions: [basicSetup, feelEditor({ engine, context })] });
@@ -13,8 +14,8 @@ import { autocompletion, snippetCompletion, type Completion, type CompletionCont
 import { linter, type Diagnostic } from '@codemirror/lint';
 import { keymap } from '@codemirror/view';
 import { Compartment, Facet, StateEffect, StateField, type EditorState, type Extension } from '@codemirror/state';
-import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from '@codemirror/view';
-import type { CompleteResponse, CompletionItem, EditorOptions, FormatResponse, SyntaxResponse } from '@rheon/feel-runtime';
+import { Decoration, EditorView, ViewPlugin, showTooltip, type DecorationSet, type Tooltip, type ViewUpdate } from '@codemirror/view';
+import type { CompleteResponse, CompletionCall, CompletionItem, EditorOptions, FormatResponse, FunctionSignature, SyntaxResponse } from '@rheon/feel-runtime';
 
 /** What answers the editor: a `FeelEngine` (a worker), or anything with these two methods; the answers may be promises or values. */
 export interface FeelSource {
@@ -39,6 +40,8 @@ export interface FeelEditorConfig extends FeelScope {
   onSyntax?: (syntax: FeelSyntax) => void;
   /** The most characters of a line that `formatDocument` aims at (default 80). */
   formatWidth?: number;
+  /** Whether a hint shows the signatures of the built-in function whose parentheses the cursor is in (default true). */
+  signatureHelp?: boolean;
 }
 
 /** A `syntax` answer that succeeded. */
@@ -100,6 +103,10 @@ const colours = EditorView.baseTheme({
   '.cm-feel-operator': { color: 'var(--feel-operator, #6a645a)' },
   '.cm-feel-punctuation': { color: 'var(--feel-punctuation, #8a8377)' },
   '.cm-feel-error': { color: 'var(--feel-error, #c0392b)' },
+  '.cm-feel-signature': { padding: '4px 8px', fontFamily: 'monospace', fontSize: '0.9em', maxWidth: '40em' },
+  '.cm-feel-signature-active': { textDecoration: 'underline' },
+  '.cm-feel-signature-given': { opacity: '0.6' },
+  '.cm-feel-signature-summary': { fontFamily: 'sans-serif', opacity: '0.8', marginTop: '2px' },
   '&dark .cm-feel-keyword': { color: 'var(--feel-keyword, #c792ea)' },
   '&dark .cm-feel-number': { color: 'var(--feel-number, #8fb0ff)' },
   '&dark .cm-feel-string': { color: 'var(--feel-string, #a5e07b)' },
@@ -122,18 +129,67 @@ const TEMPLATES: [string, string][] = [
 ];
 
 function completionOf(item: CompletionItem): Completion {
-  const types: Record<CompletionItem['kind'], string> = { name: 'variable', entry: 'property', keyword: 'keyword', function: 'function', type: 'type' };
+  const types: Record<CompletionItem['kind'], string> = { parameter: 'property', name: 'variable', entry: 'property', keyword: 'keyword', function: 'function', type: 'type' };
   return {
     label: item.label,
     type: types[item.kind],
     detail: item.detail ?? item.type ?? undefined,
+    info: item.info,
     // an item replaces the text from its own start: the items of one answer can start at different places
     apply: (view, _completion, _from, to) => {
-      const insert = item.kind === 'function' ? `${item.label}()` : item.label;
+      const insert = item.kind === 'function' ? `${item.label}()` : (item.insert ?? item.label);
       const cursor = item.from + insert.length - (item.kind === 'function' ? 1 : 0);
       view.dispatch({ changes: { from: item.from, to, insert }, selection: { anchor: cursor }, userEvent: 'input.complete' });
     },
   };
+}
+
+const setCall = StateEffect.define<Tooltip | null>();
+
+/** The hint of the invoked function, as a tooltip at the cursor. */
+const hint = StateField.define<Tooltip | null>({
+  create: () => null,
+  update(value, tr) {
+    for (const effect of tr.effects) {
+      if (effect.is(setCall)) return effect.value;
+    }
+    // the hint of a text or a cursor that has changed goes; the next answer brings it back
+    return tr.docChanged || tr.selection ? null : value;
+  },
+  provide: (field) => showTooltip.from(field),
+});
+
+/** The index of the parameter of the signature that the argument of the call is, or -1. */
+function activeParameter(signature: FunctionSignature, call: CompletionCall): number {
+  if (call.named.length > 0) return -1;
+  const last = signature.parameters.length - 1;
+  if (call.argument <= last) return call.argument;
+  return last >= 0 && signature.parameters[last].rest ? last : -1;
+}
+
+/** The hint of a call: its signatures, the parameter of the cursor marked, and what the function gives. */
+export function signatureHint(call: CompletionCall): HTMLElement {
+  const dom = document.createElement('div');
+  dom.className = 'cm-feel-signature';
+  // the signatures that have a parameter for the argument, or all when none has
+  const fitting = call.signatures.filter((signature) => call.named.length > 0 || call.argument === 0 || activeParameter(signature, call) >= 0);
+  for (const signature of fitting.length ? fitting : call.signatures) {
+    const line = dom.appendChild(document.createElement('div'));
+    line.className = 'cm-feel-signature-line';
+    line.append(`${call.function}(`);
+    const active = activeParameter(signature, call);
+    signature.parameters.forEach((parameter, index) => {
+      if (index > 0) line.append(', ');
+      const part = line.appendChild(document.createElement(index === active ? 'strong' : 'span'));
+      part.textContent = `${parameter.name}${parameter.rest ? '...' : parameter.optional ? '?' : ''}: ${parameter.type}`;
+      if (index === active || call.named.includes(parameter.name)) part.className = index === active ? 'cm-feel-signature-active' : 'cm-feel-signature-given';
+    });
+    line.append(`): ${signature.result}`);
+  }
+  const summary = dom.appendChild(document.createElement('div'));
+  summary.className = 'cm-feel-signature-summary';
+  summary.textContent = call.summary;
+  return dom;
 }
 
 /**
@@ -141,7 +197,7 @@ function completionOf(item: CompletionItem): Completion {
  * scope or the dialect later with `setFeelScope`.
  */
 export function feelEditor(config: FeelEditorConfig): Extension {
-  const { engine, maxDiagnostics = 20, templates = true, tree = false, onSyntax } = config;
+  const { engine, maxDiagnostics = 20, templates = true, tree = false, onSyntax, signatureHelp = true } = config;
   const scope: FeelScope = { dialect: config.dialect, context: config.context, contextFormat: config.contextFormat, outline: config.outline };
 
   // asks the engine after every change of the text or of the scope
@@ -172,6 +228,36 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     },
   );
 
+  // asks the engine for the invoked function at the cursor after every change of the text or the cursor
+  const hinter = ViewPlugin.fromClass(
+    class {
+      private asked = 0;
+      constructor(readonly view: EditorView) {
+        this.ask();
+      }
+      update(update: ViewUpdate) {
+        if (update.docChanged || update.selectionSet || update.startState.facet(scopeOf) !== update.state.facet(scopeOf)) this.ask();
+      }
+      private ask() {
+        const id = ++this.asked;
+        const { state } = this.view;
+        const selection = state.selection.main;
+        if (!selection.empty) return;
+        const text = state.doc.toString();
+        const take = (answer: CompleteResponse) => {
+          const now = this.view.state;
+          if (id !== this.asked || now.doc.toString() !== text || now.selection.main.head !== selection.head) return;
+          const call = answer.ok ? answer.call : undefined;
+          if (!call && now.field(hint) === null) return;
+          this.view.dispatch({ effects: setCall.of(call ? { pos: selection.head, above: true, create: () => ({ dom: signatureHint(call) }) } : null) });
+        };
+        Promise.resolve()
+          .then(() => engine.complete(text, selection.head, state.facet(scopeOf)))
+          .then(take, () => undefined);
+      }
+    },
+  );
+
   const errors = linter(
     (view): Diagnostic[] => {
       const length = view.state.doc.length;
@@ -196,8 +282,8 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     if (context.aborted || !answer.ok) return null;
     const from = answer.items.reduce((least, item) => Math.min(least, item.from), context.pos);
     if (answer.items.length === 0 && !context.explicit) return null;
-    // nothing is offered for an empty word unless asked for, except after a dot
-    if (from === context.pos && !context.explicit && answer.expects !== 'property') return null;
+    // nothing is offered for an empty word unless asked for, except after a dot and where a parameter is named
+    if (from === context.pos && !context.explicit && answer.expects !== 'property' && answer.expects !== 'parameter') return null;
     const options = answer.items.map(completionOf);
     if (templates && answer.expects === 'expression') {
       const typed = text.slice(from, context.pos).toLowerCase();
@@ -217,6 +303,7 @@ export function feelEditor(config: FeelEditorConfig): Extension {
     errors,
     autocompletion({ override: [complete] }),
     keymap.of([{ key: 'Shift-Alt-f', run: formatDocument }]),
+    signatureHelp ? [hint, hinter] : [],
   ];
 }
 

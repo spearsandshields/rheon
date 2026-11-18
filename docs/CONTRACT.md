@@ -47,7 +47,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 - `maxSteps`: a budget for one evaluation. Every function call (of a user-defined, built-in or model function) and every item that a `for`, `some`, `every` or a filter visits is a step. The step after the last one of the budget stops the evaluation, and the response is an `evaluation` error with the message `evaluation took more than <maxSteps> steps; evaluation stopped`. Without the field an evaluation has no budget of steps; the limits of §1 still bound it. A value that is not a positive integer is a `request` error.
 
 - `parse` also accepts `context`/`contextFormat` (optional): the parser needs to know which multi-word names exist (`Grace's age + 1` only parses as a name if `Grace's age` is in the context). For `dialect: "unaryTests"`, `?` is always a known name.
-- Unary tests are evaluated as dsntk's decision tables do: the tested value is bound to the name `?` in the scope and the result is `? in (<unary tests>)`, i.e. a boolean (or null). Note (dsntk at the pinned commit): a boolean *expression* used as a test, e.g. `? > 5`, is **compared** with the input (`7 = true` → `false`) instead of being "satisfied when true" as in DMN 1.2+. Use `> 5` instead. The response carries a warning for every test that is a comparison/logical expression (or `not(...)`) using `?`.
+- Unary tests are evaluated as dsntk's decision tables do: the tested value is bound to the name `?` in the scope and the result is `? in (<unary tests>)`: the `or` of the tests (DMN 1.6 Table 56). It is `true` when one test is true, `false` when every test is false, and null with the reason when no test is true and one has no answer, because the tested value is of another kind than the test (`"a"` tested by `< 10` or by `1, 2`). `not(<tests>)` is the negation, so it is null where the tests are. A decision table matches on `true` (clause 8.3.3), so null is no match. A test that is a boolean expression using `?` (a comparison, `and`, `or`, `between`, `in`, `instance of` or `not(...)`), e.g. `? > 5`, is satisfied when it is true (clause 7.3.2 d); any other test is compared with the tested value.
 - If neither `input` nor `context["?"]` is given for unary tests, `?` is null and a warning is returned.
 - The endpoint of a unary comparison is an expression and binds like the right side of a comparison: `> 0.1 + 0.2` tests `? > (0.1 + 0.2)` and `>= x + 1` tests `? >= (x + 1)`; `and`, `or`, a comparison and `between` end the endpoint (`<= 10 = (null..10]` compares the unary comparison with a range). `< d.year` compares with the year of `d` (DMN 1.6 §10.3.2.7, "Endpoints can be expressions"); a property of the unary value itself is read as `(< 10).end`.
 - `tzOffsetMinutes`: integer in `-1080..=1080` (±18:00), otherwise a `request` error (every other integer, including `i64::MIN`). It is a fixed offset (no DST rules), applied to every "local" (zone-less) date-time computation of that request — `now()`, `today()`, and comparisons/subtractions of local date-times — via a process-global override in rheon-feel-temporal (the fork's "local offset override" commit), reset after every request. Without it, local time is **UTC on every target**: chrono's `Local` is hard-wired to UTC on `wasm32-wasip1`, and native builds apply offset 0 too instead of the host zone, so results never depend on where the core runs.
@@ -57,7 +57,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 How JSON input becomes FEEL values (`contextFormat: "json"`):
 - JSON number → FEEL number, parsed from the **exact source text** (serde_json `arbitrary_precision`). It never passes through f64.
-- string → string, boolean → boolean, null → null, array → list, object → context. Keys become FEEL names, which may contain spaces or `'`, e.g. `"Grace's age"`. Leading/trailing whitespace of a key is trimmed (`" x "` is `x`); inner whitespace is kept as is (`"a  b"` can not be referenced as `a b`).
+- string → string, boolean → boolean, null → null, array → list, object → context. Keys become FEEL names, which may contain spaces or `'`, e.g. `"Grace's age"`. Leading/trailing whitespace of a key is trimmed (`" x "` is `x`); inner whitespace is kept as is in the key, which comes back as it was sent, and does not matter for reading it: a name is a list of tokens (DMN 1.6 clause 10.3.1.4), so the key `"Date - Time"` is read by `Date - Time`, `Date-Time` and `Date  -  Time`, and `"a  b"` by `a b`. Of two keys that are one name the key of the same text as the name is read, else the first in the order of the keys. `get value(m, "<key>")` reads the key of that text, and else the key that is that name.
 - JSON nested deeper than about 125 levels (in `context` or `input`) is a `context` error (the request parser's recursion limit).
 - No implicit date parsing: users write `date("2026-10-16")` in FEEL.
 - Numbers with more than 34 significant digits, or so small that they underflow decimal128's exponent range (below 1e-6176: to a subnormal value or to 0), are rounded (half-even) by the number core; a warning is returned. Numbers too large for decimal128 (above ~1e6145) are a `context` error.
@@ -156,8 +156,7 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   says that the text has more), one per place. `code` is for programs and stable; `message` is
   for people and may change: it says what was expected and what stands there instead
   (``Expected `,` or `]` in the list, found `3`.``). The codes: `expected` (a certain token is missing), `expected-expression`,
-  `expected-name`, `expected-type`, `unexpected` (a token that fits nowhere), `comparison` (a
-  comparison compared again without parentheses), `string-open`, `string-escape`,
+  `expected-name`, `expected-type`, `unexpected` (a token that fits nowhere), `string-open`, `string-escape`,
   `comment-open`, `character`, `failed` (the parser gave up, as at its nesting limit; the rest of
   the text has tokens but no nodes). After an error the parser goes on as if the missing part
   were there. `diagnostics` is empty exactly when `parse` accepts the text.
@@ -173,23 +172,64 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   "expects": "expression",               // what the grammar takes at the cursor
   "items": [{ "label": "Monthly Salary", "kind": "name", "from": 4, "type": null, "detail": null }],
   "truncated": false,
+  "call": { … },                         // only inside the parentheses of a built-in function
   "elapsedMicros": n }
 ```
 
 - An accepted item replaces the text from its `from` to `to` with its `label`. The items of one
   answer can have different `from`s: in `if a th` the lexer reads `a th` as one name, so names
   are offered for `a th` and keywords for `th`.
-- `kind`: `name` (a name of the context, or one the text declares before the cursor: an
-  iteration variable, a parameter, `partial`, a key of a context being written), `entry` (an
-  entry after a dot, when the names before the dot lead to a context, or to a list of contexts,
-  in the context or the outline), `keyword`, `function` (a built-in function), `type`.
+- `kind`: `parameter` (a parameter of the invoked built-in function that can be named here; it
+  has `"insert"`, the text to insert in place of the label: the name with its colon),
+  `name` (a name of the context, or one the text declares before the cursor: an
+  iteration variable, a parameter, `partial`, a key of a context being written, and in the
+  predicate of a filter `item` and the entries of an item), `entry` (a member of the value
+  before a dot: an entry of a context, a property of a date, a time, a duration or a range,
+  and for a list the members of its items), `keyword`, `function` (a built-in function),
+  `type`.
   The items are ordered by kind in this order and then by label; at most 200 (`truncated`).
   An item fits when it starts with what is typed, letters compared without case.
 - `expects`: `expression`, `operator` (after a complete operand: `and`, `or`, `between`, `in`,
   `instance of`), `keyword:<word>` (a keyword the grammar needs here, such as `keyword:then`),
-  `property` (after a dot), `type`, `name` (a new name is written here: nothing is offered).
-- `type` and `detail` are null in this version: the type of an item and the signature of a
-  function come with type inference, without a change of the shape.
+  `property` (after a dot), `type`, `name` (a new name is written here: nothing is offered),
+  `parameter` (after a named parameter only a named one can follow), `comment` and `string`
+  (the cursor is inside a comment, or inside a string that is not closed: nothing is offered).
+- An item of a built-in function has its first signature as `detail`
+  (`"substring(string, start position, length?): string"`), `"info"` (one line that says what
+  the function gives) and the type of its result as `type`. A parameter has its type as `type`.
+  A name and an entry have their type as `type` when the engine knows it, else null: the kind
+  of the value without the entries of a context (`number`, `context`, `list<context>`,
+  `range<date>`, `function`). The `detail` of these kinds is null.
+- The value before a dot is any expression: the engine finds its type from the text and the
+  context, without evaluating it (`for l in order.lines return l.` offers the entries of a
+  line; `date(x).` offers `year`, `month`, …; `sort(lines, f)[1].` offers the entries of a
+  line). A variable of an iteration has the type of an item of its domain, an entry of a
+  context literal the type of its value, the result of a built-in function the type of its
+  signature (for the functions that give back their list, such as `sort`, `append` and
+  `reverse`, the type of that list). A parameter of a function written in the text, the result
+  of a function of the host and a name without a value have no known type: nothing is offered
+  after them. With an `outline` in place of the context the types of the names that are no
+  contexts and no lists are known when the outline has them (below).
+- `call` stands when the cursor is inside the parentheses of an invocation of a built-in
+  function (the innermost one):
+
+  ```jsonc
+  { "function": "substring",
+    "summary": "The characters from a position, as many as the length says or all that follow.",
+    "argument": 1,                       // the index of the argument the cursor is in
+    "named": [],                         // the names of the named parameters given before it
+    "signatures": [{
+      "text": "substring(string, start position, length?): string",
+      "parameters": [{ "name": "string", "type": "string", "optional": false, "rest": false }, …],
+      "result": "string",
+      "named": true }] }                 // false: by position only (`append`, `min(1, 2, 3)`)
+  ```
+
+  A `rest` parameter stands for one or more arguments. The types are FEEL types as text, with
+  `or` between alternatives (`date or date and time`). The names of the parameters are those
+  the engine takes in an invocation with named parameters; where only named parameters were
+  given so far, they are offered as items, without the ones already given and only of the
+  signatures that have those.
 
 `op: "outline"` takes `context`/`contextFormat` and answers `{ "ok": true, "outline": <outline>, "elapsedMicros": n }`.
 An outline is `null` (a name without entries), `{"names": {<name>: <outline>, …}}` (a context)
@@ -197,6 +237,17 @@ or `{"items": <outline>}` (a list whose first item is a context). It holds the n
 context without its values, so an editor builds it once and sends it with every keystroke
 instead of the context; a consumer can also write one itself. A list is read by its first
 item only.
+
+A name that is no context can have its type in an outline: `{"type": "<FEEL type>"}`, the
+type as FEEL writes it (`number`, `date`, `list<string>`, `range<date>`). With such an outline
+`complete` shows the types and offers the properties of a date or a range as it does with the
+context. The type is a statement of the consumer: the engine takes it as it is, also for a
+name whose value would be null or an empty list. A text that is no FEEL type is a failure of
+kind `context` that names the entry (`outline.order.total: expected a FEEL type (such as
+number, date, list<string> or range<date>), found "numbr"`). `op: "outline"` writes the types
+when the request has `"types": true` (default false: the answer is as without the option):
+the type of each name that is no context and no list of contexts, when the value says it (not
+for null; an empty list is a `list<Any>`).
 
 `op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
 optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers

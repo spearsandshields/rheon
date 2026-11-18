@@ -292,7 +292,7 @@ fn back_references() {
 #[test]
 fn the_reason_of_a_long_invalid_pattern_holds_at_most_1000_characters() {
   let expression = format!(r#"matches("a", "({}")"#, "a".repeat(5000));
-  let node = rheon_feel_parser::parse_textual_expression(&scope!(), &expression, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope!(), &expression).unwrap();
   let Value::Null(Some(reason)) = crate::evaluate(&scope!(), &node).into_result().unwrap() else {
     panic!("a null with a reason")
   };

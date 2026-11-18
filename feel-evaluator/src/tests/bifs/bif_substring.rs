@@ -147,7 +147,7 @@ fn _0021() {
     false,
     &scope!(),
     r#"substring("homeless", 9, 2)"#,
-    r#"sublist: invalid range, len = 8, start position = 9, end position = 11"#,
+    r#"substring: invalid range, len = 8, start position = 9, end position = 11"#,
   );
 }
 
@@ -157,7 +157,7 @@ fn _0022() {
     false,
     &scope!(),
     r#"substring("homeless", -9, 2)"#,
-    r#"sublist: invalid range, len = 8, start position = 0, end position = 2"#,
+    r#"substring: invalid range, len = 8, start position = 0, end position = 2"#,
   );
 }
 
@@ -167,7 +167,7 @@ fn _0023() {
     false,
     &scope!(),
     r#"substring("homeless", 9, "2")"#,
-    r#"sublist: expected number, actual length type is string"#,
+    r#"substring: expected number, actual length type is string"#,
   );
 }
 
@@ -177,7 +177,7 @@ fn _0024() {
     false,
     &scope!(),
     r#"substring("homeless", "9", 2)"#,
-    r#"sublist: expected number, actual start position type is string"#,
+    r#"substring: expected number, actual start position type is string"#,
   );
 }
 
@@ -187,6 +187,6 @@ fn _0025() {
     false,
     &scope!(),
     r#"substring(["homeless"], 9, 2)"#,
-    r#"sublist: expected string, actual value type is list<string>"#,
+    r#"substring: expected string, actual value type is list<string>"#,
   );
 }

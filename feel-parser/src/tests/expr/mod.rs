@@ -39,6 +39,5 @@ mod some_expression;
 mod subtraction;
 mod temporal_date;
 mod temporal_date_time;
-mod textual_expressions;
 mod unary_tests;
 mod various;

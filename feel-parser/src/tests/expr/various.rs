@@ -193,7 +193,7 @@ fn _0002() {
 fn _0003() {
   let input = r#"Flights[ From = Original Flight.From and To = Original Flight.To and Departure > Original Flight.Departure and Status = "scheduled" and has capacity(item, Reassigned Passengers List)][1]"#;
   // without the names in scope, every name ends before the next `and` and before a dot
-  let node = Parser::new(&scope!(), StartExpression, input, false).parse().unwrap();
+  let node = Parser::new(&scope!(), StartExpression, input).parse().unwrap();
   let tree = node.trace();
   for name in [
     "Flights",

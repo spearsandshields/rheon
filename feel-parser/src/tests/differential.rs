@@ -33,15 +33,11 @@ use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 /// The start rules of the grammar.
-const START_RULES: [(&str, TokenType); 9] = [
+const START_RULES: [(&str, TokenType); 5] = [
   ("expression", TokenType::StartExpression),
   ("boxed expression", TokenType::StartBoxedExpression),
   ("textual expression", TokenType::StartTextualExpression),
-  ("textual expressions", TokenType::StartTextualExpressions),
   ("unary tests", TokenType::StartUnaryTests),
-  ("simple expression", TokenType::StartSimpleExpression),
-  ("simple expressions", TokenType::StartSimpleExpressions),
-  ("simple value", TokenType::StartSimpleValue),
   ("range literal", TokenType::StartRangeLiteral),
 ];
 
@@ -85,7 +81,7 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
 /// Runs the front end; a panic is an outcome.
 pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
-  let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
+  let mut parser = super::parser(&scope, start.clone(), input).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   Run {
     tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
@@ -400,11 +396,11 @@ fn inputs_of_the_fixes_have_their_recorded_outcome() {
   let mut stats = Stats::golden("fixes");
   for (inputs, rule) in [
     (&in_names[..], 0),
-    (&range_literals[..], 8),
+    (&range_literals[..], 4),
     (&unclosed[..], 0),
     (&exponents[..], 0),
     (&endpoints[..], 0),
-    (&signed[..], 8),
+    (&signed[..], 4),
   ] {
     let (name, start) = &START_RULES[rule];
     for input in inputs {
@@ -718,7 +714,8 @@ fn random_texts_equal_reference() {
   }
   println!("random texts: {stats:?}");
   stats.finish();
-  assert!(stats.asts > count, "{stats:?}");
+  // a good part of the texts parse under some start rule
+  assert!(stats.asts > count * 3 / 4, "{stats:?}");
 }
 
 /// Random edits of a text: deletions, insertions of characters and keywords, duplications.
@@ -798,7 +795,7 @@ fn keys_of_context_literal(text: &str) -> FeelContext {
     }
     ctx
   }
-  match crate::parse_context(&Default::default(), text, false) {
+  match crate::parse_context(&Default::default(), text) {
     Ok(node) => convert(&node),
     Err(_) => FeelContext::default(),
   }
@@ -884,9 +881,13 @@ fn deep_inputs_parse_in_a_small_stack() {
     (format!("{}1", "-".repeat(n)), true),
     (format!("{}1", "if true then 1 else ".repeat(n)), true),
     (format!("{}1{}", "f(".repeat(n), ")".repeat(n)), true),
-    (format!("1{}", " in (1)".repeat(n)), true),
-    (format!("1{}", " in (1..2)".repeat(n)), true),
-    (format!("1{}", " in 1".repeat(n)), true),
+    (format!("1{}", " in (1)".repeat(4 * n)), false),
+    (format!("1{}", " in (1..2)".repeat(4 * n)), false),
+    (format!("1{}", " in 1".repeat(4 * n)), false),
+    (format!("1{}", " = 1".repeat(4 * n)), false),
+    (format!("1{}", " between 0 and 1".repeat(4 * n)), false),
+    (format!("{}1{}", "1 between ".repeat(n), " and 1".repeat(n)), true),
+    (format!("{}1", "< ".repeat(n)), true),
     (format!("1{}", "+1".repeat(4 * n)), false),
     (format!("a{}", ".a".repeat(4 * n)), false),
     (format!("a{}", " + a".repeat(4 * n)), false),
@@ -899,7 +900,7 @@ fn deep_inputs_parse_in_a_small_stack() {
     .stack_size(2 * 1024 * 1024)
     .spawn(move || {
       for (input, nested) in inputs {
-        let parsed = crate::parse_expression(&Default::default(), &input, false);
+        let parsed = crate::parse_expression(&Default::default(), &input);
         if nested {
           let message = parsed.unwrap_err().to_string();
           assert!(message.contains("nested too deeply"), "{message}");
@@ -917,7 +918,7 @@ fn deep_inputs_parse_in_a_small_stack() {
 fn work_of(frames: &[FeelContext], input: &str) -> BTreeMap<&'static str, usize> {
   super::work::take();
   let scope = ParsingScope::new(frames);
-  let _ = Parser::new(&scope, TokenType::StartExpression, input, false).parse();
+  let _ = super::parser(&scope, TokenType::StartExpression, input).parse();
   super::work::take()
 }
 
@@ -946,10 +947,8 @@ fn lists_keep_source_order() {
       (0, format!("for {} return 0", join(n, &|i| format!("v{i} in [{i}]")))),
       (0, format!("some {} satisfies true", join(n, &|i| format!("v{i} in [{i}]")))),
       (0, format!("every {} satisfies true", join(n, &|i| format!("v{i} in [{i}]")))),
-      (4, join(n, &|i| i.to_string())),
-      (4, format!("not({})", join(n, &|i| i.to_string()))),
-      (3, join(n, &|i| format!("{i} + 1"))),
-      (6, join(n, &|i| format!("{i} * 2"))),
+      (3, join(n, &|i| i.to_string())),
+      (3, format!("not({})", join(n, &|i| i.to_string()))),
     ]
   };
   // `x` and `f` are names in scope (else `x instance of context` would be one name)
@@ -959,7 +958,6 @@ fn lists_keep_source_order() {
     // qualified names (a chain of names is lexed again for every name token)
     let path = (0..n).map(|i| format!("q{i}")).collect::<Vec<_>>().join(".");
     texts.push((0, format!("x instance of {path}")));
-    texts.push((7, path));
     for (rule, text) in &texts {
       let (name, start) = &START_RULES[*rule];
       let mut stats = Stats::default();
@@ -970,7 +968,7 @@ fn lists_keep_source_order() {
   // the longest lists: in source order
   for (rule, text) in texts(ordered) {
     let scope = ParsingScope::new(&frames);
-    let node = Parser::new(&scope, START_RULES[rule].1.clone(), &text, false).parse().unwrap();
+    let node = Parser::new(&scope, START_RULES[rule].1.clone(), &text).parse().unwrap();
     let debug = format!("{node:?}");
     // the first `{i}"` is the item i (`"{i}"`, `"k{i}"`, ...): other texts ending with these digits are larger numbers
     let positions: Vec<usize> = (0..ordered)
@@ -985,6 +983,7 @@ fn lists_keep_source_order() {
 /// reference, which scans the chain for every name token: chains of up to 50 names (300 in full size).
 #[test]
 fn reused_name_chains_equal_reference() {
+  super::member_names();
   let mut inputs = vec![];
   for n in [1, 2, 3, 10, if full_size() { 300 } else { 50 }] {
     inputs.push(vec!["a"; n].join("+"));
@@ -1084,9 +1083,9 @@ fn parts_compared_with_in_grow_linearly_with_the_chain() {
   }
 }
 
-/// The tokens after an iteration variable `item`, which leaves the lexer in iteration-variable
-/// mode, equal the reference's: later names end before a part `in`, also names in scope that have
-/// it, and an `in` without white space after it is the keyword.
+/// The tokens after an iteration variable `item`, a name like any other, have their recorded
+/// outcome: the mode of the iteration variable ends with it, and an `in` is the keyword
+/// whatever follows it.
 #[test]
 fn names_after_an_item_variable_equal_reference() {
   let frames = [ctx(&[("a", number(1)), ("x in y", number(2)), ("in", number(3)), ("b in", number(4))])];
@@ -1152,6 +1151,7 @@ fn contexts_with_lists() -> [FeelContext; 1] {
 /// a keyword that ends a name, such as the list of a `for` and the operands of `and`.
 #[test]
 fn lists_are_decided_when_a_lookup_needs_them() {
+  super::member_names();
   let frames = contexts_with_lists();
   for (text, decided) in [
     ("sum(rows.amount)", false),
@@ -1181,6 +1181,7 @@ fn lists_are_decided_when_a_lookup_needs_them() {
 /// items of different types are not.
 #[test]
 fn names_of_list_items_equal_reference() {
+  super::member_names();
   let frames = contexts_with_lists();
   let mut stats = Stats::golden("names-of-list-items");
   for text in [
@@ -1264,6 +1265,7 @@ fn pushed_contexts_walked_grow_linearly_with_the_nesting() {
 /// keys, parsed names, parameters and built-in properties after a dot.
 #[test]
 fn first_word_bounds_equal_reference() {
+  super::member_names();
   let mut keys: Vec<String> = ["a", "a b", "a.b", "a!b", "a\tb", "a0", "ab c", "a b c d e f g h", "x", "x y", "start", "start x", "end"]
     .map(String::from)
     .to_vec();
@@ -1450,7 +1452,8 @@ fn composite_names_in_deep_contexts_parse_in_a_small_stack() {
           .spawn_scoped(scope, || {
             let parsing_scope = ParsingScope::new(&frames);
             let input = format!("a./{OGHAM}.{OGHAM} leaf + 1");
-            let node = Parser::new(&parsing_scope, TokenType::StartExpression, &input, false).parse().unwrap();
+            super::member_names();
+            let node = super::parser(&parsing_scope, TokenType::StartExpression, &input).parse().unwrap();
             assert!(matches!(&node, crate::AstNode::Add(lhs, _) if matches!(lhs.as_ref(), crate::AstNode::Name(name) if name.as_str() == "a./. leaf")));
           })
           .unwrap()
@@ -1686,7 +1689,7 @@ fn chosen_expressions_have_their_recorded_outcome() {
 /// and it records no error exactly when the strict parse accepts the text.
 fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> bool {
   let scope = ParsingScope::new(frames);
-  let syntax = catch_unwind(AssertUnwindSafe(|| Parser::new(&scope, start.clone(), input, false).parse_tolerant()))
+  let syntax = catch_unwind(AssertUnwindSafe(|| Parser::new(&scope, start.clone(), input).parse_tolerant()))
     .unwrap_or_else(|payload| panic!("the tolerant parse of {input:?} panicked: {}", panic_message(payload)));
   let mut position = 0;
   for token in &syntax.tokens {
@@ -1702,7 +1705,7 @@ fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> boo
     assert!(diagnostic.start <= diagnostic.end && diagnostic.end <= input.len(), "an error of {input:?}: {diagnostic:?}");
   }
   let scope = ParsingScope::new(frames);
-  let strict = Parser::new(&scope, start.clone(), input, false).parse();
+  let strict = Parser::new(&scope, start.clone(), input).parse();
   assert_eq!(
     strict.is_ok(),
     syntax.diagnostics.is_empty(),
@@ -1802,7 +1805,7 @@ fn tolerant_samples() {
     "",
   ] {
     let scope = ParsingScope::new(&frames);
-    let syntax = Parser::new(&scope, TokenType::StartExpression, input, false).parse_tolerant();
+    let syntax = Parser::new(&scope, TokenType::StartExpression, input).parse_tolerant();
     println!("SAMPLE {input:?}");
     println!(
       "  tokens: {}",
@@ -1856,7 +1859,7 @@ fn name_costs() {
       let t0 = std::time::Instant::now();
       for _ in 0..iterations {
         let scope = ParsingScope::new(&frames);
-        std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, input, false).parse().is_ok());
+        std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, input).parse().is_ok());
       }
       best = best.min(t0.elapsed().as_nanos() as f64 / iterations as f64);
     }
@@ -1877,7 +1880,7 @@ fn name_costs_loop() {
   while t0.elapsed().as_secs() < 8 {
     for _ in 0..1000 {
       let scope = ParsingScope::new(&frames);
-      std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, &input, false).parse().is_ok());
+      std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, &input).parse().is_ok());
     }
   }
 }

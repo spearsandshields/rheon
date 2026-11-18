@@ -1,7 +1,7 @@
 # @rheon/feel-codemirror
 
-CodeMirror 6 support for FEEL from the rheon engine's own parser. The colours, the error marks
-and the completions are what the engine answers for the text, so the editor reads a text as
+CodeMirror 6 support for FEEL from the rheon engine's own parser. The colours, the error marks,
+the completions and the hint of the invoked function are what the engine answers for the text, so the editor reads a text as
 the engine evaluates it: a name of several words is one token, and an error mark stands where
 `evaluate` would refuse the text.
 
@@ -28,6 +28,7 @@ view.dispatch({ effects: setFeelScope({ dialect: 'unaryTests', outline }) });
 | `templates` | Offer templates of `if`, `for`, `some`, `every`, a function and a context | true |
 | `tree` | Ask for the nodes of the text too (`syntaxOf(state).nodes`) | false |
 | `onSyntax` | Called with every answer the editor takes | none |
+| `signatureHelp` | Inside the parentheses of a built-in function, show its signatures with the parameter of the cursor marked | true |
 
 - `syntaxOf(state)` is the last answer the editor took (tokens, errors, nodes).
 - Colours are CSS custom properties with defaults: `--feel-keyword`, `--feel-number`,
@@ -36,3 +37,8 @@ view.dispatch({ effects: setFeelScope({ dialect: 'unaryTests', outline }) });
   `cm-feel-<class>` for the token classes of the engine.
 - The engine is asked after every change. An answer for a text that has changed since is
   dropped.
+- A built-in function is completed with its parentheses and shows its signature and what it
+  gives. A parameter that can be named is completed with its colon. The hint has the classes
+  `cm-feel-signature`, `-line`, `-active`, `-given` and `-summary`; `signatureHint(call)` builds
+  its element from the `call` of a `complete` answer.
+- Tests: `npm test` runs the extension in jsdom with the engine in the same thread.

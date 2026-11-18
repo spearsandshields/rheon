@@ -1,0 +1,1682 @@
+[
+  {
+    "expression": "substring((1 + \"a\"), (2 * \"b\"))",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "sublist: expected string, actual value type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: expected string, actual value type is Null)",
+        "isNull": true,
+        "nullReason": "sublist: expected string, actual value type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "substring: expected string, actual value type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: expected string, actual value type is Null)",
+        "isNull": true,
+        "nullReason": "substring: expected string, actual value type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "substring(string: (1 + \"a\"), start position: (2 * \"b\"))",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "sublist: expected string, actual value type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: expected string, actual value type is Null)",
+        "isNull": true,
+        "nullReason": "sublist: expected string, actual value type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "substring: expected string, actual value type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: expected string, actual value type is Null)",
+        "isNull": true,
+        "nullReason": "substring: expected string, actual value type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "substring(start position: (2 * \"b\"), string: (1 + \"a\"))",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "sublist: expected string, actual value type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: expected string, actual value type is Null)",
+        "isNull": true,
+        "nullReason": "sublist: expected string, actual value type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "substring: expected string, actual value type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: expected string, actual value type is Null)",
+        "isNull": true,
+        "nullReason": "substring: expected string, actual value type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "all(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::all] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::all] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::all] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "all(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::all] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::all] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::all] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "any(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::any] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::any] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::any] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "any(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::any] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::any] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::any] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mean(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::mean] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::mean] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::mean] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mean(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::mean] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::mean] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::mean] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "median(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::median] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::median] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::median] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "median(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::median] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::median] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::median] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mode(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::mode] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::mode] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::mode] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mode(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::mode] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::mode] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::mode] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "product(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::product] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::product] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::product] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "product(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::product] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::product] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::product] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "stddev(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::stddev] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::stddev] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::stddev] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "stddev(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::stddev] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::stddev] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::stddev] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sum(list: 1)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::sum] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::sum] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::sum] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sum(list: null)",
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'list' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'list' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'list' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::sum] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::sum] invalid argument type, expected list, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::sum] invalid argument type, expected list, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sum(list: \"a\")",
+      "errorMode": "strict"
+    },
+    "why": "a named parameter that is given with a value of another type is reported with its type, not as not found",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: parameter 'list' not found"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::sum] invalid argument type, expected list, actual type is string"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "substring(\"abcdef\", 5, 9)",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: invalid range, len = 6, start position = 5, end position = 14"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: invalid range, len = 6, start position = 5, end position = 14)",
+        "isNull": true,
+        "nullReason": "sublist: invalid range, len = 6, start position = 5, end position = 14",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "substring: invalid range, len = 6, start position = 5, end position = 14"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: invalid range, len = 6, start position = 5, end position = 14)",
+        "isNull": true,
+        "nullReason": "substring: invalid range, len = 6, start position = 5, end position = 14",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "substring(\"abcdef\", -9, 2)",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: invalid range, len = 6, start position = -2, end position = 0"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: invalid range, len = 6, start position = -2, end position = 0)",
+        "isNull": true,
+        "nullReason": "sublist: invalid range, len = 6, start position = -2, end position = 0",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "substring: invalid range, len = 6, start position = -2, end position = 0"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: invalid range, len = 6, start position = -2, end position = 0)",
+        "isNull": true,
+        "nullReason": "substring: invalid range, len = 6, start position = -2, end position = 0",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "substring(\"abc\", 2, \"x\")",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: expected number, actual length type is string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: expected number, actual length type is string)",
+        "isNull": true,
+        "nullReason": "sublist: expected number, actual length type is string",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "substring: expected number, actual length type is string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: expected number, actual length type is string)",
+        "isNull": true,
+        "nullReason": "substring: expected number, actual length type is string",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "substring(\"abc\", \"x\")",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: expected number, actual start position type is string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: expected number, actual start position type is string)",
+        "isNull": true,
+        "nullReason": "sublist: expected number, actual start position type is string",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "substring: expected number, actual start position type is string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: expected number, actual start position type is string)",
+        "isNull": true,
+        "nullReason": "substring: expected number, actual start position type is string",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "substring(1, 2)",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: expected string, actual value type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: expected string, actual value type is number)",
+        "isNull": true,
+        "nullReason": "sublist: expected string, actual value type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "substring: expected string, actual value type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: expected string, actual value type is number)",
+        "isNull": true,
+        "nullReason": "substring: expected string, actual value type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "substring(string: 1, start position: 2)",
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sublist: expected string, actual value type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sublist: expected string, actual value type is number)",
+        "isNull": true,
+        "nullReason": "sublist: expected string, actual value type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "substring: expected string, actual value type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(substring: expected string, actual value type is number)",
+        "isNull": true,
+        "nullReason": "substring: expected string, actual value type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "substring(\"abc\", 2, \"x\")",
+      "errorMode": "strict"
+    },
+    "why": "the messages of substring name substring, not sublist",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: sublist: expected number, actual length type is string"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: substring: expected number, actual length type is string"
+      },
+      "ok": false
+    }
+  }
+]

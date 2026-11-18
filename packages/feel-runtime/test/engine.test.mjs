@@ -419,6 +419,11 @@ test('real worker: the editor operations (syntax, complete, outline)', async (t)
   assert.deepEqual(outline.outline, { names: { 'Monthly Salary': null, order: { names: { lines: { items: { names: { price: null } } }, total: null } } } });
   const entries = await engine.complete('order.lines.', 12, { outline: outline.outline });
   assert.deepEqual(entries.items.map((i) => i.label), ['price']);
+  // with `types` the names that are no contexts have their types, and the editor shows them
+  const typed = await engine.outline({ context, types: true });
+  assert.deepEqual(typed.outline.names['Monthly Salary'], { type: 'number' });
+  const typedNames = await engine.complete('', 0, { outline: typed.outline });
+  assert.deepEqual(typedNames.items.filter((i) => i.kind === 'name').map((i) => [i.label, i.type]), [['Monthly Salary', 'number'], ['order', 'context']]);
   // a context and an outline together are refused before the module is asked
   const both = await engine.syntax('1', { context, outline: outline.outline });
   assert.deepEqual(both, { ok: false, error: { kind: 'request', message: "give 'context' or 'outline', not both" } });

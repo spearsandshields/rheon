@@ -21,19 +21,17 @@ use rheon_feel::{FeelType, IntervalType, Name};
 /// counts one. A text that is nested deeper is an error.
 pub const MAX_NESTING: usize = 640;
 
-/// The precedence levels of the operators, lowest first (the `%left`, `%right`, `%nonassoc`
-/// and `%precedence` lines of the grammar).
+/// The precedence levels of the operators, lowest first (grammar rules 2 and 4). The operators
+/// of a level are left associative.
 const LOWEST: u8 = 0;
 const OR: u8 = 1;
 const AND: u8 = 2;
+/// The comparisons of grammar rule 49: `=`, `!=`, `<`, `<=`, `>`, `>=`, `between` and `in`.
 const COMPARISON: u8 = 3;
-const BETWEEN: u8 = 4;
-const BETWEEN_AND: u8 = 5;
-const IN: u8 = 6;
-const ADDITION: u8 = 7;
-const MULTIPLICATION: u8 = 8;
-const EXPONENTIATION: u8 = 9;
-const NEGATION: u8 = 10;
+const ADDITION: u8 = 4;
+const MULTIPLICATION: u8 = 5;
+const EXPONENTIATION: u8 = 6;
+const NEGATION: u8 = 7;
 
 /// The kind of the token the parser looks at.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -535,7 +533,7 @@ fn wrap(lhs: &mut AstNode, node: impl FnOnce(Box<AstNode>) -> AstNode) {
 impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// Creates a new parser. The parser has no trace: `_trace` is kept for the callers of the
   /// table-driven parser that it replaced.
-  pub fn new(scope: &'parser ParsingScope<'scope>, start_token_type: TokenType, input: &'parser str, _trace: bool) -> Self {
+  pub fn new(scope: &'parser ParsingScope<'scope>, start_token_type: TokenType, input: &'parser str) -> Self {
     Self {
       scope,
       input,
@@ -561,6 +559,15 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// Reads the text as a name that is being declared (see [crate::parse_name]).
   pub fn with_whole_names(mut self) -> Self {
     self.lexer.set_whole_names();
+    self
+  }
+
+  /// Reads every name of the text as a member of a value, as in the predicate of a filter: the
+  /// keys below the keys of the contexts in scope are names too. For the tests of the index of
+  /// those keys.
+  #[cfg(test)]
+  pub fn with_member_names(mut self) -> Self {
+    self.lexer.enter_filter();
     self
   }
 
@@ -639,25 +646,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       Some(TokenType::StartExpression) => self.expression(LOWEST)?,
       Some(TokenType::StartBoxedExpression) => self.start_boxed_expression()?,
       Some(TokenType::StartTextualExpression) => self.textual_expression()?,
-      Some(TokenType::StartTextualExpressions) => {
-        let mut items = vec![self.textual_expression()?];
-        while self.kind == T::Comma {
-          self.bump();
-          items.push(self.textual_expression()?);
-        }
-        AstNode::ExpressionList(items)
-      }
       Some(TokenType::StartUnaryTests) => self.start_unary_tests()?,
-      Some(TokenType::StartSimpleExpression) => self.simple_expression()?,
-      Some(TokenType::StartSimpleExpressions) => {
-        let mut items = vec![self.simple_expression()?];
-        while self.kind == T::Comma {
-          self.bump();
-          items.push(self.simple_expression()?);
-        }
-        AstNode::ExpressionList(items)
-      }
-      Some(TokenType::StartSimpleValue) => self.start_simple_value()?,
       Some(TokenType::StartRangeLiteral) => self.start_range_literal()?,
       _ => return self.error(),
     };
@@ -829,8 +818,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     };
     let message = match code {
       "unexpected" => format!("Unexpected {found}: an operator or the end of the expression is expected here."),
-      "comparison" => format!("Comparison operators cannot be chained: {found} follows a comparison. Use parentheses, or join two comparisons with `and`."),
-      _ if self.input.trim().is_empty() => "The expression is empty.".to_string(),
+      _ if self.input.chars().all(is_space) => "The expression is empty.".to_string(),
       _ if self.kind == T::Eof => format!("Expected {what}{after}, but the expression ends here."),
       _ => format!("Expected {what}{after}, found {found}."),
     };
@@ -961,35 +949,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     if self.made == Made::Boxed { self.error() } else { Ok(node) }
   }
 
-  /// A simple expression: an arithmetic expression, a simple literal or a qualified name.
-  fn simple_expression(&mut self) -> Result<AstNode> {
-    if self.look(At::Start)? == T::Name {
-      let name = self.name(At::Start)?;
-      return match self.look(At::AfterOperand)? {
-        T::Dot => self.qualified_name(name),
-        T::Eof | T::Comma => Ok(AstNode::QualifiedName(vec![AstNode::QualifiedNameSegment(name)])),
-        _ => {
-          self.enter()?;
-          let mut node = AstNode::Name(name);
-          self.made = Made::Textual;
-          self.infix(&mut node, 0, LOWEST, false)?;
-          self.nesting -= 1;
-          if matches!(self.made, Made::Arithmetic | Made::Negation) {
-            Ok(node)
-          } else {
-            self.error()
-          }
-        }
-      };
-    }
-    let node = self.expression(LOWEST)?;
-    if matches!(self.made, Made::Arithmetic | Made::Negation | Made::SimpleLiteral) {
-      Ok(node)
-    } else {
-      self.error()
-    }
-  }
-
   /// The segments of a qualified name after its first name, which a dot follows.
   fn qualified_name(&mut self, first: Name) -> Result<AstNode> {
     let mut segments = vec![AstNode::QualifiedNameSegment(first)];
@@ -999,23 +958,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       segments.push(AstNode::QualifiedNameSegment(self.name(At::Start)?));
     }
     Ok(AstNode::QualifiedName(segments))
-  }
-
-  /// A simple value: a qualified name or a simple literal.
-  fn start_simple_value(&mut self) -> Result<AstNode> {
-    match self.look(At::Start)? {
-      T::Name => {
-        let name = self.name(At::Start)?;
-        self.qualified_name(name)
-      }
-      T::Numeric | T::String | T::Boolean | T::At | T::NameDateTime => {
-        self.enter()?;
-        let node = self.operand()?;
-        self.nesting -= 1;
-        Ok(node)
-      }
-      _ => self.error(),
-    }
   }
 
   /// Unary tests: `-`, `not(` tests `)` or tests.
@@ -1161,8 +1103,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     if self.nesting > MAX_NESTING { Err(err_nested_too_deeply(MAX_NESTING)) } else { Ok(()) }
   }
 
-  /// An expression whose operators bind tighter than the level `level` (as tight, for a level
-  /// that is right associative).
+  /// An expression whose operators bind tighter than the level `level`.
   fn expression(&mut self, level: u8) -> Result<AstNode> {
     self.expression_until(level, false)
   }
@@ -1244,7 +1185,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           continue;
         }
         T::Between => {
-          if BETWEEN <= level {
+          if COMPARISON <= level {
             break;
           }
           self.between(lhs)?;
@@ -1252,8 +1193,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           continue;
         }
         T::In => {
-          // right associative
-          if IN < level {
+          if COMPARISON <= level {
             break;
           }
           self.comparison_in(lhs)?;
@@ -1275,15 +1215,9 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         T::Exp => (binary, operator_level) = (AstNode::Exp, EXPONENTIATION),
         _ => break,
       }
-      // the binary operators are left associative; a comparison takes no comparison as an operand
-      if operator_level < level {
+      // the binary operators are left associative
+      if operator_level <= level {
         break;
-      }
-      if operator_level == level {
-        if level != COMPARISON {
-          break;
-        }
-        self.unexpected("comparison", "")?;
       }
       self.binary(lhs, binary, operator_level)?;
       self.note(operator_name(operator_level), start);
@@ -1317,7 +1251,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   #[inline(never)]
   fn filter(&mut self, lhs: &mut AstNode) -> Result<()> {
     self.bump();
-    let filter = self.boxed_inner()?;
+    self.lexer.enter_filter();
+    let filter = self.boxed_inner();
+    self.lexer.leave_filter();
+    let filter = filter?;
     self.expect(T::RightBracket, At::AfterOperand)?;
     wrap(lhs, |lhs| AstNode::Filter(lhs, filter));
     self.made = Made::Textual;
@@ -1355,7 +1292,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.between = between;
     let middle = middle?;
     self.expect(T::BetweenAnd, At::AfterOperand)?;
-    let rhs = self.boxed(BETWEEN_AND)?;
+    let rhs = self.boxed(COMPARISON)?;
     wrap(lhs, |lhs| AstNode::Between(lhs, middle, rhs));
     self.made = Made::Textual;
     Ok(())
@@ -1393,11 +1330,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       // the operators after the operand in parentheses: an open expression, as the operand
       // without parentheses is
       self.enter()?;
-      self.infix(&mut first, start, IN, false)?;
+      self.infix(&mut first, start, COMPARISON, false)?;
       self.nesting -= 1;
       first
     } else {
-      self.expression(IN)?
+      self.expression(COMPARISON)?
     };
     let rhs = Box::new(rhs);
     wrap(lhs, |lhs| AstNode::In(lhs, rhs));
@@ -1527,12 +1464,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     Ok(AstNode::Neg(operand))
   }
 
-  /// A unary comparison: its operand takes the arithmetic and the `in` after it.
+  /// A unary comparison: its operand takes the arithmetic after it.
   #[inline(never)]
   fn unary_comparison(&mut self, unary: fn(Box<AstNode>) -> AstNode) -> Result<AstNode> {
     let start = self.token_start;
     self.bump();
-    let operand = self.boxed(IN)?;
+    let operand = self.boxed(COMPARISON)?;
     self.made = Made::Textual;
     self.note("UnaryTest", start);
     Ok(unary(operand))
@@ -1612,10 +1549,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     Ok(interval)
   }
 
-  /// An interval after the `]` that starts it. A `[` after its start endpoint is no filter, as
-  /// after an end endpoint.
+  /// An interval after the `]` that starts it. A `[` after its start endpoint is a filter: the
+  /// interval ends only after the `..` and the end endpoint.
   fn interval_after_right_bracket(&mut self, from: usize) -> Result<AstNode> {
-    let start = self.expression_until(LOWEST, true)?;
+    let start = self.expression_until(LOWEST, false)?;
     self.interval_end(start, IntervalType::Opened, from)
   }
 
@@ -1757,6 +1694,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let start = self.token_start;
     self.bump();
     self.lexer.push_to_scope();
+    // an entry can read an entry written after it: the keys of several tokens are names in scope
+    // before the entries are parsed
+    for key in crate::lexer::literal_keys(self.input, start) {
+      self.lexer.add_name_to_scope(key);
+    }
     let between = std::mem::replace(&mut self.between, false);
     let mut entries = vec![];
     if self.look(At::Start)? == T::RightBrace {
@@ -1777,8 +1719,18 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           }
         };
         self.expect(T::Colon, At::Start)?;
+        // a key that is a string in another form than FEEL reads a name is read by that name
+        let read_as = if rheon_feel::names::is_in_name_form(name.as_str()) {
+          name.clone()
+        } else {
+          Name::from(rheon_feel::names::name_form(name.as_str()))
+        };
+        // an entry does not read its own key (DMN 1.6 clause 10.3.2.6)
+        self.lexer.remove_name_from_scope(&read_as);
         let value = self.boxed(LOWEST)?;
-        self.lexer.add_parsed_name(name.clone());
+        // the key is a name for the entries after it, and a member name from here on
+        self.lexer.add_name_to_scope(read_as.clone());
+        self.lexer.add_parsed_name(read_as);
         entries.push(AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(name)), value));
         self.note("Entry", entry_start);
         match self.kind {
@@ -2056,8 +2008,8 @@ mod stack_tests {
       ("for", format!("{}x", "for x in [1] return ".repeat(n)), n),
       ("function", format!("{}1", "function(a) ".repeat(n)), n),
       ("filter", format!("{}1{}", "a[".repeat(n), "]".repeat(n)), n),
-      ("between", format!("{}1", "1 between 0 and ".repeat(n)), n),
-      ("in", format!("{}1", "1 in ".repeat(n)), n),
+      ("between", format!("{}1{}", "1 between ".repeat(n), " and 1".repeat(n)), n),
+      ("unary comparison", format!("{}1", "< ".repeat(n)), n),
     ];
     for (name, input, levels) in cases {
       let handle = std::thread::Builder::new()
@@ -2067,7 +2019,7 @@ mod stack_tests {
           let top = 0u8;
           let top = &top as *const u8 as usize;
           STACK_LOW.with(|low| low.set(usize::MAX));
-          let result = Parser::new(&scope, TokenType::StartExpression, &input, false).parse();
+          let result = Parser::new(&scope, TokenType::StartExpression, &input).parse();
           assert!(result.is_ok(), "{name}");
           let low = STACK_LOW.with(|low| low.get());
           println!("STACK {name}: {} bytes per level of {levels}", (top - low) / levels);

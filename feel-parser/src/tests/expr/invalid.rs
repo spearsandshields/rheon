@@ -6,7 +6,7 @@ use std::str::from_utf8;
 
 /// Utility function to shorten repeatable code in tests.
 fn te(input: &str, source: &str, message: &str) {
-  assert_eq!(Err(DsntkError::new(source, message)), Parser::new(&scope!(), StartExpression, input, false).parse())
+  assert_eq!(Err(DsntkError::new(source, message)), Parser::new(&scope!(), StartExpression, input).parse())
 }
 
 #[test]
@@ -105,13 +105,12 @@ fn _0012() {
 
 #[test]
 fn _0013() {
-  // Syntax errors that come from the lexer's reading of `in` after an iteration variable:
-  // - the lexer reads the keyword `in` only before white space, so in `x in[1]` the `in` is a
-  //   name and the iteration context has no `in`;
-  // - after the iteration variable `item`, the lexer stays in iteration-variable mode, so the
-  //   next name that starts with `in` is read as the keyword `in`: `in+1` in the return
-  //   expression, and `in` before the comma.
-  for input in ["for x in[1] return x", "for item in [1] return in+1", "for item in, x in [1] return 1"] {
+  // The word `in` is the keyword whatever follows it (DMN 1.6 clause 10.3.1.4), also after the
+  // iteration variable `item`, which is a name like any other.
+  for input in ["for x in[1] return x", "for item in[1] return item", "for item in(1..2) return item"] {
+    assert!(Parser::new(&scope!(), StartExpression, input).parse().is_ok(), "{input}");
+  }
+  for input in ["for item in [1] return in+1", "for i in [1] return in+1", "for item in, x in [1] return 1"] {
     te(input, "ParserError", &format!("syntax error: {input}"));
   }
 }
@@ -171,19 +170,9 @@ fn unclosed_string_or_block_comment_is_a_syntax_error() {
     "a /* never closed",
     "1 /*/",
   ] {
-    let starts = [
-      StartExpression,
-      StartTextualExpression,
-      StartTextualExpressions,
-      StartBoxedExpression,
-      StartUnaryTests,
-      StartSimpleExpression,
-      StartSimpleExpressions,
-      StartSimpleValue,
-      StartRangeLiteral,
-    ];
+    let starts = [StartExpression, StartTextualExpression, StartBoxedExpression, StartUnaryTests, StartRangeLiteral];
     for (rule, start) in starts.into_iter().enumerate() {
-      let message = match Parser::new(&scope, start, input, false).parse() {
+      let message = match Parser::new(&scope, start, input).parse() {
         Ok(node) => node.trace(),
         Err(reason) => reason.to_string(),
       };
@@ -197,7 +186,7 @@ fn unclosed_string_or_block_comment_is_a_syntax_error() {
 fn closed_strings_and_comments_are_read() {
   let scope = scope!();
   for input in ["1 + 2 \"closed\"", "1 \"never closed"] {
-    assert!(Parser::new(&scope, StartExpression, input, false).parse().is_err(), "{input}");
+    assert!(Parser::new(&scope, StartExpression, input).parse().is_err(), "{input}");
   }
   for input in [
     "1 /* closed */",
@@ -212,6 +201,6 @@ fn closed_strings_and_comments_are_read() {
     "1 /* \" */",
     "1 // \"",
   ] {
-    assert!(Parser::new(&scope, StartExpression, input, false).parse().is_ok(), "{input}");
+    assert!(Parser::new(&scope, StartExpression, input).parse().is_ok(), "{input}");
   }
 }

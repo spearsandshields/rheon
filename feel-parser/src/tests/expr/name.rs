@@ -133,13 +133,13 @@ fn _0007() {
 #[test]
 fn _0008() {
   let scope = rheon_feel::FeelScope::default();
-  assert!(crate::parse_name(&scope, "5Cards", false).is_err());
+  assert!(crate::parse_name(&scope, "5Cards").is_err());
 }
 
 #[test]
 fn _0009() {
   let scope = rheon_feel::FeelScope::default();
-  assert!(crate::parse_name(&scope, "123.45", false).is_err());
+  assert!(crate::parse_name(&scope, "123.45").is_err());
 }
 
 #[test]
@@ -246,7 +246,7 @@ fn tree(names: &[&str], input: &str) -> std::string::String {
   for name in names {
     scope.set_entry_name((*name).into());
   }
-  match Parser::new(&scope, StartExpression, input, false).parse() {
+  match Parser::new(&scope, StartExpression, input).parse() {
     Ok(node) => node.trace(),
     Err(reason) => format!("{reason}"),
   }
@@ -362,10 +362,91 @@ fn declared_name_is_the_whole_text() {
     ("  spaced   name ", "spaced name"),
     ("x", "x"),
   ] {
-    assert_eq!(name, crate::parse_name(&scope, text, false).unwrap().as_str(), "{text}");
+    assert_eq!(name, crate::parse_name(&scope, text).unwrap().as_str(), "{text}");
     assert_eq!(name, crate::parse_longest_name(text).unwrap().as_str(), "{text}");
   }
   for text in ["1", "a(b)", "a, b", "[a]", "\"a\"", "", "a = b"] {
-    assert!(crate::parse_name(&scope, text, false).is_err(), "{text}");
+    assert!(crate::parse_name(&scope, text).is_err(), "{text}");
+  }
+}
+
+/// DMN 1.6 clause 10.3.1.4: a name start is never a literal terminal symbol. A word that is a
+/// keyword is the keyword whatever character follows it; a longer word is a name.
+#[test]
+fn a_word_that_is_a_keyword_is_the_keyword_whatever_follows() {
+  let scope = scope!();
+  for name in ["x", "in-progress", "and/or", "if-flag", "iffy", "in1", "order", "format"] {
+    scope.set_entry_name(name.into());
+  }
+  let parse = |input: &str| Parser::new(&scope, StartExpression, input).parse();
+  for input in [
+    "x in[1]",
+    "x in(1, 2)",
+    "x in\"a\"",
+    "if(x)then(1)else(2)",
+    "if x then\"a\"else\"b\"",
+    "x and(x)",
+    "x or[x]",
+    "x between(1)and(2)",
+    "for x in[1] return(x)",
+    "some x in[1]satisfies(x)",
+    "every x in[1]satisfies(x)",
+    "x instance/**/of number",
+    // a longer word is a name
+    "iffy",
+    "in1",
+    "order",
+    "format + 1",
+  ] {
+    assert!(parse(input).is_ok(), "{input}");
+  }
+  // a name does not start with a keyword, also when it is in scope, a key or a parameter
+  for input in [
+    "in-progress",
+    "and/or",
+    "if-flag",
+    "{in: 1}",
+    "{if: 1}",
+    "{true: 1}",
+    "{null: 1}",
+    "x.in",
+    "x.and.y",
+    "x.or + 1",
+    "function(in) 1",
+    "f(in: 1)",
+  ] {
+    assert!(parse(input).is_err(), "{input}");
+  }
+  // a key that is a string is not a name
+  assert!(parse("{\"in\": 1}").is_ok());
+}
+
+/// The word `item` is a name like any other: a name that starts with it is read whole.
+#[test]
+fn a_name_that_starts_with_item_is_read_whole() {
+  let scope = scope!();
+  for name in ["item count", "item-id"] {
+    scope.set_entry_name(name.into());
+  }
+  let tree = |input: &str| match Parser::new(&scope, StartExpression, input).parse() {
+    Ok(node) => node.trace(),
+    Err(reason) => panic!("{input}: {reason}"),
+  };
+  assert!(tree("item count + 1").contains("`item count`"));
+  assert!(tree("item-id").contains("`item-id`"));
+  assert!(tree("[1, 2][item count > 1]").contains("`item count`"));
+  assert!(tree("{item x: 1}").contains("`item x`"));
+  assert!(tree("for item count in [1, 2] return item count").contains("`item count`"));
+  assert!(tree("function(item x) item x + 1").contains("`item x`"));
+  // alone it ends before an operator, a keyword or a bracket as any name that is not in scope
+  for input in [
+    "[1, 2][item > 1]",
+    "[1, 2][item in [1]]",
+    "[1, 2][item-1 = 0]",
+    "[[1]][item[1] = 1]",
+    "[1, 2][item.a = 1]",
+    "[1, 2][item instance of number]",
+  ] {
+    assert!(tree(input).contains("`item`"), "{input}");
   }
 }

@@ -1,0 +1,498 @@
+[
+  {
+    "request": {
+      "op": "complete",
+      "expression": "sub",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "completion knows the built-in functions (FORK.md item 254): the items of functions have detail, info and type, parameter names are offered, and inside an invocation the answer has call",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "sublist(list, start position, length?): list",
+          "from": 0,
+          "info": "The items from a position, as many as the length says or all that follow.",
+          "kind": "function",
+          "label": "sublist",
+          "type": "list"
+        },
+        {
+          "detail": "substring(string, start position, length?): string",
+          "from": 0,
+          "info": "The characters from a position, as many as the length says or all that follow.",
+          "kind": "function",
+          "label": "substring",
+          "type": "string"
+        },
+        {
+          "detail": "substring after(string, match): string",
+          "from": 0,
+          "info": "The part of the string after the first match.",
+          "kind": "function",
+          "label": "substring after",
+          "type": "string"
+        },
+        {
+          "detail": "substring before(string, match): string",
+          "from": 0,
+          "info": "The part of the string before the first match.",
+          "kind": "function",
+          "label": "substring before",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "substring(string: \"abc\", ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "completion knows the built-in functions (FORK.md item 254): the items of functions have detail, info and type, parameter names are offered, and inside an invocation the answer has call",
+    "old": {
+      "expects": "name",
+      "items": [],
+      "ok": true,
+      "to": 25,
+      "truncated": false
+    },
+    "new": {
+      "call": {
+        "argument": 1,
+        "function": "substring",
+        "named": [
+          "string"
+        ],
+        "signatures": [
+          {
+            "named": true,
+            "parameters": [
+              {
+                "name": "string",
+                "optional": false,
+                "rest": false,
+                "type": "string"
+              },
+              {
+                "name": "start position",
+                "optional": false,
+                "rest": false,
+                "type": "number"
+              },
+              {
+                "name": "length",
+                "optional": true,
+                "rest": false,
+                "type": "number"
+              }
+            ],
+            "result": "string",
+            "text": "substring(string, start position, length?): string"
+          }
+        ],
+        "summary": "The characters from a position, as many as the length says or all that follow."
+      },
+      "expects": "parameter",
+      "items": [
+        {
+          "detail": null,
+          "from": 25,
+          "insert": "length: ",
+          "kind": "parameter",
+          "label": "length",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 25,
+          "insert": "start position: ",
+          "kind": "parameter",
+          "label": "start position",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 25,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "not",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "completion knows the built-in functions (FORK.md item 254): the items of functions have detail, info and type, parameter names are offered, and inside an invocation the answer has call",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "not(negand): boolean",
+          "from": 0,
+          "info": "The negation of a boolean.",
+          "kind": "function",
+          "label": "not",
+          "type": "boolean"
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "da",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "completion knows the built-in functions (FORK.md item 254): the items of functions have detail, info and type, parameter names are offered, and inside an invocation the answer has call",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 2,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "date(from): date",
+          "from": 0,
+          "info": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "from": 0,
+          "info": "A date and time from its text, or from a date and a time.",
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "from": 0,
+          "info": "The name of the day of the week.",
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "from": 0,
+          "info": "The number of the day in its year.",
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 2,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "sum(items) + cou",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "completion knows the built-in functions (FORK.md item 254): the items of functions have detail, info and type, parameter names are offered, and inside an invocation the answer has call",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 16,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "count(list): number",
+          "from": 13,
+          "info": "The number of items.",
+          "kind": "function",
+          "label": "count",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 16,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "string l",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "completion knows the built-in functions (FORK.md item 254): the items of functions have detail, info and type, parameter names are offered, and inside an invocation the answer has call",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 8,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "string length(string): number",
+          "from": 0,
+          "info": "The number of characters.",
+          "kind": "function",
+          "label": "string length",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 8,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "// note ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "sha256": "8a0abeff2b3e428ace4725293426699ed79145c38ccd6a52505feff84d3c0a0b"
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 8,
+      "truncated": false
+    }
+  }
+]

@@ -131,10 +131,13 @@ export interface ParseOptions {
 
 /**
  * The names of a context without its values (`outline`): null for a name without entries, the
- * names of a context, or the outline of the items of a list. The editor operations take it in
- * place of the context, so an editor does not send the values with every keystroke.
+ * names of a context, or the outline of the items of a list. A name that is no context can
+ * have its FEEL type (`{ type: "number" }`, `{ type: "list<string>" }`): `outline` writes the
+ * types when asked (`types: true`), and a consumer that knows them can write them. The editor
+ * operations take an outline in place of the context, so an editor does not send the values
+ * with every keystroke.
  */
-export type Outline = null | { names: Record<string, Outline> } | { items: Outline };
+export type Outline = null | { type: string } | { names: Record<string, Outline> } | { items: Outline };
 
 /** What the editor operations (`syntax`, `complete`) know about the names in scope: a context or its outline, not both. */
 export interface EditorOptions {
@@ -183,17 +186,52 @@ export type SyntaxResponse =
 /** An item of `complete`: accepted, its `label` replaces the text from `from` to the answer's `to`. */
 export interface CompletionItem {
   label: string;
-  kind: 'name' | 'entry' | 'keyword' | 'function' | 'type';
+  kind: 'parameter' | 'name' | 'entry' | 'keyword' | 'function' | 'type';
   from: number;
-  /** The FEEL type of the item when the engine knows it (not yet: always null). */
+  /** The FEEL type of the item when the engine knows it: of a parameter, and of the result of a built-in function. */
   type: string | null;
-  /** More about the item, such as the signature of a function (not yet: always null). */
+  /** More about the item: the first signature of a built-in function. */
   detail: string | null;
+  /** One line that says what a built-in function gives. */
+  info?: string;
+  /** The text to insert when it is not the label: a parameter with its colon. */
+  insert?: string;
+}
+
+/** A parameter of a signature of a built-in function. */
+export interface SignatureParameter {
+  name: string;
+  /** The FEEL type, as text. */
+  type: string;
+  optional: boolean;
+  /** Stands for any number of arguments, one or more. */
+  rest: boolean;
+}
+
+/** One way to invoke a built-in function. */
+export interface FunctionSignature {
+  /** `substring(string, start position, length?): string` */
+  text: string;
+  parameters: SignatureParameter[];
+  result: string;
+  /** Whether the parameters can be given by name. */
+  named: boolean;
+}
+
+/** The invocation of a built-in function that the cursor stands in. */
+export interface CompletionCall {
+  function: string;
+  summary: string;
+  /** The index of the argument that the cursor is in. */
+  argument: number;
+  /** The names of the named parameters given before that argument. */
+  named: string[];
+  signatures: FunctionSignature[];
 }
 
 /** The answer of `complete`: what can stand at the cursor (`to`), and what the grammar takes there (`expects`). */
 export type CompleteResponse =
-  | { ok: true; to: number; expects: string; items: CompletionItem[]; truncated: boolean; elapsedMicros: number }
+  | { ok: true; to: number; expects: string; items: CompletionItem[]; truncated: boolean; call?: CompletionCall; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 /**

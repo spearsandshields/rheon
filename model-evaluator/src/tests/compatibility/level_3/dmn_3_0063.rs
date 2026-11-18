@@ -101,7 +101,14 @@ fn _0009() {
 #[test]
 fn _0010() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision012", &ctx, r#"null(parameter 'list' not found)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision012",
+    &ctx,
+    r#"null([core::stddev] invalid argument type, expected list, actual type is Null)"#,
+  );
 }
 
 #[test]

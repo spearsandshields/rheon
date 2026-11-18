@@ -50,7 +50,7 @@ impl QualifiedName {
 impl From<Name> for QualifiedName {
   /// Converts a name into qualified name.
   fn from(value: Name) -> Self {
-    Self(value.to_string().split('.').map(Name::from).collect())
+    Self(value.as_str().split('.').map(Name::from).collect())
   }
 }
 
@@ -59,7 +59,7 @@ impl From<Vec<Name>> for QualifiedName {
   fn from(value: Vec<Name>) -> Self {
     let mut names = vec![];
     for name in value {
-      let mut sub_names = name.to_string().split('.').map(Name::from).collect::<Vec<Name>>();
+      let mut sub_names = name.as_str().split('.').map(Name::from).collect::<Vec<Name>>();
       names.append(&mut sub_names);
     }
     Self(names)

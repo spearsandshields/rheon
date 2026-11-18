@@ -47,7 +47,7 @@ TIMEOUT = killed at the cap.
 | H2 | `substring("abc", 5000000000)` | `""` | THROWS `StringIndexOutOfBoundsException` (32-bit truncation) | `null` + reason |
 | H3 | `substring("abc", 2, 4294967298)` | `"bc"` | `"bc"` | `null` + reason |
 | I1 | unary `> 5`, input 7 | `true` | `true` | `true` |
-| I2 | unary `? > 5`, input 7 | `true` | `true` | `false` (compares the boolean with the input) |
+| I2 | unary `? > 5`, input 7 | `true` | `true` | `true` (since 0.9.0; before, `false`) |
 | I3 | unary `[18..65)`, input 42 | `true` | `true` | `true` |
 | J1 | `date("2026-13-45")` | `null` + warning | `null` | `null` + reason |
 | J2 | `duration("P1Y") + duration("P1D")` | `null` + warning | `null` + warning | `null` + reason |
@@ -95,5 +95,4 @@ TIMEOUT = killed at the cap.
   `round up(5.5, 6176)` is `5.5` and `decimal(1e33, 1)` (B4) is `1e33` instead of null, since a
   value with no digit below the requested scale is returned unchanged. `matches` supports
   back-references (`(a)\1`, fancy-regex), with a backtracking limit instead of a hang.
-- Open: `? > 5` semantics (upstream PR #112 has a fix), arithmetic in unary-test endpoints needs
-  parentheses (`> (0.1 + 0.2)`, upstream grammar precedence), and a zoned `now()` (proposed).
+- Open: a zoned `now()` (proposed).

@@ -58,7 +58,7 @@ pub(super) fn agree_in(dialect: Dialect, input: &str, text: &str) {
 /// [agree_in] with the scope `scope`.
 #[track_caller]
 pub(super) fn agree_text(dialect: Dialect, scope: &FeelScope, text: &str) {
-  let node = rheon_feel_parser::parse_expression(scope, text, false).unwrap_or_else(|e| panic!("{text}: {e}"));
+  let node = rheon_feel_parser::parse_expression(scope, text).unwrap_or_else(|e| panic!("{text}: {e}"));
   agree_case(dialect, scope, &node, &format!("{text:?}"));
 }
 

@@ -39,7 +39,7 @@ fn host() -> FeelScope {
   let mut input = FeelContext::default();
   input.set_entry(&Name::from("see"), see());
   let scope = FeelScope::from(input);
-  let node = rheon_feel_parser::parse_expression(&scope, "function(y) see(y)", false).expect("the definition parses");
+  let node = rheon_feel_parser::parse_expression(&scope, "function(y) see(y)").expect("the definition parses");
   let f = crate::evaluate(&scope, &node).into_result().expect("the definition evaluates");
   scope.set_value(&Name::from("f"), f);
   scope

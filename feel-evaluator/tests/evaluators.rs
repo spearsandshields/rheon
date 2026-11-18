@@ -142,11 +142,11 @@ fn a_runaway_request_body_leaves_nothing_for_the_next() {
 fn evaluate_reports_an_abort() {
   with_big_stack(|| {
     let scope = scope!();
-    let runaway = rheon_feel_parser::parse_textual_expression(&scope, "{f: function(n) f(n + 1), r: f(1)}.r", false).unwrap();
+    let runaway = rheon_feel_parser::parse_expression(&scope, "{f: function(n) f(n + 1), r: f(1)}.r").unwrap();
     let abort = evaluate(&scope, &runaway).into_result().unwrap_err();
     assert!(matches!(abort, rheon_feel::diagnostics::Abort::CallDepth { limit: 200, .. }));
     assert_eq!(CALL_DEPTH, abort.to_string());
-    let next = rheon_feel_parser::parse_textual_expression(&scope, "abs(-1)", false).unwrap();
+    let next = rheon_feel_parser::parse_expression(&scope, "abs(-1)").unwrap();
     assert_eq!("1", evaluate(&scope, &next).into_result().unwrap().to_string());
   });
 }
@@ -155,7 +155,7 @@ fn evaluate_reports_an_abort() {
 fn nested_sessions_share_one_abort() {
   with_big_stack(|| {
     let scope = scope!();
-    let runaway = prepare(&rheon_feel_parser::parse_textual_expression(&scope, "{f: function(n) f(n + 1), r: f(1)}.r", false).unwrap());
+    let runaway = prepare(&rheon_feel_parser::parse_expression(&scope, "{f: function(n) f(n + 1), r: f(1)}.r").unwrap());
     let outer = Session::new().run(|| Session::new().run(|| runaway(&scope)).into_result().is_err());
     assert!(matches!(outer.into_result(), Err(rheon_feel::diagnostics::Abort::CallDepth { .. })));
     // a session started afterwards is clean
@@ -167,7 +167,7 @@ fn nested_sessions_share_one_abort() {
 /// after the abort included.
 fn abort_and_errors(text: &str) -> (Option<rheon_feel::diagnostics::Abort>, usize) {
   let scope = scope!();
-  let evaluator = prepare(&rheon_feel_parser::parse_expression(&scope, text, false).unwrap());
+  let evaluator = prepare(&rheon_feel_parser::parse_expression(&scope, text).unwrap());
   let (outcome, diagnostics) = rheon_feel::diagnostics::collect(|| Session::new().run(|| evaluator(&scope)).into_result());
   (outcome.err(), diagnostics.count)
 }

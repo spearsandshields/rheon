@@ -390,8 +390,8 @@ fn prepare_scope(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, w
 
 fn parse_node(scope: &FeelScope, dialect: Dialect, expression: &str) -> Result<AstNode, Failure> {
   let parsed = match dialect {
-    Dialect::Expression => rheon_feel_parser::parse_expression(scope, expression, false),
-    Dialect::UnaryTests => rheon_feel_parser::parse_unary_tests(scope, expression, false),
+    Dialect::Expression => rheon_feel_parser::parse_expression(scope, expression),
+    Dialect::UnaryTests => rheon_feel_parser::parse_unary_tests(scope, expression),
   };
   // the message is the parser's; where and what the errors are comes from the tolerant parse
   let node = parsed.map_err(|e| {
@@ -421,50 +421,6 @@ pub(crate) fn check_ast_depth(node: &AstNode) -> Result<(), String> {
     return Err(format!("expression is nested too deeply ({depth} levels, the limit is {MAX_AST_DEPTH})"));
   }
   Ok(())
-}
-
-/// Warns about unary tests that are boolean expressions using `?` (e.g. `? > 5`): dsntk compares
-/// the input with such a test's boolean result instead of treating it as satisfied when true.
-fn boolean_unary_test_warnings(node: &AstNode, warnings: &mut Vec<String>) {
-  let tests: &[AstNode] = match node {
-    AstNode::ExpressionList(items) | AstNode::NegatedList(items) => items,
-    _ => return,
-  };
-  for (i, test) in tests.iter().enumerate() {
-    let boolean_root = match test {
-      AstNode::Eq(..)
-      | AstNode::Nq(..)
-      | AstNode::Lt(..)
-      | AstNode::Le(..)
-      | AstNode::Gt(..)
-      | AstNode::Ge(..)
-      | AstNode::And(..)
-      | AstNode::Or(..)
-      | AstNode::Between(..)
-      | AstNode::In(..)
-      | AstNode::InstanceOf(..) => true,
-      AstNode::FunctionInvocation(callee, _) => matches!(callee.as_ref(), AstNode::Name(name) if name.as_str() == "not"),
-      _ => false,
-    };
-    if boolean_root && uses_question_mark(test) {
-      warnings.push(format!(
-        "unary test #{} is a boolean expression using '?': dsntk compares the input with its result (input = true/false) \
-         instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'",
-        i + 1
-      ));
-    }
-  }
-}
-
-fn uses_question_mark(node: &AstNode) -> bool {
-  let mut stack = vec![node];
-  while let Some(node) = stack.pop() {
-    if matches!(node, AstNode::Name(name) if name.as_str() == "?") {
-      return true;
-    }
-    node.for_each_child(|child| stack.push(child));
-  }
-  false
 }
 
 /// Evaluates the request and returns the text of its response: the result is written straight
@@ -641,10 +597,7 @@ fn evaluated(
 ) -> Result<String, Failure> {
   let node = match dialect {
     Dialect::Expression => node,
-    Dialect::UnaryTests => {
-      boolean_unary_test_warnings(&node, &mut warnings);
-      AstNode::In(Box::new(AstNode::Name(question_mark())), Box::new(node))
-    }
+    Dialect::UnaryTests => AstNode::In(Box::new(AstNode::Name(question_mark())), Box::new(node)),
   };
   let evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, language);
   // an evaluation stopped by an implementation limit has no result, only the abort

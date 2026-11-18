@@ -159,6 +159,9 @@ impl<'a> Ty<'a> {
       },
       Ty::Of(value) => match value {
         Value::List(items) => Shape::List(Items::Of(items)),
+        // an undefined endpoint has the type of the other one
+        Value::Range(_, start_type, end, _) if start_type.undefined() => Shape::Range(Ends::Of(end, end)),
+        Value::Range(start, _, _, end_type) if end_type.undefined() => Shape::Range(Ends::Of(start, start)),
         Value::Range(start, _, end, _) => Shape::Range(Ends::Of(start, end)),
         Value::Context(ctx) => Shape::Context(Entries::Of(ctx)),
         Value::FunctionDefinition(function) => Shape::Function(Cow::Owned(FeelType::Function(
@@ -166,14 +169,12 @@ impl<'a> Ty<'a> {
           Box::new(function.result_type().clone()),
         ))),
         Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => Ty::Is(feel_type).shape(),
-        Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => Ty::Of(value).shape(),
-        Value::Boolean(_)
-        | Value::UnaryGreater(_)
-        | Value::UnaryGreaterOrEqual(_)
-        | Value::UnaryLess(_)
-        | Value::UnaryLessOrEqual(_)
-        | Value::UnaryEqual(_)
-        | Value::UnaryNotEqual(_) => Shape::Leaf(BOOLEAN),
+        Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::TestAnswer(value) => Ty::Of(value).shape(),
+        // a comparison with one endpoint is a range of the type of that endpoint
+        Value::UnaryGreater(end) | Value::UnaryGreaterOrEqual(end) | Value::UnaryLess(end) | Value::UnaryLessOrEqual(end) | Value::UnaryEqual(end) | Value::UnaryNotEqual(end) => {
+          Shape::Range(Ends::Of(end, end))
+        }
+        Value::Boolean(_) => Shape::Leaf(BOOLEAN),
         Value::Date(_) => Shape::Leaf(DATE),
         Value::DateTime(_) => Shape::Leaf(DATE_TIME),
         Value::DaysAndTimeDuration(_) => Shape::Leaf(DAYS_AND_TIME_DURATION),
@@ -436,10 +437,20 @@ impl Conformance {
       Value::DateTime(_) => matches!(target, FeelType::DateTime),
       Value::DaysAndTimeDuration(_) => matches!(target, FeelType::DaysAndTimeDuration),
       Value::YearsAndMonthsDuration(_) => matches!(target, FeelType::YearsAndMonthsDuration),
-      Value::Range(start, _, end, _) => match target {
+      Value::Range(start, start_type, end, end_type) => match target {
+        // an undefined endpoint has the type of the other one
+        FeelType::Range(ends) if start_type.undefined() => self.check(end, ends),
+        FeelType::Range(ends) if end_type.undefined() => self.check(start, ends),
         FeelType::Range(ends) => self.check(start, ends) && self.check(end, ends),
         _ => false,
       },
+      // a comparison with one endpoint is a range
+      Value::UnaryGreater(end) | Value::UnaryGreaterOrEqual(end) | Value::UnaryLess(end) | Value::UnaryLessOrEqual(end) | Value::UnaryEqual(end) | Value::UnaryNotEqual(end) => {
+        match target {
+          FeelType::Range(ends) => self.check(end, ends),
+          _ => false,
+        }
+      }
       Value::List(items) => match target {
         FeelType::List(item_type) => items.iter().all(|item| self.check(item, item_type)),
         _ => false,

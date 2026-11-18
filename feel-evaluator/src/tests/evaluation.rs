@@ -12,7 +12,7 @@ fn with_big_stack(f: impl FnOnce() + Send + 'static) {
 }
 
 fn prepared(text: &str) -> Evaluator {
-  prepare(&rheon_feel_parser::parse_textual_expression(&FeelScope::default(), text, false).unwrap())
+  prepare(&rheon_feel_parser::parse_expression(&FeelScope::default(), text).unwrap())
 }
 
 #[test]

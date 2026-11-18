@@ -23,6 +23,7 @@
 //! in the shapes that bind them; any other shape is kept as it is, unbound, for the lowering to
 //! give its error or to find the tree malformed.
 
+use super::depends;
 use rheon_feel::Name;
 use rheon_feel::closure::Closure;
 use rheon_feel_parser::{AstNode, ClosureBuilder};
@@ -62,6 +63,9 @@ pub(crate) struct Resolved<'a> {
   /// entries: the functions written in such a literal see all its entries (DMN 1.6
   /// §10.3.2.11.1), so its evaluation keeps them in a home.
   pub(crate) homes: BTreeSet<u32>,
+  /// The entries of context literals that need their own value through other entries (the
+  /// nodes of the entries): they have no value.
+  pub(crate) circular: BTreeSet<u32>,
 }
 
 /// A node of the parser's tree with what the pass decided for it.
@@ -150,6 +154,12 @@ pub(crate) struct Layout {
   pub(crate) entries: Box<[(u32, Place)]>,
   /// The entries sorted by name, then by position.
   by_name: Box<[u32]>,
+  /// Whether a key of a context literal is written in another form than FEEL reads a name (a
+  /// key that is a string): its context says so ([rheon_feel::context::FeelContext::note_key_forms]).
+  pub(crate) other_forms: bool,
+  /// For each key of a context literal that is written in another form: the name it is (in
+  /// the form FEEL reads a name), and the index of its entry. A name finds the entry by it.
+  pub(crate) aliases: Box<[(u32, u32)]>,
   /// A name that the regions which do not see every entry do not see at all: `partial` in a
   /// `for`, which the walk removes before every later domain, a variable of that name included.
   hidden: u32,
@@ -172,6 +182,8 @@ impl Layout {
       kind,
       entries: entries.into(),
       by_name: by_name.into(),
+      other_forms: false,
+      aliases: Box::new([]),
       hidden,
     }
   }
@@ -191,7 +203,15 @@ impl Layout {
     }
     let start = self.by_name.partition_point(|&index| self.entries[index as usize].0 < name);
     let end = start + self.by_name[start..].partition_point(|&index| self.entries[index as usize].0 == name && index < visible);
-    (end > start).then(|| self.entries[self.by_name[end - 1] as usize].1)
+    if end > start {
+      return Some(self.entries[self.by_name[end - 1] as usize].1);
+    }
+    // a key that is written in another form than the name
+    self
+      .aliases
+      .iter()
+      .find(|&&(alias, index)| alias == name && index < visible)
+      .map(|&(_, index)| self.entries[index as usize].1)
   }
 }
 
@@ -290,6 +310,7 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
       },
       functions: vec![],
       homes: BTreeSet::new(),
+      circular: BTreeSet::new(),
       frees: vec![],
     },
     interned: HashMap::new(),
@@ -344,6 +365,16 @@ struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
+  /// The index of a name that is not written in the tree.
+  fn owned_name(&mut self, name: Name) -> u32 {
+    let known = if self.interned.is_empty() {
+      self.out.names.iter().position(|known| **known == name).map(|index| index as u32)
+    } else {
+      self.interned.get(&name).copied()
+    };
+    known.unwrap_or_else(|| self.add_name(Cow::Owned(name)))
+  }
+
   fn name(&mut self, name: &'a Name) -> u32 {
     if Borrow::<str>::borrow(name) == PARTIAL {
       return self.partial();
@@ -641,11 +672,14 @@ impl<'a> Resolver<'a> {
     }
   }
 
-  /// A context literal: an entry's key is seen by the entries after it, not by its own value.
+  /// A context literal: its entries are evaluated in the order they need each other
+  /// ([depends::order]), and the layout binds them in that order, so an entry sees the entries
+  /// evaluated before it: those it reads, never its own key. The children are the entries in
+  /// that order, and after them those from an entry on that ends the literal.
   fn context(&mut self, ast: &'a AstNode, entries: &'a [AstNode]) -> u32 {
     let mark = self.body.next;
     let mut seen = BTreeSet::new();
-    let mut bound = vec![];
+    let mut names = vec![];
     let mut stop = Stop::None;
     for (index, entry) in entries.iter().enumerate() {
       let AstNode::ContextEntry(key, _) = entry else {
@@ -661,22 +695,43 @@ impl<'a> Resolver<'a> {
         stop = Stop::Duplicate(index as u32);
         break;
       }
-      let slot = self.slot();
-      bound.push((name, Place::Slot(slot)));
+      names.push(name);
     }
+    let (order, circular) = depends::order(entries, names.len());
+    let bound: Vec<(u32, Place)> = order.iter().map(|&index| (names[index], Place::Slot(self.slot()))).collect();
     let count = bound.len() as u32;
     let layout = self.layout(LayoutKind::Context, bound, NONE);
+    let aliases: Vec<(u32, u32)> = order
+      .iter()
+      .enumerate()
+      .filter_map(|(position, &index)| {
+        let key = self.out.names[names[index] as usize].as_str();
+        (!rheon_feel::names::is_in_name_form(key))
+          .then(|| rheon_feel::names::name_form(key))
+          .map(|form| (form, position as u32))
+      })
+      .collect::<Vec<_>>()
+      .into_iter()
+      .map(|(form, position)| (self.owned_name(Name::from(form)), position))
+      .collect();
+    self.out.layouts[layout as usize].other_forms = !aliases.is_empty();
+    self.out.layouts[layout as usize].aliases = aliases.into();
     let outer = self.body.region;
     let mut kids = Vec::with_capacity(entries.len());
     let mut region = NONE;
     let functions = self.out.functions.len();
-    for (index, entry) in entries.iter().enumerate() {
-      let visible = (index as u32).min(count);
-      if visible == index as u32 || region == NONE {
+    let rest = &entries[order.len()..];
+    for (position, entry) in order.iter().map(|&index| &entries[index]).chain(rest).enumerate() {
+      let visible = (position as u32).min(count);
+      if visible == position as u32 || region == NONE {
         region = self.region(outer, RegionKind::Layout { layout, visible });
       }
       self.body.region = region;
-      kids.push(self.node(entry));
+      let kid = self.node(entry);
+      if circular.get(position).copied().unwrap_or(false) {
+        self.out.circular.insert(kid);
+      }
+      kids.push(kid);
     }
     if self.out.functions.len() > functions {
       self.out.homes.insert(layout);

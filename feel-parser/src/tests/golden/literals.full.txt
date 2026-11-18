@@ -1,2 +1,2 @@
-# literals: 702 cases at full size, one digest of all
-126670a1e16d57eb
+# literals: 390 cases at full size, one digest of all
+5cc63f5024b24ca8

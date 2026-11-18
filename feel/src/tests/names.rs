@@ -210,3 +210,106 @@ fn test_compare() {
   assert!((name_xy > name_mn));
   assert!((name_xy >= name_a));
 }
+
+/// A name is a list of tokens (DMN 1.6 clause 10.3.1.4): the white space between them does not
+/// matter, and FEEL reads a name in one form.
+#[test]
+fn a_text_in_another_form_is_the_same_name() {
+  use crate::names::{is_in_name_form, is_name, name_form};
+  for text in ["a", "a b", "Date-Time", "a+b", "that's it", "a.b/c*d", "", "x1 y2", "Grace's age", "é ü"] {
+    assert!(is_in_name_form(text), "{text:?}");
+    assert_eq!(text, name_form(text), "{text:?}");
+    assert!(is_name(text, text), "{text:?}");
+  }
+  for (text, form) in [
+    ("Date - Time", "Date-Time"),
+    ("Date -Time", "Date-Time"),
+    ("Date- Time", "Date-Time"),
+    ("a  b", "a b"),
+    ("a\tb", "a b"),
+    ("a\u{00A0}b", "a b"),
+    ("a\u{1680}b", "a b"),
+    ("a\u{FEFF}b", "a b"),
+    (" a b ", "a b"),
+    ("Profit / Loss", "Profit/Loss"),
+    ("That 's  it", "That's it"),
+    ("a + + b", "a++b"),
+    ("a . b", "a.b"),
+    ("  ", ""),
+  ] {
+    assert!(!is_in_name_form(text), "{text:?}");
+    assert_eq!(form, name_form(text), "{text:?}");
+    assert!(is_name(text, form), "{text:?}");
+    assert!(is_name(form, form), "{text:?}");
+    assert!(!is_name(text, text) || text.trim().is_empty(), "{text:?}");
+  }
+  // other names
+  for (text, name) in [
+    ("Date - Time", "Date Time"),
+    ("a b", "ab"),
+    ("ab", "a b"),
+    ("a b c", "a b"),
+    ("a b", "a b c"),
+    ("a-b", "a b"),
+    ("a", ""),
+    ("", "a"),
+  ] {
+    assert!(!is_name(text, name), "{text:?} {name:?}");
+  }
+}
+
+/// A context whose keys come from outside FEEL finds an entry by the name its key is; the keys
+/// stay as they are, and a context that does not say so finds by the text only.
+#[test]
+fn a_context_with_keys_in_other_forms_finds_an_entry_by_its_name() {
+  use crate::context::FeelContext;
+  use crate::values::Value;
+  let entries = || {
+    [
+      (Name::from("Date - Time"), Value::Boolean(true)),
+      (Name::from("a  b"), Value::Boolean(false)),
+      (Name::from("plain"), Value::Null(None)),
+    ]
+  };
+  let exact: FeelContext = entries().into_iter().collect();
+  assert!(!exact.has_other_key_forms());
+  assert!(exact.get_entry(&Name::from("Date-Time")).is_none());
+  assert!(exact.contains_entry("Date - Time"));
+  let mut noted: FeelContext = entries().into_iter().collect();
+  noted.note_key_forms();
+  assert!(noted.has_other_key_forms());
+  assert_eq!(Some(&Value::Boolean(true)), noted.get_entry(&Name::from("Date-Time")));
+  assert_eq!(Some(&Value::Boolean(true)), noted.get_entry(&Name::from("Date - Time")));
+  assert_eq!(Some(&Value::Boolean(false)), noted.get_entry(&Name::from("a b")));
+  assert!(noted.contains_entry("a b") && noted.contains_entry("plain") && !noted.contains_entry("a c"));
+  // the keys are unchanged, a clone keeps what was said, and equality is that of the entries
+  assert_eq!(vec!["Date - Time", "a  b", "plain"], noted.iter().map(|(name, _)| name.as_str()).collect::<Vec<_>>());
+  assert!(noted.clone().has_other_key_forms());
+  assert_eq!(exact, noted);
+  // a context whose keys are all in the form of a name has nothing to search
+  let mut plain: FeelContext = [(Name::from("a b"), Value::Null(None))].into_iter().collect();
+  plain.note_key_forms();
+  assert!(!plain.has_other_key_forms());
+}
+
+/// A name has no white space of FEEL at its ends (DMN 1.6 grammar rules 61 and 62): the three
+/// characters that Rust's `trim` leaves (U+180E, U+200B, U+FEFF) are white space as the others.
+#[test]
+fn a_name_has_no_white_space_of_feel_at_its_ends() {
+  use crate::names::trim;
+  for space in [
+    '\u{0009}', '\u{000A}', '\u{000D}', '\u{0020}', '\u{0085}', '\u{00A0}', '\u{1680}', '\u{180E}', '\u{2000}', '\u{200B}', '\u{2028}', '\u{2029}', '\u{202F}', '\u{205F}',
+    '\u{3000}', '\u{FEFF}',
+  ] {
+    let text = format!("{space}a b{space}{space}");
+    assert_eq!("a b", trim(&text), "U+{:04X}", space as u32);
+    assert_eq!("a b", Name::from(text.as_str()).as_str(), "U+{:04X}", space as u32);
+    assert_eq!("a b", Name::from(text.clone()).as_str(), "U+{:04X}", space as u32);
+    assert_eq!("a b", Name::from(vec![text.as_str()]).as_str(), "U+{:04X}", space as u32);
+    assert_eq!("", trim(&space.to_string()));
+  }
+  // what is no white space stays: a zero width joiner, a word joiner, and text without spaces
+  for text in ["\u{200D}a", "a\u{2060}", "a", "", "é", "a b"] {
+    assert_eq!(text, trim(text));
+  }
+}

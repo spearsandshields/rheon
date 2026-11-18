@@ -46,143 +46,66 @@ pub(crate) fn not_equal(lhs: &Value, rhs: &Value) -> Value {
   }
 }
 
-/// FEEL `lhv < rhv` on two values of one ordered kind; otherwise null with an error.
-pub(crate) fn compare_lt(lhv: Value, rhv: Value) -> Value {
-  match lhv {
-    Value::Number(lh) => match rhv {
-      Value::Number(rh) => Value::Boolean(lh < rh),
-      _ => value_null!("eval_less_then_number"),
-    },
-    Value::String(lh) => match rhv {
-      Value::String(rh) => Value::Boolean(lh < rh),
-      _ => value_null!("eval_less_then_string"),
-    },
-    Value::Date(lh) => match rhv {
-      Value::Date(rh) => Value::Boolean(lh < rh),
-      _ => value_null!("eval_less_then_date"),
-    },
-    Value::DateTime(lh) => match rhv {
-      Value::DateTime(rh) => Value::Boolean(lh < rh),
-      _ => value_null!("eval_less_then_date_time"),
-    },
-    Value::Time(lh) => match rhv {
-      Value::Time(rh) => Value::Boolean(lh < rh),
-      _ => value_null!("eval_less_then_time"),
-    },
-    Value::DaysAndTimeDuration(lh) => match rhv {
-      Value::DaysAndTimeDuration(rh) => Value::Boolean(lh < rh),
-      _ => value_null!("eval_less_then_days_and_time_duration"),
-    },
-    Value::YearsAndMonthsDuration(lh) => match rhv {
-      Value::YearsAndMonthsDuration(rh) => Value::Boolean(lh < rh),
-      _ => value_null!("eval_less_then_years_and_months_duration"),
-    },
-    _ => value_null!("eval_less_then"),
-  }
+/// An ordering comparison on two values of one ordered kind; otherwise null with an error that
+/// names the operator, the type it expected and the type it found.
+macro_rules! ordering {
+  ($(#[$meta:meta])* $name:ident, $operator:tt, $symbol:literal) => {
+    $(#[$meta])*
+    pub(crate) fn $name(lhv: Value, rhv: Value) -> Value {
+      match (&lhv, &rhv) {
+        (Value::Number(lh), Value::Number(rh)) => Value::Boolean(lh $operator rh),
+        (Value::String(lh), Value::String(rh)) => Value::Boolean(lh $operator rh),
+        (Value::Date(lh), Value::Date(rh)) => Value::Boolean(lh $operator rh),
+        (Value::DateTime(lh), Value::DateTime(rh)) => Value::Boolean(lh $operator rh),
+        (Value::Time(lh), Value::Time(rh)) => Value::Boolean(lh $operator rh),
+        (Value::DaysAndTimeDuration(lh), Value::DaysAndTimeDuration(rh)) => Value::Boolean(lh $operator rh),
+        (Value::YearsAndMonthsDuration(lh), Value::YearsAndMonthsDuration(rh)) => Value::Boolean(lh $operator rh),
+        _ => unordered($symbol, &lhv, &rhv),
+      }
+    }
+  };
 }
 
-/// FEEL `lhv <= rhv` on two values of one ordered kind; otherwise null with an error.
-pub(crate) fn compare_le(lhv: Value, rhv: Value) -> Value {
-  match lhv {
-    Value::Number(lh) => match rhv {
-      Value::Number(rh) => Value::Boolean(lh <= rh),
-      _ => value_null!("eval_less_or_equal_number"),
-    },
-    Value::String(lh) => match rhv {
-      Value::String(rh) => Value::Boolean(lh <= rh),
-      _ => value_null!("eval_less_or_equal_string"),
-    },
-    Value::Date(lh) => match rhv {
-      Value::Date(rh) => Value::Boolean(lh <= rh),
-      _ => value_null!("eval_less_or_equal_date"),
-    },
-    Value::DateTime(lh) => match rhv {
-      Value::DateTime(rh) => Value::Boolean(lh <= rh),
-      _ => value_null!("eval_less_or_equal_date_time"),
-    },
-    Value::Time(lh) => match rhv {
-      Value::Time(rh) => Value::Boolean(lh <= rh),
-      _ => value_null!("eval_less_or_equal_time"),
-    },
-    Value::DaysAndTimeDuration(lh) => match rhv {
-      Value::DaysAndTimeDuration(rh) => Value::Boolean(lh <= rh),
-      _ => value_null!("eval_less_or_equal_days_and_time_duration"),
-    },
-    Value::YearsAndMonthsDuration(lh) => match rhv {
-      Value::YearsAndMonthsDuration(rh) => Value::Boolean(lh <= rh),
-      _ => value_null!("eval_less_or_equal_years_and_months_duration"),
-    },
-    _ => value_null!("eval_less_or_equal"),
-  }
-}
+ordering!(
+  /// FEEL `lhv < rhv` on two values of one ordered kind; otherwise null with an error.
+  compare_lt, <, "<"
+);
+ordering!(
+  /// FEEL `lhv <= rhv` on two values of one ordered kind; otherwise null with an error.
+  compare_le, <=, "<="
+);
+ordering!(
+  /// FEEL `lhv > rhv` on two values of one ordered kind; otherwise null with an error.
+  compare_gt, >, ">"
+);
+ordering!(
+  /// FEEL `lhv >= rhv` on two values of one ordered kind; otherwise null with an error.
+  compare_ge, >=, ">="
+);
 
-/// FEEL `lhv > rhv` on two values of one ordered kind; otherwise null with an error.
-pub(crate) fn compare_gt(lhv: Value, rhv: Value) -> Value {
-  match lhv {
-    Value::Number(lh) => match rhv {
-      Value::Number(rh) => Value::Boolean(lh > rh),
-      _ => value_null!("eval_greater_then_number"),
-    },
-    Value::String(lh) => match rhv {
-      Value::String(rh) => Value::Boolean(lh > rh),
-      _ => value_null!("eval_greater_then_string"),
-    },
-    Value::Date(lh) => match rhv {
-      Value::Date(rh) => Value::Boolean(lh > rh),
-      _ => value_null!("eval_greater_then_date"),
-    },
-    Value::DateTime(lh) => match rhv {
-      Value::DateTime(rh) => Value::Boolean(lh > rh),
-      _ => value_null!("eval_greater_then_date_time"),
-    },
-    Value::Time(lh) => match rhv {
-      Value::Time(rh) => Value::Boolean(lh > rh),
-      _ => value_null!("eval_greater_then_time"),
-    },
-    Value::DaysAndTimeDuration(lh) => match rhv {
-      Value::DaysAndTimeDuration(rh) => Value::Boolean(lh > rh),
-      _ => value_null!("eval_greater_days_and_time_duration"),
-    },
-    Value::YearsAndMonthsDuration(lh) => match rhv {
-      Value::YearsAndMonthsDuration(rh) => Value::Boolean(lh > rh),
-      _ => value_null!("eval_greater_years_and_months_duration"),
-    },
-    _ => value_null!("eval_greater_then"),
-  }
-}
-
-/// FEEL `lhv >= rhv` on two values of one ordered kind; otherwise null with an error.
-pub(crate) fn compare_ge(lhv: Value, rhv: Value) -> Value {
-  match lhv {
-    Value::Number(lh) => match rhv {
-      Value::Number(rh) => Value::Boolean(lh >= rh),
-      _ => value_null!("eval_greater_or_equal_number"),
-    },
-    Value::String(lh) => match rhv {
-      Value::String(rh) => Value::Boolean(lh >= rh),
-      _ => value_null!("eval_greater_or_equal_string"),
-    },
-    Value::Date(lh) => match rhv {
-      Value::Date(rh) => Value::Boolean(lh >= rh),
-      _ => value_null!("eval_greater_or_equal_date"),
-    },
-    Value::DateTime(lh) => match rhv {
-      Value::DateTime(rh) => Value::Boolean(lh >= rh),
-      _ => value_null!("eval_greater_or_equal_date_time"),
-    },
-    Value::Time(lh) => match rhv {
-      Value::Time(rh) => Value::Boolean(lh >= rh),
-      _ => value_null!("eval_greater_or_equal_time"),
-    },
-    Value::DaysAndTimeDuration(lh) => match rhv {
-      Value::DaysAndTimeDuration(rh) => Value::Boolean(lh >= rh),
-      _ => value_null!("eval_greater_or_equal_days_and_time_duration"),
-    },
-    Value::YearsAndMonthsDuration(lh) => match rhv {
-      Value::YearsAndMonthsDuration(rh) => Value::Boolean(lh >= rh),
-      _ => value_null!("eval_greater_or_equal_years_and_months_duration"),
-    },
-    _ => value_null!("eval_greater_or_equal"),
+/// The null of an ordering comparison on operands it does not order (DMN 1.6 Table 53: both of
+/// one of the ordered kinds). When the left operand is of an ordered kind the error names it as
+/// the type expected on the right; otherwise it lists the ordered kinds.
+#[cold]
+#[inline(never)]
+fn unordered(symbol: &str, lhv: &Value, rhv: &Value) -> Value {
+  let ordered = matches!(
+    lhv,
+    Value::Number(_) | Value::String(_) | Value::Date(_) | Value::DateTime(_) | Value::Time(_) | Value::DaysAndTimeDuration(_) | Value::YearsAndMonthsDuration(_)
+  );
+  if ordered {
+    value_null!(
+      "comparison '{}' expected {} on the right, as on the left, found {}",
+      symbol,
+      arg(&TypeOf(lhv)),
+      arg(&TypeOf(rhv))
+    )
+  } else {
+    value_null!(
+      "comparison '{}' expected a number, string, date, time, date and time, or duration on the left, found {}",
+      symbol,
+      arg(&TypeOf(lhv))
+    )
   }
 }
 

@@ -72,6 +72,15 @@ impl Equality {
   /// The equality of two values ([eval_ternary_equality]), with the values they hold compared
   /// through this walk. The two values are never looked up: each comparison of an operation is
   /// made once, and the pairs met again are the ones below them.
+  /// The equality of two endpoints of ranges: an undefined endpoint equals only an undefined one.
+  fn endpoints(&mut self, lhs: Option<&Value>, rhs: Option<&Value>) -> Option<bool> {
+    match (lhs, rhs) {
+      (None, None) => Some(true),
+      (Some(lhs), Some(rhs)) => self.nested(lhs, rhs),
+      _ => Some(false),
+    }
+  }
+
   pub(crate) fn compare(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
     if lhs.is_null() || rhs.is_null() {
       return Some(lhs.is_null() && rhs.is_null());
@@ -159,63 +168,40 @@ impl Equality {
         Value::UnaryNotEqual(r_end) => self.nested(l_end, r_end),
         _ => Some(false),
       },
-      Value::UnaryLess(l_end) => match rhs {
-        Value::Range(rs, cs, re, ce) => {
-          if cs.opened() && ce.opened() && !rs.is_null() {
-            self.nested(l_end, re)
-          } else {
-            Some(false)
-          }
+      // a range, written with two endpoints or as a comparison with one (clause 10.3.2.7)
+      Value::Range(..) | Value::UnaryLess(_) | Value::UnaryLessOrEqual(_) | Value::UnaryGreater(_) | Value::UnaryGreaterOrEqual(_) => {
+        let (l_start, l_start_included, l_end, l_end_included) = range_parts(lhs)?;
+        let (r_start, r_start_included, r_end, r_end_included) = range_parts(rhs)?;
+        if l_start_included != r_start_included || l_end_included != r_end_included {
+          return Some(false);
         }
-        Value::UnaryLess(r_end) => self.nested(l_end, r_end),
-        _ => None,
-      },
-      Value::UnaryLessOrEqual(l_end) => match rhs {
-        Value::Range(rs, cs, re, ce) => {
-          if cs.closed() && ce.opened() && !rs.is_null() {
-            self.nested(l_end, re)
-          } else {
-            Some(false)
-          }
+        match self.endpoints(l_start, r_start) {
+          Some(true) => self.endpoints(l_end, r_end),
+          _ => Some(false),
         }
-        Value::UnaryLessOrEqual(r_end) => self.nested(l_end, r_end),
-        _ => None,
-      },
-      Value::UnaryGreater(l_end) => match rhs {
-        Value::Range(rs, cs, re, ce) => {
-          if cs.opened() && ce.opened() && !re.is_null() {
-            self.nested(l_end, rs)
-          } else {
-            Some(false)
-          }
-        }
-        Value::UnaryGreater(r_end) => self.nested(l_end, r_end),
-        _ => None,
-      },
-      Value::UnaryGreaterOrEqual(l_end) => match rhs {
-        Value::Range(rs, cs, re, ce) => {
-          if cs.closed() && ce.opened() && !re.is_null() {
-            self.nested(l_end, rs)
-          } else {
-            Some(false)
-          }
-        }
-        Value::UnaryGreaterOrEqual(r_end) => self.nested(l_end, r_end),
-        _ => None,
-      },
-      Value::Range(r1s, c1s, r1e, c1e) => match rhs {
-        Value::Range(r2s, c2s, r2e, c2e) => {
-          if *c1s == *c2s
-            && *c1e == *c2e
-            && let Some(true) = self.nested(r1s, r2s)
-          {
-            return self.nested(r1e, r2e);
-          }
-          Some(false)
-        }
-        _ => None,
-      },
+      }
       _ => None,
     }
+  }
+}
+
+/// The start, whether it is included, the end and whether it is included of a range: of an
+/// interval, and of a comparison with one endpoint, whose other endpoint is undefined and not
+/// included (DMN 1.6 Table 42). An undefined endpoint is None; an endpoint written as `null` is
+/// a value. None for a value that is no range.
+#[allow(clippy::type_complexity)]
+pub(crate) fn range_parts(value: &Value) -> Option<(Option<&Value>, bool, Option<&Value>, bool)> {
+  match value {
+    Value::Range(start, start_type, end, end_type) => Some((
+      (!start_type.undefined()).then_some(start.as_ref()),
+      start_type.closed(),
+      (!end_type.undefined()).then_some(end.as_ref()),
+      end_type.closed(),
+    )),
+    Value::UnaryLess(end) => Some((None, false, Some(end), false)),
+    Value::UnaryLessOrEqual(end) => Some((None, false, Some(end), true)),
+    Value::UnaryGreater(start) => Some((Some(start), false, None, false)),
+    Value::UnaryGreaterOrEqual(start) => Some((Some(start), true, None, false)),
+    _ => None,
   }
 }

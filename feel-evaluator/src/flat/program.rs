@@ -98,6 +98,10 @@ pub(crate) enum Kernel1 {
   RangeType,
   /// The body of an external function from its mapping.
   ExternalBody,
+  /// The value of a unary test that uses `?`: when it is a boolean, the answer of the test; when
+  /// it is null and the test is a boolean expression (`true` here), the null answer; otherwise
+  /// the value, which the tested value is compared with.
+  TestAnswer(bool),
 }
 
 /// The kernels of two operands.
@@ -105,6 +109,9 @@ pub(crate) enum Kernel1 {
 pub(crate) enum Kernel2 {
   /// `a in b`.
   In,
+  /// `a in b` in B-FEEL, where a comparison is true or false: a test that cannot be compared with
+  /// the tested value is not satisfied.
+  InTwoValued,
   /// `a not in b`: `a` when the first operand (the value of `a in b`) is `true`, else null.
   Out,
   /// The range of a range literal from its start and end.

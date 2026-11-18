@@ -162,14 +162,14 @@ fn _0010() {
 #[test]
 fn _0011() {
   let input = r#"[false..true]"#;
-  Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
+  Parser::new(&scope!(), StartRangeLiteral, input).parse().unwrap_err();
 }
 
 #[test]
 fn _0012() {
   // Opened start may not have a left bracket as opening character.
   let input = "[..10]";
-  Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
+  Parser::new(&scope!(), StartRangeLiteral, input).parse().unwrap_err();
 }
 
 #[test]
@@ -204,14 +204,14 @@ fn _0014() {
 fn _0015() {
   // Opened start may not have a left bracket as opening character.
   let input = "[..10)";
-  Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
+  Parser::new(&scope!(), StartRangeLiteral, input).parse().unwrap_err();
 }
 
 #[test]
 fn _0016() {
   // Opened end may not have a right bracket as closing character.
   let input = "[10..]";
-  Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
+  Parser::new(&scope!(), StartRangeLiteral, input).parse().unwrap_err();
 }
 
 #[test]
@@ -232,7 +232,7 @@ fn _0017() {
 fn _0018() {
   // Opened end may not have a right bracket as closing character.
   let input = "]10..]";
-  Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
+  Parser::new(&scope!(), StartRangeLiteral, input).parse().unwrap_err();
 }
 
 #[test]
@@ -253,7 +253,7 @@ fn _0019() {
 fn _0020() {
   // The argument to `date` function must be a string literal.
   let input = r#"[date(string("1970-01-01"))..date("1970-01-02")]"#;
-  Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
+  Parser::new(&scope!(), StartRangeLiteral, input).parse().unwrap_err();
 }
 
 #[test]
@@ -276,7 +276,7 @@ fn _0022() {
   // The `string` function is not allowed as range endpoint definition,
   // only temporal functions: `date`, `date and time`, `time` and `duration` are allowed.
   let input = r#"[string("a").."z"]"#;
-  Parser::new(&scope!(), StartRangeLiteral, input, false).parse().unwrap_err();
+  Parser::new(&scope!(), StartRangeLiteral, input).parse().unwrap_err();
 }
 
 #[test]
@@ -337,7 +337,7 @@ fn _0024() {
 #[test]
 fn signed_endpoints_and_no_range_without_an_endpoint() {
   let scope = scope!();
-  let parse = |input: &str| Parser::new(&scope, StartRangeLiteral, input, false).parse().map(|node| node.trace());
+  let parse = |input: &str| Parser::new(&scope, StartRangeLiteral, input).parse().map(|node| node.trace());
   for input in ["[-1..1]", "(-2.5..-1)", "]-1e3..0[", "[0..-1]", "(..-5]", "[-5..)", "]-1..["] {
     let tree = parse(input).unwrap_or_else(|reason| panic!("{input}: {reason}"));
     assert!(tree.contains("Neg") && tree.contains("Range"), "{input}: {tree}");

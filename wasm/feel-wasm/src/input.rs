@@ -147,12 +147,15 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
   let direct = map.len() <= DIRECT_ENTRIES;
   let mut ctx = FeelContext::default();
   let mut entries = Vec::with_capacity(if direct { 0 } else { map.len() });
+  // the keys come from the host: a key in another form than FEEL reads a name is found by its name
+  let mut other_forms = false;
   for (key, value) in map {
-    let (name, untrimmed_key) = if key.trim().len() == key.len() {
+    let (name, untrimmed_key) = if rheon_feel::names::trim(key.as_str()).len() == key.len() {
       (Name::from(key), None)
     } else {
       (Name::from(key.as_str()), Some(key))
     };
+    other_forms |= !rheon_feel::names::is_in_name_form(name.as_str());
     if name.is_empty() {
       let context = Path::Root("context");
       return Err(format!("{}: empty context key", arg(if path.chars() == 0 { &context } else { path })));
@@ -165,18 +168,19 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
       entries.push((name, value));
     }
   }
-  Ok(if direct { ctx } else { entries.into_iter().collect() })
+  let ctx: FeelContext = if direct { ctx } else { entries.into_iter().collect() };
+  Ok(ctx.with_other_key_forms(other_forms))
 }
 
 /// Evaluates a FEEL context literal (e.g. `{a: 1, "Grace's age": 40}`) into a FEEL context,
 /// adding the warnings of its evaluation to `warnings`. An empty / blank string is an empty
 /// context.
 pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContext, String> {
-  if text.trim().is_empty() {
+  if rheon_feel::names::trim(text).is_empty() {
     return Ok(FeelContext::default());
   }
   let scope = FeelScope::default();
-  let node = rheon_feel_parser::parse_context(&scope, text, false).map_err(|e| format!("invalid FEEL context: {e}"))?;
+  let node = rheon_feel_parser::parse_context(&scope, text).map_err(|e| format!("invalid FEEL context: {e}"))?;
   crate::engine::check_ast_depth(&node).map_err(|e| format!("invalid FEEL context: {e}"))?;
   // the context's errors are not counted in the response, only its warnings are reported
   let (outcome, diagnostics) = diagnostics::collect(|| rheon_feel_evaluator::evaluate(&scope, &node));

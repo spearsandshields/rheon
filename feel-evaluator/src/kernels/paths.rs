@@ -15,7 +15,7 @@ use std::str::FromStr;
 /// The value of a name that no scope holds: the built-in function of that name, or null with an
 /// error.
 pub(crate) fn free_name(name: &Name) -> Value {
-  if let Ok(bif) = Bif::from_str(&name.to_string()) {
+  if let Ok(bif) = Bif::from_str(name.as_str()) {
     Value::BuiltInFunction(bif)
   } else {
     value_null!("context has no value for key '{}'", arg(name))
@@ -185,11 +185,13 @@ fn property(value: Value, name: &Name) -> Value {
       other => value_null!("no such property in unary not equal: {}", arg(&other)),
     },
     Value::UnaryLess(value) => match property {
+      Bip::Start => Value::Null(None),
       Bip::End => *value,
       Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(false),
       other => value_null!("no such property in unary less: {}", arg(&other)),
     },
     Value::UnaryLessOrEqual(value) => match property {
+      Bip::Start => Value::Null(None),
       Bip::End => *value,
       Bip::StartIncluded => Value::Boolean(false),
       Bip::EndIncluded => Value::Boolean(true),
@@ -197,11 +199,13 @@ fn property(value: Value, name: &Name) -> Value {
     },
     Value::UnaryGreater(value) => match property {
       Bip::Start => *value,
+      Bip::End => Value::Null(None),
       Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(false),
       other => value_null!("no such property in unary greater: {}", arg(&other)),
     },
     Value::UnaryGreaterOrEqual(value) => match property {
       Bip::Start => *value,
+      Bip::End => Value::Null(None),
       Bip::StartIncluded => Value::Boolean(true),
       Bip::EndIncluded => Value::Boolean(false),
       other => value_null!("no such property in unary greater or equal: {}", arg(&other)),

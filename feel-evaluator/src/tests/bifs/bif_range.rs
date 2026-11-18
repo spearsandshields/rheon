@@ -1,8 +1,8 @@
 use super::super::*;
 use rheon_feel::scope;
 
-fn te_range(trace: bool, scope: &FeelScope, input: &str, expected: &str) {
-  match rheon_feel_parser::parse_textual_expression(scope, input, trace) {
+fn te_range(_trace: bool, scope: &FeelScope, input: &str, expected: &str) {
+  match rheon_feel_parser::parse_expression(scope, input) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
       let actual = format!("{}", evaluator(scope));
@@ -214,7 +214,7 @@ fn _0033() {
       r#"range("[duration(\"P1D\")..duration(\"P2D\")]")"#,
     ),
   ] {
-    let expected = rheon_feel_parser::parse_textual_expression(&scope!(), positional, false)
+    let expected = rheon_feel_parser::parse_expression(&scope!(), positional)
       .map(|node| build_evaluator(&node)(&scope!()).to_string())
       .unwrap();
     assert!(expected.starts_with('[') || expected.starts_with('('), "{expected}");

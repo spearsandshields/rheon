@@ -192,7 +192,7 @@ mod tests {
 
   fn evaluated(expression: &str) -> Value {
     let scope = FeelScope::default();
-    let node = rheon_feel_parser::parse_expression(&scope, expression, false).unwrap_or_else(|e| panic!("{expression}: {e}"));
+    let node = rheon_feel_parser::parse_expression(&scope, expression).unwrap_or_else(|e| panic!("{expression}: {e}"));
     let (outcome, _) = diagnostics::collect(|| rheon_feel_evaluator::evaluate(&scope, &node));
     outcome.into_result().unwrap_or_else(|abort| panic!("{expression}: {abort}"))
   }

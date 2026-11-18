@@ -52,7 +52,7 @@ static GLOBAL: CountingAllocator = CountingAllocator;
 /// Returns the result of an expression and the number of allocations its evaluation made
 /// (parsing and building the evaluator are not counted).
 fn evaluate_counting(scope: &FeelScope, expression: &str) -> (Value, u64) {
-  let node = parse_expression(scope, expression, false).expect("the expression parses");
+  let node = parse_expression(scope, expression).expect("the expression parses");
   let evaluator = prepare(&node);
   let before = ALLOCATIONS.with(Cell::get);
   let value = evaluator(scope);
@@ -113,7 +113,7 @@ fn cost_of_a_long_list(expression: &str, item: impl Fn(i64) -> Value) -> (i64, i
     let mut input = rheon_feel::context::FeelContext::default();
     input.set_entry(&rheon_feel::Name::from("items"), Value::List(items.into()));
     let scope = FeelScope::from(input);
-    let evaluator = prepare(&parse_expression(&scope, expression, false).expect("the expression parses"));
+    let evaluator = prepare(&parse_expression(&scope, expression).expect("the expression parses"));
     let allocations = ALLOCATIONS.with(Cell::get);
     let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
     let allocations = ALLOCATIONS.with(Cell::get) - allocations;
@@ -164,7 +164,7 @@ fn a_reason_quoting_the_type_of_a_wide_context_allocates_little() {
   input.set_entry(&rheon_feel::Name::from("c"), Value::from(wide_context(10_000)));
   let scope = FeelScope::from(input);
   let evaluate = |text: &str| {
-    let evaluator = prepare(&parse_expression(&scope, text, false).expect("the expression parses"));
+    let evaluator = prepare(&parse_expression(&scope, text).expect("the expression parses"));
     bytes_allocated_by(|| evaluator(&scope))
   };
   let (_, read) = evaluate("c");
@@ -181,7 +181,7 @@ fn cost_of_a_wide_context(expression: &str) -> (i64, i64) {
     let mut input = rheon_feel::context::FeelContext::default();
     input.set_entry(&rheon_feel::Name::from("data"), Value::from(wide_context(entries)));
     let scope = FeelScope::from(input);
-    let evaluator = prepare(&parse_expression(&scope, expression, false).expect("the expression parses"));
+    let evaluator = prepare(&parse_expression(&scope, expression).expect("the expression parses"));
     let allocations = ALLOCATIONS.with(Cell::get);
     let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
     let allocations = ALLOCATIONS.with(Cell::get) - allocations;
@@ -237,7 +237,7 @@ fn a_call_puts_the_closure_in_scope_without_a_copy() {
 fn cost_of_iterations(expression: &str) -> (i64, i64) {
   let measure = |n: usize| {
     let scope = scope!();
-    let node = parse_expression(&scope, &expression.replace("{n}", &n.to_string()), false).expect("the expression parses");
+    let node = parse_expression(&scope, &expression.replace("{n}", &n.to_string())).expect("the expression parses");
     let evaluator = prepare(&node);
     let allocations = ALLOCATIONS.with(Cell::get);
     let (_, bytes) = bytes_allocated_by(|| evaluator(&scope));
@@ -308,10 +308,10 @@ fn filters_allocate_only_for_the_items_they_keep() {
 #[test]
 fn a_function_of_the_host_invoked_in_a_walk_holds_no_copy_of_its_results() {
   let measure = |n: usize| {
-    let input = parse_expression(&scope!(), "{f: function(x) x}", false).expect("the context parses");
+    let input = parse_expression(&scope!(), "{f: function(x) x}").expect("the context parses");
     let Value::Context(input) = prepare(&input)(&scope!()) else { panic!("not a context") };
     let scope = FeelScope::from(std::sync::Arc::unwrap_or_clone(input));
-    let evaluator = prepare(&parse_expression(&scope, &format!("count(for i in 1..{n} return f(i))"), false).expect("the expression parses"));
+    let evaluator = prepare(&parse_expression(&scope, &format!("count(for i in 1..{n} return f(i))")).expect("the expression parses"));
     let allocations = ALLOCATIONS.with(Cell::get);
     let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
     assert_eq!(Value::Number(n.into()), value);
@@ -381,7 +381,7 @@ fn functions_of_the_host_invoked_from_context_entries_share_one_scope() {
   let scope = FeelScope::from(input);
   let measure = |n: usize| {
     let entries: Vec<String> = (1..=n).map(|i| format!("a{i}: f({i})")).collect();
-    let evaluator = prepare(&parse_expression(&scope, &format!("{{{}}}.a{n}", entries.join(", ")), false).expect("the expression parses"));
+    let evaluator = prepare(&parse_expression(&scope, &format!("{{{}}}.a{n}", entries.join(", "))).expect("the expression parses"));
     let (value, bytes) = bytes_allocated_by(|| evaluator(&scope));
     assert_eq!(Value::Number(n.into()), value);
     bytes as i64

@@ -7,7 +7,6 @@ use super::{differential, full_size};
 use crate::context::ParsingContext;
 use crate::index::{Node, list_item_node};
 use crate::lexer::{Lexer, TokenValue};
-use crate::parser::Parser;
 use crate::scope::{ParsingScope, first_word};
 use crate::token::TokenType;
 use rheon_feel::context::FeelContext;
@@ -246,6 +245,8 @@ fn tokens(frames: &[FeelContext], input: &str) -> Vec<String> {
   let mut tokens = vec![];
   let scope = ParsingScope::new(frames);
   let mut lexer = Lexer::new(&scope, TokenType::StartExpression, input);
+  // every name as a member of a value: the keys at any depth are names in scope
+  lexer.enter_filter();
   for _ in 0..1000 {
     match lexer.next_token() {
       Ok((tt, tv)) => {
@@ -266,7 +267,7 @@ fn tokens(frames: &[FeelContext], input: &str) -> Vec<String> {
 /// The tree (and its Debug text) or the error of a parse.
 fn parse(frames: &[FeelContext], input: &str) -> String {
   let scope = ParsingScope::new(frames);
-  match Parser::new(&scope, TokenType::StartExpression, input, false).parse() {
+  match super::parser(&scope, TokenType::StartExpression, input).parse() {
     Ok(node) => format!("{}\n{node:?}", node.trace()),
     Err(e) => format!("error {e}"),
   }
@@ -290,6 +291,7 @@ fn record_parses(group: &'static str, frames: &[FeelContext], inputs: &[String])
 /// the parse.
 #[test]
 fn name_lookup_has_its_recorded_outcome() {
+  super::member_names();
   let cases = if full_size() { 4_000 } else { 300 };
   let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
   let mut golden = differential::Golden::new("name-lookup");
@@ -460,6 +462,8 @@ fn scope_operations_equal_reference_scope() {
         probes.push(format!("{} . {key} . {}", rng.pick(KEYS), rng.pick(KEYS)));
       }
       probes.push(String::new());
+      // the keys at any depth are names in scope for a member of a value
+      scope.set_members(true);
       for probe in &probes {
         assert_eq!(flattened.contains(probe), scope.contains(probe), "case {case} step {step}: contains({probe:?})");
         if !probe.contains(" . ") {
@@ -500,6 +504,7 @@ pub(super) fn chain(depth: usize) -> FeelContext {
 
 #[test]
 fn composite_names_in_a_chain_have_their_recorded_outcome() {
+  super::member_names();
   let frames = vec![chain(8)];
   let inputs = [
     format!("a./{OGHAM}.{OGHAM} k0 + 1"),
@@ -523,18 +528,24 @@ fn composite_names_in_a_chain_have_their_recorded_outcome() {
 /// linearly with the depth: 8 per level and per name token, as measured.
 #[test]
 fn deep_chain_of_distinct_keys_is_linear() {
-  let expected = format!("{:?}", crate::parse_expression(&FeelScope::from(chain(0)), "x + 1", false).unwrap());
+  super::member_names();
+  let parse = |scope: &FeelScope, input: &str| {
+    let frames = scope.frames();
+    let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
+    super::parser(&parsing_scope, TokenType::StartExpression, input).parse().unwrap()
+  };
+  let expected = format!("{:?}", parse(&FeelScope::from(chain(0)), "x + 1"));
   for depth in [30, 60] {
     let scope = FeelScope::from(chain(depth));
     super::work::take();
-    let node = crate::parse_expression(&scope, "x + 1", false).unwrap();
+    let node = parse(&scope, "x + 1");
     let work = super::work::take();
     assert_eq!(expected, format!("{node:?}"));
     assert_eq!(None, work.get("composite states"), "depth {depth}: {work:?}");
     assert_eq!(Some(&1), work.get("index builds"), "depth {depth}: {work:?}");
     // a composite name into the chain, `depth` levels down
     let input = format!("a./{OGHAM}.{OGHAM} leaf + 1");
-    let node = crate::parse_expression(&scope, &input, false).unwrap();
+    let node = parse(&scope, &input);
     let work = super::work::take();
     let trace = node.trace();
     assert!(trace.contains("`a./. leaf`") && !trace.contains("Path"), "{trace}");
@@ -609,12 +620,13 @@ fn nested(key: &str, value: Value) -> Value {
 /// the index that does, and the conformance of its items is decided at once.
 #[test]
 fn a_list_of_shared_contexts_is_indexed_once() {
+  super::member_names();
   for depth in [30, 60] {
     let mut input = FeelContext::default();
     input.set_entry(&Name::from("l"), Value::List(vec![doubled(depth), doubled(depth)].into()));
     let scope = FeelScope::from(input);
     super::work::take();
-    let node = crate::parse_expression(&scope, "l.a.leaf + 1", false).unwrap();
+    let node = crate::parse_expression(&scope, "l.a.leaf + 1").unwrap();
     let work = super::work::take();
     assert!(node.trace().contains("`leaf`"), "{}", node.trace());
     let contexts = work.get("index contexts").copied().unwrap_or(0);
@@ -663,12 +675,13 @@ fn doubled_lists(depth: usize) -> Value {
 /// remembers the list: with lists of one context doubled 60 times, a context is read once per level.
 #[test]
 fn a_context_in_a_shared_list_is_indexed_once() {
+  super::member_names();
   for depth in [30, 60] {
     let mut input = FeelContext::default();
     input.set_entry(&Name::from("x"), doubled_lists(depth));
     let scope = FeelScope::from(input);
     super::work::take();
-    let node = crate::parse_expression(&scope, "x.a.leaf + 1", false).unwrap();
+    let node = crate::parse_expression(&scope, "x.a.leaf + 1").unwrap();
     let work = super::work::take();
     assert!(node.trace().contains("`leaf`"), "{}", node.trace());
     let contexts = work.get("index contexts").copied().unwrap_or(0);
@@ -680,12 +693,13 @@ fn a_context_in_a_shared_list_is_indexed_once() {
 /// composite-name prefix it is reached with, so a context doubled 60 times is read once per level.
 #[test]
 fn a_shared_context_is_indexed_once() {
+  super::member_names();
   for depth in [30, 60] {
     let mut input = FeelContext::default();
     input.set_entry(&Name::from("x"), doubled(depth));
     let scope = FeelScope::from(input);
     super::work::take();
-    let node = crate::parse_expression(&scope, "x.a.leaf + 1", false).unwrap();
+    let node = crate::parse_expression(&scope, "x.a.leaf + 1").unwrap();
     let work = super::work::take();
     assert!(node.trace().contains("`leaf`"), "{}", node.trace());
     let contexts = work.get("index contexts").copied().unwrap_or(0);
@@ -696,6 +710,7 @@ fn a_shared_context_is_indexed_once() {
 /// A composite name into a context held under three keys is found through each of the keys.
 #[test]
 fn composite_names_into_a_shared_context_have_their_recorded_outcome() {
+  super::member_names();
   let mut p = FeelContext::default();
   p.set_entry(&Name::from("q"), number(1));
   let mut x = FeelContext::default();

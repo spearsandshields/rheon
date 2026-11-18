@@ -1,0 +1,1858 @@
+[
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a-b",
+      "context": {
+        "x": {
+          "a-b": 1
+        },
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a-b')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a-b'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x.a-b + a-b",
+      "context": {
+        "x": {
+          "a-b": 1
+        },
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'a-b'",
+          "[addition] incompatible types: 1 + null(context has no value for key 'a-b')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: 1 + null(context has no value for key 'a-b'))",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: 1 + null(context has no value for key 'a-b')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "4",
+        "feel": "4",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "4",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[{a-b: 1}, a-b]",
+      "context": {
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a-b\": 1}, null]",
+        "feel": "[{a-b: 1}, null(context has no value for key 'a-b')]",
+        "isNull": false,
+        "type": "list<context<a-b: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a-b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a-b\": 1}, 3]",
+        "feel": "[{a-b: 1}, 3]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a-b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{p: {a-b: 1}, r: a-b}.r",
+      "context": {
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a-b')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a-b'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "unit-price * 2",
+      "context": {
+        "order": {
+          "unit-price": 5
+        },
+        "unit": 10,
+        "price": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'unit-price'",
+          "[multiplication] incompatible types: null(context has no value for key 'unit-price') * 2"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([multiplication] incompatible types: null(context has no value for key 'unit-price') * 2)",
+        "isNull": true,
+        "nullReason": "[multiplication] incompatible types: null(context has no value for key 'unit-price') * 2",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "8",
+        "feel": "8",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "8",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "l[unit-price > 1][1].unit-price - unit-price",
+      "context": {
+        "l": [
+          {
+            "unit-price": 5
+          }
+        ],
+        "unit": 10,
+        "price": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'unit-price'",
+          "[subtraction] incompatible types: 5 - null(context has no value for key 'unit-price')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: 5 - null(context has no value for key 'unit-price'))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: 5 - null(context has no value for key 'unit-price')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "-6",
+        "feel": "-6",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "-6",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a-b')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a-b'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `a`\n └─ Name\n    └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "c+d",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'c+d'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'c+d')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'c+d'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "c+d",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `c+d`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `c`\n └─ Name\n    └─ `d`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x.a-b * c+d",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'c+d'",
+          "[multiplication] incompatible types: 1 * null(context has no value for key 'c+d')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([multiplication] incompatible types: 1 * null(context has no value for key 'c+d'))",
+        "isNull": true,
+        "nullReason": "[multiplication] incompatible types: 1 * null(context has no value for key 'c+d')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.a-b * c+d",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Mul\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `a-b`\n └─ Name\n    └─ `c+d`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Mul\n │  ├─ Path\n │  │  ├─ Name\n │  │  │  └─ `x`\n │  │  └─ Name\n │  │     └─ `a-b`\n │  └─ Name\n │     └─ `c`\n └─ Name\n    └─ `d`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{k: a-b}",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"k\": null}",
+        "feel": "{k: null(context has no value for key 'a-b')}",
+        "isNull": false,
+        "type": "context<k: Null>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "k",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"k\": 3}",
+        "feel": "{k: 3}",
+        "isNull": false,
+        "type": "context<k: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "k",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{k: a-b}",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Context\n └─ ContextEntry\n    ├─ ContextEntryKey\n    │  └─ `k`\n    └─ Name\n       └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Context\n └─ ContextEntry\n    ├─ ContextEntryKey\n    │  └─ `k`\n    └─ Sub\n       ├─ Name\n       │  └─ `a`\n       └─ Name\n          └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "if a-b > 0 then x.a-b else a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'a-b'",
+          "eval_greater_then",
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a-b')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a-b'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "if a-b > 0 then x.a-b else a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " If\n ├─ Gt\n │  ├─ Name\n │  │  └─ `a-b`\n │  └─ Numeric\n │     └─ `0`\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `a-b`\n └─ Name\n    └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " If\n ├─ Gt\n │  ├─ Sub\n │  │  ├─ Name\n │  │  │  └─ `a`\n │  │  └─ Name\n │  │     └─ `b`\n │  └─ Numeric\n │     └─ `0`\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `a-b`\n └─ Sub\n    ├─ Name\n    │  └─ `a`\n    └─ Name\n       └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for i in [a-b] return i",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[null]",
+        "feel": "[null(context has no value for key 'a-b')]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[3]",
+        "feel": "[3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for i in [a-b] return i",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `i`\n │     └─ List\n │        └─ Name\n │           └─ `a-b`\n └─ EvaluatedExpression\n    └─ Name\n       └─ `i`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `i`\n │     └─ List\n │        └─ Sub\n │           ├─ Name\n │           │  └─ `a`\n │           └─ Name\n │              └─ `b`\n └─ EvaluatedExpression\n    └─ Name\n       └─ `i`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "some i in l satisfies i.a-b = a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "some i in l satisfies i.a-b = a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Some\n ├─ QuantifiedContexts\n │  └─ QuantifiedContext\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Name\n │        └─ `l`\n └─ Satisfies\n    └─ Eq\n       ├─ Path\n       │  ├─ Name\n       │  │  └─ `i`\n       │  └─ Name\n       │     └─ `a-b`\n       └─ Name\n          └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Some\n ├─ QuantifiedContexts\n │  └─ QuantifiedContext\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Name\n │        └─ `l`\n └─ Satisfies\n    └─ Eq\n       ├─ Path\n       │  ├─ Name\n       │  │  └─ `i`\n       │  └─ Name\n       │     └─ `a-b`\n       └─ Sub\n          ├─ Name\n          │  └─ `a`\n          └─ Name\n             └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a-b.c",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(context has no value for key 'a-b')",
+        "isNull": true,
+        "nullReason": "context has no value for key 'a-b'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "unexpected type: number, for property: c",
+          "[subtraction] incompatible types: 5 - null(unexpected type: number, for property: c)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([subtraction] incompatible types: 5 - null(unexpected type: number, for property: c))",
+        "isNull": true,
+        "nullReason": "[subtraction] incompatible types: 5 - null(unexpected type: number, for property: c)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a-b.c",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Name\n │  └─ `a-b`\n └─ Name\n    └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `a`\n └─ Path\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[{a-b: 1}, a-b]",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a-b\": 1}, null]",
+        "feel": "[{a-b: 1}, null(context has no value for key 'a-b')]",
+        "isNull": false,
+        "type": "list<context<a-b: number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a-b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a-b\": 1}, 3]",
+        "feel": "[{a-b: 1}, 3]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a-b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[{a-b: 1}, a-b]",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " List\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a-b`\n │     └─ Numeric\n │        └─ `1`\n └─ Name\n    └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a-b`\n │     └─ Numeric\n │        └─ `1`\n └─ Sub\n    ├─ Name\n    │  └─ `a`\n    └─ Name\n       └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      },
+      "tree": true
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "Name",
+          0,
+          3
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          3
+        ]
+      ],
+      "truncated": false
+    },
+    "new": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "Addition",
+          0,
+          3
+        ],
+        [
+          "Name",
+          0,
+          1
+        ],
+        [
+          "Name",
+          2,
+          3
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          1
+        ],
+        [
+          "operator",
+          1,
+          2
+        ],
+        [
+          "name",
+          2,
+          3
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "a-b, x.a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      },
+      "input": 3
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "context has no value for key 'a-b'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a-b",
+      "context": {
+        "x": {
+          "a-b": 1
+        },
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Name\n └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `a`\n └─ Name\n    └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x.a-b + a-b",
+      "context": {
+        "x": {
+          "a-b": 1
+        },
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Add\n ├─ Path\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Name\n │     └─ `a-b`\n └─ Name\n    └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Add\n │  ├─ Path\n │  │  ├─ Name\n │  │  │  └─ `x`\n │  │  └─ Name\n │  │     └─ `a-b`\n │  └─ Name\n │     └─ `a`\n └─ Name\n    └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[{a-b: 1}, a-b]",
+      "context": {
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " List\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a-b`\n │     └─ Numeric\n │        └─ `1`\n └─ Name\n    └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a-b`\n │     └─ Numeric\n │        └─ `1`\n └─ Sub\n    ├─ Name\n    │  └─ `a`\n    └─ Name\n       └─ `b`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{p: {a-b: 1}, r: a-b}.r",
+      "context": {
+        "a": 5,
+        "b": 2
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `p`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `a-b`\n │  │        └─ Numeric\n │  │           └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Name\n │        └─ `a-b`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `p`\n │  │  └─ Context\n │  │     └─ ContextEntry\n │  │        ├─ ContextEntryKey\n │  │        │  └─ `a-b`\n │  │        └─ Numeric\n │  │           └─ `1`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Sub\n │        ├─ Name\n │        │  └─ `a`\n │        └─ Name\n │           └─ `b`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "unit-price * 2",
+      "context": {
+        "order": {
+          "unit-price": 5
+        },
+        "unit": 10,
+        "price": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Mul\n ├─ Name\n │  └─ `unit-price`\n └─ Numeric\n    └─ `2`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Name\n │  └─ `unit`\n └─ Mul\n    ├─ Name\n    │  └─ `price`\n    └─ Numeric\n       └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "l[unit-price > 1][1].unit-price - unit-price",
+      "context": {
+        "l": [
+          {
+            "unit-price": 5
+          }
+        ],
+        "unit": 10,
+        "price": 1
+      }
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " Sub\n ├─ Path\n │  ├─ Filter\n │  │  ├─ Filter\n │  │  │  ├─ Name\n │  │  │  │  └─ `l`\n │  │  │  └─ Gt\n │  │  │     ├─ Name\n │  │  │     │  └─ `unit-price`\n │  │  │     └─ Numeric\n │  │  │        └─ `1`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ Name\n │     └─ `unit-price`\n └─ Name\n    └─ `unit-price`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Sub\n ├─ Sub\n │  ├─ Path\n │  │  ├─ Filter\n │  │  │  ├─ Filter\n │  │  │  │  ├─ Name\n │  │  │  │  │  └─ `l`\n │  │  │  │  └─ Gt\n │  │  │  │     ├─ Name\n │  │  │  │     │  └─ `unit-price`\n │  │  │  │     └─ Numeric\n │  │  │  │        └─ `1`\n │  │  │  └─ Numeric\n │  │  │     └─ `1`\n │  │  └─ Name\n │  │     └─ `unit-price`\n │  └─ Name\n │     └─ `unit`\n └─ Name\n    └─ `price`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "a-b, x.a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      },
+      "input": 3
+    },
+    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
+    "old": {
+      "ok": true,
+      "tree": " ExpressionList\n ├─ Name\n │  └─ `a-b`\n └─ Path\n    ├─ Name\n    │  └─ `x`\n    └─ Name\n       └─ `a-b`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n ├─ Sub\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Path\n    ├─ Name\n    │  └─ `x`\n    └─ Name\n       └─ `a-b`\n"
+    }
+  }
+]

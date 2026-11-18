@@ -1,5 +1,12 @@
 # The dsntk engine crates in rheon: changes against upstream
 
+> **Closed with 0.9.0 (2026-11-18).** The list of engine changes ends with item 275 and is
+> kept as the record of what rheon changed against upstream up to that release. Later changes
+> are recorded by their commit messages, the notes of each GitHub Release, and the identity
+> ledgers in `tools/identity/registered` (every answer that changes, with its reason). The
+> reference sections ("Publishing to crates.io", "Taking upstream changes", "Layout note")
+> stay in use and are kept current.
+
 rheon is a fork of <https://github.com/dsntk/dsntk-rs> (the DecisionToolkit
 FEEL/DMN engine, Copyright (c) 2015-2026 Dariusz Depta, MIT OR Apache-2.0).
 rheon is a permanent fork: the engine is developed here and contributing
@@ -4185,7 +4192,7 @@ looked up only when a name in scope has its length (232).
     its tree with positions is the engine's; `lang-feel`, `lezer-feel` and the lezer runtime
     are no dependencies of the playground any more, and their notices leave
     `third-party-notices.txt`. The release workflow packs the package beside the runtime's.
-    The package has no tests of its own yet: the playground's build and a check in a browser
+    The package had no tests of its own at this point (item 255 adds them): the playground's build and a check in a browser
     exercise it.
 
 251. **A syntax error says where and what.** The error of `evaluate`, `evaluateAll` and
@@ -4207,6 +4214,363 @@ looked up only when a name in scope has its length (232).
     `@rheon/feel-runtime` `FeelEngine.format`, `@rheon/feel-codemirror` the command
     `formatDocument` (Shift-Alt-F), the playground a Format button. The message of an unknown
     `op` names it (the entries of `editor-operations.json` are recorded again).
+
+253. **The identity check compares with 0.8.1.** The baseline moves to the v0.8.1 release module
+    (the tag v0.8.0 has no release), and the ledgers of registered differences against 0.7.0 are
+    removed (`parser-nesting.json`, `editor-operations.json` and the rule
+    `syntax-error-places.json`): 0.8.1 answers every committed request as registered. Git
+    history keeps the ledgers. Identity of this build against the 0.8.1 module: 15,450 requests,
+    with `--release` 15,462 (5 trapping the reference), no difference.
+
+254. **The signatures of the built-in functions.** `feel/src/signatures.rs` lists for each of the
+    89 built-in functions its signatures (the names and types of the parameters, optional and
+    rest parameters, the type of the result, whether the parameters can be named) and one line
+    that says what it gives. The evaluator does not read the table; a test of the evaluator
+    invokes every signature by position and by name with values of the types and checks that
+    the function takes it. `op: "complete"` uses it (docs/CONTRACT.md §3): an item of a function
+    has `detail`, `info` and `type`; inside the parentheses of a built-in function the answer
+    has `call` (the signatures and the index of the argument); where a parameter can be named,
+    the names are items of the kind `parameter` with `insert`; `expects` can be `parameter`.
+    Additions only: no answer of 0.8.1 changes except that the items of functions have values
+    where they had null. `@rheon/feel-runtime` has the types; `@rheon/feel-codemirror` shows
+    the signature in the completion list and a hint at the cursor (`signatureHelp`).
+    Found on the way, not changed: a built-in function reports a named parameter of a wrong
+    type as "parameter not found", and `< 10` evaluates as an expression to a value that
+    displays as `UnaryLess(10)`.
+
+255. **Tests of `@rheon/feel-codemirror`.** `packages/feel-codemirror/test/editor.test.mjs` runs
+    the extension in jsdom (a development dependency) with the engine in the same thread: the
+    classes of the tokens, edits and dropped answers, error marks and `maxDiagnostics`, `tree`,
+    completion of names, functions, parameters and templates, `setFeelScope`, `formatDocument`
+    and the hint. The group tier runs them as the step `test-codemirror`.
+
+256. **`e1 in e2` with a single value is `e1 = e2`.** DMN 1.6 Table 56 (rule 49.c) defines `in`
+    with one value on the right as equality. The `in` operator answered false where `=` answers
+    null because the two values are of different kinds: `"sad" in true` was false and is null
+    (in strict error mode it is the error of `=`), as `"sad" = true` is. Values of one kind,
+    null on either side and B-FEEL (where `in` is always true or false) answer as before.
+    A list of tests (`x in (true, false)` and the unary tests dialect) follows in item 260. New request set
+    `tools/identity/requests/membership.json` (23 requests); 8 registered differences (one of them B-FEEL, where the answer stays false and the diagnostic of `=` is reported) in
+    `tools/identity/registered/in-single-value.json`. Tracker row EVA-25.
+
+257. **A parameter that is given is not reported as not found.** The ten built-in functions
+    that take one list by the name `list` (`all`, `any`, `max`, `mean`, `median`, `min`,
+    `mode`, `product`, `stddev`, `sum`) answered "parameter 'list' not found" when the
+    parameter was given with a value that is no list (`sum(list: 1)`, `sum(list: null)`). The
+    null now says `[core::sum] invalid argument type, expected list, actual type is number`; a
+    parameter of another name is still not found. The messages of `substring` named `sublist`
+    in five places and name `substring`. The answers stay null; only the reasons change. A test
+    gives every named parameter of every signature a value of six other kinds and checks that
+    none is reported as not found. New request set
+    `tools/identity/requests/parameter-messages.json` (40 requests); 31 registered differences
+    in `tools/identity/registered/parameter-messages.json`.
+
+258. **A comparison with one endpoint is a range.** DMN 1.6 clause 10.3.2.7 makes `< 10` a
+    value of the range type (grammar rule 7.a, Table 42). As an expression it was shown by the
+    name of its variant (`UnaryLess(10)`, also by `string()` and inside lists and contexts),
+    had the type `boolean`, and `instance of` answered null for it. It is shown as it is
+    written (`< 10`, `>= 2020-01-01`, `= 5`, `!= 5`), has the type `range<number>` (the type of
+    its endpoint), `instance of` answers for it, and it conforms to a parameter of a range
+    type. How unary tests match, `in`, the properties and equality are not changed. Not
+    changed and still open: `range("(..10)") = (< 10)` is null where the spec makes them the
+    same range, and `.start` of `< 10` is null with a message. New request set
+    `tools/identity/requests/unary-values.json` (63 requests); 62 registered differences in
+    `tools/identity/registered/unary-values.json`, 7 of them on requests of older sets.
+
+259. **The identity check has requests of the editor operations.** The committed request sets
+    held no `syntax`, `complete`, `outline` or `format` request, so a change of their answers
+    was caught only by the contract tests. `tools/identity/requests/editor.json` has 260: whole
+    and broken texts as `syntax` (with and without the tree) and `format` (two widths), both
+    dialects, 50 `complete` requests at the places the grammar distinguishes, `outline` of six
+    contexts, an outline in place of the context, and the request errors. Against 0.8.1 the 24
+    `complete` answers that item 254 changed are registered in
+    `tools/identity/registered/completion-signatures.json` (answers longer than 4 KiB by their
+    digest); the other 236 are identical. Found on the way, not changed: inside a line comment
+    `complete` offers what an expression takes. Tracker row EDT-13.
+
+260. **Unary tests answer true, false or null; a test that uses `?` is its own answer.** Two
+    rules of the specification, made together because the first lays the second bare.
+    (a) DMN 1.6 Table 56 defines a list of tests as the `or` of its tests, and clause 8.3.3
+    says an input satisfies an entry when `FEEL(e in (t)) = true`, and a negated entry when it
+    is `false`: three answers. The `in` operator answered false when no test was true, also
+    when a test could not be compared with the tested value (`"a"` tested by `1, 2` or by
+    `< 10`), and `not(...)` answered true there, so an entry `not(1, 2)` matched the input
+    `"a"`. Now the answer is true when one test is true, false when all are false, and
+    otherwise the null of the first test without an answer, with its reason; `not(...)` is null
+    where the tests are. This is `x in (a, b)` in expressions and the unary tests dialect. A
+    list value (`x in [1, 2]`, a list among the tests) is searched as before, and B-FEEL, where
+    a comparison is true or false, answers as before (kernel `InTwoValued`). In strict error
+    mode a value of another kind than the tests is now an error for values as it already was
+    for comparisons and ranges. A decision table matches on true, so null is no match.
+    (b) Clause 7.3.2 d and the last row of Table 56: a test that is a boolean expression using
+    `?` is satisfied when it is true. The engine compared the boolean with the tested value
+    (`? > 5` with 7 was `7 = true`, false), documented with a warning. Now a test that uses `?`
+    and gives a boolean is that answer (`Value::TestAnswer`, kernel `TestAnswer`); when it gives
+    null and is a boolean expression by its form (a comparison, `and`, `or`, `between`, `in`,
+    `instance of`, an invocation) the answer is that null; any other value is compared with the
+    tested value as before (`(? * 0) + 7`), and so is `?` alone. The warning is gone.
+    Official TCK: unchanged (3,392 of 3,407, the same 15 as the baseline). New request set
+    `tools/identity/requests/unary-test-answers.json` (275 requests); 168 registered differences
+    in `tools/identity/registered/unary-test-answers.json` (82 for (a), 86 for (b)).
+    Found on the way, not changed: a decision table of a DMN model does not bind `?` for its
+    input entries (only the allowed values of an item definition do), so `? > 5` in a model's
+    table is still not satisfied. Tracker row EVA-25.
+
+261. **The comparisons are one left-associative level.** Grammar rule 49 lists `=`, `!=`, `<`,
+    `<=`, `>`, `>=`, `between` and `in` as one production, and rule 4 gives the comparison one
+    place in the order of precedence. The parser had three levels inherited from the generated
+    tables: the six operators (not associative, so `1 < 2 < 3` and `a = b = true` were syntax
+    errors), `between` above them and `in` above that (right associative). Now a comparison
+    takes the comparison on its left as its operand and an arithmetic expression on its right:
+    `a = b = true` is `(a = b) = true`, `1 < 2 < 3` is `(1 < 2) < 3` (null: a boolean is not
+    compared with a number), `a = b in c` is `(a = b) in c` (it was `a = (b in c)`),
+    `a = x between 1 and 2` is `(a = x) between 1 and 2`, `a in b in c` is `(a in b) in c`,
+    and the endpoint of a unary comparison ends before `in` as before the other comparisons
+    (item 236). A comparison written first is unchanged (`x in c = true`,
+    `x between 1 and 2 = true`). The diagnostic code `comparison` of `syntax` is gone with the
+    error. A long chain of comparisons is no nesting; the depth limit of the tree applies to
+    it. Tracker row PAR-20.
+
+262. **A `[` after the start endpoint of an interval that starts with `]` is a filter.**
+    `]a[1]..b]` was a syntax error: after the `]` that opens an interval the generated tables
+    read every `[` as the bracket that closes one, also after the start endpoint, where no
+    interval can end. The start endpoint is now read as in `[a[1]..b]` and `(a[1]..b)`; after
+    the end endpoint a `[` closes the interval as before (`]a..b[`). Identity ledger: 54
+    entries, all in the new request set `interval-filters.json`.
+
+263. **A comparison with one endpoint equals the range whose other endpoint is undefined.**
+    DMN 1.6 clause 10.3.2.7 and Table 42: `< 10` is the range with the end 10, not included,
+    and an undefined start; the range function's row says `range("(..2)")` is `< 2`. Equality
+    had one arm per form: `range("(..10)") = (< 10)` was null, `(< 10) = range("(..10)")` was
+    false, `(< 10) = (1..10)` was true and `(< 10) = (<= 10)` was null. Now the four
+    comparisons and the intervals are compared as ranges: the same flags, and the same
+    endpoints, where an undefined endpoint equals only an undefined one. An endpoint written
+    as `null` is a value, so `(< 10) = (null..10)` stays false (TCK 0068, range_006 to 009).
+    The undefined endpoint is null without an error (`(< 10).start`, `(> 1).end`; it was
+    "no such property"), and a range with an undefined endpoint has the type of its other
+    endpoint (`range("(..10)")` is a `range<number>`, it was `range<Any>` and no instance of
+    `range<number>`). So `index of`, `list contains` and `distinct values` find such a range
+    in either form. Found, not changed: the range functions (`includes`, `overlaps`,
+    `coincides`, ...) take no range with an undefined endpoint in either form. Identity
+    ledger: 49 entries. Tracker row EVA-29.
+
+264. **Completion offers nothing inside a comment or a string that is not closed.** With the
+    cursor inside a line comment, a block comment without its `*/` or a string without its
+    closing quote, `complete` offered what the grammar takes after the text before it (the
+    names, keywords and functions of an expression, or the operators). It now answers
+    `expects: "comment"` or `"string"` with no items; `call` is still told, so the signature
+    of the function around a string argument stays. Identity ledger: 17 entries. Tracker row
+    EDT-14.
+
+265. **A word that is a keyword is the keyword whatever follows it.** DMN 1.6 clause 10.3.1.4:
+    "A name start (grammar rule 26) SHALL NOT be a literal terminal symbol." The lexer read
+    `and`, `between`, `else`, `every`, `external`, `for`, `if`, `in`, `instance`, `of`, `or`,
+    `return`, `satisfies`, `some` and `then` as keywords only before white space, and `true`,
+    `false` and `null` only before some characters; before anything else the word started a
+    name. Now the word is the keyword when no name character follows it, and a longer word
+    (`iffy`, `in1`, `order`) is a name as before. So `x in[1, 2]`, `x in(1, 2)`,
+    `if(a)then(1)else(2)`, `for x in[1] return(x)` and `a and(b)` parse (they were syntax
+    errors). And a name that starts with a keyword is none, also where the old lexer took
+    it: a name in scope (`in-progress`, `and/or`, `if-flag`), a key (`{in: 1}`, `{true: 1}`;
+    the string key `{"in": 1}` stays), a parameter (`function(in) 1`, `f(in: 1)`) and a member
+    (`x.and.y`; `x.in` before white space already was an error). Such an entry is read with
+    `get value(x, "in")`. `null()` and `true()` invoke the literal (null, as before, with
+    another reason). Identity: 6 of the 16,876 earlier requests differ (`null(1)`); the new
+    request set `keywords-and-item.json` registers the rest. The official TCK is unchanged.
+    Tracker row PAR-17.
+
+266. **The word `item` is a name like any other.** The lexer returned the name `item` whenever a
+    name started with that word (inherited, for filters), so a name that starts with it was
+    never read: with `item count` in the context `item count + 1` was a syntax error, `item-id`
+    was `item - id`, and `{item x: 1}`, `for item count in ...` and `function(item x) ...` were
+    syntax errors. It also left the lexer in the mode of the iteration variable after
+    `for item in`, so `in+1` in the body was read as a name. A filter needs no special case:
+    `item` alone ends before an operator, a keyword or a bracket as any name that is not in
+    scope does. Part of tracker row NAM-5.
+
+267. **The entries of a context literal are evaluated in the order they need each other.**
+    DMN 1.6 says both "may reference keys from previous context entries" (clause 10.3.2.6) and
+    "All of the entries of m are in-scope for e, but the depends on graph SHALL be acyclic.
+    [...] Simply evaluate the context entries in depends on order" (clause 10.3.2.11.1, and
+    Table 70). The owner decided for the second on 2026-11-18. An entry saw only the entries
+    written before it, so `{a: b + 1, b: 1}.a` was null, or read a `b` outside the literal.
+    Now:
+    - an entry is evaluated after the entries its value reads, and otherwise in the order
+      written: `{a: b + 1, b: 1}.a` is 2, also where a `b` outside the literal exists (that
+      answer changes from the outer `b` to the entry);
+    - an entry does not read its own key (clause 10.3.2.6, TCK 1146 and 0085): `{x: x + 1}`
+      reads the `x` outside the literal, as before;
+    - a function definition needs nothing to be made, and what its body reads is needed when
+      it is invoked: `{i: f(), f: function() a, a: 1}.i` is 1, and function entries invoke
+      each other and themselves as before;
+    - entries that need each other in a circle have no value: `{a: b, b: a}` gives null for
+      both, each with an error that names the entry (`a` read the outer `b` before);
+    - a name that a construct inside the value binds (an iteration variable, a parameter, a
+      key of a literal inside) is not the entry;
+    - a key of several tokens is a name in scope in the entries written before it too
+      (`{x: a-b + 1, a-b: 2}.x` is 3), found by one pass over the literal before its entries
+      are parsed, and never in its own value (`{a-b: a-b}` subtracts).
+    The order is found from the syntax tree before the names are resolved
+    (`flat/depends.rs`); the layout of the literal binds its entries in that order, so an entry
+    sees exactly the entries evaluated before it. A consequence: `{r: abs(-1), abs: 1}` reads
+    the entry `abs`, not the built-in function. Boxed contexts of DMN models are not changed
+    here. Identity: 13 of the earlier requests differ; with the new request set
+    `context-entry-order.json` they are registered. Tracker row NAM-4.
+
+268. **A name is matched against the keys of the scopes it stands in; nested keys are names
+    only for a member of a value.** Every key at any depth of the input, and every key of a
+    context literal from its entry to the end of the text, was a name in scope everywhere
+    (inherited): with the input `{x: {"a-b": 1}, a: 5, b: 2}` the text `a-b` was read as the
+    name `a-b`, which has no value there (null), and in `[{a-b: 1}, a-b]` the second `a-b` was
+    read as the key of the literal before it. Now (the first half of tracker row NAM-6):
+    - a name that stands alone is matched against the keys of the contexts in scope
+      themselves: the input's own keys, the variables and parameters of the constructs around
+      it, and the keys of the context literals it stands in. `a-b` above is 3;
+    - a member of a value is matched against the keys at any depth too, and against the keys
+      of the context literals of the text: the name after a dot (`x.a-b`, `{a-b: 1}.a-b`) and
+      the names in the predicate of a filter, where the entries of an item are in scope
+      (`l[a-b = 1]`);
+    - the key of a context literal is a name of the literal's own scope: in the entries of
+      the literal (item 267) and in what stands inside them, not after or beside the literal.
+    The lookups of the member names are the ones that were there (the tests of the index run
+    with every name as a member name, and their recorded outcomes are unchanged). None of the
+    17,268 earlier identity requests differs, and the official TCK is unchanged; the new
+    request set `member-names.json` registers the rule. Also fixed here: the scan for the keys
+    of a literal (item 267) started one byte after the start of the token, not after the
+    brace, so with white space before the `{` it found no keys, and it panicked when that
+    white space was a character of several bytes (found by the full-size parser tests).
+
+269. **Completion knows the type of an expression (type inference for the editor).** After a
+    dot `complete` offered entries only when the text before it was a path of names into the
+    context, and no item but a function or a parameter had a type. Now the engine finds the
+    type of the expression before the dot from its syntax tree, without evaluating it
+    (`feel-evaluator/src/infer.rs`: `infer_type`, `members_of`, `type_of_value`): literals,
+    names of the context, paths, filters, lists, context literals, ranges, the operators, `if`,
+    `for` and the quantifiers, function definitions and invocations (the result type of the
+    signature table of item 254; for `sort`, `append`, `reverse`, `sublist`, `min`, `max`,
+    `abs` and `get value` with a string the type that follows from the arguments). The
+    editor operation types the piece of the text before the dot, with the names that the
+    constructs around it bind: the variables of an iteration (an item of their domain), the
+    entries of a context literal written before the place, in the predicate of a filter
+    `item` and the entries of an item, and the parameters of a function (unknown, but they
+    hide the names outside). So `for l in order.lines return l.` offers the entries of a
+    line, `date(x).` the properties of a date, `[1..5].` those of a range. The items of the
+    kinds `name` and `entry` have their `type` (the kind of the value: `number`, `context`,
+    `list<context>`), and in the predicate of a filter the entries of an item and `item` are
+    offered as names. The shape of the answer is unchanged (`type` was null). A type is
+    `Any` where the tree does not say it; a piece that is no expression has no type. Tested at
+    every cursor of whole and broken texts. Identity: the `complete` answers with names or
+    entries differ by their `type` and are registered. Tracker row EDT-8.
+
+270. **An outline can have the types of its names.** An outline held names and their nesting
+    only, so with an outline in place of the context `complete` knew the type of no name that
+    is not a context or a list of contexts, and offered no property of a date or a range. A
+    name of an outline can now be `{"type": "<FEEL type>"}` instead of null, the type as FEEL
+    writes it. Both ways are optional and additive (the owner's decision, 2026-11-18):
+    `outline` writes the types only when the request has `"types": true`, and an outline
+    without types is read as before. A type in an outline that is sent is a statement of the
+    consumer: the engine takes it as it is, also where a value would say nothing (null, an
+    empty list), so a consumer that has a schema and no values gets typed completion. In the
+    scope the name stands with its type in the place of a value (`Value::FeelType`). A text
+    that is no FEEL type is a failure of kind `context` that names the entry. The runtime
+    package has `outline({ types: true })` and the type in `Outline`. Identity: new requests
+    only. Tracker row EDT-15.
+
+271. **One parse API.** The parser crate had twelve entry points, each with a `trace` flag
+    that nothing read since the hand-written parser (item 247), and a public `ParsingScope`
+    that no other crate used. It now has: `parse_expression(scope, text)` (grammar rule 1),
+    `parse_unary_tests(scope, text)` (rule 15), `parse_range_literal(text)` (rule 66: its
+    endpoints are literals, so it takes no scope), `parse_context(scope, text)` (a boxed
+    expression, for the contexts of tests and hosts), `parse_name(scope, text)` and
+    `parse_longest_name(text)` for names that are being declared, and for editors
+    `parse_tolerant` and `format`. Gone: `parse_textual_expression`,
+    `parse_textual_expressions`, `parse_simple_expression`, `parse_simple_expressions`,
+    `parse_simple_value` and `parse_boxed_expression` (their callers were tests; an expression
+    is what they parse), the `trace` argument of every function, and `ParsingScope` from the
+    public API. The four start rules that only the removed functions reached are gone from
+    the parser, the lexer and the tokens; the recorded parser outcomes are rewritten for the
+    five that remain (their outcomes are unchanged). Rust API: breaking for callers of the
+    crate (the next version of `rheon-feel-parser` is not compatible with 0.8). The wasm
+    module, its answers and the npm packages are unchanged: no identity request differs.
+    Tracker row PAR-25.
+
+272. **A text reaches a key whatever white space the key has between its tokens.** DMN 1.6
+    clause 10.3.1.4: a name is a list of tokens, and "a name like Phone Number with one space
+    in between the tokens is the same as Phone Number with several spaces". FEEL reads a name
+    in one form (its tokens joined by one space, none next to an additional name symbol), and
+    a key was found by its text only: the key `Date - Time` of a host could be read by no
+    text (`Date - Time` was a subtraction, null), only the key `Date-Time`; `a  b` could not
+    be read by `a b`. Now a key and a name are two things (the split of tracker row NAM-5): a
+    key is the text it was given, and a name finds the key whose tokens it is.
+    - `rheon_feel::names`: `is_in_name_form`, `name_form`, `is_name`, with the white space
+      of grammar rule 61 and the additional name symbols of rule 30.
+    - `FeelContext` knows whether one of its keys is written in another form
+      (`note_key_forms`, said by whoever builds a context from keys that are not FEEL's own;
+      `with_other_key_forms`, `has_other_key_forms`). Only then, and only when an entry is
+      not found by the text of the name, the entries are searched by their tokens. A context
+      of FEEL's own keys does one more test of a flag on a miss, nothing else.
+    - The wasm boundary says it for the contexts it reads (per object; the records of a list
+      that share their names once), a context literal for its keys that are strings, and
+      `context`, `context put` and `context merge` for their results.
+    - The parser's index of nested keys holds such keys by their name form too, and a key
+      that is a string of several tokens is a name of its literal by that form.
+    The key comes back as it was sent, in results and in `get entries`. Of two keys that are
+    one name the key of the same text is read, else the first in the order of the keys. Not
+    covered: the keys of DMN models (with the DMN layer), and a key that only a value says
+    at run time is no name of the text (`context put(c, "a - b", 1).a - b` subtracts).
+    Speed (wasm, V8, engine mode, two rounds against the commit before): formulas over a
+    context of 1,000 fields 1.02x the time (names-1000f, deep-path-1000f), the others within
+    1.5%; the key is looked at while it is read, and a key of ASCII without white space in
+    one pass over its bytes. Identity: no earlier request differs; the new request set
+    `key-forms.json` registers the rule. Tracker row NAM-8.
+
+273. **An ordering comparison says what it expected and what it found.** `<`, `<=`, `>` and
+    `>=` on operands they do not order (DMN 1.6 Table 53) gave null with the name of an
+    internal function as the error (`eval_less_then_number`, `eval_greater_then`). The error
+    now names the operator, the type it expected and the type it found: with an operand of an
+    ordered type on the left, `comparison '<' expected number on the right, as on the left,
+    found string`; otherwise `comparison '>' expected a number, string, date, time, date and
+    time, or duration on the left, found boolean`. No value changes; a list of errors that
+    held the same text several times can hold different texts now (one per type found). The
+    four kernels are one macro. Identity ledger `comparison-messages.json`: 70 entries, of
+    which 29 replace entries of earlier ledgers whose answers held the old text. Tracker row
+    ERR-18.
+
+274. **A range function on a range with an undefined endpoint is the value of its formula.**
+    DMN 1.6 Table 42: a range with one endpoint (`< 10`, `range("(..10)")`) has the other
+    endpoint undefined and not included. Table 79 gives every range function as a FEEL
+    formula over the endpoints and whether they are included ("Evaluates to true if and only
+    if"). The functions took no such range: null with "invalid argument type" (item 263
+    found it and left it). Now the formula is evaluated with the three truth values of FEEL,
+    the undefined endpoint being null as `(< 10).start` is: an ordering comparison with it is
+    null, an equality with it is true for two undefined endpoints and false otherwise, and
+    `and`, `or` and `not` are those of Table 51. So `before(5, > 10)`, `after(20, < 10)`,
+    `includes(<= 10, 10)`, `includes(< 10, < 5)`, `meets(<= 5, >= 5)` and
+    `coincides(< 10, < 10)` are true, `includes(< 10, 20)` and `overlaps(< 10, [20..30])` are
+    false, and where the defined endpoints do not decide the formula the result is null with
+    one error: `includes(< 10, 5)` is `[includes] expected endpoints that decide the result,
+    found the range < 10 with an undefined endpoint` (the formula asks whether the start is
+    less than 5). For a value and a range (`includes(range, value)`, `during(value, range)`)
+    the error ends with `; 'value in range' tests a value against such a range`: `5 in (< 10)`
+    is the unary test of the range on the value (Table 56) and is true. The TCK has no such case. Not chosen: reading an undefined endpoint as
+    "unbounded" (`includes(< 10, 5)` true), which the formulas of Table 79 do not say. Ranges
+    with both endpoints, and arguments of other types, are answered as before (the new code
+    is asked only for a range with an undefined endpoint, whose other values are of one
+    ordered type). New module `bifs/open_ranges.rs`. Identity ledger
+    `range-undefined-endpoints.json`: 86 entries (36 true, 30 false, 20 null with the new
+    error), 7 of them replacing entries of `one-endpoint-ranges.json`. Tracker row EVA-30.
+
+275. **A name has no white space of FEEL at its ends.** A name was trimmed with the white
+    space of Rust, which is not that of grammar rule 61: U+180E, U+200B and U+FEFF stayed.
+    So a key `"\u200Bfoo"` of a context literal, of `context put` or of the host stayed a key
+    of its own beside `foo` (reachable by the name since item 272, but shown and returned
+    with the character), while `"\u00A0foo"` was the key `foo`. Now `rheon_feel::names::trim`
+    is the one trim of a name (`Name::from`, the parts of a name of several tokens, the
+    lexer, the keys the wasm boundary reads, the editor's completion), with the white space
+    of rule 61. An expression of such white space only is "The expression is empty.". The
+    prefix walk that the row LEX-5 asked for is not built: the lexer makes one lookup per
+    name since c00944b. Identity ledger `name-white-space.json`: 15 entries. Tracker row
+    LEX-5.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
@@ -4557,6 +4921,11 @@ noreply author as all the others. Trees are unchanged; upstream's signed commits
 push; crates.io still records the pre-rewrite hash of 0.2.0 (`3209ccd`, now `a91330d`).
 
 ## Publishing to crates.io
+
+As of 0.9.0 nine crates are published: `rheon-feel-grammar` is `publish = false` since the
+hand-written parser (it is the reference grammar of the tests), and crates.io keeps its 0.4.0.
+The versions 0.5.0 to 0.8.1 were GitHub Releases only, so on crates.io and npm 0.9.0 follows
+0.4.0; `@rheon/feel-codemirror` is on npm from 0.9.0.
 
 The ten `rheon-*` crates share the workspace version (`[workspace.package] version`,
 rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`, `0.3.0` changed the API of

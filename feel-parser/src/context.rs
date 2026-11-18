@@ -110,7 +110,13 @@ impl ParsingContext {
     self.0.insert(name, ParsingEntry::Variable);
   }
 
+  /// Takes a specified name out of this parsing context; returns whether it was there.
+  pub(crate) fn remove_name(&mut self, name: &Name) -> bool {
+    self.0.remove(name).is_some()
+  }
+
   /// Places parsing context under specified name.
+  #[cfg(test)]
   pub fn set_context(&mut self, name: Name, ctx: ParsingContext) {
     self.0.insert(name, ParsingEntry::Context(ctx));
   }
@@ -153,6 +159,7 @@ impl ParsingContext {
   }
 
   /// Returns [key_lengths](Self::key_lengths) of a context whose only entry is `name: ctx`.
+  #[cfg(test)]
   pub(crate) fn entry_key_lengths(name: &str, ctx: &ParsingContext) -> (usize, usize) {
     Self::lengths(vec![(ctx, nested_prefix(0, name))], (name.len(), name.len()))
   }

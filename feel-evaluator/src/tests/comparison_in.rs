@@ -842,3 +842,44 @@ fn _0158() {
   satisfies(false, scope, "5", "", r#"not(f("x"), 5)"#, false);
   satisfies(false, scope, "null", "", r#"not(f("x"))"#, false);
 }
+
+#[test]
+fn _0159() {
+  let null = |text: &str| {
+    let scope = scope!();
+    let node = rheon_feel_parser::parse_expression(&scope, text).unwrap();
+    assert!(matches!(eval(&scope, &node), Value::Null(_)), "{text}");
+  };
+  // `e1 in e2` with a single value is `e1 = e2` (DMN 1.6 Table 56, rule 49.c): values of
+  // different kinds give null, as `=` does
+  null(r#" "sad" in true "#);
+  null(r#" "sad" = true "#);
+  null(r#" "sad" in (true) "#);
+  null(r#" 1 in "1" "#);
+  null(r#" date("2020-01-01") in 1 "#);
+  // values of one kind, and null, as before
+  te_bool(false, &scope!(), r#" "sad" in "sad" "#, true);
+  te_bool(false, &scope!(), r#" "sad" in "glad" "#, false);
+  te_bool(false, &scope!(), r#" "sad" in null "#, false);
+  te_bool(false, &scope!(), r#" null in null "#, true);
+  // a list value: an item of another kind is another item
+  te_bool(false, &scope!(), r#" "sad" in [true] "#, false);
+}
+
+/// A list of tests is the `or` of its tests (DMN 1.6 Table 56): true when one is true, false
+/// when all are false, and null when none is true and one cannot be compared.
+#[test]
+fn _0160() {
+  let scope = scope!();
+  te_null(false, &scope, r#" "sad" in (true, false) "#, r#"equal err '"sad"' =?= 'true'"#);
+  te_null(false, &scope, r#" "a" in (1, 2) "#, r#"equal err '"a"' =?= '1'"#);
+  te_null(false, &scope, r#" "a" in (< 10, 5) "#, "eval_in_unary_less");
+  te_null(false, &scope, r#" "a" in ([1..5], 2) "#, "eval_in_range");
+  te_bool(false, &scope, r#" 1 in ("a", 1) "#, true);
+  te_bool(false, &scope, r#" 3 in (1, 2) "#, false);
+  te_bool(false, &scope, r#" null in (1, 2) "#, false);
+  te_bool(false, &scope, r#" 1 in (null, 2) "#, false);
+  // a list value among the tests is searched as a list
+  te_bool(false, &scope, r#" "a" in ([1, 2], [3]) "#, false);
+  te_bool(false, &scope, r#" "a" in [1, 2] "#, false);
+}

@@ -47,7 +47,7 @@ pub fn prepare_test_cases(input: &str) -> Result<Vec<(FeelContext, Value)>> {
   if let Some(separator) = detect_separator(input) {
     let scope = FeelScope::default();
     for unary_tests in split_test_cases(input, &separator) {
-      match rheon_feel_parser::parse_unary_tests(&scope, unary_tests, false) {
+      match rheon_feel_parser::parse_unary_tests(&scope, unary_tests) {
         Ok(ast_node) => match &ast_node {
           AstNode::ExpressionList(nodes) => {
             if nodes.len() == 2 {

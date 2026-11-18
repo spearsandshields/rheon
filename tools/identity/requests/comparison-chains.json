@@ -1,0 +1,2559 @@
+[
+ {
+  "op": "evaluate",
+  "expression": "1 < 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 < 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "3 > 2 > 1",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "3 > 2 > 1",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 <= 2 <= 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 <= 2 <= 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 = 1 = 1",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 = 1 = 1",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 = 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 = 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 != 2 != false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 != 2 != false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = b = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a != b = false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a != b = false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b = c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = b = c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in b = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a in b = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in l = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a in l = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "true = a in l",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "true = a in l",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a in b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in (b) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a in (b) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in (1, 2) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a in (1, 2) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in [1..3] in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a in [1..3] in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in (1..3) = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a in (1..3) = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = x between 1 and 10",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = x between 1 and 10",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x between 1 and 10 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x between 1 and 10 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "true = x between 1 and 10",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "true = x between 1 and 10",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x between 1 and 10 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x between 1 and 10 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x between 1 and 10 between false and true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x between 1 and 10 between false and true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x between 1 and 10 != false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x between 1 and 10 != false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x in l between false and true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x in l between false and true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a + 1 = b * 2 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a + 1 = b * 2 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b and b in l or x between 1 and 2",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = b and b in l or x between 1 and 2",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "not(a = b = true)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "not(a = b = true)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "if a = b = true then 1 else 2",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "if a = b = true then 1 else 2",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "[1, 2, 3][item > 1 = true]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "[1, 2, 3][item > 1 = true]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "[1, 2, 3][item in l = true]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "[1, 2, 3][item in l = true]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "for i in l return i > 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "for i in l return i > 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "some i in l satisfies i = 2 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "some i in l satisfies i = 2 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "every i in l satisfies i in l in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "every i in l satisfies i in l in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "{r: a = b = true}.r",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "{r: a = b = true}.r",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b = true = true = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = b = true = true = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "s = \"a\" = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "s = \"a\" = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "s in (\"a\", \"b\") = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "s in (\"a\", \"b\") = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "(a = b) = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "(a = b) = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = (b = true)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = (b = true)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = (b in c)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = (b in c)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 < (2 < 3)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 < (2 < 3)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "date(\"2024-01-01\") < date(\"2024-02-01\") = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "date(\"2024-01-01\") < date(\"2024-02-01\") = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "null = null = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "null = null = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = null = false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "a = null = false",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 < 2 = 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 < 2 = 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 < 2 = (2 < 3)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 < 2 = (2 < 3)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x > 1 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x > 1 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x in > 1",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x in > 1",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x in > 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x in > 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x in (> 1) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x in (> 1) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x in < 1 in [false]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "x in < 1 in [false]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "> 1 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "> 1 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "(> 1) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "(> 1) in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "< 5 = < 5",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "< 5 = < 5",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 in 1 in true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 in 1 in true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 between 0 and 2 between false and true in [true]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "1 between 0 and 2 between false and true in [true]",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 < 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "language": "b-feel"
+ },
+ {
+  "op": "syntax",
+  "expression": "1 < 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "1 < 2 < 3"
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 < 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "language": "b-feel"
+ },
+ {
+  "op": "syntax",
+  "expression": "a = b = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "a = b = true"
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "language": "b-feel"
+ },
+ {
+  "op": "syntax",
+  "expression": "a = b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "a = b in c"
+ },
+ {
+  "op": "evaluate",
+  "expression": "a = b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "x between 1 and 10 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "language": "b-feel"
+ },
+ {
+  "op": "syntax",
+  "expression": "x between 1 and 10 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "x between 1 and 10 = true"
+ },
+ {
+  "op": "evaluate",
+  "expression": "x between 1 and 10 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "language": "b-feel"
+ },
+ {
+  "op": "syntax",
+  "expression": "a in b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "a in b in c"
+ },
+ {
+  "op": "evaluate",
+  "expression": "a in b in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "errorMode": "strict"
+ },
+ {
+  "op": "evaluate",
+  "expression": "> 1 in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "1 < 2 < 3",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "= 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "> 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "x = 5 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "not(1 < 2 < 3)",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "in c",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "> a in l",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "? > 1 = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ },
+ {
+  "op": "evaluate",
+  "expression": "? in l = true",
+  "context": {
+   "a": 1,
+   "b": 1,
+   "c": [
+    true
+   ],
+   "x": 5,
+   "l": [
+    1,
+    2,
+    3
+   ],
+   "s": "a"
+  },
+  "dialect": "unaryTests",
+  "input": 5
+ }
+]

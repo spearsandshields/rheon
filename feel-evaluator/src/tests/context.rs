@@ -9,7 +9,7 @@ fn _0001() {
     Full Name: "John Travis"
   }
   "#;
-  let node = rheon_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = rheon_feel_parser::parse_context(&scope!(), input).unwrap();
   assert_eq!(r#"null(duplicated context entry key: Full Name)"#, crate::tests::eval(&scope!(), &node).to_string());
 }
 
@@ -21,7 +21,7 @@ fn _0002() {
     "Address": "Atlanta"
   }
   "#;
-  let node = rheon_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = rheon_feel_parser::parse_context(&scope!(), input).unwrap();
   assert_eq!(r#"{Address: "Atlanta", Full Name: "John Doe"}"#, crate::tests::eval(&scope!(), &node).to_string());
 }
 
@@ -49,7 +49,7 @@ fn _0004() {
 #[test]
 fn _0005() {
   let input = r#" { convert: function(x: context <age: number, name: stringa>) x } "#;
-  let node = rheon_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = rheon_feel_parser::parse_context(&scope!(), input).unwrap();
   assert_eq!(
     r#"{convert: null(expected type of the formal parameter)}"#,
     crate::tests::eval(&scope!(), &node).to_string()

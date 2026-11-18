@@ -240,8 +240,8 @@ fn in_and_not_in_with_every_right_hand_form() {
 fn not_in_evaluates_its_left_operand_twice() {
   for (input, left) in [("", "x"), ("{a: 1}", "a"), ("", "1")] {
     let scope = scope(input);
-    let left = rheon_feel_parser::parse_expression(&scope, left, false).unwrap();
-    let right = rheon_feel_parser::parse_unary_tests(&scope, "> 3, 1", false).unwrap();
+    let left = rheon_feel_parser::parse_expression(&scope, left).unwrap();
+    let right = rheon_feel_parser::parse_unary_tests(&scope, "> 3, 1").unwrap();
     let node = AstNode::Out(Box::new(left), Box::new(right));
     agree_node(Dialect::Feel, &scope, &node);
     agree_node(Dialect::BFeel, &scope, &node);
@@ -253,7 +253,7 @@ fn unary_tests_read_the_input_value() {
   for input in ["{?: 5}", "{?: null}", "{?: \"b\"}", "{?: [1, 2]}", "{}"] {
     let scope = scope(input);
     for tests in ["> 3", "< 3, = 5", "not(5)", "-", "[1..10]", "? > 4", "\"a\", \"b\"", "null", "[1, 2]", "x"] {
-      let tests = rheon_feel_parser::parse_unary_tests(&scope, tests, false).unwrap();
+      let tests = rheon_feel_parser::parse_unary_tests(&scope, tests).unwrap();
       let node = AstNode::In(Box::new(AstNode::Name(Name::from("?"))), Box::new(tests));
       agree_node(Dialect::Feel, &scope, &node);
       agree_node(Dialect::BFeel, &scope, &node);
@@ -435,7 +435,7 @@ fn a_function_of_the_host_sees_the_entries_before_its_invocation() {
 fn qualified_names_search_the_entries_of_a_context() {
   let segments = |names: &[&str]| AstNode::QualifiedName(names.iter().map(|name| AstNode::QualifiedNameSegment(Name::from(*name))).collect());
   let entry = |key: &str, value: AstNode| AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(Name::from(key))), Box::new(value));
-  let nested = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  let nested = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text).unwrap();
   for input in ["", "{a: {b: 5}}", "{a: {c: 5}}"] {
     let scope = scope(input);
     for names in [&["a", "b"][..], &["a"], &["a", "c"], &["x", "b"], &[]] {
@@ -537,7 +537,7 @@ fn some_and_every_end_at_a_value_that_decides() {
 
 #[test]
 fn malformed_iterations_are_errors() {
-  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text).unwrap();
   let (some, for_expression) = (parse("some x in [1], x in [2] satisfies x > 0"), parse("for i in [1] return i"));
   let (AstNode::Some(contexts, satisfies), AstNode::For(iteration_contexts, body)) = (&some, &for_expression) else {
     panic!("not a some and a for");
@@ -576,7 +576,7 @@ fn a_function_of_the_host_sees_the_variables_of_the_walk() {
 #[test]
 fn qualified_names_search_the_variables_of_a_walk() {
   let segments = |names: &[&str]| AstNode::QualifiedName(names.iter().map(|name| AstNode::QualifiedNameSegment(Name::from(*name))).collect());
-  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text).unwrap();
   let for_expression = parse("for c in [{b: 1}, {b: 2, c: 3}, 4] return c");
   let AstNode::For(contexts, _) = &for_expression else {
     panic!("not a for");
@@ -667,7 +667,7 @@ fn a_function_of_the_host_sees_the_item_of_a_filter() {
 #[test]
 fn qualified_names_search_the_item_of_a_filter() {
   let segments = |names: &[&str]| AstNode::QualifiedName(names.iter().map(|name| AstNode::QualifiedNameSegment(Name::from(*name))).collect());
-  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text, false).unwrap();
+  let parse = |text: &str| rheon_feel_parser::parse_expression(&scope(""), text).unwrap();
   for input in ["", "{a: {b: 5}}", "{item: {b: 6}}"] {
     let scope = scope(input);
     for list in ["[{a: {b: 1}}, {a: 2}, 3, {item: {b: 4}}]", "[{b: 1}]", "[]"] {

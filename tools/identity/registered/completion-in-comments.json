@@ -1,0 +1,6262 @@
+[
+  {
+    "request": {
+      "op": "complete",
+      "expression": "\"text",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "operator",
+      "items": [
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "keyword",
+          "label": "and",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "keyword",
+          "label": "between",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "keyword",
+          "label": "in",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "keyword",
+          "label": "instance of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 5,
+          "kind": "keyword",
+          "label": "or",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 5,
+      "truncated": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [],
+      "ok": true,
+      "to": 5,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "1 + // no",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 9,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 9,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "// a",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 4,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 4,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a // ab",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "operator",
+      "items": [
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "and",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "between",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "in",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "instance of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "or",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 7,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 7,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "1 + /* a",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 8,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 8,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 8,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "1 + /*",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a./* x",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "property",
+      "items": [],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "\"ab",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "operator",
+      "items": [
+        {
+          "detail": null,
+          "from": 3,
+          "kind": "keyword",
+          "label": "and",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 3,
+          "kind": "keyword",
+          "label": "between",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 3,
+          "kind": "keyword",
+          "label": "in",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 3,
+          "kind": "keyword",
+          "label": "instance of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 3,
+          "kind": "keyword",
+          "label": "or",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "1 + \"a",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "operator",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "and",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "between",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "in",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "instance of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "or",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "@\"2024",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "operator",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "and",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "between",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "in",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "instance of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "or",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "substring(\"ab",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "operator",
+      "items": [
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "keyword",
+          "label": "and",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "keyword",
+          "label": "between",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "keyword",
+          "label": "in",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "keyword",
+          "label": "instance of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "keyword",
+          "label": "or",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 13,
+      "truncated": false
+    },
+    "new": {
+      "call": {
+        "argument": 0,
+        "function": "substring",
+        "named": [],
+        "signatures": [
+          {
+            "named": true,
+            "parameters": [
+              {
+                "name": "string",
+                "optional": false,
+                "rest": false,
+                "type": "string"
+              },
+              {
+                "name": "start position",
+                "optional": false,
+                "rest": false,
+                "type": "number"
+              },
+              {
+                "name": "length",
+                "optional": true,
+                "rest": false,
+                "type": "number"
+              }
+            ],
+            "result": "string",
+            "text": "substring(string, start position, length?): string"
+          }
+        ],
+        "summary": "The characters from a position, as many as the length says or all that follow."
+      },
+      "expects": "string",
+      "items": [],
+      "ok": true,
+      "to": 13,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "f(// x",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "if a then // b",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 14,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 14,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 14,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "{k: \"v",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "operator",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "and",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "between",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "in",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "instance of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "keyword",
+          "label": "or",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "string",
+      "items": [],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "1 + // no\n2 +",
+      "context": {
+        "a": 1,
+        "abc": 2
+      },
+      "cursor": 7
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 7,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 7,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "> 1, // x",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "name",
+          "label": "?",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "name",
+          "label": "a",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "name",
+          "label": "abc",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "every",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "false",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "for",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "function",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "if",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "null",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "some",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "keyword",
+          "label": "true",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "ceiling",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "coincides",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "concatenate",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "context",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "context merge",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "context put",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "count",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "date",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "date and time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "day of week",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "day of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "decimal",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "distinct values",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "duration",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "during",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "ends with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "even",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "exp",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "finished by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "finishes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "flatten",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "floor",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "get entries",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "get value",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "includes",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "index of",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "insert after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "insert before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "intersection",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "is",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "list contains",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "list replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "log",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "lower case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "matches",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "max",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "mean",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "median",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "meets",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "met by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "min",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "mode",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "modulo",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "not",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "now",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "number",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "odd",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "overlaps before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "range",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "remove",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "replace",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "reverse",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round half down",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round half up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "round up",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sort",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "split",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sqrt",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "started by",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "starts",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "starts with",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "stddev",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "string",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "string join",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "string length",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sublist",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "substring",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "substring after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "substring before",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "sum",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "time",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "today",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "trim",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "union",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "upper case",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "week of year",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 9,
+          "kind": "function",
+          "label": "years and months duration",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 9,
+      "truncated": false
+    },
+    "new": {
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 9,
+      "truncated": false
+    }
+  }
+]
