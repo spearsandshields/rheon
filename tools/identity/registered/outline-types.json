@@ -1,0 +1,1436 @@
+[
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "Tax Rate": 0.2,
+        "name": "Ann",
+        "nothing": null,
+        "tags": [
+          "a"
+        ],
+        "empty": [],
+        "order": {
+          "total": 9.5,
+          "lines": [
+            {
+              "price": 2
+            }
+          ]
+        }
+      },
+      "types": true
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "Tax Rate": null,
+          "empty": null,
+          "name": null,
+          "nothing": null,
+          "order": {
+            "names": {
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": null
+                  }
+                }
+              },
+              "total": null
+            }
+          },
+          "tags": null
+        }
+      }
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "Tax Rate": {
+            "type": "number"
+          },
+          "empty": {
+            "type": "list<Any>"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nothing": null,
+          "order": {
+            "names": {
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "total": {
+                "type": "number"
+              }
+            }
+          },
+          "tags": {
+            "type": "list<string>"
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "Tax Rate": 0.2,
+        "name": "Ann",
+        "nothing": null,
+        "tags": [
+          "a"
+        ],
+        "empty": [],
+        "order": {
+          "total": 9.5,
+          "lines": [
+            {
+              "price": 2
+            }
+          ]
+        }
+      },
+      "types": "yes"
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "Tax Rate": null,
+          "empty": null,
+          "name": null,
+          "nothing": null,
+          "order": {
+            "names": {
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": null
+                  }
+                }
+              },
+              "total": null
+            }
+          },
+          "tags": null
+        }
+      }
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "'types' must be true or false, found \"yes\""
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "contextFormat": "feel",
+      "context": "{due: @\"2026-12-01\", span: [1..5], f: function(x: number) x + 1}",
+      "types": true
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "due": null,
+          "f": null,
+          "span": null
+        }
+      }
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "f": {
+            "type": "function<number>->Any"
+          },
+          "span": {
+            "type": "range<number>"
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "sha256": "3241c7d8e3eebf4ba690f01867ff355986b3d65d08b4117277c70d463cdeb853"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "due.",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "entry",
+          "label": "day",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "entry",
+          "label": "month",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "entry",
+          "label": "value",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "entry",
+          "label": "weekday",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 4,
+          "kind": "entry",
+          "label": "year",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 4,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "window.",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "entry",
+          "label": "end",
+          "type": "date"
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "entry",
+          "label": "end included",
+          "type": "boolean"
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "entry",
+          "label": "start",
+          "type": "date"
+        },
+        {
+          "detail": null,
+          "from": 7,
+          "kind": "entry",
+          "label": "start included",
+          "type": "boolean"
+        }
+      ],
+      "ok": true,
+      "to": 7,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "window.start.",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "entry",
+          "label": "day",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "entry",
+          "label": "month",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "entry",
+          "label": "value",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "entry",
+          "label": "weekday",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 13,
+          "kind": "entry",
+          "label": "year",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 13,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "people[1].",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 10,
+          "kind": "entry",
+          "label": "born",
+          "type": "date"
+        },
+        {
+          "detail": null,
+          "from": 10,
+          "kind": "entry",
+          "label": "name",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 10,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "for p in people return p.",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 25,
+          "kind": "entry",
+          "label": "born",
+          "type": "date"
+        },
+        {
+          "detail": null,
+          "from": 25,
+          "kind": "entry",
+          "label": "name",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 25,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "order.",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "lines",
+          "type": "list<context>"
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "total",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "order.lines[price > 1].",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 23,
+          "kind": "entry",
+          "label": "price",
+          "type": "list<number>"
+        }
+      ],
+      "ok": true,
+      "to": 23,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "order.lines[",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "sha256": "e598c028f79403653b243af8725f72f7825f583258c93043e831ee8ee5595100"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "discount + ",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "sha256": "b49cae341429425c73b2030c0adfa62bcc8869b67eb110dff872ab4d4f7219fc"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "people[born.",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 12,
+          "kind": "entry",
+          "label": "day",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 12,
+          "kind": "entry",
+          "label": "month",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 12,
+          "kind": "entry",
+          "label": "value",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 12,
+          "kind": "entry",
+          "label": "weekday",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 12,
+          "kind": "entry",
+          "label": "year",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 12,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "due.year + discount",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "tree": true
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "Addition",
+          0,
+          19
+        ],
+        [
+          "Path",
+          0,
+          8
+        ],
+        [
+          "Name",
+          0,
+          3
+        ],
+        [
+          "Name",
+          11,
+          19
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          3
+        ],
+        [
+          "operator",
+          3,
+          4
+        ],
+        [
+          "property",
+          4,
+          8
+        ],
+        [
+          "whitespace",
+          8,
+          9
+        ],
+        [
+          "operator",
+          9,
+          10
+        ],
+        [
+          "whitespace",
+          10,
+          11
+        ],
+        [
+          "name",
+          11,
+          19
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "format",
+      "expression": "due.year + discount",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "changed": false,
+      "formatted": "due.year + discount",
+      "ok": true
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "order.lines[price > 1].price",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "tree": true
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "Path",
+          0,
+          28
+        ],
+        [
+          "Filter",
+          0,
+          22
+        ],
+        [
+          "Path",
+          0,
+          11
+        ],
+        [
+          "Name",
+          0,
+          5
+        ],
+        [
+          "Comparison",
+          12,
+          21
+        ],
+        [
+          "Name",
+          12,
+          17
+        ],
+        [
+          "Number",
+          20,
+          21
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          5
+        ],
+        [
+          "operator",
+          5,
+          6
+        ],
+        [
+          "property",
+          6,
+          11
+        ],
+        [
+          "punctuation",
+          11,
+          12
+        ],
+        [
+          "name",
+          12,
+          17
+        ],
+        [
+          "whitespace",
+          17,
+          18
+        ],
+        [
+          "operator",
+          18,
+          19
+        ],
+        [
+          "whitespace",
+          19,
+          20
+        ],
+        [
+          "number",
+          20,
+          21
+        ],
+        [
+          "punctuation",
+          21,
+          22
+        ],
+        [
+          "operator",
+          22,
+          23
+        ],
+        [
+          "property",
+          23,
+          28
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "format",
+      "expression": "order.lines[price > 1].price",
+      "outline": {
+        "names": {
+          "due": {
+            "type": "date"
+          },
+          "discount": {
+            "type": "number"
+          },
+          "window": {
+            "type": "range<date>"
+          },
+          "people": {
+            "type": "list<context<name: string, born: date>>"
+          },
+          "order": {
+            "names": {
+              "total": {
+                "type": "number"
+              },
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "changed": false,
+      "formatted": "order.lines[price > 1].price",
+      "ok": true
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "outline": {
+        "names": {
+          "a": {
+            "type": "numbr"
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "outline.a: expected a FEEL type (such as number, date, list<string> or range<date>), found \"numbr\""
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "outline": {
+        "names": {
+          "a": {
+            "type": 5
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "outline.a: expected a FEEL type as a string, found 5"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "outline": {
+        "names": {
+          "a": {
+            "type": "number",
+            "names": {}
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "outline": {
+        "names": {
+          "l": {
+            "items": {
+              "type": "list<"
+            }
+          }
+        }
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "context",
+        "message": "outline.l[]: expected a FEEL type (such as number, date, list<string> or range<date>), found \"list<\""
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "outline": {
+        "type": "number"
+      }
+    },
+    "why": "An outline can have the types of its names, and completion knows types (FORK items 269 and 270, EDT-15)",
+    "old": {
+      "error": {
+        "kind": "context",
+        "message": "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}"
+      },
+      "ok": false
+    },
+    "new": {
+      "sha256": "0deee9747b0e8119683f0ed10f5548c55e4ec5cdab02cc68c4f13f925867cbdc"
+    }
+  }
+]

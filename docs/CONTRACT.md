@@ -209,7 +209,7 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   `reverse`, the type of that list). A parameter of a function written in the text, the result
   of a function of the host and a name without a value have no known type: nothing is offered
   after them. With an `outline` in place of the context the types of the names that are no
-  contexts and no lists are not known.
+  contexts and no lists are known when the outline has them (below).
 - `call` stands when the cursor is inside the parentheses of an invocation of a built-in
   function (the innermost one):
 
@@ -237,6 +237,17 @@ or `{"items": <outline>}` (a list whose first item is a context). It holds the n
 context without its values, so an editor builds it once and sends it with every keystroke
 instead of the context; a consumer can also write one itself. A list is read by its first
 item only.
+
+A name that is no context can have its type in an outline: `{"type": "<FEEL type>"}`, the
+type as FEEL writes it (`number`, `date`, `list<string>`, `range<date>`). With such an outline
+`complete` shows the types and offers the properties of a date or a range as it does with the
+context. The type is a statement of the consumer: the engine takes it as it is, also for a
+name whose value would be null or an empty list. A text that is no FEEL type is a failure of
+kind `context` that names the entry (`outline.order.total: expected a FEEL type (such as
+number, date, list<string> or range<date>), found "numbr"`). `op: "outline"` writes the types
+when the request has `"types": true` (default false: the answer is as without the option):
+the type of each name that is no context and no list of contexts, when the value says it (not
+for null; an empty list is a `list<Any>`).
 
 `op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
 optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers

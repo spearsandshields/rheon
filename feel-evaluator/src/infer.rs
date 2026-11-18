@@ -47,8 +47,51 @@ fn value_type(value: &Value, depth: usize) -> FeelType {
     Value::Context(context) => FeelType::Context(context.iter().map(|(name, value)| (name.clone(), value_type(value, depth + 1))).collect()),
     Value::List(items) => FeelType::List(Box::new(items.first().map_or(FeelType::Any, |item| value_type(item, depth + 1)))),
     Value::Null(_) => FeelType::Any,
+    // a type in the place of a value says the type of the name (an outline, a DMN declaration)
+    Value::FeelType(feel_type) => feel_type.clone(),
     other => other.type_of(),
   }
+}
+
+/// Returns the type that `text` writes as FEEL writes a type (`number`, `list<string>`,
+/// `range<date>`, `context<a: number>`, `function<number>->string`), or None when it is no
+/// type of FEEL.
+pub fn type_of_text(text: &str) -> Option<FeelType> {
+  let scope = FeelScope::default();
+  let node = rheon_feel_parser::parse_expression(&scope, &format!("null instance of {text}"), false).ok()?;
+  match &node {
+    AstNode::InstanceOf(value, written) if matches!(value.as_ref(), AstNode::Null) => type_written(written),
+    _ => None,
+  }
+}
+
+/// The type that a type node of the parser writes, None for a name that is no type of FEEL.
+fn type_written(node: &AstNode) -> Option<FeelType> {
+  Some(match node {
+    AstNode::FeelType(feel_type) => feel_type.clone(),
+    AstNode::ListType(item) => FeelType::List(Box::new(type_written(item)?)),
+    AstNode::RangeType(endpoint) => FeelType::Range(Box::new(type_written(endpoint)?)),
+    AstNode::ContextType(entries) => {
+      let mut types = BTreeMap::new();
+      for entry in entries {
+        let AstNode::ContextTypeEntry(key, entry_type) = entry else {
+          return None;
+        };
+        let AstNode::ContextTypeEntryKey(name) = key.as_ref() else {
+          return None;
+        };
+        types.insert(name.clone(), type_written(entry_type)?);
+      }
+      FeelType::Context(types)
+    }
+    AstNode::FunctionType(parameters, result) => {
+      let AstNode::ParameterTypes(items) = parameters.as_ref() else {
+        return None;
+      };
+      FeelType::Function(items.iter().map(type_written).collect::<Option<Vec<_>>>()?, Box::new(type_written(result)?))
+    }
+    _ => return None,
+  })
 }
 
 /// Returns the members that a value of the type `feel_type` has after a dot, with their types:
@@ -89,7 +132,7 @@ pub fn members_of(feel_type: &FeelType) -> Vec<(String, FeelType)> {
 
 /// The type that a type written as text in the table of signatures names, `Any` for a text
 /// that names several types.
-fn type_of_text(text: &str) -> FeelType {
+fn signature_type(text: &str) -> FeelType {
   match text {
     "boolean" => FeelType::Boolean,
     "number" => FeelType::Number,
@@ -423,7 +466,7 @@ fn built_in_result<'s>(name: &str, mut results: impl Iterator<Item = &'s str>, a
   let Some(result) = results.next() else {
     return FeelType::Any;
   };
-  if results.all(|other| other == result) { type_of_text(result) } else { FeelType::Any }
+  if results.all(|other| other == result) { signature_type(result) } else { FeelType::Any }
 }
 
 /// The type of the member `name` of a value of the type `base`, `Any` when the type has none

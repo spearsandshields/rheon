@@ -4455,6 +4455,20 @@ looked up only when a name in scope has its length (232).
     every cursor of whole and broken texts. Identity: the `complete` answers with names or
     entries differ by their `type` and are registered. Tracker row EDT-8.
 
+270. **An outline can have the types of its names.** An outline held names and their nesting
+    only, so with an outline in place of the context `complete` knew the type of no name that
+    is not a context or a list of contexts, and offered no property of a date or a range. A
+    name of an outline can now be `{"type": "<FEEL type>"}` instead of null, the type as FEEL
+    writes it. Both ways are optional and additive (the owner's decision, 2026-11-18):
+    `outline` writes the types only when the request has `"types": true`, and an outline
+    without types is read as before. A type in an outline that is sent is a statement of the
+    consumer: the engine takes it as it is, also where a value would say nothing (null, an
+    empty list), so a consumer that has a schema and no values gets typed completion. In the
+    scope the name stands with its type in the place of a value (`Value::FeelType`). A text
+    that is no FEEL type is a failure of kind `context` that names the entry. The runtime
+    package has `outline({ types: true })` and the type in `Outline`. Identity: new requests
+    only. Tracker row EDT-15.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

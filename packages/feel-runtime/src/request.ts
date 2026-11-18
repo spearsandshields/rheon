@@ -238,8 +238,8 @@ export function buildFormatJson(expression: string, opts: EditorOptions & { widt
 }
 
 /** `outline` request → JSON text. */
-export function buildOutlineJson(opts: ParseOptions = {}): string {
-  return serializeRequest({ op: 'outline', ...contextFields(opts.context, opts.contextFormat) });
+export function buildOutlineJson(opts: ParseOptions & { types?: boolean } = {}): string {
+  return serializeRequest({ op: 'outline', ...contextFields(opts.context, opts.contextFormat), ...(opts.types === undefined ? {} : { types: opts.types }) });
 }
 
 export const INFO_JSON = '{"op":"info"}';

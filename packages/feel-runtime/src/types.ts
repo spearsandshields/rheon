@@ -131,10 +131,13 @@ export interface ParseOptions {
 
 /**
  * The names of a context without its values (`outline`): null for a name without entries, the
- * names of a context, or the outline of the items of a list. The editor operations take it in
- * place of the context, so an editor does not send the values with every keystroke.
+ * names of a context, or the outline of the items of a list. A name that is no context can
+ * have its FEEL type (`{ type: "number" }`, `{ type: "list<string>" }`): `outline` writes the
+ * types when asked (`types: true`), and a consumer that knows them can write them. The editor
+ * operations take an outline in place of the context, so an editor does not send the values
+ * with every keystroke.
  */
-export type Outline = null | { names: Record<string, Outline> } | { items: Outline };
+export type Outline = null | { type: string } | { names: Record<string, Outline> } | { items: Outline };
 
 /** What the editor operations (`syntax`, `complete`) know about the names in scope: a context or its outline, not both. */
 export interface EditorOptions {

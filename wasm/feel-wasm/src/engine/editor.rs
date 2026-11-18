@@ -10,7 +10,7 @@ use rheon_feel::FeelType;
 use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
 use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::values::Value;
-use rheon_feel_evaluator::{infer_type, members_of};
+use rheon_feel_evaluator::{infer_type, members_of, type_of_text, type_of_value};
 use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant};
 
 /// The most items a `complete` answer holds.
@@ -79,67 +79,129 @@ impl<'a> Places<'a> {
 
 /// The scope of an editor operation: from `context` as for `parse`, or from `outline`.
 fn scope(mut req: Map<String, Json>, mut unread: Unread, dialect: Dialect) -> Result<FeelScope, Failure> {
-  if let Some(outline) = req.remove("outline") {
-    if req.contains_key("context") || unread.context.is_some() {
-      return fail(Kind::Request, "give 'context' or 'outline', not both");
-    }
-    unread.context = None;
-    req.remove("contextFormat");
-    req.insert("context".to_string(), context_of_outline(&outline, 0)?);
+  let Some(outline) = req.remove("outline") else {
+    return prepare_scope(req, unread, dialect, &mut vec![]);
+  };
+  if req.contains_key("context") || unread.context.is_some() {
+    return fail(Kind::Request, "give 'context' or 'outline', not both");
   }
-  prepare_scope(req, unread, dialect, &mut vec![])
+  unread.context = None;
+  req.remove("contextFormat");
+  let mut typed = false;
+  req.insert("context".to_string(), context_of_outline(&outline, 0, "outline", &mut typed)?);
+  let scope = prepare_scope(req, unread, dialect, &mut vec![])?;
+  if !typed {
+    return Ok(scope);
+  }
+  // the names with a type stand in the scope with their type in the place of a value
+  let Some(mut context) = scope.frames().last().map(|frame| (**frame).clone()) else {
+    return Ok(scope);
+  };
+  if let Json::Object(fields) = &outline
+    && let Some(Json::Object(names)) = fields.get("names")
+  {
+    for (name, entry) in names {
+      context.insert(Name::from(name.as_str()), value_of_outline(entry));
+    }
+  }
+  Ok(context.into())
 }
 
-/// The JSON context that has the names of an outline: null for a name without entries, an
-/// object for `{"names": …}`, a list of one such value for `{"items": …}`.
-fn context_of_outline(outline: &Json, depth: usize) -> Result<Json, Failure> {
-  const SHAPE: &str = "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}";
+/// The JSON context that has the names of an outline: null for a name without entries or with
+/// a type, an object for `{"names": …}`, a list of one such value for `{"items": …}`. `typed`
+/// is set when a name has a type.
+fn context_of_outline(outline: &Json, depth: usize, place: &str, typed: &mut bool) -> Result<Json, Failure> {
+  const SHAPE: &str = "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}";
   if depth > 100 {
     return fail(Kind::Context, "the outline is nested too deeply (at most 100 levels)");
   }
   match outline {
     Json::Null => Ok(Json::Null),
-    Json::Object(fields) if fields.len() == 1 => match (fields.get("names"), fields.get("items")) {
-      (Some(Json::Object(names)), None) => {
+    Json::Object(fields) if fields.len() == 1 => match (fields.get("names"), fields.get("items"), fields.get("type")) {
+      (Some(Json::Object(names)), None, None) => {
         let mut context = Map::new();
         for (name, entry) in names {
-          context.insert(name.clone(), context_of_outline(entry, depth + 1)?);
+          context.insert(name.clone(), context_of_outline(entry, depth + 1, &format!("{place}.{name}"), typed)?);
         }
         Ok(Json::Object(context))
       }
-      (None, Some(items)) => Ok(Json::Array(vec![context_of_outline(items, depth + 1)?])),
+      (None, Some(items), None) => Ok(Json::Array(vec![context_of_outline(items, depth + 1, &format!("{place}[]"), typed)?])),
+      (None, None, Some(Json::String(text))) if type_of_text(text).is_some() => {
+        *typed = true;
+        Ok(Json::Null)
+      }
+      (None, None, Some(Json::String(text))) => fail(
+        Kind::Context,
+        format!("{place}: expected a FEEL type (such as number, date, list<string> or range<date>), found {text:?}"),
+      ),
+      (None, None, Some(other)) => fail(Kind::Context, format!("{place}: expected a FEEL type as a string, found {other}")),
       _ => fail(Kind::Context, SHAPE),
     },
     _ => fail(Kind::Context, SHAPE),
   }
 }
 
-/// The outline of a value: its names when it is a context, the outline of its first item when
-/// it is a list, null otherwise.
-fn outline_of(value: &Value, depth: usize) -> Json {
-  if depth > 100 {
-    return Json::Null;
-  }
-  match value {
-    Value::Context(context) => outline_of_context(context, depth),
-    Value::List(items) => match items.first().map(|item| outline_of(item, depth + 1)) {
-      Some(Json::Null) | None => Json::Null,
-      Some(item) => json!({ "items": item }),
-    },
-    _ => Json::Null,
+/// The value that stands for an outline (checked by [context_of_outline]) in the scope: a type
+/// for a name with a type, null for a name without, a context, or a list of one item.
+fn value_of_outline(outline: &Json) -> Value {
+  let Json::Object(fields) = outline else {
+    return Value::Null(None);
+  };
+  match (fields.get("names"), fields.get("items"), fields.get("type")) {
+    (Some(Json::Object(names)), ..) => {
+      let mut context = FeelContext::default();
+      for (name, entry) in names {
+        context.insert(Name::from(name.as_str()), value_of_outline(entry));
+      }
+      Value::Context(context.into())
+    }
+    (_, Some(items), _) => Value::List(vec![value_of_outline(items)].into()),
+    (_, _, Some(Json::String(text))) => type_of_text(text).map_or(Value::Null(None), Value::FeelType),
+    _ => Value::Null(None),
   }
 }
 
-fn outline_of_context(context: &FeelContext, depth: usize) -> Json {
-  let names: Map<String, Json> = context.iter().map(|(name, value)| (name.to_string(), outline_of(value, depth + 1))).collect();
+/// The outline of a value: its names when it is a context, the outline of its first item when
+/// it is a list of contexts, otherwise null, or with `types` its type when that is known.
+fn outline_of(value: &Value, depth: usize, types: bool) -> Json {
+  if depth > 100 {
+    return Json::Null;
+  }
+  let leaf = |value: &Value| match type_of_value(value) {
+    feel_type if types && !matches!(feel_type, FeelType::Any | FeelType::Null) => json!({ "type": feel_type.to_string() }),
+    _ => Json::Null,
+  };
+  match value {
+    Value::Context(context) => outline_of_context(context, depth, types),
+    Value::List(items) => match items.first() {
+      Some(first @ (Value::Context(_) | Value::List(_))) => match outline_of(first, depth + 1, types) {
+        Json::Null => leaf(value),
+        // a list of lists of plain values has its type as a whole
+        Json::Object(fields) if fields.contains_key("type") => leaf(value),
+        item => json!({ "items": item }),
+      },
+      _ => leaf(value),
+    },
+    _ => leaf(value),
+  }
+}
+
+fn outline_of_context(context: &FeelContext, depth: usize, types: bool) -> Json {
+  let names: Map<String, Json> = context.iter().map(|(name, value)| (name.to_string(), outline_of(value, depth + 1, types))).collect();
   json!({ "names": names })
 }
 
 /// `op: "outline"`: the names of the context, nested as its contexts and lists are, without
-/// values. The editor operations take it in place of the context.
-pub(super) fn outline(req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
+/// values; with `types: true` each name that is no context has its type when it is known. The
+/// editor operations take it in place of the context.
+pub(super) fn outline(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
+  let types = match req.remove("types") {
+    None | Some(Json::Null) => false,
+    Some(Json::Bool(types)) => types,
+    Some(other) => return fail(Kind::Request, format!("'types' must be true or false, found {other}")),
+  };
   let scope = prepare_scope(req, unread, Dialect::Expression, &mut vec![])?;
-  let outline = scope.frames().last().map_or_else(|| json!({ "names": {} }), |frame| outline_of_context(frame, 0));
+  let outline = scope.frames().last().map_or_else(|| json!({ "names": {} }), |frame| outline_of_context(frame, 0, types));
   Ok(json!({ "ok": true, "outline": outline, "elapsedMicros": elapsed_micros(started) }))
 }
 
@@ -394,6 +456,8 @@ fn shown(feel_type: &FeelType) -> Option<String> {
 fn shown_of_value(value: &Value) -> Option<String> {
   match value {
     Value::Null(_) => None,
+    // a type in the place of a value: the name of an outline that has its type
+    Value::FeelType(feel_type) => shown(feel_type),
     Value::Context(_) => Some("context".to_string()),
     Value::FunctionDefinition(_) | Value::BuiltInFunction(_) => Some("function".to_string()),
     Value::List(items) => Some(match items.first().and_then(shown_of_value) {

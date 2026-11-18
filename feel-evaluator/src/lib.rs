@@ -28,7 +28,7 @@ mod tests;
 pub use crate::bfeel::Dialect;
 pub use crate::evaluators::*;
 pub use crate::filters::FilterExpressionEvaluator;
-pub use crate::infer::{infer_type, members_of, type_of_value};
+pub use crate::infer::{infer_type, members_of, type_of_text, type_of_value};
 pub use crate::invocation::MAX_CALL_DEPTH;
 pub use crate::iterations::{Domain, Iteration, Sequence};
 pub use crate::session::{Outcome, Session};

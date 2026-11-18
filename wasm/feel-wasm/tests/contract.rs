@@ -2057,7 +2057,7 @@ fn outline_in_place_of_the_context() {
   assert_error(
     &req(json!({"op": "syntax", "expression": "1", "outline": {"names": 1}})),
     "context",
-    "an outline is null, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
   );
 }
 
@@ -2266,6 +2266,104 @@ fn complete_offers_the_members_of_the_value_before_a_dot() {
   );
   // a name of the text hides the name of the context
   assert_eq!(names("for n in [\"a\"] return "), ["n: string", "order: context", "orders: list<context>", "partial: ?"]);
+}
+
+/// An outline can have the types of its names: `outline` writes them when asked, and the
+/// editor operations take them, so completion with such an outline is completion with the context.
+#[test]
+fn an_outline_can_have_the_types_of_its_names() {
+  let context = json!({
+    "Tax Rate": 0.2, "name": "Ann", "ok": true, "nothing": null, "tags": ["a", "b"], "empty": [], "matrix": [[1, 2]],
+    "order": {"total": 99.5, "lines": [{"price": 2, "labels": ["x"]}]},
+  });
+  let typed = json!({"names": {
+    "Tax Rate": {"type": "number"}, "name": {"type": "string"}, "ok": {"type": "boolean"}, "nothing": null,
+    "tags": {"type": "list<string>"}, "empty": {"type": "list<Any>"}, "matrix": {"type": "list<list<number>>"},
+    "order": {"names": {"total": {"type": "number"}, "lines": {"items": {"names": {"price": {"type": "number"}, "labels": {"type": "list<string>"}}}}}},
+  }});
+  // without the option, and with it false, the answer is the one without types
+  let plain = req(json!({"op": "outline", "context": context}))["outline"].clone();
+  assert_eq!(plain["names"]["Tax Rate"], json!(null));
+  assert_eq!(req(json!({"op": "outline", "context": context, "types": false}))["outline"], plain);
+  let response = req(json!({"op": "outline", "context": context, "types": true}));
+  assert_eq!(response["outline"], typed, "{response}");
+  assert_error(
+    &req(json!({"op": "outline", "context": context, "types": "yes"})),
+    "request",
+    "'types' must be true or false, found \"yes\"",
+  );
+  // typed values of the context: a date has its type
+  let response = req(json!({"op": "outline", "contextFormat": "feel", "context": "{due: @\"2026-12-01\", span: [1..5], d: @\"P1D\"}", "types": true}));
+  assert_eq!(
+    response["outline"],
+    json!({"names": {"due": {"type": "date"}, "span": {"type": "range<number>"}, "d": {"type": "days and time duration"}}}),
+    "{response}"
+  );
+  // completion with the typed outline is completion with the context
+  for expression in [
+    "",
+    "Tax",
+    "order.",
+    "order.lines.",
+    "order.lines[1].",
+    "for l in order.lines return l.",
+    "tags.",
+    "name + ",
+    "order.lines[labels.",
+  ] {
+    let with_context = req(json!({"op": "complete", "expression": expression, "context": context}));
+    let with_outline = req(json!({"op": "complete", "expression": expression, "outline": typed}));
+    assert_eq!(with_context["items"], with_outline["items"], "{expression}");
+    assert_eq!(with_context["expects"], with_outline["expects"], "{expression}");
+  }
+  // a type that the consumer states is taken as it is: also where a value would say nothing
+  let stated =
+    json!({"names": {"due": {"type": "date"}, "discount": {"type": "number"}, "window": {"type": "range<date>"}, "people": {"type": "list<context<name: string, born: date>>"}}});
+  let members = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": stated}));
+    assert_eq!(response["ok"], true, "{expression}: {response}");
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] != "function" && item["kind"] != "keyword")
+      .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("?")))
+      .collect()
+  };
+  assert_eq!(members(""), ["discount: number", "due: date", "people: list<context>", "window: range<date>"]);
+  assert_eq!(members("due."), ["day: number", "month: number", "value: number", "weekday: number", "year: number"]);
+  assert_eq!(members("window."), ["end: date", "end included: boolean", "start: date", "start included: boolean"]);
+  assert_eq!(
+    members("window.start."),
+    ["day: number", "month: number", "value: number", "weekday: number", "year: number"]
+  );
+  assert_eq!(members("people[1]."), ["born: date", "name: string"]);
+  assert_eq!(
+    members("for p in people return p.born."),
+    ["day: number", "month: number", "value: number", "weekday: number", "year: number"]
+  );
+  assert_eq!(members("discount."), Vec::<String>::new());
+  // the other editor operations take the outline too
+  assert_eq!(
+    req(json!({"op": "syntax", "expression": "due.year + discount", "outline": stated}))["diagnostics"],
+    json!([])
+  );
+  // a text that is no type of FEEL is a failure that names the entry
+  assert_error(
+    &req(json!({"op": "complete", "expression": "", "outline": {"names": {"order": {"names": {"total": {"type": "numbr"}}}}}})),
+    "context",
+    "outline.order.total: expected a FEEL type (such as number, date, list<string> or range<date>), found \"numbr\"",
+  );
+  assert_error(
+    &req(json!({"op": "complete", "expression": "", "outline": {"names": {"lines": {"items": {"type": 5}}}}})),
+    "context",
+    "outline.lines[]: expected a FEEL type as a string, found 5",
+  );
+  assert_error(
+    &req(json!({"op": "complete", "expression": "", "outline": {"names": {"a": {"type": "number", "names": {}}}}})),
+    "context",
+    "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
+  );
 }
 
 /// `complete` answers at every cursor of a text, whole or broken, also with characters of

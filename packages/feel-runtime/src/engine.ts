@@ -232,8 +232,11 @@ export class FeelEngine {
     return this.built(() => buildFormatJson(expression, opts), opts.signal);
   }
 
-  /** The names of a context without its values: give it to `syntax` and `complete` in place of the context. */
-  outline(opts: ParseOptions & RequestOptions = {}): Promise<OutlineResponse> {
+  /**
+   * The names of a context without its values: give it to `syntax` and `complete` in place of
+   * the context. With `types: true` the names that are no contexts have their types.
+   */
+  outline(opts: ParseOptions & { types?: boolean } & RequestOptions = {}): Promise<OutlineResponse> {
     return this.built(() => buildOutlineJson(opts), opts.signal);
   }
 
