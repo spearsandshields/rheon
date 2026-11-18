@@ -142,9 +142,15 @@ pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Op
   Some(match truth {
     Some(result) => Value::Boolean(result),
     None => value_null!(
-      "[{}] expected endpoints that decide the result, found the range {} with an undefined endpoint",
+      "[{}] expected endpoints that decide the result, found the range {} with an undefined endpoint{}",
       relation.name(),
-      arg(named)
+      arg(named),
+      // the operator `in` is the unary test of the range on the value (Table 56), which is decided
+      match (relation, first, second) {
+        (Relation::Includes, Operand::Range(_), Operand::Point(_)) | (Relation::During, Operand::Point(_), Operand::Range(_)) =>
+          "; 'value in range' tests a value against such a range",
+        _ => "",
+      }
     ),
   })
 }

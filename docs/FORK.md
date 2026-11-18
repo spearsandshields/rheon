@@ -4543,7 +4543,9 @@ looked up only when a name in scope has its length (232).
     false, and where the defined endpoints do not decide the formula the result is null with
     one error: `includes(< 10, 5)` is `[includes] expected endpoints that decide the result,
     found the range < 10 with an undefined endpoint` (the formula asks whether the start is
-    less than 5). The TCK has no such case. Not chosen: reading an undefined endpoint as
+    less than 5). For a value and a range (`includes(range, value)`, `during(value, range)`)
+    the error ends with `; 'value in range' tests a value against such a range`: `5 in (< 10)`
+    is the unary test of the range on the value (Table 56) and is true. The TCK has no such case. Not chosen: reading an undefined endpoint as
     "unbounded" (`includes(< 10, 5)` true), which the formulas of Table 79 do not say. Ranges
     with both endpoints, and arguments of other types, are answered as before (the new code
     is asked only for a range with an undefined endpoint, whose other values are of one

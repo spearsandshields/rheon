@@ -14,7 +14,16 @@ fn no(text: &str) {
 
 /// Null with the one error that names the function and the range.
 fn undecided(text: &str, name: &str, range: &str) {
-  let reason = format!("[{name}] expected endpoints that decide the result, found the range {range} with an undefined endpoint");
+  undecided_with(text, name, range, "");
+}
+
+/// The same for a value and a range, where the message names the operator that decides.
+fn undecided_value(text: &str, name: &str, range: &str) {
+  undecided_with(text, name, range, "; 'value in range' tests a value against such a range");
+}
+
+fn undecided_with(text: &str, name: &str, range: &str, hint: &str) {
+  let reason = format!("[{name}] expected endpoints that decide the result, found the range {range} with an undefined endpoint{hint}");
   te_errors(text, &format!("null({reason})"), &[&reason]);
 }
 
@@ -49,7 +58,7 @@ fn includes_and_during() {
   yes("includes((<= 10), 10)");
   no("includes((< 10), 10)");
   no("includes((< 10), 20)");
-  undecided("includes((< 10), 5)", "includes", "< 10");
+  undecided_value("includes((< 10), 5)", "includes", "< 10");
   yes("includes((< 10), (< 5))");
   yes("includes((< 10), (< 10))");
   no("includes((< 10), (<= 10))");
@@ -60,7 +69,7 @@ fn includes_and_during() {
   yes("during(5, (>= 5))");
   no("during(5, (> 5))");
   yes("during((> 7), (> 5))");
-  undecided("during(7, (> 5))", "during", "> 5");
+  undecided_value("during(7, (> 5))", "during", "> 5");
 }
 
 #[test]
@@ -106,7 +115,7 @@ fn starts_and_finishes() {
 fn a_range_made_by_the_range_function_is_the_same_range() {
   yes(r#"before(5, range("(10..)"))"#);
   yes(r#"coincides(range("(..10)"), (< 10))"#);
-  undecided(r#"includes(range("(..10)"), 5)"#, "includes", "(..10)");
+  undecided_value(r#"includes(range("(..10)"), 5)"#, "includes", "(..10)");
 }
 
 #[test]
