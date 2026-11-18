@@ -22,7 +22,9 @@ pub(crate) fn in_operator(lhv: Value, rhv: Value) -> Value {
     | inner @ Value::DateTime(_)
     | inner @ Value::YearsAndMonthsDuration(_)
     | inner @ Value::DaysAndTimeDuration(_)
-    | inner @ Value::Context(_) => eval_in_equal(&mut Equality::default(), &lhv, &inner),
+    // a single value: `e1 in e2` is `e1 = e2` (DMN 1.6 Table 56, rule 49.c), also where `=` gives
+    // null because the values are of different kinds
+    | inner @ Value::Context(_) => super::compare::equal(&lhv, &inner),
     Value::Range(l, l_type, r, r_type) => eval_in_range(&lhv, &l, l_type, &r, r_type),
     Value::List(r_inner) => {
       if let Value::List(l_inner) = lhv {

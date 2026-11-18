@@ -4237,6 +4237,18 @@ looked up only when a name in scope has its length (232).
     completion of names, functions, parameters and templates, `setFeelScope`, `formatDocument`
     and the hint. The group tier runs them as the step `test-codemirror`.
 
+256. **`e1 in e2` with a single value is `e1 = e2`.** DMN 1.6 Table 56 (rule 49.c) defines `in`
+    with one value on the right as equality. The `in` operator answered false where `=` answers
+    null because the two values are of different kinds: `"sad" in true` was false and is null
+    (in strict error mode it is the error of `=`), as `"sad" = true` is. Values of one kind,
+    null on either side and B-FEEL (where `in` is always true or false) answer as before.
+    Not changed: a list of tests (`x in (true, false)`, a list value, and the unary tests
+    dialect, where an input of another kind is "not satisfied": false) - the spec reads two
+    ways there (Table 56 gives `or` over the tests, which is null; clause 7.3.2 says when unary
+    tests are satisfied, which is yes or no), and it is the owner's question. New request set
+    `tools/identity/requests/membership.json` (23 requests); 8 registered differences (one of them B-FEEL, where the answer stays false and the diagnostic of `=` is reported) in
+    `tools/identity/registered/in-single-value.json`. Tracker row EVA-25.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

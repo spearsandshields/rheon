@@ -842,3 +842,27 @@ fn _0158() {
   satisfies(false, scope, "5", "", r#"not(f("x"), 5)"#, false);
   satisfies(false, scope, "null", "", r#"not(f("x"))"#, false);
 }
+
+#[test]
+fn _0159() {
+  let null = |text: &str| {
+    let scope = scope!();
+    let node = rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap();
+    assert!(matches!(eval(&scope, &node), Value::Null(_)), "{text}");
+  };
+  // `e1 in e2` with a single value is `e1 = e2` (DMN 1.6 Table 56, rule 49.c): values of
+  // different kinds give null, as `=` does
+  null(r#" "sad" in true "#);
+  null(r#" "sad" = true "#);
+  null(r#" "sad" in (true) "#);
+  null(r#" 1 in "1" "#);
+  null(r#" date("2020-01-01") in 1 "#);
+  // values of one kind, and null, as before
+  te_bool(false, &scope!(), r#" "sad" in "sad" "#, true);
+  te_bool(false, &scope!(), r#" "sad" in "glad" "#, false);
+  te_bool(false, &scope!(), r#" "sad" in null "#, false);
+  te_bool(false, &scope!(), r#" null in null "#, true);
+  // a list of values is not changed by this: an item of another kind does not match
+  te_bool(false, &scope!(), r#" "sad" in (true, false) "#, false);
+  te_bool(false, &scope!(), r#" "sad" in [true] "#, false);
+}
