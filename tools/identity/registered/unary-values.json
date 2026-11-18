@@ -2977,7 +2977,7 @@
   },
   {
     "expression": "range(\"(..10)\") = (< 10)",
-    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -3006,25 +3006,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "equal err '(..10)' =?= '< 10'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(equal err '(..10)' =?= '< 10')",
-        "isNull": true,
-        "nullReason": "equal err '(..10)' =?= '< 10'",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },

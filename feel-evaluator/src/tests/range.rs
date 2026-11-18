@@ -247,3 +247,44 @@ fn a_comparison_with_one_endpoint_is_a_range() {
     "argument for parameter 'r' does not conform to type boolean",
   );
 }
+
+/// DMN 1.6 clause 10.3.2.7 and Table 42: a comparison with one endpoint is the range whose other
+/// endpoint is undefined and not included; `range("(..2)")` is `< 2`.
+#[test]
+fn a_comparison_with_one_endpoint_equals_the_range_with_the_other_endpoint_undefined() {
+  let scope = &scope!();
+  for (range, comparison) in [
+    (r#"range("(..10)")"#, "(< 10)"),
+    (r#"range("(..10]")"#, "(<= 10)"),
+    (r#"range("(10..)")"#, "(> 10)"),
+    (r#"range("[10..)")"#, "(>= 10)"),
+  ] {
+    te_bool(false, scope, &format!("{range} = {comparison}"), true);
+    te_bool(false, scope, &format!("{comparison} = {range}"), true);
+    te_bool(false, scope, &format!("{comparison} != {range}"), false);
+    te_bool(false, scope, &format!("{range} instance of range<number>"), true);
+    te_bool(false, scope, &format!("{range} instance of range<string>"), false);
+  }
+  // another endpoint, another flag, or two endpoints: another range
+  te_bool(false, scope, r#"(< 10) = range("(..11)")"#, false);
+  te_bool(false, scope, r#"(< 10) = range("(..10]")"#, false);
+  te_bool(false, scope, "(< 10) = (<= 10)", false);
+  te_bool(false, scope, "(< 10) = (> 10)", false);
+  te_bool(false, scope, "(< 10) = (1..10)", false);
+  te_bool(false, scope, "(1..10) = (< 10)", false);
+  te_bool(false, scope, "(> 1) = (1..10)", false);
+  // the undefined endpoint is null, without an error
+  te_null(false, scope, "(< 10).start", "");
+  te_null(false, scope, "(<= 10).start", "");
+  te_null(false, scope, "(> 10).end", "");
+  te_null(false, scope, "(>= 10).end", "");
+  te_null(false, scope, r#"range("(..10)").start"#, "");
+  te_number(false, scope, "(< 10).end", 10, 0);
+  te_number(false, scope, "(>= 10).start", 10, 0);
+  // an endpoint written as `null` is a value, not an undefined endpoint (TCK 0068, range_006 to 009)
+  te_bool(false, scope, "(< 10) = (null..10)", false);
+  te_bool(false, scope, "(null..10) = (< 10)", false);
+  te_bool(false, scope, r#"range("(..10)") = (null..10)"#, false);
+  // no range: not compared
+  te_null(false, scope, "(< 10) = 10", "equal err '< 10' =?= '10'");
+}

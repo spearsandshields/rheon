@@ -216,7 +216,7 @@ pub fn te_number_x(trace: bool, scope: &FeelScope, s: &str, num: &str) {
 }
 
 /// Utility function that tests evaluation to null value.
-fn te_null(trace: bool, scope: &FeelScope, s: &str, t: &str) {
+pub fn te_null(trace: bool, scope: &FeelScope, s: &str, t: &str) {
   textual_expression(trace, scope, s, if t.is_empty() { Value::Null(None) } else { Value::Null(Some(t.to_owned())) });
 }
 

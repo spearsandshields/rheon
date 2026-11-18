@@ -185,11 +185,13 @@ fn property(value: Value, name: &Name) -> Value {
       other => value_null!("no such property in unary not equal: {}", arg(&other)),
     },
     Value::UnaryLess(value) => match property {
+      Bip::Start => Value::Null(None),
       Bip::End => *value,
       Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(false),
       other => value_null!("no such property in unary less: {}", arg(&other)),
     },
     Value::UnaryLessOrEqual(value) => match property {
+      Bip::Start => Value::Null(None),
       Bip::End => *value,
       Bip::StartIncluded => Value::Boolean(false),
       Bip::EndIncluded => Value::Boolean(true),
@@ -197,11 +199,13 @@ fn property(value: Value, name: &Name) -> Value {
     },
     Value::UnaryGreater(value) => match property {
       Bip::Start => *value,
+      Bip::End => Value::Null(None),
       Bip::StartIncluded | Bip::EndIncluded => Value::Boolean(false),
       other => value_null!("no such property in unary greater: {}", arg(&other)),
     },
     Value::UnaryGreaterOrEqual(value) => match property {
       Bip::Start => *value,
+      Bip::End => Value::Null(None),
       Bip::StartIncluded => Value::Boolean(true),
       Bip::EndIncluded => Value::Boolean(false),
       other => value_null!("no such property in unary greater or equal: {}", arg(&other)),

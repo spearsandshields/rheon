@@ -159,6 +159,9 @@ impl<'a> Ty<'a> {
       },
       Ty::Of(value) => match value {
         Value::List(items) => Shape::List(Items::Of(items)),
+        // an undefined endpoint has the type of the other one
+        Value::Range(_, start_type, end, _) if start_type.undefined() => Shape::Range(Ends::Of(end, end)),
+        Value::Range(start, _, _, end_type) if end_type.undefined() => Shape::Range(Ends::Of(start, start)),
         Value::Range(start, _, end, _) => Shape::Range(Ends::Of(start, end)),
         Value::Context(ctx) => Shape::Context(Entries::Of(ctx)),
         Value::FunctionDefinition(function) => Shape::Function(Cow::Owned(FeelType::Function(
@@ -434,7 +437,10 @@ impl Conformance {
       Value::DateTime(_) => matches!(target, FeelType::DateTime),
       Value::DaysAndTimeDuration(_) => matches!(target, FeelType::DaysAndTimeDuration),
       Value::YearsAndMonthsDuration(_) => matches!(target, FeelType::YearsAndMonthsDuration),
-      Value::Range(start, _, end, _) => match target {
+      Value::Range(start, start_type, end, end_type) => match target {
+        // an undefined endpoint has the type of the other one
+        FeelType::Range(ends) if start_type.undefined() => self.check(end, ends),
+        FeelType::Range(ends) if end_type.undefined() => self.check(start, ends),
         FeelType::Range(ends) => self.check(start, ends) && self.check(end, ends),
         _ => false,
       },

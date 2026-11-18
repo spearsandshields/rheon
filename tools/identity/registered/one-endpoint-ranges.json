@@ -1,0 +1,2531 @@
+[
+  {
+    "expression": "range(\"(..10)\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..10)\"",
+        "feel": "(..10)",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..10)\"",
+        "feel": "(..10)",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(..10]\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..10]\"",
+        "feel": "(..10]",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..10]\"",
+        "feel": "(..10]",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"[10..)\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[10..)\"",
+        "feel": "[10..)",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[10..)\"",
+        "feel": "[10..)",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(10..)\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(10..)\"",
+        "feel": "(10..)",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(10..)\"",
+        "feel": "(10..)",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10).start",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "no such property in unary less: start"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(no such property in unary less: start)",
+        "isNull": true,
+        "nullReason": "no such property in unary less: start",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(> 10).end",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "no such property in unary greater: end"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(no such property in unary greater: end)",
+        "isNull": true,
+        "nullReason": "no such property in unary greater: end",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) = range(\"(..10)\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(..10]\") = (<= 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(..10]' =?= 'UnaryLessOrEqual(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(..10]' =?= 'UnaryLessOrEqual(10)')",
+        "isNull": true,
+        "nullReason": "equal err '(..10]' =?= 'UnaryLessOrEqual(10)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"[10..)\") = (>= 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[10..)' =?= 'UnaryGreaterOrEqual(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[10..)' =?= 'UnaryGreaterOrEqual(10)')",
+        "isNull": true,
+        "nullReason": "equal err '[10..)' =?= 'UnaryGreaterOrEqual(10)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(10..)\") = (> 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(10..)' =?= 'UnaryGreater(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(10..)' =?= 'UnaryGreater(10)')",
+        "isNull": true,
+        "nullReason": "equal err '(10..)' =?= 'UnaryGreater(10)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(> 10) = range(\"(10..)\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) = (<= 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'UnaryLess(10)' =?= 'UnaryLessOrEqual(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err 'UnaryLess(10)' =?= 'UnaryLessOrEqual(10)')",
+        "isNull": true,
+        "nullReason": "equal err 'UnaryLess(10)' =?= 'UnaryLessOrEqual(10)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) = (1..10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(1..10) = (< 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(1..10)' =?= 'UnaryLess(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(1..10)' =?= 'UnaryLess(10)')",
+        "isNull": true,
+        "nullReason": "equal err '(1..10)' =?= 'UnaryLess(10)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) = 10",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'UnaryLess(10)' =?= '10'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err 'UnaryLess(10)' =?= '10')",
+        "isNull": true,
+        "nullReason": "equal err 'UnaryLess(10)' =?= '10'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '< 10' =?= '10'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '< 10' =?= '10')",
+        "isNull": true,
+        "nullReason": "equal err '< 10' =?= '10'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) != range(\"(..10)\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) = (< \"a\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'UnaryLess(10)' =?= 'UnaryLess(\"a\")'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err 'UnaryLess(10)' =?= 'UnaryLess(\"a\")')",
+        "isNull": true,
+        "nullReason": "equal err 'UnaryLess(10)' =?= 'UnaryLess(\"a\")'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '< 10' =?= '< \"a\"'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '< 10' =?= '< \"a\"')",
+        "isNull": true,
+        "nullReason": "equal err '< 10' =?= '< \"a\"'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(..10)\") instance of range<number>",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(1..null) = (> 1)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(1..null)' =?= 'UnaryGreater(1)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(1..null)' =?= 'UnaryGreater(1)')",
+        "isNull": true,
+        "nullReason": "equal err '(1..null)' =?= 'UnaryGreater(1)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[range(\"(..10)\"), < 10]",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"(..10)\", \"UnaryLess(10)\"]",
+        "feel": "[(..10), UnaryLess(10)]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"(..10)\", \"< 10\"]",
+        "feel": "[(..10), < 10]",
+        "isNull": false,
+        "type": "list<range<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after(20, < 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected number or range of numbers, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected number or range of numbers, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected number or range of numbers, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected number or range of numbers, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes(range(\"(..10)\"), 5)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<Any>)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes(< 10, 5)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps(range(\"(..10)\"), [5..20])",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is range<Any>)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps(< 10, [5..20])",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides(range(\"(..10)\"), range(\"(..10)\"))",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides(< 10, < 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(<= 10).start",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "no such property in unary less or equal: start"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(no such property in unary less or equal: start)",
+        "isNull": true,
+        "nullReason": "no such property in unary less or equal: start",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(>= 10).end",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "no such property in unary greater or equal: end"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(no such property in unary greater or equal: end)",
+        "isNull": true,
+        "nullReason": "no such property in unary greater or equal: end",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(null..10) = (< 10)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(null..10)' =?= 'UnaryLess(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(null..10)' =?= 'UnaryLess(10)')",
+        "isNull": true,
+        "nullReason": "equal err '(null..10)' =?= 'UnaryLess(10)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(..\\\"d\\\"]\") = (<= \"d\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(..\"d\"]' =?= 'UnaryLessOrEqual(\"d\")'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(..\"d\"]' =?= 'UnaryLessOrEqual(\"d\")')",
+        "isNull": true,
+        "nullReason": "equal err '(..\"d\"]' =?= 'UnaryLessOrEqual(\"d\")'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"[@\\\"2024-01-06\\\"..)\") = (>= @\"2024-01-06\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[2024-01-06..)' =?= 'UnaryGreaterOrEqual(2024-01-06)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[2024-01-06..)' =?= 'UnaryGreaterOrEqual(2024-01-06)')",
+        "isNull": true,
+        "nullReason": "equal err '[2024-01-06..)' =?= 'UnaryGreaterOrEqual(2024-01-06)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"[@\\\"2024-01-06\\\"..)\") instance of range<date>",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[range(\"(..10)\")] = [< 10]",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{a: range(\"(..10)\")} = {a: < 10}",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '{a: (..10)}' =?= '{a: UnaryLess(10)}'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '{a: (..10)}' =?= '{a: UnaryLess(10)}')",
+        "isNull": true,
+        "nullReason": "equal err '{a: (..10)}' =?= '{a: UnaryLess(10)}'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "index of([< 10, > 1], range(\"(1..)\"))",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[2]",
+        "feel": "[2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list contains([< 10], range(\"(..10)\"))",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "distinct values([< 10, range(\"(..10)\"), <= 10])",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"UnaryLess(10)\", \"(..10)\", \"UnaryLessOrEqual(10)\"]",
+        "feel": "[UnaryLess(10), (..10), UnaryLessOrEqual(10)]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"< 10\", \"<= 10\"]",
+        "feel": "[< 10, <= 10]",
+        "isNull": false,
+        "type": "list<range<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(> 1) = (< 1)",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'UnaryGreater(1)' =?= 'UnaryLess(1)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err 'UnaryGreater(1)' =?= 'UnaryLess(1)')",
+        "isNull": true,
+        "nullReason": "equal err 'UnaryGreater(1)' =?= 'UnaryLess(1)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "range(\"(..10)\") = (< 10)",
+      "errorMode": "strict"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: equal err '(..10)' =?= 'UnaryLess(10)'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "range(\"(..10)\") = (< 10)",
+      "language": "b-feel"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(..10)' =?= 'UnaryLess(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(< 10).start",
+      "errorMode": "strict"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: no such property in unary less: start"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(< 10).start",
+      "language": "b-feel"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "no such property in unary less: start"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(no such property in unary less: start)",
+        "isNull": true,
+        "nullReason": "no such property in unary less: start",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(< 10) = (<= 10)",
+      "errorMode": "strict"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: equal err 'UnaryLess(10)' =?= 'UnaryLessOrEqual(10)'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(< 10) = (<= 10)",
+      "language": "b-feel"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'UnaryLess(10)' =?= 'UnaryLessOrEqual(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(..-5]\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..-5]\"",
+        "feel": "(..-5]",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..-5]\"",
+        "feel": "(..-5]",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "range(\"(..-5]\")",
+      "errorMode": "strict"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..-5]\"",
+        "feel": "(..-5]",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..-5]\"",
+        "feel": "(..-5]",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(..2]\")",
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..2]\"",
+        "feel": "(..2]",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..2]\"",
+        "feel": "(..2]",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "range(\"(..2]\")",
+      "errorMode": "strict"
+    },
+    "why": "A comparison with one endpoint equals the range whose other endpoint is undefined (FORK item 263, EVA-29)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..2]\"",
+        "feel": "(..2]",
+        "isNull": false,
+        "type": "range<Any>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(..2]\"",
+        "feel": "(..2]",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]

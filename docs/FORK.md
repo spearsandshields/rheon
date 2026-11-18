@@ -4331,6 +4331,22 @@ looked up only when a name in scope has its length (232).
     the end endpoint a `[` closes the interval as before (`]a..b[`). Identity ledger: 54
     entries, all in the new request set `interval-filters.json`.
 
+263. **A comparison with one endpoint equals the range whose other endpoint is undefined.**
+    DMN 1.6 clause 10.3.2.7 and Table 42: `< 10` is the range with the end 10, not included,
+    and an undefined start; the range function's row says `range("(..2)")` is `< 2`. Equality
+    had one arm per form: `range("(..10)") = (< 10)` was null, `(< 10) = range("(..10)")` was
+    false, `(< 10) = (1..10)` was true and `(< 10) = (<= 10)` was null. Now the four
+    comparisons and the intervals are compared as ranges: the same flags, and the same
+    endpoints, where an undefined endpoint equals only an undefined one. An endpoint written
+    as `null` is a value, so `(< 10) = (null..10)` stays false (TCK 0068, range_006 to 009).
+    The undefined endpoint is null without an error (`(< 10).start`, `(> 1).end`; it was
+    "no such property"), and a range with an undefined endpoint has the type of its other
+    endpoint (`range("(..10)")` is a `range<number>`, it was `range<Any>` and no instance of
+    `range<number>`). So `index of`, `list contains` and `distinct values` find such a range
+    in either form. Found, not changed: the range functions (`includes`, `overlaps`,
+    `coincides`, ...) take no range with an undefined endpoint in either form. Identity
+    ledger: 49 entries. Tracker row EVA-29.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

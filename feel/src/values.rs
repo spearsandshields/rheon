@@ -647,9 +647,10 @@ impl Value {
       Value::ParameterName(_) => FeelType::Any,
       Value::ParameterTypes(_) => FeelType::Any,
       Value::QualifiedNameSegment(_) => FeelType::Any,
-      Value::Range(range_start, _, range_end, _) => {
-        let range_start_type = range_start.type_of_within(budget)?;
-        let range_end_type = range_end.type_of_within(budget)?;
+      Value::Range(range_start, start_type, range_end, end_type) => {
+        // an undefined endpoint has the type of the other one
+        let range_end_type = if end_type.undefined() { range_start } else { range_end }.type_of_within(budget)?;
+        let range_start_type = if start_type.undefined() { range_end } else { range_start }.type_of_within(budget)?;
         if range_start_type == range_end_type {
           return Some(FeelType::Range(Box::new(range_start_type)));
         }
