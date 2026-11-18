@@ -11,11 +11,33 @@
     timeoutMs: number;
     showTyped: boolean;
     ontoggletyped: () => void;
-    /** Set when the lezer parser located a syntax error: offers "Jump to error". */
-    onjumptoerror?: (() => void) | null;
+    /** The expression the response is about: the reasons of a syntax error quote it. */
+    source?: string;
+    /** Selects a range of the expression in its editor: each reason of a syntax error is a link to its place. */
+    onselect?: ((from: number, to: number) => void) | null;
   }
 
-  let { response, busy, blocked, roundTripMs, timeoutMs, showTyped, ontoggletyped, onjumptoerror = null }: Props = $props();
+  let { response, busy, blocked, roundTripMs, timeoutMs, showTyped, ontoggletyped, source = '', onselect = null }: Props = $props();
+
+  /**
+   * Where a reason of a syntax error points, as a range to select and the text there: a reason
+   * about a missing part has an empty place, and points at the token before it.
+   */
+  function placeOf(detail: { from: number; to: number }): { from: number; to: number; label: string } {
+    let { from, to } = detail;
+    if (from === to) {
+      const before = source.slice(0, from).match(/(\S+)\s*$/);
+      if (before) {
+        to = from - (before[0].length - before[1].length);
+        from = to - before[1].length;
+      }
+    }
+    // the place as a person reads it: line and column of where the error is, both from 1
+    const before = source.slice(0, detail.from);
+    const line = before.split('\n').length;
+    const column = detail.from - (before.lastIndexOf('\n') + 1) + 1;
+    return { from, to, label: `Line ${line}, column ${column}` };
+  }
   let copied = $state(false);
   let showAll = $state(false);
   let showAllTyped = $state(false);
@@ -136,10 +158,23 @@
         <div class="alert {response.error.kind === 'crash' ? 'crash' : 'error'}" data-testid="error-{response.error.kind}">
           <div class="alert-head">
             <strong>{ERROR_TITLES[response.error.kind] ?? response.error.kind}</strong>
-            {#if response.error.kind === 'syntax' && onjumptoerror}
-              <button class="link-btn" onclick={onjumptoerror} data-testid="jump-to-error">Jump to error</button>
-            {/if}
           </div>
+          {#if response.error.kind === 'syntax' && response.error.diagnostics?.length}
+            <ul class="why" data-testid="syntax-details">
+              {#each response.error.diagnostics.slice(0, 5) as detail (detail.from + detail.code)}
+                {@const place = placeOf(detail)}
+                <li>
+                  {#if onselect}
+                    <button class="link-btn" onclick={() => onselect(place.from, place.to)} title="Select this place in the editor" data-testid="syntax-detail">{place.label}</button>
+                  {:else}
+                    <span>{place.label}</span>
+                  {/if}
+                  <span data-testid="syntax-detail-message">{detail.message}</span>
+                </li>
+              {/each}
+              {#if response.error.diagnostics.length > 5}<li>and {response.error.diagnostics.length - 5} more</li>{/if}
+            </ul>
+          {/if}
           <pre class="mono">{response.error.message}</pre>
         </div>
       {/if}
@@ -392,5 +427,12 @@
     border-radius: 10px;
     max-height: 40vh;
     overflow: auto;
+  }
+  .why {
+    margin: 6px 0;
+    padding-left: 18px;
+  }
+  .why li {
+    margin: 2px 0;
   }
 </style>

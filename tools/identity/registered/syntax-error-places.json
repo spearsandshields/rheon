@@ -1,0 +1,45 @@
+[
+  {
+    "rule": "syntax-error-places",
+    "why": "the error of a text that does not parse holds the errors of the text with their places (docs/FORK.md item 251)",
+    "allow": [
+      {
+        "at": "error.diagnostics",
+        "change": "gains",
+        "each": "^\\{\"code\":"
+      }
+    ],
+    "examples": [
+      {
+        "request": {
+          "op": "evaluate",
+          "dialect": "unaryTests",
+          "expression": "not(-)",
+          "input": 1
+        },
+        "old": {
+          "error": {
+            "kind": "syntax",
+            "message": "syntax error: not(-)"
+          },
+          "ok": false
+        },
+        "new": {
+          "error": {
+            "diagnostics": [
+              {
+                "code": "expected-expression",
+                "from": 5,
+                "message": "Expected an expression after `-`, found `)`.",
+                "to": 6
+              }
+            ],
+            "kind": "syntax",
+            "message": "syntax error: not(-)"
+          },
+          "ok": false
+        }
+      }
+    ]
+  }
+]

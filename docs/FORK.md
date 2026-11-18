@@ -4132,6 +4132,81 @@ looked up only when a name in scope has its length (232).
     `sort`, which were null and work. The official TCK answers are unchanged. Rust API:
     `Home` (new), `FunctionDefinition::home` and `FunctionDefinition::at_home` (new);
     `FunctionDefinition` compares and prints as before.
+247. **The identity check compares with 0.7.0.** The baseline moves to the v0.7.0 release module,
+    and the ledgers of registered differences against 0.6.0 are removed (490 entries in 11 files
+    of `registered/`, one file of `release/registered/`): 0.7.0 answers every committed request
+    as registered. Git history keeps the ledgers; their requests stay in the request sources.
+    Identity of the 0.7.0 build against the 0.7.0 module: the committed sources are 15,450
+    requests, with `--release` 15,462 (5 trapping the reference), no difference.
+
+248. **The parser is written by hand.** `feel-parser/src/parser.rs` is a recursive-descent parser
+    with one loop for the operators, in place of the driver of the LALR tables that Bison
+    generated from `feel-grammar/src/feel.y` (`lalr.rs`, the table driver and `build.rs` are
+    deleted; the token types moved to `token.rs` with their numbers). It reads the tokens of
+    the same lexer and tells it what it expects at the places where the generated parser did
+    so through its actions; a token is read when the parser first looks at it. For every text,
+    start rule and scope it reads the same tokens and gives the same tree or the same error:
+    proven before the switch on about 61 million generated cases with both parsers side by
+    side, and after it by the recorded outcomes of the parser tests, which did not change.
+    One registered difference: the parser takes native stack for each level of nesting and
+    stops at 640 expressions open at once (`expression is nested too deeply (more than 640
+    levels of nesting)`). A text nested deeper than that was rejected before by the depth
+    check after the parser with the number of levels in the message; more than 639 nested
+    parentheses around one operand were accepted. Texts whose tree is at most 300 levels deep
+    and long chains without nesting answer as before. The ledger is
+    `tools/identity/registered/parser-nesting.json`. Also new, and used by nothing yet:
+    `parse_tolerant`, which never fails and returns the tokens, the nodes with their places
+    and every syntax error of a text (the base of the editor operations); the wasm module has
+    a prototype operation `syntax` behind the feature `editor-prototype`, outside the
+    contract. `rheon-feel-grammar` is no build dependency any more and is not published
+    (`publish = false`): it stays as the reference grammar. The `trace` argument of the entry
+    points is accepted and ignored. In a debug build of this workspace the parser crate is
+    compiled with `opt-level = 1`, so that the nesting limit fits the stack of a test thread.
+
+249. **Editor operations.** The module answers three new operations (docs/CONTRACT.md §3):
+    `syntax` (every token of a text with its class, every syntax error with a place and a
+    code, and on request the nodes with their places), `complete` (what can stand at a cursor:
+    names of the context and of the text, entries after a dot, keywords by position, built-in
+    functions, types) and `outline` (the names of a context without its values, which the other
+    two take in place of the context). They read the tolerant parse of the hand-written parser
+    and answer for every text; places are UTF-16 code units. `@rheon/feel-runtime` has
+    `FeelEngine.syntax`, `complete` and `outline` with their types. The prototype feature
+    `editor-prototype` is gone. One registered difference: the message of an unknown `op` names
+    the new operations (`tools/identity/registered/editor-operations.json`, 2 entries). Not in
+    this version: the type and the signature of an item (`type` and `detail` are null), named
+    parameters of built-in functions, and entries after a dot for anything but names that lead
+    into the context.
+
+250. **`@rheon/feel-codemirror`, and the playground on it.** A new npm package holds the
+    CodeMirror 6 support for FEEL: it asks the engine (`syntax`, `complete`) after every change
+    and shows its answers as colours, error marks and completions, with templates of `if`,
+    `for`, `some`, `every`, a function and a context where an expression can start; an answer
+    for a text that has changed since is dropped. The playground's FEEL editor uses it, and
+    its tree with positions is the engine's; `lang-feel`, `lezer-feel` and the lezer runtime
+    are no dependencies of the playground any more, and their notices leave
+    `third-party-notices.txt`. The release workflow packs the package beside the runtime's.
+    The package has no tests of its own yet: the playground's build and a check in a browser
+    exercise it.
+
+251. **A syntax error says where and what.** The error of `evaluate`, `evaluateAll` and
+    `parse` for a text that does not parse holds `diagnostics`, the errors of the text with
+    their places and codes as `syntax` answers them; `message` is unchanged. The playground's
+    result panel lists them. Registered as a rule: `error.diagnostics` is gained
+    (`tools/identity/registered/syntax-error-places.json`). The messages of the syntax errors
+    say what was expected and what stands there ("Expected `then` after the condition of `if`,
+    but the expression ends here."); the playground shows each as its line and column, a link
+    that selects the place.
+
+252. **A formatter.** `feel-parser/src/format.rs` gives a text one layout from the tolerant
+    parse: spaces by the roles of the tokens, and a part that does not fit its line broken by
+    its kind with what is inside it indented (docs/CONTRACT.md §3, `op: "format"`). The layout
+    does not depend on the layout of the input, so it is stable; names, comments and
+    parentheses stay as written. The result is checked: it must parse to the same tree as the
+    input, otherwise the text comes back unchanged. On the 17,217 expressions of the corpus at
+    two widths every text is formatted and stable. The module has `op: "format"`,
+    `@rheon/feel-runtime` `FeelEngine.format`, `@rheon/feel-codemirror` the command
+    `formatDocument` (Shift-Alt-F), the playground a Format button. The message of an unknown
+    `op` names it (the entries of `editor-operations.json` are recorded again).
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

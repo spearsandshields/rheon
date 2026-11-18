@@ -17,11 +17,12 @@ mod closure;
 mod composite;
 mod context;
 mod errors;
+mod format;
 mod index;
-mod lalr;
 mod lexer;
 mod parser;
 mod scope;
+mod token;
 
 #[cfg(test)]
 mod tests;
@@ -31,8 +32,8 @@ pub use closure::ClosureBuilder;
 pub use scope::ParsingScope;
 
 use crate::errors::*;
-use crate::lalr::TokenType;
 use crate::parser::Parser;
+use crate::token::TokenType;
 use dsntk_common::Result;
 use rheon_feel::{FeelScope, Name};
 
@@ -113,4 +114,25 @@ pub fn parse_context(scope: &FeelScope, input: &str, trace: bool) -> Result<AstN
 /// Parses a `range literal` as defined in grammar rule `66`.
 pub fn parse_range_literal(scope: &FeelScope, input: &str, trace: bool) -> Result<AstNode> {
   parse(scope, TokenType::StartRangeLiteral, input, trace)
+}
+
+pub use format::{DEFAULT_WIDTH, Formatted};
+pub use parser::{Diagnostic, MAX_DIAGNOSTICS, Syntax, SyntaxNode, SyntaxToken, TextEnd, TokenClass};
+
+/// Parses an `expression` (or `unary tests` with `unary_tests`) for an editor: never fails, and
+/// returns every token, the nodes with their places and every error.
+pub fn parse_tolerant(scope: &FeelScope, input: &str, unary_tests: bool) -> Syntax {
+  let frames = scope.frames();
+  let parsing_scope = ParsingScope::new(frames.iter().map(|frame| &**frame));
+  let start = if unary_tests { TokenType::StartUnaryTests } else { TokenType::StartExpression };
+  Parser::new(&parsing_scope, start, input, false).parse_tolerant()
+}
+
+/// Formats an `expression` (or `unary tests` with `unary_tests`) in the one layout of the
+/// formatter: lines of at most `width` characters where the text can be broken, nested parts
+/// indented. A text with syntax errors is not formatted; the formatted text parses to the same
+/// tree as the input.
+pub fn format(scope: &FeelScope, input: &str, unary_tests: bool, width: usize) -> Formatted {
+  let frames = scope.frames();
+  format::format(&|| ParsingScope::new(frames.iter().map(|frame| &**frame)), input, unary_tests, width)
 }

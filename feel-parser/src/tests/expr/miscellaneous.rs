@@ -1,7 +1,7 @@
 //! Additional test for expressions found in compatibility tests.
 
 use super::super::*;
-use crate::lalr::TokenType::List;
+use crate::token::TokenType::List;
 
 #[test]
 fn _0001() {

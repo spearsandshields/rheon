@@ -194,6 +194,16 @@ impl ParsingScope<'_> {
     self.names.borrow_mut().insert(name);
   }
 
+  /// Returns the names that the contexts pushed while parsing hold themselves, and the parsed
+  /// names: what the text itself brought into scope (for the editor's completion).
+  pub(crate) fn local_names(&self) -> Vec<String> {
+    let mut names: Vec<String> = self.locals.borrow().iter().flat_map(|ctx| ctx.keys().map(|name| name.to_string())).collect();
+    names.extend(self.names.borrow().iter().map(|name| name.to_string()));
+    names.sort_unstable();
+    names.dedup();
+    names
+  }
+
   /// Returns `false` only when [contains_plain](Self::contains_plain) accepts no name of `len`
   /// bytes: no parsed name, no key of a pushed context without nested ones, and no key of an
   /// input context has this length. The lexer asks before it writes a candidate name.

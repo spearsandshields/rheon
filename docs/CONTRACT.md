@@ -5,7 +5,7 @@ This is the single source of truth shared by the Rust core (`wasm/feel-wasm`), t
 ## 1. Wasm module (`dist/feel.wasm`)
 
 - Target: `wasm32-wasip1`, built as a **reactor** (`cdylib` linked with Rust's self-contained `crt1-reactor.o`, see `wasm/feel-wasm/build.rs`). `_initialize` **is** exported: the host calls it exactly once after instantiation (a second call traps), e.g. `wasi.initialize(instance)` or `instance.exports._initialize()`.
-- Shadow stack: 10 MiB (stack-first layout). The parser is recursive, and the wasm frames also use the host's native stack (in a browser the JS engine's; a worker's is smaller than Node's main thread's). The core therefore rejects ASTs deeper than 300 levels and stops evaluations with more than 200 nested function calls or a value nested more than 500 levels deep (§2, §3). The evaluator runs FEEL function calls, loops and nesting on the heap, so a FEEL recursion takes no native stack per call: every construct nested up to the AST limit, and a FEEL recursion of 200 nested calls whose function body is nested up to the AST limit, evaluate on each host measured here, Node's main thread and Wasmtime's default 512 KiB wasm stack included. A function that the engine calls back (the comparison of `sort`, the function of `list replace`) runs as a call of its own and takes native stack for each level of a recursion through it; a host gives the module the stack below for that. Running out of a stack is a trap ("crash": discard the instance). Measured with `npm run stack -- --report` (macOS arm64, Node 26, Wasmtime 49.0.3): the recursion of 200 calls reaches the AST limit (a body nested 289 levels) on Node's main thread, in Node workers with 2, 3 and 4 MiB stacks (Liftoff and TurboFan) and in Wasmtime with a wasm stack of 512 KiB to 16 MiB, and so does a recursion of 66 levels through a `sort` comparison (199 nested calls, the comparison's body nested 284 levels).
+- Shadow stack: 10 MiB (stack-first layout). The parser is recursive, and the wasm frames also use the host's native stack (in a browser the JS engine's; a worker's is smaller than Node's main thread's). The parser stops at 640 expressions open at once, the core rejects ASTs deeper than 300 levels and stops evaluations with more than 200 nested function calls or a value nested more than 500 levels deep (§2, §3). The evaluator runs FEEL function calls, loops and nesting on the heap, so a FEEL recursion takes no native stack per call: every construct nested up to the AST limit, and a FEEL recursion of 200 nested calls whose function body is nested up to the AST limit, evaluate on each host measured here, Node's main thread and Wasmtime's default 512 KiB wasm stack included. A function that the engine calls back (the comparison of `sort`, the function of `list replace`) runs as a call of its own and takes native stack for each level of a recursion through it; a host gives the module the stack below for that. Running out of a stack is a trap ("crash": discard the instance). Measured with `npm run stack -- --report` (macOS arm64, Node 26, Wasmtime 49.0.3): the recursion of 200 calls reaches the AST limit (a body nested 289 levels) on Node's main thread, in Node workers with 2, 3 and 4 MiB stacks (Liftoff and TurboFan) and in Wasmtime with a wasm stack of 512 KiB to 16 MiB, and so does a recursion of 66 levels through a `sort` comparison (199 nested calls, the comparison's body nested 284 levels).
 - Host stack: a host outside a JS engine gives the module at least 4 MiB of wasm stack (Wasmtime: `Config::max_wasm_stack`, on the command line `-W max-wasm-stack=4194304`; the default is 512 KiB) and calls it on a thread whose native stack is larger than that, because Wasmtime runs wasm on the calling thread's stack. JS hosts run untrusted requests in a worker, as `FeelEngine` does (Node's default worker stack is 4 MiB); a main thread reaches less (above).
 - Linear memory starts at 11.4 MiB (182 pages: the 10 MiB stack and the data), grows on demand and is capped at **512 MiB** (`--max-memory`): a runaway allocation fails early (a trap) instead of growing the host to 4 GiB. Memory never shrinks, and an evaluation that builds ever longer strings grows it past its live data (freed blocks too small for the next string, docs/BACKLOG.md); hosts should recycle instances that grew large (the JS runtime does above 256 MiB).
 - Both limits are checked by `scripts/build-wasm.sh`, which also requires the `_initialize` export; `scripts/stack-headroom.mjs` (`npm run stack`, run by CI) checks that five constructs nested to the AST depth limit and a value nested 500 levels deep (built through `partial`, compared, returned and rendered) evaluate, with a recursion of 200 calls whose body is nested to the AST limit, on Node's main thread, in a Node worker with a 4 MiB stack and in Wasmtime with its default 512 KiB and with a 4 MiB wasm stack, and that a recursion of 66 levels through a `sort` comparison whose body is nested to the AST limit evaluates in the worker and in Wasmtime with 4 MiB; `build.rs` fails the build when `crt1-reactor.o` is missing instead of silently producing a module without `_initialize`. `build.rs` also reads the engine version (the dsntk fork commit pinned in the root `Cargo.toml` and the upstream base commit) and fails when the pins are inconsistent.
@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "evaluateAll" | "parse" | "info",
+  "op": "evaluate" | "evaluateAll" | "parse" | "syntax" | "complete" | "outline" | "format" | "info",
   "dialect": "expression" | "unaryTests",   // evaluate/parse; default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -51,7 +51,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 - If neither `input` nor `context["?"]` is given for unary tests, `?` is null and a warning is returned.
 - The endpoint of a unary comparison is an expression and binds like the right side of a comparison: `> 0.1 + 0.2` tests `? > (0.1 + 0.2)` and `>= x + 1` tests `? >= (x + 1)`; `and`, `or`, a comparison and `between` end the endpoint (`<= 10 = (null..10]` compares the unary comparison with a range). `< d.year` compares with the year of `d` (DMN 1.6 §10.3.2.7, "Endpoints can be expressions"); a property of the unary value itself is read as `(< 10).end`.
 - `tzOffsetMinutes`: integer in `-1080..=1080` (±18:00), otherwise a `request` error (every other integer, including `i64::MIN`). It is a fixed offset (no DST rules), applied to every "local" (zone-less) date-time computation of that request — `now()`, `today()`, and comparisons/subtractions of local date-times — via a process-global override in rheon-feel-temporal (the fork's "local offset override" commit), reset after every request. Without it, local time is **UTC on every target**: chrono's `Local` is hard-wired to UTC on `wasm32-wasip1`, and native builds apply offset 0 too instead of the host zone, so results never depend on where the core runs.
-- Limits: an expression (or FEEL context literal) whose AST is deeper than **300** levels is rejected (`syntax`, resp. `context`) before any recursive code runs; an evaluation with more than **200** nested function calls (recursion) is stopped and reported as an `evaluation` error, never as a partial result; a call of a user function, of a built-in, and the call that `sort` and `list replace` make of the function they are given each count. So is an evaluation that produces a value nested more than **500** levels deep (`values are nested too deeply (more than 500 levels); evaluation stopped`): a scalar is 0 levels deep, a list or a context is one level deeper than the deepest value it holds (so an empty one is 1 level deep), and a function is one level deeper than its closure context; a value 500 levels deep is passed, bound and returned like any other. A loop that would deepen its results further, and `context put` with a key list longer than the limit, stop before they build the deeper value; a key list whose path is blocked by an entry that is not a context builds nothing and is null, whatever its length. So is an evaluation in which `matches`, `replace` or `split` meets a valid pattern that exceeds a limit of the regex engine (its backtracking budget or stack, the compiled size, the nesting depth): `matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped`. An invalid pattern is not a limit: its result is null (DMN 1.6 Table 75, note 2). So are invalid flags: a character other than `s`, `m`, `i`, `x` and `q` (XQuery 1.0 and XPath 2.0 F&O §7.6.1.1; `q` is the flag of F&O 3.1, kept as an extension), or flags that are not a string; `""` and null are no flags. `replace` is null for a replacement string that F&O §7.6.3 rejects: a `$` not followed by a digit and not escaped as `\$`, or a `\` that is not part of `\\` or `\$`; with `q` the replacement is used as is. `replace` and `split` are null for a pattern that matches the zero-length string (`""`, `x*`, `^`, `\s*`; F&O §7.6.3 and §7.6.4), and `split` of `""` is `[]`.
+- Limits: an expression (or FEEL context literal) whose AST is deeper than **300** levels is rejected (`syntax`, resp. `context`) before any recursive code runs after the parser (`expression is nested too deeply (N levels, the limit is 300)`). The parser itself is recursive and stops a text with more than **640** expressions open at once, parentheses included (`expression is nested too deeply (more than 640 levels of nesting)`): enough for every text whose AST is at most 300 levels deep, since an operand in parentheses opens two expressions for one level; an evaluation with more than **200** nested function calls (recursion) is stopped and reported as an `evaluation` error, never as a partial result; a call of a user function, of a built-in, and the call that `sort` and `list replace` make of the function they are given each count. So is an evaluation that produces a value nested more than **500** levels deep (`values are nested too deeply (more than 500 levels); evaluation stopped`): a scalar is 0 levels deep, a list or a context is one level deeper than the deepest value it holds (so an empty one is 1 level deep), and a function is one level deeper than its closure context; a value 500 levels deep is passed, bound and returned like any other. A loop that would deepen its results further, and `context put` with a key list longer than the limit, stop before they build the deeper value; a key list whose path is blocked by an entry that is not a context builds nothing and is null, whatever its length. So is an evaluation in which `matches`, `replace` or `split` meets a valid pattern that exceeds a limit of the regex engine (its backtracking budget or stack, the compiled size, the nesting depth): `matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped`. An invalid pattern is not a limit: its result is null (DMN 1.6 Table 75, note 2). So are invalid flags: a character other than `s`, `m`, `i`, `x` and `q` (XQuery 1.0 and XPath 2.0 F&O §7.6.1.1; `q` is the flag of F&O 3.1, kept as an extension), or flags that are not a string; `""` and null are no flags. `replace` is null for a replacement string that F&O §7.6.3 rejects: a `$` not followed by a digit and not escaped as `\$`, or a `\` that is not part of `\\` or `\$`; with `q` the replacement is used as is. `replace` and `split` are null for a pattern that matches the zero-length string (`""`, `x*`, `^`, `\s*`; F&O §7.6.3 and §7.6.4), and `split` of `""` is `[]`.
 - Shared values: a list or a context is shared, not copied, when it is bound to a name, passed to a function, read from the input context, iterated, filtered or put into another list or context; a change (`append`, `context put`, a filter's result) builds a new value and leaves the shared one as it was. So a value can hold the same list or context on many paths (`(for i in 1..30 return if i = 1 then [1] else [partial[-1], partial[-1]])[-1]` holds 2²⁹ paths to one list) while its memory grows with its distinct lists and contexts only. The operations that compare or test values visit each shared list or context once per pair or per call: `=`, `!=`, `in`, `instance of`, `distinct values`, `index of`, `list contains`, `union`, `intersection`, and the parser's names of an input context take time linear in the distinct parts of the values (equality at most quadratic, one step per pair of distinct shared lists or contexts); `count` reads the length. An operation that writes the value out follows every path, so its output is exponential in the doubling: the result display, `string()`, `flatten` and `...` of a value doubled 30 times end at the 512 MiB memory cap (a trap, §1); there is no limit on the size of an output.
 - Functions: a FEEL function is a lexical closure (DMN 1.6 §10.3.2.13.2). Its body reads its parameters, the names in scope where the function is written, the input context and the built-in functions, and nothing of the expression that invokes it: `{f: function() a, r: {a: 1, s: f()}.s}.r` is null. Of the context literal it is written in, a function sees every entry (§10.3.2.11.1), also one that comes after it, from the moment that entry has its value: the functions of one context call each other in any order and themselves (`{a: function(x) b(x) + 1, b: function(x) x * 2, r: a(1)}.r` is 3), and `{f: function() k, k: 10, r: f()}.r` is 10, while `{f: function() k, r: f(), k: 10}.r` is null, because `k` has no value yet when `f` is invoked. An entry of that context is read before a name of the same text further out. A function that a function returns keeps what it saw where it was written: `{f: function(x) {x: 10, g: function(y) x + y}.g, h: f(1), r: h(5)}.r` is 15.
 
@@ -126,6 +126,102 @@ Scale rounding (`round up/down/half up/half down`, `floor`, `ceiling` with a sca
 
 `op: "parse"` success: `{ "ok": true, "tree": "<dsntk AstNode::tree() ascii, no color>", "elapsedMicros": n }`
 
+### The editor operations
+
+`syntax`, `complete` and `outline` serve an editor. `syntax` and `complete` answer for every
+text: a text that is no expression has its errors in the answer, and a failure is only a bad
+request or a context that does not convert. Places are offsets in UTF-16 code units (the unit
+of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take `expression`,
+`dialect`, and for the names in scope either `context`/`contextFormat` as `parse` does or
+`outline` (below), not both. The module keeps nothing between calls.
+
+`op: "syntax"`, with the optional field `"tree": true`:
+
+```jsonc
+{ "ok": true,
+  "tokens": [["keyword", 0, 2], ["whitespace", 2, 3], ["name", 3, 17], …],   // [class, from, to]
+  "diagnostics": [{ "code": "expected-expression", "message": "Expected an expression after `then`, but the expression ends here.", "from": 26, "to": 26 }],
+  "truncated": false,
+  "nodes": [["If", 0, 26], ["Comparison", 3, 21], …],                         // only with "tree": true: [kind, from, to]
+  "elapsedMicros": n }
+```
+
+- The tokens are the whole text in order, white space and comments included. The classes are
+  `whitespace`, `comment`, `keyword`, `name`, `number`, `string`, `constant` (`true`, `false`,
+  `null`), `operator`, `punctuation`, `function` (the name of a date and time literal), `type`,
+  `key` (of a context entry), `parameter`, `variable` (of `for`, `some`, `every`), `property`
+  (the name after a dot) and `error` (a character that starts no token). A name is one token as
+  the engine reads it, with its spaces. A new class is a change of this contract.
+- `diagnostics` are the syntax errors in the order of their places, at most 100 (`truncated`
+  says that the text has more), one per place. `code` is for programs and stable; `message` is
+  for people and may change: it says what was expected and what stands there instead
+  (``Expected `,` or `]` in the list, found `3`.``). The codes: `expected` (a certain token is missing), `expected-expression`,
+  `expected-name`, `expected-type`, `unexpected` (a token that fits nowhere), `comparison` (a
+  comparison compared again without parentheses), `string-open`, `string-escape`,
+  `comment-open`, `character`, `failed` (the parser gave up, as at its nesting limit; the rest of
+  the text has tokens but no nodes). After an error the parser goes on as if the missing part
+  were there. `diagnostics` is empty exactly when `parse` accepts the text.
+- `nodes` are the parts of the expression, each before the nodes inside it; a consumer reads
+  the nesting from the places. A missing part is a node `Error` of an empty place. The kinds
+  are not a stable list yet.
+
+`op: "complete"`, with the optional field `"cursor"` (a UTF-16 offset; default: the end of the text):
+
+```jsonc
+{ "ok": true,
+  "to": 15,                              // the cursor
+  "expects": "expression",               // what the grammar takes at the cursor
+  "items": [{ "label": "Monthly Salary", "kind": "name", "from": 4, "type": null, "detail": null }],
+  "truncated": false,
+  "elapsedMicros": n }
+```
+
+- An accepted item replaces the text from its `from` to `to` with its `label`. The items of one
+  answer can have different `from`s: in `if a th` the lexer reads `a th` as one name, so names
+  are offered for `a th` and keywords for `th`.
+- `kind`: `name` (a name of the context, or one the text declares before the cursor: an
+  iteration variable, a parameter, `partial`, a key of a context being written), `entry` (an
+  entry after a dot, when the names before the dot lead to a context, or to a list of contexts,
+  in the context or the outline), `keyword`, `function` (a built-in function), `type`.
+  The items are ordered by kind in this order and then by label; at most 200 (`truncated`).
+  An item fits when it starts with what is typed, letters compared without case.
+- `expects`: `expression`, `operator` (after a complete operand: `and`, `or`, `between`, `in`,
+  `instance of`), `keyword:<word>` (a keyword the grammar needs here, such as `keyword:then`),
+  `property` (after a dot), `type`, `name` (a new name is written here: nothing is offered).
+- `type` and `detail` are null in this version: the type of an item and the signature of a
+  function come with type inference, without a change of the shape.
+
+`op: "outline"` takes `context`/`contextFormat` and answers `{ "ok": true, "outline": <outline>, "elapsedMicros": n }`.
+An outline is `null` (a name without entries), `{"names": {<name>: <outline>, …}}` (a context)
+or `{"items": <outline>}` (a list whose first item is a context). It holds the names of a
+context without its values, so an editor builds it once and sends it with every keystroke
+instead of the context; a consumer can also write one itself. A list is read by its first
+item only.
+
+`op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
+optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers
+`{ "ok": true, "formatted": "<text>", "changed": true | false, "elapsedMicros": n }`.
+
+- The layout depends only on the tokens of the text and the width, so formatting a formatted
+  text changes nothing (`changed: false`). One space stands where the grammar reads better
+  with one (around operators and keywords, after `,` and `:`), none inside brackets, around
+  `.` and `..`, between a function and its `(`, or after a sign.
+- A part that does not fit the rest of its line is broken by its kind, and what is inside it is
+  indented by two spaces: a list, a context, the arguments of an invocation, a filter and an
+  expression in parentheses get an item per line between their brackets; `then`, `else`,
+  `return` and `satisfies` start a line; every operator of a chain of one kind (`and`, `or`,
+  comparisons, `+ -`, `* /`, `**`) starts a line. A part that can not be broken (a name, a
+  string, a type) may run past the width.
+- A context of two or more entries always has every entry on a line of its own, whatever its
+  length; a context of one entry stays on its line when it fits.
+- Names, numbers, strings, comments and parentheses are written as they stand in the input; a
+  comment that runs to the end of its line keeps the line break after it.
+- A text with syntax errors is the failure that `parse` answers, with its `diagnostics`.
+- The formatted text is checked before it is answered: it parses to the same tree as the
+  input. A text for which that does not hold comes back as it is, with `"reason"` (a string):
+  its spacing decides how its names are read (a name in scope with an operator in it), or it
+  is nested too deeply to be compared.
+
 `op: "info"` success: `{ "ok": true, "engine": "rheon", "engineCommit": "<40-hex repository commit>[-dirty]", "upstreamCommit": "<40-hex upstream dsntk-rs commit>", "numberBackend": "dashu", "version": "<rheon-feel-wasm crate version>" }`. `engineCommit` is the rheon repository commit the module was built from (`git rev-parse HEAD` at build time, `-dirty` appended when the work tree had uncommitted changes, `.cargo_vcs_info.json` in a crate packaged by cargo, `"unknown"` when built outside both without `RHEON_COMMIT` set), `upstreamCommit` the dsntk-rs commit the engine crates are based on (`[package.metadata.rheon]` in `wasm/feel-wasm/Cargo.toml`), and `numberBackend` the feel-number backend (`rheon_feel_number::NUMBER_BACKEND`, always `"dashu"`).
 
 Failure (the instance stays healthy):
@@ -135,7 +231,7 @@ Failure (the instance stays healthy):
 ```
 
 - `request`: malformed request JSON (including invalid UTF-8 and JSON strings with unpaired `\uD800`-style surrogate escapes, which the core can not represent) or unknown op. A request value quoted in the message is a preview when its JSON text is longer than 120 characters (`invalid 'dialect' "xxx…… (200 characters) (expected …)`).
-- `syntax`: the FEEL expression or unary tests failed to parse, or are nested too deeply (§2). The message is dsntk's, without its `<ParserError>` prefix; dsntk gives no position. It quotes the input whole when it is at most 120 characters, otherwise as its first 120 characters, `…` and its length (`syntax error: 1+1+…+1+… (40002 characters)`).
+- `syntax`: the FEEL expression or unary tests failed to parse, or are nested too deeply (§2). When they failed to parse, the error also holds `diagnostics`: where and what the errors of the text are, as `op: "syntax"` answers them (`[{"code", "message", "from", "to"}, …]`, places in UTF-16 code units). The message is dsntk's, without its `<ParserError>` prefix; dsntk gives no position. It quotes the input whole when it is at most 120 characters, otherwise as its first 120 characters, `…` and its length (`syntax error: 1+1+…+1+… (40002 characters)`).
 - `context`: the input context is invalid (bad JSON shape, JSON nested too deeply, bad FEEL context literal, or a FEEL context nested too deeply, recursing too deeply, holding a value nested more than 500 levels deep or exceeding a regex engine limit).
 - `evaluation`: evaluation was stopped by a limit (§2): more than 200 nested function calls, a value nested more than 500 levels deep, or a regex engine limit. FEEL usually yields null instead; that is a *success* with `isNull: true` and `nullReason`. Null reasons are meant to be readable (`time: invalid time literal '…'`, `log: argument must be a positive number`, `exp: result is not a finite number (decimal overflow)`); a value quoted in a reason is its text when that is at most 120 characters, otherwise a preview: its first 120 characters, `…` and its size when it has one (`equal err '[1, 2, 3, …, 32, … (1000 items)' =?= '1'`; sizes are `N items`, `N entries` and `N characters`); a number quoted in a reason is printed in scientific notation when its plain text would exceed 40 characters (`sublist: invalid position value: 9E+6144`). A null reason, and so each `diagnostics.messages` entry, holds at most 1,000 characters: a longer one keeps its first 999 and ends with `…`.
 - `internal`: a caught Rust panic (only possible on native builds; in wasm a panic traps, see §1) or a serialization failure.
@@ -175,6 +271,11 @@ export class FeelEngine {
   evaluate(req: EvaluateRequest, opts?: RequestOptions): Promise<EvaluateResponse>;
   evaluateAll(req: EvaluateAllRequest, opts?: RequestOptions): Promise<EvaluateAllResponse>;  // §2 `evaluateAll`: one request, the context sent once
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
+  // the editor operations (§3): `opts` names the dialect and either the context or its outline
+  syntax(expression: string, opts?: EditorOptions & { tree?: boolean } & RequestOptions): Promise<SyntaxResponse>;
+  complete(expression: string, cursor: number, opts?: EditorOptions & RequestOptions): Promise<CompleteResponse>;
+  outline(opts?: ParseOptions & RequestOptions): Promise<OutlineResponse>;
+  format(expression: string, opts?: EditorOptions & { width?: number } & RequestOptions): Promise<FormatResponse>;
   info(): Promise<unknown>;
   callJson(json: string, opts?: RequestOptions): Promise<any>;  // raw §2 request, sent as-is
   dispose(): void;                       // pending/later requests resolve {ok:false, error:{kind:'internal', message:'FeelEngine disposed'}}

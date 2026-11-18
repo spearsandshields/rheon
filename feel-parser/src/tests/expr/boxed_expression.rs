@@ -1,5 +1,5 @@
 use super::super::*;
-use crate::lalr::TokenType::StartBoxedExpression;
+use crate::token::TokenType::StartBoxedExpression;
 
 #[test]
 fn _0001() {

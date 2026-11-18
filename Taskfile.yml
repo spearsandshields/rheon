@@ -24,11 +24,6 @@ tasks:
     cmds:
       - cmd: cargo +stable build --workspace --features=tck
 
-  build-parser:
-    desc: Builds in debug mode
-    cmds:
-      - cmd: cargo +stable build --workspace --features=parsing-tables
-
   check:
     desc: Performs checks in debug mode
     cmds:

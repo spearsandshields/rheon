@@ -1,0 +1,54 @@
+{
+  "name": "@rheon/feel-codemirror",
+  "version": "0.8.0",
+  "description": "CodeMirror 6 support for FEEL from the rheon engine's own parser: highlighting, error marks and completion",
+  "keywords": [
+    "feel",
+    "dmn",
+    "codemirror",
+    "editor",
+    "rheon"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spearsandshields/rheon.git",
+    "directory": "packages/feel-codemirror"
+  },
+  "homepage": "https://spearsandshields.github.io/rheon/",
+  "bugs": "https://github.com/spearsandshields/rheon/issues",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "@codemirror/autocomplete": "^6.0.0",
+    "@codemirror/lint": "^6.0.0",
+    "@codemirror/state": "^6.0.0",
+    "@codemirror/view": "^6.0.0",
+    "@rheon/feel-runtime": "0.8.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}

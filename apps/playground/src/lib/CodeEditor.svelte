@@ -1,6 +1,6 @@
 <script lang="ts" module>
-  /** One node of the lezer-feel syntax tree (pre-order), with its source range. */
-  export interface LezerNode {
+  /** One node of the engine's parse of the text (each before the nodes inside it), with its source range. */
+  export interface SyntaxNode {
     name: string;
     from: number;
     to: number;
@@ -8,9 +8,9 @@
     error: boolean;
   }
 
-  /** What the FEEL editor reports about its lezer-feel parse (positions, partial tree on errors). */
+  /** What the FEEL editor reports about the engine's parse of its text (positions, partial tree on errors). */
   export interface SyntaxInfo {
-    nodes: LezerNode[];
+    nodes: SyntaxNode[];
     /** true when the tree was cut at MAX_NODES */
     truncated: boolean;
     errors: { from: number; to: number; message: string }[];
@@ -27,55 +27,68 @@
   import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, placeholder as cmPlaceholder } from '@codemirror/view';
   import { EditorState, Compartment, type Extension } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
-  import { bracketMatching, indentOnInput, syntaxHighlighting, HighlightStyle, ensureSyntaxTree } from '@codemirror/language';
-  import { linter, lintGutter, forceLinting, type Diagnostic } from '@codemirror/lint';
+  import { bracketMatching, indentOnInput, syntaxHighlighting, HighlightStyle } from '@codemirror/language';
+  import { lintGutter } from '@codemirror/lint';
   import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete';
   import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
   import { json } from '@codemirror/lang-json';
-  import { feel } from 'lang-feel';
   import { tags as t } from '@lezer/highlight';
+  import { feelEditor, formatDocument, setFeelScope, syntaxOf, type FeelSource } from '@rheon/feel-codemirror';
   import type { Dialect } from '../engine';
-
 
   interface Props {
     value: string;
     language: 'feel' | 'json';
     dialect?: Dialect;
-    /** Names offered as completions in FEEL mode. */
-    contextNames?: string[];
+    /** FEEL mode: the engine that colours the text, marks its errors and completes it. */
+    engine?: FeelSource | null;
+    /** FEEL mode: the context whose names are in scope. */
+    scope?: Record<string, unknown>;
     label: string;
     placeholder?: string;
     onchange: (value: string) => void;
     onsubmit?: () => void;
-    /** FEEL mode: called with the lezer-feel parse after edits and cursor moves. */
+    /** FEEL mode: called with the engine's parse after edits and cursor moves. */
     onsyntax?: (info: SyntaxInfo) => void;
     /** id of an element describing the editor (keyboard help). */
     describedby?: string;
   }
 
-  let { value, language, dialect = 'expression', contextNames = [], label, placeholder = '', onchange, onsubmit, onsyntax, describedby }: Props = $props();
+  let { value, language, dialect = 'expression', engine = null, scope = {}, label, placeholder = '', onchange, onsubmit, onsyntax, describedby }: Props = $props();
 
   let host: HTMLDivElement;
   let view: EditorView | undefined;
   const lang = new Compartment();
 
-  // Colors come from CSS custom properties, so the editor follows the page theme.
+  // Colors come from CSS custom properties, so the editor follows the page theme. The JSON
+  // editor is coloured by its grammar; the FEEL editor by the engine (the --feel-* properties).
   const highlight = HighlightStyle.define([
-    { tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.definitionKeyword], color: 'var(--syn-keyword)', fontWeight: '600' },
     { tag: [t.number, t.integer, t.float], color: 'var(--syn-number)' },
     { tag: [t.string, t.special(t.string)], color: 'var(--syn-string)' },
     { tag: [t.bool, t.null, t.atom], color: 'var(--syn-atom)' },
-    { tag: [t.function(t.variableName), t.function(t.propertyName)], color: 'var(--syn-fn)' },
     { tag: [t.propertyName, t.attributeName], color: 'var(--syn-prop)' },
-    { tag: [t.variableName], color: 'var(--syn-var)' },
-    { tag: [t.comment, t.lineComment, t.blockComment], color: 'var(--syn-comment)', fontStyle: 'italic' },
-    { tag: [t.operator, t.compareOperator, t.arithmeticOperator, t.logicOperator], color: 'var(--syn-op)' },
     { tag: [t.bracket, t.paren, t.squareBracket, t.brace, t.punctuation, t.separator], color: 'var(--syn-punct)' },
     { tag: t.invalid, color: 'var(--danger)' },
   ]);
 
   const theme = EditorView.theme({
-    '&': { backgroundColor: 'transparent', color: 'var(--text)', fontSize: '14px', height: '100%' },
+    '&': {
+      backgroundColor: 'transparent',
+      color: 'var(--text)',
+      fontSize: '14px',
+      height: '100%',
+      '--feel-keyword': 'var(--syn-keyword)',
+      '--feel-number': 'var(--syn-number)',
+      '--feel-string': 'var(--syn-string)',
+      '--feel-constant': 'var(--syn-atom)',
+      '--feel-function': 'var(--syn-fn)',
+      '--feel-property': 'var(--syn-prop)',
+      '--feel-name': 'var(--syn-var)',
+      '--feel-comment': 'var(--syn-comment)',
+      '--feel-operator': 'var(--syn-op)',
+      '--feel-punctuation': 'var(--syn-punct)',
+      '--feel-error': 'var(--danger)',
+    },
     '&.cm-focused': { outline: 'none' },
     '.cm-scroller': { fontFamily: 'var(--font-mono)', lineHeight: '1.6' },
     '.cm-content': { caretColor: 'var(--accent)', padding: '10px 0' },
@@ -94,68 +107,33 @@
     '.cm-gutter-lint': { width: '1.1em' },
   });
 
-  function errorMessage(doc: string, from: number): string {
-    if (from >= doc.length) return 'unexpected end of input';
-    const token = doc.slice(from).match(/^\s*(\S{1,12})/)?.[1] ?? doc[from];
-    return `unexpected ${JSON.stringify(token)}`;
-  }
-
-  /** lezer-feel parse of the document: flattened tree with ranges, and its error nodes. */
+  /** The engine's parse of the document: its nodes with their depth, and its errors. */
   function analyse(state: EditorState): SyntaxInfo {
-    const tree = ensureSyntaxTree(state, state.doc.length, 200);
+    const syntax = syntaxOf(state);
     const doc = state.doc.toString();
-    const nodes: LezerNode[] = [];
-    const errors: SyntaxInfo['errors'] = [];
-    let truncated = false;
-    if (tree) {
-      let depth = 0;
-      tree.iterate({
-        enter(node) {
-          const error = node.type.isError;
-          if (error) {
-            let from = Math.min(node.from, doc.length);
-            let to = Math.max(node.to, Math.min(from + 1, doc.length));
-            if (to === from) {
-              // An error at the end of the input is zero-width, which CodeMirror shows only as a tiny
-              // point marker: underline the token before it instead (`{ a: 1, b: ` → `b:`).
-              const before = doc.slice(0, from).match(/(\S+)\s*$/);
-              if (before) {
-                to = from - (before[0].length - before[1].length);
-                from = to - before[1].length;
-              }
-            }
-            errors.push({ from, to, message: errorMessage(doc, Math.min(node.from, doc.length)) });
-          }
-          if (node.type.isTop && depth === 0) {
-            depth++;
-            return;
-          }
-          if (nodes.length >= MAX_NODES) {
-            truncated = true;
-            return false;
-          }
-          nodes.push({ name: error ? 'ERROR' : node.name, from: node.from, to: node.to, depth: depth - 1, error });
-          depth++;
-        },
-        leave() {
-          depth--;
-        },
-      });
+    const nodes: SyntaxNode[] = [];
+    // the ends of the nodes that are open; a node lies inside the ones that end at or after it
+    const open: number[] = [];
+    for (const [name, from, to] of (syntax?.nodes ?? []).slice(0, MAX_NODES)) {
+      while (open.length && open[open.length - 1] < to) open.pop();
+      while (open.length && open[open.length - 1] <= from && from < to) open.pop();
+      nodes.push({ name: name === 'Error' ? 'ERROR' : name, from, to, depth: open.length, error: name === 'Error' });
+      open.push(to);
     }
-    return { nodes, truncated, errors, cursor: state.selection.main.head, anchor: state.selection.main.anchor };
+    const errors = (syntax?.diagnostics ?? []).map((d) => {
+      let { from, to } = d;
+      if (to === from) {
+        // an error at the end of the input has no width: point at the token before it
+        const before = doc.slice(0, from).match(/(\S+)\s*$/);
+        if (before) {
+          to = from - (before[0].length - before[1].length);
+          from = to - before[1].length;
+        }
+      }
+      return { from, to, message: d.message };
+    });
+    return { nodes, truncated: (syntax?.nodes?.length ?? 0) > MAX_NODES, errors, cursor: state.selection.main.head, anchor: state.selection.main.anchor };
   }
-
-  const syntaxLinter = linter(
-    (v): Diagnostic[] =>
-      analyse(v.state).errors.slice(0, 20).map((e) => ({
-        from: e.from,
-        to: e.to,
-        severity: 'error',
-        source: 'lezer-feel',
-        message: `Syntax error: ${e.message} (position ${e.from})`,
-      })),
-    { delay: 250 },
-  );
 
   /** Selects a source range in the editor and scrolls it into view. */
   export function select(from: number, to: number) {
@@ -165,11 +143,19 @@
     view.focus();
   }
 
+  /** FEEL mode: gives the text the formatter's layout. */
+  export function format() {
+    if (view) formatDocument(view);
+  }
+
   function languageExt(): Extension {
-    if (language === 'json') return json();
-    const context: Record<string, null> = {};
-    for (const n of contextNames) context[n] = null;
-    return feel({ dialect, context });
+    if (language === 'json') return [json(), autocompletion()];
+    // the engine reads the text: without it (still loading) the text is plain
+    if (!engine) return [];
+    return [
+      feelEditor({ engine, dialect, context: scope, tree: true, onSyntax: () => view && onsyntax?.(analyse(view.state)) }),
+      lintGutter(),
+    ];
   }
 
   onMount(() => {
@@ -186,14 +172,12 @@
           indentOnInput(),
           bracketMatching(),
           closeBrackets(),
-          autocompletion(),
           highlightSelectionMatches(),
           syntaxHighlighting(highlight),
           theme,
           EditorView.lineWrapping,
           cmPlaceholder(placeholder),
           EditorView.contentAttributes.of(describedby ? { 'aria-label': label, 'aria-describedby': describedby } : { 'aria-label': label }),
-          ...(language === 'feel' ? [syntaxLinter, lintGutter()] : []),
           keymap.of([
             { key: 'Mod-Enter', run: () => (onsubmit?.(), true) },
             ...closeBracketsKeymap,
@@ -206,19 +190,14 @@
           lang.of(languageExt()),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) onchange(u.state.doc.toString());
-            if (onsyntax && (u.docChanged || u.selectionSet || syntaxChanged(u))) onsyntax(analyse(u.state));
+            if (onsyntax && language === 'feel' && (u.docChanged || u.selectionSet)) onsyntax(analyse(u.state));
           }),
         ],
       }),
     });
-    if (onsyntax && view) onsyntax(analyse(view.state));
+    if (onsyntax && language === 'feel') onsyntax(analyse(view.state));
     return () => view?.destroy();
   });
-
-  // the parse can complete after the edit that triggered it
-  function syntaxChanged(u: { startState: EditorState; state: EditorState }): boolean {
-    return ensureSyntaxTree(u.startState, 0, 0) !== ensureSyntaxTree(u.state, 0, 0);
-  }
 
   // External value changes (examples, URL hash) → replace the document.
   $effect(() => {
@@ -228,15 +207,19 @@
     }
   });
 
-  // Dialect / context names changed → reconfigure the language.
+  // The engine arrived → the FEEL editor gets it.
+  let withEngine: FeelSource | null = null;
   $effect(() => {
-    void dialect;
-    void contextNames;
-    view?.dispatch({ effects: lang.reconfigure(languageExt()) });
-    if (view && language === 'feel') {
-      forceLinting(view);
-      onsyntax?.(analyse(view.state));
+    if (view && language === 'feel' && engine !== withEngine) {
+      withEngine = engine;
+      view.dispatch({ effects: lang.reconfigure(languageExt()) });
     }
+  });
+
+  // Dialect / context changed → the editor asks the engine again.
+  $effect(() => {
+    const next = { dialect, context: scope };
+    if (view && language === 'feel' && withEngine) view.dispatch({ effects: setFeelScope(next) });
   });
 </script>
 

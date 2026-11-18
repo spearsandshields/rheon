@@ -1,5 +1,5 @@
 # rheon CI: the group tier of the tests (engine, wasm module, JS side, official TCK) on every pull
-# request and push to main, then the playground deploy.
+# request and push to main, as three jobs side by side, then the playground deploy.
 # (The build-*.yml workflows next to this file are upstream dsntk's release-binary builds.)
 name: ci
 
@@ -14,50 +14,63 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
-  # The group tier (scripts/tier.mjs, README "Test tiers"): fmt, check, the workspace tests and the
-  # Rust copies of the TCK tests, clippy, feel.wasm with its identity check, the tools' own tests,
-  # the number oracle's quick run, the contract tests, smoke, stack, the playground and the
-  # official TCK at its pinned commits. Its table of steps and times ends the log. On CI the times
-  # are reported without a budget until five runs give one (1.5 times the slowest, and this
-  # timeout twice that).
+  # The group tier (scripts/tier.mjs, README "Test tiers") as three jobs side by side, one per set
+  # of its steps:
+  # - rust: fmt, check, every test of the product crates, clippy, the tier runner's own tests;
+  # - module: feel.wasm with its identity check, the identity tool's tests, the number oracle's
+  #   quick run, the contract tests on wasm32, the runtime tests, smoke, stack, the playground;
+  # - carried: the crates carried from dsntk (tests, clippy) and the official TCK at its pinned
+  #   commits, which runs against their server. Only this job builds their dependencies.
+  # Each job's table of steps and times ends its log. On CI the times are reported without a
+  # budget until five runs give one (1.5 times the slowest, and this timeout twice that).
   group:
-    name: group tier
+    name: group tier (${{ matrix.set }})
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        set: [rust, module, carried]
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@stable # rust-toolchain.toml pins the actual version and its components
         with:
           targets: wasm32-wasip1
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.set }} # each set builds other crates
       - uses: actions/setup-node@v4
         with:
           node-version: 24 # the version the tiers' CI times are measured on; a 0.4.0 or older reference can crash Node 22 itself (tools/identity/README.md)
           cache: npm
       - run: npm ci
       - run: npm run bootstrap # wasm target + wasmtime into .tools/ (sha256-checked)
+        if: matrix.set == 'module'
       # the number oracle's Python: the runner's own python3 in a virtual environment with mpmath,
       # pinned by hash
       - run: python3 -m venv .tools/py && .tools/py/bin/pip install --require-hashes -r tools/number-oracle/requirements.txt
+        if: matrix.set == 'module'
       # The identity check downloads the previous release's feel.wasm (sha256-checked) with the
       # workflow's token; no step restores its cache, so the reference is evaluated in full.
-      - run: npm run tier:group
+      - run: npm run tier:group -- --only ${{ matrix.set }}
         env:
           GH_TOKEN: ${{ github.token }}
           PYTHON: .tools/py/bin/python
       - uses: actions/upload-artifact@v7
         with:
-          name: tier-logs
+          name: tier-logs-${{ matrix.set }}
           path: .tools/tier/group
         if: always()
       - uses: actions/upload-artifact@v7
         with:
           name: feel.wasm
           path: dist/feel.wasm
+        if: matrix.set == 'module'
       - uses: actions/upload-artifact@v7
         with:
           name: playground
           path: apps/playground/dist
+        if: matrix.set == 'module'
 
   # The playground is the public demo: https://spearsandshields.github.io/rheon/ (GitHub Pages, source
   # "GitHub Actions" in the repository settings). Deployed from main only, after the group tier.

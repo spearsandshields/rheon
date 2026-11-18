@@ -301,6 +301,99 @@ impl Bif {
   }
 }
 
+/// The names of the built-in functions, in the order of their definitions above.
+pub const BUILT_IN_FUNCTION_NAMES: [&str; 89] = [
+  BIF_ABS,
+  BIF_AFTER,
+  BIF_ANY,
+  BIF_ALL,
+  BIF_APPEND,
+  BIF_BEFORE,
+  BIF_CEILING,
+  BIF_COINCIDES,
+  BIF_CONCATENATE,
+  BIF_CONTAINS,
+  BIF_CONTEXT,
+  BIF_CONTEXT_MERGE,
+  BIF_CONTEXT_PUT,
+  BIF_COUNT,
+  BIF_DATE,
+  BIF_DATE_AND_TIME,
+  BIF_DAY_OF_WEEK,
+  BIF_DAY_OF_YEAR,
+  BIF_DECIMAL,
+  BIF_DISTINCT_VALUES,
+  BIF_DURATION,
+  BIF_DURING,
+  BIF_ENDS_WITH,
+  BIF_EVEN,
+  BIF_EXP,
+  BIF_FINISHED_BY,
+  BIF_FINISHES,
+  BIF_FLATTEN,
+  BIF_FLOOR,
+  BIF_GET_ENTRIES,
+  BIF_GET_VALUE,
+  BIF_INCLUDES,
+  BIF_INDEX_OF,
+  BIF_INSERT_AFTER,
+  BIF_INSERT_BEFORE,
+  BIF_INTERSECTION,
+  BIF_IS,
+  BIF_LIST_CONTAINS,
+  BIF_LIST_REPLACE,
+  BIF_LOG,
+  BIF_LOWER_CASE,
+  BIF_MATCHES,
+  BIF_MAX,
+  BIF_MEAN,
+  BIF_MEDIAN,
+  BIF_MEETS,
+  BIF_MET_BY,
+  BIF_MIN,
+  BIF_MODE,
+  BIF_MODULO,
+  BIF_MONTH_OF_YEAR,
+  BIF_NOT,
+  BIF_NOW,
+  BIF_NUMBER,
+  BIF_ODD,
+  BIF_OVERLAPS,
+  BIF_OVERLAPS_AFTER,
+  BIF_OVERLAPS_BEFORE,
+  BIF_PRODUCT,
+  BIF_RANGE,
+  BIF_REMOVE,
+  BIF_REPLACE,
+  BIF_REVERSE,
+  BIF_ROUND_DOWN,
+  BIF_ROUND_HALF_DOWN,
+  BIF_ROUND_HALF_UP,
+  BIF_ROUND_UP,
+  BIF_SORT,
+  BIF_SPLIT,
+  BIF_SQRT,
+  BIF_STARTED_BY,
+  BIF_STARTS,
+  BIF_STARTS_WITH,
+  BIF_STDDEV,
+  BIF_STRING,
+  BIF_STRING_JOIN,
+  BIF_STRING_LENGTH,
+  BIF_SUBLIST,
+  BIF_SUBSTRING,
+  BIF_SUBSTRING_AFTER,
+  BIF_SUBSTRING_BEFORE,
+  BIF_SUM,
+  BIF_TIME,
+  BIF_TODAY,
+  BIF_TRIM,
+  BIF_UNION,
+  BIF_UPPER_CASE,
+  BIF_WEEK_OF_YEAR,
+  BIF_YEARS_AND_MONTHS_DURATION,
+];
+
 /// Returns `true` when the specified name is a built-in function name.
 pub fn is_built_in_function_name(name: impl AsRef<str>) -> bool {
   matches!(
@@ -404,4 +497,18 @@ pub fn is_built_in_function_name(name: impl AsRef<str>) -> bool {
 /// - `duration`.
 pub fn is_built_in_date_time_function_name(name: impl AsRef<str>) -> bool {
   matches!(name.as_ref(), BIF_DATE | BIF_TIME | BIF_DATE_AND_TIME | BIF_DURATION)
+}
+
+#[cfg(test)]
+mod names_tests {
+  use super::*;
+
+  /// Every listed name is the name of a built-in function, and each stands once.
+  #[test]
+  fn the_listed_names_are_the_built_in_functions() {
+    for name in BUILT_IN_FUNCTION_NAMES {
+      assert!(is_built_in_function_name(name), "{name}");
+      assert_eq!(1, BUILT_IN_FUNCTION_NAMES.iter().filter(|other| **other == name).count(), "{name}");
+    }
+  }
 }

@@ -16,19 +16,24 @@
  * - Restart failures: a worker that fails to start is retried with backoff; after
  *   `RESTART_BACKOFF_MS.length` consecutive failures the engine gives up (`unavailable`).
  */
-import { buildEvaluateAllJson, buildEvaluateJson, buildParseJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
+import { buildCompleteJson, buildEvaluateAllJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
 import type { FromWorker, ToWorker } from './protocol.js';
 import type {
+  CompleteResponse,
   Dialect,
+  EditorOptions,
   ErrorKind,
   EvaluateAllRequest,
   EvaluateAllResponse,
   EvaluateRequest,
   EvaluateResponse,
+  FormatResponse,
   InfoResponse,
+  OutlineResponse,
   ParseOptions,
   ParseResponse,
   RequestOptions,
+  SyntaxResponse,
 } from './types.js';
 
 /** The subset of the Web `Worker` API the engine uses (lets tests inject other workers). */
@@ -192,6 +197,44 @@ export class FeelEngine {
       return Promise.resolve(failure('request', String(e)));
     }
     return this.enqueue(json, opts.signal);
+  }
+
+  /** A request built here: a request that can not be built answers as a failure of its own. */
+  private built<T>(build: () => string, signal?: AbortSignal): Promise<T> {
+    let json: string;
+    try {
+      json = build();
+    } catch (e) {
+      if (e instanceof RequestError) return Promise.resolve({ ok: false, error: e.error } as T);
+      return Promise.resolve(failure('request', String(e)) as T);
+    }
+    return this.enqueue(json, signal);
+  }
+
+  /**
+   * For an editor: every token of the text with its class and every syntax error, with places
+   * as UTF-16 offsets; with `tree` also the nodes. It answers for every text.
+   */
+  syntax(expression: string, opts: EditorOptions & { tree?: boolean } & RequestOptions = {}): Promise<SyntaxResponse> {
+    return this.built(() => buildSyntaxJson(expression, opts), opts.signal);
+  }
+
+  /** For an editor: what can stand at `cursor` (a UTF-16 offset in `expression`). */
+  complete(expression: string, cursor: number, opts: EditorOptions & RequestOptions = {}): Promise<CompleteResponse> {
+    return this.built(() => buildCompleteJson(expression, cursor, opts), opts.signal);
+  }
+
+  /**
+   * The text in the formatter's one layout: lines of at most `width` characters (default 80)
+   * where the text can be broken, nested parts indented. A text with syntax errors is a failure.
+   */
+  format(expression: string, opts: EditorOptions & { width?: number } & RequestOptions = {}): Promise<FormatResponse> {
+    return this.built(() => buildFormatJson(expression, opts), opts.signal);
+  }
+
+  /** The names of a context without its values: give it to `syntax` and `complete` in place of the context. */
+  outline(opts: ParseOptions & RequestOptions = {}): Promise<OutlineResponse> {
+    return this.built(() => buildOutlineJson(opts), opts.signal);
   }
 
   info(): Promise<InfoResponse> {

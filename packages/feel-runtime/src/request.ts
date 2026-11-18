@@ -1,5 +1,5 @@
 /** Builds the wasm request JSON (CONTRACT §2) from runtime requests, splicing `RawJson` verbatim. */
-import type { EvaluateAllRequest, EvaluateAllResponse, EvaluateRequest, EvaluationAnswer, FeelError, ParseOptions, RawJson } from './types.js';
+import type { EditorOptions, EvaluateAllRequest, EvaluateAllResponse, EvaluateRequest, EvaluationAnswer, FeelError, ParseOptions, RawJson } from './types.js';
 
 /**
  * Private brand of `RawJson` values. `Symbol.for` so that values made by another copy of this
@@ -212,6 +212,34 @@ export function buildParseJson(dialect: EvaluateRequest['dialect'], expression: 
     expression,
     ...contextFields(opts.context, opts.contextFormat),
   });
+}
+
+/** The fields of an editor request that say which names are in scope. */
+function editorFields(opts: EditorOptions) {
+  if (opts.outline !== undefined && opts.context !== undefined) {
+    throw new RequestError({ kind: 'request', message: "give 'context' or 'outline', not both" });
+  }
+  return opts.outline !== undefined ? { outline: opts.outline } : contextFields(opts.context, opts.contextFormat);
+}
+
+/** `syntax` request → JSON text. */
+export function buildSyntaxJson(expression: string, opts: EditorOptions & { tree?: boolean } = {}): string {
+  return serializeRequest({ op: 'syntax', dialect: opts.dialect ?? 'expression', expression, tree: opts.tree, ...editorFields(opts) });
+}
+
+/** `complete` request → JSON text; `cursor` is a UTF-16 offset in `expression`. */
+export function buildCompleteJson(expression: string, cursor: number, opts: EditorOptions = {}): string {
+  return serializeRequest({ op: 'complete', dialect: opts.dialect ?? 'expression', expression, cursor, ...editorFields(opts) });
+}
+
+/** `format` request → JSON text; `width` is the most characters of a line (default 80). */
+export function buildFormatJson(expression: string, opts: EditorOptions & { width?: number } = {}): string {
+  return serializeRequest({ op: 'format', dialect: opts.dialect ?? 'expression', expression, width: opts.width, ...editorFields(opts) });
+}
+
+/** `outline` request → JSON text. */
+export function buildOutlineJson(opts: ParseOptions = {}): string {
+  return serializeRequest({ op: 'outline', ...contextFields(opts.context, opts.contextFormat) });
 }
 
 export const INFO_JSON = '{"op":"info"}';

@@ -43,3 +43,8 @@ pub fn err_not_a_feel_name(s: &str) -> DsntkError {
 pub fn err_syntax_error(input: &str) -> DsntkError {
   ParserError(format!("syntax error: {}", arg(input))).into()
 }
+
+/// Creates the error of an input that is nested deeper than the parser goes.
+pub fn err_nested_too_deeply(limit: usize) -> DsntkError {
+  ParserError(format!("expression is nested too deeply (more than {limit} levels of nesting)")).into()
+}

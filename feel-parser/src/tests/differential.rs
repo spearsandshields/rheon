@@ -23,9 +23,9 @@
 
 use super::full_size;
 use super::names_index::{KEYS, OGHAM, Rng, context, key_text, number};
-use crate::lalr::TokenType;
 use crate::parser::Parser;
 use crate::scope::ParsingScope;
+use crate::token::TokenType;
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
@@ -82,7 +82,7 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
     .unwrap_or_default()
 }
 
-/// Runs the production front end; a panic is an outcome.
+/// Runs the front end; a panic is an outcome.
 pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
   let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
@@ -870,88 +870,43 @@ fn corpus_equals_reference() {
   println!("corpus: {} lines, {stats:?}", corpus.len());
 }
 
-/// Every reduction of a rule without symbols whose action changes the state of the lexer or of the
-/// scope happens before the lexer reads the next token: in a state with a default reduction that
-/// needs no lookahead.
-#[test]
-fn feedback_actions_are_reduced_before_the_next_token() {
-  use crate::lalr::*;
-  const FEEDBACK: [&str; 14] = [
-    "after_dot",
-    "between_begin",
-    "type_name",
-    "for_begin",
-    "some_begin",
-    "every_begin",
-    "context_begin",
-    "context_end",
-    "iteration_context_variable_name_begin",
-    "iteration_context_variable_name",
-    "quantified_expression_variable_name_begin",
-    "quantified_expression_variable_name",
-    "formal_parameters_begin",
-    "unary_tests_begin",
-  ];
-  // rule number -> action name, from the dispatch in lalr.rs
-  let source = include_str!("../lalr.rs");
-  let mut actions = BTreeMap::new();
-  for line in source.lines() {
-    if let Some((rule, action)) = line.trim().split_once(" => reduce_actions.action_")
-      && let Ok(rule) = rule.parse::<usize>()
-    {
-      actions.insert(rule, action.trim_end_matches("(),").to_string());
-    }
-  }
-  let feedback = |rule: usize| YY_R2[rule] == 0 && actions.get(&rule).is_some_and(|a| FEEDBACK.contains(&a.as_str()));
-  let mut late = vec![];
-  for state in 0..YY_PACT.len() {
-    let mut reduced = vec![YY_DEF_ACT[state] as usize];
-    let base = YY_PACT[state];
-    if base != YY_PACT_N_INF {
-      for token in 0..YY_N_TOKENS as i16 {
-        let i = base + token;
-        if (0..=YY_LAST).contains(&i) && YY_CHECK[i as usize] == token && YY_TABLE[i as usize] < 0 && YY_TABLE[i as usize] != YY_TABLE_N_INF {
-          reduced.push((-YY_TABLE[i as usize]) as usize);
-        }
-      }
-    }
-    for rule in reduced.into_iter().filter(|&rule| rule != 0 && feedback(rule)) {
-      if base != YY_PACT_N_INF {
-        late.push((rule, actions[&rule].clone()));
-      }
-    }
-  }
-  late.sort();
-  late.dedup();
-  assert_eq!(Vec::<(usize, String)>::new(), late);
-}
-
-/// The parser's use of the native stack does not depend on the input: deep and long inputs parse,
-/// and their ASTs are dropped, in a thread with a small stack.
+/// The parser takes native stack for every level of nesting, up to its limit: a text nested
+/// deeper is an error, a long text that is not nested parses, and neither overflows the stack
+/// of a thread of the default size of the test threads (2 MiB), in a debug build too.
 #[test]
 fn deep_inputs_parse_in_a_small_stack() {
   let n = 5_000;
+  // the inputs, and whether they are nested `n` levels deep
   let inputs = vec![
-    format!("{}1{}", "(1+".repeat(n), ")".repeat(n)),
-    format!("{}1{}", "[".repeat(n), "]".repeat(n)),
-    format!("{}1{}", "{a:".repeat(n), "}".repeat(n)),
-    format!("{}1", "-".repeat(n)),
-    format!("{}1", "if true then 1 else ".repeat(n)),
-    format!("{}1{}", "f(".repeat(n), ")".repeat(n)),
-    format!("1{}", "+1".repeat(4 * n)),
-    format!("a{}", ".a".repeat(4 * n)),
-    format!("a{}", " + a".repeat(4 * n)),
-    format!("{{{}}}", (0..n).map(|i| format!("k{i}: {i}")).collect::<Vec<_>>().join(", ")),
-    format!("[{}]", (0..n).map(|i| i.to_string()).collect::<Vec<_>>().join(", ")),
-    format!("{}x", "for x in [1] return ".repeat(n / 10)),
+    (format!("{}1{}", "(1+".repeat(n), ")".repeat(n)), true),
+    (format!("{}1{}", "[".repeat(n), "]".repeat(n)), true),
+    (format!("{}1{}", "{a:".repeat(n), "}".repeat(n)), true),
+    (format!("{}1", "-".repeat(n)), true),
+    (format!("{}1", "if true then 1 else ".repeat(n)), true),
+    (format!("{}1{}", "f(".repeat(n), ")".repeat(n)), true),
+    (format!("1{}", " in (1)".repeat(n)), true),
+    (format!("1{}", " in (1..2)".repeat(n)), true),
+    (format!("1{}", " in 1".repeat(n)), true),
+    (format!("1{}", "+1".repeat(4 * n)), false),
+    (format!("a{}", ".a".repeat(4 * n)), false),
+    (format!("a{}", " + a".repeat(4 * n)), false),
+    (format!("{{{}}}", (0..n).map(|i| format!("k{i}: {i}")).collect::<Vec<_>>().join(", ")), false),
+    (format!("[{}]", (0..n).map(|i| i.to_string()).collect::<Vec<_>>().join(", ")), false),
+    (format!("{}x", "for x in [1] return ".repeat(crate::parser::MAX_NESTING - 2)), false),
+    (format!("{}x", "for x in [1] return ".repeat(crate::parser::MAX_NESTING)), true),
   ];
-  // the stack of a debug build: about 10x the frames of an optimized one
   let handle = std::thread::Builder::new()
-    .stack_size(256 * 1024)
+    .stack_size(2 * 1024 * 1024)
     .spawn(move || {
-      for input in inputs {
-        let node = crate::parse_expression(&Default::default(), &input, false).unwrap_or_else(|e| panic!("{e}: {}", &input[..80]));
-        drop(node);
+      for (input, nested) in inputs {
+        let parsed = crate::parse_expression(&Default::default(), &input, false);
+        if nested {
+          let message = parsed.unwrap_err().to_string();
+          assert!(message.contains("nested too deeply"), "{message}");
+        } else {
+          let node = parsed.unwrap_or_else(|e| panic!("{e}: {}", &input[..80]));
+          drop(node);
+        }
       }
     })
     .unwrap();
@@ -1724,4 +1679,331 @@ fn chosen_expressions_have_their_recorded_outcome() {
     recorded == text,
     "the outcome of a chosen expression is not the recorded one; after a change that is meant, write the file again with RHEON_GOLDEN=update\nrecorded and now:\n{differs:#?}"
   );
+}
+
+/// What the tolerant parse must hold for every text: it does not
+/// panic, its tokens are the whole input in order, its nodes and errors lie inside the input,
+/// and it records no error exactly when the strict parse accepts the text.
+fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> bool {
+  let scope = ParsingScope::new(frames);
+  let syntax = catch_unwind(AssertUnwindSafe(|| Parser::new(&scope, start.clone(), input, false).parse_tolerant()))
+    .unwrap_or_else(|payload| panic!("the tolerant parse of {input:?} panicked: {}", panic_message(payload)));
+  let mut position = 0;
+  for token in &syntax.tokens {
+    assert_eq!(token.start, position, "the tokens of {input:?} leave a gap or overlap: {:?}", syntax.tokens);
+    assert!(token.end > token.start && input.is_char_boundary(token.end), "a token of {input:?}: {token:?}");
+    position = token.end;
+  }
+  assert_eq!(position, input.len(), "the tokens of {input:?} end early: {:?}", syntax.tokens);
+  for node in &syntax.nodes {
+    assert!(node.start <= node.end && node.end <= input.len(), "a node of {input:?}: {node:?}");
+  }
+  for diagnostic in &syntax.diagnostics {
+    assert!(diagnostic.start <= diagnostic.end && diagnostic.end <= input.len(), "an error of {input:?}: {diagnostic:?}");
+  }
+  let scope = ParsingScope::new(frames);
+  let strict = Parser::new(&scope, start.clone(), input, false).parse();
+  assert_eq!(
+    strict.is_ok(),
+    syntax.diagnostics.is_empty(),
+    "{input:?}: strict {:?}, tolerant {:?}",
+    strict.as_ref().map(|_| ()),
+    syntax.diagnostics
+  );
+  strict.is_ok()
+}
+
+/// The tolerant parse on every prefix and on random edits of random texts and of chosen texts,
+/// as expressions and as unary tests.
+#[test]
+fn tolerant_parse_never_fails() {
+  let count = if full_size() { 3_000 } else { 150 };
+  let mut rng = Rng(0x9E37_79B9_7F4A_7C15);
+  let keys = random_text_keys();
+  let chosen = [
+    "if a > 1 then \"x\" else \"y\"",
+    "sum(price, 2) + order.total",
+    "{ a: 1, b: [1, 2, 3], \"c d\": a + 1 }.b[item > 1]",
+    "for i in 1..3, j in [1, 2] return i * j",
+    "some x in items satisfies x instance of list<number>",
+    "function(a: number, b) external { java: { class: \"c\" } }",
+    "x between 1 + 1 and y or z in (1, [2..3), > 5)",
+    "date(\"2020-01-01\") < @\"2021-01-01\" // a comment\n and /* another */ true",
+    "substring(string: \"abc\", start position: 2)",
+    "a.b.c...d + -e ** 2",
+    "\"not closed",
+    "1 /* not closed",
+    "\"bad \\uZZZZ escape\" + 1",
+    "a # b",
+  ];
+  let (mut cases, mut accepted) = (0, 0);
+  let mut run = |frames: &[FeelContext], input: &str| {
+    for start in [TokenType::StartExpression, TokenType::StartUnaryTests] {
+      cases += 1;
+      accepted += usize::from(check_tolerant(frames, &start, input));
+    }
+  };
+  for text in chosen {
+    for (end, _) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+      run(&[], &text[..end]);
+    }
+  }
+  for _ in 0..count {
+    let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
+    let text = Feel {
+      rng: &mut rng,
+      keys: &keys,
+      budget: 24,
+    }
+    .text();
+    for (end, _) in text.char_indices().chain(std::iter::once((text.len(), ' '))) {
+      run(&frames, &text[..end]);
+    }
+    for _ in 0..3 {
+      run(&frames, &mutate(&mut rng, &text));
+    }
+  }
+  println!("tolerant parse: {cases} cases, {accepted} without an error");
+  assert!(accepted > count, "{accepted} of {cases}");
+}
+
+/// Prints what the tolerant parse records for some unfinished texts (to read, on request:
+/// `cargo test -p rheon-feel-parser tolerant_samples -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn tolerant_samples() {
+  let frames = [ctx(&[("price", number(1)), ("order", number(1)), ("Monthly Salary", number(1))])];
+  for input in [
+    "if a > 1 then",
+    "if a > 1",
+    "sum(price, ",
+    "{ a: 1, b: ",
+    "{ a 1 }",
+    "order.",
+    "\"abc",
+    "a + ",
+    "[1, 2 3]",
+    "a = b = c",
+    "for x in",
+    "for in [1] return 1",
+    "some x in [1]",
+    "price # 2",
+    "f(a: 1, 2)",
+    "1 2",
+    "(1..2",
+    "x between 1",
+    "x instance of",
+    "x instance number",
+    "function(a: ) a",
+    "@ 1",
+    "1 /* open",
+    "\"a\\q\"",
+    ")",
+    "",
+  ] {
+    let scope = ParsingScope::new(&frames);
+    let syntax = Parser::new(&scope, TokenType::StartExpression, input, false).parse_tolerant();
+    println!("SAMPLE {input:?}");
+    println!(
+      "  tokens: {}",
+      syntax
+        .tokens
+        .iter()
+        .map(|t| format!("{}:{:?}", t.class.as_str(), &input[t.start..t.end]))
+        .collect::<Vec<_>>()
+        .join(" ")
+    );
+    println!(
+      "  nodes:  {}",
+      syntax.nodes.iter().map(|n| format!("{}[{}..{}]", n.kind, n.start, n.end)).collect::<Vec<_>>().join(" ")
+    );
+    for d in &syntax.diagnostics {
+      println!("  error:  {} [{}..{}] {}", d.code, d.start, d.end, d.message);
+    }
+  }
+}
+
+/// Prints the work and the time of parsing some name-heavy texts (a measurement, on request:
+/// `cargo test --release -p rheon-feel-parser name_costs -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn name_costs() {
+  let names: Vec<String> = (0..60).map(|i| format!("monthly amount of item {i}")).collect();
+  let entries: Vec<(&str, Value)> = names.iter().map(|name| (name.as_str(), number(1))).collect();
+  let many = ctx(&entries);
+  let few = ctx(&[("Monthly Salary", number(1)), ("Tax Rate", number(1)), ("Net Bonus", number(1))]);
+  let spaced: Vec<String> = (0..60).map(|i| format!("item{i}")).collect();
+  let spaced_entries: Vec<(&str, Value)> = spaced.iter().map(|name| (name.as_str(), number(1))).collect();
+  let one_word = ctx(&spaced_entries);
+  let cases: Vec<(&str, FeelContext, String)> = vec![
+    ("60 multi-word names, +", many.clone(), names.join(" + ")),
+    ("60 multi-word names, and", many.clone(), names.join(" and ")),
+    ("60 multi-word names, commas in a list", many, format!("[{}]", names.join(", "))),
+    ("60 one-word names, +", one_word, spaced.join(" + ")),
+    ("60 unknown one-word names, +", FeelContext::default(), spaced.join(" + ")),
+    (
+      "formula of 5 names",
+      few,
+      "(Monthly Salary * 12 + Net Bonus) * (1 - Tax Rate) / 12 + Monthly Salary".to_string(),
+    ),
+  ];
+  for (name, frame, input) in &cases {
+    let frames = [frame.clone()];
+    let work = work_of(&frames, input);
+    let iterations = 2_000;
+    let mut best = f64::MAX;
+    for _ in 0..5 {
+      let t0 = std::time::Instant::now();
+      for _ in 0..iterations {
+        let scope = ParsingScope::new(&frames);
+        std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, input, false).parse().is_ok());
+      }
+      best = best.min(t0.elapsed().as_nanos() as f64 / iterations as f64);
+    }
+    println!("COST {name:<40} {best:>8.0} ns  {work:?}");
+  }
+}
+
+/// Parses one name-heavy text for some seconds, for a sampling profiler (on request).
+#[test]
+#[ignore]
+fn name_costs_loop() {
+  let one_word = std::env::var_os("RHEON_ONE_WORD").is_some();
+  let names: Vec<String> = (0..60).map(|i| if one_word { format!("item{i}") } else { format!("monthly amount of item {i}") }).collect();
+  let entries: Vec<(&str, Value)> = names.iter().map(|name| (name.as_str(), number(1))).collect();
+  let frames = [ctx(&entries)];
+  let input = names.join(" + ");
+  let t0 = std::time::Instant::now();
+  while t0.elapsed().as_secs() < 8 {
+    for _ in 0..1000 {
+      let scope = ParsingScope::new(&frames);
+      std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, &input, false).parse().is_ok());
+    }
+  }
+}
+
+/// Formats a text in a scope of the tests.
+fn formatted(frames: &[FeelContext], unary_tests: bool, input: &str, width: usize) -> crate::Formatted {
+  crate::format::format(&|| ParsingScope::new(frames), input, unary_tests, width)
+}
+
+/// The formatter on random and chosen texts, at several widths: a text without syntax errors is
+/// formatted unless its spacing decides how its names are read (the formatter checks that the
+/// formatted text is the same expression, and answers `Unchanged` when it is not), and
+/// formatting a formatted text again changes nothing.
+#[test]
+fn formatting_keeps_the_expression_and_is_stable() {
+  let count = if full_size() { 5_000 } else { 400 };
+  let mut rng = Rng(0xB5AD_4ECE_DA1C_E2A9);
+  let keys = random_text_keys();
+  let (mut texts, mut formatted_texts, mut unchanged) = (0, 0, vec![]);
+  for round in 0..count {
+    let frames: Vec<FeelContext> = (0..rng.below(3)).map(|_| context(&mut rng, 0)).collect();
+    let text = Feel {
+      rng: &mut rng,
+      keys: &keys,
+      budget: 24,
+    }
+    .text();
+    for width in [80, 30, 12, 1][..if round % 4 == 0 { 4 } else { 2 }].iter().copied() {
+      texts += 1;
+      match formatted(&frames, false, &text, width) {
+        crate::Formatted::Text(once) => {
+          formatted_texts += 1;
+          assert!(once.lines().all(|line| line == line.trim_end()), "white space at the end of a line of {once:?}");
+          assert_eq!(
+            formatted(&frames, false, &once, width),
+            crate::Formatted::Text(once.clone()),
+            "formatting twice at width {width}: {text:?} gave {once:?}"
+          );
+        }
+        crate::Formatted::Errors(_) => {}
+        crate::Formatted::Unchanged => unchanged.push(text.clone()),
+      }
+    }
+  }
+  println!("formatter: {texts} texts, {formatted_texts} formatted, {} left unchanged", unchanged.len());
+  // a text whose spacing decides how its names are read (a name in scope with a symbol in it,
+  // white space that is a name character) is left as it is; the scopes of these tests are full
+  // of such names
+  assert!(
+    unchanged.len() * 10 < formatted_texts,
+    "{} of {formatted_texts} texts are left unchanged: {:?}",
+    unchanged.len(),
+    &unchanged[..unchanged.len().min(5)]
+  );
+  assert!(formatted_texts * 10 > texts, "{formatted_texts} of {texts}");
+}
+
+/// Prints the layout of some texts (to read, on request:
+/// `cargo test -p rheon-feel-parser formatter_samples -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn formatter_samples() {
+  let frames = [ctx(&[
+    ("order", number(1)),
+    ("customer", number(1)),
+    ("items", number(1)),
+    ("Monthly Salary", number(1)),
+    ("Tax Rate", number(1)),
+  ])];
+  for (width, input) in [
+    (80, "if order.total>100 then sum(for i in items return i*2) else 0"),
+    (30, "if order.total>100 then sum(for i in items return i*2) else 0"),
+    (
+      40,
+      "{total:sum(for line in order.lines return line.price*line.quantity),discount:if customer.tier=\"gold\" then 0.15 else 0,tags:[\"priority\",\"reviewed\"]}",
+    ),
+    (30, "Monthly Salary*12*(1-Tax Rate)+order.total-customer.discount+items[item>10][1]"),
+    (80, "-x**2+f( a , b:1 )[ 1 ] . c instance  of list<number>"),
+    (30, "for a in [1,2,3], b in [4,5,6] return a*b+1"),
+    (40, "some x in items satisfies x>1 and x<10 or x=100 and not(x in [1..5])"),
+    (40, "function(a:number,b) if a>b then a else b // the larger\n"),
+    (20, "1 + /* one */ 2 // two\n + 3"),
+    (80, "x between 1 and 10 and y in (1,2,[3..4),>5) and date(\"2020-01-01\")<@\"2021-01-01\""),
+  ] {
+    println!("FORMAT width {width}: {input:?}");
+    match formatted(&frames, false, input, width) {
+      crate::Formatted::Text(text) => println!("{text}"),
+      other => println!("{other:?}"),
+    }
+    println!("--");
+  }
+  println!("FORMAT unary tests: {:?}", formatted(&frames, true, "<10,[20..30],not( 5 )", 80));
+}
+
+/// The formatter on the expressions of the FEEL corpus (see [corpus_equals_reference]), each in
+/// the scope of its context, at two widths: every expression that parses is formatted or left
+/// unchanged, and formatting a formatted text again changes nothing.
+#[test]
+#[ignore]
+fn formatter_on_the_corpus() {
+  let corpus = corpus();
+  assert!(!corpus.is_empty(), "set RHEON_PARSER_CORPUS to the absolute path of tools/feel-corpus");
+  let (mut texts, mut changed, mut unchanged) = (0, 0, vec![]);
+  for (ctx_text, expr) in &corpus {
+    let frames = vec![keys_of_context_literal(ctx_text)];
+    for width in [80, 24] {
+      match formatted(&frames, false, expr, width) {
+        crate::Formatted::Text(once) => {
+          texts += 1;
+          changed += usize::from(&once != expr);
+          assert_eq!(
+            formatted(&frames, false, &once, width),
+            crate::Formatted::Text(once.clone()),
+            "formatting twice at width {width}: {expr:?} gave {once:?}"
+          );
+        }
+        crate::Formatted::Errors(_) => {}
+        crate::Formatted::Unchanged => unchanged.push(expr.clone()),
+      }
+    }
+  }
+  println!(
+    "formatter on the corpus: {} lines, {texts} formatted ({changed} changed), {} left unchanged: {:?}",
+    corpus.len(),
+    unchanged.len(),
+    &unchanged[..unchanged.len().min(8)]
+  );
+  assert!(unchanged.len() * 100 < texts, "{} of {texts} left unchanged", unchanged.len());
 }

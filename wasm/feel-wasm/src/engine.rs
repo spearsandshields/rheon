@@ -14,6 +14,8 @@ use serde_json::{Map, Value as Json, json};
 use std::sync::Mutex;
 use std::time::Instant;
 
+mod editor;
+
 /// The rheon repository commit this engine is built from (`build.rs`: git HEAD, `-dirty`
 /// when the tree had uncommitted changes, or `RHEON_COMMIT` from the environment).
 const ENGINE_COMMIT: &str = env!("RHEON_COMMIT");
@@ -58,10 +60,12 @@ impl Kind {
   }
 }
 
-struct Failure(Kind, String);
+/// A failure of a request: its kind, its message, and for a syntax error of an expression the
+/// errors of the text with their places (as `syntax` answers them).
+struct Failure(Kind, String, Option<Json>);
 
 fn fail<T>(kind: Kind, message: impl Into<String>) -> Result<T, Failure> {
-  Err(Failure(kind, message.into()))
+  Err(Failure(kind, message.into(), None))
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -80,14 +84,14 @@ pub fn call(request: &str) -> String {
     // the response of an evaluation is written as text already
     Ok(Ok(Response::Text(text))) => return text,
     Ok(Ok(Response::Tree(response))) => response,
-    Ok(Err(Failure(kind, message))) => error_response(kind, &message),
+    Ok(Err(Failure(kind, message, diagnostics))) => error_response(kind, &message, diagnostics),
     Err(panic) => {
       let message = panic
         .downcast_ref::<&str>()
         .map(|s| s.to_string())
         .or_else(|| panic.downcast_ref::<String>().cloned())
         .unwrap_or_else(|| "unknown panic".to_string());
-      error_response(Kind::Internal, &format!("engine panicked: {message}"))
+      error_response(Kind::Internal, &format!("engine panicked: {message}"), None)
     }
   };
   serde_json::to_string(&response).unwrap_or_else(|e| {
@@ -102,13 +106,17 @@ pub fn call(request: &str) -> String {
 pub fn call_bytes(request: &[u8]) -> String {
   match std::str::from_utf8(request) {
     Ok(text) => call(text),
-    Err(e) => serde_json::to_string(&error_response(Kind::Request, &format!("request is not valid UTF-8: {e}"))).unwrap_or_default(),
+    Err(e) => serde_json::to_string(&error_response(Kind::Request, &format!("request is not valid UTF-8: {e}"), None)).unwrap_or_default(),
   }
 }
 
 /// The failure response; its message holds at most 1,000 characters, as every message does.
-fn error_response(kind: Kind, message: &str) -> Json {
-  json!({ "ok": false, "error": { "kind": kind.as_str(), "message": compose(format_args!("{message}")) } })
+fn error_response(kind: Kind, message: &str, diagnostics: Option<Json>) -> Json {
+  let mut response = json!({ "ok": false, "error": { "kind": kind.as_str(), "message": compose(format_args!("{message}")) } });
+  if let Some(diagnostics) = diagnostics {
+    response["error"]["diagnostics"] = diagnostics;
+  }
+  response
 }
 
 /// The `context` and the `input` of a request whose JSON is an object or an array, when the
@@ -180,6 +188,10 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Evaluate,
     EvaluateAll,
     Parse,
+    Syntax,
+    Complete,
+    Outline,
+    Format,
   }
   let op = match req.get("op") {
     Some(Json::String(op)) => match op.as_str() {
@@ -187,10 +199,17 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "evaluate" => Op::Evaluate,
       "evaluateAll" => Op::EvaluateAll,
       "parse" => Op::Parse,
+      "syntax" => Op::Syntax,
+      "complete" => Op::Complete,
+      "outline" => Op::Outline,
+      "format" => Op::Format,
       other => {
         return fail(
           Kind::Request,
-          format!("unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse' or 'info')", arg(other)),
+          format!(
+            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+            arg(other)
+          ),
         );
       }
     },
@@ -203,6 +222,10 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
     Op::EvaluateAll => evaluate_all(req, unread, started).map(Response::Text),
     Op::Parse => parse(req, unread, started).map(Response::Tree),
+    Op::Syntax => editor::syntax(req, unread, started).map(Response::Tree),
+    Op::Complete => editor::complete(req, unread, started).map(Response::Tree),
+    Op::Outline => editor::outline(req, unread, started).map(Response::Tree),
+    Op::Format => editor::format(req, unread, started).map(Response::Tree),
   }
 }
 
@@ -290,9 +313,9 @@ fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, warn
   }
   match (format, req.remove("context")) {
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
-    ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e)),
+    ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e, None)),
     ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
-    (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure(Kind::Context, e)),
+    (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure(Kind::Context, e, None)),
     (_, Some(_)) => fail(Kind::Context, FEEL_FORMAT),
   }
 }
@@ -346,7 +369,7 @@ fn prepare_scope(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, w
     let input = match read {
       Some(value) => Some(value),
       None => match req.remove("input") {
-        Some(input) => Some(json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e))?),
+        Some(input) => Some(json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e, None))?),
         None => None,
       },
     };
@@ -370,8 +393,12 @@ fn parse_node(scope: &FeelScope, dialect: Dialect, expression: &str) -> Result<A
     Dialect::Expression => rheon_feel_parser::parse_expression(scope, expression, false),
     Dialect::UnaryTests => rheon_feel_parser::parse_unary_tests(scope, expression, false),
   };
-  let node = parsed.map_err(|e| Failure(Kind::Syntax, syntax_message(&e.to_string())))?;
-  check_ast_depth(&node).map_err(|e| Failure(Kind::Syntax, e))?;
+  // the message is the parser's; where and what the errors are comes from the tolerant parse
+  let node = parsed.map_err(|e| {
+    let diagnostics = editor::diagnostics(scope, expression, dialect == Dialect::UnaryTests);
+    Failure(Kind::Syntax, syntax_message(&e.to_string()), Some(diagnostics))
+  })?;
+  check_ast_depth(&node).map_err(|e| Failure(Kind::Syntax, e, None))?;
   Ok(node)
 }
 
@@ -493,8 +520,8 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
     let id = evaluation.get("id").filter(|id| id.is_string() || id.is_number()).cloned();
     match evaluate_one(evaluation, index, &scope, language, has_question_mark) {
       Ok(response) => results.push_str(&response),
-      Err(Failure(kind, message)) => {
-        let mut error = error_response(kind, &message);
+      Err(Failure(kind, message, diagnostics)) => {
+        let mut error = error_response(kind, &message, diagnostics);
         if let (Some(id), Some(fields)) = (id, error.as_object_mut()) {
           fields.insert("id".to_string(), id);
         }
@@ -540,7 +567,7 @@ fn evaluate_one(evaluation: Json, index: usize, scope: &FeelScope, language: rhe
   let mut warnings = vec![];
   let tested = if dialect == Dialect::UnaryTests {
     match entry.remove("input") {
-      Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure(Kind::Context, e))?),
+      Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure(Kind::Context, e, None))?),
       None if has_question_mark => None,
       None => {
         warnings.push("no input value given ('input' or context[\"?\"]); testing null".to_string());

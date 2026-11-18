@@ -99,6 +99,8 @@ export interface RequestOptions {
 export interface FeelError {
   kind: ErrorKind;
   message: string;
+  /** For a syntax error of the expression: where and what its errors are, as `syntax` answers them. */
+  diagnostics?: SyntaxDiagnostic[];
 }
 
 export type EvaluateResponse =
@@ -126,6 +128,81 @@ export interface ParseOptions {
   context?: Record<string, unknown> | string | RawJson;
   contextFormat?: 'json' | 'feel';
 }
+
+/**
+ * The names of a context without its values (`outline`): null for a name without entries, the
+ * names of a context, or the outline of the items of a list. The editor operations take it in
+ * place of the context, so an editor does not send the values with every keystroke.
+ */
+export type Outline = null | { names: Record<string, Outline> } | { items: Outline };
+
+/** What the editor operations (`syntax`, `complete`) know about the names in scope: a context or its outline, not both. */
+export interface EditorOptions {
+  dialect?: Dialect;
+  context?: Record<string, unknown> | string | RawJson;
+  contextFormat?: 'json' | 'feel';
+  outline?: Outline;
+}
+
+/** What a token is in its expression (`syntax`). */
+export type TokenClass =
+  | 'whitespace'
+  | 'comment'
+  | 'keyword'
+  | 'name'
+  | 'number'
+  | 'string'
+  | 'constant'
+  | 'operator'
+  | 'punctuation'
+  | 'function'
+  | 'type'
+  | 'key'
+  | 'parameter'
+  | 'variable'
+  | 'property'
+  | 'error';
+
+/** A syntax error of a text: `code` is for programs and stable, `message` is for people. Places are UTF-16 offsets. */
+export interface SyntaxDiagnostic {
+  code: string;
+  message: string;
+  from: number;
+  to: number;
+}
+
+/**
+ * The answer of `syntax`: every token of the text as `[class, from, to]` (together they are the
+ * whole text), every syntax error (at most 100; `truncated` says that there are more), and with
+ * `tree` the nodes as `[kind, from, to]`, each before the nodes inside it.
+ */
+export type SyntaxResponse =
+  | { ok: true; tokens: [TokenClass, number, number][]; diagnostics: SyntaxDiagnostic[]; truncated: boolean; nodes?: [string, number, number][]; elapsedMicros: number }
+  | { ok: false; error: FeelError };
+
+/** An item of `complete`: accepted, its `label` replaces the text from `from` to the answer's `to`. */
+export interface CompletionItem {
+  label: string;
+  kind: 'name' | 'entry' | 'keyword' | 'function' | 'type';
+  from: number;
+  /** The FEEL type of the item when the engine knows it (not yet: always null). */
+  type: string | null;
+  /** More about the item, such as the signature of a function (not yet: always null). */
+  detail: string | null;
+}
+
+/** The answer of `complete`: what can stand at the cursor (`to`), and what the grammar takes there (`expects`). */
+export type CompleteResponse =
+  | { ok: true; to: number; expects: string; items: CompletionItem[]; truncated: boolean; elapsedMicros: number }
+  | { ok: false; error: FeelError };
+
+/**
+ * The answer of `format`: the text in the formatter's one layout. `changed` is false when the
+ * text already has it; `reason` says why a text was left as it is although it parses.
+ */
+export type FormatResponse = { ok: true; formatted: string; changed: boolean; reason?: string; elapsedMicros: number } | { ok: false; error: FeelError };
+
+export type OutlineResponse = { ok: true; outline: Outline; elapsedMicros: number } | { ok: false; error: FeelError };
 
 export interface InfoResponse {
   ok: boolean;

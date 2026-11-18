@@ -6,7 +6,7 @@ use crate::scope::{Lengths, first_word, first_word_bound};
 use rheon_feel::context::FeelContext;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
-use std::cell::OnceCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::ptr;
 
@@ -46,6 +46,9 @@ pub(crate) struct FrameIndex<'a> {
   /// The keys and the lengths with every list decided, indexed when a lookup depends on a list
   /// that `keys` did not decide.
   decided: OnceCell<Keys<'a>>,
+  /// The last first word asked for and its bound ([FrameIndex::group_bound]): the names of one
+  /// expression often share their first word, and the input context does not change.
+  group: RefCell<Option<(String, usize)>>,
 }
 
 /// The keys of an input context below its own keys, and the lengths of all keys.
@@ -239,6 +242,7 @@ impl<'a> FrameIndex<'a> {
       top,
       keys: OnceCell::new(),
       decided: OnceCell::new(),
+      group: RefCell::new(None),
     }
   }
 
@@ -278,7 +282,22 @@ impl<'a> FrameIndex<'a> {
   /// Upper bound of the length in bytes of the keys of the input context itself whose first word
   /// is `word` (see [first_word]).
   pub(crate) fn group_bound(&self, word: &str) -> usize {
-    first_word_bound(self.top.keys_from(word), word, self.max_plain())
+    let mut group = self.group.borrow_mut();
+    if let Some((last, bound)) = &*group
+      && last == word
+    {
+      return *bound;
+    }
+    let bound = first_word_bound(self.top.keys_from(word), word, self.max_plain());
+    match &mut *group {
+      Some((last, last_bound)) => {
+        last.clear();
+        last.push_str(word);
+        *last_bound = bound;
+      }
+      None => *group = Some((word.to_string(), bound)),
+    }
+    bound
   }
 
   /// Length in bytes of the longest key at depth one or more (or of a list item type) that is
