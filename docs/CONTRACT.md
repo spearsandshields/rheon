@@ -156,8 +156,7 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   says that the text has more), one per place. `code` is for programs and stable; `message` is
   for people and may change: it says what was expected and what stands there instead
   (``Expected `,` or `]` in the list, found `3`.``). The codes: `expected` (a certain token is missing), `expected-expression`,
-  `expected-name`, `expected-type`, `unexpected` (a token that fits nowhere), `comparison` (a
-  comparison compared again without parentheses), `string-open`, `string-escape`,
+  `expected-name`, `expected-type`, `unexpected` (a token that fits nowhere), `string-open`, `string-escape`,
   `comment-open`, `character`, `failed` (the parser gave up, as at its nesting limit; the rest of
   the text has tokens but no nodes). After an error the parser goes on as if the missing part
   were there. `diagnostics` is empty exactly when `parse` accepts the text.

@@ -1,0 +1,6246 @@
+[
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_less_then)",
+        "isNull": true,
+        "nullReason": "eval_less_then",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Lt\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "3 > 2 > 1",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `>` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 3 > 2 > 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_greater_then)",
+        "isNull": true,
+        "nullReason": "eval_greater_then",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "3 > 2 > 1",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `>` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 3 > 2 > 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Gt\n ├─ Gt\n │  ├─ Numeric\n │  │  └─ `3`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 <= 2 <= 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 7,
+            "message": "Comparison operators cannot be chained: `<=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 9
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 <= 2 <= 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_less_or_equal"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_less_or_equal)",
+        "isNull": true,
+        "nullReason": "eval_less_or_equal",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 <= 2 <= 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 7,
+            "message": "Comparison operators cannot be chained: `<=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 9
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 <= 2 <= 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Le\n ├─ Le\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 = 1 = 1",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 = 1 = 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'true' =?= '1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err 'true' =?= '1')",
+        "isNull": true,
+        "nullReason": "equal err 'true' =?= '1'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 = 1 = 1",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 = 1 = 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `1`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 = 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 = 1 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 = 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 = 1 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `1`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 != 2 != false",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 7,
+            "message": "Comparison operators cannot be chained: `!=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 9
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 != 2 != false"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 != 2 != false",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 7,
+            "message": "Comparison operators cannot be chained: `!=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 9
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 != 2 != false"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Nq\n ├─ Nq\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Boolean\n    └─ `false`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a != b = false",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 7,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 8
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a != b = false"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a != b = false",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 7,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 8
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a != b = false"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Nq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Boolean\n    └─ `false`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b = c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = c"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'true' =?= '[true]'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err 'true' =?= '[true]')",
+        "isNull": true,
+        "nullReason": "equal err 'true' =?= '[true]'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b = c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = c"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '1' =?= 'false'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '1' =?= 'false')",
+        "isNull": true,
+        "nullReason": "equal err '1' =?= 'false'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Eq\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "true = a in l",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'true' =?= '1'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "true = a in l",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Eq\n ├─ Boolean\n │  └─ `true`\n └─ In\n    ├─ Name\n    │  └─ `a`\n    └─ Name\n       └─ `l`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Eq\n │  ├─ Boolean\n │  │  └─ `true`\n │  └─ Name\n │     └─ `a`\n └─ Name\n    └─ `l`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a in b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a in b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a in (b) in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a in (b) in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a in [1..3] in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a in [1..3] in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Range\n    │  ├─ IntervalStart (closed)\n    │  │  └─ Numeric\n    │  │     └─ `1`\n    │  └─ IntervalEnd (closed)\n    │     └─ Numeric\n    │        └─ `3`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Range\n │     ├─ IntervalStart (closed)\n │     │  └─ Numeric\n │     │     └─ `1`\n │     └─ IntervalEnd (closed)\n │        └─ Numeric\n │           └─ `3`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = x between 1 and 10",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '1' =?= 'true'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '1' =?= 'true')",
+        "isNull": true,
+        "nullReason": "equal err '1' =?= 'true'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected value type in 'between' operator: boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(unexpected value type in 'between' operator: boolean)",
+        "isNull": true,
+        "nullReason": "unexpected value type in 'between' operator: boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = x between 1 and 10",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Eq\n ├─ Name\n │  └─ `a`\n └─ Between\n    ├─ Name\n    │  └─ `x`\n    ├─ Numeric\n    │  └─ `1`\n    └─ Numeric\n       └─ `10`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `x`\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `10`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "true = x between 1 and 10",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'true' =?= '5'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err 'true' =?= '5')",
+        "isNull": true,
+        "nullReason": "equal err 'true' =?= '5'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "true = x between 1 and 10",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Eq\n ├─ Boolean\n │  └─ `true`\n └─ Between\n    ├─ Name\n    │  └─ `x`\n    ├─ Numeric\n    │  └─ `1`\n    └─ Numeric\n       └─ `10`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Between\n ├─ Eq\n │  ├─ Boolean\n │  │  └─ `true`\n │  └─ Name\n │     └─ `x`\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `10`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x between 1 and 10 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected number as a third argument in 'between' operator, actual value type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected number as a third argument in 'between' operator, actual value type is boolean)",
+        "isNull": true,
+        "nullReason": "expected number as a third argument in 'between' operator, actual value type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x between 1 and 10 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Between\n ├─ Name\n │  └─ `x`\n ├─ Numeric\n │  └─ `1`\n └─ In\n    ├─ Numeric\n    │  └─ `10`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Between\n │  ├─ Name\n │  │  └─ `x`\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `10`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a + 1 = b * 2 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '2' =?= 'false'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '2' =?= 'false')",
+        "isNull": true,
+        "nullReason": "equal err '2' =?= 'false'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a + 1 = b * 2 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Eq\n ├─ Add\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Numeric\n │     └─ `1`\n └─ In\n    ├─ Mul\n    │  ├─ Name\n    │  │  └─ `b`\n    │  └─ Numeric\n    │     └─ `2`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Eq\n │  ├─ Add\n │  │  ├─ Name\n │  │  │  └─ `a`\n │  │  └─ Numeric\n │  │     └─ `1`\n │  └─ Mul\n │     ├─ Name\n │     │  └─ `b`\n │     └─ Numeric\n │        └─ `2`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "not(a = b = true)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: not(a = b = true)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "not(a = b = true)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: not(a = b = true)"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " FunctionInvocation\n ├─ Name\n │  └─ `not`\n └─ PositionalParameters\n    └─ Eq\n       ├─ Eq\n       │  ├─ Name\n       │  │  └─ `a`\n       │  └─ Name\n       │     └─ `b`\n       └─ Boolean\n          └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "if a = b = true then 1 else 2",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 9,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 10
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: if a = b = true then 1 else 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "if a = b = true then 1 else 2",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 9,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 10
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: if a = b = true then 1 else 2"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " If\n ├─ Eq\n │  ├─ Eq\n │  │  ├─ Name\n │  │  │  └─ `a`\n │  │  └─ Name\n │  │     └─ `b`\n │  └─ Boolean\n │     └─ `true`\n ├─ Numeric\n │  └─ `1`\n └─ Numeric\n    └─ `2`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1, 2, 3][item > 1 = true]",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 19,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 20
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: [1, 2, 3][item > 1 = true]"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[2, 3]",
+        "feel": "[2, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[1, 2, 3][item > 1 = true]",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 19,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 20
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: [1, 2, 3][item > 1 = true]"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Filter\n ├─ List\n │  ├─ Numeric\n │  │  └─ `1`\n │  ├─ Numeric\n │  │  └─ `2`\n │  └─ Numeric\n │     └─ `3`\n └─ Eq\n    ├─ Gt\n    │  ├─ Name\n    │  │  └─ `item`\n    │  └─ Numeric\n    │     └─ `1`\n    └─ Boolean\n       └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for i in l return i > 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 24,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 25
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: for i in l return i > 1 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, true, true]",
+        "feel": "[false, true, true]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for i in l return i > 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 24,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 25
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: for i in l return i > 1 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Name\n │        └─ `l`\n └─ EvaluatedExpression\n    └─ Eq\n       ├─ Gt\n       │  ├─ Name\n       │  │  └─ `i`\n       │  └─ Numeric\n       │     └─ `1`\n       └─ Boolean\n          └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "some i in l satisfies i = 2 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 28,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 29
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: some i in l satisfies i = 2 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "some i in l satisfies i = 2 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 28,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 29
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: some i in l satisfies i = 2 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Some\n ├─ QuantifiedContexts\n │  └─ QuantifiedContext\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Name\n │        └─ `l`\n └─ Satisfies\n    └─ Eq\n       ├─ Eq\n       │  ├─ Name\n       │  │  └─ `i`\n       │  └─ Numeric\n       │     └─ `2`\n       └─ Boolean\n          └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "every i in l satisfies i in l in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "every i in l satisfies i in l in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Every\n ├─ QuantifiedContexts\n │  └─ QuantifiedContext\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Name\n │        └─ `l`\n └─ Satisfies\n    └─ In\n       ├─ Name\n       │  └─ `i`\n       └─ In\n          ├─ Name\n          │  └─ `l`\n          └─ Name\n             └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Every\n ├─ QuantifiedContexts\n │  └─ QuantifiedContext\n │     ├─ Name\n │     │  └─ `i`\n │     └─ Name\n │        └─ `l`\n └─ Satisfies\n    └─ In\n       ├─ In\n       │  ├─ Name\n       │  │  └─ `i`\n       │  └─ Name\n       │     └─ `l`\n       └─ Name\n          └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{r: a = b = true}.r",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: {r: a = b = true}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{r: a = b = true}.r",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: {r: a = b = true}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ Eq\n │        ├─ Eq\n │        │  ├─ Name\n │        │  │  └─ `a`\n │        │  └─ Name\n │        │     └─ `b`\n │        └─ Boolean\n │           └─ `true`\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b = true = true = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          },
+          {
+            "code": "comparison",
+            "from": 13,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 14
+          },
+          {
+            "code": "comparison",
+            "from": 20,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 21
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true = true = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b = true = true = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          },
+          {
+            "code": "comparison",
+            "from": 13,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 14
+          },
+          {
+            "code": "comparison",
+            "from": 20,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 21
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true = true = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Eq\n │  │  ├─ Eq\n │  │  │  ├─ Name\n │  │  │  │  └─ `a`\n │  │  │  └─ Name\n │  │  │     └─ `b`\n │  │  └─ Boolean\n │  │     └─ `true`\n │  └─ Boolean\n │     └─ `true`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "s = \"a\" = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 8,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 9
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: s = \"a\" = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "s = \"a\" = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 8,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 9
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: s = \"a\" = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Name\n │  │  └─ `s`\n │  └─ String\n │     └─ `a`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date(\"2024-01-01\") < date(\"2024-02-01\") = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 40,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 41
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: date(\"2024-01-01\") < date(\"2024-02-01\") = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "date(\"2024-01-01\") < date(\"2024-02-01\") = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 40,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 41
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: date(\"2024-01-01\") < date(\"2024-02-01\") = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Lt\n │  ├─ FunctionInvocation\n │  │  ├─ Name\n │  │  │  └─ `date`\n │  │  └─ PositionalParameters\n │  │     └─ String\n │  │        └─ `2024-01-01`\n │  └─ FunctionInvocation\n │     ├─ Name\n │     │  └─ `date`\n │     └─ PositionalParameters\n │        └─ String\n │           └─ `2024-02-01`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "null = null = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 12,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 13
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: null = null = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "null = null = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 12,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 13
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: null = null = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Null\n │  └─ Null\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = null = false",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 9,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 10
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = null = false"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = null = false",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 9,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 10
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = null = false"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Null\n └─ Boolean\n    └─ `false`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 = 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          },
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 = 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "equal err 'true' =?= '2'",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_less_then)",
+        "isNull": true,
+        "nullReason": "eval_less_then",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 < 2 = 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          },
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 = 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Eq\n │  ├─ Lt\n │  │  ├─ Numeric\n │  │  │  └─ `1`\n │  │  └─ Numeric\n │  │     └─ `2`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 = (2 < 3)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 = (2 < 3)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 < 2 = (2 < 3)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 = (2 < 3)"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Lt\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Lt\n    ├─ Numeric\n    │  └─ `2`\n    └─ Numeric\n       └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x > 1 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_greater_then_number)",
+        "isNull": true,
+        "nullReason": "eval_greater_then_number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x > 1 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Gt\n ├─ Name\n │  └─ `x`\n └─ In\n    ├─ Numeric\n    │  └─ `1`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Gt\n │  ├─ Name\n │  │  └─ `x`\n │  └─ Numeric\n │     └─ `1`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x in (> 1) in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x in (> 1) in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Name\n │  └─ `x`\n └─ In\n    ├─ UnaryGt\n    │  └─ Numeric\n    │     └─ `1`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Name\n │  │  └─ `x`\n │  └─ UnaryGt\n │     └─ Numeric\n │        └─ `1`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x in < 1 in [false]",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_in_unary_less"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_in_unary_less)",
+        "isNull": true,
+        "nullReason": "eval_in_unary_less",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x in < 1 in [false]",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Name\n │  └─ `x`\n └─ UnaryLt\n    └─ In\n       ├─ Numeric\n       │  └─ `1`\n       └─ List\n          └─ Boolean\n             └─ `false`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Name\n │  │  └─ `x`\n │  └─ UnaryLt\n │     └─ Numeric\n │        └─ `1`\n └─ List\n    └─ Boolean\n       └─ `false`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "> 1 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreater(false)\"",
+        "feel": "UnaryGreater(false)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "> 1 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " UnaryGt\n └─ In\n    ├─ Numeric\n    │  └─ `1`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ UnaryGt\n │  └─ Numeric\n │     └─ `1`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 in 1 in true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 in 1 in true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Numeric\n │  └─ `1`\n └─ In\n    ├─ Numeric\n    │  └─ `1`\n    └─ Boolean\n       └─ `true`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `1`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 between 0 and 2 between false and true in [true]",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected value type in 'between' operator: boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(unexpected value type in 'between' operator: boolean)",
+        "isNull": true,
+        "nullReason": "unexpected value type in 'between' operator: boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected value type in 'between' operator: boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 between 0 and 2 between false and true in [true]",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Between\n ├─ Between\n │  ├─ Numeric\n │  │  └─ `1`\n │  ├─ Numeric\n │  │  └─ `0`\n │  └─ Numeric\n │     └─ `2`\n ├─ Boolean\n │  └─ `false`\n └─ In\n    ├─ Boolean\n    │  └─ `true`\n    └─ List\n       └─ Boolean\n          └─ `true`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Between\n │  ├─ Between\n │  │  ├─ Numeric\n │  │  │  └─ `1`\n │  │  ├─ Numeric\n │  │  │  └─ `0`\n │  │  └─ Numeric\n │  │     └─ `2`\n │  ├─ Boolean\n │  │  └─ `false`\n │  └─ Boolean\n │     └─ `true`\n └─ List\n    └─ Boolean\n       └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "tree": true
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": [
+        {
+          "code": "comparison",
+          "from": 6,
+          "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+          "to": 7
+        }
+      ],
+      "nodes": [
+        [
+          "Comparison",
+          0,
+          9
+        ],
+        [
+          "Number",
+          0,
+          1
+        ],
+        [
+          "Comparison",
+          4,
+          9
+        ],
+        [
+          "Number",
+          4,
+          5
+        ],
+        [
+          "Number",
+          8,
+          9
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "number",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "operator",
+          2,
+          3
+        ],
+        [
+          "whitespace",
+          3,
+          4
+        ],
+        [
+          "number",
+          4,
+          5
+        ],
+        [
+          "whitespace",
+          5,
+          6
+        ],
+        [
+          "operator",
+          6,
+          7
+        ],
+        [
+          "whitespace",
+          7,
+          8
+        ],
+        [
+          "number",
+          8,
+          9
+        ]
+      ],
+      "truncated": false
+    },
+    "new": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "Comparison",
+          0,
+          9
+        ],
+        [
+          "Comparison",
+          0,
+          5
+        ],
+        [
+          "Number",
+          0,
+          1
+        ],
+        [
+          "Number",
+          4,
+          5
+        ],
+        [
+          "Number",
+          8,
+          9
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "number",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "operator",
+          2,
+          3
+        ],
+        [
+          "whitespace",
+          3,
+          4
+        ],
+        [
+          "number",
+          4,
+          5
+        ],
+        [
+          "whitespace",
+          5,
+          6
+        ],
+        [
+          "operator",
+          6,
+          7
+        ],
+        [
+          "whitespace",
+          7,
+          8
+        ],
+        [
+          "number",
+          8,
+          9
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "format",
+      "expression": "1 < 2 < 3"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "changed": false,
+      "formatted": "1 < 2 < 3",
+      "ok": true
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_less_then"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "a = b = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "tree": true
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": [
+        {
+          "code": "comparison",
+          "from": 6,
+          "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+          "to": 7
+        }
+      ],
+      "nodes": [
+        [
+          "Comparison",
+          0,
+          12
+        ],
+        [
+          "Name",
+          0,
+          1
+        ],
+        [
+          "Comparison",
+          4,
+          12
+        ],
+        [
+          "Name",
+          4,
+          5
+        ],
+        [
+          "Boolean",
+          8,
+          12
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "operator",
+          2,
+          3
+        ],
+        [
+          "whitespace",
+          3,
+          4
+        ],
+        [
+          "name",
+          4,
+          5
+        ],
+        [
+          "whitespace",
+          5,
+          6
+        ],
+        [
+          "operator",
+          6,
+          7
+        ],
+        [
+          "whitespace",
+          7,
+          8
+        ],
+        [
+          "constant",
+          8,
+          12
+        ]
+      ],
+      "truncated": false
+    },
+    "new": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "Comparison",
+          0,
+          12
+        ],
+        [
+          "Comparison",
+          0,
+          5
+        ],
+        [
+          "Name",
+          0,
+          1
+        ],
+        [
+          "Name",
+          4,
+          5
+        ],
+        [
+          "Boolean",
+          8,
+          12
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "operator",
+          2,
+          3
+        ],
+        [
+          "whitespace",
+          3,
+          4
+        ],
+        [
+          "name",
+          4,
+          5
+        ],
+        [
+          "whitespace",
+          5,
+          6
+        ],
+        [
+          "operator",
+          6,
+          7
+        ],
+        [
+          "whitespace",
+          7,
+          8
+        ],
+        [
+          "constant",
+          8,
+          12
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "format",
+      "expression": "a = b = true"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "changed": false,
+      "formatted": "a = b = true",
+      "ok": true
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '1' =?= 'false'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "a = b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "tree": true
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "Comparison",
+          0,
+          10
+        ],
+        [
+          "Name",
+          0,
+          1
+        ],
+        [
+          "In",
+          4,
+          10
+        ],
+        [
+          "Name",
+          4,
+          5
+        ],
+        [
+          "Name",
+          9,
+          10
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "operator",
+          2,
+          3
+        ],
+        [
+          "whitespace",
+          3,
+          4
+        ],
+        [
+          "name",
+          4,
+          5
+        ],
+        [
+          "whitespace",
+          5,
+          6
+        ],
+        [
+          "keyword",
+          6,
+          8
+        ],
+        [
+          "whitespace",
+          8,
+          9
+        ],
+        [
+          "name",
+          9,
+          10
+        ]
+      ],
+      "truncated": false
+    },
+    "new": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "In",
+          0,
+          10
+        ],
+        [
+          "Comparison",
+          0,
+          5
+        ],
+        [
+          "Name",
+          0,
+          1
+        ],
+        [
+          "Name",
+          4,
+          5
+        ],
+        [
+          "Name",
+          9,
+          10
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "operator",
+          2,
+          3
+        ],
+        [
+          "whitespace",
+          3,
+          4
+        ],
+        [
+          "name",
+          4,
+          5
+        ],
+        [
+          "whitespace",
+          5,
+          6
+        ],
+        [
+          "keyword",
+          6,
+          8
+        ],
+        [
+          "whitespace",
+          8,
+          9
+        ],
+        [
+          "name",
+          9,
+          10
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a = b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: equal err '1' =?= 'false'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a in b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "syntax",
+      "expression": "a in b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "tree": true
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "In",
+          0,
+          11
+        ],
+        [
+          "Name",
+          0,
+          1
+        ],
+        [
+          "In",
+          5,
+          11
+        ],
+        [
+          "Name",
+          5,
+          6
+        ],
+        [
+          "Name",
+          10,
+          11
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "keyword",
+          2,
+          4
+        ],
+        [
+          "whitespace",
+          4,
+          5
+        ],
+        [
+          "name",
+          5,
+          6
+        ],
+        [
+          "whitespace",
+          6,
+          7
+        ],
+        [
+          "keyword",
+          7,
+          9
+        ],
+        [
+          "whitespace",
+          9,
+          10
+        ],
+        [
+          "name",
+          10,
+          11
+        ]
+      ],
+      "truncated": false
+    },
+    "new": {
+      "diagnostics": [],
+      "nodes": [
+        [
+          "In",
+          0,
+          11
+        ],
+        [
+          "In",
+          0,
+          6
+        ],
+        [
+          "Name",
+          0,
+          1
+        ],
+        [
+          "Name",
+          5,
+          6
+        ],
+        [
+          "Name",
+          10,
+          11
+        ]
+      ],
+      "ok": true,
+      "tokens": [
+        [
+          "name",
+          0,
+          1
+        ],
+        [
+          "whitespace",
+          1,
+          2
+        ],
+        [
+          "keyword",
+          2,
+          4
+        ],
+        [
+          "whitespace",
+          4,
+          5
+        ],
+        [
+          "name",
+          5,
+          6
+        ],
+        [
+          "whitespace",
+          6,
+          7
+        ],
+        [
+          "keyword",
+          7,
+          9
+        ],
+        [
+          "whitespace",
+          9,
+          10
+        ],
+        [
+          "name",
+          10,
+          11
+        ]
+      ],
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "a in b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "> 1 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_in_unary_greater"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '5' =?= 'false'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '5' =?= 'false')",
+        "isNull": true,
+        "nullReason": "equal err '5' =?= 'false'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "= 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '5' =?= 'false'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '5' =?= 'false')",
+        "isNull": true,
+        "nullReason": "equal err '5' =?= 'false'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "> 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err 'UnaryGreater(1)' =?= 'true'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '> 1' =?= 'true'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "x = 5 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: x = 5 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '5' =?= 'true'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '5' =?= 'true')",
+        "isNull": true,
+        "nullReason": "equal err '5' =?= 'true'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "not(1 < 2 < 3)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: not(1 < 2 < 3)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "> a in l",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_in_unary_greater"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '5' =?= 'false'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '5' =?= 'false')",
+        "isNull": true,
+        "nullReason": "equal err '5' =?= 'false'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "? > 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: ? > 1 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "? in l = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Lt\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Lt\n ├─ Lt\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: a = b = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Eq\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Boolean\n    └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Eq\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a = b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " Eq\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ Eq\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a in b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "a in b in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " In\n ├─ Name\n │  └─ `a`\n └─ In\n    ├─ Name\n    │  └─ `b`\n    └─ Name\n       └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " In\n ├─ In\n │  ├─ Name\n │  │  └─ `a`\n │  └─ Name\n │     └─ `b`\n └─ Name\n    └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "> 1 in c",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ UnaryGt\n    └─ In\n       ├─ Numeric\n       │  └─ `1`\n       └─ Name\n          └─ `c`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ In\n    ├─ UnaryGt\n    │  └─ Numeric\n    │     └─ `1`\n    └─ Name\n       └─ `c`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Lt\n    ├─ Lt\n    │  ├─ Numeric\n    │  │  └─ `1`\n    │  └─ Numeric\n    │     └─ `2`\n    └─ Numeric\n       └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "x = 5 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: x = 5 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Eq\n    ├─ Eq\n    │  ├─ Name\n    │  │  └─ `x`\n    │  └─ Numeric\n    │     └─ `5`\n    └─ Boolean\n       └─ `true`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "not(1 < 2 < 3)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: not(1 < 2 < 3)"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " NegatedList\n └─ Lt\n    ├─ Lt\n    │  ├─ Numeric\n    │  │  └─ `1`\n    │  └─ Numeric\n    │     └─ `2`\n    └─ Numeric\n       └─ `3`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "> a in l",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ UnaryGt\n    └─ In\n       ├─ Name\n       │  └─ `a`\n       └─ Name\n          └─ `l`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ In\n    ├─ UnaryGt\n    │  └─ Name\n    │     └─ `a`\n    └─ Name\n       └─ `l`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "? > 1 = true",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: ? > 1 = true"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Eq\n    ├─ Gt\n    │  ├─ Name\n    │  │  └─ `?`\n    │  └─ Numeric\n    │     └─ `1`\n    └─ Boolean\n       └─ `true`\n"
+    }
+  }
+]

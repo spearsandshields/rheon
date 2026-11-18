@@ -21,19 +21,17 @@ use rheon_feel::{FeelType, IntervalType, Name};
 /// counts one. A text that is nested deeper is an error.
 pub const MAX_NESTING: usize = 640;
 
-/// The precedence levels of the operators, lowest first (the `%left`, `%right`, `%nonassoc`
-/// and `%precedence` lines of the grammar).
+/// The precedence levels of the operators, lowest first (grammar rules 2 and 4). The operators
+/// of a level are left associative.
 const LOWEST: u8 = 0;
 const OR: u8 = 1;
 const AND: u8 = 2;
+/// The comparisons of grammar rule 49: `=`, `!=`, `<`, `<=`, `>`, `>=`, `between` and `in`.
 const COMPARISON: u8 = 3;
-const BETWEEN: u8 = 4;
-const BETWEEN_AND: u8 = 5;
-const IN: u8 = 6;
-const ADDITION: u8 = 7;
-const MULTIPLICATION: u8 = 8;
-const EXPONENTIATION: u8 = 9;
-const NEGATION: u8 = 10;
+const ADDITION: u8 = 4;
+const MULTIPLICATION: u8 = 5;
+const EXPONENTIATION: u8 = 6;
+const NEGATION: u8 = 7;
 
 /// The kind of the token the parser looks at.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -829,7 +827,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     };
     let message = match code {
       "unexpected" => format!("Unexpected {found}: an operator or the end of the expression is expected here."),
-      "comparison" => format!("Comparison operators cannot be chained: {found} follows a comparison. Use parentheses, or join two comparisons with `and`."),
       _ if self.input.trim().is_empty() => "The expression is empty.".to_string(),
       _ if self.kind == T::Eof => format!("Expected {what}{after}, but the expression ends here."),
       _ => format!("Expected {what}{after}, found {found}."),
@@ -1161,8 +1158,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     if self.nesting > MAX_NESTING { Err(err_nested_too_deeply(MAX_NESTING)) } else { Ok(()) }
   }
 
-  /// An expression whose operators bind tighter than the level `level` (as tight, for a level
-  /// that is right associative).
+  /// An expression whose operators bind tighter than the level `level`.
   fn expression(&mut self, level: u8) -> Result<AstNode> {
     self.expression_until(level, false)
   }
@@ -1244,7 +1240,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           continue;
         }
         T::Between => {
-          if BETWEEN <= level {
+          if COMPARISON <= level {
             break;
           }
           self.between(lhs)?;
@@ -1252,8 +1248,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           continue;
         }
         T::In => {
-          // right associative
-          if IN < level {
+          if COMPARISON <= level {
             break;
           }
           self.comparison_in(lhs)?;
@@ -1275,15 +1270,9 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         T::Exp => (binary, operator_level) = (AstNode::Exp, EXPONENTIATION),
         _ => break,
       }
-      // the binary operators are left associative; a comparison takes no comparison as an operand
-      if operator_level < level {
+      // the binary operators are left associative
+      if operator_level <= level {
         break;
-      }
-      if operator_level == level {
-        if level != COMPARISON {
-          break;
-        }
-        self.unexpected("comparison", "")?;
       }
       self.binary(lhs, binary, operator_level)?;
       self.note(operator_name(operator_level), start);
@@ -1355,7 +1344,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.between = between;
     let middle = middle?;
     self.expect(T::BetweenAnd, At::AfterOperand)?;
-    let rhs = self.boxed(BETWEEN_AND)?;
+    let rhs = self.boxed(COMPARISON)?;
     wrap(lhs, |lhs| AstNode::Between(lhs, middle, rhs));
     self.made = Made::Textual;
     Ok(())
@@ -1393,11 +1382,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       // the operators after the operand in parentheses: an open expression, as the operand
       // without parentheses is
       self.enter()?;
-      self.infix(&mut first, start, IN, false)?;
+      self.infix(&mut first, start, COMPARISON, false)?;
       self.nesting -= 1;
       first
     } else {
-      self.expression(IN)?
+      self.expression(COMPARISON)?
     };
     let rhs = Box::new(rhs);
     wrap(lhs, |lhs| AstNode::In(lhs, rhs));
@@ -1527,12 +1516,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     Ok(AstNode::Neg(operand))
   }
 
-  /// A unary comparison: its operand takes the arithmetic and the `in` after it.
+  /// A unary comparison: its operand takes the arithmetic after it.
   #[inline(never)]
   fn unary_comparison(&mut self, unary: fn(Box<AstNode>) -> AstNode) -> Result<AstNode> {
     let start = self.token_start;
     self.bump();
-    let operand = self.boxed(IN)?;
+    let operand = self.boxed(COMPARISON)?;
     self.made = Made::Textual;
     self.note("UnaryTest", start);
     Ok(unary(operand))
@@ -2056,8 +2045,8 @@ mod stack_tests {
       ("for", format!("{}x", "for x in [1] return ".repeat(n)), n),
       ("function", format!("{}1", "function(a) ".repeat(n)), n),
       ("filter", format!("{}1{}", "a[".repeat(n), "]".repeat(n)), n),
-      ("between", format!("{}1", "1 between 0 and ".repeat(n)), n),
-      ("in", format!("{}1", "1 in ".repeat(n)), n),
+      ("between", format!("{}1{}", "1 between ".repeat(n), " and 1".repeat(n)), n),
+      ("unary comparison", format!("{}1", "< ".repeat(n)), n),
     ];
     for (name, input, levels) in cases {
       let handle = std::thread::Builder::new()

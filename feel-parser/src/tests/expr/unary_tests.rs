@@ -324,7 +324,6 @@ fn unary_comparison_endpoint_binds_like_a_comparison() {
     ("> a.b + 1", "> (a.b + 1)"),
     ("> a + 1, < b - 1", "> (a + 1), < (b - 1)"),
     ("not(> a + b)", "not(> (a + b))"),
-    ("> x in [1, 2]", "> (x in [1, 2])"),
   ] {
     assert_eq!(tree(StartUnaryTests, with_parentheses), tree(StartUnaryTests, input), "{input}");
     assert!(!tree(StartUnaryTests, input).contains("syntax error"), "{input}");
@@ -336,7 +335,8 @@ fn unary_comparison_endpoint_binds_like_a_comparison() {
   for input in ["> 5", "< a", ">= a.b", "= \"x\"", "!= null"] {
     assert!(!tree(StartUnaryTests, input).contains("syntax error"), "{input}");
   }
-  // a comparison or `between` after the endpoint ends it: the unary comparison is its operand
+  // a comparison, `between` or `in` after the endpoint ends it: the unary comparison is its operand
+  assert_eq!(tree(StartExpression, "(> x) in [1, 2]"), tree(StartExpression, "> x in [1, 2]"));
   assert_eq!(tree(StartExpression, "(> a) < b"), tree(StartExpression, "> a < b"));
   assert_eq!(tree(StartExpression, "(<= 10) = (null..10]"), tree(StartExpression, "<= 10 = (null..10]"));
   assert_eq!(tree(StartExpression, "(> a) between 1 and 2"), tree(StartExpression, "> a between 1 and 2"));

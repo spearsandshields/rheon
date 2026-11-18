@@ -4309,6 +4309,21 @@ looked up only when a name in scope has its length (232).
     input entries (only the allowed values of an item definition do), so `? > 5` in a model's
     table is still not satisfied. Tracker row EVA-25.
 
+261. **The comparisons are one left-associative level.** Grammar rule 49 lists `=`, `!=`, `<`,
+    `<=`, `>`, `>=`, `between` and `in` as one production, and rule 4 gives the comparison one
+    place in the order of precedence. The parser had three levels inherited from the generated
+    tables: the six operators (not associative, so `1 < 2 < 3` and `a = b = true` were syntax
+    errors), `between` above them and `in` above that (right associative). Now a comparison
+    takes the comparison on its left as its operand and an arithmetic expression on its right:
+    `a = b = true` is `(a = b) = true`, `1 < 2 < 3` is `(1 < 2) < 3` (null: a boolean is not
+    compared with a number), `a = b in c` is `(a = b) in c` (it was `a = (b in c)`),
+    `a = x between 1 and 2` is `(a = x) between 1 and 2`, `a in b in c` is `(a in b) in c`,
+    and the endpoint of a unary comparison ends before `in` as before the other comparisons
+    (item 236). A comparison written first is unchanged (`x in c = true`,
+    `x between 1 and 2 = true`). The diagnostic code `comparison` of `syntax` is gone with the
+    error. A long chain of comparisons is no nesting; the depth limit of the tree applies to
+    it. Tracker row PAR-20.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

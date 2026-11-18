@@ -95,5 +95,4 @@ TIMEOUT = killed at the cap.
   `round up(5.5, 6176)` is `5.5` and `decimal(1e33, 1)` (B4) is `1e33` instead of null, since a
   value with no digit below the requested scale is returned unchanged. `matches` supports
   back-references (`(a)\1`, fancy-regex), with a backtracking limit instead of a hang.
-- Open: arithmetic in unary-test endpoints needs
-  parentheses (`> (0.1 + 0.2)`, upstream grammar precedence), and a zoned `now()` (proposed).
+- Open: a zoned `now()` (proposed).

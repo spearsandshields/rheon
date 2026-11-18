@@ -276,9 +276,8 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   numbers and strings in dsntk (`max(dt1, dt2)` is null); use `sort(…)[1]` or `if a < b then …`.
 - **Unary-test semantics.** The engine evaluates `? in (<tests>)`. A boolean
   expression test such as `? > 5` is satisfied when it is true. The usual forms `> 5`,
-  `[1..10]` and `"a", "b"` work; a tested value of another kind than the tests gives null. An endpoint that is an arithmetic expression needs
-  parentheses: dsntk parses `> 0.1 + 0.2` as `(? > 0.1) + 0.2` (a typed null, "invalid argument
-  type … actual type is boolean"), while `> (0.1 + 0.2)` and `>= (x + 1)` work. See CONTRACT §2.
+  `[1..10]` and `"a", "b"` work; a tested value of another kind than the tests gives null. The endpoint of a comparison
+  takes the arithmetic after it: `> 0.1 + 0.2` tests `? > (0.1 + 0.2)`. See CONTRACT §2.
 - **Parsing needs context.** Names with spaces or operators (`Grace's age`, `a+b`) are only split
   correctly when they are in the context, so the playground sends the context to `parse` too.
 - **The editor reads a text as the engine does.** The playground's FEEL editor takes its
