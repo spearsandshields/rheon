@@ -13,8 +13,9 @@ permissions:
   contents: write
 
 jobs:
-  # The release tier (scripts/tier.mjs, README "Test tiers"), without the large request sets and
-  # the speed suite, which stay outside the repository: the table lists them as NOT RUN, and a
+  # The release tier (scripts/tier.mjs, README "Test tiers"), without the large request sets,
+  # which stay outside the repository (as does the speed suite, a tier of its own): the table
+  # lists them as NOT RUN, and a
   # release is fully checked only when the whole tier ran on the reference machine first. Nothing
   # is built for the release unless the tier passes. Times are reported without a budget until
   # five runs give one.
@@ -35,7 +36,7 @@ jobs:
       - run: npm ci
       - run: npm run bootstrap
       - run: python3 -m venv .tools/py && .tools/py/bin/pip install --require-hashes -r tools/number-oracle/requirements.txt
-      - run: npm run tier:release -- --without-large-sets --without-speed-suite
+      - run: npm run tier:release -- --without-large-sets
         env:
           GH_TOKEN: ${{ github.token }}
           PYTHON: .tools/py/bin/python
