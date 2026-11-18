@@ -167,6 +167,11 @@ fn the_keys_of_a_literal_of_several_tokens_are_found_by_one_pass() {
   // the literal ends at its brace
   assert_eq!(keys("{a b: 1} + {c d: 2}"), ["a b"]);
   assert_eq!(keys("[1, {a b: 1}, x y: 2]"), ["a b"]);
+  // white space before the brace, of one byte or more
+  assert_eq!(literal_keys("  {a b: 1}", 0).len(), 1);
+  assert_eq!(literal_keys("\u{feff}{a b: 1}", 0).len(), 1);
+  assert_eq!(literal_keys("\u{feff}{}:", 0).len(), 0);
+  assert_eq!(literal_keys("no brace", 0).len(), 0);
   // no name: a number first, another character, or nothing before the colon
   assert_eq!(keys("{1 a: 1, a $ b: 2, : 3, a b"), Vec::<String>::new());
 }

@@ -562,6 +562,15 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self
   }
 
+  /// Reads every name of the text as a member of a value, as in the predicate of a filter: the
+  /// keys below the keys of the contexts in scope are names too. For the tests of the index of
+  /// those keys.
+  #[cfg(test)]
+  pub fn with_member_names(mut self) -> Self {
+    self.lexer.enter_filter();
+    self
+  }
+
   /// Records every token read from the lexer (see [Parser::token_log]).
   #[cfg(test)]
   pub fn with_token_log(mut self) -> Self {
@@ -1306,7 +1315,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   #[inline(never)]
   fn filter(&mut self, lhs: &mut AstNode) -> Result<()> {
     self.bump();
-    let filter = self.boxed_inner()?;
+    self.lexer.enter_filter();
+    let filter = self.boxed_inner();
+    self.lexer.leave_filter();
+    let filter = filter?;
     self.expect(T::RightBracket, At::AfterOperand)?;
     wrap(lhs, |lhs| AstNode::Filter(lhs, filter));
     self.made = Made::Textual;
@@ -1774,6 +1786,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         // an entry does not read its own key (DMN 1.6 clause 10.3.2.6)
         self.lexer.remove_name_from_scope(&name);
         let value = self.boxed(LOWEST)?;
+        // the key is a name for the entries after it, and a member name from here on
+        self.lexer.add_name_to_scope(name.clone());
         self.lexer.add_parsed_name(name.clone());
         entries.push(AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(name)), value));
         self.note("Entry", entry_start);

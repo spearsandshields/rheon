@@ -154,6 +154,8 @@ pub struct Lexer<'lexer, 'scope> {
   /// The token follows a dot: its name may be a built-in property (`year`, `time offset`,
   /// `start included`). Set by the parser after every dot, and over with the token read next.
   after_dot: bool,
+  /// How many predicates of filters are open: the names in them can be entries of an item.
+  filters: usize,
   /// Buffer for the flattened candidate names of [Lexer::longest_name_in_scope].
   name_buf: String,
   /// Second buffer for flattening names (the replacements alternate between the buffers).
@@ -210,6 +212,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       till_in: false,
       whole_names: false,
       after_dot: false,
+      filters: 0,
       name_buf: String::new(),
       name_tmp: String::new(),
       chain_parts: vec![],
@@ -259,6 +262,16 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.after_dot = true;
   }
 
+  /// The predicate of a filter starts.
+  pub fn enter_filter(&mut self) {
+    self.filters += 1;
+  }
+
+  /// The predicate of a filter ends.
+  pub fn leave_filter(&mut self) {
+    self.filters = self.filters.saturating_sub(1);
+  }
+
   pub fn push_to_scope(&mut self) {
     self.scope.push_default();
   }
@@ -299,6 +312,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // a type, or a name after a dot, is expected for one token: the parser asks again before
     // every type and after every dot
     let (type_name, after_dot) = (self.type_name, self.after_dot);
+    self.scope.set_members(after_dot || self.filters > 0);
     let result = self.read_next_token();
     if type_name {
       self.type_name = false;
@@ -1389,7 +1403,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 }
 
-/// The keys of the context literal whose `{` is at `open` that are names of several tokens, found
+/// The keys of the context literal whose `{` is at or after `open` that are names of several tokens, found
 /// before its entries are parsed: an entry can read an entry written after it (DMN 1.6 clause
 /// 10.3.2.11.1), and a name of several tokens is read as one name only when it is in scope.
 ///
@@ -1401,8 +1415,12 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 pub(crate) fn literal_keys(input: &str, open: usize) -> Vec<Name> {
   let bytes = input.as_bytes();
   let mut keys = vec![];
+  // white space can stand between `open` and the brace
+  let Some(brace) = bytes.get(open..).and_then(|rest| rest.iter().position(|&byte| byte == b'{')) else {
+    return keys;
+  };
   let (mut braces, mut brackets) = (1usize, 0isize);
-  let mut position = open + 1;
+  let mut position = open + brace + 1;
   // the start of the entry whose key is not read yet
   let mut entry = Some(position);
   while position < bytes.len() {

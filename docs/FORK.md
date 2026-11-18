@@ -4410,6 +4410,29 @@ looked up only when a name in scope has its length (232).
     here. Identity: 13 of the earlier requests differ; with the new request set
     `context-entry-order.json` they are registered. Tracker row NAM-4.
 
+268. **A name is matched against the keys of the scopes it stands in; nested keys are names
+    only for a member of a value.** Every key at any depth of the input, and every key of a
+    context literal from its entry to the end of the text, was a name in scope everywhere
+    (inherited): with the input `{x: {"a-b": 1}, a: 5, b: 2}` the text `a-b` was read as the
+    name `a-b`, which has no value there (null), and in `[{a-b: 1}, a-b]` the second `a-b` was
+    read as the key of the literal before it. Now (the first half of tracker row NAM-6):
+    - a name that stands alone is matched against the keys of the contexts in scope
+      themselves: the input's own keys, the variables and parameters of the constructs around
+      it, and the keys of the context literals it stands in. `a-b` above is 3;
+    - a member of a value is matched against the keys at any depth too, and against the keys
+      of the context literals of the text: the name after a dot (`x.a-b`, `{a-b: 1}.a-b`) and
+      the names in the predicate of a filter, where the entries of an item are in scope
+      (`l[a-b = 1]`);
+    - the key of a context literal is a name of the literal's own scope: in the entries of
+      the literal (item 267) and in what stands inside them, not after or beside the literal.
+    The lookups of the member names are the ones that were there (the tests of the index run
+    with every name as a member name, and their recorded outcomes are unchanged). None of the
+    17,268 earlier identity requests differs, and the official TCK is unchanged; the new
+    request set `member-names.json` registers the rule. Also fixed here: the scan for the keys
+    of a literal (item 267) started one byte after the start of the token, not after the
+    brace, so with white space before the `{` it found no keys, and it panicked when that
+    white space was a character of several bytes (found by the full-size parser tests).
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

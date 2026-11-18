@@ -58,3 +58,34 @@ fn test_name() {
   te_number(false, scope, "fr**n*s", 126, 2);
   te_number(false, scope, "wh*t*v*r", 127, 2);
 }
+
+/// A name is matched against the keys of the scopes it stands in. The keys below them (of the
+/// values of the input, and of the context literals of the text) are names only for a member of
+/// a value: after a dot and in the predicate of a filter.
+#[test]
+fn nested_keys_are_names_only_for_a_member_of_a_value() {
+  let scope = &te_scope(r#"{x: {a-b: 1}, l: [{a-b: 1}, {a-b: 2}], a: 5, b: 2}"#);
+  // alone it is the subtraction of the two names in scope
+  te_number(false, scope, "a-b", 3, 0);
+  te_number(false, scope, "a-b * 2", 1, 0);
+  // after a dot and in a filter it is the entry
+  te_number(false, scope, "x.a-b", 1, 0);
+  te_number(false, scope, "x.a-b + a-b", 4, 0);
+  te_number(false, scope, "sum(l.a-b)", 3, 0);
+  te_number(false, scope, "count(l[a-b = 1])", 1, 0);
+  te_number(false, scope, "count(l[item.a-b > 0])", 2, 0);
+  te_number(false, scope, "sum(for i in l return i.a-b)", 3, 0);
+  // the key of a context literal is a name in the literal, and a member name after it
+  te_number(false, scope, "{a-b: 1, r: a-b}.r", 1, 0);
+  te_number(false, scope, "{a-b: 1, r: {q: a-b}}.r.q", 1, 0);
+  te_number(false, scope, "{a-b: 1}.a-b", 1, 0);
+  te_number(false, scope, "{p: {a-b: 1}, r: p.a-b}.r", 1, 0);
+  te_number(false, scope, "count([{a-b: 1}][a-b = 1])", 1, 0);
+  // but no name after the literal, or beside it
+  te_number(false, scope, "[{a-b: 1}, a-b][2]", 3, 0);
+  te_number(false, scope, "{p: {a-b: 1}, r: a-b}.r", 3, 0);
+  // a key of the input itself is a name everywhere
+  let scope = &te_scope(r#"{a-b: 9, a: 5, b: 2}"#);
+  te_number(false, scope, "a-b", 9, 0);
+  te_number(false, scope, "[a-b, {r: a-b}.r][2]", 9, 0);
+}

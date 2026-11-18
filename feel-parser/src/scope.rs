@@ -62,6 +62,11 @@ pub struct ParsingScope<'a> {
   lengths: RefCell<Lengths>,
   /// Set of parsed names.
   names: RefCell<HashSet<Name>>,
+  /// Whether the name being read is a member of a value: it stands after a dot, or in the
+  /// predicate of a filter, where the entries of an item are in scope. Only then the keys below
+  /// the keys of the contexts on the stack, and the keys of the context literals of the text,
+  /// are names in scope (set by the lexer before every name).
+  members: Cell<bool>,
   /// Length of the longest parsed name that is longer than its first word ([first_word]); grows only.
   max_names_longer: Cell<usize>,
   /// `true` when a pushed context has nested contexts (their keys are not in [group_bound](Self::group_bound)'s windows).
@@ -85,6 +90,7 @@ impl<'a> ParsingScope<'a> {
       local_keys: RefCell::new(HashMap::new()),
       lengths: RefCell::new(Lengths::default()),
       names: RefCell::new(HashSet::default()),
+      members: Cell::new(false),
       max_names_longer: Cell::new(0),
       local_nested: Cell::new(false),
       max_local: Cell::new(0),
@@ -199,6 +205,11 @@ impl ParsingScope<'_> {
     }
   }
 
+  /// Says whether the next name read is a member of a value (see the field).
+  pub(crate) fn set_members(&self, members: bool) {
+    self.members.set(members);
+  }
+
   /// Adds a name to a set of already parsed names.
   pub fn add_parsed_name(&self, name: Name) {
     let len = name.as_str().len();
@@ -235,7 +246,7 @@ impl ParsingScope<'_> {
       return true;
     }
     // every composite key contains the separator
-    if name.contains(COMPOSITE_SEPARATOR) {
+    if self.members.get() && name.contains(COMPOSITE_SEPARATOR) {
       let live = &self.input[..self.input_live.get()];
       return live.iter().any(|frame| frame.contains_composite(name)) || self.locals.borrow().iter().any(|ctx| contains_composite(ctx, name));
     }
@@ -246,10 +257,14 @@ impl ParsingScope<'_> {
   /// a parsed name: [contains](Self::contains) without the composite keys, for the names that can
   /// not be composite (see [bound](Self::bound)).
   pub(crate) fn contains_plain(&self, name: &str) -> bool {
+    let live = &self.input[..self.input_live.get()];
+    if !self.members.get() {
+      // a name that is no member: a key of a context on the stack itself
+      return self.local_keys.borrow().contains_key(name) || live.iter().any(|frame| frame.contains_own(name));
+    }
     if self.names.borrow().contains(name) {
       return true;
     }
-    let live = &self.input[..self.input_live.get()];
     // without nested contexts the keys of the pushed contexts are all their keys
     let pushed = if self.local_nested.get() {
       let locals = self.locals.borrow();

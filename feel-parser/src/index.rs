@@ -251,6 +251,11 @@ impl<'a> FrameIndex<'a> {
     self.top
   }
 
+  /// Returns `true` when `name` is a key of the input context itself.
+  pub(crate) fn contains_own(&self, name: &str) -> bool {
+    self.top.contains_entry(name)
+  }
+
   /// Returns `true` when `name` is a key at any depth.
   pub(crate) fn contains(&self, name: &str) -> bool {
     if self.top.contains_entry(name) {

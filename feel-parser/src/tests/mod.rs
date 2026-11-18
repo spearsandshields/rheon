@@ -260,3 +260,25 @@ fn test_not_accept() {
     false,
   );
 }
+
+thread_local! {
+  /// Whether the parsers of this test thread read every name as a member name ([member_names]).
+  static MEMBER_NAMES: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// From here on the parsers made with [parser] on this thread read every name of a text as a
+/// member of a value, as in the predicate of a filter: the tests of the index of the keys below
+/// the keys of the contexts in scope.
+pub(crate) fn member_names() {
+  MEMBER_NAMES.with(|members| members.set(true));
+}
+
+/// A parser as the tests of this thread read names ([member_names]).
+pub(crate) fn parser<'p, 's>(scope: &'p crate::scope::ParsingScope<'s>, start: crate::token::TokenType, input: &'p str) -> crate::parser::Parser<'p, 's> {
+  let parser = crate::parser::Parser::new(scope, start, input, false);
+  if MEMBER_NAMES.with(|members| members.get()) {
+    parser.with_member_names()
+  } else {
+    parser
+  }
+}

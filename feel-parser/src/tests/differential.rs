@@ -85,7 +85,7 @@ fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
 /// Runs the front end; a panic is an outcome.
 pub(super) fn run_production(frames: &[FeelContext], start: &TokenType, input: &str) -> Run {
   let scope = ParsingScope::new(frames);
-  let mut parser = Parser::new(&scope, start.clone(), input, false).with_token_log();
+  let mut parser = super::parser(&scope, start.clone(), input).with_token_log();
   let outcome = catch_unwind(AssertUnwindSafe(|| parser.parse()));
   Run {
     tokens: parser.token_log().into_iter().map(|(tt, tv, start)| (tt as i16, format!("{tv:?}"), start)).collect(),
@@ -921,7 +921,7 @@ fn deep_inputs_parse_in_a_small_stack() {
 fn work_of(frames: &[FeelContext], input: &str) -> BTreeMap<&'static str, usize> {
   super::work::take();
   let scope = ParsingScope::new(frames);
-  let _ = Parser::new(&scope, TokenType::StartExpression, input, false).parse();
+  let _ = super::parser(&scope, TokenType::StartExpression, input).parse();
   super::work::take()
 }
 
@@ -989,6 +989,7 @@ fn lists_keep_source_order() {
 /// reference, which scans the chain for every name token: chains of up to 50 names (300 in full size).
 #[test]
 fn reused_name_chains_equal_reference() {
+  super::member_names();
   let mut inputs = vec![];
   for n in [1, 2, 3, 10, if full_size() { 300 } else { 50 }] {
     inputs.push(vec!["a"; n].join("+"));
@@ -1156,6 +1157,7 @@ fn contexts_with_lists() -> [FeelContext; 1] {
 /// a keyword that ends a name, such as the list of a `for` and the operands of `and`.
 #[test]
 fn lists_are_decided_when_a_lookup_needs_them() {
+  super::member_names();
   let frames = contexts_with_lists();
   for (text, decided) in [
     ("sum(rows.amount)", false),
@@ -1185,6 +1187,7 @@ fn lists_are_decided_when_a_lookup_needs_them() {
 /// items of different types are not.
 #[test]
 fn names_of_list_items_equal_reference() {
+  super::member_names();
   let frames = contexts_with_lists();
   let mut stats = Stats::golden("names-of-list-items");
   for text in [
@@ -1268,6 +1271,7 @@ fn pushed_contexts_walked_grow_linearly_with_the_nesting() {
 /// keys, parsed names, parameters and built-in properties after a dot.
 #[test]
 fn first_word_bounds_equal_reference() {
+  super::member_names();
   let mut keys: Vec<String> = ["a", "a b", "a.b", "a!b", "a\tb", "a0", "ab c", "a b c d e f g h", "x", "x y", "start", "start x", "end"]
     .map(String::from)
     .to_vec();
@@ -1454,7 +1458,8 @@ fn composite_names_in_deep_contexts_parse_in_a_small_stack() {
           .spawn_scoped(scope, || {
             let parsing_scope = ParsingScope::new(&frames);
             let input = format!("a./{OGHAM}.{OGHAM} leaf + 1");
-            let node = Parser::new(&parsing_scope, TokenType::StartExpression, &input, false).parse().unwrap();
+            super::member_names();
+            let node = super::parser(&parsing_scope, TokenType::StartExpression, &input).parse().unwrap();
             assert!(matches!(&node, crate::AstNode::Add(lhs, _) if matches!(lhs.as_ref(), crate::AstNode::Name(name) if name.as_str() == "a./. leaf")));
           })
           .unwrap()
