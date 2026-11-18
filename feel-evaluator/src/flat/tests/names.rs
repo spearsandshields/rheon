@@ -70,8 +70,11 @@ fn frees(text: &str) -> Vec<String> {
 }
 
 #[test]
-fn an_entry_is_seen_by_the_entries_after_it_only() {
-  assert_eq!(vec!["a: slot 0", "c: free 0", "e: free 1"], reads("{a: 1, b: a, c: c, d: e, e: 2}"));
+fn an_entry_sees_the_other_entries_and_not_its_own_key() {
+  // `e` is evaluated before `d`, which reads it: its slot is the fourth
+  assert_eq!(vec!["a: slot 0", "c: free 0", "e: slot 3"], reads("{a: 1, b: a, c: c, d: e, e: 2}"));
+  // entries that need each other in a circle read the names outside the literal
+  assert_eq!(vec!["a: free 0", "b: slot 0"], reads("{a: b, b: a}"));
 }
 
 #[test]
@@ -241,34 +244,34 @@ Path: entry r @-
   Context: layout 0, stop None @-
     ContextEntry @0
       ContextEntryKey @0
-      FunctionDefinition: proto 0 @0
-        FormalParameters @0
-          FormalParameter @0
-            ParameterName @0
-            FeelType @0
-        FunctionBody @0
-          Add @2
-            Name x: slot 0 @2
-            Name y: free 0 @2
-    ContextEntry @3
-      ContextEntryKey @3
-      Numeric @3
+      Numeric @0
+    ContextEntry @1
+      ContextEntryKey @1
+      FunctionDefinition: proto 0 @1
+        FormalParameters @1
+          FormalParameter @1
+            ParameterName @1
+            FeelType @1
+        FunctionBody @1
+          Add @3
+            Name x: slot 0 @3
+            Name y: free 0 @3
     ContextEntry @4
       ContextEntryKey @4
       FunctionInvocation @4
-        Name f: slot 0 @4
+        Name f: slot 1 @4
         Numeric @4
-proto 0: params [0], binders 1, region 2, closure [y]
-  Add @2
-    Name x: slot 0 @2
-    Name y: free 0 @2
+proto 0: params [0], binders 1, region 3, closure [y]
+  Add @3
+    Name x: slot 0 @3
+    Name y: free 0 @3
 root binders 3
-layout 0 Context: f=slot 0 y=slot 1 r=slot 2
+layout 0 Context: y=slot 0 f=slot 1 r=slot 2
 layout 1 Params: x=slot 0
 region 0: layout 0 visible 0 in -
-region 1: closure in -
-region 2: layout 1 visible 1 in 1
-region 3: layout 0 visible 1 in -
+region 1: layout 0 visible 1 in -
+region 2: closure in -
+region 3: layout 1 visible 1 in 2
 region 4: layout 0 visible 2 in -
 free 0: y uses 0010
 ";

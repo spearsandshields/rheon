@@ -1746,6 +1746,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     let start = self.token_start;
     self.bump();
     self.lexer.push_to_scope();
+    // an entry can read an entry written after it: the keys of several tokens are names in scope
+    // before the entries are parsed
+    for key in crate::lexer::literal_keys(self.input, start) {
+      self.lexer.add_name_to_scope(key);
+    }
     let between = std::mem::replace(&mut self.between, false);
     let mut entries = vec![];
     if self.look(At::Start)? == T::RightBrace {
@@ -1766,6 +1771,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           }
         };
         self.expect(T::Colon, At::Start)?;
+        // an entry does not read its own key (DMN 1.6 clause 10.3.2.6)
+        self.lexer.remove_name_from_scope(&name);
         let value = self.boxed(LOWEST)?;
         self.lexer.add_parsed_name(name.clone());
         entries.push(AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(name)), value));

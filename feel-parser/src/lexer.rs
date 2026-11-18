@@ -271,6 +271,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     self.scope.set_entry_name(name);
   }
 
+  pub fn remove_name_from_scope(&mut self, name: &Name) {
+    self.scope.remove_entry_name(name);
+  }
+
   pub fn add_parsed_name(&mut self, name: Name) {
     self.scope.add_parsed_name(name);
   }
@@ -1383,6 +1387,105 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     }
     false
   }
+}
+
+/// The keys of the context literal whose `{` is at `open` that are names of several tokens, found
+/// before its entries are parsed: an entry can read an entry written after it (DMN 1.6 clause
+/// 10.3.2.11.1), and a name of several tokens is read as one name only when it is in scope.
+///
+/// One pass over the text of the literal: a key is the text between the start of an entry (after
+/// the `{`, or after a `,` of the literal itself) and its `:`. Strings, comments and what stands
+/// in brackets are passed over. The commas of a `context<...>` or `function<...>` type are not
+/// told from those of the literal, so a type can give a name that is no key; such a name only
+/// adds a candidate.
+pub(crate) fn literal_keys(input: &str, open: usize) -> Vec<Name> {
+  let bytes = input.as_bytes();
+  let mut keys = vec![];
+  let (mut braces, mut brackets) = (1usize, 0isize);
+  let mut position = open + 1;
+  // the start of the entry whose key is not read yet
+  let mut entry = Some(position);
+  while position < bytes.len() {
+    match bytes[position] {
+      b'"' => {
+        position += 1;
+        while position < bytes.len() && bytes[position] != b'"' {
+          position += if bytes[position] == b'\\' { 2 } else { 1 };
+        }
+      }
+      b'/' if matches!(bytes.get(position + 1), Some(b'/' | b'*')) => {
+        let comment = position;
+        if bytes[position + 1] == b'/' {
+          while position < bytes.len() && bytes[position] != b'\n' {
+            position += 1;
+          }
+        } else {
+          position += 2;
+          while position < bytes.len() && !(bytes[position] == b'*' && bytes.get(position + 1) == Some(&b'/')) {
+            position += 1;
+          }
+          position += 1;
+        }
+        // a comment before the key is no part of it
+        if let Some(start) = entry
+          && input[start..comment].chars().all(is_whitespace)
+        {
+          entry = Some((position + 1).min(bytes.len()));
+        }
+      }
+      b'{' => braces += 1,
+      b'}' => {
+        braces -= 1;
+        if braces == 0 {
+          break;
+        }
+      }
+      b'(' | b'[' => brackets += 1,
+      b')' | b']' => brackets -= 1,
+      b',' if braces == 1 && brackets == 0 => entry = Some(position + 1),
+      b':' if braces == 1 && brackets == 0 => {
+        if let Some(start) = entry.take()
+          && let Some(name) = key_of_several_tokens(&input[start..position])
+        {
+          keys.push(name);
+        }
+      }
+      _ => {}
+    }
+    position += 1;
+  }
+  keys
+}
+
+/// The name that `text` is when it is a name of several tokens: words and additional name
+/// symbols, with white space between them or not.
+fn key_of_several_tokens(text: &str) -> Option<Name> {
+  let mut parts: Vec<&str> = vec![];
+  let mut word: Option<usize> = None;
+  for (at, ch) in text.char_indices() {
+    if is_whitespace(ch) || is_additional_name_symbol(ch) {
+      if let Some(start) = word.take() {
+        parts.push(&text[start..at]);
+      }
+      if !is_whitespace(ch) {
+        parts.push(&text[at..at + ch.len_utf8()]);
+      }
+    } else if is_name_part_char(ch) {
+      if word.is_none() {
+        if !parts.is_empty() || is_name_start_char(ch) {
+          word = Some(at);
+        } else {
+          return None;
+        }
+      }
+    } else {
+      return None;
+    }
+  }
+  if let Some(start) = word {
+    parts.push(&text[start..]);
+  }
+  (parts.len() > 1 && parts.first().is_some_and(|part| part.chars().next().is_some_and(is_name_start_char))).then(|| Name::from_parts(parts))
 }
 
 /// Returns `true` when a word ends before the specified character: a word that is a keyword is

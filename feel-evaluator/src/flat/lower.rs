@@ -527,7 +527,13 @@ impl<'a> Lower<'_, 'a> {
       let Place::Slot(slot) = place else {
         return Err(Malformed { at: rnode.ast });
       };
-      self.into(resolved.kids(entry)[1], slot)?;
+      if resolved.circular.contains(&entry) {
+        // an entry that needs its own value through other entries has none
+        let name = &resolved.names[resolved.layouts[layout as usize].entries[index].0 as usize];
+        self.fail(slot, kernels::err_circular_context_entry(name));
+      } else {
+        self.into(resolved.kids(entry)[1], slot)?;
+      }
       self.builder.emit(Op::BoundDepth { s: slot });
       if home {
         self.builder.emit(Op::HomeSet { entry: index as u32, s: slot });

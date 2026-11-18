@@ -167,6 +167,22 @@ impl ParsingScope<'_> {
     }
   }
 
+  /// Takes a specified entry name out of the context placed on the top of the stack, when a
+  /// context is pushed and holds it.
+  pub fn remove_entry_name(&self, name: &Name) {
+    if let Some(top) = self.locals.borrow_mut().last_mut()
+      && top.remove_name(name)
+    {
+      let mut keys = self.local_keys.borrow_mut();
+      if let Some(count) = keys.get_mut(name) {
+        *count -= 1;
+        if *count == 0 {
+          keys.remove(name);
+        }
+      }
+    }
+  }
+
   /// Sets a context under a specified name in the context placed on the top of the stack.
   pub fn set_context(&self, name: Name, ctx: ParsingContext) {
     if let Some(top) = self.top_mut().last_mut() {

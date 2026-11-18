@@ -23,6 +23,7 @@
 //! in the shapes that bind them; any other shape is kept as it is, unbound, for the lowering to
 //! give its error or to find the tree malformed.
 
+use super::depends;
 use rheon_feel::Name;
 use rheon_feel::closure::Closure;
 use rheon_feel_parser::{AstNode, ClosureBuilder};
@@ -62,6 +63,9 @@ pub(crate) struct Resolved<'a> {
   /// entries: the functions written in such a literal see all its entries (DMN 1.6
   /// §10.3.2.11.1), so its evaluation keeps them in a home.
   pub(crate) homes: BTreeSet<u32>,
+  /// The entries of context literals that need their own value through other entries (the
+  /// nodes of the entries): they have no value.
+  pub(crate) circular: BTreeSet<u32>,
 }
 
 /// A node of the parser's tree with what the pass decided for it.
@@ -290,6 +294,7 @@ pub(crate) fn resolve(ast: &AstNode) -> Resolved<'_> {
       },
       functions: vec![],
       homes: BTreeSet::new(),
+      circular: BTreeSet::new(),
       frees: vec![],
     },
     interned: HashMap::new(),
@@ -641,11 +646,14 @@ impl<'a> Resolver<'a> {
     }
   }
 
-  /// A context literal: an entry's key is seen by the entries after it, not by its own value.
+  /// A context literal: its entries are evaluated in the order they need each other
+  /// ([depends::order]), and the layout binds them in that order, so an entry sees the entries
+  /// evaluated before it: those it reads, never its own key. The children are the entries in
+  /// that order, and after them those from an entry on that ends the literal.
   fn context(&mut self, ast: &'a AstNode, entries: &'a [AstNode]) -> u32 {
     let mark = self.body.next;
     let mut seen = BTreeSet::new();
-    let mut bound = vec![];
+    let mut names = vec![];
     let mut stop = Stop::None;
     for (index, entry) in entries.iter().enumerate() {
       let AstNode::ContextEntry(key, _) = entry else {
@@ -661,22 +669,28 @@ impl<'a> Resolver<'a> {
         stop = Stop::Duplicate(index as u32);
         break;
       }
-      let slot = self.slot();
-      bound.push((name, Place::Slot(slot)));
+      names.push(name);
     }
+    let (order, circular) = depends::order(entries, names.len());
+    let bound: Vec<(u32, Place)> = order.iter().map(|&index| (names[index], Place::Slot(self.slot()))).collect();
     let count = bound.len() as u32;
     let layout = self.layout(LayoutKind::Context, bound, NONE);
     let outer = self.body.region;
     let mut kids = Vec::with_capacity(entries.len());
     let mut region = NONE;
     let functions = self.out.functions.len();
-    for (index, entry) in entries.iter().enumerate() {
-      let visible = (index as u32).min(count);
-      if visible == index as u32 || region == NONE {
+    let rest = &entries[order.len()..];
+    for (position, entry) in order.iter().map(|&index| &entries[index]).chain(rest).enumerate() {
+      let visible = (position as u32).min(count);
+      if visible == position as u32 || region == NONE {
         region = self.region(outer, RegionKind::Layout { layout, visible });
       }
       self.body.region = region;
-      kids.push(self.node(entry));
+      let kid = self.node(entry);
+      if circular.get(position).copied().unwrap_or(false) {
+        self.out.circular.insert(kid);
+      }
+      kids.push(kid);
     }
     if self.out.functions.len() > functions {
       self.out.homes.insert(layout);

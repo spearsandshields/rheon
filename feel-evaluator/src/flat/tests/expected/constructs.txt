@@ -14103,12 +14103,12 @@ Number(+2E+0)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #9 "{a: b, b: 1}"
-Context(FeelContext({Name("a"): Null(Some("context has no value for key 'b'")), Name("b"): Number(+1E+0)}))
-Diagnostics { count: 1, messages: ["context has no value for key 'b'"], warnings: [] }
+Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Number(+1E+0)}))
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #10 "{a: b, b: 1}"
-Context(FeelContext({Name("a"): Null(Some("context has no value for key 'b'")), Name("b"): Number(+1E+0)}))
-Diagnostics { count: 1, messages: ["context has no value for key 'b'"], warnings: [] }
+Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Number(+1E+0)}))
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #11 "{a: {b: 1}, c: a.b}"
 Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("c"): Number(+1E+0)}))
@@ -14127,11 +14127,11 @@ Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({N
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #15 "{a: 1, b: {c: a, a: 2, d: a}}"
-Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({Name("a"): Number(+2E+0), Name("c"): Number(+1E+0), Name("d"): Number(+2E+0)}))}))
+Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({Name("a"): Number(+2E+0), Name("c"): Number(+2E+0), Name("d"): Number(+2E+0)}))}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #16 "{a: 1, b: {c: a, a: 2, d: a}}"
-Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({Name("a"): Number(+2E+0), Name("c"): Number(+1E+0), Name("d"): Number(+2E+0)}))}))
+Context(FeelContext({Name("a"): Number(+1E+0), Name("b"): Context(FeelContext({Name("a"): Number(+2E+0), Name("c"): Number(+2E+0), Name("d"): Number(+2E+0)}))}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #17 "{abs: 1, r: abs}"
@@ -14151,12 +14151,12 @@ Context(FeelContext({Name("abs"): Number(-1E+0), Name("r"): Null(Some("expected 
 Diagnostics { count: 1, messages: ["expected built-in function name or function definition, actual is -1"], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #21 "{r: abs(-1), abs: 1}"
-Context(FeelContext({Name("abs"): Number(+1E+0), Name("r"): Number(+1E+0)}))
-Diagnostics { count: 0, messages: [], warnings: [] }
+Context(FeelContext({Name("abs"): Number(+1E+0), Name("r"): Null(Some("expected built-in function name or function definition, actual is 1"))}))
+Diagnostics { count: 1, messages: ["expected built-in function name or function definition, actual is 1"], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #22 "{r: abs(-1), abs: 1}"
-Context(FeelContext({Name("abs"): Number(+1E+0), Name("r"): Number(+1E+0)}))
-Diagnostics { count: 0, messages: [], warnings: [] }
+Context(FeelContext({Name("abs"): Number(+1E+0), Name("r"): Null(Some("expected built-in function name or function definition, actual is 1"))}))
+Diagnostics { count: 1, messages: ["expected built-in function name or function definition, actual is 1"], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #23 "{a: 1 + \"x\", b: a, c: b + 1}"
 Context(FeelContext({Name("a"): Null(Some("incompatible types in addition: 1(number) + \"x\"(string)")), Name("b"): Null(Some("incompatible types in addition: 1(number) + \"x\"(string)")), Name("c"): Null(Some("[addition] incompatible types: null(incompatible types in addition: 1(number) + \"x\"(string)) + 1"))}))
@@ -14207,7 +14207,7 @@ Number(+3E+0)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #35 "{y: x, x: 2, z: x}"
-Context(FeelContext({Name("x"): Number(+2E+0), Name("y"): Number(+5E+0), Name("z"): Number(+2E+0)}))
+Context(FeelContext({Name("x"): Number(+2E+0), Name("y"): Number(+2E+0), Name("z"): Number(+2E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 context_literals_bind_their_entries_for_the_entries_after_them #36 "{a: x, b: {x: a, c: y}}"
@@ -14923,12 +14923,12 @@ Number(+5E+0)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #21 "{f: function() function() z, r: f()(), z: 5}"
-Context(FeelContext({Name("f"): FunctionDefinition(FunctionDefinition { parameters: [], body: FunctionBodyLiteralExpression, external: false, closure: Closure({QualifiedName([Name("z")])}), closure_ctx: FeelContext({}), result_type: Any }), Name("r"): Null(Some("context has no value for key 'z'")), Name("z"): Number(+5E+0)}))
-Diagnostics { count: 1, messages: ["context has no value for key 'z'"], warnings: [] }
+Context(FeelContext({Name("f"): FunctionDefinition(FunctionDefinition { parameters: [], body: FunctionBodyLiteralExpression, external: false, closure: Closure({QualifiedName([Name("z")])}), closure_ctx: FeelContext({Name("z"): Number(+5E+0)}), result_type: Any }), Name("r"): Number(+5E+0), Name("z"): Number(+5E+0)}))
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #22 "{f: function() function() z, r: f()(), z: 5}"
-Context(FeelContext({Name("f"): FunctionDefinition(FunctionDefinition { parameters: [], body: FunctionBodyLiteralExpression, external: false, closure: Closure({QualifiedName([Name("z")])}), closure_ctx: FeelContext({}), result_type: Any }), Name("r"): Null(Some("context has no value for key 'z'")), Name("z"): Number(+5E+0)}))
-Diagnostics { count: 1, messages: ["context has no value for key 'z'"], warnings: [] }
+Context(FeelContext({Name("f"): FunctionDefinition(FunctionDefinition { parameters: [], body: FunctionBodyLiteralExpression, external: false, closure: Closure({QualifiedName([Name("z")])}), closure_ctx: FeelContext({Name("z"): Number(+5E+0)}), result_type: Any }), Name("r"): Number(+5E+0), Name("z"): Number(+5E+0)}))
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 function_definitions_and_their_invocations #23 "{f: function(a: number) a + 1, r: [f(1), f(\"a\")]}.r"
 List([Number(+2E+0), Null(Some("argument for parameter 'a' does not conform to type number"))])
@@ -17987,8 +17987,8 @@ Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #2 a tree built by hand
-Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Null(Some("no value for qualified name"))}))
-Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
+Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Number(+1E+0)}))
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #3 a tree built by hand
 Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("s"): Context(FeelContext({Name("a"): Number(+2E+0), Name("r"): Number(+1E+0)}))}))
@@ -17999,8 +17999,8 @@ Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #5 a tree built by hand
-Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Null(Some("no value for qualified name"))}))
-Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
+Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Context(FeelContext({Name("b"): Number(+1E+0)}))}))
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #6 a tree built by hand
 Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("s"): Context(FeelContext({Name("a"): Number(+2E+0), Name("r"): Number(+2E+0)}))}))
@@ -18047,7 +18047,7 @@ Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #17 a tree built by hand
-Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Number(+5E+0)}))
+Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Number(+1E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #18 a tree built by hand
@@ -18059,7 +18059,7 @@ Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #20 a tree built by hand
-Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Context(FeelContext({Name("b"): Number(+5E+0)}))}))
+Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Context(FeelContext({Name("b"): Number(+1E+0)}))}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #21 a tree built by hand
@@ -18107,8 +18107,8 @@ Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #32 a tree built by hand
-Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Null(Some("no value for qualified name"))}))
-Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
+Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Number(+1E+0)}))
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #33 a tree built by hand
 Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("s"): Context(FeelContext({Name("a"): Number(+2E+0), Name("r"): Number(+1E+0)}))}))
@@ -18119,7 +18119,7 @@ Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #35 a tree built by hand
-Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Context(FeelContext({Name("c"): Number(+5E+0)}))}))
+Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("r"): Context(FeelContext({Name("b"): Number(+1E+0)}))}))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 qualified_names_search_the_entries_of_a_context #36 a tree built by hand

@@ -4381,6 +4381,35 @@ looked up only when a name in scope has its length (232).
     `item` alone ends before an operator, a keyword or a bracket as any name that is not in
     scope does. Part of tracker row NAM-5.
 
+267. **The entries of a context literal are evaluated in the order they need each other.**
+    DMN 1.6 says both "may reference keys from previous context entries" (clause 10.3.2.6) and
+    "All of the entries of m are in-scope for e, but the depends on graph SHALL be acyclic.
+    [...] Simply evaluate the context entries in depends on order" (clause 10.3.2.11.1, and
+    Table 70). The owner decided for the second on 2026-11-18. An entry saw only the entries
+    written before it, so `{a: b + 1, b: 1}.a` was null, or read a `b` outside the literal.
+    Now:
+    - an entry is evaluated after the entries its value reads, and otherwise in the order
+      written: `{a: b + 1, b: 1}.a` is 2, also where a `b` outside the literal exists (that
+      answer changes from the outer `b` to the entry);
+    - an entry does not read its own key (clause 10.3.2.6, TCK 1146 and 0085): `{x: x + 1}`
+      reads the `x` outside the literal, as before;
+    - a function definition needs nothing to be made, and what its body reads is needed when
+      it is invoked: `{i: f(), f: function() a, a: 1}.i` is 1, and function entries invoke
+      each other and themselves as before;
+    - entries that need each other in a circle have no value: `{a: b, b: a}` gives null for
+      both, each with an error that names the entry (`a` read the outer `b` before);
+    - a name that a construct inside the value binds (an iteration variable, a parameter, a
+      key of a literal inside) is not the entry;
+    - a key of several tokens is a name in scope in the entries written before it too
+      (`{x: a-b + 1, a-b: 2}.x` is 3), found by one pass over the literal before its entries
+      are parsed, and never in its own value (`{a-b: a-b}` subtracts).
+    The order is found from the syntax tree before the names are resolved
+    (`flat/depends.rs`); the layout of the literal binds its entries in that order, so an entry
+    sees exactly the entries evaluated before it. A consequence: `{r: abs(-1), abs: 1}` reads
+    the entry `abs`, not the built-in function. Boxed contexts of DMN models are not changed
+    here. Identity: 13 of the earlier requests differ; with the new request set
+    `context-entry-order.json` they are registered. Tracker row NAM-4.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

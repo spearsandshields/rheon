@@ -100,15 +100,8 @@ fn todays_scoping_is_pinned() {
   );
   pin(r#"{mk: function(n) function(m) n + m, r: mk(1)(2)}.r"#, r#"3"#, &[], 0);
   pin(r#"{f: function(x) {x: 10, g: function(y) x + y}.g, h: f(1), r: h(5)}.r"#, r#"15"#, &[], 0);
-  pin(
-    r#"{a: f(), f: function() 1}"#,
-    r#"{a: null(expected built-in function name or function definition, actual is null(context has no value for key 'f')), f: FunctionDefinition([],_,false,[],{},Any)}"#,
-    &[
-      "context has no value for key 'f'",
-      "expected built-in function name or function definition, actual is null(context has no value for key 'f')",
-    ],
-    2,
-  );
+  // an entry is evaluated after the entries it reads (DMN 1.6 clause 10.3.2.11.1)
+  pin(r#"{a: f(), f: function() 1}"#, r#"{a: 1, f: FunctionDefinition([],_,false,[],{},Any)}"#, &[], 0);
   pin(
     r#"{a: 1, a: 1 + "x"}"#,
     r#"null(duplicated context entry key: a)"#,
@@ -170,15 +163,11 @@ fn a_function_sees_the_scope_it_is_written_in() {
   pin(r#"{a: function(x) b(x) + 1, b: function(x) x * 2, k: 10, r: a(1)}.r"#, r#"3"#, &[], 0);
   pin(r#"{a: function(x) b(x) + 1, b: function(x) x * 2}.a(1)"#, r#"3"#, &[], 0);
   pin(r#"{f: function() k, k: 10, r: f()}.r"#, r#"10"#, &[], 0);
-  pin(
-    r#"{f: function() k, r: f(), k: 10}.r"#,
-    r#"null(context has no value for key 'k')"#,
-    &["context has no value for key 'k'"],
-    1,
-  );
+  // what the body of a function entry reads is evaluated before an entry that reads the function
+  pin(r#"{f: function() k, r: f(), k: 10}.r"#, r#"10"#, &[], 0);
   pin(r#"{f: function() k, k: 10}.f()"#, r#"10"#, &[], 0);
   pin(r#"{x: 1, c: {f: function() x, x: 2, r: f()}.r}.c"#, r#"2"#, &[], 0);
-  pin(r#"{x: 1, c: {f: function() x, r: f(), x: 2}.r}.c"#, r#"1"#, &[], 0);
+  pin(r#"{x: 1, c: {f: function() x, r: f(), x: 2}.r}.c"#, r#"2"#, &[], 0);
   pin(r#"{f: function(n) (function(m) g(m))(n), g: function(x) x + 1, r: f(1)}.r"#, r#"2"#, &[], 0);
   pin(r#"{l: [function() k], k: 5, r: l[1]()}.r"#, r#"5"#, &[], 0);
   pin(r#"{mk: {f: function() g(), g: function() 7}.f, r: mk()}.r"#, r#"7"#, &[], 0);
@@ -201,4 +190,66 @@ fn a_function_sees_the_scope_it_is_written_in() {
     &[],
     0,
   );
+}
+
+/// The entries of a context literal are evaluated in the order they need each other (DMN 1.6
+/// clause 10.3.2.11.1), an entry does not read its own key (clause 10.3.2.6), and entries that
+/// need each other in a circle have no value.
+#[test]
+fn context_entries_are_evaluated_in_the_order_they_need_each_other() {
+  // an entry reads an entry written after it
+  pin(r#"{a: b + 1, b: 1}.a"#, r#"2"#, &[], 0);
+  pin(r#"{a: b + 1, b: c * 2, c: 3}"#, r#"{a: 7, b: 6, c: 3}"#, &[], 0);
+  pin(r#"{total: unit price * 2, unit price: 3}.total"#, r#"6"#, &[], 0);
+  pin(r#"{a: x.y, x: {y: 1}}.a"#, r#"1"#, &[], 0);
+  pin(r#"{a: [b, c], b: 1, c: b + 1}.a"#, r#"[1, 2]"#, &[], 0);
+  pin(r#"{a: for i in [1, 2] return i + b, b: 10}.a"#, r#"[11, 12]"#, &[], 0);
+  pin(r#"{a: [1, 2, 3][item > b], b: 1}.a"#, r#"[2, 3]"#, &[], 0);
+  pin(r#"{a: {c: b}, b: 1}.a.c"#, r#"1"#, &[], 0);
+  // a key of several tokens is a name in the entries before it too
+  pin(r#"{x: a-b + 1, a-b: 2}.x"#, r#"3"#, &[], 0);
+  pin(r#"{x: net price * 2, net price: unit price - 1, unit price: 4}.x"#, r#"6"#, &[], 0);
+  pin(r#"{x: Profit and Loss + 1, Profit and Loss: 2}.x"#, r#"3"#, &[], 0);
+  pin(r#"{x: f(a: 1, b: 2), f: function(a, b) a-b}.x"#, r#"-1"#, &[], 0);
+  // but not in its own value: there the text is read as outside the literal
+  pin(r#"{a: 5, b: 2, r: {a-b: a-b}}.r"#, r#"{a-b: 3}"#, &[], 0);
+  pin(r#"{a: 1, b: 2, r: {c: a+b, a+b: a+b}}.r"#, r#"{a+b: 3, c: 3}"#, &[], 0);
+  // the entry of the literal, not a name outside it
+  pin(r#"{b: 100, r: {a: b + 1, b: 1}.a}.r"#, r#"2"#, &[], 0);
+  pin(r#"{a: 1, b: {c: a, a: 2}}.b.c"#, r#"2"#, &[], 0);
+  // a name that a construct inside the value binds is not the entry
+  pin(r#"{a: for b in [1, 2] return b, b: 10}.a"#, r#"[1, 2]"#, &[], 0);
+  pin(r#"{a: (function(b) b)(1), b: 10}.a"#, r#"1"#, &[], 0);
+  pin(r#"{a: {b: 1, c: b}.c, b: 10}.a"#, r#"1"#, &[], 0);
+  pin(r#"{a: some b in [1] satisfies b = 1, b: 10}.a"#, r#"true"#, &[], 0);
+  pin(r#"{a: x.b, x: {b: 1}, b: 10}.a"#, r#"1"#, &[], 0);
+  // an entry does not read its own key: the name is read outside the literal
+  pin(r#"{x: 1, r: {x: x + 1}}.r"#, r#"{x: 2}"#, &[], 0);
+  pin(r#"{x: 1, y: 2, r: {x: x, y: y}}.r"#, r#"{x: 1, y: 2}"#, &[], 0);
+  pin(r#"{x: x}"#, r#"{x: null(context has no value for key 'x')}"#, &["context has no value for key 'x'"], 1);
+  // what the body of a function entry reads is evaluated before an entry that invokes it
+  pin(r#"{f: function() a, a: 1, i: f()}.i"#, r#"1"#, &[], 0);
+  pin(r#"{i: f(), f: function() a, a: 1}.i"#, r#"1"#, &[], 0);
+  pin(r#"{i: g(), g: function() f() + 1, f: function() a, a: 1}.i"#, r#"2"#, &[], 0);
+  // function entries invoke each other and themselves
+  pin(
+    r#"{even: function(n) if n = 0 then true else odd(n - 1), odd: function(n) if n = 0 then false else even(n - 1), r: even(4)}.r"#,
+    r#"true"#,
+    &[],
+    0,
+  );
+  pin(r#"{r: fact(5), fact: function(n) if n < 2 then 1 else n * fact(n - 1)}.r"#, r#"120"#, &[], 0);
+  // entries that need each other in a circle have no value; the other entries have theirs
+  let circular = |name: &str| format!("the context entry {name} needs its own value: the entries of a context must not depend on each other in a circle");
+  pin(
+    r#"{a: b, b: a, c: 1}"#,
+    &format!("{{a: null({}), b: null({}), c: 1}}", circular("a"), circular("b")),
+    &[&circular("b"), &circular("a")],
+    2,
+  );
+  pin(r#"{a: b + 1, b: c + 1, c: a + 1, d: 4}.d"#, r#"4"#, &[&circular("c"), &circular("b"), &circular("a")], 3);
+  // through a function that is invoked
+  pin(r#"{a: f(), f: function() a}.f"#, r#"FunctionDefinition([],_,false,[a],{},Any)"#, &[&circular("a")], 1);
+  // an entry that reads a circular entry reads its null
+  pin(r#"{a: b, b: a, c: a = null}.c"#, r#"true"#, &[&circular("b"), &circular("a")], 2);
 }

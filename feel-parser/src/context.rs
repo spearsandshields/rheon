@@ -110,6 +110,11 @@ impl ParsingContext {
     self.0.insert(name, ParsingEntry::Variable);
   }
 
+  /// Takes a specified name out of this parsing context; returns whether it was there.
+  pub(crate) fn remove_name(&mut self, name: &Name) -> bool {
+    self.0.remove(name).is_some()
+  }
+
   /// Places parsing context under specified name.
   pub fn set_context(&mut self, name: Name, ctx: ParsingContext) {
     self.0.insert(name, ParsingEntry::Context(ctx));

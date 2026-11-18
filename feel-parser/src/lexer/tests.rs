@@ -143,3 +143,30 @@ fn test_hex_to_decimal() {
   assert_eq!("<LexerError> expected hex digit but encountered 'G'", hex_to_decimal('G').unwrap_err().to_string());
   assert_eq!("<LexerError> expected hex digit but encountered 'g'", hex_to_decimal('g').unwrap_err().to_string());
 }
+
+/// The keys of a context literal that are names of several tokens are found before its entries
+/// are parsed; strings, comments and what stands in brackets are passed over.
+#[test]
+fn the_keys_of_a_literal_of_several_tokens_are_found_by_one_pass() {
+  let keys = |text: &str| literal_keys(text, text.find('{').unwrap()).iter().map(|name| name.to_string()).collect::<Vec<_>>();
+  assert_eq!(keys("{a: 1, b: 2}"), Vec::<String>::new());
+  assert_eq!(keys("{unit price: 1, a-b: 2, c: 3}"), ["unit price", "a-b"]);
+  assert_eq!(
+    keys("{ Profit  and   Loss : 1, a - b: 2, x.y: 3, that's it: 4}"),
+    ["Profit and Loss", "a-b", "x.y", "that's it"]
+  );
+  // a string key is no name of several tokens for the lexer; a key is read once per entry
+  assert_eq!(keys(r#"{"a b": 1, c d: "x: y, e f: 1"}"#), ["c d"]);
+  // nested literals, parameters, lists and comments are passed over
+  assert_eq!(
+    keys("{a b: {c d: 1}, e f: g(h i: 1, j k: 2), l m: [n o, 1], /* p q: */ r s: 1 // t u: 2\n, v w: 3}"),
+    ["a b", "e f", "l m", "r s", "v w"]
+  );
+  // an interval with its brackets reversed
+  assert_eq!(keys("{a b: 1 in ]1..2[, c d: 2}"), ["a b", "c d"]);
+  // the literal ends at its brace
+  assert_eq!(keys("{a b: 1} + {c d: 2}"), ["a b"]);
+  assert_eq!(keys("[1, {a b: 1}, x y: 2]"), ["a b"]);
+  // no name: a number first, another character, or nothing before the colon
+  assert_eq!(keys("{1 a: 1, a $ b: 2, : 3, a b"), Vec::<String>::new());
+}

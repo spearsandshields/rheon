@@ -62,3 +62,11 @@ pub(crate) fn range_of(lhv: Value, rhv: Value) -> Value {
 pub(crate) fn err_duplicated_context_entry_key(name: &Name) -> String {
   format!("duplicated context entry key: {}", arg(name))
 }
+
+/// The error of an entry of a context literal that needs its own value through other entries.
+pub(crate) fn err_circular_context_entry(name: &Name) -> String {
+  format!(
+    "the context entry {} needs its own value: the entries of a context must not depend on each other in a circle",
+    arg(name)
+  )
+}

@@ -8,6 +8,7 @@
 //! An expression is resolved ([resolve]: what every name reads, where every binder is kept),
 //! lowered to a [program::Program] ([lower]) and run by the loop of [vm], one run per evaluation.
 
+mod depends;
 mod lower;
 mod program;
 mod resolve;
