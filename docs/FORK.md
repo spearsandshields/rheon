@@ -1,5 +1,12 @@
 # The dsntk engine crates in rheon: changes against upstream
 
+> **Closed with 0.9.0 (2026-11-18).** The list of engine changes ends with item 275 and is
+> kept as the record of what rheon changed against upstream up to that release. Later changes
+> are recorded by their commit messages, the notes of each GitHub Release, and the identity
+> ledgers in `tools/identity/registered` (every answer that changes, with its reason). The
+> reference sections ("Publishing to crates.io", "Taking upstream changes", "Layout note")
+> stay in use and are kept current.
+
 rheon is a fork of <https://github.com/dsntk/dsntk-rs> (the DecisionToolkit
 FEEL/DMN engine, Copyright (c) 2015-2026 Dariusz Depta, MIT OR Apache-2.0).
 rheon is a permanent fork: the engine is developed here and contributing
