@@ -1,0 +1,963 @@
+[
+ {
+  "op": "evaluate",
+  "expression": "2 in ]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in ]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "2 in ]a[1]..a[2][",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in ]a[1]..a[2][",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "2 in ]a[1]..a[2]]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in ]a[1]..a[2]]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "2 in [a[1]..a[2]]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in [a[1]..a[2]]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "2 in (a[1]..a[2])",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in (a[1]..a[2])",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "2 in ]1..3[",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in ]1..3[",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "[]1..3[, 2]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "[]1..3[, 2]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "[]a[1]..3[, 2]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "[]a[1]..3[, 2]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "2 in ]b..a[2]]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in ]b..a[2]]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a[1]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a[1]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a[1]..",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a[1]..",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a[1]..b[",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a[1]..b[",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a[item > 1][1]..9]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a[item > 1][1]..9]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]c.d[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]c.d[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "2 in ]c.d[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "2 in ]c.d[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a[1] + 1..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a[1] + 1..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "5 in ]a[1] + 1..9]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "5 in ]a[1] + 1..9]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a..b[1]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a..b[1]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "]a[..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "]a[..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "string(]a[1]..b])",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "string(]a[1]..b])",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "(]a[1]..b]).start",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "(]a[1]..b]).start",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "for i in ]a[1]..b] return i",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "for i in ]a[1]..b] return i",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "some x in [1,2,3] satisfies x in ]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "parse",
+  "expression": "some x in [1,2,3] satisfies x in ]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  }
+ },
+ {
+  "op": "syntax",
+  "expression": "2 in ]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "2 in ]a[1]..b]"
+ },
+ {
+  "op": "syntax",
+  "expression": "2 in ]a[1]..a[2][",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "2 in ]a[1]..a[2]["
+ },
+ {
+  "op": "syntax",
+  "expression": "2 in ]a[1]..a[2]]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "2 in ]a[1]..a[2]]"
+ },
+ {
+  "op": "syntax",
+  "expression": "]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  },
+  "tree": true
+ },
+ {
+  "op": "format",
+  "expression": "]a[1]..b]"
+ },
+ {
+  "op": "evaluate",
+  "dialect": "unaryTests",
+  "expression": "]a[1]..b]",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  },
+  "input": 2
+ },
+ {
+  "op": "evaluate",
+  "dialect": "unaryTests",
+  "expression": "]a[1]..b[, 2",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  },
+  "input": 2
+ },
+ {
+  "op": "evaluate",
+  "dialect": "unaryTests",
+  "expression": "not(]a[1]..b])",
+  "context": {
+   "a": [
+    1,
+    5
+   ],
+   "b": 3,
+   "c": {
+    "d": [
+     1,
+     2
+    ]
+   }
+  },
+  "input": 2
+ }
+]

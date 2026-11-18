@@ -1601,10 +1601,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     Ok(interval)
   }
 
-  /// An interval after the `]` that starts it. A `[` after its start endpoint is no filter, as
-  /// after an end endpoint.
+  /// An interval after the `]` that starts it. A `[` after its start endpoint is a filter: the
+  /// interval ends only after the `..` and the end endpoint.
   fn interval_after_right_bracket(&mut self, from: usize) -> Result<AstNode> {
-    let start = self.expression_until(LOWEST, true)?;
+    let start = self.expression_until(LOWEST, false)?;
     self.interval_end(start, IntervalType::Opened, from)
   }
 

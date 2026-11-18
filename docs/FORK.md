@@ -4324,6 +4324,13 @@ looked up only when a name in scope has its length (232).
     error. A long chain of comparisons is no nesting; the depth limit of the tree applies to
     it. Tracker row PAR-20.
 
+262. **A `[` after the start endpoint of an interval that starts with `]` is a filter.**
+    `]a[1]..b]` was a syntax error: after the `]` that opens an interval the generated tables
+    read every `[` as the bracket that closes one, also after the start endpoint, where no
+    interval can end. The start endpoint is now read as in `[a[1]..b]` and `(a[1]..b)`; after
+    the end endpoint a `[` closes the interval as before (`]a..b[`). Identity ledger: 54
+    entries, all in the new request set `interval-filters.json`.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,
