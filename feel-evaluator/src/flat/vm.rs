@@ -448,12 +448,18 @@ impl<'p> Vm<'p> {
             Kernel1::ListType => kernels::list_type(a),
             Kernel1::RangeType => kernels::range_type(a),
             Kernel1::ExternalBody => kernels::external_body(a),
+            Kernel1::TestAnswer(boolean) => match a {
+              answer @ Value::Boolean(_) => Value::TestAnswer(Box::new(answer)),
+              answer @ Value::Null(_) if boolean => Value::TestAnswer(Box::new(answer)),
+              value => value,
+            },
           };
         }
         Op::Kernel2 { kernel, dst, a, b } => {
           let (a, b) = (self.read(a), self.read(b));
           *self.slot(dst) = match kernel {
-            Kernel2::In => kernels::in_operator(a, b),
+            Kernel2::In => kernels::in_operator(a, b, false),
+            Kernel2::InTwoValued => kernels::in_operator(a, b, true),
             Kernel2::Out => match a {
               Value::Boolean(true) => b,
               _ => value_null!(),

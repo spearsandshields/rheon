@@ -4242,10 +4242,7 @@ looked up only when a name in scope has its length (232).
     null because the two values are of different kinds: `"sad" in true` was false and is null
     (in strict error mode it is the error of `=`), as `"sad" = true` is. Values of one kind,
     null on either side and B-FEEL (where `in` is always true or false) answer as before.
-    Not changed: a list of tests (`x in (true, false)`, a list value, and the unary tests
-    dialect, where an input of another kind is "not satisfied": false) - the spec reads two
-    ways there (Table 56 gives `or` over the tests, which is null; clause 7.3.2 says when unary
-    tests are satisfied, which is yes or no), and it is the owner's question. New request set
+    A list of tests (`x in (true, false)` and the unary tests dialect) follows in item 260. New request set
     `tools/identity/requests/membership.json` (23 requests); 8 registered differences (one of them B-FEEL, where the answer stays false and the diagnostic of `=` is reported) in
     `tools/identity/registered/in-single-value.json`. Tracker row EVA-25.
 
@@ -4283,6 +4280,34 @@ looked up only when a name in scope has its length (232).
     `tools/identity/registered/completion-signatures.json` (answers longer than 4 KiB by their
     digest); the other 236 are identical. Found on the way, not changed: inside a line comment
     `complete` offers what an expression takes. Tracker row EDT-13.
+
+260. **Unary tests answer true, false or null; a test that uses `?` is its own answer.** Two
+    rules of the specification, made together because the first lays the second bare.
+    (a) DMN 1.6 Table 56 defines a list of tests as the `or` of its tests, and clause 8.3.3
+    says an input satisfies an entry when `FEEL(e in (t)) = true`, and a negated entry when it
+    is `false`: three answers. The `in` operator answered false when no test was true, also
+    when a test could not be compared with the tested value (`"a"` tested by `1, 2` or by
+    `< 10`), and `not(...)` answered true there, so an entry `not(1, 2)` matched the input
+    `"a"`. Now the answer is true when one test is true, false when all are false, and
+    otherwise the null of the first test without an answer, with its reason; `not(...)` is null
+    where the tests are. This is `x in (a, b)` in expressions and the unary tests dialect. A
+    list value (`x in [1, 2]`, a list among the tests) is searched as before, and B-FEEL, where
+    a comparison is true or false, answers as before (kernel `InTwoValued`). In strict error
+    mode a value of another kind than the tests is now an error for values as it already was
+    for comparisons and ranges. A decision table matches on true, so null is no match.
+    (b) Clause 7.3.2 d and the last row of Table 56: a test that is a boolean expression using
+    `?` is satisfied when it is true. The engine compared the boolean with the tested value
+    (`? > 5` with 7 was `7 = true`, false), documented with a warning. Now a test that uses `?`
+    and gives a boolean is that answer (`Value::TestAnswer`, kernel `TestAnswer`); when it gives
+    null and is a boolean expression by its form (a comparison, `and`, `or`, `between`, `in`,
+    `instance of`, an invocation) the answer is that null; any other value is compared with the
+    tested value as before (`(? * 0) + 7`), and so is `?` alone. The warning is gone.
+    Official TCK: unchanged (3,392 of 3,407, the same 15 as the baseline). New request set
+    `tools/identity/requests/unary-test-answers.json` (275 requests); 168 registered differences
+    in `tools/identity/registered/unary-test-answers.json` (82 for (a), 86 for (b)).
+    Found on the way, not changed: a decision table of a DMN model does not bind `?` for its
+    input entries (only the allowed values of an item definition do), so `? > 5` in a model's
+    table is still not satisfied. Tracker row EVA-25.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

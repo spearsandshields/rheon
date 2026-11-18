@@ -99,7 +99,7 @@ feel.call('{"op":"info"}'); // a string is sent verbatim
 
 - Loops are linear (`count(for i in 1..1000000 return i)` takes about 0.11 s); an expression that runs too long, such as `count(for i in 1..100000 return count(for j in 1..100000 return j))` (10^10 iterations), is what the timeout is for.
 - Expressions nested deeper than 300 levels are a `syntax` error; more than 200 nested function calls stop with an `evaluation` error (CONTRACT §2).
-- A boolean expression used as a unary test (`? > 5`) is compared with the input, not treated as satisfied when true. Write `> 5` instead. See CONTRACT §2.
+- Unary tests answer null, not false, when the tested value is of another kind than the tests (`"a"` tested by `< 10`). See CONTRACT §2.
 
 ## Building from source
 

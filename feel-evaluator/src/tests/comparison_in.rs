@@ -862,7 +862,24 @@ fn _0159() {
   te_bool(false, &scope!(), r#" "sad" in "glad" "#, false);
   te_bool(false, &scope!(), r#" "sad" in null "#, false);
   te_bool(false, &scope!(), r#" null in null "#, true);
-  // a list of values is not changed by this: an item of another kind does not match
-  te_bool(false, &scope!(), r#" "sad" in (true, false) "#, false);
+  // a list value: an item of another kind is another item
   te_bool(false, &scope!(), r#" "sad" in [true] "#, false);
+}
+
+/// A list of tests is the `or` of its tests (DMN 1.6 Table 56): true when one is true, false
+/// when all are false, and null when none is true and one cannot be compared.
+#[test]
+fn _0160() {
+  let scope = scope!();
+  te_null(false, &scope, r#" "sad" in (true, false) "#, r#"equal err '"sad"' =?= 'true'"#);
+  te_null(false, &scope, r#" "a" in (1, 2) "#, r#"equal err '"a"' =?= '1'"#);
+  te_null(false, &scope, r#" "a" in (< 10, 5) "#, "eval_in_unary_less");
+  te_null(false, &scope, r#" "a" in ([1..5], 2) "#, "eval_in_range");
+  te_bool(false, &scope, r#" 1 in ("a", 1) "#, true);
+  te_bool(false, &scope, r#" 3 in (1, 2) "#, false);
+  te_bool(false, &scope, r#" null in (1, 2) "#, false);
+  te_bool(false, &scope, r#" 1 in (null, 2) "#, false);
+  // a list value among the tests is searched as a list
+  te_bool(false, &scope, r#" "a" in ([1, 2], [3]) "#, false);
+  te_bool(false, &scope, r#" "a" in [1, 2] "#, false);
 }

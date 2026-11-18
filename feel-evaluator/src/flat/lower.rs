@@ -243,8 +243,19 @@ impl<'a> Lower<'_, 'a> {
         let resolved = self.resolved;
         let items = resolved.kids(node);
         self.builder.emit(Op::ListNew { len: items.len() as u32 });
+        let tests = matches!(kind, ListKind::ExpressionList | ListKind::NegatedList);
         for &item in items {
-          let src = self.value(item, None)?;
+          let mut src = self.value(item, None)?;
+          if tests && let Some(boolean) = asks(resolved.nodes[item as usize].ast) {
+            // a boolean is the answer of the test, not a value to compare the tested value with
+            let answer = self.temporary();
+            self.builder.emit(Op::Kernel1 {
+              kernel: Kernel1::TestAnswer(boolean),
+              dst: answer,
+              a: src,
+            });
+            src = Opnd::take(answer);
+          }
           self.builder.emit(Op::ListPush { src });
           self.next = mark;
         }
@@ -253,14 +264,14 @@ impl<'a> Lower<'_, 'a> {
       AstNode::In(..) | AstNode::Range(..) | AstNode::InstanceOf(..) | AstNode::ContextTypeEntry(..) | AstNode::FunctionType(..) => {
         let (a, b) = self.operands(node)?;
         let kernel = match ast {
-          AstNode::In(..) => Kernel2::In,
+          AstNode::In(..) => self.membership(),
           AstNode::Range(..) => Kernel2::Range,
           AstNode::InstanceOf(..) => Kernel2::InstanceOf,
           AstNode::ContextTypeEntry(..) => Kernel2::ContextTypeEntry,
           _ => Kernel2::FunctionType,
         };
         self.builder.emit(Op::Kernel2 { kernel, dst, a, b });
-        if kernel == Kernel2::In {
+        if matches!(kernel, Kernel2::In | Kernel2::InTwoValued) {
           self.boolean_default(dst, false);
         }
       }
@@ -269,7 +280,7 @@ impl<'a> Lower<'_, 'a> {
         let (a, b) = self.operands(node)?;
         let test = self.temporary();
         self.builder.emit(Op::Kernel2 {
-          kernel: Kernel2::In,
+          kernel: self.membership(),
           dst: test,
           a,
           b,
@@ -719,6 +730,11 @@ impl<'a> Lower<'_, 'a> {
     Ok((self.value(lhs, None)?, self.value(rhs, None)?))
   }
 
+  /// The kernel of `in`: in B-FEEL a comparison is true or false, so its tests are too.
+  fn membership(&self) -> Kernel2 {
+    if self.dialect == Dialect::BFeel { Kernel2::InTwoValued } else { Kernel2::In }
+  }
+
   /// B-FEEL: a boolean operator never gives null, but `ne` (DMN 1.6 chapter 11).
   fn boolean_default(&mut self, dst: Slot, ne: bool) {
     if self.dialect == Dialect::BFeel {
@@ -866,4 +882,40 @@ fn err_duplicate_iteration_variable(name: &Name) -> String {
 /// Returns an error message when expected only a name.
 fn err_expected_name(actual: &AstNode) -> String {
   format!("expected name node, actual node is: {actual:?}")
+}
+
+/// Whether a unary test uses the special variable `?`, and then whether it is a boolean
+/// expression by its form: a comparison, `and`, `or`, `between`, `in`, `instance of` or an
+/// invocation. A test that uses `?` and gives a boolean is satisfied when it is true (DMN 1.6
+/// clause 7.3.2 d and the last row of Table 56); another test is satisfied when the tested
+/// value is equal to its value.
+fn asks(test: &AstNode) -> Option<bool> {
+  // `?` alone is the tested value: it is compared with itself
+  if matches!(test, AstNode::Name(_)) {
+    return None;
+  }
+  let mut nodes = vec![test];
+  let mut uses = false;
+  while let Some(node) = nodes.pop() {
+    if matches!(node, AstNode::Name(name) if name.to_string() == "?") {
+      uses = true;
+      break;
+    }
+    node.for_each_child(|child| nodes.push(child));
+  }
+  uses.then_some(matches!(
+    test,
+    AstNode::Eq(..)
+      | AstNode::Nq(..)
+      | AstNode::Lt(..)
+      | AstNode::Le(..)
+      | AstNode::Gt(..)
+      | AstNode::Ge(..)
+      | AstNode::And(..)
+      | AstNode::Or(..)
+      | AstNode::Between(..)
+      | AstNode::In(..)
+      | AstNode::InstanceOf(..)
+      | AstNode::FunctionInvocation(..)
+  ))
 }

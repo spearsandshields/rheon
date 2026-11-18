@@ -288,6 +288,10 @@ pub enum Value {
     Box<Value>,
   ),
 
+  /// The answer of a unary test that is a boolean expression using `?` (DMN 1.6 clause 7.3.2 d):
+  /// `true`, `false`, or the null of the expression.
+  TestAnswer(Box<Value>),
+
   /// Value for storing years and months duration.
   YearsAndMonthsDuration(FeelYearsAndMonthsDuration),
 }
@@ -348,6 +352,7 @@ impl Display for Value {
         f.write_str(if end_type.closed() { "]" } else { ")" })
       }
       Value::String(s) => write!(f, "\"{s}\""),
+      Value::TestAnswer(answer) => write!(f, "{answer}"),
       Value::Time(time) => write!(f, "{time}"),
       Value::UnaryGreater(value) => write!(f, "> {value}"),
       Value::UnaryGreaterOrEqual(value) => write!(f, ">= {value}"),
@@ -495,6 +500,7 @@ impl Value {
       Value::ContextEntry(_, value)
       | Value::IntervalEnd(value, _)
       | Value::IntervalStart(value, _)
+      | Value::TestAnswer(value)
       | Value::UnaryGreater(value)
       | Value::UnaryGreaterOrEqual(value)
       | Value::UnaryLess(value)
@@ -650,6 +656,7 @@ impl Value {
         FeelType::Range(Box::new(FeelType::Any))
       }
       Value::String(_) => FeelType::String,
+      Value::TestAnswer(answer) => answer.type_of_within(budget)?,
       Value::Time(_) => FeelType::Time,
       // a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7)
       Value::UnaryGreater(end) | Value::UnaryGreaterOrEqual(end) | Value::UnaryLess(end) | Value::UnaryLessOrEqual(end) | Value::UnaryEqual(end) | Value::UnaryNotEqual(end) => {

@@ -133,7 +133,9 @@ fn _0026() {
 
 #[test]
 fn _0027() {
-  satisfies(false, &scope!(), "false", r#""#, r#"not(2,"a",true,3,4)"#, true);
+  // no test is true and `false = 2` has no answer: the tests are null, and so is their negation
+  satisfies_null(false, &scope!(), "false", r#""#, r#"not(2,"a",true,3,4)"#, "equal err 'false' =?= '2'");
+  satisfies(false, &scope!(), "false", r#""#, r#"not(true)"#, true);
 }
 
 #[test]
@@ -310,4 +312,45 @@ fn _0057() {
 #[test]
 fn _0058() {
   satisfies(false, &scope!(), "4", "", "not(=5)", true);
+}
+
+/// A test that uses `?` and gives a boolean is satisfied when it is true (DMN 1.6 clause
+/// 7.3.2 d, Table 56); with another value it is compared with the tested value.
+#[test]
+fn a_boolean_test_using_the_tested_value_is_its_own_answer() {
+  // the tested value is bound to `?`, as a decision table and the unary tests of a host bind it
+  let yes = |input: &str, tests: &str, expected: bool| satisfies(false, &te_scope(&format!("{{?: {input}}}")), "?", "", tests, expected);
+  let null = |input: &str, tests: &str, expected: &str| satisfies_null(false, &te_scope(&format!("{{?: {input}}}")), "?", "", tests, expected);
+  yes("7", "? > 5", true);
+  yes("4", "? > 5", false);
+  yes("7", "? > 5 and ? < 10", true);
+  yes("7", "? > 9, 7", true);
+  yes("7", "not(? > 5)", false);
+  yes("4", "not(? > 5)", true);
+  yes(r#""ab""#, r#"starts with(?, "a")"#, true);
+  yes(r#""b""#, r#"starts with(?, "a")"#, false);
+  yes("[1, 2]", "count(?) > 1", true);
+  // no boolean: the value is compared
+  yes("7", "(? * 0) + 7", true);
+  yes("7", "abs(?)", true);
+  yes("false", "?", true);
+  // the expression has no answer for the tested value
+  null(r#""a""#, "? > 5", "eval_greater_then_string");
+  null("null", "? > 5", "eval_greater_then");
+}
+
+/// The tests of a list are joined by `or` (DMN 1.6 Table 56): a tested value of another kind
+/// than every test has no answer, and neither has the negation (clause 8.3.3 matches on
+/// `false` there).
+#[test]
+fn tests_of_another_kind_than_the_tested_value_have_no_answer() {
+  let scope = scope!();
+  satisfies_null(false, &scope, r#""a""#, "", "1, 2", r#"equal err '"a"' =?= '1'"#);
+  satisfies_null(false, &scope, r#""a""#, "", "< 10", "eval_in_unary_less");
+  satisfies_null(false, &scope, r#""a""#, "", "not(1, 2)", r#"equal err '"a"' =?= '1'"#);
+  satisfies(false, &scope, r#""a""#, "", r#"1, "a""#, true);
+  satisfies(false, &scope, "3", "", "1, 2", false);
+  satisfies(false, &scope, "3", "", "not(1, 2)", true);
+  satisfies(false, &scope, "null", "", "not(1, 2)", true);
+  satisfies(false, &scope, "null", "", "1, null", true);
 }

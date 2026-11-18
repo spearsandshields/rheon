@@ -275,10 +275,17 @@ fn unary_tests_strings_and_misc() {
   // `?` is bound to the input and can be used in expressions...
   assert_eq!(unary("[? - 2]", json!(7))["display"], "false");
   assert_eq!(unary("(? * 0) + 7", json!(7))["display"], "true");
-  // ...but dsntk (at the pinned commit) does NOT treat a boolean expression such as `? > 5`
-  // as "satisfied when true" (DMN 1.2+ semantics): it compares the
-  // input with the boolean result (`7 = true` is false). This documents current dsntk behaviour.
-  assert_eq!(unary("? > 5 and ? < 10", json!(7))["display"], "false");
+  // a boolean expression using `?` is satisfied when it is true (DMN 1.6 clause 7.3.2 d)
+  assert_eq!(unary("? > 5 and ? < 10", json!(7))["display"], "true");
+  assert_eq!(unary("? > 5 and ? < 10", json!(12))["display"], "false");
+  assert_eq!(unary("? > 5, 1", json!(1))["display"], "true");
+  assert_eq!(unary("not(? > 5)", json!(7))["display"], "false");
+  // a tested value of another kind than the tests has no answer: null, not false (Table 56)
+  assert_eq!(unary("? > 5", json!("a"))["display"], "null");
+  assert_eq!(unary("< 10", json!("a"))["display"], "null");
+  assert_eq!(unary("1, 2", json!("a"))["display"], "null");
+  assert_eq!(unary("not(1, 2)", json!("a"))["display"], "null");
+  assert_eq!(unary("1, \"a\"", json!("a"))["display"], "true");
   assert_eq!(unary("null", json!(null))["display"], "true");
   // exact decimal comparison
   let r = eval_ok(serde_json::from_str(r#"{"op":"evaluate","dialect":"unaryTests","expression":"0.3","input":0.3,"context":{}}"#).unwrap());
@@ -804,14 +811,11 @@ fn input_messages_name_the_place_of_the_value() {
 }
 
 #[test]
-fn boolean_unary_tests_with_question_mark_warn() {
-  for (tests, number) in [("? > 5", 1), ("? > 5 and ? < 10", 1), ("not(? = 1)", 1), ("> 1, ? < 3", 2)] {
+fn boolean_unary_tests_with_question_mark_are_satisfied_when_true() {
+  for (tests, satisfied) in [("? > 5", true), ("? > 5 and ? < 10", true), ("not(? = 1)", true), ("> 9, ? < 3", false), ("? > 9, 7", true)] {
     let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": tests, "input": 7}));
-    let expected = format!(
-      "unary test #{number} is a boolean expression using '?': dsntk compares the input with its result (input = true/false) \
-       instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
-    );
-    assert_eq!(warnings(&response), [expected.as_str()], "{tests}");
+    assert_eq!(response["result"]["feel"], satisfied.to_string(), "{tests}: {response}");
+    assert_eq!(response["warnings"].as_array().unwrap().len(), 0, "{tests}: {response}");
   }
   for tests in ["> 5", "[1..10]", "(? * 0) + 7", "-", "\"a\""] {
     let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": tests, "input": 7}));

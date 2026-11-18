@@ -274,10 +274,9 @@ used from crates.io at dsntk's 0.3.0 release (`dsntk-common`, `-macros`, `-feel-
   value: `<`, `>`, `<=`, `>=` between a local and a zoned date-time are false, like dsntk's
   subtraction of the two (null), although `=` applies the fixed offset. `max`/`min` accept only
   numbers and strings in dsntk (`max(dt1, dt2)` is null); use `sort(…)[1]` or `if a < b then …`.
-- **Unary-test semantics.** dsntk evaluates `? in (<tests>)`. A boolean
-  expression test such as `? > 5` is compared with the input instead of being treated as
-  "satisfied when true"; the core returns a warning for such tests. The usual forms `> 5`,
-  `[1..10]` and `"a", "b"` work. An endpoint that is an arithmetic expression needs
+- **Unary-test semantics.** The engine evaluates `? in (<tests>)`. A boolean
+  expression test such as `? > 5` is satisfied when it is true. The usual forms `> 5`,
+  `[1..10]` and `"a", "b"` work; a tested value of another kind than the tests gives null. An endpoint that is an arithmetic expression needs
   parentheses: dsntk parses `> 0.1 + 0.2` as `(? > 0.1) + 0.2` (a typed null, "invalid argument
   type … actual type is boolean"), while `> (0.1 + 0.2)` and `>= (x + 1)` work. See CONTRACT §2.
 - **Parsing needs context.** Names with spaces or operators (`Grace's age`, `a+b`) are only split

@@ -166,7 +166,7 @@ impl<'a> Ty<'a> {
           Box::new(function.result_type().clone()),
         ))),
         Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => Ty::Is(feel_type).shape(),
-        Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => Ty::Of(value).shape(),
+        Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) | Value::TestAnswer(value) => Ty::Of(value).shape(),
         // a comparison with one endpoint is a range of the type of that endpoint
         Value::UnaryGreater(end) | Value::UnaryGreaterOrEqual(end) | Value::UnaryLess(end) | Value::UnaryLessOrEqual(end) | Value::UnaryEqual(end) | Value::UnaryNotEqual(end) => {
           Shape::Range(Ends::Of(end, end))
