@@ -47,7 +47,7 @@ TIMEOUT = killed at the cap.
 | H2 | `substring("abc", 5000000000)` | `""` | THROWS `StringIndexOutOfBoundsException` (32-bit truncation) | `null` + reason |
 | H3 | `substring("abc", 2, 4294967298)` | `"bc"` | `"bc"` | `null` + reason |
 | I1 | unary `> 5`, input 7 | `true` | `true` | `true` |
-| I2 | unary `? > 5`, input 7 | `true` | `true` | `true` (since the release after 0.8.1; before, `false`) |
+| I2 | unary `? > 5`, input 7 | `true` | `true` | `true` (since 0.9.0; before, `false`) |
 | I3 | unary `[18..65)`, input 42 | `true` | `true` | `true` |
 | J1 | `date("2026-13-45")` | `null` + warning | `null` | `null` + reason |
 | J2 | `duration("P1Y") + duration("P1D")` | `null` + warning | `null` + warning | `null` + reason |

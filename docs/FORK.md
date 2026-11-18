@@ -4915,6 +4915,11 @@ push; crates.io still records the pre-rewrite hash of 0.2.0 (`3209ccd`, now `a91
 
 ## Publishing to crates.io
 
+As of 0.9.0 nine crates are published: `rheon-feel-grammar` is `publish = false` since the
+hand-written parser (it is the reference grammar of the tests), and crates.io keeps its 0.4.0.
+The versions 0.5.0 to 0.8.1 were GitHub Releases only, so on crates.io and npm 0.9.0 follows
+0.4.0; `@rheon/feel-codemirror` is on npm from 0.9.0.
+
 The ten `rheon-*` crates share the workspace version (`[workspace.package] version`,
 rheon's own line; `0.1.0` was the first release, `0.2.0` added `rheon-feel-grammar`, `0.3.0` changed the API of
 `rheon-feel` and `rheon-feel-evaluator`, `0.4.0` changes the API of `rheon-feel`, `rheon-feel-parser`
