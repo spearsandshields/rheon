@@ -4355,6 +4355,32 @@ looked up only when a name in scope has its length (232).
     of the function around a string argument stays. Identity ledger: 17 entries. Tracker row
     EDT-14.
 
+265. **A word that is a keyword is the keyword whatever follows it.** DMN 1.6 clause 10.3.1.4:
+    "A name start (grammar rule 26) SHALL NOT be a literal terminal symbol." The lexer read
+    `and`, `between`, `else`, `every`, `external`, `for`, `if`, `in`, `instance`, `of`, `or`,
+    `return`, `satisfies`, `some` and `then` as keywords only before white space, and `true`,
+    `false` and `null` only before some characters; before anything else the word started a
+    name. Now the word is the keyword when no name character follows it, and a longer word
+    (`iffy`, `in1`, `order`) is a name as before. So `x in[1, 2]`, `x in(1, 2)`,
+    `if(a)then(1)else(2)`, `for x in[1] return(x)` and `a and(b)` parse (they were syntax
+    errors). And a name that starts with a keyword is none, also where the old lexer took
+    it: a name in scope (`in-progress`, `and/or`, `if-flag`), a key (`{in: 1}`, `{true: 1}`;
+    the string key `{"in": 1}` stays), a parameter (`function(in) 1`, `f(in: 1)`) and a member
+    (`x.and.y`; `x.in` before white space already was an error). Such an entry is read with
+    `get value(x, "in")`. `null()` and `true()` invoke the literal (null, as before, with
+    another reason). Identity: 6 of the 16,876 earlier requests differ (`null(1)`); the new
+    request set `keywords-and-item.json` registers the rest. The official TCK is unchanged.
+    Tracker row PAR-17.
+
+266. **The word `item` is a name like any other.** The lexer returned the name `item` whenever a
+    name started with that word (inherited, for filters), so a name that starts with it was
+    never read: with `item count` in the context `item count + 1` was a syntax error, `item-id`
+    was `item - id`, and `{item x: 1}`, `for item count in ...` and `function(item x) ...` were
+    syntax errors. It also left the lexer in the mode of the iteration variable after
+    `for item in`, so `in+1` in the body was read as a name. A filter needs no special case:
+    `item` alone ends before an operator, a keyword or a bracket as any name that is not in
+    scope does. Part of tracker row NAM-5.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

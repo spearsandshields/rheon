@@ -13,7 +13,7 @@ fn _0001() {
 #[test]
 fn _0002() {
   let invocable = "decision002";
-  let expected = "null(expected built-in function name or function definition, actual is null(context has no value for key 'null'))";
+  let expected = "null(expected built-in function name or function definition, actual is null)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
@@ -48,13 +48,13 @@ fn _0006() {
 #[test]
 fn _0007() {
   let invocable = "decision007";
-  let expected = "null(expected built-in function name or function definition, actual is null(context has no value for key 'true'))";
+  let expected = "null(expected built-in function name or function definition, actual is true)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
 #[test]
 fn _0008() {
   let invocable = "decision008";
-  let expected = "null(expected built-in function name or function definition, actual is null(context has no value for key 'false'))";
+  let expected = "null(expected built-in function name or function definition, actual is false)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }

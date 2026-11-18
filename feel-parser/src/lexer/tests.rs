@@ -4,26 +4,13 @@ use super::*;
 use crate::tests::full_size;
 
 #[test]
-fn test_is_separator() {
-  assert!(is_separator(' '));
-  assert!(is_separator('='));
-  assert!(is_separator('!'));
-  assert!(is_separator('<'));
-  assert!(is_separator('>'));
-  assert!(is_separator('+'));
-  assert!(is_separator('-'));
-  assert!(is_separator('*'));
-  assert!(is_separator('/'));
-  assert!(is_separator('%'));
-  assert!(is_separator('.'));
-  assert!(is_separator(','));
-  assert!(is_separator(')'));
-  assert!(is_separator('['));
-  assert!(is_separator(']'));
-  assert!(is_separator('}'));
-  assert!(!is_separator('('));
-  assert!(!is_separator('{'));
-  assert!(!is_separator('?'));
+fn test_ends_word() {
+  for ch in [' ', '=', '!', '<', '>', '+', '-', '*', '/', '%', '.', ',', ')', '[', ']', '}', '(', '{', '"', ':', '\''] {
+    assert!(ends_word(ch), "{ch}");
+  }
+  for ch in ['a', 'Z', '_', '1', '?', 'é', '\u{00B7}'] {
+    assert!(!ends_word(ch), "{ch}");
+  }
 }
 
 #[test]

@@ -10,13 +10,13 @@ fn test_name() {
         one or two:"found",
         before: {
           after: 1.11,
-          or: {
+          "or": {
             after: 1.12
           },
-          and: {
+          "and": {
             after: 1.13
           },
-          between: {
+          "between": {
             after: 1.14
           },
           next to between: {
@@ -41,8 +41,9 @@ fn test_name() {
   te_number(false, scope, "before.after", 111, 2);
   te_number(false, scope, "before . next to between . worm", 118, 2);
   te_number(false, scope, " before . after ", 111, 2);
-  te_number(false, scope, "before.and.after", 113, 2);
-  te_number(false, scope, "before. and. after", 113, 2);
+  // an entry whose key is a keyword is no name (DMN 1.6 clause 10.3.1.4): it is read by its key
+  te_number(false, scope, r#"get value(before, "and").after"#, 113, 2);
+  te_number(false, scope, r#"get value(before, "or").after"#, 112, 2);
   te_number(false, scope, "income/loss", 115, 2);
   te_number(false, scope, "income  /   loss", 115, 2);
   te_number(false, scope, "per/month/income/loss", 117, 2);

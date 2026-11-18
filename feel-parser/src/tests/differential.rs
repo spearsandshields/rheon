@@ -1088,9 +1088,9 @@ fn parts_compared_with_in_grow_linearly_with_the_chain() {
   }
 }
 
-/// The tokens after an iteration variable `item`, which leaves the lexer in iteration-variable
-/// mode, equal the reference's: later names end before a part `in`, also names in scope that have
-/// it, and an `in` without white space after it is the keyword.
+/// The tokens after an iteration variable `item`, a name like any other, have their recorded
+/// outcome: the mode of the iteration variable ends with it, and an `in` is the keyword
+/// whatever follows it.
 #[test]
 fn names_after_an_item_variable_equal_reference() {
   let frames = [ctx(&[("a", number(1)), ("x in y", number(2)), ("in", number(3)), ("b in", number(4))])];

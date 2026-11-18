@@ -1295,8 +1295,18 @@ in scope: nothing
 in scope: x
   StartExpression @0
   Name(Name("x")) @0
-  Name(Name("in")) @2
-error: <ParserError> syntax error: x in[1]
+  In @2
+  LeftBracket @4
+  Numeric("1", "", '+', "") @5
+  RightBracket @6
+  YyEof @7
+
+       In
+       ├─ Name
+       │  └─ `x`
+       └─ List
+          └─ Numeric
+             └─ `1`
 
 ## "x in [1]"
 in scope: x

@@ -313,11 +313,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       self.token_start = self.position;
     }
     match chars {
-      ['s', 'a', 't', 'i', 's', 'f', 'i', 'e', 's', WS, _, _] => {
+      ['s', 'a', 't', 'i', 's', 'f', 'i', 'e', 's', ch, _, _] if ends_word(ch) => {
         self.position += 9;
         Ok((TokenType::Satisfies, TokenValue::Satisfies))
       }
-      ['e', 'x', 't', 'e', 'r', 'n', 'a', 'l', WS, _, _, _] => {
+      ['e', 'x', 't', 'e', 'r', 'n', 'a', 'l', ch, _, _, _] if ends_word(ch) => {
         self.position += 8;
         Ok((TokenType::External, TokenValue::External))
       }
@@ -325,11 +325,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 8;
         Ok((TokenType::Function, TokenValue::Function))
       }
-      ['i', 'n', 's', 't', 'a', 'n', 'c', 'e', WS, _, _, _] => {
+      ['i', 'n', 's', 't', 'a', 'n', 'c', 'e', ch, _, _, _] if ends_word(ch) => {
         self.position += 8;
         Ok((TokenType::Instance, TokenValue::Instance))
       }
-      ['b', 'e', 't', 'w', 'e', 'e', 'n', WS, _, _, _, _] => {
+      ['b', 'e', 't', 'w', 'e', 'e', 'n', ch, _, _, _, _] if ends_word(ch) => {
         self.position += 7;
         Ok((TokenType::Between, TokenValue::Between))
       }
@@ -337,15 +337,15 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 7;
         Ok((TokenType::Context, TokenValue::Context))
       }
-      ['r', 'e', 't', 'u', 'r', 'n', WS, _, _, _, _, _] => {
+      ['r', 'e', 't', 'u', 'r', 'n', ch, _, _, _, _, _] if ends_word(ch) => {
         self.position += 6;
         Ok((TokenType::Return, TokenValue::Return))
       }
-      ['e', 'v', 'e', 'r', 'y', WS, _, _, _, _, _, _] => {
+      ['e', 'v', 'e', 'r', 'y', ch, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 5;
         Ok((TokenType::Every, TokenValue::Every))
       }
-      ['f', 'a', 'l', 's', 'e', ch, _, _, _, _, _, _] if is_separator(ch) => {
+      ['f', 'a', 'l', 's', 'e', ch, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 5;
         Ok((TokenType::Boolean, TokenValue::Boolean(false)))
       }
@@ -353,11 +353,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 5;
         Ok((TokenType::Range, TokenValue::Range))
       }
-      ['n', 'u', 'l', 'l', ch, _, _, _, _, _, _, _] if is_separator(ch) => {
+      ['n', 'u', 'l', 'l', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Null, TokenValue::Null))
       }
-      ['e', 'l', 's', 'e', WS, _, _, _, _, _, _, _] => {
+      ['e', 'l', 's', 'e', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Else, TokenValue::Else))
       }
@@ -365,24 +365,24 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 4;
         Ok((TokenType::List, TokenValue::List))
       }
-      ['s', 'o', 'm', 'e', WS, _, _, _, _, _, _, _] => {
+      ['s', 'o', 'm', 'e', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Some, TokenValue::Some))
       }
-      ['t', 'h', 'e', 'n', WS, _, _, _, _, _, _, _] => {
+      ['t', 'h', 'e', 'n', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Then, TokenValue::Then))
       }
-      ['t', 'r', 'u', 'e', ch, _, _, _, _, _, _, _] if is_separator(ch) => {
+      ['t', 'r', 'u', 'e', ch, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 4;
         Ok((TokenType::Boolean, TokenValue::Boolean(true)))
       }
       // the parser reads it as the `and` of a `between` where one is open
-      ['a', 'n', 'd', WS, _, _, _, _, _, _, _, _] => {
+      ['a', 'n', 'd', ch, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 3;
         Ok((TokenType::And, TokenValue::And))
       }
-      ['f', 'o', 'r', WS, _, _, _, _, _, _, _, _] => {
+      ['f', 'o', 'r', ch, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 3;
         Ok((TokenType::For, TokenValue::For))
       }
@@ -390,19 +390,19 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
         self.position += 3;
         Ok((TokenType::Not, TokenValue::Not))
       }
-      ['i', 'f', WS, _, _, _, _, _, _, _, _, _] => {
+      ['i', 'f', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::If, TokenValue::If))
       }
-      ['i', 'n', WS, _, _, _, _, _, _, _, _, _] => {
+      ['i', 'n', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::In, TokenValue::In))
       }
-      ['o', 'f', WS, _, _, _, _, _, _, _, _, _] => {
+      ['o', 'f', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::Of, TokenValue::Of))
       }
-      ['o', 'r', WS, _, _, _, _, _, _, _, _, _] => {
+      ['o', 'r', ch, _, _, _, _, _, _, _, _, _] if ends_word(ch) => {
         self.position += 2;
         Ok((TokenType::Or, TokenValue::Or))
       }
@@ -764,15 +764,6 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     // There is at least one part. Now decide, what kind of name it is.
     //==============================================================================
 
-    //------------------------------------------------------------------------------
-    // Tweak with the name `item` used in filters.
-    // If the first part is `item`, then treat it as a resulting name.
-    //-------------------------------------------------------------------------------
-    if self.part_text(first) == "item" {
-      self.position = self.chain_parts[first].end;
-      return Ok((TokenType::Name, TokenValue::Name("item".into())));
-    }
-
     //-------------------------------------------------------------------------------
     // Tweak with the name in `for` and `quantified` expressions.
     // The variable's name is the name until the keyword `in` appears.
@@ -966,9 +957,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 
   /// Returns the index of the first part `in` of the chain at or after the part `first`. The
-  /// last search is remembered, so the name tokens of a chain compare each of its parts once:
-  /// the mode of the iteration variable stays set after a variable `item`, and then every later
-  /// name token asks.
+  /// last search is remembered, so the name tokens of a chain compare each of its parts once.
   fn next_in_part(&mut self, first: usize) -> Option<usize> {
     let (from, found) = self.chain_in;
     if !(from..=found).contains(&first) {
@@ -1396,9 +1385,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   }
 }
 
-/// Returns `true` when the specified character is a separator (white space equivalent).
-fn is_separator(ch: char) -> bool {
-  matches!(ch, WS | '=' | '!' | '<' | '>' | '+' | '-' | '*' | '/' | '%' | '.' | ',' | ')' | '[' | ']' | '}')
+/// Returns `true` when a word ends before the specified character: a word that is a keyword is
+/// the keyword whatever follows it (DMN 1.6 clause 10.3.1.4: a name start is never a literal
+/// terminal), and a longer word (`iffy`, `in1`) is none.
+fn ends_word(ch: char) -> bool {
+  !is_name_part_char(ch)
 }
 
 /// Returns the length in bytes of the UTF-8 encoded character that starts with `byte`.
