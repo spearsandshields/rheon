@@ -4208,6 +4208,13 @@ looked up only when a name in scope has its length (232).
     `formatDocument` (Shift-Alt-F), the playground a Format button. The message of an unknown
     `op` names it (the entries of `editor-operations.json` are recorded again).
 
+253. **The identity check compares with 0.8.1.** The baseline moves to the v0.8.1 release module
+    (the tag v0.8.0 has no release), and the ledgers of registered differences against 0.7.0 are
+    removed (`parser-nesting.json`, `editor-operations.json` and the rule
+    `syntax-error-places.json`): 0.8.1 answers every committed request as registered. Git
+    history keeps the ledgers. Identity of this build against the 0.8.1 module: 15,450 requests,
+    with `--release` 15,462 (5 trapping the reference), no difference.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

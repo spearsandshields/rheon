@@ -71,10 +71,10 @@ measured on; the times below are of Node 26.
 | On a failure | `--record <entries.json> --why "<basis>"`, then `git bisect start <bad> <good>` and `git bisect run tools/identity/bisect.sh .tools/baseline/feel.wasm <entries.json>` | one wasm build per step |
 | Before a release (the release tier) | `run.sh … --release --verify-cache` and `run.sh … --large --verify-cache` | 16 s and 11.5 s |
 
-Measured on a MacBook (Apple M2, Node 26) against 0.7.0, with every evaluate request also sent as
+Measured on a MacBook (Apple M2, Node 26) against 0.8.1, with every evaluate request also sent as
 parse: the committed sources are 15,450 requests, with the two sets kept outside the repository
 15,623 (the requests of `release/requests/` that the other sources hold left out with their
-parse twins, 12 in all), and with `--release` 15,462. No committed request traps 0.7.0. The 5 of
+parse twins, 12 in all), and with `--release` 15,462. No committed request traps 0.8.1. The 5 of
 `release/requests/memory-exhausting.json` exhaust its memory and trap (0.1 to 4.2 s each), and
 2 requests of the large sets trap it. A cached trap is evaluated again on every run (see the
 cache section), so the cache cannot save that time. The peak memory is 2.4 GB for the release
