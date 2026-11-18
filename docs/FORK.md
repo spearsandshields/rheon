@@ -4273,6 +4273,17 @@ looked up only when a name in scope has its length (232).
     `tools/identity/requests/unary-values.json` (63 requests); 62 registered differences in
     `tools/identity/registered/unary-values.json`, 7 of them on requests of older sets.
 
+259. **The identity check has requests of the editor operations.** The committed request sets
+    held no `syntax`, `complete`, `outline` or `format` request, so a change of their answers
+    was caught only by the contract tests. `tools/identity/requests/editor.json` has 260: whole
+    and broken texts as `syntax` (with and without the tree) and `format` (two widths), both
+    dialects, 50 `complete` requests at the places the grammar distinguishes, `outline` of six
+    contexts, an outline in place of the context, and the request errors. Against 0.8.1 the 24
+    `complete` answers that item 254 changed are registered in
+    `tools/identity/registered/completion-signatures.json` (answers longer than 4 KiB by their
+    digest); the other 236 are identical. Found on the way, not changed: inside a line comment
+    `complete` offers what an expression takes. Tracker row EDT-13.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,
