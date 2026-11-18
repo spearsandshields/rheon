@@ -4185,7 +4185,7 @@ looked up only when a name in scope has its length (232).
     its tree with positions is the engine's; `lang-feel`, `lezer-feel` and the lezer runtime
     are no dependencies of the playground any more, and their notices leave
     `third-party-notices.txt`. The release workflow packs the package beside the runtime's.
-    The package has no tests of its own yet: the playground's build and a check in a browser
+    The package had no tests of its own at this point (item 255 adds them): the playground's build and a check in a browser
     exercise it.
 
 251. **A syntax error says where and what.** The error of `evaluate`, `evaluateAll` and
@@ -4214,6 +4214,28 @@ looked up only when a name in scope has its length (232).
     `syntax-error-places.json`): 0.8.1 answers every committed request as registered. Git
     history keeps the ledgers. Identity of this build against the 0.8.1 module: 15,450 requests,
     with `--release` 15,462 (5 trapping the reference), no difference.
+
+254. **The signatures of the built-in functions.** `feel/src/signatures.rs` lists for each of the
+    89 built-in functions its signatures (the names and types of the parameters, optional and
+    rest parameters, the type of the result, whether the parameters can be named) and one line
+    that says what it gives. The evaluator does not read the table; a test of the evaluator
+    invokes every signature by position and by name with values of the types and checks that
+    the function takes it. `op: "complete"` uses it (docs/CONTRACT.md §3): an item of a function
+    has `detail`, `info` and `type`; inside the parentheses of a built-in function the answer
+    has `call` (the signatures and the index of the argument); where a parameter can be named,
+    the names are items of the kind `parameter` with `insert`; `expects` can be `parameter`.
+    Additions only: no answer of 0.8.1 changes except that the items of functions have values
+    where they had null. `@rheon/feel-runtime` has the types; `@rheon/feel-codemirror` shows
+    the signature in the completion list and a hint at the cursor (`signatureHelp`).
+    Found on the way, not changed: a built-in function reports a named parameter of a wrong
+    type as "parameter not found", and `< 10` evaluates as an expression to a value that
+    displays as `UnaryLess(10)`.
+
+255. **Tests of `@rheon/feel-codemirror`.** `packages/feel-codemirror/test/editor.test.mjs` runs
+    the extension in jsdom (a development dependency) with the engine in the same thread: the
+    classes of the tokens, edits and dropped answers, error marks and `maxDiagnostics`, `tree`,
+    completion of names, functions, parameters and templates, `setFeelScope`, `formatDocument`
+    and the hint. The group tier runs them as the step `test-codemirror`.
 
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC

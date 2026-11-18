@@ -7,6 +7,7 @@
 
 use super::*;
 use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
+use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::values::Value;
 use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, Syntax, TokenClass, parse_tolerant};
 
@@ -190,6 +191,86 @@ struct Item {
   kind: &'static str,
   /// Where the text that the item replaces starts (a byte offset).
   from: usize,
+  /// The FEEL type of a parameter.
+  feel_type: Option<&'static str>,
+}
+
+/// The invocation of a built-in function that the end of a text stands in.
+struct Call {
+  built_in: &'static BuiltIn,
+  /// The index of the argument that the text ends in.
+  argument: usize,
+  /// The names of the named parameters given before that argument.
+  named: Vec<String>,
+  /// Whether a parameter name can stand where the text ends: no argument before is given by
+  /// position, and the argument the text ends in has no name yet.
+  takes_name: bool,
+}
+
+/// The innermost invocation of a built-in function whose parentheses are open where the text
+/// ends, from the tokens of the text.
+fn call(text: &str, syntax: &Syntax) -> Option<Call> {
+  let mut tokens = syntax.tokens.iter().rev().filter(|t| !matches!(t.class, TokenClass::Whitespace | TokenClass::Comment));
+  // the arguments from the last to the first: the name of each that has one
+  let mut arguments: Vec<Option<String>> = vec![None];
+  let mut depth = 0usize;
+  loop {
+    let token = tokens.next()?;
+    let written = &text[token.start..token.end];
+    match written {
+      ")" | "]" | "}" if token.class != TokenClass::String => depth += 1,
+      "[" | "{" if token.class != TokenClass::String => depth = depth.checked_sub(1)?,
+      "(" if token.class != TokenClass::String && depth > 0 => depth -= 1,
+      "(" if token.class != TokenClass::String => break,
+      "," if depth == 0 => arguments.push(None),
+      _ if depth == 0 && token.class == TokenClass::Parameter => *arguments.last_mut()? = Some(name_of(written).to_string()),
+      _ => {}
+    }
+  }
+  let name = tokens.next()?;
+  let built_in = built_in(&name_of(&text[name.start..name.end]).to_string())?;
+  let takes_name = arguments.iter().enumerate().all(|(index, argument)| (index == 0) == argument.is_none());
+  Some(Call {
+    built_in,
+    argument: arguments.len() - 1,
+    named: arguments.into_iter().flatten().collect(),
+    takes_name,
+  })
+}
+
+/// The names and types of the parameters that can be named next in the invocation: those of
+/// the signatures that take names, without the ones already given.
+fn parameters(call: &Call) -> Vec<(&'static str, &'static str)> {
+  let mut parameters: Vec<(&'static str, &'static str)> = vec![];
+  for signature in call.built_in.signatures.iter().filter(|signature| signature.named) {
+    // only of a signature that has every name given so far
+    if !call.named.iter().all(|given| signature.parameters.iter().any(|parameter| parameter.name == given)) {
+      continue;
+    }
+    for parameter in signature.parameters {
+      if !call.named.iter().any(|given| given == parameter.name) && !parameters.iter().any(|(name, _)| *name == parameter.name) {
+        parameters.push((parameter.name, parameter.feel_type));
+      }
+    }
+  }
+  parameters
+}
+
+fn call_json(call: &Call) -> Json {
+  let signatures: Vec<Json> = call
+    .built_in
+    .signatures
+    .iter()
+    .map(|signature| {
+      let parameters: Vec<Json> = signature
+        .parameters
+        .iter()
+        .map(|parameter| json!({"name": parameter.name, "type": parameter.feel_type, "optional": parameter.optional, "rest": parameter.rest}))
+        .collect();
+      json!({"text": signature.text(call.built_in.name), "parameters": parameters, "result": signature.result, "named": signature.named})
+    })
+    .collect();
+  json!({"function": call.built_in.name, "summary": call.built_in.summary, "argument": call.argument, "named": call.named, "signatures": signatures})
 }
 
 /// What the grammar takes at a place of the text.
@@ -208,6 +289,8 @@ enum Offer {
   Types,
   /// The entries of the value before a dot.
   Entries(Vec<String>),
+  /// The parameters of the invoked built-in function that can be named, with their types.
+  Parameters(Vec<(&'static str, &'static str)>),
 }
 
 /// The text of the token that ends at the end of `text` when it is (part of) a name being typed.
@@ -312,6 +395,11 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
       name: "property".to_string(),
       kinds: vec![Offer::Entries(receiver(text, syntax).map(|path| entries(scope, &path)).unwrap_or_default())],
     },
+    // after a named parameter only a named one can follow
+    "expected-name" if end.role == TokenClass::Parameter => Expected {
+      name: "parameter".to_string(),
+      kinds: vec![],
+    },
     "expected-name" => Expected {
       name: "name".to_string(),
       kinds: vec![],
@@ -336,22 +424,24 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
 fn offer(items: &mut Vec<Item>, expected: &Expected, typed: &str, from: usize) {
   let normal = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
   let typed = normal(typed);
-  let mut add = |label: &str, kind: &'static str| {
+  let mut add = |label: &str, kind: &'static str, feel_type: Option<&'static str>| {
     if normal(label).starts_with(&typed) && !items.iter().any(|item| item.label == label && item.kind == kind) {
       items.push(Item {
         label: label.to_string(),
         kind,
         from,
+        feel_type,
       });
     }
   };
   for kind in &expected.kinds {
     match kind {
-      Offer::Names(names) => names.iter().for_each(|name| add(name, "name")),
-      Offer::Entries(names) => names.iter().for_each(|name| add(name, "entry")),
-      Offer::Keywords(keywords) => keywords.iter().for_each(|keyword| add(keyword, "keyword")),
-      Offer::Functions => BUILT_IN_FUNCTION_NAMES.iter().for_each(|name| add(name, "function")),
-      Offer::Types => TYPES.iter().for_each(|name| add(name, "type")),
+      Offer::Names(names) => names.iter().for_each(|name| add(name, "name", None)),
+      Offer::Entries(names) => names.iter().for_each(|name| add(name, "entry", None)),
+      Offer::Keywords(keywords) => keywords.iter().for_each(|keyword| add(keyword, "keyword", None)),
+      Offer::Functions => BUILT_IN_FUNCTION_NAMES.iter().for_each(|name| add(name, "function", None)),
+      Offer::Types => TYPES.iter().for_each(|name| add(name, "type", None)),
+      Offer::Parameters(parameters) => parameters.iter().for_each(|(name, feel_type)| add(name, "parameter", Some(feel_type))),
     }
   }
 }
@@ -376,12 +466,25 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
   let syntax = parse_tolerant(&scope, before, unary_tests);
   let mut items = vec![];
   let expects;
+  let invocation;
+  // the names of the parameters of the invoked function go before what else an expression can be
+  let with_parameters = |mut expected: Expected, invocation: &Option<Call>| {
+    if let Some(call) = invocation
+      .as_ref()
+      .filter(|call| call.takes_name && matches!(expected.name.as_str(), "expression" | "parameter"))
+    {
+      expected.kinds.insert(0, Offer::Parameters(parameters(call)));
+    }
+    expected
+  };
   match typed_name(before, &syntax) {
     // a name is being typed: what fits where it starts, and, for a name of several words, what
     // fits where its last word starts (`if a th` is `if a` and the start of `then`)
     Some((from, typed)) => {
       let head = &before[..from];
-      let at_start = expected(&scope, head, &parse_tolerant(&scope, head, unary_tests), unary_tests);
+      let head_syntax = parse_tolerant(&scope, head, unary_tests);
+      invocation = call(head, &head_syntax);
+      let at_start = with_parameters(expected(&scope, head, &head_syntax, unary_tests), &invocation);
       offer(&mut items, &at_start, typed, from);
       expects = at_start.name;
       if let Some(space) = typed.rfind(char::is_whitespace) {
@@ -392,27 +495,51 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       }
     }
     None => {
-      let at_cursor = expected(&scope, before, &syntax, unary_tests);
+      invocation = call(before, &syntax);
+      let at_cursor = with_parameters(expected(&scope, before, &syntax, unary_tests), &invocation);
       offer(&mut items, &at_cursor, "", cursor);
       expects = at_cursor.name;
     }
   }
-  let order = |kind: &str| ["name", "entry", "keyword", "function", "type"].iter().position(|k| *k == kind);
+  let order = |kind: &str| ["parameter", "name", "entry", "keyword", "function", "type"].iter().position(|k| *k == kind);
   items.sort_by(|a, b| order(a.kind).cmp(&order(b.kind)).then_with(|| a.label.to_lowercase().cmp(&b.label.to_lowercase())));
   let truncated = items.len() > MAX_ITEMS;
   items.truncate(MAX_ITEMS);
   let items: Vec<Json> = items
     .iter()
-    .map(|item| json!({"label": item.label, "kind": item.kind, "from": places.of(item.from), "type": null, "detail": null}))
+    .map(|item| {
+      let mut json = json!({"label": item.label, "kind": item.kind, "from": places.of(item.from), "type": item.feel_type, "detail": null});
+      match item.kind {
+        // a parameter is inserted with its colon
+        "parameter" => json["insert"] = json!(format!("{}: ", item.label)),
+        "function" => {
+          if let Some(built_in) = built_in(&item.label) {
+            let first = &built_in.signatures[0];
+            json["detail"] = json!(first.text(built_in.name));
+            json["info"] = json!(built_in.summary);
+            // the type of the result when every signature has the same
+            if built_in.signatures.iter().all(|signature| signature.result == first.result) {
+              json["type"] = json!(first.result);
+            }
+          }
+        }
+        _ => {}
+      }
+      json
+    })
     .collect();
-  Ok(json!({
+  let mut response = json!({
     "ok": true,
     "to": places.of(cursor),
     "expects": expects,
     "items": items,
     "truncated": truncated,
     "elapsedMicros": elapsed_micros(started),
-  }))
+  });
+  if let Some(call) = &invocation {
+    response["call"] = call_json(call);
+  }
+  Ok(response)
 }
 
 /// `op: "format"`: the text in the one layout of the formatter (lines of at most `width`

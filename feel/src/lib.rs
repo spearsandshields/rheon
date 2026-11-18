@@ -17,6 +17,7 @@ pub mod message;
 mod names;
 mod qualified_names;
 mod scope;
+pub mod signatures;
 mod strings;
 mod types;
 pub mod values;

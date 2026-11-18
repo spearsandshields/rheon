@@ -2114,3 +2114,79 @@ fn format_breaks_a_context_of_several_entries() {
   assert_eq!(format("f({a:1,b:{c:2,d:3}}).a"), "f(\n  {\n    a: 1,\n    b: {\n      c: 2,\n      d: 3\n    }\n  }\n).a");
   assert_eq!(format("{a:[1,2],b:{c:1}}"), "{\n  a: [1, 2],\n  b: {c: 1}\n}");
 }
+
+/// `complete` knows the built-in functions: an item of a function has its signature, inside the
+/// parentheses of an invocation the answer has the `call`, and the parameters can be named.
+#[test]
+fn complete_knows_the_built_in_functions() {
+  let complete = |expression: &str| req(json!({"op": "complete", "expression": expression, "context": {"text": "abc"}}));
+  let item = |response: &Json, label: &str| {
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .find(|item| item["label"] == label)
+      .cloned()
+      .unwrap_or(Json::Null)
+  };
+  // a function item
+  let response = complete("subs");
+  let substring = item(&response, "substring");
+  assert_eq!(substring["kind"], "function");
+  assert_eq!(substring["detail"], "substring(string, start position, length?): string");
+  assert_eq!(substring["info"], "The characters from a position, as many as the length says or all that follow.");
+  assert_eq!(substring["type"], "string");
+  assert!(response.get("call").is_none(), "{response}");
+  // the first signature of several
+  assert_eq!(item(&complete("dat"), "date")["detail"], "date(from): date");
+  // inside the parentheses: the call, and the parameters to name before the other items
+  let response = complete("1 + substring(");
+  assert_eq!(response["call"]["function"], "substring");
+  assert_eq!(response["call"]["argument"], 0);
+  assert_eq!(response["call"]["signatures"][0]["text"], "substring(string, start position, length?): string");
+  assert_eq!(
+    response["call"]["signatures"][0]["parameters"][2],
+    json!({"name": "length", "type": "number", "optional": true, "rest": false})
+  );
+  let labels: Vec<&str> = response["items"].as_array().unwrap().iter().take(4).map(|item| item["label"].as_str().unwrap()).collect();
+  assert_eq!(labels, vec!["length", "start position", "string", "text"]);
+  assert_eq!(
+    item(&response, "start position"),
+    json!({"label": "start position", "kind": "parameter", "from": 14, "type": "number", "detail": null, "insert": "start position: "})
+  );
+  // after a named parameter: the others, and the argument index
+  let response = complete(r#"substring(string: text, sta"#);
+  assert_eq!(response["call"]["argument"], 1);
+  assert_eq!(response["expects"], "parameter");
+  assert_eq!(response["items"][0]["label"], "start position");
+  assert_eq!(response["items"][0]["from"], 24);
+  assert!(item(&response, "string").is_null(), "{response}");
+  // the value of a named parameter, and a positional argument: no names
+  let response = complete("substring(string: ");
+  assert_eq!(response["call"]["argument"], 0);
+  assert!(response["items"].as_array().unwrap().iter().all(|item| item["kind"] != "parameter"), "{response}");
+  let response = complete("substring(text, ");
+  assert_eq!(response["call"]["argument"], 1);
+  assert!(response["items"].as_array().unwrap().iter().all(|item| item["kind"] != "parameter"), "{response}");
+  // the innermost invocation; brackets and strings inside an argument do not count
+  let response = complete(r#"sum([1, 2], string length("a(,"), contains(text, "#);
+  assert_eq!(response["call"]["function"], "contains");
+  assert_eq!(response["call"]["argument"], 1);
+  let response = complete(r#"string join(["a,(", "b"], "#);
+  assert_eq!(response["call"]["function"], "string join");
+  assert_eq!(response["call"]["argument"], 1);
+  // only the names of the signatures that have the names given
+  let response = complete("date(year: 2020, ");
+  let names: Vec<&str> = response["items"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .filter(|item| item["kind"] == "parameter")
+    .map(|item| item["label"].as_str().unwrap())
+    .collect();
+  assert_eq!(names, vec!["day", "month"]);
+  // outside an invocation, and in the parentheses of something else: no call
+  assert!(complete("sum(1) + ").get("call").is_none());
+  assert!(complete("(1 + ").get("call").is_none());
+  assert!(complete("text(").get("call").is_none());
+}

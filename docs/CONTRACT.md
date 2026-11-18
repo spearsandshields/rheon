@@ -173,13 +173,16 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   "expects": "expression",               // what the grammar takes at the cursor
   "items": [{ "label": "Monthly Salary", "kind": "name", "from": 4, "type": null, "detail": null }],
   "truncated": false,
+  "call": { … },                         // only inside the parentheses of a built-in function
   "elapsedMicros": n }
 ```
 
 - An accepted item replaces the text from its `from` to `to` with its `label`. The items of one
   answer can have different `from`s: in `if a th` the lexer reads `a th` as one name, so names
   are offered for `a th` and keywords for `th`.
-- `kind`: `name` (a name of the context, or one the text declares before the cursor: an
+- `kind`: `parameter` (a parameter of the invoked built-in function that can be named here; it
+  has `"insert"`, the text to insert in place of the label: the name with its colon),
+  `name` (a name of the context, or one the text declares before the cursor: an
   iteration variable, a parameter, `partial`, a key of a context being written), `entry` (an
   entry after a dot, when the names before the dot lead to a context, or to a list of contexts,
   in the context or the outline), `keyword`, `function` (a built-in function), `type`.
@@ -187,9 +190,33 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   An item fits when it starts with what is typed, letters compared without case.
 - `expects`: `expression`, `operator` (after a complete operand: `and`, `or`, `between`, `in`,
   `instance of`), `keyword:<word>` (a keyword the grammar needs here, such as `keyword:then`),
-  `property` (after a dot), `type`, `name` (a new name is written here: nothing is offered).
-- `type` and `detail` are null in this version: the type of an item and the signature of a
-  function come with type inference, without a change of the shape.
+  `property` (after a dot), `type`, `name` (a new name is written here: nothing is offered),
+  `parameter` (after a named parameter only a named one can follow).
+- An item of a built-in function has its first signature as `detail`
+  (`"substring(string, start position, length?): string"`), `"info"` (one line that says what
+  the function gives) and the type of its result as `type`. A parameter has its type as `type`.
+  The `type` and `detail` of the other kinds are null in this version: they come with type
+  inference, without a change of the shape.
+- `call` stands when the cursor is inside the parentheses of an invocation of a built-in
+  function (the innermost one):
+
+  ```jsonc
+  { "function": "substring",
+    "summary": "The characters from a position, as many as the length says or all that follow.",
+    "argument": 1,                       // the index of the argument the cursor is in
+    "named": [],                         // the names of the named parameters given before it
+    "signatures": [{
+      "text": "substring(string, start position, length?): string",
+      "parameters": [{ "name": "string", "type": "string", "optional": false, "rest": false }, …],
+      "result": "string",
+      "named": true }] }                 // false: by position only (`append`, `min(1, 2, 3)`)
+  ```
+
+  A `rest` parameter stands for one or more arguments. The types are FEEL types as text, with
+  `or` between alternatives (`date or date and time`). The names of the parameters are those
+  the engine takes in an invocation with named parameters; where only named parameters were
+  given so far, they are offered as items, without the ones already given and only of the
+  signatures that have those.
 
 `op: "outline"` takes `context`/`contextFormat` and answers `{ "ok": true, "outline": <outline>, "elapsedMicros": n }`.
 An outline is `null` (a name without entries), `{"names": {<name>: <outline>, …}}` (a context)
