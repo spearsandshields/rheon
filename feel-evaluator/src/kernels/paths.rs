@@ -15,7 +15,7 @@ use std::str::FromStr;
 /// The value of a name that no scope holds: the built-in function of that name, or null with an
 /// error.
 pub(crate) fn free_name(name: &Name) -> Value {
-  if let Ok(bif) = Bif::from_str(&name.to_string()) {
+  if let Ok(bif) = Bif::from_str(name.as_str()) {
     Value::BuiltInFunction(bif)
   } else {
     value_null!("context has no value for key '{}'", arg(name))

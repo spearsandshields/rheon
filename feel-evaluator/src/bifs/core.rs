@@ -472,6 +472,8 @@ pub fn context(entries: &Value) -> Value {
           _ => return value_null!("context: invalid entry, expected context, actual type is {}", arg(&TypeOf(entry))),
         }
       }
+      // the keys are strings: one in another form than FEEL reads a name is found by its name
+      result_ctx.note_key_forms();
       result_ctx.into()
     }
     Value::Context(ctx) => {
@@ -487,6 +489,8 @@ pub fn context(entries: &Value) -> Value {
         _ => return value_null!("context: 'key' entry is not a string, actual type is {}", arg(&TypeOf(key))),
       };
       result_ctx.set_entry(&key, value.clone());
+      // the keys are strings: one in another form than FEEL reads a name is found by its name
+      result_ctx.note_key_forms();
       result_ctx.into()
     }
     null @ Value::Null(_) => null.clone(),
@@ -520,6 +524,8 @@ pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
         null @ Value::Null(_) => return null.clone(),
         other => return invalid_argument_type!("context put", "string or list<string>", other),
       }
+      // the keys are strings: one in another form than FEEL reads a name is found by its name
+      result_ctx.note_key_forms();
       result_ctx.into()
     }
     null @ Value::Null(_) => null.clone(),
@@ -541,6 +547,8 @@ pub fn context_merge(contexts: &Value) -> Value {
           other => return invalid_argument_type!("context merge", "context", other),
         }
       }
+      // the keys are strings: one in another form than FEEL reads a name is found by its name
+      result_ctx.note_key_forms();
       result_ctx.into()
     }
     Value::Context(ctx) => Value::Context(ctx.clone()),

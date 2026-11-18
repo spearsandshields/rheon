@@ -1719,12 +1719,18 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           }
         };
         self.expect(T::Colon, At::Start)?;
+        // a key that is a string in another form than FEEL reads a name is read by that name
+        let read_as = if rheon_feel::names::is_in_name_form(name.as_str()) {
+          name.clone()
+        } else {
+          Name::from(rheon_feel::names::name_form(name.as_str()))
+        };
         // an entry does not read its own key (DMN 1.6 clause 10.3.2.6)
-        self.lexer.remove_name_from_scope(&name);
+        self.lexer.remove_name_from_scope(&read_as);
         let value = self.boxed(LOWEST)?;
         // the key is a name for the entries after it, and a member name from here on
-        self.lexer.add_name_to_scope(name.clone());
-        self.lexer.add_parsed_name(name.clone());
+        self.lexer.add_name_to_scope(read_as.clone());
+        self.lexer.add_parsed_name(read_as);
         entries.push(AstNode::ContextEntry(Box::new(AstNode::ContextEntryKey(name)), value));
         self.note("Entry", entry_start);
         match self.kind {

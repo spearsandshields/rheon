@@ -89,3 +89,28 @@ fn nested_keys_are_names_only_for_a_member_of_a_value() {
   te_number(false, scope, "a-b", 9, 0);
   te_number(false, scope, "[a-b, {r: a-b}.r][2]", 9, 0);
 }
+
+/// A key that is a string in another form than FEEL reads a name is the name its tokens are
+/// (DMN 1.6 clause 10.3.1.4): in the literal, after a dot and in a filter; the key stays as it
+/// is written.
+#[test]
+fn a_string_key_in_another_form_is_read_by_its_name() {
+  let scope = &te_scope("{}");
+  te_number(false, scope, r#"{"Date - Time": 4}.Date - Time"#, 4, 0);
+  te_number(false, scope, r#"{"Date - Time": 4}.Date-Time"#, 4, 0);
+  te_number(false, scope, r#"{"Date - Time": 4, r: Date - Time + 1}.r"#, 5, 0);
+  te_number(false, scope, r#"{r: Date-Time + 1, "Date - Time": 4}.r"#, 5, 0);
+  te_number(false, scope, r#"{"a  b": 1, c: a b}.c"#, 1, 0);
+  te_number(false, scope, r#"{"Date - Time": 4, f: function() Date - Time, r: f()}.r"#, 4, 0);
+  te_number(false, scope, r#"count([{"Net - Price": 5}][Net - Price > 1])"#, 1, 0);
+  te_number(false, scope, r#"context merge([{"Net - Price": 5}, {y: 1}]).Net - Price"#, 5, 0);
+  te_number(false, scope, r#"context put({"Net - Price": 5}, "a", 1).Net - Price"#, 5, 0);
+  // a key that only a value says is no name of the text: the text is read as it stands
+  te_number(false, scope, r#"get value(context([{key: "Net - Price", value: 5}]), "Net-Price")"#, 5, 0);
+  // the key is not changed
+  te_value(false, scope, r#"get entries({"Date - Time": 4})[1].key"#, r#""Date - Time""#);
+  te_value(false, scope, r#"string({"Date - Time": 4})"#, r#""{Date - Time: 4}""#);
+  te_number(false, scope, r#"get value({"Date - Time": 4}, "Date - Time")"#, 4, 0);
+  // an entry of the same text is found first
+  te_number(false, scope, r#"{"a b": 1, "a  b": 2}.a b"#, 1, 0);
+}

@@ -13,7 +13,7 @@ use std::borrow::Borrow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::ops::Bound;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, OnceLock};
 
 /// The entries of a context, in the order of their names, each name once.
@@ -153,6 +153,24 @@ impl fmt::Debug for FeelContextEntries {
   }
 }
 
+/// What an entry of a context is looked up by: a [Name] or its text.
+pub trait KeyText {
+  /// The text of the name.
+  fn key_text(&self) -> &str;
+}
+
+impl KeyText for Name {
+  fn key_text(&self) -> &str {
+    self.as_str()
+  }
+}
+
+impl KeyText for str {
+  fn key_text(&self) -> &str {
+    self
+  }
+}
+
 /// The FEEL context.
 ///
 /// A context remembers its nesting depth once it was read, until its entries change: every
@@ -177,6 +195,11 @@ pub struct FeelContext {
   /// The nesting depth of this context when it was read since the last change, 0 otherwise
   /// (a context is at least one level deep).
   depth: AtomicU32,
+  /// Whether a key of this context is written in another form than FEEL reads a name
+  /// ([crate::names::is_in_name_form]): then an entry that is not found by the text of a name
+  /// is searched by the tokens of its key. Said by whoever builds the context from keys that
+  /// are not FEEL's own ([FeelContext::note_key_forms]); an entry set later does not change it.
+  other_forms: AtomicBool,
 }
 
 /// The entries of a context that are read when the context is first used.
@@ -202,6 +225,7 @@ impl Clone for FeelContext {
       built,
       source: self.source.clone(),
       depth: AtomicU32::new(self.depth.load(Ordering::Relaxed)),
+      other_forms: AtomicBool::new(self.other_forms.load(Ordering::Relaxed)),
     }
   }
 }
@@ -260,6 +284,7 @@ impl FeelContext {
       built: OnceLock::from(entries),
       source: None,
       depth: AtomicU32::new(0),
+      other_forms: AtomicBool::new(false),
     }
   }
 
@@ -270,6 +295,7 @@ impl FeelContext {
       built: OnceLock::new(),
       source: Some(source),
       depth: AtomicU32::new(depth),
+      other_forms: AtomicBool::new(false),
     }
   }
 
@@ -294,6 +320,9 @@ impl FeelContext {
       Some(source) => {
         let mut context = source.build();
         context.entries();
+        if context.has_other_key_forms() {
+          self.other_forms.store(true, Ordering::Relaxed);
+        }
         context.built.take().unwrap_or_default()
       }
       None => FeelContextEntries::default(),
@@ -386,12 +415,48 @@ impl FeelContext {
     Self::default()
   }
 
-  /// Returns `true` if context contains an entry specified by **name** (a [Name] or its text).
-  pub fn contains_entry<Q: Ord + ?Sized>(&self, name: &Q) -> bool
+  /// Says that the keys of this context come from outside FEEL: when one of them is written in
+  /// another form than FEEL reads a name (`Date - Time` for the name `Date-Time`), an entry
+  /// that is not found by the text of a name is searched by the tokens of its key from now on.
+  /// The keys themselves stay as they are.
+  pub fn note_key_forms(&mut self) {
+    let other = self.entries().iter().any(|(name, _)| !crate::names::is_in_name_form(name.as_str()));
+    self.other_forms.store(other, Ordering::Relaxed);
+  }
+
+  /// Says what [FeelContext::note_key_forms] finds, for a context whose keys were looked at
+  /// already (the records of a list that share their names).
+  pub fn with_other_key_forms(self, other: bool) -> Self {
+    self.other_forms.store(other, Ordering::Relaxed);
+    self
+  }
+
+  /// Returns `true` when a key of this context is known to be written in another form than
+  /// FEEL reads a name ([FeelContext::note_key_forms]).
+  pub fn has_other_key_forms(&self) -> bool {
+    self.other_forms.load(Ordering::Relaxed)
+  }
+
+  /// The value of the entry that `name` reads: the entry of this text, or in a context with
+  /// keys in other forms the first entry whose key is this name.
+  #[inline]
+  fn find<Q: Ord + KeyText + ?Sized>(&self, name: &Q) -> Option<&Value>
   where
     Name: Borrow<Q>,
   {
-    self.entries().contains_key(name)
+    let entries = self.entries();
+    match entries.get(name) {
+      None if self.other_forms.load(Ordering::Relaxed) => entries.iter().find(|(key, _)| crate::names::is_name(key.as_str(), name.key_text())).map(|(_, value)| value),
+      found => found,
+    }
+  }
+
+  /// Returns `true` if context contains an entry specified by **name** (a [Name] or its text).
+  pub fn contains_entry<Q: Ord + KeyText + ?Sized>(&self, name: &Q) -> bool
+  where
+    Name: Borrow<Q>,
+  {
+    self.find(name).is_some()
   }
 
   /// Returns `true` if this [FeelContext] contains an entry specified by [QualifiedName].
@@ -401,7 +466,7 @@ impl FeelContext {
 
   /// Returns a value of an entry with specified name.
   pub fn get_entry(&self, name: &Name) -> Option<&Value> {
-    self.entries().get(name)
+    self.find(name)
   }
 
   /// Sets a value for specified entry name.
@@ -472,7 +537,7 @@ impl FeelContext {
 
   /// Returns `true` if [FeelContext] contains an entry with specified name, and the value is context.
   pub fn is_context(&self, name: &Name) -> bool {
-    matches!(self.entries().get(name), Some(Value::Context(_)))
+    matches!(self.find(name), Some(Value::Context(_)))
   }
 
   pub fn zip(&mut self, other: &FeelContext) {
@@ -513,7 +578,7 @@ impl FeelContext {
       return false;
     }
     let tail = &names[1..];
-    if let Some(value) = self.entries().get(&names[0]) {
+    if let Some(value) = self.find(&names[0]) {
       if tail.is_empty() {
         return true;
       }
@@ -579,12 +644,12 @@ impl FeelContext {
   /// number of names is not bounded by the host stack.
   pub fn search_deep(&self, names: &[Name]) -> Option<&Value> {
     let (first, rest) = names.split_first()?;
-    let mut value = self.entries().get(first)?;
+    let mut value = self.find(first)?;
     for name in rest {
       let Value::Context(ctx) = value else {
         return None;
       };
-      value = ctx.entries().get(name)?;
+      value = ctx.find(name)?;
     }
     Some(value)
   }

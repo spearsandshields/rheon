@@ -604,6 +604,9 @@ impl<'p> Vm<'p> {
               context.set_entry(&program.names[name as usize], value);
             }
           }
+          if program.layouts[layout as usize].other_forms {
+            context = context.with_other_key_forms(true);
+          }
           *self.slot(dst) = diagnostics::bound_depth(context.into());
         }
         Op::LoopOpen { record: _, info } => {
@@ -775,7 +778,7 @@ impl<'p> Vm<'p> {
     }
     let value = match self.below(name, text) {
       Some(value) => value,
-      None => match Bif::from_str(&text.to_string()) {
+      None => match Bif::from_str(text.as_str()) {
         Ok(bif) => Value::BuiltInFunction(bif),
         Err(_) => return kernels::free_name(text),
       },

@@ -155,8 +155,9 @@ fn the_keys_of_a_literal_of_several_tokens_are_found_by_one_pass() {
     keys("{ Profit  and   Loss : 1, a - b: 2, x.y: 3, that's it: 4}"),
     ["Profit and Loss", "a-b", "x.y", "that's it"]
   );
-  // a string key is no name of several tokens for the lexer; a key is read once per entry
-  assert_eq!(keys(r#"{"a b": 1, c d: "x: y, e f: 1"}"#), ["c d"]);
+  // a key that is a string is read by the name its text is; a key is read once per entry
+  assert_eq!(keys(r#"{"a b": 1, c d: "x: y, e f: 1"}"#), ["a b", "c d"]);
+  assert_eq!(keys(r#"{"Date - Time": 1, "a  b": 2, "one": 3, "1 a": 4, "a\"b c": 5}"#), ["Date-Time", "a b"]);
   // nested literals, parameters, lists and comments are passed over
   assert_eq!(
     keys("{a b: {c d: 1}, e f: g(h i: 1, j k: 2), l m: [n o, 1], /* p q: */ r s: 1 // t u: 2\n, v w: 3}"),

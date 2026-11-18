@@ -4487,6 +4487,36 @@ looked up only when a name in scope has its length (232).
     module, its answers and the npm packages are unchanged: no identity request differs.
     Tracker row PAR-25.
 
+272. **A text reaches a key whatever white space the key has between its tokens.** DMN 1.6
+    clause 10.3.1.4: a name is a list of tokens, and "a name like Phone Number with one space
+    in between the tokens is the same as Phone Number with several spaces". FEEL reads a name
+    in one form (its tokens joined by one space, none next to an additional name symbol), and
+    a key was found by its text only: the key `Date - Time` of a host could be read by no
+    text (`Date - Time` was a subtraction, null), only the key `Date-Time`; `a  b` could not
+    be read by `a b`. Now a key and a name are two things (the split of tracker row NAM-5): a
+    key is the text it was given, and a name finds the key whose tokens it is.
+    - `rheon_feel::names`: `is_in_name_form`, `name_form`, `is_name`, with the white space
+      of grammar rule 61 and the additional name symbols of rule 30.
+    - `FeelContext` knows whether one of its keys is written in another form
+      (`note_key_forms`, said by whoever builds a context from keys that are not FEEL's own;
+      `with_other_key_forms`, `has_other_key_forms`). Only then, and only when an entry is
+      not found by the text of the name, the entries are searched by their tokens. A context
+      of FEEL's own keys does one more test of a flag on a miss, nothing else.
+    - The wasm boundary says it for the contexts it reads (per object; the records of a list
+      that share their names once), a context literal for its keys that are strings, and
+      `context`, `context put` and `context merge` for their results.
+    - The parser's index of nested keys holds such keys by their name form too, and a key
+      that is a string of several tokens is a name of its literal by that form.
+    The key comes back as it was sent, in results and in `get entries`. Of two keys that are
+    one name the key of the same text is read, else the first in the order of the keys. Not
+    covered: the keys of DMN models (with the DMN layer), and a key that only a value says
+    at run time is no name of the text (`context put(c, "a - b", 1).a - b` subtracts).
+    Speed (wasm, V8, engine mode, two rounds against the commit before): formulas over a
+    context of 1,000 fields 1.02x the time (names-1000f, deep-path-1000f), the others within
+    1.5%; the key is looked at while it is read, and a key of ASCII without white space in
+    one pass over its bytes. Identity: no earlier request differs; the new request set
+    `key-forms.json` registers the rule. Tracker row NAM-8.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

@@ -834,7 +834,12 @@ fn syntax_error_messages_have_no_type_prefix() {
 #[test]
 fn context_keys_are_trimmed_but_inner_whitespace_is_kept() {
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "x", "context": {" x ": 1}}))["display"], "1");
-  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a b", "context": {"a  b": 1}}))["isNull"], true);
+  // the key keeps its inner white space, and the name `a b` reads it (a name is a list of tokens)
+  assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a b", "context": {"a  b": 1}}))["display"], "1");
+  assert_eq!(
+    eval_ok(json!({"op": "evaluate", "expression": "{r: x}.r", "context": {"x": {"a  b": 1}}}))["feel"],
+    "{a  b: 1}"
+  );
   // a trimmed key is the same name as the untrimmed one; the later entry in key order (" a" < "a") wins
   assert_eq!(eval_ok(json!({"op": "evaluate", "expression": "a", "context": {"a": 1, " a": 2}}))["display"], "1");
   // ("a" < "a "), also between other keys, in a nested context, and with several keys of one name
@@ -2364,6 +2369,63 @@ fn an_outline_can_have_the_types_of_its_names() {
     "context",
     "an outline is null, {\"type\": <type>}, {\"names\": {<name>: <outline>, …}} or {\"items\": <outline>}",
   );
+}
+
+/// A text reaches a key of the context whatever white space the key has between its tokens: a
+/// name is a list of tokens (DMN 1.6 clause 10.3.1.4). The key comes back as it was sent.
+#[test]
+fn a_key_in_another_form_than_feel_reads_a_name_is_found_by_its_name() {
+  let context = json!({
+    "Date - Time": 1, "a  b": 2, "Profit / Loss": 5, "Date": 10, "Time": 3,
+    "order": {"Net - Price": 7, "unit  count": 2},
+    "lines": [{"Net - Price": 5, "id": 1}, {"Net - Price": 1, "id": 2}],
+  });
+  let feel = |expression: &str| {
+    req(json!({"op": "evaluate", "expression": expression, "context": context}))["result"]["feel"]
+      .as_str()
+      .unwrap_or("?")
+      .to_string()
+  };
+  for (expression, expected) in [
+    ("Date - Time", "1"),
+    ("Date-Time", "1"),
+    ("Date  -  Time + 1", "2"),
+    ("a b", "2"),
+    ("a  b * 2", "4"),
+    ("Profit/Loss", "5"),
+    ("Profit / Loss", "5"),
+    ("Date - Time + Date - Time", "2"),
+    // after a dot and in a filter
+    ("order.Net - Price", "7"),
+    ("order.Net-Price * order.unit count", "14"),
+    ("lines[Net - Price > 1].id", "[1]"),
+    ("sum(lines.Net - Price)", "6"),
+    ("for l in lines return l.Net - Price", "[5, 1]"),
+    // the keys come back as they were sent
+    ("order", "{Net - Price: 7, unit  count: 2}"),
+    ("get entries(order)[1].key", "\"Net - Price\""),
+    ("{r: Date - Time}", "{r: 1}"),
+    ("get value(order, \"Net - Price\")", "7"),
+    // a string that is the name reads the key too
+    ("get value(order, \"Net-Price\")", "7"),
+    ("get value(order, \"Net Price\")", "null"),
+  ] {
+    assert_eq!(feel(expression), expected, "{expression}");
+  }
+  // unary tests, parse, syntax and complete read the same names
+  let response = req(json!({"op": "evaluate", "dialect": "unaryTests", "expression": "Date - Time, 5", "context": context, "input": 1}));
+  assert_eq!(response["result"]["feel"], "true");
+  let response = req(json!({"op": "syntax", "expression": "Date - Time + 1", "context": context, "tree": true}));
+  assert_eq!(response["nodes"][1], json!(["Name", 0, 11]), "{response}");
+  let response = req(json!({"op": "complete", "expression": "order.", "context": context}));
+  let labels: Vec<&str> = response["items"].as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+  assert_eq!(labels, ["Net - Price", "unit  count"]);
+  // a context given as FEEL text, with keys that are strings
+  let response = req(json!({"op": "evaluate", "expression": "Net - Price + 1", "contextFormat": "feel", "context": "{\"Net - Price\": 5}"}));
+  assert_eq!(response["result"]["feel"], "6");
+  // a key in the form of a name is read as before, and a key of the same text first
+  let response = req(json!({"op": "evaluate", "expression": "[a b, Date-Time]", "context": {"a b": 1, "a  b": 2, "Date-Time": 3, "Date - Time": 4}}));
+  assert_eq!(response["result"]["feel"], "[1, 3]");
 }
 
 /// `complete` answers at every cursor of a text, whole or broken, also with characters of

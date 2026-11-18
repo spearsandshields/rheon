@@ -597,6 +597,9 @@ struct Shape {
   /// The names in ascending order, each once: one list for all the objects with these keys.
   /// Empty for the outermost object, which takes no names.
   sorted: Option<std::sync::Arc<[Name]>>,
+  /// Whether a key is written in another form than FEEL reads a name (see
+  /// [FeelContext::note_key_forms]).
+  other_forms: bool,
 }
 
 /// Reads JSON text into FEEL values. It accepts only JSON that `serde_json` accepts: what it
@@ -831,6 +834,8 @@ impl<'a, 'w> Reader<'a, 'w> {
     // whether the keys so far are those of the object read before at this depth, in its order:
     // while they are, only the values are kept, and the names are those of that object
     let mut same = self.shapes[level].sorted.is_some();
+    // whether a key of this object is written in another form than FEEL reads a name
+    let mut other_forms = false;
     loop {
       self.skip_white();
       let key = self.read_string()?;
@@ -846,10 +851,13 @@ impl<'a, 'w> Reader<'a, 'w> {
           self.values.push(value);
         } else {
           same = false;
+          // the keys before this one are those of the object before
+          other_forms = self.shapes[level].other_forms || !rheon_feel::names::is_in_name_form(&key);
           self.name_values(level, first_value);
           self.entries.push((Name::from(&*key), value));
         }
       } else {
+        other_forms |= !rheon_feel::names::is_in_name_form(&key);
         self.entries.push((Name::from(&*key), value));
       }
       match self.peek() {
@@ -885,12 +893,13 @@ impl<'a, 'w> Reader<'a, 'w> {
           self.unordered_values.clear();
           values
         };
-        return Ok(FeelContext::from_shared_names(names.clone(), values));
+        return Ok(FeelContext::from_shared_names(names.clone(), values).with_other_key_forms(shape.other_forms));
       }
       // fewer keys than the object before
+      other_forms = self.shapes[level].other_forms;
       self.name_values(level, first_value);
     }
-    self.remember_shape(level, first_entry);
+    self.remember_shape(level, first_entry, other_forms);
     if !self.shapes[level].ascending {
       // the warnings would have to follow the entries into the order of the keys
       if self.warnings.len() > first_warning {
@@ -909,17 +918,18 @@ impl<'a, 'w> Reader<'a, 'w> {
     // the entries are in ascending order of their names now, each name once
     if first_entry == 0 && self.entries.len() > DIRECT_ENTRIES {
       // the outermost object takes the buffer as it is, without a copy of its entries
-      return Ok(FeelContext::from_ascending_entries(std::mem::take(&mut self.entries)));
+      return Ok(FeelContext::from_ascending_entries(std::mem::take(&mut self.entries)).with_other_key_forms(other_forms));
     }
     // the first object with its keys at its depth shares the names with those after it
     if let Some(names) = &self.shapes[level].sorted
       && names.len() == self.entries.len() - first_entry
     {
+      let other_forms = self.shapes[level].other_forms;
       let values = self.entries.drain(first_entry..).map(|entry| entry.1).collect();
-      return Ok(FeelContext::from_shared_names(names.clone(), values));
+      return Ok(FeelContext::from_shared_names(names.clone(), values).with_other_key_forms(other_forms));
     }
     let entries = self.entries.drain(first_entry..);
-    Ok(if entries.len() <= DIRECT_ENTRIES {
+    let context = if entries.len() <= DIRECT_ENTRIES {
       let mut context = FeelContext::default();
       for (name, value) in entries {
         context.insert(name, value);
@@ -927,7 +937,8 @@ impl<'a, 'w> Reader<'a, 'w> {
       context
     } else {
       FeelContext::from_ascending_entries(entries)
-    })
+    };
+    Ok(context.with_other_key_forms(other_forms))
   }
 
   /// Moves the values from `first` on, which were kept without names, to the entries, each
@@ -940,7 +951,7 @@ impl<'a, 'w> Reader<'a, 'w> {
   /// Remembers the keys of the object whose entries start at `first` as the shape of `level`:
   /// their names, whether they are ascending, and the order that makes them so, which keeps
   /// the last of the entries with one key.
-  fn remember_shape(&mut self, level: usize, first: usize) {
+  fn remember_shape(&mut self, level: usize, first: usize, other_forms: bool) {
     let entries = &self.entries[first..];
     let shape = &mut self.shapes[level];
     shape.names.clear();
@@ -949,6 +960,7 @@ impl<'a, 'w> Reader<'a, 'w> {
       shape.names.extend(entries.iter().map(|entry| entry.0.clone()));
     }
     shape.ascending = entries.windows(2).all(|pair| pair[0].0 < pair[1].0);
+    shape.other_forms = other_forms;
     shape.order.clear();
     if !shape.ascending {
       shape.order.extend(0..entries.len());

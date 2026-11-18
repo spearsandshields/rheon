@@ -35,6 +35,12 @@ pub(crate) fn order(entries: &[AstNode], count: usize) -> (Vec<usize>, Vec<bool>
       _ => values.push(None),
     }
   }
+  // the keys that are written in another form than FEEL reads a name (strings), by that name
+  let aliases: Vec<(Name, usize)> = keys
+    .iter()
+    .filter(|(name, _)| !rheon_feel::names::is_in_name_form(name.as_str()))
+    .map(|(name, index)| (Name::from(rheon_feel::names::name_form(name.as_str())), *index))
+    .collect();
   // the entries each entry reads, in ascending order, without itself
   let needs: Vec<Vec<usize>> = values
     .iter()
@@ -42,6 +48,7 @@ pub(crate) fn order(entries: &[AstNode], count: usize) -> (Vec<usize>, Vec<bool>
     .map(|(index, value)| {
       let mut walk = Walk {
         keys: &keys,
+        aliases: &aliases,
         bound: vec![],
         found: vec![],
       };
@@ -108,6 +115,8 @@ fn reaches_itself(start: usize, needs: &[Vec<usize>]) -> bool {
 /// The walk over the value of an entry that finds the keys of the literal it reads.
 struct Walk<'a, 'k> {
   keys: &'k BTreeMap<&'a Name, usize>,
+  /// The keys written in another form, by the name they are.
+  aliases: &'k [(Name, usize)],
   /// The names that a construct around the position binds: they are not the keys.
   bound: Vec<&'a Name>,
   found: Vec<usize>,
@@ -115,10 +124,13 @@ struct Walk<'a, 'k> {
 
 impl<'a> Walk<'a, '_> {
   fn read(&mut self, name: &'a Name) {
-    if !self.bound.contains(&name)
-      && let Some(&index) = self.keys.get(name)
-    {
+    if self.bound.contains(&name) {
+      return;
+    }
+    if let Some(&index) = self.keys.get(name) {
       self.found.push(index);
+    } else if let Some((_, index)) = self.aliases.iter().find(|(alias, _)| alias == name) {
+      self.found.push(*index);
     }
   }
 

@@ -1454,10 +1454,16 @@ pub(crate) fn literal_keys(input: &str, open: usize) -> Vec<Name> {
       b')' | b']' => brackets -= 1,
       b',' if braces == 1 && brackets == 0 => entry = Some(position + 1),
       b':' if braces == 1 && brackets == 0 => {
-        if let Some(start) = entry.take()
-          && let Some(name) = key_of_several_tokens(&input[start..position])
-        {
-          keys.push(name);
+        if let Some(start) = entry.take() {
+          let key = input[start..position].trim_matches(is_whitespace);
+          // a key that is a string without an escape is read by the name its text is
+          let key = match key.strip_prefix('"').and_then(|key| key.strip_suffix('"')) {
+            Some(text) if !text.contains(['"', '\\']) => text,
+            _ => key,
+          };
+          if let Some(name) = key_of_several_tokens(key) {
+            keys.push(name);
+          }
         }
       }
       _ => {}

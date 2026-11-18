@@ -4,10 +4,11 @@
 use crate::composite::{NameTree, contains_composite, nested_prefix};
 use crate::scope::{Lengths, first_word, first_word_bound};
 use rheon_feel::context::FeelContext;
+use rheon_feel::names::{is_in_name_form, name_form};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
 use std::cell::{OnceCell, RefCell};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr;
 
 /// The names in scope of an input context, indexed without copying the input context: the
@@ -60,6 +61,9 @@ struct Keys<'a> {
   /// Whether a list of two or more items was taken as a list of items of one type without
   /// comparing them. Without one, every name is certain and every node of `item_nodes` decided.
   undecided: bool,
+  /// The keys at depth one or more that are written in another form than FEEL reads a name, in
+  /// that form ([rheon_feel::names::name_form]): of the contexts that say they have such keys.
+  other_forms: HashSet<String>,
   /// The lengths in bytes of the keys at any depth, those that are not decided included.
   lengths: Lengths,
   /// Length in bytes of the longest key of `names` that is longer than its first word ([first_word]).
@@ -262,7 +266,7 @@ impl<'a> FrameIndex<'a> {
       return true;
     }
     match self.keys().names.get(name) {
-      None => false,
+      None => self.keys().other_forms.contains(name),
       Some(true) => true,
       // only lists that are not decided hold the name
       Some(false) => self.decided().names.contains_key(name),
@@ -363,6 +367,7 @@ impl<'a> Keys<'a> {
     work!(IndexBuilds, 1);
     let mut index = Self {
       names: HashMap::new(),
+      other_forms: HashSet::new(),
       undecided: false,
       lengths: Lengths::default(),
       max_longer: 0,
@@ -375,19 +380,30 @@ impl<'a> Keys<'a> {
     let mut stack: Vec<(Node<'a>, usize, bool)> = vec![];
     // the longest prefix each shared context was scheduled with, by its address
     let mut scheduled = Scheduled::default();
+    let other_forms = top.has_other_key_forms();
     for (name, value) in top.iter() {
       let key = name.as_str();
       index.add_key_length(key.len(), 0);
+      // a key in another form is looked up by its name, which has another length
+      if other_forms && !is_in_name_form(key) {
+        index.add_key_length(name_form(key).len(), 0);
+      }
       index.push_value(value, nested_prefix(0, key), true, decide, &mut stack, &mut scheduled);
     }
     while let Some((node, prefix, certain)) = stack.pop() {
       match node {
         Node::Context(ctx) => {
           work!(IndexContexts, 1);
+          let other_forms = ctx.has_other_key_forms();
           for (name, value) in ctx.iter() {
             let key = name.as_str();
             index.add_name(key, certain);
             index.add_nested_key_length(key, prefix);
+            if other_forms && !is_in_name_form(key) {
+              let form = name_form(key);
+              index.add_nested_key_length(&form, prefix);
+              index.other_forms.insert(form);
+            }
             index.push_value(value, nested_prefix(prefix, key), certain, decide, &mut stack, &mut scheduled);
           }
         }

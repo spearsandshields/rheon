@@ -147,12 +147,15 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
   let direct = map.len() <= DIRECT_ENTRIES;
   let mut ctx = FeelContext::default();
   let mut entries = Vec::with_capacity(if direct { 0 } else { map.len() });
+  // the keys come from the host: a key in another form than FEEL reads a name is found by its name
+  let mut other_forms = false;
   for (key, value) in map {
     let (name, untrimmed_key) = if key.trim().len() == key.len() {
       (Name::from(key), None)
     } else {
       (Name::from(key.as_str()), Some(key))
     };
+    other_forms |= !rheon_feel::names::is_in_name_form(name.as_str());
     if name.is_empty() {
       let context = Path::Root("context");
       return Err(format!("{}: empty context key", arg(if path.chars() == 0 { &context } else { path })));
@@ -165,7 +168,8 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
       entries.push((name, value));
     }
   }
-  Ok(if direct { ctx } else { entries.into_iter().collect() })
+  let ctx: FeelContext = if direct { ctx } else { entries.into_iter().collect() };
+  Ok(ctx.with_other_key_forms(other_forms))
 }
 
 /// Evaluates a FEEL context literal (e.g. `{a: 1, "Grace's age": 40}`) into a FEEL context,

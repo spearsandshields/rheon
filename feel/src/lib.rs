@@ -14,7 +14,7 @@ mod errors;
 mod evaluator;
 mod function;
 pub mod message;
-mod names;
+pub mod names;
 mod qualified_names;
 mod scope;
 pub mod signatures;
