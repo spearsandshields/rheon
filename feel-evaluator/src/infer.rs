@@ -58,7 +58,7 @@ fn value_type(value: &Value, depth: usize) -> FeelType {
 /// type of FEEL.
 pub fn type_of_text(text: &str) -> Option<FeelType> {
   let scope = FeelScope::default();
-  let node = rheon_feel_parser::parse_expression(&scope, &format!("null instance of {text}"), false).ok()?;
+  let node = rheon_feel_parser::parse_expression(&scope, &format!("null instance of {text}")).ok()?;
   match &node {
     AstNode::InstanceOf(value, written) if matches!(value.as_ref(), AstNode::Null) => type_written(written),
     _ => None,

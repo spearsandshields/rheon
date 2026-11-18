@@ -4469,6 +4469,24 @@ looked up only when a name in scope has its length (232).
     package has `outline({ types: true })` and the type in `Outline`. Identity: new requests
     only. Tracker row EDT-15.
 
+271. **One parse API.** The parser crate had twelve entry points, each with a `trace` flag
+    that nothing read since the hand-written parser (item 247), and a public `ParsingScope`
+    that no other crate used. It now has: `parse_expression(scope, text)` (grammar rule 1),
+    `parse_unary_tests(scope, text)` (rule 15), `parse_range_literal(text)` (rule 66: its
+    endpoints are literals, so it takes no scope), `parse_context(scope, text)` (a boxed
+    expression, for the contexts of tests and hosts), `parse_name(scope, text)` and
+    `parse_longest_name(text)` for names that are being declared, and for editors
+    `parse_tolerant` and `format`. Gone: `parse_textual_expression`,
+    `parse_textual_expressions`, `parse_simple_expression`, `parse_simple_expressions`,
+    `parse_simple_value` and `parse_boxed_expression` (their callers were tests; an expression
+    is what they parse), the `trace` argument of every function, and `ParsingScope` from the
+    public API. The four start rules that only the removed functions reached are gone from
+    the parser, the lexer and the tokens; the recorded parser outcomes are rewritten for the
+    five that remain (their outcomes are unchanged). Rust API: breaking for callers of the
+    crate (the next version of `rheon-feel-parser` is not compatible with 0.8). The wasm
+    module, its answers and the npm packages are unchanged: no identity request differs.
+    Tracker row PAR-25.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

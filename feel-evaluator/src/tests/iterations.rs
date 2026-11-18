@@ -88,7 +88,7 @@ fn collected_in(scope: &str, states: &[State], body: &str) -> String {
     State::Interval(name, ..) | State::List(name, _) | State::Variable(name, _) => format!("{name}: null"),
   });
   let names = te_scope(&format!("{{{}}}", names.collect::<Vec<_>>().join(", ")));
-  let node = rheon_feel_parser::parse_expression(&names, body, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&names, body).unwrap();
   let evaluator = build_evaluator(&node);
   let Value::List(values) = iteration(states).collect(scope, &evaluator) else {
     panic!("expected a list")

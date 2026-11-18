@@ -57,5 +57,5 @@ fn _0001() {
 #[test]
 fn _0002() {
   let scope = scope!();
-  assert!(Parser::new(&scope, List, "[1,2,3]", false).parse().is_err());
+  assert!(Parser::new(&scope, List, "[1,2,3]").parse().is_err());
 }

@@ -148,6 +148,7 @@ impl ParsingScope<'_> {
   }
 
   /// Puts a context on the top of the stack.
+  #[cfg(test)]
   pub fn push(&self, ctx: ParsingContext) {
     let (max_plain, max_flattened) = ctx.key_lengths();
     self.grow_local_lengths(max_plain, max_flattened);
@@ -190,6 +191,7 @@ impl ParsingScope<'_> {
   }
 
   /// Sets a context under a specified name in the context placed on the top of the stack.
+  #[cfg(test)]
   pub fn set_context(&self, name: Name, ctx: ParsingContext) {
     if let Some(top) = self.top_mut().last_mut() {
       // the bounds cover the other entries of the top context already: each was added by an

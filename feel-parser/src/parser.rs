@@ -533,7 +533,7 @@ fn wrap(lhs: &mut AstNode, node: impl FnOnce(Box<AstNode>) -> AstNode) {
 impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// Creates a new parser. The parser has no trace: `_trace` is kept for the callers of the
   /// table-driven parser that it replaced.
-  pub fn new(scope: &'parser ParsingScope<'scope>, start_token_type: TokenType, input: &'parser str, _trace: bool) -> Self {
+  pub fn new(scope: &'parser ParsingScope<'scope>, start_token_type: TokenType, input: &'parser str) -> Self {
     Self {
       scope,
       input,
@@ -646,25 +646,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       Some(TokenType::StartExpression) => self.expression(LOWEST)?,
       Some(TokenType::StartBoxedExpression) => self.start_boxed_expression()?,
       Some(TokenType::StartTextualExpression) => self.textual_expression()?,
-      Some(TokenType::StartTextualExpressions) => {
-        let mut items = vec![self.textual_expression()?];
-        while self.kind == T::Comma {
-          self.bump();
-          items.push(self.textual_expression()?);
-        }
-        AstNode::ExpressionList(items)
-      }
       Some(TokenType::StartUnaryTests) => self.start_unary_tests()?,
-      Some(TokenType::StartSimpleExpression) => self.simple_expression()?,
-      Some(TokenType::StartSimpleExpressions) => {
-        let mut items = vec![self.simple_expression()?];
-        while self.kind == T::Comma {
-          self.bump();
-          items.push(self.simple_expression()?);
-        }
-        AstNode::ExpressionList(items)
-      }
-      Some(TokenType::StartSimpleValue) => self.start_simple_value()?,
       Some(TokenType::StartRangeLiteral) => self.start_range_literal()?,
       _ => return self.error(),
     };
@@ -967,35 +949,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     if self.made == Made::Boxed { self.error() } else { Ok(node) }
   }
 
-  /// A simple expression: an arithmetic expression, a simple literal or a qualified name.
-  fn simple_expression(&mut self) -> Result<AstNode> {
-    if self.look(At::Start)? == T::Name {
-      let name = self.name(At::Start)?;
-      return match self.look(At::AfterOperand)? {
-        T::Dot => self.qualified_name(name),
-        T::Eof | T::Comma => Ok(AstNode::QualifiedName(vec![AstNode::QualifiedNameSegment(name)])),
-        _ => {
-          self.enter()?;
-          let mut node = AstNode::Name(name);
-          self.made = Made::Textual;
-          self.infix(&mut node, 0, LOWEST, false)?;
-          self.nesting -= 1;
-          if matches!(self.made, Made::Arithmetic | Made::Negation) {
-            Ok(node)
-          } else {
-            self.error()
-          }
-        }
-      };
-    }
-    let node = self.expression(LOWEST)?;
-    if matches!(self.made, Made::Arithmetic | Made::Negation | Made::SimpleLiteral) {
-      Ok(node)
-    } else {
-      self.error()
-    }
-  }
-
   /// The segments of a qualified name after its first name, which a dot follows.
   fn qualified_name(&mut self, first: Name) -> Result<AstNode> {
     let mut segments = vec![AstNode::QualifiedNameSegment(first)];
@@ -1005,23 +958,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       segments.push(AstNode::QualifiedNameSegment(self.name(At::Start)?));
     }
     Ok(AstNode::QualifiedName(segments))
-  }
-
-  /// A simple value: a qualified name or a simple literal.
-  fn start_simple_value(&mut self) -> Result<AstNode> {
-    match self.look(At::Start)? {
-      T::Name => {
-        let name = self.name(At::Start)?;
-        self.qualified_name(name)
-      }
-      T::Numeric | T::String | T::Boolean | T::At | T::NameDateTime => {
-        self.enter()?;
-        let node = self.operand()?;
-        self.nesting -= 1;
-        Ok(node)
-      }
-      _ => self.error(),
-    }
   }
 
   /// Unary tests: `-`, `not(` tests `)` or tests.
@@ -2077,7 +2013,7 @@ mod stack_tests {
           let top = 0u8;
           let top = &top as *const u8 as usize;
           STACK_LOW.with(|low| low.set(usize::MAX));
-          let result = Parser::new(&scope, TokenType::StartExpression, &input, false).parse();
+          let result = Parser::new(&scope, TokenType::StartExpression, &input).parse();
           assert!(result.is_ok(), "{name}");
           let low = STACK_LOW.with(|low| low.get());
           println!("STACK {name}: {} bytes per level of {levels}", (top - low) / levels);

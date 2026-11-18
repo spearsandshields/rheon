@@ -62,7 +62,7 @@ fn inputs() -> FeelScope {
 
 /// The value of `text`, or the text of the abort that stopped its evaluation.
 fn eval(scope: &FeelScope, text: &str) -> Result<Value, String> {
-  let node = rheon_feel_parser::parse_expression(scope, text, false).unwrap_or_else(|error| panic!("{text}: {error}"));
+  let node = rheon_feel_parser::parse_expression(scope, text).unwrap_or_else(|error| panic!("{text}: {error}"));
   evaluate(scope, &node).into_result().map_err(|abort| abort.to_string())
 }
 

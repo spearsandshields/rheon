@@ -11,7 +11,7 @@ use rheon_feel::diagnostics;
 /// text of the value and the number of errors recorded.
 fn answer(text: &str, context: &str) -> (String, usize) {
   let scope = if context.is_empty() { FeelScope::default() } else { te_scope(context) };
-  let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(&scope, text, false).unwrap());
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(&scope, text).unwrap());
   let (value, diagnostics) = diagnostics::collect(|| evaluator(&scope));
   (value.to_string(), diagnostics.count)
 }

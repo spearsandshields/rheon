@@ -371,7 +371,7 @@ fn _0015() {
   let work = |steps: usize| {
     let input = format!("{{a:1}}{}", ".a".repeat(steps));
     crate::tests::work::take();
-    let node = Parser::new(&scope!(), StartExpression, &input, false).parse().unwrap();
+    let node = Parser::new(&scope!(), StartExpression, &input).parse().unwrap();
     assert!(matches!(node, AstNode::Path(_, _)), "expected a path expression");
     crate::tests::work::take()
   };

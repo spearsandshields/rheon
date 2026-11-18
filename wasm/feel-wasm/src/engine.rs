@@ -390,8 +390,8 @@ fn prepare_scope(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, w
 
 fn parse_node(scope: &FeelScope, dialect: Dialect, expression: &str) -> Result<AstNode, Failure> {
   let parsed = match dialect {
-    Dialect::Expression => rheon_feel_parser::parse_expression(scope, expression, false),
-    Dialect::UnaryTests => rheon_feel_parser::parse_unary_tests(scope, expression, false),
+    Dialect::Expression => rheon_feel_parser::parse_expression(scope, expression),
+    Dialect::UnaryTests => rheon_feel_parser::parse_unary_tests(scope, expression),
   };
   // the message is the parser's; where and what the errors are comes from the tolerant parse
   let node = parsed.map_err(|e| {

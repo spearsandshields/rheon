@@ -31,7 +31,7 @@ fn a_long_number_is_in_scientific_notation() {
 fn the_type_of_a_wide_context_is_a_preview() {
   let entries = (0..1000).map(|i| format!("entry{i}: {i}")).collect::<Vec<_>>().join(", ");
   let expression = format!("abs({{{entries}}})");
-  let Value::Null(Some(reason)) = eval(&scope!(), &rheon_feel_parser::parse_textual_expression(&scope!(), &expression, false).unwrap()) else {
+  let Value::Null(Some(reason)) = eval(&scope!(), &rheon_feel_parser::parse_expression(&scope!(), &expression).unwrap()) else {
     panic!("a null with a reason")
   };
   assert!(

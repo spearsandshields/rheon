@@ -626,7 +626,7 @@ fn a_list_of_shared_contexts_is_indexed_once() {
     input.set_entry(&Name::from("l"), Value::List(vec![doubled(depth), doubled(depth)].into()));
     let scope = FeelScope::from(input);
     super::work::take();
-    let node = crate::parse_expression(&scope, "l.a.leaf + 1", false).unwrap();
+    let node = crate::parse_expression(&scope, "l.a.leaf + 1").unwrap();
     let work = super::work::take();
     assert!(node.trace().contains("`leaf`"), "{}", node.trace());
     let contexts = work.get("index contexts").copied().unwrap_or(0);
@@ -681,7 +681,7 @@ fn a_context_in_a_shared_list_is_indexed_once() {
     input.set_entry(&Name::from("x"), doubled_lists(depth));
     let scope = FeelScope::from(input);
     super::work::take();
-    let node = crate::parse_expression(&scope, "x.a.leaf + 1", false).unwrap();
+    let node = crate::parse_expression(&scope, "x.a.leaf + 1").unwrap();
     let work = super::work::take();
     assert!(node.trace().contains("`leaf`"), "{}", node.trace());
     let contexts = work.get("index contexts").copied().unwrap_or(0);
@@ -699,7 +699,7 @@ fn a_shared_context_is_indexed_once() {
     input.set_entry(&Name::from("x"), doubled(depth));
     let scope = FeelScope::from(input);
     super::work::take();
-    let node = crate::parse_expression(&scope, "x.a.leaf + 1", false).unwrap();
+    let node = crate::parse_expression(&scope, "x.a.leaf + 1").unwrap();
     let work = super::work::take();
     assert!(node.trace().contains("`leaf`"), "{}", node.trace());
     let contexts = work.get("index contexts").copied().unwrap_or(0);

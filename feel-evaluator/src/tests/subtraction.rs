@@ -259,7 +259,7 @@ fn _0043() {
   // message would give 2^16 - 1.
   let scope = &te_scope(r#"{a: "x"}"#);
   let expression = format!("a{}", " - 1".repeat(16));
-  let node = rheon_feel_parser::parse_expression(scope, &expression, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(scope, &expression).unwrap();
   let evaluator = build_evaluator(&node);
   let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(scope));
   assert!(value.is_null());

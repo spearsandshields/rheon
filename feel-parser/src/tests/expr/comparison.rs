@@ -310,7 +310,7 @@ fn comparisons_are_one_left_associative_level() {
   for name in ["a", "b", "c", "x"] {
     scope.set_entry_name(name.into());
   }
-  let tree = |input: &str| match Parser::new(&scope, StartExpression, input, false).parse() {
+  let tree = |input: &str| match Parser::new(&scope, StartExpression, input).parse() {
     Ok(node) => node.trace(),
     Err(reason) => panic!("{input}: {reason}"),
   };

@@ -62,7 +62,7 @@ fn build_allowed_values_evaluator(item_definition: &DefItemDefinition) -> Result
     && let Some(text) = unary_tests.text()
   {
     let scope = FeelScope::default();
-    let unary_tests_node = rheon_feel_parser::parse_unary_tests(&scope, text, false)?;
+    let unary_tests_node = rheon_feel_parser::parse_unary_tests(&scope, text)?;
     let node = AstNode::In(Box::new(AstNode::Name("?".into())), Box::new(unary_tests_node));
     av_evaluator = Some(rheon_feel_evaluator::prepare(&node));
   }

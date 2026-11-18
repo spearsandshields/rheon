@@ -279,7 +279,7 @@ pub fn build_invocation_evaluator(scope: &FeelScope, invocation: &Invocation, mo
 
 pub fn build_literal_expression_evaluator(scope: &FeelScope, literal_expression: &LiteralExpression, model_builder: &ModelBuilder) -> Result<(Evaluator, Closure)> {
   let text = literal_expression.text().as_ref().ok_or_else(err_empty_literal_expression)?;
-  let node = rheon_feel_parser::parse_expression(scope, text, false)?;
+  let node = rheon_feel_parser::parse_expression(scope, text)?;
   let closure = ClosureBuilder::from_node(&node);
   let dialect = model_builder.dialect(literal_expression.namespace(), literal_expression.expression_language().as_deref());
   let literal_expression_evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, dialect);
@@ -364,7 +364,7 @@ pub fn build_filter_evaluator(scope: &FeelScope, filter: &Filter, model_builder:
 
 pub fn build_for_evaluator(scope: &FeelScope, r#for: &For, model_builder: &ModelBuilder) -> Result<(Evaluator, Closure)> {
   // get the name of the iterator variable
-  let iterator_variable = parse_name(scope, r#for.iterator_variable(), false)?;
+  let iterator_variable = parse_name(scope, r#for.iterator_variable())?;
   // prepare evaluator of values the loop should iterate over
   let (in_evaluator, _) = build_expression_instance_evaluator(scope, r#for.in_expression().value(), model_builder)?;
   // prepare context with the names of iteration variables
@@ -390,7 +390,7 @@ pub fn build_for_evaluator(scope: &FeelScope, r#for: &For, model_builder: &Model
 
 pub fn build_every_evaluator(scope: &FeelScope, every: &Every, model_builder: &ModelBuilder) -> Result<(Evaluator, Closure)> {
   // get the name of the iterator variable
-  let iterator_variable = parse_name(scope, every.iterator_variable(), false)?;
+  let iterator_variable = parse_name(scope, every.iterator_variable())?;
   // prepare evaluator of values the loop should iterate over
   let (in_evaluator, _) = build_expression_instance_evaluator(scope, every.in_expression().value(), model_builder)?;
   // prepare context with the names of iteration variables
@@ -408,7 +408,7 @@ pub fn build_every_evaluator(scope: &FeelScope, every: &Every, model_builder: &M
 
 pub fn build_some_evaluator(scope: &FeelScope, some: &Some, model_builder: &ModelBuilder) -> Result<(Evaluator, Closure)> {
   // get the name of the iterator variable
-  let iterator_variable = parse_name(scope, some.iterator_variable(), false)?;
+  let iterator_variable = parse_name(scope, some.iterator_variable())?;
   // prepare evaluator of values the loop should iterate over
   let (in_evaluator, _) = build_expression_instance_evaluator(scope, some.in_expression().value(), model_builder)?;
   // prepare context with the names of iteration variables

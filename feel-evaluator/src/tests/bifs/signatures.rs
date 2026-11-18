@@ -16,7 +16,7 @@ const REFUSALS: [&str; 4] = [
 /// The message of a function that does not take the parameters of the invocation.
 fn refusal(text: &str) -> Option<String> {
   let scope = FeelScope::default();
-  let node = rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap_or_else(|reason| panic!("{text}: {reason}"));
+  let node = rheon_feel_parser::parse_expression(&scope, text).unwrap_or_else(|reason| panic!("{text}: {reason}"));
   match super::super::eval(&scope, &node) {
     Value::Null(Some(message)) if REFUSALS.iter().any(|refusal| message.contains(refusal)) => Some(format!("{text}: {message}")),
     _ => None,
@@ -130,7 +130,7 @@ fn a_given_parameter_is_never_reported_as_not_found() {
 #[test]
 fn a_parameter_of_another_type_is_named_with_its_type() {
   let scope = FeelScope::default();
-  let node = rheon_feel_parser::parse_textual_expression(&scope, "sum(list: 1)", false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope, "sum(list: 1)").unwrap();
   assert_eq!(
     Value::Null(Some("[core::sum] invalid argument type, expected list, actual type is number".to_string())),
     super::super::eval(&scope, &node)

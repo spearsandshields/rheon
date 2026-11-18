@@ -429,7 +429,7 @@ impl<'a> Formatter<'a> {
 /// names of the text to its scope.
 pub(crate) fn format<'s>(scope: &dyn Fn() -> ParsingScope<'s>, input: &str, unary_tests: bool, width: usize) -> Formatted {
   let start = || if unary_tests { TokenType::StartUnaryTests } else { TokenType::StartExpression };
-  let syntax = Parser::new(&scope(), start(), input, false).parse_tolerant();
+  let syntax = Parser::new(&scope(), start(), input).parse_tolerant();
   if !syntax.diagnostics.is_empty() {
     return Formatted::Errors(syntax.diagnostics);
   }
@@ -440,7 +440,7 @@ pub(crate) fn format<'s>(scope: &dyn Fn() -> ParsingScope<'s>, input: &str, unar
   formatter.node(0, 0);
   let formatted = formatter.out;
   // the formatted text must be the same expression
-  let parse = |text: &str| -> Option<AstNode> { Parser::new(&scope(), start(), text, false).parse().ok().filter(|node| node.depth() <= MAX_DEPTH) };
+  let parse = |text: &str| -> Option<AstNode> { Parser::new(&scope(), start(), text).parse().ok().filter(|node| node.depth() <= MAX_DEPTH) };
   match (parse(input), parse(&formatted)) {
     (Some(before), Some(after)) if before == after => Formatted::Text(formatted),
     _other => {

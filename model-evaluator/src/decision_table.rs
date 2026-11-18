@@ -245,9 +245,9 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable, diale
   // parse input expressions and input values
   let mut input_expressions_and_values = vec![];
   for input_clause in decision_table.input_clauses() {
-    let input_expression = rheon_feel_parser::parse_expression(scope, &input_clause.input_expression, false)?;
+    let input_expression = rheon_feel_parser::parse_expression(scope, &input_clause.input_expression)?;
     let input_values = if let Some(input) = &input_clause.allowed_input_values {
-      let node = rheon_feel_parser::parse_unary_tests(scope, input, false)?;
+      let node = rheon_feel_parser::parse_unary_tests(scope, input)?;
       Some(node)
     } else {
       None
@@ -260,19 +260,19 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable, diale
   let mut default_output_values_nodes = vec![];
   for output_clause in decision_table.output_clauses() {
     if let Some(text) = &output_clause.allowed_output_values {
-      let node = rheon_feel_parser::parse_unary_tests(scope, text, false)?;
+      let node = rheon_feel_parser::parse_unary_tests(scope, text)?;
       output_values_nodes.push(Some(node));
     } else {
       output_values_nodes.push(None);
     }
     if let Some(text) = &output_clause.default_output_entry {
-      let node = rheon_feel_parser::parse_unary_tests(scope, text, false)?;
+      let node = rheon_feel_parser::parse_unary_tests(scope, text)?;
       default_output_values_nodes.push(Some(node));
     } else {
       default_output_values_nodes.push(None);
     }
     if let Some(name) = &output_clause.name {
-      component_names.push(rheon_feel_parser::parse_name(scope, name, false)?);
+      component_names.push(rheon_feel_parser::parse_name(scope, name)?);
     }
   }
   // parse all rules
@@ -281,7 +281,7 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable, diale
     // parse input clause
     let mut input_entries_evaluators = vec![];
     for (i, (input_expression, input_values)) in input_expressions_and_values.iter().enumerate() {
-      let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, &rule.input_entries[i].text, false)?;
+      let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, &rule.input_entries[i].text)?;
       if let Some(input_values_node) = input_values {
         let left = AstNode::In(Box::new(input_expression.clone()), Box::new(input_values_node.clone()));
         let right = AstNode::In(Box::new(input_expression.clone()), Box::new(input_entry_node));
@@ -295,7 +295,7 @@ fn parse_decision_table(scope: &FeelScope, decision_table: &DecisionTable, diale
     // parse output clause
     let mut output_entries_evaluators = vec![];
     for (i, output_values) in output_values_nodes.iter().enumerate() {
-      let output_entry_node = rheon_feel_parser::parse_expression(scope, &rule.output_entries[i].text, false)?;
+      let output_entry_node = rheon_feel_parser::parse_expression(scope, &rule.output_entries[i].text)?;
       if let Some(output_value_node) = output_values {
         let node = AstNode::Out(Box::new(output_entry_node), Box::new(output_value_node.clone()));
         output_entries_evaluators.push(rheon_feel_evaluator::prepare_with_dialect(&node, dialect));

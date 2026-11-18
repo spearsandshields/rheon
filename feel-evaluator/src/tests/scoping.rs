@@ -11,7 +11,7 @@ use rheon_feel::{FeelScope, diagnostics};
 /// listed and `count` errors counted.
 fn pin(text: &str, expected: &str, messages: &[&str], count: usize) {
   let scope = FeelScope::default();
-  let evaluator = crate::prepare(&rheon_feel_parser::parse_expression(&scope, text, false).unwrap());
+  let evaluator = crate::prepare(&rheon_feel_parser::parse_expression(&scope, text).unwrap());
   let (outcome, collected) = diagnostics::collect(|| crate::Session::new().run(|| evaluator(&scope)).into_result());
   let shown = match outcome {
     Ok(value) => value.to_string(),

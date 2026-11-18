@@ -7,7 +7,7 @@ use rheon_feel::{FeelType, Name};
 /// The text of the type of `text` in the context `context`.
 fn ty(context: &str, text: &str) -> String {
   let scope = te_scope(context);
-  let node = rheon_feel_parser::parse_expression(&scope, text, false).unwrap_or_else(|e| panic!("{text}: {e}"));
+  let node = rheon_feel_parser::parse_expression(&scope, text).unwrap_or_else(|e| panic!("{text}: {e}"));
   infer_type(&node, &scope, &[]).to_string()
 }
 
@@ -180,7 +180,7 @@ fn invocations_have_the_type_of_the_result() {
 #[test]
 fn names_bound_around_the_expression_have_the_types_given() {
   let scope = te_scope(INPUT);
-  let node = rheon_feel_parser::parse_expression(&scope, "x.price + n", false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope, "x.price + n").unwrap();
   let line = FeelType::Context([(Name::from("price"), FeelType::Number)].into());
   assert_eq!("number", infer_type(&node, &scope, &[(Name::from("x"), line.clone())]).to_string());
   // the innermost binding of a name is the one read
@@ -214,7 +214,7 @@ fn the_members_of_a_type_are_its_entries_or_properties() {
 fn a_deep_tree_is_typed_within_the_limit() {
   let scope = te_scope("{}");
   let text = format!("{}1{}", "[".repeat(400), "]".repeat(400));
-  let node = rheon_feel_parser::parse_expression(&scope, &text, false).unwrap();
+  let node = rheon_feel_parser::parse_expression(&scope, &text).unwrap();
   let text = infer_type(&node, &scope, &[]).to_string();
   assert!(text.starts_with("list<list<") && text.contains("Any"), "{}", &text[..40]);
 }

@@ -133,13 +133,13 @@ fn _0007() {
 #[test]
 fn _0008() {
   let scope = rheon_feel::FeelScope::default();
-  assert!(crate::parse_name(&scope, "5Cards", false).is_err());
+  assert!(crate::parse_name(&scope, "5Cards").is_err());
 }
 
 #[test]
 fn _0009() {
   let scope = rheon_feel::FeelScope::default();
-  assert!(crate::parse_name(&scope, "123.45", false).is_err());
+  assert!(crate::parse_name(&scope, "123.45").is_err());
 }
 
 #[test]
@@ -246,7 +246,7 @@ fn tree(names: &[&str], input: &str) -> std::string::String {
   for name in names {
     scope.set_entry_name((*name).into());
   }
-  match Parser::new(&scope, StartExpression, input, false).parse() {
+  match Parser::new(&scope, StartExpression, input).parse() {
     Ok(node) => node.trace(),
     Err(reason) => format!("{reason}"),
   }
@@ -362,11 +362,11 @@ fn declared_name_is_the_whole_text() {
     ("  spaced   name ", "spaced name"),
     ("x", "x"),
   ] {
-    assert_eq!(name, crate::parse_name(&scope, text, false).unwrap().as_str(), "{text}");
+    assert_eq!(name, crate::parse_name(&scope, text).unwrap().as_str(), "{text}");
     assert_eq!(name, crate::parse_longest_name(text).unwrap().as_str(), "{text}");
   }
   for text in ["1", "a(b)", "a, b", "[a]", "\"a\"", "", "a = b"] {
-    assert!(crate::parse_name(&scope, text, false).is_err(), "{text}");
+    assert!(crate::parse_name(&scope, text).is_err(), "{text}");
   }
 }
 
@@ -378,7 +378,7 @@ fn a_word_that_is_a_keyword_is_the_keyword_whatever_follows() {
   for name in ["x", "in-progress", "and/or", "if-flag", "iffy", "in1", "order", "format"] {
     scope.set_entry_name(name.into());
   }
-  let parse = |input: &str| Parser::new(&scope, StartExpression, input, false).parse();
+  let parse = |input: &str| Parser::new(&scope, StartExpression, input).parse();
   for input in [
     "x in[1]",
     "x in(1, 2)",
@@ -428,7 +428,7 @@ fn a_name_that_starts_with_item_is_read_whole() {
   for name in ["item count", "item-id"] {
     scope.set_entry_name(name.into());
   }
-  let tree = |input: &str| match Parser::new(&scope, StartExpression, input, false).parse() {
+  let tree = |input: &str| match Parser::new(&scope, StartExpression, input).parse() {
     Ok(node) => node.trace(),
     Err(reason) => panic!("{input}: {reason}"),
   };

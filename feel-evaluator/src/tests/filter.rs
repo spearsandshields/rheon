@@ -596,10 +596,10 @@ fn _0077() {
     "{y: item}.y != null",
   ];
   for list in lists {
-    let build = || build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+    let build = || build_evaluator(&rheon_feel_parser::parse_expression(scope, list).unwrap())(scope);
     let shared = build();
     for predicate in predicates {
-      let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(scope, predicate, false).unwrap());
+      let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(scope, predicate).unwrap());
       let depth = scope.depth();
       let over_shared = crate::FilterExpressionEvaluator::new().evaluate(scope, shared.clone(), &evaluator);
       assert_eq!(depth, scope.depth());
@@ -639,7 +639,7 @@ fn _0078() {
   });
   let lost = Value::Null(Some("internal error: the evaluation removed the item context of a filter".to_string()));
   for (item, special_context) in [("{item: 1, a: 2}", false), ("{a: 2}", true), ("3", true)] {
-    let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item, false).unwrap())(scope)].into());
+    let list = Value::List(vec![build_evaluator(&rheon_feel_parser::parse_expression(scope, item).unwrap())(scope)].into());
     let depth = scope.depth();
     assert_eq!(lost, crate::FilterExpressionEvaluator::new().evaluate(scope, list.clone(), &popping), "{item}");
     assert_eq!(depth, scope.depth(), "{item}");
@@ -679,7 +679,7 @@ fn _0079() {
   });
   let scope = &te_scope("{}");
   for list in ["[1, 2]", "[{a: 1}, {a: 2}]", "[{item: 1}, {item: 2}]"] {
-    let value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list, false).unwrap())(scope);
+    let value = build_evaluator(&rheon_feel_parser::parse_expression(scope, list).unwrap())(scope);
     let depth = scope.depth();
     assert_eq!(value, crate::FilterExpressionEvaluator::new().evaluate(scope, value.clone(), &writing), "{list}");
     assert_eq!(depth, scope.depth(), "{list}");

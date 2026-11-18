@@ -847,7 +847,7 @@ fn _0158() {
 fn _0159() {
   let null = |text: &str| {
     let scope = scope!();
-    let node = rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap();
+    let node = rheon_feel_parser::parse_expression(&scope, text).unwrap();
     assert!(matches!(eval(&scope, &node), Value::Null(_)), "{text}");
   };
   // `e1 in e2` with a single value is `e1 = e2` (DMN 1.6 Table 56, rule 49.c): values of

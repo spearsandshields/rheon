@@ -104,7 +104,7 @@ fn equality_of_shared_values_is_that_of_the_unshared_values() {
 fn list_scans_over_shared_values_answer_as_over_unshared_values() {
   use crate::bifs::core::{distinct_values, index_of, intersection, list_contains, union};
   let mut rng = Rng(0x2545_f491_4f6c_dd1d);
-  let in_list = build_evaluator(&rheon_feel_parser::parse_expression(&FeelScope::default(), "x in l", false).unwrap());
+  let in_list = build_evaluator(&rheon_feel_parser::parse_expression(&FeelScope::default(), "x in l").unwrap());
   let is_in = |x: &Value, l: &Value| {
     let mut ctx = FeelContext::default();
     ctx.set_entry(&Name::from("x"), x.clone());

@@ -1,88 +1,88 @@
 use super::*;
-use crate::{AstNode, ClosureBuilder, parse_context, parse_textual_expression, parse_unary_tests};
+use crate::{AstNode, ClosureBuilder, parse_context, parse_expression, parse_unary_tests};
 use rheon_feel::{FeelScope, scope};
 
 #[test]
 fn _0001() {
-  let node = parse_context(&scope!(), r#" { x: 10, a: function(a) function(b) a * b + x } "#, false).unwrap();
+  let node = parse_context(&scope!(), r#" { x: 10, a: function(a) function(b) a * b + x } "#).unwrap();
   assert_eq!("[x]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0002() {
-  let node = parse_context(&scope!(), r#" { x: 10, a: function(a) function(b) a * b + x } "#, false).unwrap();
+  let node = parse_context(&scope!(), r#" { x: 10, a: function(a) function(b) a * b + x } "#).unwrap();
   assert_eq!(r#"Closure({QualifiedName([Name("x")])})"#, format!("{:?}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0003() {
-  let node = parse_textual_expression(&scope!(), r#" 10 between 2 and 34 "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" 10 between 2 and 34 "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0004() {
-  let node = parse_textual_expression(&scope!(), r#" 1 + 2 "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" 1 + 2 "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0005() {
-  let node = parse_textual_expression(&scope!(), r#" 1 < 2"#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" 1 < 2"#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0006() {
-  let node = parse_textual_expression(&scope!(), r#" 1 <= 2"#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" 1 <= 2"#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0007() {
-  let node = parse_textual_expression(&scope!(), r#" 1 > 2"#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" 1 > 2"#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0008() {
-  let node = parse_textual_expression(&scope!(), r#" 1 >= 2"#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" 1 >= 2"#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0009() {
-  let node = parse_textual_expression(&scope!(), r#" @"2022-02-08" "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" @"2022-02-08" "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0010() {
-  let node = parse_textual_expression(&scope!(), r#" @"2022-02-08T10:11:12" "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" @"2022-02-08T10:11:12" "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0011() {
-  let node = parse_textual_expression(&scope!(), r#" @"P1D" "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" @"P1D" "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0012() {
-  let node = parse_textual_expression(&scope!(), r#" @"P1Y" "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" @"P1Y" "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0013() {
-  let node = parse_textual_expression(&scope!(), r#" true and false "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" true and false "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0014() {
-  let node = parse_textual_expression(&scope!(), r#" [1..10] "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" [1..10] "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
@@ -100,19 +100,19 @@ fn _0016() {
 
 #[test]
 fn _0017() {
-  let node = parse_textual_expression(&scope!(), r#" "a" instance of function<string,string>->string "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" "a" instance of function<string,string>->string "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0018() {
-  let node = parse_textual_expression(&scope!(), r#" ["a","b","c"] instance of list<string> "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" ["a","b","c"] instance of list<string> "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0019() {
-  let node = parse_textual_expression(&scope!(), r#" [1..10] instance of range<number> "#, false).unwrap();
+  let node = parse_expression(&scope!(), r#" [1..10] instance of range<number> "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
@@ -131,42 +131,42 @@ fn _0021() {
 #[test]
 fn _0022() {
   let scope = FeelScope::default();
-  let node = parse_context(&scope, r#" { a: { b: 1, c: "heute" } } "#, false).unwrap();
+  let node = parse_context(&scope, r#" { a: { b: 1, c: "heute" } } "#).unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0023() {
-  let node = parse_unary_tests(&scope!(), "<5", false).unwrap();
+  let node = parse_unary_tests(&scope!(), "<5").unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0024() {
-  let node = parse_unary_tests(&scope!(), "<=5", false).unwrap();
+  let node = parse_unary_tests(&scope!(), "<=5").unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0025() {
-  let node = parse_unary_tests(&scope!(), ">5", false).unwrap();
+  let node = parse_unary_tests(&scope!(), ">5").unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0026() {
-  let node = parse_unary_tests(&scope!(), "=>5", false).unwrap();
+  let node = parse_unary_tests(&scope!(), "=>5").unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0027() {
-  let node = parse_unary_tests(&scope!(), "=5", false).unwrap();
+  let node = parse_unary_tests(&scope!(), "=5").unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }
 
 #[test]
 fn _0028() {
-  let node = parse_unary_tests(&scope!(), "!=5", false).unwrap();
+  let node = parse_unary_tests(&scope!(), "!=5").unwrap();
   assert_eq!("[]", format!("{}", ClosureBuilder::from_node(&node)));
 }

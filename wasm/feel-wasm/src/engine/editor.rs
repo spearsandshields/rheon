@@ -473,7 +473,7 @@ const MAX_BINDERS: usize = 16;
 
 /// The type of the expression that `piece` is, `Any` when it is none.
 fn type_of_piece(scope: &FeelScope, piece: &str, bound: &[(Name, FeelType)]) -> FeelType {
-  match parse_expression(scope, piece, false) {
+  match parse_expression(scope, piece) {
     Ok(node) if node.depth() <= MAX_AST_DEPTH => infer_type(&node, scope, bound),
     _ => FeelType::Any,
   }

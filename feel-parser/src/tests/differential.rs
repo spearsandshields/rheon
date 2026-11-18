@@ -33,15 +33,11 @@ use std::collections::BTreeMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 /// The start rules of the grammar.
-const START_RULES: [(&str, TokenType); 9] = [
+const START_RULES: [(&str, TokenType); 5] = [
   ("expression", TokenType::StartExpression),
   ("boxed expression", TokenType::StartBoxedExpression),
   ("textual expression", TokenType::StartTextualExpression),
-  ("textual expressions", TokenType::StartTextualExpressions),
   ("unary tests", TokenType::StartUnaryTests),
-  ("simple expression", TokenType::StartSimpleExpression),
-  ("simple expressions", TokenType::StartSimpleExpressions),
-  ("simple value", TokenType::StartSimpleValue),
   ("range literal", TokenType::StartRangeLiteral),
 ];
 
@@ -400,11 +396,11 @@ fn inputs_of_the_fixes_have_their_recorded_outcome() {
   let mut stats = Stats::golden("fixes");
   for (inputs, rule) in [
     (&in_names[..], 0),
-    (&range_literals[..], 8),
+    (&range_literals[..], 4),
     (&unclosed[..], 0),
     (&exponents[..], 0),
     (&endpoints[..], 0),
-    (&signed[..], 8),
+    (&signed[..], 4),
   ] {
     let (name, start) = &START_RULES[rule];
     for input in inputs {
@@ -718,7 +714,8 @@ fn random_texts_equal_reference() {
   }
   println!("random texts: {stats:?}");
   stats.finish();
-  assert!(stats.asts > count, "{stats:?}");
+  // a good part of the texts parse under some start rule
+  assert!(stats.asts > count * 3 / 4, "{stats:?}");
 }
 
 /// Random edits of a text: deletions, insertions of characters and keywords, duplications.
@@ -798,7 +795,7 @@ fn keys_of_context_literal(text: &str) -> FeelContext {
     }
     ctx
   }
-  match crate::parse_context(&Default::default(), text, false) {
+  match crate::parse_context(&Default::default(), text) {
     Ok(node) => convert(&node),
     Err(_) => FeelContext::default(),
   }
@@ -903,7 +900,7 @@ fn deep_inputs_parse_in_a_small_stack() {
     .stack_size(2 * 1024 * 1024)
     .spawn(move || {
       for (input, nested) in inputs {
-        let parsed = crate::parse_expression(&Default::default(), &input, false);
+        let parsed = crate::parse_expression(&Default::default(), &input);
         if nested {
           let message = parsed.unwrap_err().to_string();
           assert!(message.contains("nested too deeply"), "{message}");
@@ -950,10 +947,8 @@ fn lists_keep_source_order() {
       (0, format!("for {} return 0", join(n, &|i| format!("v{i} in [{i}]")))),
       (0, format!("some {} satisfies true", join(n, &|i| format!("v{i} in [{i}]")))),
       (0, format!("every {} satisfies true", join(n, &|i| format!("v{i} in [{i}]")))),
-      (4, join(n, &|i| i.to_string())),
-      (4, format!("not({})", join(n, &|i| i.to_string()))),
-      (3, join(n, &|i| format!("{i} + 1"))),
-      (6, join(n, &|i| format!("{i} * 2"))),
+      (3, join(n, &|i| i.to_string())),
+      (3, format!("not({})", join(n, &|i| i.to_string()))),
     ]
   };
   // `x` and `f` are names in scope (else `x instance of context` would be one name)
@@ -963,7 +958,6 @@ fn lists_keep_source_order() {
     // qualified names (a chain of names is lexed again for every name token)
     let path = (0..n).map(|i| format!("q{i}")).collect::<Vec<_>>().join(".");
     texts.push((0, format!("x instance of {path}")));
-    texts.push((7, path));
     for (rule, text) in &texts {
       let (name, start) = &START_RULES[*rule];
       let mut stats = Stats::default();
@@ -974,7 +968,7 @@ fn lists_keep_source_order() {
   // the longest lists: in source order
   for (rule, text) in texts(ordered) {
     let scope = ParsingScope::new(&frames);
-    let node = Parser::new(&scope, START_RULES[rule].1.clone(), &text, false).parse().unwrap();
+    let node = Parser::new(&scope, START_RULES[rule].1.clone(), &text).parse().unwrap();
     let debug = format!("{node:?}");
     // the first `{i}"` is the item i (`"{i}"`, `"k{i}"`, ...): other texts ending with these digits are larger numbers
     let positions: Vec<usize> = (0..ordered)
@@ -1695,7 +1689,7 @@ fn chosen_expressions_have_their_recorded_outcome() {
 /// and it records no error exactly when the strict parse accepts the text.
 fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> bool {
   let scope = ParsingScope::new(frames);
-  let syntax = catch_unwind(AssertUnwindSafe(|| Parser::new(&scope, start.clone(), input, false).parse_tolerant()))
+  let syntax = catch_unwind(AssertUnwindSafe(|| Parser::new(&scope, start.clone(), input).parse_tolerant()))
     .unwrap_or_else(|payload| panic!("the tolerant parse of {input:?} panicked: {}", panic_message(payload)));
   let mut position = 0;
   for token in &syntax.tokens {
@@ -1711,7 +1705,7 @@ fn check_tolerant(frames: &[FeelContext], start: &TokenType, input: &str) -> boo
     assert!(diagnostic.start <= diagnostic.end && diagnostic.end <= input.len(), "an error of {input:?}: {diagnostic:?}");
   }
   let scope = ParsingScope::new(frames);
-  let strict = Parser::new(&scope, start.clone(), input, false).parse();
+  let strict = Parser::new(&scope, start.clone(), input).parse();
   assert_eq!(
     strict.is_ok(),
     syntax.diagnostics.is_empty(),
@@ -1811,7 +1805,7 @@ fn tolerant_samples() {
     "",
   ] {
     let scope = ParsingScope::new(&frames);
-    let syntax = Parser::new(&scope, TokenType::StartExpression, input, false).parse_tolerant();
+    let syntax = Parser::new(&scope, TokenType::StartExpression, input).parse_tolerant();
     println!("SAMPLE {input:?}");
     println!(
       "  tokens: {}",
@@ -1865,7 +1859,7 @@ fn name_costs() {
       let t0 = std::time::Instant::now();
       for _ in 0..iterations {
         let scope = ParsingScope::new(&frames);
-        std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, input, false).parse().is_ok());
+        std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, input).parse().is_ok());
       }
       best = best.min(t0.elapsed().as_nanos() as f64 / iterations as f64);
     }
@@ -1886,7 +1880,7 @@ fn name_costs_loop() {
   while t0.elapsed().as_secs() < 8 {
     for _ in 0..1000 {
       let scope = ParsingScope::new(&frames);
-      std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, &input, false).parse().is_ok());
+      std::hint::black_box(Parser::new(&scope, TokenType::StartExpression, &input).parse().is_ok());
     }
   }
 }

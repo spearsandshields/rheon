@@ -1,8 +1,6 @@
-use rheon_feel::{FeelScope, scope};
-
 #[test]
 fn _0001() {
-  let node = rheon_feel_parser::parse_range_literal(&scope!(), "[1..100)", false).unwrap();
+  let node = rheon_feel_parser::parse_range_literal("[1..100)").unwrap();
   let expected = r#"
        Range
        ├─ IntervalStart (closed)

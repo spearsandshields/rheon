@@ -259,7 +259,7 @@ fn a_filter_follows_the_start_endpoint_of_any_interval() {
   for name in ["a", "b"] {
     scope.set_entry_name(name.into());
   }
-  let tree = |input: &str| match Parser::new(&scope, StartExpression, input, false).parse() {
+  let tree = |input: &str| match Parser::new(&scope, StartExpression, input).parse() {
     Ok(node) => node.trace(),
     Err(reason) => panic!("{input}: {reason}"),
   };
@@ -279,6 +279,6 @@ fn a_filter_follows_the_start_endpoint_of_any_interval() {
   // the `[` after the end endpoint closes the interval
   assert_eq!(tree("(a..b)"), tree("]a..b["));
   for input in ["]a..b[1]", "]a[1]", "]a[1]..", "]a[..b]"] {
-    assert!(Parser::new(&scope, StartExpression, input, false).parse().is_err(), "{input}");
+    assert!(Parser::new(&scope, StartExpression, input).parse().is_err(), "{input}");
   }
 }

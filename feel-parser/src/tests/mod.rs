@@ -105,8 +105,8 @@ fn input_context(names: &[&str], contexts: Vec<(&str, FeelContext)>) -> FeelCont
 }
 
 /// Parses the input text and compared the result with expected value.
-fn accept(scope: &ParsingScope, start_token_type: TokenType, input: &str, expected: &str, trace: bool) {
-  let node = Parser::new(scope, start_token_type, input, trace).parse().unwrap();
+fn accept(scope: &ParsingScope, start_token_type: TokenType, input: &str, expected: &str, _trace: bool) {
+  let node = Parser::new(scope, start_token_type, input).parse().unwrap();
   let actual = node.trace();
   if actual != expected {
     println!("EXPECTED:\n------------------------------------------------------------{expected}\n");
@@ -132,7 +132,7 @@ fn eqs(expected: &str, node: &AstNode) {
 #[test]
 fn test_parse_textual_expression() {
   let scope = rheon_feel::FeelScope::default();
-  let node = crate::parse_textual_expression(&scope, "1+2", false).unwrap();
+  let node = crate::parse_expression(&scope, "1+2").unwrap();
   eqs(
     r#"
        Add
@@ -146,36 +146,9 @@ fn test_parse_textual_expression() {
 }
 
 #[test]
-fn test_parse_textual_expressions() {
-  let scope = rheon_feel::FeelScope::default();
-  let node = crate::parse_textual_expressions(&scope, "1+2,2+3,3*4", false).unwrap();
-  eqs(
-    r#"
-       ExpressionList
-       ├─ Add
-       │  ├─ Numeric
-       │  │  └─ `1`
-       │  └─ Numeric
-       │     └─ `2`
-       ├─ Add
-       │  ├─ Numeric
-       │  │  └─ `2`
-       │  └─ Numeric
-       │     └─ `3`
-       └─ Mul
-          ├─ Numeric
-          │  └─ `3`
-          └─ Numeric
-             └─ `4`
-    "#,
-    &node,
-  );
-}
-
-#[test]
 fn test_parse_unary_tests() {
   let scope = rheon_feel::FeelScope::default();
-  let node = crate::parse_unary_tests(&scope, "1,2,3,4", false).unwrap();
+  let node = crate::parse_unary_tests(&scope, "1,2,3,4").unwrap();
   eqs(
     r#"
        ExpressionList
@@ -195,7 +168,7 @@ fn test_parse_unary_tests() {
 #[test]
 fn test_parse_boxed_expression() {
   let scope = rheon_feel::FeelScope::default();
-  let node = crate::parse_boxed_expression(&scope, "[1,2,3,4]", false).unwrap();
+  let node = crate::parse_expression(&scope, "[1,2,3,4]").unwrap();
   eqs(
     r#"
        List
@@ -215,7 +188,7 @@ fn test_parse_boxed_expression() {
 #[test]
 fn test_parse_context() {
   let scope = rheon_feel::FeelScope::default();
-  let node = crate::parse_context(&scope, "{age: 50}", false).unwrap();
+  let node = crate::parse_context(&scope, "{age: 50}").unwrap();
   eqs(
     r#"
        Context
@@ -233,7 +206,7 @@ fn test_parse_context() {
 fn test_parse_name() {
   let name_a: Name = Name::new(&["Full", "House"]);
   let scope = rheon_feel::FeelScope::default();
-  assert_eq!(name_a, crate::parse_name(&scope, "Full House", false).unwrap());
+  assert_eq!(name_a, crate::parse_name(&scope, "Full House").unwrap());
 }
 
 #[test]
@@ -275,7 +248,7 @@ pub(crate) fn member_names() {
 
 /// A parser as the tests of this thread read names ([member_names]).
 pub(crate) fn parser<'p, 's>(scope: &'p crate::scope::ParsingScope<'s>, start: crate::token::TokenType, input: &'p str) -> crate::parser::Parser<'p, 's> {
-  let parser = crate::parser::Parser::new(scope, start, input, false);
+  let parser = crate::parser::Parser::new(scope, start, input);
   if MEMBER_NAMES.with(|members| members.get()) {
     parser.with_member_names()
   } else {

@@ -81,7 +81,7 @@ pub fn eval(scope: &FeelScope, node: &AstNode) -> Value {
 /// Evaluates `text` in an empty scope while collecting its diagnostics.
 fn te_collect(text: &str) -> (Value, rheon_feel::diagnostics::Diagnostics) {
   let scope = FeelScope::default();
-  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(&scope, text).unwrap());
   rheon_feel::diagnostics::collect(|| evaluator(&scope))
 }
 
@@ -145,7 +145,7 @@ pub fn truncation_warning(literal: &str, dropped: &str) -> String {
 /// Asserts that evaluating `text` in `dialect` stops the evaluation, with `message`.
 pub fn te_aborted(text: &str, dialect: crate::Dialect, message: &str) {
   let scope = FeelScope::default();
-  let evaluator = crate::prepare_with_dialect(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap(), dialect);
+  let evaluator = crate::prepare_with_dialect(&rheon_feel_parser::parse_expression(&scope, text).unwrap(), dialect);
   let outcome = crate::Session::new().run(|| evaluator(&scope)).into_result();
   assert_eq!(
     Err(message.to_string()),
@@ -191,7 +191,7 @@ pub fn te_date_time_offset(trace: bool, scope: &FeelScope, s: &str, date: (Year,
 /// Utility function that creates a scope from specified input.
 pub fn te_scope(input: &str) -> FeelScope {
   let scope = FeelScope::default();
-  match rheon_feel_parser::parse_context(&scope, input, false) {
+  match rheon_feel_parser::parse_context(&scope, input) {
     Ok(node) => match eval(&scope, &node) {
       Value::Context(ctx) => std::sync::Arc::unwrap_or_clone(ctx).into(),
       other => {
@@ -222,8 +222,8 @@ pub fn te_null(trace: bool, scope: &FeelScope, s: &str, t: &str) {
 }
 
 /// Utility function that tests evaluation to an error result.
-pub fn te_none(trace: bool, scope: &FeelScope, s: &str) {
-  assert!(rheon_feel_parser::parse_textual_expression(scope, s, trace).is_err());
+pub fn te_none(_trace: bool, scope: &FeelScope, s: &str) {
+  assert!(rheon_feel_parser::parse_expression(scope, s).is_err());
 }
 
 /// Utility function that tests evaluation to string value.
@@ -267,7 +267,7 @@ pub fn te_time(trace: bool, scope: &FeelScope, s: &str, expected: FeelTime) {
 
 /// Utility function that tests evaluation of context.
 pub fn te_context<Actual: ToString, Expected: ToString>(trace: bool, scope: &FeelScope, actual: Actual, expected: Expected) {
-  match rheon_feel_parser::parse_context(scope, &expected.to_string(), trace) {
+  match rheon_feel_parser::parse_context(scope, &expected.to_string()) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
       textual_expression(trace, scope, &actual.to_string(), evaluator(scope));
@@ -281,7 +281,7 @@ pub fn te_context<Actual: ToString, Expected: ToString>(trace: bool, scope: &Fee
 
 /// Utility function that tests evaluation to specified value.
 pub fn te_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
-  match rheon_feel_parser::parse_expression(scope, expected, trace) {
+  match rheon_feel_parser::parse_expression(scope, expected) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
       textual_expression(trace, scope, actual, evaluator(scope));
@@ -295,7 +295,7 @@ pub fn te_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
 
 /// Utility function that tests evaluation to specified value represented by boxed expression.
 pub fn te_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
-  match rheon_feel_parser::parse_expression(scope, expected, false) {
+  match rheon_feel_parser::parse_expression(scope, expected) {
     Ok(node) => {
       textual_expression(trace, scope, actual, eval(scope, &node));
     }
@@ -308,7 +308,7 @@ pub fn te_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str)
 
 /// Utility function that tests evaluation to specified value represented by boxed expression.
 pub fn be_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str) {
-  match rheon_feel_parser::parse_boxed_expression(scope, expected, trace) {
+  match rheon_feel_parser::parse_expression(scope, expected) {
     Ok(node) => {
       boxed_expression(trace, scope, actual, eval(scope, &node));
     }
@@ -322,8 +322,8 @@ pub fn be_be_value(trace: bool, scope: &FeelScope, actual: &str, expected: &str)
 /// Utility function that takes a text parameter, evaluates the boxed expression
 /// represented by this text and compares the result with provided expected value.
 /// The result must be equal to expected value, otherwise an error is reported.
-pub fn boxed_expression(trace: bool, scope: &FeelScope, text: &str, expected: Value) {
-  match rheon_feel_parser::parse_boxed_expression(scope, text, trace) {
+pub fn boxed_expression(_trace: bool, scope: &FeelScope, text: &str, expected: Value) {
+  match rheon_feel_parser::parse_expression(scope, text) {
     Ok(node) => {
       assert_eq!(eval(scope, &node), expected);
     }
@@ -337,8 +337,8 @@ pub fn boxed_expression(trace: bool, scope: &FeelScope, text: &str, expected: Va
 /// Utility function that takes a text parameter, evaluates the textual expression
 /// represented by this text and compares the result with provided expected value.
 /// The result must be equal to expected value, otherwise an error is reported.
-fn textual_expression(trace: bool, scope: &FeelScope, text: &str, expected: Value) {
-  match rheon_feel_parser::parse_textual_expression(scope, text, trace) {
+fn textual_expression(_trace: bool, scope: &FeelScope, text: &str, expected: Value) {
+  match rheon_feel_parser::parse_expression(scope, text) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
       let actual = evaluator(scope);
@@ -351,8 +351,8 @@ fn textual_expression(trace: bool, scope: &FeelScope, text: &str, expected: Valu
 }
 
 /// Utility function that checks if unary tests are correctly parsed.
-pub fn valid_unary_tests(trace: bool, scope: &FeelScope, text: &str) {
-  match rheon_feel_parser::parse_unary_tests(scope, text, trace) {
+pub fn valid_unary_tests(_trace: bool, scope: &FeelScope, text: &str) {
+  match rheon_feel_parser::parse_unary_tests(scope, text) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
       if let v @ Value::Null(_) = evaluator(scope) {
@@ -365,11 +365,11 @@ pub fn valid_unary_tests(trace: bool, scope: &FeelScope, text: &str) {
   }
 }
 
-pub fn satisfies(trace: bool, scope: &FeelScope, input_expression: &str, input_values: &str, input_entry: &str, expected: bool) {
-  let input_expression_node = rheon_feel_parser::parse_textual_expression(scope, input_expression, trace).unwrap();
-  let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, input_entry, trace).unwrap();
+pub fn satisfies(_trace: bool, scope: &FeelScope, input_expression: &str, input_values: &str, input_entry: &str, expected: bool) {
+  let input_expression_node = rheon_feel_parser::parse_expression(scope, input_expression).unwrap();
+  let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, input_entry).unwrap();
   let node = if !input_values.is_empty() {
-    let input_values_node = rheon_feel_parser::parse_unary_tests(scope, input_values, trace).unwrap();
+    let input_values_node = rheon_feel_parser::parse_unary_tests(scope, input_values).unwrap();
     let left = AstNode::In(Box::new(input_expression_node.clone()), Box::new(input_values_node));
     let right = AstNode::In(Box::new(input_expression_node), Box::new(input_entry_node));
     AstNode::And(Box::new(left), Box::new(right))
@@ -379,11 +379,11 @@ pub fn satisfies(trace: bool, scope: &FeelScope, input_expression: &str, input_v
   assert_eq!(eval(scope, &node), Value::Boolean(expected));
 }
 
-pub fn satisfies_null(trace: bool, scope: &FeelScope, input_expression: &str, input_values: &str, input_entry: &str, expected: &str) {
-  let input_expression_node = rheon_feel_parser::parse_textual_expression(scope, input_expression, trace).unwrap();
-  let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, input_entry, trace).unwrap();
+pub fn satisfies_null(_trace: bool, scope: &FeelScope, input_expression: &str, input_values: &str, input_entry: &str, expected: &str) {
+  let input_expression_node = rheon_feel_parser::parse_expression(scope, input_expression).unwrap();
+  let input_entry_node = rheon_feel_parser::parse_unary_tests(scope, input_entry).unwrap();
   let node = if !input_values.is_empty() {
-    let input_values_node = rheon_feel_parser::parse_unary_tests(scope, input_values, trace).unwrap();
+    let input_values_node = rheon_feel_parser::parse_unary_tests(scope, input_values).unwrap();
     let left = AstNode::In(Box::new(input_expression_node.clone()), Box::new(input_values_node));
     let right = AstNode::In(Box::new(input_expression_node), Box::new(input_entry_node));
     AstNode::And(Box::new(left), Box::new(right))
@@ -395,13 +395,13 @@ pub fn satisfies_null(trace: bool, scope: &FeelScope, input_expression: &str, in
 
 /// Utility function for testing if parsed `expression` evaluates to [FeelDateTime]
 /// and the evaluated value is in the range (`date_time` .. `date_time + seconds`).
-pub fn te_date_time_local_after(trace: bool, scope: &FeelScope, expression: &str, date_time: FeelDateTime, seconds: u8) {
+pub fn te_date_time_local_after(_trace: bool, scope: &FeelScope, expression: &str, date_time: FeelDateTime, seconds: u8) {
   let (year, month, day) = date_time.date().as_tuple();
   let (hour, min, sec, nano, _) = date_time.time().as_tuple();
   let range_start = FeelDateTime::local(year, month, day, hour, min, sec, nano).unwrap();
   // the end by adding a duration: the seconds of a time end at 59
   let range_end = (range_start.clone() + rheon_feel_temporal::FeelDaysAndTimeDuration::from_s(seconds.into())).unwrap();
-  match rheon_feel_parser::parse_textual_expression(scope, expression, trace) {
+  match rheon_feel_parser::parse_expression(scope, expression) {
     Ok(node) => {
       let evaluator = build_evaluator(&node);
       let value = evaluator(scope);

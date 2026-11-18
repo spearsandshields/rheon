@@ -1,2 +1,2 @@
-# random-texts: 180000 cases at full size, one digest of all
-84480df6205c9715
+# random-texts: 100000 cases at full size, one digest of all
+9058de05a8a03fbf

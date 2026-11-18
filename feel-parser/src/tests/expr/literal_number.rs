@@ -136,7 +136,7 @@ fn _0013() {
 #[test]
 fn exponent_letter_needs_exponent_digits() {
   let scope = scope!();
-  let parse = |input: &str| Parser::new(&scope, StartExpression, input, false).parse().map(|node| node.trace());
+  let parse = |input: &str| Parser::new(&scope, StartExpression, input).parse().map(|node| node.trace());
   for input in ["1e", "1e+", "1E-", "1.5e", "1e + 2", "1e+ 3", ".5e", "1e.5", "1ee5", "1e+-5"] {
     assert!(parse(input).is_err(), "{input}: {:?}", parse(input));
   }

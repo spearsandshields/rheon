@@ -11,7 +11,7 @@ fn _0001() {
       }
     }
   }"#;
-  let node = rheon_feel_parser::parse_context(&scope!(), input, false).unwrap();
+  let node = rheon_feel_parser::parse_context(&scope!(), input).unwrap();
   let expected = r#"
        Context
        └─ ContextEntry

@@ -177,7 +177,7 @@ fn _0010() {
   let scope = scope!();
   assert_eq!(
     Err(DsntkError::new(r#"ParserError"#, r#"syntax error: (1,2,3,4)"#)),
-    Parser::new(&scope, StartUnaryTests, "(1,2,3,4)", false).parse()
+    Parser::new(&scope, StartUnaryTests, "(1,2,3,4)").parse()
   );
 }
 
@@ -309,7 +309,7 @@ fn unary_comparison_endpoint_binds_like_a_comparison() {
   for name in ["a", "b", "x"] {
     scope.set_entry_name(name.into());
   }
-  let tree = |start: TokenType, input: &str| match Parser::new(&scope, start, input, false).parse() {
+  let tree = |start: TokenType, input: &str| match Parser::new(&scope, start, input).parse() {
     Ok(node) => node.trace(),
     Err(reason) => reason.to_string(),
   };

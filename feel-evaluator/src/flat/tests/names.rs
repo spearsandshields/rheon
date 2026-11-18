@@ -5,7 +5,7 @@ use rheon_feel::{FeelScope, Name};
 use rheon_feel_parser::AstNode;
 
 fn parse(text: &str) -> AstNode {
-  rheon_feel_parser::parse_expression(&FeelScope::default(), text, false).unwrap_or_else(|e| panic!("{text}: {e}"))
+  rheon_feel_parser::parse_expression(&FeelScope::default(), text).unwrap_or_else(|e| panic!("{text}: {e}"))
 }
 
 /// What each name of `resolved` reads, in the order of the text.

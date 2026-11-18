@@ -483,7 +483,7 @@ fn fraction_digits_beyond_nanoseconds_warn() {
   let fraction = format!("1{}", "9".repeat(99_999));
   let scope = FeelScope::default();
   let text = format!(r#"time("10:00:00.{fraction}")"#);
-  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, &text, false).unwrap());
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(&scope, &text).unwrap());
   let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
   assert_eq!("10:00:00.199999999", value.to_string());
   let [warning] = diagnostics.warnings() else {
@@ -514,7 +514,7 @@ fn seconds_with_more_than_nine_fraction_digits_warn() {
   // no time, no warning
   let scope = FeelScope::default();
   let text = r#"time(10, 0, 0.1234567891, duration("PT19H"))"#;
-  let evaluator = build_evaluator(&rheon_feel_parser::parse_textual_expression(&scope, text, false).unwrap());
+  let evaluator = build_evaluator(&rheon_feel_parser::parse_expression(&scope, text).unwrap());
   let (value, diagnostics) = rheon_feel::diagnostics::collect(|| evaluator(&scope));
   assert_eq!("null(time: offset is out of range: PT19H)", value.to_string());
   assert!(diagnostics.warnings().is_empty(), "{:?}", diagnostics.warnings());

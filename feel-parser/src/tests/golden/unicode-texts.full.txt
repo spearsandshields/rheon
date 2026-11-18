@@ -1,2 +1,2 @@
-# unicode-texts: 180000 cases at full size, one digest of all
-b2ecc0ac7cea0365
+# unicode-texts: 100000 cases at full size, one digest of all
+d96bc0a3c01ee08b

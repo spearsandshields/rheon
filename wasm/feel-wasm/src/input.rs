@@ -176,7 +176,7 @@ pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContex
     return Ok(FeelContext::default());
   }
   let scope = FeelScope::default();
-  let node = rheon_feel_parser::parse_context(&scope, text, false).map_err(|e| format!("invalid FEEL context: {e}"))?;
+  let node = rheon_feel_parser::parse_context(&scope, text).map_err(|e| format!("invalid FEEL context: {e}"))?;
   crate::engine::check_ast_depth(&node).map_err(|e| format!("invalid FEEL context: {e}"))?;
   // the context's errors are not counted in the response, only its warnings are reported
   let (outcome, diagnostics) = diagnostics::collect(|| rheon_feel_evaluator::evaluate(&scope, &node));
