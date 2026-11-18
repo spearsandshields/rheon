@@ -4347,6 +4347,14 @@ looked up only when a name in scope has its length (232).
     `coincides`, ...) take no range with an undefined endpoint in either form. Identity
     ledger: 49 entries. Tracker row EVA-29.
 
+264. **Completion offers nothing inside a comment or a string that is not closed.** With the
+    cursor inside a line comment, a block comment without its `*/` or a string without its
+    closing quote, `complete` offered what the grammar takes after the text before it (the
+    names, keywords and functions of an expression, or the operators). It now answers
+    `expects: "comment"` or `"string"` with no items; `call` is still told, so the signature
+    of the function around a string argument stays. Identity ledger: 17 entries. Tracker row
+    EDT-14.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

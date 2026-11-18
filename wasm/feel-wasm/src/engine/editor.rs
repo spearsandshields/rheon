@@ -367,6 +367,21 @@ fn entries(scope: &FeelScope, path: &[&str]) -> Vec<String> {
   context.iter().map(|(name, _)| name.to_string()).collect()
 }
 
+/// What the end of `text` is inside of, when it is no place of the grammar: a comment (a line
+/// comment before its line ends, a block comment that is not closed) or a string that is not
+/// closed. Nothing is offered there.
+fn inside(text: &str, syntax: &Syntax) -> Option<&'static str> {
+  if syntax.diagnostics.iter().any(|d| d.code == "comment-open") {
+    return Some("comment");
+  }
+  if syntax.diagnostics.iter().any(|d| d.code == "string-open" && d.end == text.len()) {
+    return Some("string");
+  }
+  let last = syntax.tokens.last()?;
+  let comment = &text[last.start..last.end];
+  (last.class == TokenClass::Comment && last.end == text.len() && comment.starts_with("//") && !comment.contains('\n')).then_some("comment")
+}
+
 /// What the grammar takes where `text` ends, from the tolerant parse of `text`.
 fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -> Expected {
   let operators = || Offer::Keywords(OPERATOR_KEYWORDS.to_vec());
@@ -478,6 +493,11 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     expected
   };
   match typed_name(before, &syntax) {
+    // inside a comment or a string: nothing is offered
+    _ if inside(before, &syntax).is_some() => {
+      invocation = call(before, &syntax);
+      expects = inside(before, &syntax).unwrap_or_default().to_string();
+    }
     // a name is being typed: what fits where it starts, and, for a name of several words, what
     // fits where its last word starts (`if a th` is `if a` and the start of `then`)
     Some((from, typed)) => {

@@ -1048,12 +1048,16 @@
         }
       }
     },
-    "why": "completion knows the built-in functions (FORK.md item 254): the items of functions have detail, info and type, parameter names are offered, and inside an invocation the answer has call",
+    "why": "Completion offers nothing inside a comment or a string that is not closed (FORK item 264, EDT-14)",
     "old": {
       "sha256": "8a0abeff2b3e428ace4725293426699ed79145c38ccd6a52505feff84d3c0a0b"
     },
     "new": {
-      "sha256": "ffc447e9bdf8af16d0b529108917e4edc5f466d5ccdc84882fc255df9e9500b4"
+      "expects": "comment",
+      "items": [],
+      "ok": true,
+      "to": 8,
+      "truncated": false
     }
   },
   {

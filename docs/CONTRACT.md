@@ -190,7 +190,8 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
 - `expects`: `expression`, `operator` (after a complete operand: `and`, `or`, `between`, `in`,
   `instance of`), `keyword:<word>` (a keyword the grammar needs here, such as `keyword:then`),
   `property` (after a dot), `type`, `name` (a new name is written here: nothing is offered),
-  `parameter` (after a named parameter only a named one can follow).
+  `parameter` (after a named parameter only a named one can follow), `comment` and `string`
+  (the cursor is inside a comment, or inside a string that is not closed: nothing is offered).
 - An item of a built-in function has its first signature as `detail`
   (`"substring(string, start position, length?): string"`), `"info"` (one line that says what
   the function gives) and the type of its result as `type`. A parameter has its type as `type`.

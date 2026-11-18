@@ -2121,6 +2121,45 @@ fn format_breaks_a_context_of_several_entries() {
 
 /// `complete` knows the built-in functions: an item of a function has its signature, inside the
 /// parentheses of an invocation the answer has the `call`, and the parameters can be named.
+/// Inside a comment or a string that is not closed nothing is offered.
+#[test]
+fn complete_offers_nothing_inside_a_comment_or_a_string() {
+  let context = json!({"a": 1, "abc": 2});
+  let complete = |expression: &str| req(json!({"op": "complete", "expression": expression, "context": context}));
+  for (expression, expects) in [
+    ("1 + // no", "comment"),
+    ("// a", "comment"),
+    ("a // ab", "comment"),
+    ("1 + /* a", "comment"),
+    ("1 + /*", "comment"),
+    ("a./* x", "comment"),
+    ("\"ab", "string"),
+    ("1 + \"a", "string"),
+    ("@\"2024", "string"),
+  ] {
+    let response = complete(expression);
+    assert_eq!(response["ok"], true, "{expression}");
+    assert_eq!(response["expects"], expects, "{expression}");
+    assert_eq!(response["items"], json!([]), "{expression}");
+  }
+  // after the comment or the string the grammar is asked again
+  for (expression, expects) in [
+    ("1 + // no\n", "expression"),
+    ("1 + /* a */ ", "expression"),
+    ("a /* b */", "operator"),
+    ("\"ab\"", "operator"),
+    ("a // b\n", "operator"),
+  ] {
+    let response = complete(expression);
+    assert_eq!(response["expects"], expects, "{expression}");
+    assert_ne!(response["items"], json!([]), "{expression}");
+  }
+  // the call around the cursor is still told
+  let response = complete("substring(\"ab");
+  assert_eq!(response["expects"], "string");
+  assert_eq!(response["call"]["function"], "substring");
+}
+
 #[test]
 fn complete_knows_the_built_in_functions() {
   let complete = |expression: &str| req(json!({"op": "complete", "expression": expression, "context": {"text": "abc"}}));
