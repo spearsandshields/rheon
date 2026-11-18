@@ -1,0 +1,321 @@
+[
+ {
+  "op": "evaluate",
+  "expression": "before(5, (> 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(10, (> 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(10, (>= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(11, (>= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(5, (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((< 10), 20)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((< 10), 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((<= 10), 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((> 10), 20)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((< 5), (> 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((<= 5), (>= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((< 5), [5..9])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before((> 5), [7..9])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after(20, (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after(10, (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after(10, (<= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after(5, (> 1))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after((> 5), 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after((>= 5), 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after((> 5), (< 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(@\"2020-01-01\", (> @\"2021-01-01\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "after(\"b\", (< \"a\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((<= 10), 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), 20)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), (< 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), (<= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), (< 20))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), [1..5])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes([1..5], (< 9))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes([1..5], (< 3))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "during(5, (>= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "during(5, (> 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "during((> 7), (> 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "during(7, (> 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps((< 10), [20..30])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps((< 10), [10..30])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps((< 10), [5..30])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps([20..30], (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps before((> 5), (> 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps after((< 5), [7..9])"
+ },
+ {
+  "op": "evaluate",
+  "expression": "meets((<= 5), (>= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "meets((< 5), (>= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "meets((> 5), (>= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "met by((>= 5), (<= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "met by((> 5), (<= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "coincides((< 10), (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "coincides((< 10), (<= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "coincides((< 10), [1..10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "coincides((< 10), (> 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts(5, (>= 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts(5, (> 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts(5, (< 9))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "started by((>= 5), 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts((>= 1), (>= 1))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts((>= 1), (> 1))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts([1..5], (>= 2))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "starts([1..5], (>= 1))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "started by((>= 1), (>= 1))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes(10, (<= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes(10, (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes(10, (> 1))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finished by((<= 10), 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes((<= 10), (<= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes([1..10], (<= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "finishes([1..9], (<= 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(5, range(\"(10..)\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "coincides(range(\"(..10)\"), (< 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes(range(\"(..10)\"), 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(\"a\", (> 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(true, (> 10))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes((< 10), null)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "overlaps((< 10), (< \"a\"))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "meets(5, (> 5))"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes(range: (< 10), point: 5)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "includes(range: (<= 10), point: 10)"
+ },
+ {
+  "op": "evaluate",
+  "expression": "before(x, r)",
+  "context": {
+   "x": 5
+  }
+ }
+]

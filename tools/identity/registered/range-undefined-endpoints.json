@@ -1,0 +1,4620 @@
+[
+  {
+    "expression": "before(1, >= 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after(20, < 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected number or range of numbers, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes(range(\"(..10)\"), 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<Any>)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected scalar or range<scalar>, actual type is range<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[includes] expected endpoints that decide the result, found the range (..10) with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([includes] expected endpoints that decide the result, found the range (..10) with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[includes] expected endpoints that decide the result, found the range (..10) with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes(< 10, 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "during(5, range(\"(..10)\"))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::during] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[during] expected endpoints that decide the result, found the range (..10) with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([during] expected endpoints that decide the result, found the range (..10) with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[during] expected endpoints that decide the result, found the range (..10) with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "during(5, < 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::during] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[during] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([during] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[during] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps(range(\"(..10)\"), [5..20])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is range<Any>)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[overlaps] expected endpoints that decide the result, found the range (..10) with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([overlaps] expected endpoints that decide the result, found the range (..10) with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[overlaps] expected endpoints that decide the result, found the range (..10) with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps(< 10, [5..20])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[overlaps] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([overlaps] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[overlaps] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finishes(10, <= 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts(10, >= 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "meets([1..5], range(\"[5..)\"))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::meets] invalid argument type, expected range of scalars, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::meets] invalid argument type, expected range of scalars, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::meets] invalid argument type, expected range of scalars, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides(range(\"(..10)\"), range(\"(..10)\"))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides(< 10, < 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before(5, (> 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before(10, (> 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before(10, (>= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before(11, (>= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before(5, (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[before] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([before] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[before] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((< 10), 20)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((< 10), 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((<= 10), 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((> 10), 20)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[before] expected endpoints that decide the result, found the range > 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([before] expected endpoints that decide the result, found the range > 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[before] expected endpoints that decide the result, found the range > 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((< 5), (> 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((<= 5), (>= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((< 5), [5..9])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before((> 5), [7..9])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[before] expected endpoints that decide the result, found the range > 5 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([before] expected endpoints that decide the result, found the range > 5 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[before] expected endpoints that decide the result, found the range > 5 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after(20, (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected number or range of numbers, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after(10, (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected number or range of numbers, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after(10, (<= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected number or range of numbers, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after(5, (> 1))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected number or range of numbers, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected number or range of numbers, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[after] expected endpoints that decide the result, found the range > 1 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([after] expected endpoints that decide the result, found the range > 1 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[after] expected endpoints that decide the result, found the range > 1 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after((> 5), 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after((>= 5), 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after((> 5), (< 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "before(@\"2020-01-01\", (> @\"2021-01-01\"))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::before] invalid argument type, expected scalar or range of scalars, actual type is date"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::before] invalid argument type, expected scalar or range of scalars, actual type is date)",
+        "isNull": true,
+        "nullReason": "[core::before] invalid argument type, expected scalar or range of scalars, actual type is date",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "after(\"b\", (< \"a\"))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::after] invalid argument type, expected scalar or range of scalars, actual type is string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::after] invalid argument type, expected scalar or range of scalars, actual type is string)",
+        "isNull": true,
+        "nullReason": "[core::after] invalid argument type, expected scalar or range of scalars, actual type is string",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((<= 10), 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), 20)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), (< 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), (<= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), (< 20))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), [1..5])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes([1..5], (< 9))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected number or range<number>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected number or range<number>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected number or range<number>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes([1..5], (< 3))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected number or range<number>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected number or range<number>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected number or range<number>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[includes] expected endpoints that decide the result, found the range < 3 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([includes] expected endpoints that decide the result, found the range < 3 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[includes] expected endpoints that decide the result, found the range < 3 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "during(5, (>= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::during] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "during(5, (> 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::during] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "during((> 7), (> 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::during] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::during] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::during] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "during(7, (> 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::during] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::during] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[during] expected endpoints that decide the result, found the range > 5 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([during] expected endpoints that decide the result, found the range > 5 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[during] expected endpoints that decide the result, found the range > 5 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps((< 10), [20..30])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps((< 10), [10..30])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps((< 10), [5..30])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[overlaps] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([overlaps] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[overlaps] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps([20..30], (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps before((> 5), (> 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps after((< 5), [7..9])",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "meets((<= 5), (>= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::meets] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::meets] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::meets] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "meets((< 5), (>= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::meets] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::meets] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::meets] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "meets((> 5), (>= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::meets] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::meets] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::meets] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "met by((>= 5), (<= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::meets] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::meets] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::meets] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "met by((> 5), (<= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::meets] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::meets] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::meets] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides((< 10), (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides((< 10), (<= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides((< 10), [1..10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides((< 10), (> 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts(5, (>= 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts(5, (> 5))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts(5, (< 9))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "started by((>= 5), 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::started by] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::started by] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::started by] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts((>= 1), (>= 1))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts((>= 1), (> 1))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts([1..5], (>= 2))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "starts([1..5], (>= 1))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::starts] invalid argument type, expected scalar or range of scalars, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[starts] expected endpoints that decide the result, found the range >= 1 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([starts] expected endpoints that decide the result, found the range >= 1 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[starts] expected endpoints that decide the result, found the range >= 1 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "started by((>= 1), (>= 1))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::started by] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::started by] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::started by] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finishes(10, (<= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finishes(10, (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finishes(10, (> 1))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finished by((<= 10), 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finished by] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finished by] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::finished by] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finishes((<= 10), (<= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finishes] invalid argument type, expected scalar or range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finishes([1..10], (<= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finishes] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finishes] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::finishes] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[finishes] expected endpoints that decide the result, found the range <= 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([finishes] expected endpoints that decide the result, found the range <= 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[finishes] expected endpoints that decide the result, found the range <= 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "finishes([1..9], (<= 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::finishes] invalid argument type, expected range of scalars, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::finishes] invalid argument type, expected range of scalars, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::finishes] invalid argument type, expected range of scalars, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "coincides(range(\"(..10)\"), (< 10))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>)",
+        "isNull": true,
+        "nullReason": "[core::coincides] invalid argument type, expected scalar or range of scalars, actual type is range<Any>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes((< 10), null)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "overlaps((< 10), (< \"a\"))",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>)",
+        "isNull": true,
+        "nullReason": "[core::overlaps] invalid argument type, expected range<scalar>, actual type is range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes(range: (< 10), point: 5)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint)",
+        "isNull": true,
+        "nullReason": "[includes] expected endpoints that decide the result, found the range < 10 with an undefined endpoint",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "includes(range: (<= 10), point: 10)",
+    "why": "A range function on a range with an undefined endpoint is the value of its formula of Table 79 (FORK item 274, EVA-30)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::includes] invalid argument type, expected range<scalar>, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::includes] invalid argument type, expected range<scalar>, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

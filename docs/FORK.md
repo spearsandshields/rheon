@@ -4529,6 +4529,28 @@ looked up only when a name in scope has its length (232).
     which 29 replace entries of earlier ledgers whose answers held the old text. Tracker row
     ERR-18.
 
+274. **A range function on a range with an undefined endpoint is the value of its formula.**
+    DMN 1.6 Table 42: a range with one endpoint (`< 10`, `range("(..10)")`) has the other
+    endpoint undefined and not included. Table 79 gives every range function as a FEEL
+    formula over the endpoints and whether they are included ("Evaluates to true if and only
+    if"). The functions took no such range: null with "invalid argument type" (item 263
+    found it and left it). Now the formula is evaluated with the three truth values of FEEL,
+    the undefined endpoint being null as `(< 10).start` is: an ordering comparison with it is
+    null, an equality with it is true for two undefined endpoints and false otherwise, and
+    `and`, `or` and `not` are those of Table 51. So `before(5, > 10)`, `after(20, < 10)`,
+    `includes(<= 10, 10)`, `includes(< 10, < 5)`, `meets(<= 5, >= 5)` and
+    `coincides(< 10, < 10)` are true, `includes(< 10, 20)` and `overlaps(< 10, [20..30])` are
+    false, and where the defined endpoints do not decide the formula the result is null with
+    one error: `includes(< 10, 5)` is `[includes] expected endpoints that decide the result,
+    found the range < 10 with an undefined endpoint` (the formula asks whether the start is
+    less than 5). The TCK has no such case. Not chosen: reading an undefined endpoint as
+    "unbounded" (`includes(< 10, 5)` true), which the formulas of Table 79 do not say. Ranges
+    with both endpoints, and arguments of other types, are answered as before (the new code
+    is asked only for a range with an undefined endpoint, whose other values are of one
+    ordered type). New module `bifs/open_ranges.rs`. Identity ledger
+    `range-undefined-endpoints.json`: 86 entries (36 true, 30 false, 20 null with the new
+    error), 7 of them replacing entries of `one-endpoint-ranges.json`. Tracker row EVA-30.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

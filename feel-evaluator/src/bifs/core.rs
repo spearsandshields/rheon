@@ -1,6 +1,7 @@
 //! # Core implementation of build-in functions
 
 use crate::bfeel::Dialect;
+use crate::bifs::open_ranges::{self, Relation};
 use crate::equality::Equality;
 use crate::evaluate_range_literal;
 use crate::invocation::{Arguments, call};
@@ -32,6 +33,9 @@ pub fn abs(value: &Value) -> Value {
 
 /// Returns `true` when value1 **is after** value2.
 pub fn after(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::After, value1, value2) {
+    return value;
+  }
   match value1 {
     Value::Number(point1) => match value2 {
       Value::Number(point2) => Value::Boolean(point1 > point2),
@@ -214,6 +218,9 @@ pub fn append(list: &Value, values: &[Value]) -> Value {
 
 /// Returns `true` when value1 **is before** value2.
 pub fn before(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::Before, value1, value2) {
+    return value;
+  }
   match value1 {
     Value::Number(point1) => match value2 {
       Value::Number(point2) => return Value::Boolean(point1 < point2),
@@ -338,6 +345,9 @@ pub fn ceiling(n: &Value, scale: &Value) -> Value {
 
 /// Returns `true` when two point are equal or two ranges are equal.
 pub fn coincides(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::Coincides, value1, value2) {
+    return value;
+  }
   match value1 {
     Value::Number(point1) => {
       if let Value::Number(point2) = value2 {
@@ -754,6 +764,9 @@ pub fn duration(value: &Value) -> Value {
 
 /// Returns `true` when a point is during the range or the first range is during the second.
 pub fn during(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::During, value1, value2) {
+    return value;
+  }
   match value1 {
     Value::Number(point) => {
       if let Value::Range(range_start, closed_start, range_end, closed_end) = value2
@@ -884,6 +897,9 @@ pub fn exp(value: &Value) -> Value {
 
 /// Returns `true` when point is the end of a range or ranges have the same end value.
 pub fn finishes(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::Finishes, value1, value2) {
+    return value;
+  }
   match value1 {
     Value::Number(point) => {
       if let Value::Range(_, _, range_end, closed_end) = value2
@@ -973,6 +989,9 @@ pub fn finishes(value1: &Value, value2: &Value) -> Value {
 
 /// Returns `true` when two ranges or range and point have the same ending point.
 pub fn finished_by(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::FinishedBy, value1, value2) {
+    return value;
+  }
   if let Value::Range(_, _, range1_end, closed1_end) = value1 {
     match range1_end.borrow() {
       Value::Number(point1) => match value2 {
@@ -1094,6 +1113,9 @@ pub fn get_value(context: &Value, key: &Value) -> Value {
 }
 
 pub fn includes(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::Includes, value1, value2) {
+    return value;
+  }
   if let Value::Range(range1_start, c1s, range1_end, c1e) = value1 {
     match (range1_start.borrow(), range1_end.borrow()) {
       (Value::Number(r1s), Value::Number(r1e)) => match value2 {
@@ -1486,6 +1508,9 @@ pub fn mean(values: &[Value]) -> Value {
 
 /// Returns `true` when range1 `meets` range2.
 pub fn meets(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::Meets, value1, value2) {
+    return value;
+  }
   if let Value::Range(range1_start, _, range1_end, closed1_end) = value1 {
     match (range1_start.borrow(), range1_end.borrow()) {
       (Value::Number(_), Value::Number(point1_end)) => {
@@ -1560,6 +1585,9 @@ pub fn median(values: &[Value]) -> Value {
 
 /// Returns `true` when range2 is `met by` range1.
 pub fn met_by(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::MetBy, value1, value2) {
+    return value;
+  }
   if let Value::Range(range1_start, closed1_start, range1_end, _) = value1 {
     if let Value::Range(range2_start, _, range2_end, closed2_end) = value2 {
       return match (range1_start.borrow(), range1_end.borrow()) {
@@ -1864,6 +1892,9 @@ macro_rules! overlaps_rr {
 
 /// Returns `true` when two ranges overlap.
 pub fn overlaps(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::Overlaps, value1, value2) {
+    return value;
+  }
   if let Value::Range(range1_start, c1s, range1_end, c1e) = value1
     && let Value::Range(range2_start, c2s, range2_end, c2e) = value2
   {
@@ -1927,6 +1958,9 @@ macro_rules! overlaps_after_rr {
 
 /// Returns `true` when first range overlaps the end of the second range.
 pub fn overlaps_after(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::OverlapsAfter, value1, value2) {
+    return value;
+  }
   if let Value::Range(range1_start, c1s, range1_end, c1e) = value1
     && let Value::Range(range2_start, c2s, range2_end, c2e) = value2
   {
@@ -1990,6 +2024,9 @@ macro_rules! overlaps_before_rr {
 
 /// Returns `true` when first range overlaps the beginning of the second range.
 pub fn overlaps_before(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::OverlapsBefore, value1, value2) {
+    return value;
+  }
   if let Value::Range(range1_start, c1s, range1_end, c1e) = value1
     && let Value::Range(range2_start, c2s, range2_end, c2e) = value2
   {
@@ -2256,6 +2293,9 @@ macro_rules! started_by_rr {
 
 /// Returns `true` when range is _started_ by point or other range.
 pub fn started_by(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::StartedBy, value1, value2) {
+    return value;
+  }
   if let Value::Range(range1_start, c1s, _, _) = value1 {
     match range1_start.borrow() {
       Value::Number(r1s) => match value2 {
@@ -2333,6 +2373,9 @@ macro_rules! starts_pr {
 }
 
 pub fn starts(value1: &Value, value2: &Value) -> Value {
+  if let Some(value) = open_ranges::relation(Relation::Starts, value1, value2) {
+    return value;
+  }
   match value1 {
     Value::Number(point) => {
       if let Value::Range(range_start, c1s, _, _) = value2

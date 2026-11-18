@@ -190,7 +190,7 @@ impl Equality {
 /// included (DMN 1.6 Table 42). An undefined endpoint is None; an endpoint written as `null` is
 /// a value. None for a value that is no range.
 #[allow(clippy::type_complexity)]
-fn range_parts(value: &Value) -> Option<(Option<&Value>, bool, Option<&Value>, bool)> {
+pub(crate) fn range_parts(value: &Value) -> Option<(Option<&Value>, bool, Option<&Value>, bool)> {
   match value {
     Value::Range(start, start_type, end, end_type) => Some((
       (!start_type.undefined()).then_some(start.as_ref()),
