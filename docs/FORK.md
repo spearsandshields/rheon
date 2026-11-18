@@ -4551,6 +4551,18 @@ looked up only when a name in scope has its length (232).
     `range-undefined-endpoints.json`: 86 entries (36 true, 30 false, 20 null with the new
     error), 7 of them replacing entries of `one-endpoint-ranges.json`. Tracker row EVA-30.
 
+275. **A name has no white space of FEEL at its ends.** A name was trimmed with the white
+    space of Rust, which is not that of grammar rule 61: U+180E, U+200B and U+FEFF stayed.
+    So a key `"\u200Bfoo"` of a context literal, of `context put` or of the host stayed a key
+    of its own beside `foo` (reachable by the name since item 272, but shown and returned
+    with the character), while `"\u00A0foo"` was the key `foo`. Now `rheon_feel::names::trim`
+    is the one trim of a name (`Name::from`, the parts of a name of several tokens, the
+    lexer, the keys the wasm boundary reads, the editor's completion), with the white space
+    of rule 61. An expression of such white space only is "The expression is empty.". The
+    prefix walk that the row LEX-5 asked for is not built: the lexer makes one lookup per
+    name since c00944b. Identity ledger `name-white-space.json`: 15 entries. Tracker row
+    LEX-5.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

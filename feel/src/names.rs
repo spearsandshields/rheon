@@ -30,21 +30,21 @@ impl From<Vec<&str>> for Name {
 impl From<String> for Name {
   /// Converts a [String] into [Name], without white space at its ends.
   fn from(value: String) -> Self {
-    Self(Arc::from(value.trim()))
+    Self(Arc::from(trim(&value)))
   }
 }
 
 impl From<&String> for Name {
   /// Converts a reference to [String] into [Name].
   fn from(value: &String) -> Self {
-    Self(Arc::from(value.trim()))
+    Self(Arc::from(trim(value)))
   }
 }
 
 impl From<&str> for Name {
   /// Converts a reference to [str] into [Name].
   fn from(value: &str) -> Self {
-    Self(Arc::from(value.trim()))
+    Self(Arc::from(trim(value)))
   }
 }
 
@@ -106,6 +106,21 @@ pub fn is_white_space(ch: char) -> bool {
     ch,
     '\u{0009}'..='\u{000D}' | '\u{0020}' | '\u{0085}' | '\u{00A0}' | '\u{1680}' | '\u{180E}' | '\u{2000}'..='\u{200B}' | '\u{2028}' | '\u{2029}' | '\u{202F}' | '\u{205F}' | '\u{3000}' | '\u{FEFF}'
   )
+}
+
+/// Returns `text` without the white space of FEEL ([is_white_space]) at its ends: the white
+/// space that a name does not have. It is not the white space of Rust's `trim`, which leaves
+/// U+180E, U+200B and U+FEFF.
+pub fn trim(text: &str) -> &str {
+  let bytes = text.as_bytes();
+  // the usual text: a character of ASCII that is no white space at each end
+  if let (Some(&first), Some(&last)) = (bytes.first(), bytes.last())
+    && first.is_ascii_graphic()
+    && last.is_ascii_graphic()
+  {
+    return text;
+  }
+  text.trim_matches(is_white_space)
 }
 
 /// Returns `true` when `ch` is an additional name symbol (DMN 1.6 grammar rule 30).
@@ -211,13 +226,13 @@ impl Name {
     let mut parts = parts.peekable();
     if parts.peek().is_none() {
       // a name of one part is the part: one text, written once
-      return Self(Arc::from(first.as_ref().trim()));
+      return Self(Arc::from(trim(first.as_ref())));
     }
     let mut result = String::new();
     let mut current;
     let mut prev = false;
     for (index, part) in std::iter::once(first).chain(parts).enumerate() {
-      let part = part.as_ref().trim();
+      let part = trim(part.as_ref());
       current = matches!(part, "." | "/" | "-" | "'" | "+" | "*");
       if index > 0 && !prev && !current && !part.is_empty() {
         result.push(' ');

@@ -398,9 +398,14 @@ fn receiver<'t>(text: &'t str, syntax: &Syntax) -> Option<Vec<&'t str>> {
   }
 }
 
+/// `text` with its runs of white space (that of FEEL) as one space, and none at its ends.
+fn spaced(text: &str) -> String {
+  text.split(rheon_feel::names::is_white_space).filter(|word| !word.is_empty()).collect::<Vec<_>>().join(" ")
+}
+
 /// A name as written in the text, with its runs of white space as one space.
 fn name_of(text: &str) -> Name {
-  Name::from(text.split_whitespace().collect::<Vec<_>>().join(" "))
+  Name::from(spaced(text))
 }
 
 /// The context whose entries a path reaches through a value: the value when it is a context,
@@ -730,7 +735,7 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
 /// Adds the items of what is expected that start with `typed` (letters compared without case,
 /// runs of white space as one space).
 fn offer(items: &mut Vec<Item>, expected: &Expected, typed: &str, from: usize) {
-  let normal = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+  let normal = |text: &str| spaced(text).to_lowercase();
   let typed = normal(typed);
   let mut add = |label: &str, kind: &'static str, feel_type: Option<&str>| {
     if normal(label).starts_with(&typed) && !items.iter().any(|item| item.label == label && item.kind == kind) {

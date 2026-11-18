@@ -991,8 +991,8 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     let trimmed = if text.is_ascii() {
       start..end
     } else {
-      let trim_start = start + (text.len() - text.trim_start().len());
-      trim_start..trim_start + text.trim().len()
+      let trim_start = start + (text.len() - text.trim_start_matches(is_whitespace).len());
+      trim_start..trim_start + text.trim_matches(is_whitespace).len()
     };
     if trimmed.is_empty() {
       self.chain_last_empty = Some(self.chain_parts.len());
@@ -1668,10 +1668,10 @@ fn flatten_name_parts_into<'a>(parts: impl Iterator<Item = &'a str>, out: &mut S
     if index > 0 {
       tmp.push(WS);
     }
-    tmp.push_str(part.trim());
+    tmp.push_str(part.trim_matches(is_whitespace));
   }
   out.clear();
-  out.push_str(tmp.trim());
+  out.push_str(tmp.trim_matches(is_whitespace));
   for (symbol, from, to) in NAME_SYMBOL_REPLACEMENTS {
     // a replacement leaves a text without the symbol unchanged
     if out.contains(symbol) {

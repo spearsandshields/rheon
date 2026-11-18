@@ -291,3 +291,25 @@ fn a_context_with_keys_in_other_forms_finds_an_entry_by_its_name() {
   plain.note_key_forms();
   assert!(!plain.has_other_key_forms());
 }
+
+/// A name has no white space of FEEL at its ends (DMN 1.6 grammar rules 61 and 62): the three
+/// characters that Rust's `trim` leaves (U+180E, U+200B, U+FEFF) are white space as the others.
+#[test]
+fn a_name_has_no_white_space_of_feel_at_its_ends() {
+  use crate::names::trim;
+  for space in [
+    '\u{0009}', '\u{000A}', '\u{000D}', '\u{0020}', '\u{0085}', '\u{00A0}', '\u{1680}', '\u{180E}', '\u{2000}', '\u{200B}', '\u{2028}', '\u{2029}', '\u{202F}', '\u{205F}',
+    '\u{3000}', '\u{FEFF}',
+  ] {
+    let text = format!("{space}a b{space}{space}");
+    assert_eq!("a b", trim(&text), "U+{:04X}", space as u32);
+    assert_eq!("a b", Name::from(text.as_str()).as_str(), "U+{:04X}", space as u32);
+    assert_eq!("a b", Name::from(text.clone()).as_str(), "U+{:04X}", space as u32);
+    assert_eq!("a b", Name::from(vec![text.as_str()]).as_str(), "U+{:04X}", space as u32);
+    assert_eq!("", trim(&space.to_string()));
+  }
+  // what is no white space stays: a zero width joiner, a word joiner, and text without spaces
+  for text in ["\u{200D}a", "a\u{2060}", "a", "", "é", "a b"] {
+    assert_eq!(text, trim(text));
+  }
+}

@@ -818,7 +818,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     };
     let message = match code {
       "unexpected" => format!("Unexpected {found}: an operator or the end of the expression is expected here."),
-      _ if self.input.trim().is_empty() => "The expression is empty.".to_string(),
+      _ if self.input.chars().all(is_space) => "The expression is empty.".to_string(),
       _ if self.kind == T::Eof => format!("Expected {what}{after}, but the expression ends here."),
       _ => format!("Expected {what}{after}, found {found}."),
     };

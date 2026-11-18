@@ -150,7 +150,7 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
   // the keys come from the host: a key in another form than FEEL reads a name is found by its name
   let mut other_forms = false;
   for (key, value) in map {
-    let (name, untrimmed_key) = if key.trim().len() == key.len() {
+    let (name, untrimmed_key) = if rheon_feel::names::trim(key.as_str()).len() == key.len() {
       (Name::from(key), None)
     } else {
       (Name::from(key.as_str()), Some(key))
@@ -176,7 +176,7 @@ pub fn json_object_into_context(map: Map<String, Json>, path: &Path, warnings: &
 /// adding the warnings of its evaluation to `warnings`. An empty / blank string is an empty
 /// context.
 pub fn feel_context(text: &str, warnings: &mut Vec<String>) -> Result<FeelContext, String> {
-  if text.trim().is_empty() {
+  if rheon_feel::names::trim(text).is_empty() {
     return Ok(FeelContext::default());
   }
   let scope = FeelScope::default();

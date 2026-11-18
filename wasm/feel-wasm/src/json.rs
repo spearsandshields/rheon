@@ -840,7 +840,7 @@ impl<'a, 'w> Reader<'a, 'w> {
       self.skip_white();
       let key = self.read_string()?;
       // an empty key is an error, and a key with white space at an end is another name
-      if key == PRIVATE_NUMBER_KEY || key.is_empty() || key.trim().len() != key.len() {
+      if key == PRIVATE_NUMBER_KEY || key.is_empty() || rheon_feel::names::trim(&key).len() != key.len() {
         return Err(Refused);
       }
       self.expect(b':')?;

@@ -1,0 +1,181 @@
+[
+ {
+  "op": "evaluate",
+  "expression": "foo",
+  "context": {
+   "\u200bfoo": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "foo",
+  "context": {
+   "\ufefffoo": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "foo",
+  "context": {
+   "foo\u180e": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "foo",
+  "context": {
+   "\u00a0foo": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "foo",
+  "context": {
+   " foo": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "first name",
+  "context": {
+   "first\u200bname": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "first\u200bname",
+  "context": {
+   "first name": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "first\u00a0name",
+  "context": {
+   "first name": 1
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "x.\u200bfoo",
+  "context": {
+   "x": {
+    "foo": 2
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "{\"\u200bfoo\": 1}",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "{\"\u200bfoo\": 1}.foo",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "{\"\u00a0foo\": 1}",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "{\"\u00a0foo\": 1}.foo",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "get value(c, \"foo\")",
+  "context": {
+   "c": {
+    "\u200bfoo": 1
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "get value(c, \"foo\")",
+  "context": {
+   "c": {
+    "\u00a0foo": 1
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "get entries(c)",
+  "context": {
+   "c": {
+    "\u200bfoo": 1
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "get entries(c)",
+  "context": {
+   "c": {
+    "\u00a0foo": 1
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "context put({}, \"\u200ba\", 1)",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "context put({}, \"\u00a0a\", 1)",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "\u200b1 + 2\u200b",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "\u200b",
+  "context": {}
+ },
+ {
+  "op": "evaluate",
+  "expression": "c",
+  "context": {
+   "c": {
+    "\u200bfoo": 1,
+    "foo": 2
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "c",
+  "context": {
+   "c": {
+    "\u00a0foo": 1,
+    "foo": 2
+   }
+  }
+ },
+ {
+  "op": "evaluate",
+  "expression": "function(a: \u200bnumber\u200b) a",
+  "context": {}
+ },
+ {
+  "op": "parse",
+  "expression": "\u200b",
+  "context": {}
+ },
+ {
+  "op": "complete",
+  "expression": "first\u200bna",
+  "at": 8,
+  "context": {
+   "first name": 1
+  }
+ }
+]
