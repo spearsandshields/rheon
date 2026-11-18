@@ -182,9 +182,11 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
 - `kind`: `parameter` (a parameter of the invoked built-in function that can be named here; it
   has `"insert"`, the text to insert in place of the label: the name with its colon),
   `name` (a name of the context, or one the text declares before the cursor: an
-  iteration variable, a parameter, `partial`, a key of a context being written), `entry` (an
-  entry after a dot, when the names before the dot lead to a context, or to a list of contexts,
-  in the context or the outline), `keyword`, `function` (a built-in function), `type`.
+  iteration variable, a parameter, `partial`, a key of a context being written, and in the
+  predicate of a filter `item` and the entries of an item), `entry` (a member of the value
+  before a dot: an entry of a context, a property of a date, a time, a duration or a range,
+  and for a list the members of its items), `keyword`, `function` (a built-in function),
+  `type`.
   The items are ordered by kind in this order and then by label; at most 200 (`truncated`).
   An item fits when it starts with what is typed, letters compared without case.
 - `expects`: `expression`, `operator` (after a complete operand: `and`, `or`, `between`, `in`,
@@ -195,8 +197,19 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
 - An item of a built-in function has its first signature as `detail`
   (`"substring(string, start position, length?): string"`), `"info"` (one line that says what
   the function gives) and the type of its result as `type`. A parameter has its type as `type`.
-  The `type` and `detail` of the other kinds are null in this version: they come with type
-  inference, without a change of the shape.
+  A name and an entry have their type as `type` when the engine knows it, else null: the kind
+  of the value without the entries of a context (`number`, `context`, `list<context>`,
+  `range<date>`, `function`). The `detail` of these kinds is null.
+- The value before a dot is any expression: the engine finds its type from the text and the
+  context, without evaluating it (`for l in order.lines return l.` offers the entries of a
+  line; `date(x).` offers `year`, `month`, …; `sort(lines, f)[1].` offers the entries of a
+  line). A variable of an iteration has the type of an item of its domain, an entry of a
+  context literal the type of its value, the result of a built-in function the type of its
+  signature (for the functions that give back their list, such as `sort`, `append` and
+  `reverse`, the type of that list). A parameter of a function written in the text, the result
+  of a function of the host and a name without a value have no known type: nothing is offered
+  after them. With an `outline` in place of the context the types of the names that are no
+  contexts and no lists are not known.
 - `call` stands when the cursor is inside the parentheses of an invocation of a built-in
   function (the innermost one):
 

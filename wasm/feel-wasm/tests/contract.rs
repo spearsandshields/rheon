@@ -2032,7 +2032,18 @@ fn outline_in_place_of_the_context() {
   for expression in ["", "Tax", "order.", "order.lines.", "order.lines.price + Tax Ra"] {
     let with_context = req(json!({"op": "complete", "expression": expression, "context": context}));
     let with_outline = req(json!({"op": "complete", "expression": expression, "outline": outline}));
-    assert_eq!(with_context["items"], with_outline["items"], "{expression}");
+    // the same items; an outline has the names and their nesting, so the type of a name that
+    // is no context and no list is known only with the context
+    let untyped = |response: &serde_json::Value| {
+      let mut items = response["items"].clone();
+      for item in items.as_array_mut().unwrap() {
+        if item["kind"] != "function" {
+          item["type"] = serde_json::Value::Null;
+        }
+      }
+      items
+    };
+    assert_eq!(untyped(&with_context), untyped(&with_outline), "{expression}");
     let with_context = req(json!({"op": "syntax", "expression": expression, "context": context}));
     let with_outline = req(json!({"op": "syntax", "expression": expression, "outline": outline}));
     assert_eq!(with_context["tokens"], with_outline["tokens"], "{expression}");
@@ -2158,6 +2169,126 @@ fn complete_offers_nothing_inside_a_comment_or_a_string() {
   let response = complete("substring(\"ab");
   assert_eq!(response["expects"], "string");
   assert_eq!(response["call"]["function"], "substring");
+}
+
+/// `complete` knows the type of an expression without evaluating it: after a dot it offers the
+/// entries or properties of the value before it, whatever expression that is, and the items
+/// have their types.
+#[test]
+fn complete_offers_the_members_of_the_value_before_a_dot() {
+  let context = json!({
+    "n": 1,
+    "order": {"id": 7, "customer": {"name": "Ann"}, "lines": [{"price": 2, "unit count": 3}]},
+    "orders": [{"id": 1, "lines": [{"price": 2}]}],
+  });
+  let entries = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "context": context}));
+    assert_eq!(response["ok"], true, "{expression}");
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "entry")
+      .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("?")))
+      .collect()
+  };
+  for (expression, expected) in [
+    // a path into the context
+    ("order.", vec!["customer: context", "id: number", "lines: list<context>"]),
+    ("order.customer.", vec!["name: string"]),
+    ("n + order.cu", vec!["customer: context"]),
+    // a list gives the members of its items, each as a list; an item gives them as they are
+    ("order.lines.", vec!["price: list<number>", "unit count: list<number>"]),
+    ("order.lines[1].", vec!["price: number", "unit count: number"]),
+    ("order.lines[price > 1].", vec!["price: list<number>", "unit count: list<number>"]),
+    // the variables of an iteration have the type of an item of their domain
+    ("for l in order.lines return l.", vec!["price: number", "unit count: number"]),
+    ("for o in orders, l in o.lines return l.price + o.", vec!["id: number", "lines: list<context>"]),
+    ("some o in orders satisfies o.", vec!["id: number", "lines: list<context>"]),
+    ("for i in 1..3 return i.", vec![]),
+    // in the predicate of a filter the entries of an item are names, and `item` is the item
+    ("orders[lines.", vec!["price: list<number>"]),
+    ("orders[item.", vec!["id: number", "lines: list<context>"]),
+    // the entries of a context literal written before the place
+    ("{a: {b: 1}, c: a.", vec!["b: number"]),
+    ("{a: {b: 1}}.a.", vec!["b: number"]),
+    // the results of functions, and of other expressions
+    ("sort(order.lines, function(a, b) a.price < b.price)[1].", vec!["price: number", "unit count: number"]),
+    ("get value(order, \"customer\").", vec!["name: string"]),
+    ("(if n > 1 then order else null).", vec!["customer: context", "id: number", "lines: list<context>"]),
+    ("{f: function() order, r: f().", vec!["customer: context", "id: number", "lines: list<context>"]),
+    // the properties of a date, a date and time, a duration and a range
+    (
+      "date(\"2024-01-02\").",
+      vec!["day: number", "month: number", "value: number", "weekday: number", "year: number"],
+    ),
+    ("@\"P1Y2M\".", vec!["months: number", "value: number", "years: number"]),
+    ("[1..5].", vec!["end: number", "end included: boolean", "start: number", "start included: boolean"]),
+    ("today().", vec!["day: number", "month: number", "value: number", "weekday: number", "year: number"]),
+    // a value without members, and a value that is not known
+    ("n.", vec![]),
+    ("unknown name.", vec![]),
+    // a parameter hides the name of the context: its type is not known
+    ("function(order) order.", vec![]),
+  ] {
+    assert_eq!(entries(expression), expected, "{expression}");
+  }
+  // the names where an expression starts have their types too
+  let names = |expression: &str| -> Vec<String> {
+    let response = req(json!({"op": "complete", "expression": expression, "context": context}));
+    response["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "name")
+      .map(|item| format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("?")))
+      .collect()
+  };
+  assert_eq!(names(""), ["n: number", "order: context", "orders: list<context>"]);
+  assert_eq!(
+    names("for l in order.lines return "),
+    ["l: context", "n: number", "order: context", "orders: list<context>", "partial: ?"]
+  );
+  assert_eq!(
+    names("orders["),
+    [
+      "id: number",
+      "item: context",
+      "lines: list<context>",
+      "n: number",
+      "order: context",
+      "orders: list<context>"
+    ]
+  );
+  assert_eq!(
+    names("{a: 1, b: \"x\", c: "),
+    ["a: number", "b: string", "n: number", "order: context", "orders: list<context>"]
+  );
+  // a name of the text hides the name of the context
+  assert_eq!(names("for n in [\"a\"] return "), ["n: string", "order: context", "orders: list<context>", "partial: ?"]);
+}
+
+/// `complete` answers at every cursor of a text, whole or broken, also with characters of
+/// several bytes and of two UTF-16 units.
+#[test]
+fn complete_answers_at_every_cursor() {
+  let context = json!({"order": {"lines": [{"price": 2, "ünit cöunt": 3}], "id": 1}, "orders": [{"id": 1}], "n": 1, "a-b": 2});
+  for expression in [
+    "for o in orders, l in order.lines return {p: l.price * n, q: o.id, r: [l][item.price > 1].ünit cöunt}.p",
+    "{a: {b: 1}, c: a.b, d: [a][b = 1], \"ké y\": function(x: number, y) x + y, e: d(1, 2).}",
+    "some x in order.lines satisfies x.price in [1..n] and every y in orders satisfies y.id between 1 and a-b",
+    "order.lines[price > 1][1].price + sum(order.lines.price) - (if n > 1 then order else null).id // 😀 note\n+ @\"2024-01-02\".year",
+    "orders[[{😀: 1}][item.😀 = 1].😀 > 0].id.x.y",
+    "]]..[[{{((..,, in in for for . . [ . ] { . } ( . )",
+  ] {
+    let units = expression.encode_utf16().count();
+    for cursor in 0..=units {
+      for dialect in ["expression", "unaryTests"] {
+        let response = req(json!({"op": "complete", "dialect": dialect, "expression": expression, "cursor": cursor, "context": context}));
+        assert_eq!(response["ok"], true, "{expression} at {cursor}: {response}");
+      }
+    }
+  }
 }
 
 #[test]

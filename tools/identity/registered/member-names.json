@@ -1615,63 +1615,6 @@
   },
   {
     "request": {
-      "op": "complete",
-      "expression": "a-b",
-      "context": {
-        "x": {
-          "a-b": 1,
-          "deep": {
-            "c+d": 4
-          }
-        },
-        "l": [
-          {
-            "a-b": 1
-          },
-          {
-            "a-b": 2
-          }
-        ],
-        "a": 5,
-        "b": 2,
-        "c": 1,
-        "d": 1
-      }
-    },
-    "why": "A name is matched against the keys of the scopes it stands in; nested keys are names only for a member of a value (FORK item 268, NAM-6)",
-    "old": {
-      "expects": "expression",
-      "items": [],
-      "ok": true,
-      "to": 3,
-      "truncated": false
-    },
-    "new": {
-      "expects": "expression",
-      "items": [
-        {
-          "detail": null,
-          "from": 2,
-          "kind": "name",
-          "label": "b",
-          "type": null
-        },
-        {
-          "detail": "before(point1, point2): boolean",
-          "from": 2,
-          "info": "Whether the first comes before the second.",
-          "kind": "function",
-          "label": "before",
-          "type": "boolean"
-        }
-      ],
-      "ok": true,
-      "to": 3,
-      "truncated": false
-    }
-  },
-  {
-    "request": {
       "op": "evaluate",
       "dialect": "unaryTests",
       "expression": "a-b, x.a-b",

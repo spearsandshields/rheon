@@ -35,6 +35,7 @@ mod formal_parameters;
 mod function_definition;
 mod function_invocation;
 mod if_expression;
+mod infer;
 mod instance_of;
 mod iterations;
 mod join;

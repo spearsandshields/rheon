@@ -16,6 +16,7 @@ mod resolve;
 mod tests;
 mod vm;
 
+pub(crate) use resolve::variables;
 pub(crate) use vm::{code_of, run_function};
 
 use crate::Dialect;

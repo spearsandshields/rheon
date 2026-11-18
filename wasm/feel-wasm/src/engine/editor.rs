@@ -6,10 +6,12 @@
 //! failure. Places are offsets in UTF-16 code units, the unit of JavaScript and .NET strings.
 
 use super::*;
+use rheon_feel::FeelType;
 use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
 use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::values::Value;
-use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, Syntax, TokenClass, parse_tolerant};
+use rheon_feel_evaluator::{infer_type, members_of};
+use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant};
 
 /// The most items a `complete` answer holds.
 const MAX_ITEMS: usize = 200;
@@ -191,8 +193,8 @@ struct Item {
   kind: &'static str,
   /// Where the text that the item replaces starts (a byte offset).
   from: usize,
-  /// The FEEL type of a parameter.
-  feel_type: Option<&'static str>,
+  /// The FEEL type of the item, when it is known.
+  feel_type: Option<String>,
 }
 
 /// The invocation of a built-in function that the end of a text stands in.
@@ -282,13 +284,14 @@ struct Expected {
 
 /// A group of items that fits a place.
 enum Offer {
-  /// The names in scope: of the context, and those the text declares.
-  Names(Vec<String>),
+  /// The names in scope: of the context, and those the text declares, each with its type when
+  /// it is known.
+  Names(Vec<(String, Option<String>)>),
   Functions,
   Keywords(Vec<&'static str>),
   Types,
-  /// The entries of the value before a dot.
-  Entries(Vec<String>),
+  /// The entries or properties of the value before a dot, each with its type when it is known.
+  Entries(Vec<(String, Option<String>)>),
   /// The parameters of the invoked built-in function that can be named, with their types.
   Parameters(Vec<(&'static str, &'static str)>),
 }
@@ -367,6 +370,220 @@ fn entries(scope: &FeelScope, path: &[&str]) -> Vec<String> {
   context.iter().map(|(name, _)| name.to_string()).collect()
 }
 
+/// The type of a value or an expression as an item shows it: the kind of the value, without the
+/// entries of a context (`context`, `list<context>`, `list<number>`). None when it is not known.
+fn shown(feel_type: &FeelType) -> Option<String> {
+  match feel_type {
+    FeelType::Any | FeelType::Null => None,
+    FeelType::Context(_) => Some("context".to_string()),
+    FeelType::Function(..) => Some("function".to_string()),
+    FeelType::List(item) => Some(match shown(item) {
+      Some(item) => format!("list<{item}>"),
+      None => "list".to_string(),
+    }),
+    FeelType::Range(endpoint) => Some(match shown(endpoint) {
+      Some(endpoint) => format!("range<{endpoint}>"),
+      None => "range".to_string(),
+    }),
+    other => Some(other.to_string()),
+  }
+}
+
+/// The type of a value of the context as an item shows it ([shown]), read without its entries:
+/// of a list, by its first item.
+fn shown_of_value(value: &Value) -> Option<String> {
+  match value {
+    Value::Null(_) => None,
+    Value::Context(_) => Some("context".to_string()),
+    Value::FunctionDefinition(_) | Value::BuiltInFunction(_) => Some("function".to_string()),
+    Value::List(items) => Some(match items.first().and_then(shown_of_value) {
+      Some(item) => format!("list<{item}>"),
+      None => "list".to_string(),
+    }),
+    other => shown(&other.type_of()),
+  }
+}
+
+/// The most constructs around a place whose names are typed (the innermost ones).
+const MAX_BINDERS: usize = 16;
+
+/// The type of the expression that `piece` is, `Any` when it is none.
+fn type_of_piece(scope: &FeelScope, piece: &str, bound: &[(Name, FeelType)]) -> FeelType {
+  match parse_expression(scope, piece, false) {
+    Ok(node) if node.depth() <= MAX_AST_DEPTH => infer_type(&node, scope, bound),
+    _ => FeelType::Any,
+  }
+}
+
+/// The tokens of `syntax` that are no white space and no comments.
+fn words(syntax: &Syntax) -> impl Iterator<Item = &SyntaxToken> {
+  syntax.tokens.iter().filter(|token| !matches!(token.class, TokenClass::Whitespace | TokenClass::Comment))
+}
+
+/// The node that starts at `start` and ends last, at or before `end`: the whole expression
+/// that starts there.
+fn expression_at(syntax: &Syntax, start: usize, end: usize) -> Option<&SyntaxNode> {
+  syntax.nodes.iter().filter(|node| node.start == start && node.end <= end).max_by_key(|node| node.end)
+}
+
+/// Whether the construct `node` is written to its end: a context to its `}`, a filter to its
+/// `]`. The other constructs end with their last expression, which can go on.
+fn closed(text: &str, node: &SyntaxNode) -> bool {
+  match node.kind {
+    "Context" => text[node.start..node.end].ends_with('}') && node.end - node.start > 1,
+    "Filter" => text[node.start..node.end].ends_with(']'),
+    _ => false,
+  }
+}
+
+/// The names that the constructs around the place `at` of `text` bind there, with their types,
+/// the innermost last: the variables of a `for`, `some` or `every` (the type of an item of
+/// their domain), the parameters of a function (`Any`: they hide the names outside), the
+/// entries of a context literal written before the place, and in the predicate of a filter
+/// `item` and the entries of an item.
+fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Vec<(Name, FeelType)> {
+  // a construct that is not closed ends at the last token before the place
+  let reach = words(syntax).take_while(|token| token.end <= at).last().map_or(at, |token| token.end);
+  let mut around: Vec<&SyntaxNode> = syntax
+    .nodes
+    .iter()
+    .filter(|node| matches!(node.kind, "For" | "Quantified" | "Function" | "Context" | "Filter") && node.start < at && node.end >= reach && !closed(text, node))
+    .collect();
+  around.sort_by_key(|node| node.start);
+  if around.len() > MAX_BINDERS {
+    around.drain(..around.len() - MAX_BINDERS);
+  }
+  // whether the construct `node` is the innermost one of its kinds that holds the place `place`
+  let holds = |node: &SyntaxNode, kinds: &[&str], place: usize| {
+    syntax
+      .nodes
+      .iter()
+      .filter(|other| kinds.contains(&other.kind) && other.start <= place && place < other.end)
+      .max_by_key(|other| other.start)
+      .is_some_and(|innermost| innermost.start == node.start && innermost.end == node.end)
+  };
+  let mut bound: Vec<(Name, FeelType)> = vec![];
+  for node in around {
+    match node.kind {
+      "For" | "Quantified" => {
+        let tokens: Vec<&SyntaxToken> = words(syntax).filter(|token| token.start >= node.start && token.end <= at).collect();
+        for (index, token) in tokens.iter().enumerate() {
+          if token.class != TokenClass::Variable || !holds(node, &["For", "Quantified", "Function"], token.start) {
+            continue;
+          }
+          // the domain starts after the `in` that follows the variable
+          let Some(domain_start) = tokens
+            .get(index + 2)
+            .filter(|_| tokens.get(index + 1).is_some_and(|word| &text[word.start..word.end] == "in"))
+            .map(|word| word.start)
+          else {
+            break;
+          };
+          let Some(domain) = expression_at(syntax, domain_start, at) else {
+            break;
+          };
+          // an interval of numbers has two endpoints
+          let interval = words(syntax).find(|word| word.start >= domain.end).is_some_and(|word| &text[word.start..word.end] == "..");
+          let variable_type = if interval {
+            FeelType::Number
+          } else {
+            match type_of_piece(scope, &text[domain.start..domain.end], &bound) {
+              FeelType::List(item) => *item,
+              FeelType::Range(endpoint) => *endpoint,
+              other => other,
+            }
+          };
+          bound.push((name_of(&text[token.start..token.end]), variable_type));
+        }
+      }
+      "Function" => {
+        // the parameters stand before the first closing parenthesis of the function
+        let Some(head_end) = words(syntax)
+          .find(|token| token.start > node.start && &text[token.start..token.end] == ")")
+          .map(|token| token.start)
+        else {
+          continue;
+        };
+        if head_end >= at {
+          continue;
+        }
+        for token in words(syntax).filter(|token| token.class == TokenClass::Parameter && token.start > node.start && token.end <= head_end) {
+          bound.push((name_of(&text[token.start..token.end]), FeelType::Any));
+        }
+      }
+      "Context" => {
+        // the entries of the literal that are written before the place, as a literal of their own
+        let entries: Vec<&str> = syntax
+          .nodes
+          .iter()
+          .filter(|entry| entry.kind == "Entry" && entry.start > node.start && entry.end <= at && entry.end < node.end && holds(node, &["Context"], entry.start))
+          .map(|entry| &text[entry.start..entry.end])
+          .collect();
+        if entries.is_empty() {
+          continue;
+        }
+        if let FeelType::Context(types) = type_of_piece(scope, &format!("{{{}}}", entries.join(", ")), &bound) {
+          bound.extend(types);
+        }
+      }
+      // the predicate of a filter: the list is the expression before its bracket
+      _ => {
+        let list = syntax
+          .nodes
+          .iter()
+          .filter(|list| list.start == node.start && list.end < at && words(syntax).find(|word| word.start >= list.end).is_some_and(|word| &text[word.start..word.end] == "["))
+          .max_by_key(|list| list.end);
+        let Some(list) = list else {
+          continue;
+        };
+        let item = match type_of_piece(scope, &text[list.start..list.end], &bound) {
+          FeelType::List(item) => *item,
+          other => other,
+        };
+        if let FeelType::Context(types) = &item {
+          bound.extend(types.iter().map(|(name, entry_type)| (name.clone(), entry_type.clone())));
+        }
+        bound.push((Name::from("item"), item));
+      }
+    }
+  }
+  bound
+}
+
+/// The members of the value before the dot that ends `text`, each with its type as an item
+/// shows it: the entries of a context, the properties of a date, a time, a duration or a
+/// range, and for a list the members of its items. The value is the expression before the dot,
+/// typed without evaluating it.
+fn members(scope: &FeelScope, text: &str, syntax: &Syntax) -> Vec<(String, Option<String>)> {
+  let typed = || {
+    let dot = words(syntax).last().filter(|token| &text[token.start..token.end] == ".")?;
+    // the path that the dot belongs to starts where its base starts
+    let path = syntax
+      .nodes
+      .iter()
+      .filter(|node| node.kind == "Path" && node.start < dot.start && node.end >= dot.end)
+      .max_by_key(|node| node.start)?;
+    let bound = bound_at(scope, text, syntax, path.start);
+    let base = type_of_piece(scope, &text[path.start..dot.start], &bound);
+    let members: Vec<_> = members_of(&base).into_iter().map(|(name, member_type)| (name, shown(&member_type))).collect();
+    // a name that the text binds hides the name of the context: its members are all there is
+    let hidden = words(syntax)
+      .find(|token| token.start >= path.start)
+      .is_some_and(|first| bound.iter().any(|(name, _)| name.as_str() == &text[first.start..first.end]));
+    Some((members, hidden))
+  };
+  match typed() {
+    Some((members, hidden)) if hidden || !members.is_empty() => members,
+    // the names of a path into the context, as far as its values say
+    _ => receiver(text, syntax)
+      .map(|path| entries(scope, &path))
+      .unwrap_or_default()
+      .into_iter()
+      .map(|name| (name, None))
+      .collect(),
+  }
+}
+
 /// What the end of `text` is inside of, when it is no place of the grammar: a comment (a line
 /// comment before its line ends, a block comment that is not closed) or a string that is not
 /// closed. Nothing is offered there.
@@ -394,13 +611,25 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
   };
   match end.code {
     "expected-expression" => {
-      let mut names: Vec<String> = scope.frames().iter().flat_map(|frame| frame.iter().map(|(name, _)| name.to_string())).collect();
-      names.extend(end.names.iter().cloned());
+      // the names the text declares hide those of the context; their types are those of the
+      // constructs around the end of the text
+      // (the innermost first: of two names that are the same the first is kept); in the
+      // predicate of a filter they are `item` and the entries of an item
+      let bound = bound_at(scope, text, syntax, text.len());
+      let mut names: Vec<(String, Option<String>)> = bound.iter().rev().map(|(name, feel_type)| (name.to_string(), shown(feel_type))).collect();
+      names.extend(end.names.iter().map(|name| (name.clone(), None)));
+      names.extend(
+        scope
+          .frames()
+          .iter()
+          .rev()
+          .flat_map(|frame| frame.iter().map(|(name, value)| (name.to_string(), shown_of_value(value)))),
+      );
       if unary_tests {
-        names.push("?".to_string());
+        names.push(("?".to_string(), None));
       }
-      names.sort_unstable();
-      names.dedup();
+      names.sort_by(|a, b| a.0.cmp(&b.0));
+      names.dedup_by(|later, first| later.0 == first.0);
       Expected {
         name: "expression".to_string(),
         kinds: vec![Offer::Names(names), Offer::Keywords(OPERAND_KEYWORDS.to_vec()), Offer::Functions],
@@ -408,7 +637,7 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
     }
     "expected-name" if end.role == TokenClass::Property => Expected {
       name: "property".to_string(),
-      kinds: vec![Offer::Entries(receiver(text, syntax).map(|path| entries(scope, &path)).unwrap_or_default())],
+      kinds: vec![Offer::Entries(members(scope, text, syntax))],
     },
     // after a named parameter only a named one can follow
     "expected-name" if end.role == TokenClass::Parameter => Expected {
@@ -439,20 +668,20 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
 fn offer(items: &mut Vec<Item>, expected: &Expected, typed: &str, from: usize) {
   let normal = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
   let typed = normal(typed);
-  let mut add = |label: &str, kind: &'static str, feel_type: Option<&'static str>| {
+  let mut add = |label: &str, kind: &'static str, feel_type: Option<&str>| {
     if normal(label).starts_with(&typed) && !items.iter().any(|item| item.label == label && item.kind == kind) {
       items.push(Item {
         label: label.to_string(),
         kind,
         from,
-        feel_type,
+        feel_type: feel_type.map(str::to_string),
       });
     }
   };
   for kind in &expected.kinds {
     match kind {
-      Offer::Names(names) => names.iter().for_each(|name| add(name, "name", None)),
-      Offer::Entries(names) => names.iter().for_each(|name| add(name, "entry", None)),
+      Offer::Names(names) => names.iter().for_each(|(name, feel_type)| add(name, "name", feel_type.as_deref())),
+      Offer::Entries(names) => names.iter().for_each(|(name, feel_type)| add(name, "entry", feel_type.as_deref())),
       Offer::Keywords(keywords) => keywords.iter().for_each(|keyword| add(keyword, "keyword", None)),
       Offer::Functions => BUILT_IN_FUNCTION_NAMES.iter().for_each(|name| add(name, "function", None)),
       Offer::Types => TYPES.iter().for_each(|name| add(name, "type", None)),

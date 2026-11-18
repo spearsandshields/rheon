@@ -1,0 +1,1157 @@
+[
+  {
+    "request": {
+      "op": "complete",
+      "expression": "{x: a-b + 1, a-b: 2, y: a"
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "name",
+          "label": "a-b",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "function",
+          "label": "abs",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "function",
+          "label": "after",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "function",
+          "label": "all",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "function",
+          "label": "any",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "function",
+          "label": "append",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 25,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 24,
+          "kind": "name",
+          "label": "a-b",
+          "type": "number"
+        },
+        {
+          "detail": "abs(n): number or duration",
+          "from": 24,
+          "info": "The absolute value.",
+          "kind": "function",
+          "label": "abs",
+          "type": "number or duration"
+        },
+        {
+          "detail": "after(point1, point2): boolean",
+          "from": 24,
+          "info": "Whether the first comes after the second.",
+          "kind": "function",
+          "label": "after",
+          "type": "boolean"
+        },
+        {
+          "detail": "all(list): boolean",
+          "from": 24,
+          "info": "False when an item is false.",
+          "kind": "function",
+          "label": "all",
+          "type": "boolean"
+        },
+        {
+          "detail": "any(list): boolean",
+          "from": 24,
+          "info": "True when an item is true.",
+          "kind": "function",
+          "label": "any",
+          "type": "boolean"
+        },
+        {
+          "detail": "append(list, item...): list",
+          "from": 24,
+          "info": "The list with the items added at its end.",
+          "kind": "function",
+          "label": "append",
+          "type": "list"
+        }
+      ],
+      "ok": true,
+      "to": 25,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "> ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "9b0d277ebc856161d7dc07a36b62c6ef71ceb1ec76cac642d37a7b6ac8bb6189"
+    },
+    "new": {
+      "sha256": "ef855f77c3a50c80ed1950aa822f7b355c737425281686b7cade187cbb73f27c"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "1, 2,",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "684329fd7c193b3657710f75018a501c10f2cdf08baf0f0e86018b619e8cac8c"
+    },
+    "new": {
+      "sha256": "b42f1f0488c8998e8cdde2386cfc6c35a9e6a67d854b0bd8875938fe1e8c5f51"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "< 10, > ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "b6c5a536e3080a9e360257ae1cf9025f0ad1ef2d9d393e0f7d47f70df89d8209"
+    },
+    "new": {
+      "sha256": "b9155f25c14dac62a6d6e65f3f337b97130f33dfd8f81a96089df9cf12c42f52"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "[1..",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "7dda9ad5ac040e0d72c46321872ff0cad84c239d20fecb98d899b3679f1ecc54"
+    },
+    "new": {
+      "sha256": "144ae75b9c833d9c659ef792181faa04e77822f0e78ccd86eb917b6e7b7eb44f"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "dialect": "unaryTests",
+      "expression": "not(",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "7dda9ad5ac040e0d72c46321872ff0cad84c239d20fecb98d899b3679f1ecc54"
+    },
+    "new": {
+      "sha256": "47e93da574562ba53af61be3ac72f47e1e9d7e5e946d33e679f352e31f71686b"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "a26aeae76232f6cfb22c9ff1e5e78c1236252515ac19f250556a6475842f4073"
+    },
+    "new": {
+      "sha256": "1dbe975ac41d9be83f5ad878a1b9cd8fae4811ea4917d87aaa19e41701e3d4d7"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "Mon",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "name",
+          "label": "Monthly Salary",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "function",
+          "label": "month of year",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "name",
+          "label": "Monthly Salary",
+          "type": "number"
+        },
+        {
+          "detail": "month of year(date): string",
+          "from": 0,
+          "info": "The name of the month.",
+          "kind": "function",
+          "label": "month of year",
+          "type": "string"
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "order.",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "lines",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "total",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "lines",
+          "type": "list<context>"
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "total",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "order.lines[",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "0b02a547b2f208a8294da80f9fb680fdb2464af721c498a236d52773150fa8ef"
+    },
+    "new": {
+      "sha256": "de33bba60d2d07a164d33591655c960c3e7fa96deed53a2a430bad6ee0ebdd2b"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "order.lines[pr",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 12,
+          "kind": "function",
+          "label": "product",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 14,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 12,
+          "kind": "name",
+          "label": "price",
+          "type": "number"
+        },
+        {
+          "detail": "product(list): number",
+          "from": 12,
+          "info": "The product of the numbers.",
+          "kind": "function",
+          "label": "product",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 14,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "1 + ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "fb58e0a6a82cf485bcff001eaa92adf2ea004902bcb48a260d226ccc7c026826"
+    },
+    "new": {
+      "sha256": "d017d976698dd1fc92886333c15fd48acda244753368bad688e16b04e722c30f"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "if ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "7e4c79baae199282fd17145a75dbe051357eaa34da27a63e47750de87cbc375a"
+    },
+    "new": {
+      "sha256": "59c21cbd63f238ffe89d7a19ce5d03fc2318fd3fe2032d795ed5316df9ff6567"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "substring(",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "0f28f684c55485fe633266d5a76742accc0845656ac651ce330d98d98753ce95"
+    },
+    "new": {
+      "sha256": "01fb73f0f7c6bac5a627d508b2d2ce30c7cadc661aa4f60796463921fcca4e71"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "substring(\"abc\", ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "abe64463b735ba53130ff48d131e11daa8680f0aa9bde713590f1befcdda40cc"
+    },
+    "new": {
+      "sha256": "054e686acc7fe4c80663629e6aa538c18c4403df244c94f237fb79efa8b64404"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "date(",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "ab26c7bd7beb15a74fa6af6417b4122a822445c8552af89fa512326d4c00499e"
+    },
+    "new": {
+      "sha256": "d9866b3fc60876b76dc5ceec0052cc8ec70eb567d703eb3415a8cf061462618b"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "{a: 1, b: ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "0f28f684c55485fe633266d5a76742accc0845656ac651ce330d98d98753ce95"
+    },
+    "new": {
+      "sha256": "8dcc05a34bb384a0f92a3d853778db315c76133135b5b7a6e80607bc218cf5c9"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "[1, ",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "fb58e0a6a82cf485bcff001eaa92adf2ea004902bcb48a260d226ccc7c026826"
+    },
+    "new": {
+      "sha256": "d017d976698dd1fc92886333c15fd48acda244753368bad688e16b04e722c30f"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "Tax + 1",
+      "cursor": 3,
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "name",
+          "label": "Tax Rate",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "name",
+          "label": "Tax Rate",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "substring(\"abc\", 1, 2)",
+      "cursor": 17,
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "abe64463b735ba53130ff48d131e11daa8680f0aa9bde713590f1befcdda40cc"
+    },
+    "new": {
+      "sha256": "054e686acc7fe4c80663629e6aa538c18c4403df244c94f237fb79efa8b64404"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "ord",
+      "outline": {
+        "names": {
+          "Tax Rate": null,
+          "order": {
+            "names": {
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": null
+                  }
+                }
+              },
+              "total": null
+            }
+          }
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "name",
+          "label": "order",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 0,
+          "kind": "name",
+          "label": "order",
+          "type": "context"
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "order.",
+      "outline": {
+        "names": {
+          "Tax Rate": null,
+          "order": {
+            "names": {
+              "lines": {
+                "items": {
+                  "names": {
+                    "price": null
+                  }
+                }
+              },
+              "total": null
+            }
+          }
+        }
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "lines",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "total",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "lines",
+          "type": "list<context>"
+        },
+        {
+          "detail": null,
+          "from": 6,
+          "kind": "entry",
+          "label": "total",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 6,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "for item in[1] return item",
+      "context": {
+        "x": 1,
+        "in-progress": 1,
+        "item count": 3,
+        "list": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 22,
+          "kind": "name",
+          "label": "item",
+          "type": null
+        },
+        {
+          "detail": null,
+          "from": 22,
+          "kind": "name",
+          "label": "item count",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 26,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 22,
+          "kind": "name",
+          "label": "item",
+          "type": "number"
+        },
+        {
+          "detail": null,
+          "from": 22,
+          "kind": "name",
+          "label": "item count",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 26,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "x.a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 2,
+          "kind": "entry",
+          "label": "a-b",
+          "type": null
+        }
+      ],
+      "ok": true,
+      "to": 5,
+      "truncated": false
+    },
+    "new": {
+      "expects": "property",
+      "items": [
+        {
+          "detail": null,
+          "from": 2,
+          "kind": "entry",
+          "label": "a-b",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 5,
+      "truncated": false
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "1 + // no\n",
+      "context": {
+        "a": 1,
+        "abc": 2
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "sha256": "b3813108c559419a9b9b2e9c93c3f8f3401b875e5f8594a875d349bb38c4f023"
+    },
+    "new": {
+      "sha256": "6260d7d3bcbdd2232adea1dca2e4e847d69f36a1aa30d07a15e06d7beb024e27"
+    }
+  },
+  {
+    "request": {
+      "op": "complete",
+      "expression": "a-b",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "Completion knows the type of an expression: names and entries have their type (FORK item 269, EDT-8). Entries moved here from the ledgers of the signatures and of completion in comments, whose answers changed again",
+    "old": {
+      "expects": "expression",
+      "items": [],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": null,
+          "from": 2,
+          "kind": "name",
+          "label": "b",
+          "type": "number"
+        },
+        {
+          "detail": "before(point1, point2): boolean",
+          "from": 2,
+          "info": "Whether the first comes before the second.",
+          "kind": "function",
+          "label": "before",
+          "type": "boolean"
+        }
+      ],
+      "ok": true,
+      "to": 3,
+      "truncated": false
+    }
+  }
+]

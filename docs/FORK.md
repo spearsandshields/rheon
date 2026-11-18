@@ -4433,6 +4433,28 @@ looked up only when a name in scope has its length (232).
     brace, so with white space before the `{` it found no keys, and it panicked when that
     white space was a character of several bytes (found by the full-size parser tests).
 
+269. **Completion knows the type of an expression (type inference for the editor).** After a
+    dot `complete` offered entries only when the text before it was a path of names into the
+    context, and no item but a function or a parameter had a type. Now the engine finds the
+    type of the expression before the dot from its syntax tree, without evaluating it
+    (`feel-evaluator/src/infer.rs`: `infer_type`, `members_of`, `type_of_value`): literals,
+    names of the context, paths, filters, lists, context literals, ranges, the operators, `if`,
+    `for` and the quantifiers, function definitions and invocations (the result type of the
+    signature table of item 254; for `sort`, `append`, `reverse`, `sublist`, `min`, `max`,
+    `abs` and `get value` with a string the type that follows from the arguments). The
+    editor operation types the piece of the text before the dot, with the names that the
+    constructs around it bind: the variables of an iteration (an item of their domain), the
+    entries of a context literal written before the place, in the predicate of a filter
+    `item` and the entries of an item, and the parameters of a function (unknown, but they
+    hide the names outside). So `for l in order.lines return l.` offers the entries of a
+    line, `date(x).` the properties of a date, `[1..5].` those of a range. The items of the
+    kinds `name` and `entry` have their `type` (the kind of the value: `number`, `context`,
+    `list<context>`), and in the predicate of a filter the entries of an item and `item` are
+    offered as names. The shape of the answer is unchanged (`type` was null). A type is
+    `Any` where the tree does not say it; a piece that is no expression has no type. Tested at
+    every cursor of whole and broken texts. Identity: the `complete` answers with names or
+    entries differ by their `type` and are registered. Tracker row EDT-8.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,
