@@ -82,9 +82,9 @@ fn todays_scoping_is_pinned() {
     r#"[]"#,
     &[
       "context has no value for key 'amount'",
-      "eval_greater_then",
+      "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
       "context has no value for key 'amount'",
-      "eval_greater_then",
+      "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
     ],
     4,
   );
@@ -142,7 +142,10 @@ fn todays_scoping_is_pinned() {
   pin(
     r#"{f: function(a, b) x < 2, r: for x in [1] return sort([2, 1], f)}.r"#,
     r#"[[2, 1]]"#,
-    &["context has no value for key 'x'", "eval_less_then"],
+    &[
+      "context has no value for key 'x'",
+      "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+    ],
     2,
   );
   pin(

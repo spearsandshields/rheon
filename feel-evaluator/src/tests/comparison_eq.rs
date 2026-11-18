@@ -405,5 +405,10 @@ fn comparisons_are_left_associative() {
   te_bool(false, scope, "a = b = true = true", true);
   te_bool(false, scope, "x < 10 = (a = b)", true);
   // a boolean is not compared with a number
-  te_null(false, scope, "1 < 2 < 3", "eval_less_then");
+  te_null(
+    false,
+    scope,
+    "1 < 2 < 3",
+    "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
 }

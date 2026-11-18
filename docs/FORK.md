@@ -4517,6 +4517,18 @@ looked up only when a name in scope has its length (232).
     one pass over its bytes. Identity: no earlier request differs; the new request set
     `key-forms.json` registers the rule. Tracker row NAM-8.
 
+273. **An ordering comparison says what it expected and what it found.** `<`, `<=`, `>` and
+    `>=` on operands they do not order (DMN 1.6 Table 53) gave null with the name of an
+    internal function as the error (`eval_less_then_number`, `eval_greater_then`). The error
+    now names the operator, the type it expected and the type it found: with an operand of an
+    ordered type on the left, `comparison '<' expected number on the right, as on the left,
+    found string`; otherwise `comparison '>' expected a number, string, date, time, date and
+    time, or duration on the left, found boolean`. No value changes; a list of errors that
+    held the same text several times can hold different texts now (one per type found). The
+    four kernels are one macro. Identity ledger `comparison-messages.json`: 70 entries, of
+    which 29 replace entries of earlier ledgers whose answers held the old text. Tracker row
+    ERR-18.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

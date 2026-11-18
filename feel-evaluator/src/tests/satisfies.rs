@@ -335,8 +335,12 @@ fn a_boolean_test_using_the_tested_value_is_its_own_answer() {
   yes("7", "abs(?)", true);
   yes("false", "?", true);
   // the expression has no answer for the tested value
-  null(r#""a""#, "? > 5", "eval_greater_then_string");
-  null("null", "? > 5", "eval_greater_then");
+  null(r#""a""#, "? > 5", "comparison '>' expected string on the right, as on the left, found number");
+  null(
+    "null",
+    "? > 5",
+    "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+  );
 }
 
 /// The tests of a list are joined by `or` (DMN 1.6 Table 56): a tested value of another kind

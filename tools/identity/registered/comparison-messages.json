@@ -1,0 +1,4527 @@
+[
+  {
+    "expression": "sort([3, 1, 2], function(a, b) a < \"x\")",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "eval_less_then_number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 1, 2]",
+        "feel": "[3, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "comparison '<' expected number on the right, as on the left, found string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 1, 2]",
+        "feel": "[3, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list replace([1, 2, 3], function(item, newItem) item < \"x\", 0)",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "eval_less_then_number",
+          "list replace: matching function must return boolean value"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(list replace: matching function must return boolean value)",
+        "isNull": true,
+        "nullReason": "list replace: matching function must return boolean value",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "comparison '<' expected number on the right, as on the left, found string",
+          "list replace: matching function must return boolean value"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(list replace: matching function must return boolean value)",
+        "isNull": true,
+        "nullReason": "list replace: matching function must return boolean value",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sort([3, 1, 2], function(a, b) a < \"x\")",
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_less_then_number"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '<' expected number on the right, as on the left, found string"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list replace([1, 2, 3], function(item, newItem) item < \"x\", 0)",
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_less_then_number"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '<' expected number on the right, as on the left, found string"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5",
+      "input": null
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5",
+      "input": null,
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_greater_then"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "?.a > 1",
+      "input": {}
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "?.a > 1",
+      "input": {},
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_greater_then"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "> 1 < 2",
+      "input": 1
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "> 1 < 2",
+      "input": 1,
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_less_then"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '<' expected a number, string, date, time, date and time, or duration on the left, found range<number>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "3 > 2 > 1",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `>` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 3 > 2 > 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 <= 2 <= 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 7,
+            "message": "Comparison operators cannot be chained: `<=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 9
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 <= 2 <= 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<=' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<=' expected a number, string, date, time, date and time, or duration on the left, found boolean)",
+        "isNull": true,
+        "nullReason": "comparison '<=' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < (2 < 3)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_less_then_number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_less_then_number)",
+        "isNull": true,
+        "nullReason": "eval_less_then_number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<' expected number on the right, as on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected number on the right, as on the left, found boolean)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected number on the right, as on the left, found boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 = 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          },
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 = 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "equal err 'true' =?= '2'",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 < 2 < 3",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 6,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 7
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 < 2 < 3"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "not(1 < 2 < 3)",
+      "context": {
+        "a": 1,
+        "b": 1,
+        "c": [
+          true
+        ],
+        "x": 5,
+        "l": [
+          1,
+          2,
+          3
+        ],
+        "s": "a"
+      },
+      "dialect": "unaryTests",
+      "input": 5
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "comparison",
+            "from": 10,
+            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
+            "to": 11
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: not(1 < 2 < 3)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{item: 5, a: 1}, {item: 1, a: 2}, {a: 3}, 4, null, [1, 2]][item > 1]",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": 1, \"item\": 5}, 4]",
+        "feel": "[{a: 1, item: 5}, 4]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "item",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "5",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "4",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found context<a: number>",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": 1, \"item\": 5}, 4]",
+        "feel": "[{a: 1, item: 5}, 4]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "item",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "5",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "4",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[{item: 5, a: 1}, {item: 1, a: 2}, {a: 3}, 4, null, [1, 2]][a > 1]",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 6,
+        "messages": [
+          "context has no value for key 'a'",
+          "eval_greater_then",
+          "context has no value for key 'a'",
+          "eval_greater_then",
+          "context has no value for key 'a'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": 2, \"item\": 1}, {\"a\": 3}]",
+        "feel": "[{a: 2, item: 1}, {a: 3}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "item",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "3",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 6,
+        "messages": [
+          "context has no value for key 'a'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "context has no value for key 'a'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "context has no value for key 'a'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[{\"a\": 2, \"item\": 1}, {\"a\": 3}]",
+        "feel": "[{a: 2, item: 1}, {a: 3}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "item",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "3",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[1..3][item > 1]",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[1, \"a\", 3][item > 1]",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3]",
+        "feel": "[3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3]",
+        "feel": "[3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[1, null, 3][item > 1]",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3]",
+        "feel": "[3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3]",
+        "feel": "[3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "for i in 1..3 return partial[item > 1]",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [], []]",
+        "feel": "[[], [], []]",
+        "isNull": false,
+        "type": "list<list<Null>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<Null>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[[], [], []]",
+        "feel": "[[], [], []]",
+        "isNull": false,
+        "type": "list<list<Null>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": []
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1, \"a\", 3][item > 1]",
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_greater_then_string"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '>' expected string on the right, as on the left, found number"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "items[item.item > 1]",
+      "context": {
+        "items": [
+          {
+            "item": 1
+          },
+          {
+            "item": 2
+          }
+        ]
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "unexpected type: number, for property: item",
+          "eval_greater_then",
+          "unexpected type: number, for property: item",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "unexpected type: number, for property: item",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "unexpected type: number, for property: item",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1, 2, 3][item > \"a\"]",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "eval_greater_then_number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "comparison '>' expected number on the right, as on the left, found string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "l[a-b > c+d]",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'c+d'",
+          "eval_greater_then_number",
+          "context has no value for key 'c+d'",
+          "eval_greater_then_number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'c+d'",
+          "comparison '>' expected number on the right, as on the left, found Null",
+          "context has no value for key 'c+d'",
+          "comparison '>' expected number on the right, as on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1, 2][item > a-b]",
+      "context": {
+        "x": {
+          "a-b": 1,
+          "deep": {
+            "c+d": 4
+          }
+        },
+        "l": [
+          {
+            "a-b": 1
+          },
+          {
+            "a-b": 2
+          }
+        ],
+        "a": 5,
+        "b": 2,
+        "c": 1,
+        "d": 1
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'a-b'",
+          "eval_greater_then_number",
+          "context has no value for key 'a-b'",
+          "eval_greater_then_number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'a-b'",
+          "comparison '>' expected number on the right, as on the left, found Null",
+          "context has no value for key 'a-b'",
+          "comparison '>' expected number on the right, as on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "a > b",
+      "context": {
+        "?": "sad"
+      }
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'a'",
+          "context has no value for key 'b'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "context has no value for key 'a'",
+          "context has no value for key 'b'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(1 + \"a\") < (2 * \"b\")",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_less_then)",
+        "isNull": true,
+        "nullReason": "eval_less_then",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(1 + \"a\") < (2 * \"b\")",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "[core::number] not a FEEL numeric literal: b",
+          "eval_less_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "[core::number] not a FEEL numeric literal: b",
+          "comparison '<' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(1 + \"a\") >= (2 * \"b\")",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "eval_greater_or_equal"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_greater_or_equal)",
+        "isNull": true,
+        "nullReason": "eval_greater_or_equal",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(1 + \"a\") >= (2 * \"b\")",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "[core::number] not a FEEL numeric literal: b",
+          "eval_greater_or_equal_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "[multiplication] incompatible types: 2 * \"b\"",
+          "[core::number] not a FEEL numeric literal: b",
+          "comparison '>=' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[1, 2][item + \"a\" > 0]",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "eval_greater_then",
+          "incompatible types in addition: 2(number) + \"a\"(string)",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "incompatible types in addition: 2(number) + \"a\"(string)",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[1, 2][item + \"a\" > 0]",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "eval_greater_then_string",
+          "incompatible types in addition: 2(number) + \"a\"(string)",
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "comparison '>' expected string on the right, as on the left, found number",
+          "incompatible types in addition: 2(number) + \"a\"(string)",
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "some i in [1, 2] satisfies i + \"a\" > 0",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "some i in [1, 2] satisfies i + \"a\" > 0",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "eval_greater_then_string",
+          "incompatible types in addition: 2(number) + \"a\"(string)",
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)",
+          "comparison '>' expected string on the right, as on the left, found number",
+          "incompatible types in addition: 2(number) + \"a\"(string)",
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sort([3, 1, 2], function(a, b) a + \"x\" < b)",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"x\"(string)",
+          "eval_less_then",
+          "incompatible types in addition: 2(number) + \"x\"(string)",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 1, 2]",
+        "feel": "[3, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"x\"(string)",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "incompatible types in addition: 2(number) + \"x\"(string)",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 1, 2]",
+        "feel": "[3, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sort([3, 1, 2], function(a, b) a + \"x\" < b)",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"x\"(string)",
+          "eval_less_then_string",
+          "incompatible types in addition: 2(number) + \"x\"(string)",
+          "eval_less_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 1, 2]",
+        "feel": "[3, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"x\"(string)",
+          "comparison '<' expected string on the right, as on the left, found number",
+          "incompatible types in addition: 2(number) + \"x\"(string)",
+          "comparison '<' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[3, 1, 2]",
+        "feel": "[3, 1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{g: function() amount, r: [{amount: 1}, {amount: 5}][g() > 2]}.r",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'amount'",
+          "eval_greater_then",
+          "context has no value for key 'amount'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'amount'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "context has no value for key 'amount'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{g: function() item, r: [1, 5][g() > 2]}.r",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'item'",
+          "eval_greater_then",
+          "context has no value for key 'item'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'item'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "context has no value for key 'item'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{g: function() item.amount, r: [{amount: 1}, {amount: 5}][g() > 2]}.r",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'item'",
+          "eval_greater_then",
+          "context has no value for key 'item'",
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "context has no value for key 'item'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "context has no value for key 'item'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{f: function(a, b) x < 2, r: for x in [1] return sort([2, 1], f)}.r",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[[2, 1]]",
+        "feel": "[[2, 1]]",
+        "isNull": false,
+        "type": "list<list<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'x'",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[[2, 1]]",
+        "feel": "[[2, 1]]",
+        "isNull": false,
+        "type": "list<list<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list<2",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'list'",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(eval_less_then)",
+        "isNull": true,
+        "nullReason": "eval_less_then",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'list'",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5",
+      "input": "a"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected string on the right, as on the left, found number)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected string on the right, as on the left, found number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5",
+      "input": true
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5",
+      "input": [
+        1,
+        2
+      ]
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5",
+      "input": "a",
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_greater_then_string"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '>' expected string on the right, as on the left, found number"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5",
+      "input": "a",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5 and ? < 10",
+      "input": "a"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "eval_greater_then_string",
+          "eval_less_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number",
+          "comparison '<' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5 and ? < 10",
+      "input": null
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "eval_greater_then",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5 and ? < 10",
+      "input": true
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "eval_greater_then",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5 and ? < 10",
+      "input": [
+        1,
+        2
+      ]
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "eval_greater_then",
+          "eval_less_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>",
+          "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5 and ? < 10",
+      "input": "a",
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_greater_then_string"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '>' expected string on the right, as on the left, found number"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5 and ? < 10",
+      "input": "a",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5, 1",
+      "input": "a"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected string on the right, as on the left, found number)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected string on the right, as on the left, found number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5, 1",
+      "input": null
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5, 1",
+      "input": true
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5, 1",
+      "input": [
+        1,
+        2
+      ]
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5, 1",
+      "input": "a",
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_greater_then_string"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '>' expected string on the right, as on the left, found number"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? > 5, 1",
+      "input": "a",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "not(? > 5)",
+      "input": "a"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected string on the right, as on the left, found number)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected string on the right, as on the left, found number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "not(? > 5)",
+      "input": null
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "not(? > 5)",
+      "input": true
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "not(? > 5)",
+      "input": [
+        1,
+        2
+      ]
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>)",
+        "isNull": true,
+        "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "not(? > 5)",
+      "input": "a",
+      "errorMode": "strict"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: eval_greater_then_string"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: comparison '>' expected string on the right, as on the left, found number"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "not(? > 5)",
+      "input": "a",
+      "language": "b-feel"
+    },
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "eval_greater_then_string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #1 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "comparison '>' expected string on the right, as on the left, found number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sort([3, 1, \"a\", 2], function(x, y) x < y)",
+    "why": "An ordering comparison on operands it does not order says the operator, the type it expected and the type it found (FORK item 273, ERR-18)",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "eval_less_then_string",
+          "eval_less_then_number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 3, \"a\", 2]",
+        "feel": "[1, 3, \"a\", 2]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "a",
+                  "type": "xsd:string"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "comparison '<' expected string on the right, as on the left, found number",
+          "comparison '<' expected number on the right, as on the left, found string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 3, \"a\", 2]",
+        "feel": "[1, 3, \"a\", 2]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "a",
+                  "type": "xsd:string"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]

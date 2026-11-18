@@ -1,68 +1,6 @@
 [
   {
     "request": {
-      "op": "evaluate",
-      "expression": "1 < 2 < 3",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      }
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 6,
-            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 7
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: 1 < 2 < 3"
-      },
-      "ok": false
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "eval_less_then"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(eval_less_then)",
-        "isNull": true,
-        "nullReason": "eval_less_then",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
       "op": "parse",
       "expression": "1 < 2 < 3",
       "context": {
@@ -103,68 +41,6 @@
   },
   {
     "request": {
-      "op": "evaluate",
-      "expression": "3 > 2 > 1",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      }
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 6,
-            "message": "Comparison operators cannot be chained: `>` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 7
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: 3 > 2 > 1"
-      },
-      "ok": false
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "eval_greater_then"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(eval_greater_then)",
-        "isNull": true,
-        "nullReason": "eval_greater_then",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
       "op": "parse",
       "expression": "3 > 2 > 1",
       "context": {
@@ -201,68 +77,6 @@
     "new": {
       "ok": true,
       "tree": " Gt\n ├─ Gt\n │  ├─ Numeric\n │  │  └─ `3`\n │  └─ Numeric\n │     └─ `2`\n └─ Numeric\n    └─ `1`\n"
-    }
-  },
-  {
-    "request": {
-      "op": "evaluate",
-      "expression": "1 <= 2 <= 3",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      }
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 7,
-            "message": "Comparison operators cannot be chained: `<=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 9
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: 1 <= 2 <= 3"
-      },
-      "ok": false
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "eval_less_or_equal"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(eval_less_or_equal)",
-        "isNull": true,
-        "nullReason": "eval_less_or_equal",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
     }
   },
   {
@@ -3045,75 +2859,6 @@
   },
   {
     "request": {
-      "op": "evaluate",
-      "expression": "1 < 2 = 2 < 3",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      }
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 6,
-            "message": "Comparison operators cannot be chained: `=` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 7
-          },
-          {
-            "code": "comparison",
-            "from": 10,
-            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 11
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: 1 < 2 = 2 < 3"
-      },
-      "ok": false
-    },
-    "new": {
-      "diagnostics": {
-        "count": 2,
-        "messages": [
-          "equal err 'true' =?= '2'",
-          "eval_less_then"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(eval_less_then)",
-        "isNull": true,
-        "nullReason": "eval_less_then",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
       "op": "parse",
       "expression": "1 < 2 = 2 < 3",
       "context": {
@@ -3842,68 +3587,6 @@
   },
   {
     "request": {
-      "op": "evaluate",
-      "expression": "1 < 2 < 3",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      },
-      "language": "b-feel"
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 6,
-            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 7
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: 1 < 2 < 3"
-      },
-      "ok": false
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "eval_less_then"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
       "op": "syntax",
       "expression": "1 < 2 < 3",
       "context": {
@@ -4114,50 +3797,6 @@
       "changed": false,
       "formatted": "1 < 2 < 3",
       "ok": true
-    }
-  },
-  {
-    "request": {
-      "op": "evaluate",
-      "expression": "1 < 2 < 3",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      },
-      "errorMode": "strict"
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 6,
-            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 7
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: 1 < 2 < 3"
-      },
-      "ok": false
-    },
-    "new": {
-      "error": {
-        "kind": "evaluation",
-        "message": "strict error mode: eval_less_then"
-      },
-      "ok": false
     }
   },
   {
@@ -5189,69 +4828,6 @@
   {
     "request": {
       "op": "evaluate",
-      "expression": "1 < 2 < 3",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      },
-      "dialect": "unaryTests",
-      "input": 5
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 6,
-            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 7
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: 1 < 2 < 3"
-      },
-      "ok": false
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "eval_less_then"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
-      "op": "evaluate",
       "expression": "= 1 = true",
       "context": {
         "a": 1,
@@ -5452,69 +5028,6 @@
             "isNil": true,
             "text": null,
             "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
-      "op": "evaluate",
-      "expression": "not(1 < 2 < 3)",
-      "context": {
-        "a": 1,
-        "b": 1,
-        "c": [
-          true
-        ],
-        "x": 5,
-        "l": [
-          1,
-          2,
-          3
-        ],
-        "s": "a"
-      },
-      "dialect": "unaryTests",
-      "input": 5
-    },
-    "why": "The comparisons of grammar rule 49 are one left-associative level (FORK item 261, PAR-20)",
-    "old": {
-      "error": {
-        "diagnostics": [
-          {
-            "code": "comparison",
-            "from": 10,
-            "message": "Comparison operators cannot be chained: `<` follows a comparison. Use parentheses, or join two comparisons with `and`.",
-            "to": 11
-          }
-        ],
-        "kind": "syntax",
-        "message": "syntax error: not(1 < 2 < 3)"
-      },
-      "ok": false
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "eval_less_then"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "true",
-        "feel": "true",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "true",
-            "type": "xsd:boolean"
           }
         }
       },
