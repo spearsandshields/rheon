@@ -8543,5 +8543,64 @@
       },
       "warnings": []
     }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "> 1, ? < 3",
+      "input": 7
+    },
+    "why": "A test that uses ? is its own answer, and the warning about it is gone (FORK item 260 b)",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "unary test #2 is a boolean expression using '?': dsntk compares the input with its result (input = true/false) instead of treating it as satisfied when true (DMN 1.2+); write e.g. '> 5' instead of '? > 5'"
+        }
+      ]
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
   }
 ]

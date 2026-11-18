@@ -273,5 +273,6 @@
   {"op": "evaluate", "expression": "\"a\" not in (1, 2)", "errorMode": "strict"},
   {"op": "evaluate", "expression": "\"a\" not in (1, 2)", "language": "b-feel"},
   {"op": "evaluate", "dialect": "unaryTests", "expression": "a > b", "context": {"?": "sad", "a": 2, "b": 1}},
-  {"op": "evaluate", "dialect": "unaryTests", "expression": "? > limit", "context": {"?": 7, "limit": 5}}
+  {"op": "evaluate", "dialect": "unaryTests", "expression": "? > limit", "context": {"?": 7, "limit": 5}},
+  {"op": "evaluate", "dialect": "unaryTests", "expression": "> 1, ? < 3", "input": 7}
 ]
