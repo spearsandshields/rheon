@@ -1,0 +1,3133 @@
+[
+  {
+    "expression": "(< 5) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(5)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(5))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(5)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(< 5) instance of range<number>",
+      "errorMode": "strict"
+    },
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: invalid value in 'instance of' operator: UnaryLess(5)"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "< d.year",
+      "contextFormat": "feel",
+      "context": "{d: date(\"2020-06-15\"), r: [1..10]}"
+    },
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(2020)\"",
+        "feel": "UnaryLess(2020)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< 2020\"",
+        "feel": "< 2020",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "> r.start",
+      "contextFormat": "feel",
+      "context": "{d: date(\"2020-06-15\"), r: [1..10]}"
+    },
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreater(1)\"",
+        "feel": "UnaryGreater(1)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"> 1\"",
+        "feel": "> 1",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "(< d.year)",
+      "contextFormat": "feel",
+      "context": "{d: date(\"2020-06-15\"), r: [1..10]}"
+    },
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(2020)\"",
+        "feel": "UnaryLess(2020)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< 2020\"",
+        "feel": "< 2020",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "< 1.start",
+      "contextFormat": "feel",
+      "context": "{d: date(\"2020-06-15\"), r: [1..10]}"
+    },
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected type: number, for property: start"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(null(unexpected type: number, for property: start))\"",
+        "feel": "UnaryLess(null(unexpected type: number, for property: start))",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected type: number, for property: start"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< null(unexpected type: number, for property: start)\"",
+        "feel": "< null(unexpected type: number, for property: start)",
+        "isNull": false,
+        "type": "range<Null>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "> d.year.x",
+      "contextFormat": "feel",
+      "context": "{d: date(\"2020-06-15\"), r: [1..10]}"
+    },
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected type: number, for property: x"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreater(null(unexpected type: number, for property: x))\"",
+        "feel": "UnaryGreater(null(unexpected type: number, for property: x))",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected type: number, for property: x"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"> null(unexpected type: number, for property: x)\"",
+        "feel": "> null(unexpected type: number, for property: x)",
+        "isNull": false,
+        "type": "range<Null>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "< 10",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(10)\"",
+        "feel": "UnaryLess(10)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< 10\"",
+        "feel": "< 10",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(< 10)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(10)\"",
+        "feel": "\"UnaryLess(10)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryLess(10)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< 10\"",
+        "feel": "\"< 10\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "< 10",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(10)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(10))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(10)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(10)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(10))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(10)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< 10) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(10)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(10))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(10)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "<= 10",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLessOrEqual(10)\"",
+        "feel": "UnaryLessOrEqual(10)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"<= 10\"",
+        "feel": "<= 10",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(<= 10)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLessOrEqual(10)\"",
+        "feel": "\"UnaryLessOrEqual(10)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryLessOrEqual(10)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"<= 10\"",
+        "feel": "\"<= 10\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "<= 10",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(<= 10) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLessOrEqual(10)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLessOrEqual(10))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLessOrEqual(10)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(<= 10) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLessOrEqual(10)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLessOrEqual(10))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLessOrEqual(10)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(<= 10) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLessOrEqual(10)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLessOrEqual(10))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLessOrEqual(10)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "> 1",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreater(1)\"",
+        "feel": "UnaryGreater(1)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"> 1\"",
+        "feel": "> 1",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(> 1)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreater(1)\"",
+        "feel": "\"UnaryGreater(1)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryGreater(1)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"> 1\"",
+        "feel": "\"> 1\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "> 1",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(> 1) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreater(1)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreater(1))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreater(1)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(> 1) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreater(1)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreater(1))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreater(1)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(> 1) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreater(1)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreater(1))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreater(1)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": ">= 1",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreaterOrEqual(1)\"",
+        "feel": "UnaryGreaterOrEqual(1)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\">= 1\"",
+        "feel": ">= 1",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(>= 1)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreaterOrEqual(1)\"",
+        "feel": "\"UnaryGreaterOrEqual(1)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryGreaterOrEqual(1)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\">= 1\"",
+        "feel": "\">= 1\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": ">= 1",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(>= 1) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreaterOrEqual(1)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreaterOrEqual(1))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreaterOrEqual(1)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(>= 1) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreaterOrEqual(1)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreaterOrEqual(1))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreaterOrEqual(1)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(>= 1) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreaterOrEqual(1)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreaterOrEqual(1))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreaterOrEqual(1)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "= 5",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryEqual(5)\"",
+        "feel": "UnaryEqual(5)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"= 5\"",
+        "feel": "= 5",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(= 5)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryEqual(5)\"",
+        "feel": "\"UnaryEqual(5)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryEqual(5)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"= 5\"",
+        "feel": "\"= 5\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "= 5",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(= 5) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryEqual(5)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryEqual(5))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryEqual(5)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(= 5) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryEqual(5)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryEqual(5))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryEqual(5)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(= 5) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryEqual(5)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryEqual(5))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryEqual(5)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "!= 5",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryNotEqual(5)\"",
+        "feel": "UnaryNotEqual(5)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"!= 5\"",
+        "feel": "!= 5",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(!= 5)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryNotEqual(5)\"",
+        "feel": "\"UnaryNotEqual(5)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryNotEqual(5)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"!= 5\"",
+        "feel": "\"!= 5\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "!= 5",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(!= 5) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryNotEqual(5)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryNotEqual(5))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryNotEqual(5)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(!= 5) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryNotEqual(5)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryNotEqual(5))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryNotEqual(5)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(!= 5) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryNotEqual(5)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryNotEqual(5))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryNotEqual(5)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": ">= date(\"2020-01-01\")",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreaterOrEqual(2020-01-01)\"",
+        "feel": "UnaryGreaterOrEqual(2020-01-01)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\">= 2020-01-01\"",
+        "feel": ">= 2020-01-01",
+        "isNull": false,
+        "type": "range<date>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(>= date(\"2020-01-01\"))",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryGreaterOrEqual(2020-01-01)\"",
+        "feel": "\"UnaryGreaterOrEqual(2020-01-01)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryGreaterOrEqual(2020-01-01)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\">= 2020-01-01\"",
+        "feel": "\">= 2020-01-01\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": ">= 2020-01-01",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(>= date(\"2020-01-01\")) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(>= date(\"2020-01-01\")) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(>= date(\"2020-01-01\")) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryGreaterOrEqual(2020-01-01)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "< \"b\"",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(\\\"b\\\")\"",
+        "feel": "UnaryLess(\"b\")",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< \\\"b\\\"\"",
+        "feel": "< \"b\"",
+        "isNull": false,
+        "type": "range<string>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(< \"b\")",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(\\\"b\\\")\"",
+        "feel": "\"UnaryLess(\"b\")\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryLess(\"b\")",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< \\\"b\\\"\"",
+        "feel": "\"< \"b\"\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "< \"b\"",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< \"b\") instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(\"b\")"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(\"b\"))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(\"b\")",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< \"b\") instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(\"b\")"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(\"b\"))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(\"b\")",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< \"b\") instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(\"b\")"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(\"b\"))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(\"b\")",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "< duration(\"P1D\")",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(P1D)\"",
+        "feel": "UnaryLess(P1D)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< P1D\"",
+        "feel": "< P1D",
+        "isNull": false,
+        "type": "range<days and time duration>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(< duration(\"P1D\"))",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(P1D)\"",
+        "feel": "\"UnaryLess(P1D)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryLess(P1D)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< P1D\"",
+        "feel": "\"< P1D\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "< P1D",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< duration(\"P1D\")) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(P1D)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(P1D))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(P1D)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< duration(\"P1D\")) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(P1D)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(P1D))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(P1D)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< duration(\"P1D\")) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(P1D)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(P1D))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(P1D)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "< null",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(null)\"",
+        "feel": "UnaryLess(null)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< null\"",
+        "feel": "< null",
+        "isNull": false,
+        "type": "range<Null>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(< null)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(null)\"",
+        "feel": "\"UnaryLess(null)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "UnaryLess(null)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< null\"",
+        "feel": "\"< null\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "< null",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< null) instance of range<number>",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(null)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(null))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(null)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< null) instance of boolean",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(null)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(null))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(null)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(< null) instance of Any",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: UnaryLess(null)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: UnaryLess(null))",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: UnaryLess(null)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[< 10, >= 2]",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"UnaryLess(10)\", \"UnaryGreaterOrEqual(2)\"]",
+        "feel": "[UnaryLess(10), UnaryGreaterOrEqual(2)]",
+        "isNull": false,
+        "type": "list<boolean>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"< 10\", \">= 2\"]",
+        "feel": "[< 10, >= 2]",
+        "isNull": false,
+        "type": "list<range<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{a: < 10}",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"a\": \"UnaryLess(10)\"}",
+        "feel": "{a: UnaryLess(10)}",
+        "isNull": false,
+        "type": "context<a: boolean>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "a",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"a\": \"< 10\"}",
+        "feel": "{a: < 10}",
+        "isNull": false,
+        "type": "context<a: range<number>>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "a",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": null
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "range(\"(..10)\") = (< 10)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(..10)' =?= 'UnaryLess(10)'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(..10)' =?= 'UnaryLess(10)')",
+        "isNull": true,
+        "nullReason": "equal err '(..10)' =?= 'UnaryLess(10)'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '(..10)' =?= '< 10'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '(..10)' =?= '< 10')",
+        "isNull": true,
+        "nullReason": "equal err '(..10)' =?= '< 10'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "< 10",
+      "errorMode": "strict"
+    },
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"UnaryLess(10)\"",
+        "feel": "UnaryLess(10)",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< 10\"",
+        "feel": "< 10",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "(function(r: range<number>) r.end)(< 10)",
+    "why": "a comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it is shown as it is written, has the type of a range and can be tested with instance of",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "argument for parameter 'r' does not conform to type range<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(argument for parameter 'r' does not conform to type range<number>)",
+        "isNull": true,
+        "nullReason": "argument for parameter 'r' does not conform to type range<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "10",
+        "feel": "10",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

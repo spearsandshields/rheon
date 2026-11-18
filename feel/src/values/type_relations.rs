@@ -167,13 +167,11 @@ impl<'a> Ty<'a> {
         ))),
         Value::ContextType(feel_type) | Value::ContextTypeEntry(_, feel_type) | Value::FeelType(feel_type) | Value::FormalParameter(_, feel_type) => Ty::Is(feel_type).shape(),
         Value::IntervalEnd(value, _) | Value::IntervalStart(value, _) => Ty::Of(value).shape(),
-        Value::Boolean(_)
-        | Value::UnaryGreater(_)
-        | Value::UnaryGreaterOrEqual(_)
-        | Value::UnaryLess(_)
-        | Value::UnaryLessOrEqual(_)
-        | Value::UnaryEqual(_)
-        | Value::UnaryNotEqual(_) => Shape::Leaf(BOOLEAN),
+        // a comparison with one endpoint is a range of the type of that endpoint
+        Value::UnaryGreater(end) | Value::UnaryGreaterOrEqual(end) | Value::UnaryLess(end) | Value::UnaryLessOrEqual(end) | Value::UnaryEqual(end) | Value::UnaryNotEqual(end) => {
+          Shape::Range(Ends::Of(end, end))
+        }
+        Value::Boolean(_) => Shape::Leaf(BOOLEAN),
         Value::Date(_) => Shape::Leaf(DATE),
         Value::DateTime(_) => Shape::Leaf(DATE_TIME),
         Value::DaysAndTimeDuration(_) => Shape::Leaf(DAYS_AND_TIME_DURATION),
@@ -440,6 +438,13 @@ impl Conformance {
         FeelType::Range(ends) => self.check(start, ends) && self.check(end, ends),
         _ => false,
       },
+      // a comparison with one endpoint is a range
+      Value::UnaryGreater(end) | Value::UnaryGreaterOrEqual(end) | Value::UnaryLess(end) | Value::UnaryLessOrEqual(end) | Value::UnaryEqual(end) | Value::UnaryNotEqual(end) => {
+        match target {
+          FeelType::Range(ends) => self.check(end, ends),
+          _ => false,
+        }
+      }
       Value::List(items) => match target {
         FeelType::List(item_type) => items.iter().all(|item| self.check(item, item_type)),
         _ => false,

@@ -4249,6 +4249,30 @@ looked up only when a name in scope has its length (232).
     `tools/identity/requests/membership.json` (23 requests); 8 registered differences (one of them B-FEEL, where the answer stays false and the diagnostic of `=` is reported) in
     `tools/identity/registered/in-single-value.json`. Tracker row EVA-25.
 
+257. **A parameter that is given is not reported as not found.** The ten built-in functions
+    that take one list by the name `list` (`all`, `any`, `max`, `mean`, `median`, `min`,
+    `mode`, `product`, `stddev`, `sum`) answered "parameter 'list' not found" when the
+    parameter was given with a value that is no list (`sum(list: 1)`, `sum(list: null)`). The
+    null now says `[core::sum] invalid argument type, expected list, actual type is number`; a
+    parameter of another name is still not found. The messages of `substring` named `sublist`
+    in five places and name `substring`. The answers stay null; only the reasons change. A test
+    gives every named parameter of every signature a value of six other kinds and checks that
+    none is reported as not found. New request set
+    `tools/identity/requests/parameter-messages.json` (40 requests); 31 registered differences
+    in `tools/identity/registered/parameter-messages.json`.
+
+258. **A comparison with one endpoint is a range.** DMN 1.6 clause 10.3.2.7 makes `< 10` a
+    value of the range type (grammar rule 7.a, Table 42). As an expression it was shown by the
+    name of its variant (`UnaryLess(10)`, also by `string()` and inside lists and contexts),
+    had the type `boolean`, and `instance of` answered null for it. It is shown as it is
+    written (`< 10`, `>= 2020-01-01`, `= 5`, `!= 5`), has the type `range<number>` (the type of
+    its endpoint), `instance of` answers for it, and it conforms to a parameter of a range
+    type. How unary tests match, `in`, the properties and equality are not changed. Not
+    changed and still open: `range("(..10)") = (< 10)` is null where the spec makes them the
+    same range, and `.start` of `< 10` is null with a message. New request set
+    `tools/identity/requests/unary-values.json` (63 requests); 62 registered differences in
+    `tools/identity/registered/unary-values.json`, 7 of them on requests of older sets.
+
 Verification after commits 21-22 (native, dashu): feel-number tests on both
 backends, feel-regex, feel-evaluator 3376 passed / 13 failed (Java RPC
 tests) / 3 ignored, model-evaluator compatibility tests (all but TCK 0076,

@@ -56,7 +56,13 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
         FeelType::Null => VALUE_TRUE,
         _ => VALUE_FALSE,
       },
-      value @ Value::Range { .. } => match feel_type {
+      value @ (Value::Range { .. }
+      | Value::UnaryGreater(_)
+      | Value::UnaryGreaterOrEqual(_)
+      | Value::UnaryLess(_)
+      | Value::UnaryLessOrEqual(_)
+      | Value::UnaryEqual(_)
+      | Value::UnaryNotEqual(_)) => match feel_type {
         FeelType::Any => VALUE_TRUE,
         expected => Value::Boolean(value.has_type(&expected)),
       },

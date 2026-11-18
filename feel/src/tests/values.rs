@@ -180,12 +180,12 @@ fn test_display() {
   eq_dsp!(r#"(1..1]"#, Value::Range(b_number.clone(), IntervalType::Opened, b_number.clone(), IntervalType::Closed));
   eq_dsp!(r#""beta""#, Value::String("beta".into()));
   eq_dsp!(r#"12:13:23"#, Value::Time(v_time));
-  eq_dsp!(r#"UnaryGreater(1)"#, Value::UnaryGreater(b_number.clone()));
-  eq_dsp!(r#"UnaryGreaterOrEqual(1)"#, Value::UnaryGreaterOrEqual(b_number.clone()));
-  eq_dsp!(r#"UnaryLess(1)"#, Value::UnaryLess(b_number.clone()));
-  eq_dsp!(r#"UnaryLessOrEqual(1)"#, Value::UnaryLessOrEqual(b_number.clone()));
-  eq_dsp!(r#"UnaryEqual(1)"#, Value::UnaryEqual(b_number.clone()));
-  eq_dsp!(r#"UnaryNotEqual(1)"#, Value::UnaryNotEqual(b_number));
+  eq_dsp!(r#"> 1"#, Value::UnaryGreater(b_number.clone()));
+  eq_dsp!(r#">= 1"#, Value::UnaryGreaterOrEqual(b_number.clone()));
+  eq_dsp!(r#"< 1"#, Value::UnaryLess(b_number.clone()));
+  eq_dsp!(r#"<= 1"#, Value::UnaryLessOrEqual(b_number.clone()));
+  eq_dsp!(r#"= 1"#, Value::UnaryEqual(b_number.clone()));
+  eq_dsp!(r#"!= 1"#, Value::UnaryNotEqual(b_number));
   eq_dsp!(r#"P3Y2M"#, Value::YearsAndMonthsDuration(v_years_and_months_duration));
 }
 
@@ -258,12 +258,12 @@ fn test_type_of() {
   );
   eq_typ!(FeelType::String, Value::String("beta".into()));
   eq_typ!(FeelType::Time, Value::Time(v_time));
-  eq_typ!(FeelType::Boolean, Value::UnaryGreater(b_number.clone()));
-  eq_typ!(FeelType::Boolean, Value::UnaryGreaterOrEqual(b_number.clone()));
-  eq_typ!(FeelType::Boolean, Value::UnaryLess(b_number.clone()));
-  eq_typ!(FeelType::Boolean, Value::UnaryLessOrEqual(b_number.clone()));
-  eq_typ!(FeelType::Boolean, Value::UnaryEqual(b_number.clone()));
-  eq_typ!(FeelType::Boolean, Value::UnaryNotEqual(b_number));
+  eq_typ!(FeelType::Range(Box::new(FeelType::Number)), Value::UnaryGreater(b_number.clone()));
+  eq_typ!(FeelType::Range(Box::new(FeelType::Number)), Value::UnaryGreaterOrEqual(b_number.clone()));
+  eq_typ!(FeelType::Range(Box::new(FeelType::Number)), Value::UnaryLess(b_number.clone()));
+  eq_typ!(FeelType::Range(Box::new(FeelType::Number)), Value::UnaryLessOrEqual(b_number.clone()));
+  eq_typ!(FeelType::Range(Box::new(FeelType::Number)), Value::UnaryEqual(b_number.clone()));
+  eq_typ!(FeelType::Range(Box::new(FeelType::Number)), Value::UnaryNotEqual(b_number));
   eq_typ!(FeelType::YearsAndMonthsDuration, Value::YearsAndMonthsDuration(v_years_and_months_duration));
 }
 

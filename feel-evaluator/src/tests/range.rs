@@ -225,3 +225,25 @@ fn _0037() {
   );
   assert_eq!(r#"null(expected interval end)"#, crate::tests::eval(&scope!(), &node).to_string());
 }
+
+/// A comparison with one endpoint is a range (DMN 1.6 clause 10.3.2.7): it has the type of a
+/// range and is shown as it is written.
+#[test]
+fn a_comparison_with_one_endpoint_is_a_range() {
+  let scope = scope!();
+  for (text, shown) in [("< 10", "< 10"), ("<= 10", "<= 10"), ("> 1", "> 1"), (">= 1", ">= 1"), ("= 5", "= 5"), ("!= 5", "!= 5")] {
+    te_value(false, &scope, &format!("string({text})"), &format!("\"{shown}\""));
+    te_bool(false, &scope, &format!("({text}) instance of range<number>"), true);
+    te_bool(false, &scope, &format!("({text}) instance of range<string>"), false);
+    te_bool(false, &scope, &format!("({text}) instance of boolean"), false);
+  }
+  te_bool(false, &scope, r#"(>= "a") instance of range<string>"#, true);
+  te_value(false, &scope, "string([< 10, >= 2])", r#""[< 10, >= 2]""#);
+  te_value(false, &scope, "(function(r: range<number>) r.end)(< 10)", "10");
+  te_null(
+    false,
+    &scope,
+    "(function(r: boolean) r)(< 10)",
+    "argument for parameter 'r' does not conform to type boolean",
+  );
+}
