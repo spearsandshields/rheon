@@ -73,7 +73,7 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  eq("decision012", &CTX, r#"null(parameter 'list' not found)"#);
+  eq("decision012", &CTX, r#"null([core::product] invalid argument type, expected list, actual type is Null)"#);
 }
 
 #[test]

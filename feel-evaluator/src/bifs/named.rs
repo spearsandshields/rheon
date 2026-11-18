@@ -1,4 +1,5 @@
 use crate::bifs::core;
+use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, Name, value_null};
@@ -179,18 +180,18 @@ fn bif_after(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_all(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::all(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::all(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "all", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
 fn bif_any(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::any(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::any(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "any", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
@@ -661,18 +662,18 @@ fn bif_matches(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_max(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::max(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::max(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "max", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
 fn bif_mean(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::mean(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::mean(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "mean", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
@@ -689,10 +690,10 @@ fn bif_meets(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_median(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::median(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::median(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "median", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
@@ -709,10 +710,10 @@ fn bif_met_by(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_min(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::min(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::min(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "min", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
@@ -737,10 +738,10 @@ fn bif_month_of_year(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_mode(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::mode(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::mode(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "mode", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
@@ -821,10 +822,10 @@ fn bif_overlaps_before(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_product(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::product(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::product(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "product", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
@@ -1046,10 +1047,10 @@ fn bif_starts_with(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_stddev(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::stddev(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::stddev(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "stddev", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 
@@ -1166,10 +1167,10 @@ fn bif_substring_before(parameters: &NamedParameters) -> Value {
 }
 
 fn bif_sum(parameters: &NamedParameters) -> Value {
-  if let Some((Value::List(list), _)) = get_param(parameters, &NAME_LIST) {
-    core::sum(list)
-  } else {
-    parameter_not_found!(NAME_LIST)
+  match get_param(parameters, &NAME_LIST) {
+    Some((Value::List(list), _)) => core::sum(list),
+    Some((other, _)) => invalid_argument_type!(module "core", "sum", "list", other),
+    None => parameter_not_found!(NAME_LIST),
   }
 }
 

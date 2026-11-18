@@ -2648,7 +2648,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
                 Value::String(input_string.chars().skip(first as usize).take(length as usize).collect::<String>().into())
               } else {
                 value_null!(
-                  "sublist: invalid range, len = {}, start position = {}, end position = {}",
+                  "substring: invalid range, len = {}, start position = {}, end position = {}",
                   input_string_len,
                   first + 1,
                   last + 1
@@ -2662,7 +2662,7 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
                 Value::String(input_string.chars().skip(first as usize).take(length as usize).collect::<String>().into())
               } else {
                 value_null!(
-                  "sublist: invalid range, len = {}, start position = {}, end position = {}",
+                  "substring: invalid range, len = {}, start position = {}, end position = {}",
                   input_string_len,
                   first + 1,
                   last + 1
@@ -2700,14 +2700,14 @@ pub fn substring(input_string_value: &Value, start_position_value: &Value, lengt
           Ordering::Equal => value_null!("substring: start position must not be zero"),
         },
         other => {
-          value_null!("sublist: expected number, actual length type is {}", arg(&TypeOf(other)))
+          value_null!("substring: expected number, actual length type is {}", arg(&TypeOf(other)))
         }
       }
     } else {
-      value_null!("sublist: expected number, actual start position type is {}", arg(&TypeOf(start_position_value)))
+      value_null!("substring: expected number, actual start position type is {}", arg(&TypeOf(start_position_value)))
     }
   } else {
-    value_null!("sublist: expected string, actual value type is {}", arg(&TypeOf(input_string_value)))
+    value_null!("substring: expected string, actual value type is {}", arg(&TypeOf(input_string_value)))
   }
 }
 

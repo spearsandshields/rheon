@@ -91,7 +91,14 @@ fn _0012() {
 #[test]
 fn _0013() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision012", &ctx, r#"null(parameter 'list' not found)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision012",
+    &ctx,
+    r#"null([core::median] invalid argument type, expected list, actual type is Null)"#,
+  );
 }
 
 #[test]

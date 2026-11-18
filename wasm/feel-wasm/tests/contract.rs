@@ -468,23 +468,23 @@ fn huge_positions_and_lengths_are_null_with_native_reasons() {
   let cases = [
     (
       "substring(\"abcdef\", 2, 4294967295)",
-      "sublist: invalid range, len = 6, start position = 2, end position = 4294967297",
+      "substring: invalid range, len = 6, start position = 2, end position = 4294967297",
     ),
     (
       "substring(\"abcdef\", 4, 4294967293)",
-      "sublist: invalid range, len = 6, start position = 4, end position = 4294967297",
+      "substring: invalid range, len = 6, start position = 4, end position = 4294967297",
     ),
     (
       "substring(\"abcdef\", -3, 4294967295)",
-      "sublist: invalid range, len = 6, start position = 4, end position = 4294967299",
+      "substring: invalid range, len = 6, start position = 4, end position = 4294967299",
     ),
     (
       "substring(\"abcdef\", 2, 18446744073709551615)",
-      "sublist: invalid range, len = 6, start position = 2, end position = 18446744073709551617",
+      "substring: invalid range, len = 6, start position = 2, end position = 18446744073709551617",
     ),
     (
       "substring(\"abc\", 2, 4294967296)",
-      "sublist: invalid range, len = 3, start position = 2, end position = 4294967298",
+      "substring: invalid range, len = 3, start position = 2, end position = 4294967298",
     ),
     ("substring(\"abc\", -4294967296)", "substring: position is out of range, len = 3, position = -4294967296"),
     (

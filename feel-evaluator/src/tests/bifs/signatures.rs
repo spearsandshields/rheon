@@ -29,8 +29,7 @@ fn invoke(text: &str) {
   }
 }
 
-/// A value of a type of the table, as text. A built-in function reports a parameter of another
-/// type as not found, so the invocations give every parameter a value of its type.
+/// A value of a type of the table, as text.
 fn sample(feel_type: &str) -> &'static str {
   match feel_type {
     "number" | "Any" | "number or duration" => "1",
@@ -101,4 +100,39 @@ fn a_wrong_name_is_refused() {
 #[should_panic(expected = "actual number of parameters is")]
 fn a_wrong_count_is_refused() {
   invoke(r#"substring("a")"#);
+}
+
+/// A parameter that is given by its name is never reported as not found, whatever its value:
+/// a value of another type has a message that names the type.
+#[test]
+fn a_given_parameter_is_never_reported_as_not_found() {
+  let (mut invoked, mut refused) = (0, vec![]);
+  for built_in in &BUILT_INS {
+    for signature in built_in.signatures.iter().filter(|signature| signature.named) {
+      for wrong in ["null", "true", "{a: 1}", "[1, 2]", "1", r#""a""#] {
+        for index in 0..signature.parameters.len() {
+          let named: Vec<String> = signature
+            .parameters
+            .iter()
+            .enumerate()
+            .map(|(position, parameter)| format!("{}: {}", parameter.name, if position == index { wrong } else { sample(parameter.feel_type) }))
+            .collect();
+          refused.extend(refusal(&format!("{}({})", built_in.name, named.join(", "))));
+          invoked += 1;
+        }
+      }
+    }
+  }
+  assert!(refused.is_empty(), "{}", refused.join("\n"));
+  assert!(invoked > 600, "{invoked}");
+}
+
+#[test]
+fn a_parameter_of_another_type_is_named_with_its_type() {
+  let scope = FeelScope::default();
+  let node = rheon_feel_parser::parse_textual_expression(&scope, "sum(list: 1)", false).unwrap();
+  assert_eq!(
+    Value::Null(Some("[core::sum] invalid argument type, expected list, actual type is number".to_string())),
+    super::super::eval(&scope, &node)
+  );
 }
