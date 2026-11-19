@@ -17,6 +17,8 @@ the answer matters: money, eligibility, pricing, compliance.
 **[Try it in the playground](https://spearsandshields.github.io/rheon/)**. Everything runs in
 your browser.
 
+[![The rheon playground: a FEEL context with exact 34-digit results and its syntax tree](docs/assets/playground.png)](https://spearsandshields.github.io/rheon/)
+
 ```ts
 import { FeelEngine } from '@rheon/feel-runtime';
 import wasmUrl from '@rheon/feel-runtime/feel.wasm?url';   // Vite; or serve the file yourself
