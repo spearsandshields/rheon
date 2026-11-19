@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 jobs:
-  # The release tier (scripts/tier.mjs, README "Test tiers"), without the large request sets,
+  # The release tier (scripts/tier.mjs, docs/DEVELOPING.md "Test tiers"), without the large request sets,
   # which stay outside the repository (as does the speed suite, a tier of its own): the table
   # lists them as NOT RUN, and a
   # release is fully checked only when the whole tier ran on the reference machine first. Nothing

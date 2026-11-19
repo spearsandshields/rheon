@@ -31,7 +31,7 @@ bash tools/identity/run.sh .tools/baseline/feel.wasm dist/feel.wasm [source…] 
 | `large-left-out.json` | The requests of the large sets that `run.sh --large` leaves out (`equal.mjs --leave-out`), each by a name, the sha256 of its canonical text and the reason; a name that no source holds fails the run |
 | `release/registered/<change>.json` | The ledger of the release tier: the entries whose request is in `release/requests/`, written in the commit that changes the answer |
 
-The test tiers run the check after the wasm build (`scripts/tier.mjs`, README "Test tiers"): the
+The test tiers run the check after the wasm build (`scripts/tier.mjs`, docs/DEVELOPING.md "Test tiers"): the
 fix and group tiers on the committed sources, the release tier also with `--release` and
 `--large`; the group tier also runs `npm run test:identity`. CI runs the group tier with
 `GH_TOKEN` set to the workflow's token for the download.
