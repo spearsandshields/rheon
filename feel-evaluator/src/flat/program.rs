@@ -330,14 +330,17 @@ pub(crate) struct ProbeInfo {
   pub(crate) name: Ix,
 }
 
-/// A filter: where its value goes, where its predicate starts, and where it closes (at its
-/// [Op::FilterClose]) and ends.
+/// A filter: where its value goes, where its predicate starts, where it closes (at its
+/// [Op::FilterClose]) and ends, and whether its predicate is only a test of the items.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct FilterInfo {
   pub(crate) dst: Slot,
   pub(crate) body: Pc,
   pub(crate) close: Pc,
   pub(crate) after: Pc,
+  /// The predicate is a test whose value is never a number and whose evaluation takes no step
+  /// and can not stop: it selects no item by index, so it is evaluated for the items only.
+  pub(crate) test: bool,
 }
 
 /// A function definition: the proto of its body, the value of its formal parameters, the value

@@ -737,7 +737,7 @@ impl<'p> Vm<'p> {
             }
           } as usize;
         }
-        Op::FilterOpen { record: _, info, list } => {
+        Op::FilterOpen { record, info, list } => {
           let (items, wrap) = match self.read(list) {
             Value::List(items) => (items, false),
             Value::Null(_) => {
@@ -749,17 +749,23 @@ impl<'p> Vm<'p> {
             }
             other => (FeelList::from(vec![other]), true),
           };
+          // a predicate that is only a test is not evaluated in the scope around the filter
+          // first: the filter starts with its first item
+          let test = program.filters[info as usize].test;
           self.records.push(Record::Filter(Filter {
             info,
             items,
             wrap,
-            mark: Some(diagnostics::tentative_mark()),
-            visiting: false,
+            mark: (!test).then(diagnostics::tentative_mark),
+            visiting: test,
             at: 0,
             item_entry: false,
             kept: vec![],
             value: None,
           }));
+          if test {
+            pc = self.filter_next(program, record) as usize;
+          }
         }
         Op::FilterStep { record, c } => {
           let c = self.read(c);
@@ -1168,6 +1174,14 @@ impl<'p> Vm<'p> {
         }
       }
     }
+    self.filter_next(program, record)
+  }
+
+  /// Where a filter that visits its items goes on: at its predicate for the item at hand, or at
+  /// its close with its value after the last item or when the evaluation was stopped.
+  fn filter_next(&mut self, program: &Program, record: u32) -> Pc {
+    let filter = self.filter_mut(record);
+    let info = &program.filters[filter.info as usize];
     // an item is a step of the evaluation; after the last one the result is given unless the
     // evaluation was stopped
     let stopped = match filter.items.get(filter.at) {

@@ -912,6 +912,42 @@ fn division_agrees_with_the_backend() {
   }
 }
 
+/// Divisions of small coefficients, most of them with a quotient that ends: by powers of two,
+/// five and ten and their products, of multiples of the divisor, and of other numbers.
+#[test]
+fn division_of_small_numbers_agrees_with_the_backend() {
+  let mut state = 0x5EED_0FD1;
+  let cases = if full() { 20_000_000 } else { 400_000 };
+  let mut ended = 0;
+  for _ in 0..cases {
+    let small = |state: &mut u64| match rng(state) % 6 {
+      0 => 1 + rng(state) % 1000,
+      1 => 1 + rng(state) % 1_000_000_000,
+      2 => 1 + rng(state) % (1 << 60),
+      3 => 2u64.pow((rng(state) % 60) as u32),
+      4 => 5u64.pow((rng(state) % 26) as u32),
+      _ => (2u64.pow((rng(state) % 12) as u32) * 5u64.pow((rng(state) % 12) as u32)).max(1) * (1 + rng(state) % 30),
+    };
+    let cb = small(&mut state);
+    let ca = match rng(&mut state) % 4 {
+      0 => cb.saturating_mul(1 + rng(&mut state) % 1000),
+      1 => (small(&mut state) / cb.max(1)).max(1).saturating_mul(cb >> cb.trailing_zeros()),
+      _ => small(&mut state),
+    };
+    let exponent = |state: &mut u64| match rng(state) % 10 {
+      0 => EXP_MIN as i32 + (rng(state) % 80) as i32,
+      1 => EXP_MAX as i32 - (rng(state) % 80) as i32,
+      2 => (rng(state) % 12288) as i32 - 6176,
+      _ => (rng(state) % 13) as i32 - 6,
+    };
+    let (ea, eb) = (exponent(&mut state), exponent(&mut state));
+    ended += usize::from(div_exact_small(u128::from(ca), ea, u128::from(cb), eb).is_some());
+    let (a, b) = (V::Fin(rng(&mut state) & 1 == 0, u128::from(ca), ea), V::Fin(rng(&mut state) & 1 == 0, u128::from(cb), eb));
+    assert_eq!(format!("{:?}", div_by_backend(a, b)), format!("{:?}", div_v(a, b)), "{ca}e{ea} / {cb}e{eb}");
+  }
+  assert!(ended > cases / 4, "too few divisions took the short path: {ended} of {cases}");
+}
+
 #[test]
 fn equal_numbers_have_one_hash() {
   use std::hash::{BuildHasher, RandomState};

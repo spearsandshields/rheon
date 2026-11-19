@@ -113,11 +113,6 @@ pub fn date_time_offset_dt(date: (i32, u32, u32), time: (u32, u32, u32, u32), of
   None
 }
 
-pub fn date_time_offset_t(time: (u32, u32, u32, u32), offset: i32) -> Option<DateTime<FixedOffset>> {
-  let today = local_now();
-  date_time_offset_dt((today.year(), today.month(), today.day()), time, offset)
-}
-
 /// Returns the time offset (in seconds) between local time zone
 /// and UTC time zone at specified **date and time**.
 pub fn get_local_offset_dt(date: (i32, u32, u32), time: (u32, u32, u32, u32)) -> Option<i32> {

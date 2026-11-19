@@ -575,7 +575,14 @@ impl<'a> Lower<'_, 'a> {
     let kids = resolved.kids(node);
     let mark = self.next;
     let list = self.value(kids[0], None)?;
-    let info = self.builder.filter(FilterInfo { dst, body: 0, close: 0, after: 0 });
+    let test = plain_test(resolved.nodes[kids[1] as usize].ast);
+    let info = self.builder.filter(FilterInfo {
+      dst,
+      body: 0,
+      close: 0,
+      after: 0,
+      test,
+    });
     self.builder.emit(Op::FilterOpen { record, info, list });
     self.next = mark;
     let body = self.builder.here();
@@ -889,6 +896,34 @@ fn fixed_single(ast: &AstNode) -> Option<Value> {
   })
 }
 
+/// True for a predicate of a filter that is a comparison, a conjunction or a disjunction of
+/// names, paths, literals and arithmetic: its value is a boolean or null, never the index of an
+/// item, and its evaluation visits no item of a list, calls nothing and so takes no step.
+fn plain_test(ast: &AstNode) -> bool {
+  /// What a plain test may hold below it.
+  fn plain(ast: &AstNode) -> bool {
+    match ast {
+      AstNode::Name(_) | AstNode::QualifiedName(_) | AstNode::Numeric(..) | AstNode::String(_) | AstNode::Boolean(_) | AstNode::Null | AstNode::At(_) => true,
+      AstNode::Neg(inner) => plain(inner),
+      AstNode::Path(left, right) => plain(left) && matches!(right.as_ref(), AstNode::Name(_)),
+      AstNode::Add(left, right) | AstNode::Sub(left, right) | AstNode::Mul(left, right) | AstNode::Div(left, right) => plain(left) && plain(right),
+      test => plain_test(test),
+    }
+  }
+  match ast {
+    AstNode::Eq(left, right)
+    | AstNode::Nq(left, right)
+    | AstNode::Lt(left, right)
+    | AstNode::Le(left, right)
+    | AstNode::Gt(left, right)
+    | AstNode::Ge(left, right)
+    | AstNode::And(left, right)
+    | AstNode::Or(left, right) => plain(left) && plain(right),
+    AstNode::Between(value, low, high) => plain(value) && plain(low) && plain(high),
+    _ => false,
+  }
+}
+
 /// The value of a literal that is not nested and whose evaluation records nothing.
 fn fixed_scalar(ast: &AstNode) -> Option<Value> {
   match ast {
@@ -1015,6 +1050,51 @@ mod tests {
     // a name, an operation, and a literal whose evaluation records a warning
     for text in ["x in (< 10, x)", "x in [1..x]", "x in [1..2+3]", "x in < -x", r#"x in (< @"PT0.0000000001S")"#] {
       assert!(fixed(text).is_none(), "{text}");
+    }
+  }
+
+  /// [plain_test] of the predicate of the filter `text`.
+  fn test_only(text: &str) -> bool {
+    let scope = FeelScope::default();
+    for name in ["x", "rows", "f"] {
+      scope.set_value(&name.into(), Value::Null(None));
+    }
+    match &rheon_feel_parser::parse_expression(&scope, text).unwrap() {
+      AstNode::Filter(_, predicate) => plain_test(predicate),
+      other => panic!("no filter: {other:?}"),
+    }
+  }
+
+  #[test]
+  fn a_predicate_that_only_tests_is_not_evaluated_around_the_filter() {
+    for text in [
+      "rows[item > 1]",
+      "rows[x = \"a\" and item.x <= 2 * x + 1]",
+      "rows[item != null or x < -1]",
+      "rows[x between 1 and item.x]",
+      "rows[item >= @\"2026-01-01\"]",
+    ] {
+      assert!(test_only(text), "{text}");
+    }
+  }
+
+  #[test]
+  fn a_predicate_that_may_be_an_index_or_take_a_step_is_evaluated_around_the_filter() {
+    // an index, a name that may hold one, a call, a filter and an iteration inside, a power
+    for text in [
+      "rows[1]",
+      "rows[x]",
+      "rows[-1]",
+      "rows[x + 1]",
+      "rows[f(item) > 1]",
+      "rows[rows[1] = item]",
+      "rows[item > count(rows)]",
+      "rows[(some y in rows satisfies y = item) = true]",
+      "rows[item ** 2 > 4]",
+      "rows[if item > 1 then true else false]",
+      "rows[item in (1, 2)]",
+    ] {
+      assert!(!test_only(text), "{text}");
     }
   }
 }
