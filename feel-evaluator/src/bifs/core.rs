@@ -2,7 +2,7 @@
 
 use crate::bfeel::Dialect;
 use crate::bifs::open_ranges::{self, Relation};
-use crate::equality::Equality;
+use crate::equality::{Equality, Seen};
 use crate::evaluate_range_literal;
 use crate::invocation::call_with;
 use crate::macros::invalid_argument_type;
@@ -733,10 +733,10 @@ pub fn decimal(number_value: &Value, scale_value: &Value) -> Value {
 /// Returns new list with removed duplicates.
 pub fn distinct_values(value: &Value) -> Value {
   if let Value::List(items) = value {
-    let mut equality = Equality::default();
+    let mut seen = Seen::default();
     let mut result = vec![];
     for item in items {
-      if result.iter().all(|v| equality.compare(v, item) != Some(true)) {
+      if seen.insert(item) {
         result.push(item.clone())
       }
     }
@@ -2933,13 +2933,11 @@ pub fn intersection(lists: &[Value]) -> Value {
       other => return invalid_argument_type!("intersection", "list", other),
     }
   }
-  let mut equality = Equality::default();
+  let mut others: Vec<Seen> = inputs[1..].iter().map(|other| Seen::of(other)).collect();
+  let mut seen = Seen::default();
   let mut result: Vec<Value> = vec![];
   for item in inputs[0].iter() {
-    if result.iter().any(|a| equality.compare(a, item) == Some(true)) {
-      continue;
-    }
-    if inputs[1..].iter().all(|other| other.iter().any(|b| equality.compare(b, item) == Some(true))) {
+    if others.iter_mut().all(|other| other.contains(item)) && seen.insert(item) {
       result.push(item.clone());
     }
   }
@@ -2964,12 +2962,12 @@ pub fn trim(value: &Value) -> Value {
 
 /// Returns new list containing concatenated list with duplicates removed.
 pub fn union(lists: &[Value]) -> Value {
-  let mut equality = Equality::default();
+  let mut seen = Seen::default();
   let mut result = vec![];
   for list in lists {
     if let Value::List(items) = list {
       for item in items {
-        if result.iter().all(|a| equality.compare(a, item) != Some(true)) {
+        if seen.insert(item) {
           result.push(item.clone())
         }
       }

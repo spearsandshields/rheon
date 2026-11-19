@@ -8,6 +8,7 @@
 
 use rheon_feel::values::Value;
 use std::collections::HashMap;
+use std::hash::{BuildHasher, Hash, Hasher, RandomState};
 
 /// The key of a pair of lists of one length or of contexts with as many entries, when either side
 /// is shared ([Value::is_shared]): the addresses of their nodes ([Value::node_address]). `None` for
@@ -203,5 +204,307 @@ pub(crate) fn range_parts(value: &Value) -> Option<(Option<&Value>, bool, Option
     Value::UnaryGreater(start) => Some((Some(start), false, None, false)),
     Value::UnaryGreaterOrEqual(start) => Some((Some(start), true, None, false)),
     _ => None,
+  }
+}
+
+/// The number of values a [Seen] holds before it looks them up by hash: below it, comparing with
+/// each value held is faster than hashing.
+const SEEN_BY_HASH: usize = 16;
+
+/// The values met so far, with no two of them equal: what `distinct values`, `union` and
+/// `intersection` keep. Whether a value is held is decided by FEEL equality ([Equality::compare]
+/// is true), as when it is compared with every value held; the hash only chooses the values it
+/// is compared with, so the time for `n` values is linear in `n`, not quadratic.
+///
+/// The hasher is seeded per set, so the items of a list written to collide can not be chosen.
+#[derive(Default)]
+pub(crate) struct Seen<'a> {
+  equality: Equality,
+  /// The values held, in the order they were met.
+  values: Vec<&'a Value>,
+  /// Above [SEEN_BY_HASH] values: the hasher, the index of the last value held with each hash,
+  /// and for each value held the index of the one before it with the same hash.
+  index: Option<(RandomState, HashMap<u64, usize>)>,
+  before: Vec<usize>,
+}
+
+/// Marks the end of a chain of values with one hash.
+const NONE: usize = usize::MAX;
+
+impl<'a> Seen<'a> {
+  /// The set of the values of a list.
+  pub(crate) fn of(items: &'a [Value]) -> Self {
+    let mut seen = Self::default();
+    for item in items {
+      seen.insert(item);
+    }
+    seen
+  }
+
+  /// True when a value equal to this one is held.
+  pub(crate) fn contains(&mut self, value: &Value) -> bool {
+    match &self.index {
+      None => self.values.iter().any(|held| self.equality.compare(held, value) == Some(true)),
+      Some((state, last)) => {
+        let mut at = last.get(&hash(state, value)).copied().unwrap_or(NONE);
+        while at != NONE {
+          if self.equality.compare(self.values[at], value) == Some(true) {
+            return true;
+          }
+          at = self.before[at];
+        }
+        false
+      }
+    }
+  }
+
+  /// Holds the value unless a value equal to it is held: true when it was added.
+  pub(crate) fn insert(&mut self, value: &'a Value) -> bool {
+    if self.contains(value) {
+      return false;
+    }
+    self.values.push(value);
+    match &mut self.index {
+      Some((state, last)) => {
+        let at = self.values.len() - 1;
+        self.before.push(last.insert(hash(state, value), at).unwrap_or(NONE));
+      }
+      None if self.values.len() > SEEN_BY_HASH => {
+        let state = RandomState::new();
+        let mut last = HashMap::new();
+        self.before = self
+          .values
+          .iter()
+          .enumerate()
+          .map(|(at, held)| last.insert(hash(&state, held), at).unwrap_or(NONE))
+          .collect();
+        self.index = Some((state, last));
+      }
+      None => {}
+    }
+    true
+  }
+}
+
+/// A hash that agrees with [Equality::compare]: two values that compare as equal have one hash.
+fn hash(state: &RandomState, value: &Value) -> u64 {
+  let mut hasher = state.build_hasher();
+  digest(value, &mut hasher, true);
+  hasher.finish()
+}
+
+/// Writes what the hash of a value is taken of. A list or a context adds its items when `items`
+/// is set and only its size otherwise: the items of the items are not visited, so the work is
+/// bounded by the size of the value itself, however many paths lead through shared parts below
+/// it. The entries of a context are met in the order of their names, however it was written. A value
+/// whose equality is not that of its fields (a time, a date and time, a range) adds its kind
+/// only, and is then compared with every value of its kind, as it was before.
+fn digest(value: &Value, hasher: &mut impl Hasher, items: bool) {
+  match value {
+    Value::Null(_) => hasher.write_u8(0),
+    Value::Boolean(boolean) => {
+      hasher.write_u8(1);
+      boolean.hash(hasher);
+    }
+    Value::Number(number) => {
+      hasher.write_u8(2);
+      number.hash(hasher);
+    }
+    Value::String(string) => {
+      hasher.write_u8(3);
+      string.hash(hasher);
+    }
+    Value::Date(date) => {
+      hasher.write_u8(4);
+      date.as_tuple().hash(hasher);
+    }
+    Value::DaysAndTimeDuration(duration) => {
+      hasher.write_u8(5);
+      duration.as_nanos().hash(hasher);
+    }
+    Value::YearsAndMonthsDuration(duration) => {
+      hasher.write_u8(6);
+      duration.as_months().hash(hasher);
+    }
+    Value::List(list) => {
+      hasher.write_u8(7);
+      list.len().hash(hasher);
+      if items {
+        for item in list.iter() {
+          digest(item, hasher, false);
+        }
+      }
+    }
+    Value::Context(context) => {
+      hasher.write_u8(8);
+      context.len().hash(hasher);
+      if items {
+        for (name, entry) in context.iter() {
+          name.hash(hasher);
+          digest(entry, hasher, false);
+        }
+      }
+    }
+    _ => hasher.write_u8(9),
+  }
+}
+
+#[cfg(test)]
+mod seen_tests {
+  use super::*;
+  use rheon_feel::FeelScope;
+
+  /// A small generator of numbers that is the same on every run.
+  struct Generator(u64);
+
+  impl Generator {
+    fn next(&mut self, below: u64) -> u64 {
+      self.0 ^= self.0 << 13;
+      self.0 ^= self.0 >> 7;
+      self.0 ^= self.0 << 17;
+      self.0 % below
+    }
+
+    fn pick<'a>(&mut self, texts: &[&'a str]) -> &'a str {
+      texts[self.next(texts.len() as u64) as usize]
+    }
+
+    /// The text of a value of few possible values, so that equal ones are met often: equal
+    /// numbers of different cohorts, contexts with their entries in another order, values that
+    /// can not be compared with one another, and values that are compared by more than fields.
+    fn value(&mut self, depth: u32) -> String {
+      const SCALARS: &[&str] = &[
+        "1",
+        "1.0",
+        "1.00",
+        "-1",
+        "0",
+        "0.0",
+        "-0",
+        "100",
+        "1e2",
+        "0.1",
+        "0.10",
+        "12345678901234567890.5",
+        "12345678901234567890.50",
+        r#""a""#,
+        r#""A""#,
+        r#""""#,
+        r#""1""#,
+        "true",
+        "false",
+        "null",
+        r#"date("2024-01-02")"#,
+        "date(2024, 1, 2)",
+        r#"date("2024-01-03")"#,
+        r#"duration("P1D")"#,
+        r#"duration("PT24H")"#,
+        r#"duration("P1Y")"#,
+        r#"duration("P12M")"#,
+        r#"time("10:00:00+02:00")"#,
+        r#"time("08:00:00Z")"#,
+        r#"time("10:00:00")"#,
+        r#"date and time("2024-01-02T10:00:00+02:00")"#,
+        r#"date and time("2024-01-02T08:00:00Z")"#,
+        "[1..2]",
+        "(1..2]",
+        "[1.0..2]",
+      ];
+      if depth == 0 || self.next(3) > 0 {
+        return self.pick(SCALARS).to_string();
+      }
+      let size = self.next(4);
+      if self.next(2) == 0 {
+        let items: Vec<String> = (0..size).map(|_| self.value(depth - 1)).collect();
+        format!("[{}]", items.join(", "))
+      } else {
+        let mut names = vec!["a", "b", "c"];
+        names.truncate(size.min(3) as usize);
+        if self.next(2) == 0 {
+          names.reverse();
+        }
+        let entries: Vec<String> = names.iter().map(|name| format!("{name}: {}", self.value(depth - 1))).collect();
+        format!("{{{}}}", entries.join(", "))
+      }
+    }
+  }
+
+  fn values(text: &str) -> Vec<Value> {
+    let scope = FeelScope::default();
+    let node = rheon_feel_parser::parse_expression(&scope, text).unwrap();
+    match crate::evaluate(&scope, &node).into_result().unwrap() {
+      Value::List(items) => items.iter().cloned().collect(),
+      other => panic!("expected a list for {text}, found {other}"),
+    }
+  }
+
+  /// The values a list keeps when each is compared with every value kept before it.
+  fn kept_by_comparing(items: &[Value]) -> Vec<usize> {
+    let mut equality = Equality::default();
+    let mut kept: Vec<usize> = vec![];
+    for (at, item) in items.iter().enumerate() {
+      if kept.iter().all(|held| equality.compare(&items[*held], item) != Some(true)) {
+        kept.push(at);
+      }
+    }
+    kept
+  }
+
+  #[test]
+  fn a_set_keeps_the_values_that_comparing_every_pair_keeps() {
+    let rounds = if std::env::var_os("RHEON_FULL_TESTS").is_some() { 20_000 } else { 400 };
+    let mut generator = Generator(0x9E37_79B9_7F4A_7C15);
+    for _ in 0..rounds {
+      let size = 1 + generator.next(120);
+      let texts: Vec<String> = (0..size).map(|_| generator.value(3)).collect();
+      let text = format!("[{}]", texts.join(", "));
+      let items = values(&text);
+      let mut seen = Seen::default();
+      let kept: Vec<usize> = items.iter().enumerate().filter(|(_, item)| seen.insert(item)).map(|(at, _)| at).collect();
+      assert_eq!(kept_by_comparing(&items), kept, "{text}");
+      for item in &items {
+        assert!(seen.contains(item), "{item} of {text}");
+      }
+    }
+  }
+
+  #[test]
+  fn contexts_with_their_entries_in_another_order_are_one_value() {
+    let one: Vec<String> = (1..=40).map(|i| format!(r#"{{a: {i}, b: "x", c: [{i}, null]}}"#)).collect();
+    let other: Vec<String> = (1..=40).map(|i| format!(r#"{{c: [{i}.0, null], b: "x", a: {i}.00}}"#)).collect();
+    let items = values(&format!("[{}, {}]", one.join(", "), other.join(", ")));
+    let mut seen = Seen::default();
+    assert_eq!(40, items.iter().filter(|item| seen.insert(item)).count());
+    assert_eq!(kept_by_comparing(&items).len(), 40);
+  }
+
+  #[test]
+  fn equal_values_have_one_hash() {
+    let state = RandomState::new();
+    let mut generator = Generator(0x2545_F491_4F6C_DD1D);
+    let texts: Vec<String> = (0..600).map(|_| generator.value(3)).collect();
+    let items = values(&format!("[{}]", texts.join(", ")));
+    let mut equality = Equality::default();
+    let mut equal_pairs = 0;
+    for a in &items {
+      for b in &items {
+        if equality.compare(a, b) == Some(true) {
+          equal_pairs += 1;
+          assert_eq!(hash(&state, a), hash(&state, b), "{a} and {b}");
+        }
+      }
+    }
+    assert!(equal_pairs > 2 * items.len(), "the generated values hold too few equal pairs: {equal_pairs}");
+  }
+
+  #[test]
+  fn many_values_are_held_in_time_linear_in_their_number() {
+    let items: Vec<Value> = values("for i in 1..200000 return i");
+    let started = std::time::Instant::now();
+    let mut seen = Seen::default();
+    assert_eq!(items.len(), items.iter().filter(|item| seen.insert(item)).count());
+    assert_eq!(0, items.iter().filter(|item| seen.insert(item)).count());
+    // comparing every pair is 20,000,000,000 comparisons, which takes minutes
+    assert!(started.elapsed().as_secs() < 20, "took {:?}", started.elapsed());
   }
 }

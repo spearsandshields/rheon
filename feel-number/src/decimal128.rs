@@ -1583,6 +1583,40 @@ impl PartialEq<FeelNumber> for FeelNumber {
   }
 }
 
+/// Agrees with equality: numbers that are equal have one hash, whatever their cohort (`1.0` and
+/// `1.00`). The hash is taken of the value with the trailing zeros of its coefficient removed.
+impl std::hash::Hash for FeelNumber {
+  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    match self.v() {
+      V::Fin(_, 0, _) => state.write_u8(0),
+      V::Fin(negative, mut coefficient, mut exponent) => {
+        if let Ok(mut small) = u64::try_from(coefficient) {
+          // the usual case, in 64-bit steps
+          for (step, power) in [(16, 10_000_000_000_000_000u64), (8, 100_000_000), (4, 10_000), (2, 100), (1, 10)] {
+            if small.is_multiple_of(power) {
+              small /= power;
+              exponent += step;
+            }
+          }
+          coefficient = u128::from(small);
+        } else {
+          for step in [32u32, 16, 8, 4, 2, 1] {
+            if coefficient.is_multiple_of(pow10(step)) {
+              coefficient /= pow10(step);
+              exponent += step as i32;
+            }
+          }
+        }
+        state.write_u8(1 + u8::from(negative));
+        state.write_u128(coefficient);
+        state.write_i32(exponent);
+      }
+      V::Inf(negative) => state.write_u8(3 + u8::from(negative)),
+      V::NaN => state.write_u8(5),
+    }
+  }
+}
+
 impl PartialEq<FeelNumber> for isize {
   fn eq(&self, rhs: &FeelNumber) -> bool {
     eq_v(FeelNumber::from_isize(*self).v(), rhs.v())

@@ -911,3 +911,51 @@ fn division_agrees_with_the_backend() {
     assert_eq!(format!("{:?}", div_by_backend(a, b)), format!("{:?}", div_v(a, b)), "{ca}e{ea} / {cb}e{eb}");
   }
 }
+
+#[test]
+fn equal_numbers_have_one_hash() {
+  use std::hash::{BuildHasher, RandomState};
+  let state = RandomState::new();
+  let texts = [
+    "0",
+    "0.000",
+    "0e10",
+    "1",
+    "1.0",
+    "1.000000000000000000000000000000000",
+    "10",
+    "1e1",
+    "100e-1",
+    "-10",
+    "-1e1",
+    "120",
+    "12e1",
+    "1.2e2",
+    "1e33",
+    "1000000000000000000000000000000000",
+    "12345678901234567890",
+    "1234567890123456789e1",
+    "1234567890123456789012345678901234",
+    "123456789012345678901234567890123400e-2",
+    "18446744073709551616",
+    "1844674407370955161600e-2",
+    "0.1",
+    "0.10",
+    "1e-1",
+    "5e-6143",
+    "50e-6144",
+  ];
+  let numbers: Vec<FeelNumber> = texts.iter().map(|text| text.parse().unwrap()).collect();
+  let mut equal_pairs = 0;
+  for (a, text_a) in numbers.iter().zip(texts) {
+    for (b, text_b) in numbers.iter().zip(texts) {
+      if a == b {
+        equal_pairs += 1;
+        assert_eq!(state.hash_one(a), state.hash_one(b), "{text_a} and {text_b}");
+      } else {
+        assert_ne!(state.hash_one(a), state.hash_one(b), "{text_a} and {text_b}");
+      }
+    }
+  }
+  assert_eq!(equal_pairs, 27 + 2 * 21, "the pairs of equal numbers among the texts");
+}
