@@ -395,10 +395,55 @@ impl Drop for Opened {
   fn drop(&mut self) {
     if self.0 {
       EVALUATION.with(Evaluation::clear);
+      // what the evaluation kept for itself
+      let kept = KEPT.with(|kept| std::mem::take(&mut *kept.borrow_mut()));
+      drop(kept);
       // the scopes of the functions that the evaluation defined
       crate::function::Home::end_evaluation();
     }
   }
+}
+
+/// A value that an evaluation keeps for itself, by its type; `None` while a use of it runs.
+type Kept = (std::any::TypeId, Option<Box<dyn std::any::Any>>);
+
+thread_local! {
+  /// What the running evaluation keeps for itself ([kept]): one value of each type.
+  static KEPT: RefCell<Vec<Kept>> = const { RefCell::new(Vec::new()) };
+}
+
+/// Runs `f` with the value of type `T` that the running evaluation keeps for itself: made by
+/// `T::default()` at the first use in the evaluation and dropped when the evaluation ends,
+/// however it ends. It serves work that an evaluation repeats (a compiled pattern); nothing in it
+/// outlives the evaluation. Outside an evaluation, and inside an `f` that uses the same type,
+/// `f` gets a value of its own that is dropped when it returns.
+pub fn kept<T: Default + 'static, R>(f: impl FnOnce(&mut T) -> R) -> R {
+  if !EVALUATION.with(Evaluation::active) {
+    return f(&mut T::default());
+  }
+  let key = std::any::TypeId::of::<T>();
+  // the value is taken out while `f` runs, so `f` may use other kept values
+  let taken = KEPT.with(|kept| {
+    let mut kept = kept.borrow_mut();
+    match kept.iter_mut().find(|(kind, _)| *kind == key) {
+      Some((_, value)) => value.take().map(|value| value.downcast::<T>().unwrap_or_default()),
+      None => {
+        kept.push((key, None));
+        Some(Box::default())
+      }
+    }
+  });
+  let Some(mut value) = taken else {
+    // a use of the type is running
+    return f(&mut T::default());
+  };
+  let result = f(&mut value);
+  KEPT.with(|kept| {
+    if let Some((_, place)) = kept.borrow_mut().iter_mut().find(|(kind, _)| *kind == key) {
+      *place = Some(value);
+    }
+  });
+  result
 }
 
 /// Stops the running evaluation for `reason`; the first reason is kept. Outside an evaluation it
@@ -783,5 +828,60 @@ mod tests {
       assert!(stopped());
     });
     assert_eq!(Some(Abort::limit("in the probe")), aborted);
+  }
+}
+
+#[cfg(test)]
+mod kept_tests {
+  use super::*;
+
+  #[test]
+  fn a_kept_value_lives_as_long_as_the_evaluation() {
+    // outside an evaluation every use has a value of its own
+    assert_eq!(
+      1,
+      kept(|count: &mut u32| {
+        *count += 1;
+        *count
+      })
+    );
+    assert_eq!(
+      1,
+      kept(|count: &mut u32| {
+        *count += 1;
+        *count
+      })
+    );
+    let (counts, abort) = evaluation(|| {
+      let count = || {
+        kept(|count: &mut u32| {
+          *count += 1;
+          *count
+        })
+      };
+      let (first, second) = (count(), count());
+      // another type has another value, and a use inside a use of the same type one of its own
+      let text = kept(|text: &mut String| {
+        text.push('a');
+        text.clone()
+      });
+      let nested = kept(|outer: &mut u32| {
+        *outer += 10;
+        kept(|inner: &mut u32| *inner)
+      });
+      (first, second, text, nested, count())
+    });
+    assert!(abort.is_none());
+    assert_eq!((1, 2, "a".to_string(), 0, 13), counts);
+    // the evaluation ended: nothing is left of it
+    assert!(KEPT.with(|kept| kept.borrow().is_empty()));
+    assert_eq!(
+      1,
+      evaluation(|| kept(|count: &mut u32| {
+        *count += 1;
+        *count
+      }))
+      .0
+    );
   }
 }

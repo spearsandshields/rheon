@@ -16,7 +16,7 @@
  * - Restart failures: a worker that fails to start is retried with backoff; after
  *   `RESTART_BACKOFF_MS.length` consecutive failures the engine gives up (`unavailable`).
  */
-import { buildCompleteJson, buildEvaluateAllJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
+import { buildCompleteJson, buildEvaluateAllJson, buildEvaluateEachJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
 import type { FromWorker, ToWorker } from './protocol.js';
 import type {
   CompleteResponse,
@@ -25,6 +25,8 @@ import type {
   ErrorKind,
   EvaluateAllRequest,
   EvaluateAllResponse,
+  EvaluateEachRequest,
+  EvaluateEachResponse,
   EvaluateRequest,
   EvaluateResponse,
   FormatResponse,
@@ -181,6 +183,23 @@ export class FeelEngine {
     let built: EvaluateAllJson;
     try {
       built = buildEvaluateAllJson(req);
+    } catch (e) {
+      if (e instanceof RequestError) return Promise.resolve({ ok: false, error: e.error });
+      return Promise.resolve(failure('request', String(e)));
+    }
+    return this.enqueue(built.json, opts.signal).then((response) => mergeEvaluateAll(response, built.failures));
+  }
+
+  /**
+   * Evaluates one expression over several contexts: each entry is answered as `evaluate` answers
+   * the expression with its context and input, and the expression is parsed once for the entries
+   * whose contexts have the same names. One request: the timeout and the `signal` are for all of
+   * it, and a timeout or a crash has no results.
+   */
+  evaluateEach(req: EvaluateEachRequest, opts: RequestOptions = {}): Promise<EvaluateEachResponse> {
+    let built: EvaluateAllJson;
+    try {
+      built = buildEvaluateEachJson(req);
     } catch (e) {
       if (e instanceof RequestError) return Promise.resolve({ ok: false, error: e.error });
       return Promise.resolve(failure('request', String(e)));

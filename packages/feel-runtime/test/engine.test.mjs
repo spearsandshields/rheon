@@ -55,6 +55,37 @@ test('real worker: evaluateAll answers every entry in its place', async (t) => {
   assert.equal(engine.workerStarts, 1);
 });
 
+test('real worker: evaluateEach answers every entry as evaluate does', async (t) => {
+  const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 10000 });
+  t.after(() => engine.dispose());
+  const entries = [
+    { id: 1, context: rawJson('{"unit price": 12.5, "qty": 4}') },
+    { id: 2, context: { 'unit price': 2, qty: 3 } },
+    { id: 'other names', context: { unit: 2, price: 5, qty: 3 } },
+    { id: 'bad', context: rawJson('{') },
+    { id: 5, context: { 'unit price': 1, qty: 1 } },
+  ];
+  const each = await engine.evaluateEach({ expression: 'unit price * qty', entries });
+  assert.equal(each.ok, true);
+  assert.deepEqual(each.results.map((r) => [r.id, r.ok]), [[1, true], [2, true], ['other names', false], ['bad', false], [5, true]]);
+  for (const [index, entry] of entries.entries()) {
+    const single = await engine.evaluate({ expression: 'unit price * qty', context: entry.context });
+    assert.equal(each.results[index].ok, single.ok);
+    if (single.ok) assert.deepEqual(each.results[index].result, single.result);
+    else assert.deepEqual(each.results[index].error, single.error);
+  }
+  // without the name `unit price` the text is no expression
+  assert.equal(each.results[2].error.kind, 'syntax');
+  assert.equal(each.results[0].result.display, '50');
+  const tests = await engine.evaluateEach({ dialect: 'unaryTests', expression: '[10..20], > limit', entries: [{ input: 12, context: { limit: 50 } }, { input: 30, context: { limit: 50 } }, { input: rawJson('99.5'), context: { limit: 50 } }] });
+  assert.deepEqual(tests.results.map((r) => r.result.display), ['true', 'false', 'true']);
+  const feel = await engine.evaluateEach({ expression: 'a + 1', entries: [{ context: '{a: 1}' }, { context: '{a: 2}' }] });
+  assert.deepEqual(feel.results.map((r) => r.result.display), ['2', '3']);
+  const bad = await engine.evaluateEach({ expression: 'a', entries: 5 });
+  assert.deepEqual([bad.ok, bad.error.kind], [false, 'request']);
+  assert.equal(engine.workerStarts, 1);
+});
+
 test('real worker: timeout terminates the worker, next request works on a fresh one', async (t) => {
   const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 400 });
   t.after(() => engine.dispose());

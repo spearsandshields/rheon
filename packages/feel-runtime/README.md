@@ -45,6 +45,14 @@ await engine.evaluateAll({
 });
 // → { ok: true, results: [{ ok: true, id: "total", result: {...}, ... }, { ok: true, id: "large", ... }], contextWarnings: [], elapsedMicros }
 
+// One expression over several contexts: the expression is parsed once for the entries whose
+// contexts have the same names. results[i] is what evaluate answers for entries[i], with its id.
+await engine.evaluateEach({
+  expression: 'price * qty',
+  entries: [{ id: 1, context: { price: 12.5, qty: 4 } }, { id: 2, context: rawJson('{"price": 3, "qty": 2}') }],
+});
+// → { ok: true, results: [{ ok: true, id: 1, result: {...}, ... }, { ok: true, id: 2, ... }], elapsedMicros }
+
 // Parse tree (dsntk AstNode::tree). Pass the context so multi-word names split correctly.
 await engine.parse('expression', 'first name + 1', { context: { 'first name': 1 } });
 

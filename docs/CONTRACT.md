@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "evaluateAll" | "parse" | "syntax" | "complete" | "outline" | "format" | "info",
+  "op": "evaluate" | "evaluateAll" | "evaluateEach" | "parse" | "syntax" | "complete" | "outline" | "format" | "info",
   "dialect": "expression" | "unaryTests",   // evaluate/parse; default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -123,6 +123,29 @@ Scale rounding (`round up/down/half up/half down`, `floor`, `ceiling` with a sca
 - An entry that fails (a syntax error, a strict-mode error, its step budget, a field with a value that is not allowed, an entry that is no object) is a failure in its place, and the other entries are answered. A failure of the request itself (malformed JSON, a context that does not convert, `evaluations` missing or no array, an invalid `language`, `contextFormat` or `tzOffsetMinutes`) is the failure response below, without results.
 - The entries do not see each other: the tested value of unary tests (`?`) is bound for its entry only, and nothing an entry evaluates changes the context for the next. Nothing of the request is kept after the response.
 - The module has no limit on the number of entries; `maxSteps` bounds the work of each. A trap (§1) ends the whole request.
+
+`op: "evaluateEach"` evaluates one expression over several contexts:
+
+```jsonc
+// request
+{
+  "op": "evaluateEach",
+  "expression": "string", "dialect": "expression", "language": "feel", "errorMode": "lenient", "maxSteps": 1000000,   // for all entries
+  "contextFormat": "json", "tzOffsetMinutes": 0,
+  "entries": [                                  // required; each entry: what differs between the evaluations
+    { "id": 1,                                  // optional, a string or a number: repeated in the answer of the entry
+      "context": { /* as for evaluate */ },     // optional
+      "input": <JSON value> }                   // unary tests only: the tested value
+  ]
+}
+// response
+{ "ok": true, "results": [ /* one answer per entry of `entries`, in their order */ ], "elapsedMicros": 123 }
+```
+
+- Each answer is the response that `op: "evaluate"` gives for the expression with the `context` and the `input` of that entry and the other fields of the request: a success or a failure, with the `id` of the entry when it has one.
+- The expression is parsed in the context of an entry, and that parse serves the entries after it whose contexts have the same names: the same keys, also in the contexts that are values of entries, down to 8 levels. For a context with other names it is parsed again, in that context, because the names in scope decide how a text reads (`unit price` is one name or two). A context that holds a list, a function, a range or a type is always parsed in. So the answers never depend on the other entries; only the time does.
+- An entry that fails (a context that does not convert, a strict-mode error, its step budget, an entry that is no object) is a failure in its place, and the other entries are answered. An expression with a syntax error is a `syntax` failure in every place. A failure of the request itself (malformed JSON, `entries` missing or no array, `expression` missing, an invalid `dialect`, `language`, `errorMode`, `maxSteps`, `contextFormat` or `tzOffsetMinutes`) is the failure response below, without results.
+- `contextFormat` is that of the request for the contexts of all entries. `maxSteps` bounds the work of each entry. The module has no limit on the number of entries. Nothing of the request is kept after the response. A trap (§1) ends the whole request.
 
 `op: "parse"` success: `{ "ok": true, "tree": "<dsntk AstNode::tree() ascii, no color>", "elapsedMicros": n }`
 
@@ -321,6 +344,7 @@ export class FeelEngine {
   static create(opts: FeelEngineOptions): Promise<FeelEngine>; // compiles wasm once, spawns the worker, resolves when it is ready
   evaluate(req: EvaluateRequest, opts?: RequestOptions): Promise<EvaluateResponse>;
   evaluateAll(req: EvaluateAllRequest, opts?: RequestOptions): Promise<EvaluateAllResponse>;  // §2 `evaluateAll`: one request, the context sent once
+  evaluateEach(req: EvaluateEachRequest, opts?: RequestOptions): Promise<EvaluateEachResponse>;  // §2 `evaluateEach`: one request, the expression parsed once for contexts of the same names
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
   // the editor operations (§3): `opts` names the dialect and either the context or its outline
   syntax(expression: string, opts?: EditorOptions & { tree?: boolean } & RequestOptions): Promise<SyntaxResponse>;
@@ -357,6 +381,7 @@ Runtime guarantees:
 - `tzOffsetMinutes` is filled in automatically from `new Date().getTimezoneOffset()` (sign inverted) unless the caller supplies it (`EvaluateRequest.tzOffsetMinutes`; for `instantiateFeel`, `env.tzOffsetMinutes`, `null` = don't send).
 - `context` given as a string defaults to `contextFormat: 'feel'`; a JS object or `RawJson` defaults to `'json'`. Invalid `rawJson` (or a non-object `rawJson` context) resolves `{kind:'context'}` without reaching the wasm.
 - `input` is only sent for `dialect: 'unaryTests'`.
+- **`evaluateEach`** is one request in the same way: one place in the queue, one timeout and one `signal` for all entries, and no `results` after a timeout, a crash or a cancellation. A `RawJson` value is spliced as the `context` and as the `input` of an entry, and an entry that the runtime can not send is a failure in its place. `contextFormat` is `'feel'` by default when the first context is a string.
 - **`evaluateAll`** is one request: it takes one place in the queue, `timeoutMs` and the `signal` are for all of its evaluations, and a timeout, a crash or a cancellation has no `results`. A `RawJson` value is spliced as the `context` and as the `input` of an entry. An entry that the runtime can not send (invalid `rawJson` input, an unpaired surrogate) is a failure in its place in `results`, with its `id`, like an entry that the module refuses; the other entries are sent. `instantiateFeel(...).call({ op: 'evaluateAll', ... })` does the same.
 - WASI shim: no environment variables, no preopens, `fd_write` to fd 1/2 forwarded line-by-line to `console.log`/`console.error` (or `onOutput`); the last stderr lines (e.g. a Rust panic message) are appended to `crash` messages. `proc_exit` throws (→ crash).
 - A `crash` in `FeelEngine` terminates the worker and starts a fresh one (same compiled module). `instantiateFeel.call` re-instantiates synchronously.

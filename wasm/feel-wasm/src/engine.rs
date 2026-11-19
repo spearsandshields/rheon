@@ -126,6 +126,8 @@ fn error_response(kind: Kind, message: &str, diagnostics: Option<Json>) -> Json 
 struct Unread<'a> {
   context: Option<Field<'a, FeelContext>>,
   input: Option<Field<'a, Value>>,
+  /// The text of the array `entries`, whose items are read one by one.
+  entries: Option<&'a str>,
 }
 
 /// Reads the request into its fields: with the strict reader when it takes the text, which
@@ -144,6 +146,7 @@ fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Fail
         Unread {
           context: read.context,
           input: read.input,
+          entries: read.entries,
         },
       ));
     }
@@ -187,6 +190,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Info,
     Evaluate,
     EvaluateAll,
+    EvaluateEach,
     Parse,
     Syntax,
     Complete,
@@ -198,6 +202,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "info" => Op::Info,
       "evaluate" => Op::Evaluate,
       "evaluateAll" => Op::EvaluateAll,
+      "evaluateEach" => Op::EvaluateEach,
       "parse" => Op::Parse,
       "syntax" => Op::Syntax,
       "complete" => Op::Complete,
@@ -207,7 +212,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
         return fail(
           Kind::Request,
           format!(
-            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
             arg(other)
           ),
         );
@@ -221,6 +226,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Op::Info => Ok(Response::Tree(info())),
     Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
     Op::EvaluateAll => evaluate_all(req, unread, started).map(Response::Text),
+    Op::EvaluateEach => evaluate_each(req, unread, started).map(Response::Text),
     Op::Parse => parse(req, unread, started).map(Response::Tree),
     Op::Syntax => editor::syntax(req, unread, started).map(Response::Tree),
     Op::Complete => editor::complete(req, unread, started).map(Response::Tree),
@@ -352,7 +358,13 @@ fn question_mark() -> Name {
 
 /// Prepares the scope (and for unary tests binds `?`), returning warnings collected so far.
 /// Takes the rest of the request: it is not needed any more.
-fn prepare_scope(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelScope, Failure> {
+fn prepare_scope(req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelScope, Failure> {
+  prepare_context(req, unread, dialect, warnings).map(FeelScope::from)
+}
+
+/// The context that an expression of `dialect` is evaluated in: the `context` of the request,
+/// for unary tests with the tested value as its entry `?`.
+fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
   let mut ctx = context(&mut req, unread.context, warnings)?;
   if dialect == Dialect::UnaryTests {
     let read = match unread.input {
@@ -385,7 +397,7 @@ fn prepare_scope(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, w
       }
     }
   }
-  Ok(ctx.into())
+  Ok(ctx)
 }
 
 fn parse_node(scope: &FeelScope, dialect: Dialect, expression: &str) -> Result<AstNode, Failure> {
@@ -503,6 +515,161 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
   Ok(response)
 }
 
+/// The JSON text of the `id` of an entry, which its answer repeats.
+fn id_text(entry: &Map<String, Json>) -> Result<Option<String>, Failure> {
+  match entry.get("id") {
+    None | Some(Json::Null) => Ok(None),
+    Some(id @ (Json::String(_) | Json::Number(_))) => serde_json::to_string(id)
+      .map(Some)
+      .or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}"))),
+    Some(other) => fail(Kind::Request, format!("'id' must be a string or a number, got {}", arg(other))),
+  }
+}
+
+/// An item of `entries`: its text when the strict reader took the request, or its tree.
+enum Entry<'a> {
+  Text(&'a str),
+  Tree(Json),
+}
+
+/// An expression that was parsed in a context, with what of the context its parse depends on.
+struct Prepared {
+  names: Vec<Option<Name>>,
+  evaluator: rheon_feel::Evaluator,
+}
+
+/// Contexts are compared for their names down to this depth; a deeper one is parsed in anew.
+const NAMES_DEPTH: usize = 8;
+
+/// Appends to `names` what the parse of a text in `context` depends on: its names in their
+/// order and, after the names of a context that is the value of one, `None`. `false` when the
+/// context holds a value whose names take more to compare (a list, a function, a type, a
+/// range) or is nested deeper than [NAMES_DEPTH]: a text is then parsed in that context itself.
+/// Two contexts that give the same names are the same to a parser, which reads the names in
+/// scope and never a number, a string, a boolean, a date, a time, a duration or a null.
+fn parse_names(context: &FeelContext, depth: usize, names: &mut Vec<Option<Name>>) -> bool {
+  if depth > NAMES_DEPTH {
+    return false;
+  }
+  for (name, value) in context.iter() {
+    names.push(Some(name.clone()));
+    match value {
+      Value::Null(_)
+      | Value::Number(_)
+      | Value::String(_)
+      | Value::Boolean(_)
+      | Value::Date(_)
+      | Value::Time(_)
+      | Value::DateTime(_)
+      | Value::YearsAndMonthsDuration(_)
+      | Value::DaysAndTimeDuration(_) => {}
+      Value::Context(inner) => {
+        if !parse_names(inner, depth + 1, names) {
+          return false;
+        }
+        names.push(None);
+      }
+      _ => return false,
+    }
+  }
+  true
+}
+
+/// Evaluates one expression over several contexts (`op: "evaluateEach"`): each entry of
+/// `entries` is answered as an `evaluate` request with the expression and the entry's `context`
+/// and `input` answers it, in the order of the entries. The expression is parsed in the context
+/// of an entry and that parse serves the entries after it whose contexts have the same names
+/// ([parse_names]); for another context it is parsed again. An entry that fails is an error in
+/// its place and the others are answered; a failure of the request itself fails the request.
+/// Nothing of the request is kept after it.
+fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<String, Failure> {
+  let dialect = dialect(&req)?;
+  let language = language(&req)?;
+  let error_mode = error_mode(&req)?;
+  let max_steps = max_steps(&req)?;
+  let expression = expression(&mut req)?;
+  apply_tz_offset(&req)?;
+  // the format of the contexts is that of the request
+  let format = match req.get("contextFormat") {
+    None | Some(Json::Null) => None,
+    Some(Json::String(f)) if f == "json" || f == "feel" => Some(Json::String(f.clone())),
+    Some(other) => return fail(Kind::Request, format!("invalid 'contextFormat' {} (expected \"json\" or \"feel\")", arg(other))),
+  };
+  let entries: Vec<Entry> = match (unread.entries, req.remove("entries")) {
+    (Some(text), _) => match json::elements(text) {
+      Some(items) => items.into_iter().map(Entry::Text).collect(),
+      None => return fail(Kind::Internal, "the items of 'entries' could not be read"),
+    },
+    (None, Some(Json::Array(items))) => items.into_iter().map(Entry::Tree).collect(),
+    (None, None) => return fail(Kind::Request, "missing 'entries'"),
+    (None, Some(_)) => return fail(Kind::Request, "'entries' must be an array"),
+  };
+  let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")));
+  let mut prepared: Option<Prepared> = None;
+  let mut names = vec![];
+  let mut results = String::from("[");
+  for (index, entry) in entries.into_iter().enumerate() {
+    if index > 0 {
+      results.push(',');
+    }
+    let entry_started = Instant::now();
+    let fields = match entry {
+      Entry::Text(text) if text.starts_with('{') => request_fields(text),
+      Entry::Tree(Json::Object(fields)) => Ok((fields, Unread::default())),
+      _ => fail(Kind::Request, format!("'entries[{index}]' must be an object")),
+    };
+    // the `id` of an entry stands in its answer, also when the entry fails
+    let id = fields
+      .as_ref()
+      .ok()
+      .and_then(|(fields, _)| fields.get("id").filter(|id| id.is_string() || id.is_number()).cloned());
+    let answer = fields.and_then(|(mut fields, unread)| {
+      let id = id_text(&fields)?;
+      match &format {
+        Some(format) => fields.insert("contextFormat".to_string(), format.clone()),
+        None => fields.remove("contextFormat"),
+      };
+      let mut warnings = vec![];
+      let context = prepare_context(fields, unread, dialect, &mut warnings)?;
+      names.clear();
+      let comparable = parse_names(&context, 0, &mut names);
+      let scope: FeelScope = context.into();
+      if comparable && prepared.as_ref().is_some_and(|prepared| prepared.names == names) {
+        let evaluator = &prepared.as_ref().expect("checked above").evaluator;
+        return answered(&scope, id, evaluator, error_mode, max_steps, warnings, entry_started);
+      }
+      let evaluator = program(parse_node(&scope, dialect, &expression)?, dialect, language);
+      if comparable {
+        let kept = prepared.insert(Prepared {
+          names: std::mem::take(&mut names),
+          evaluator,
+        });
+        answered(&scope, id, &kept.evaluator, error_mode, max_steps, warnings, entry_started)
+      } else {
+        answered(&scope, id, &evaluator, error_mode, max_steps, warnings, entry_started)
+      }
+    });
+    match answer {
+      Ok(response) => results.push_str(&response),
+      Err(Failure(kind, message, diagnostics)) => {
+        let mut error = error_response(kind, &message, diagnostics);
+        if let (Some(id), Some(fields)) = (id, error.as_object_mut()) {
+          fields.insert("id".to_string(), id);
+        }
+        results.push_str(&text_of(error)?);
+      }
+    }
+  }
+  results.push(']');
+  let mut response = String::with_capacity(results.len() + 64);
+  response.push_str("{\"elapsedMicros\":");
+  response.push_str(&elapsed_micros(started).to_string());
+  response.push_str(",\"ok\":true,\"results\":");
+  response.push_str(&results);
+  response.push('}');
+  Ok(response)
+}
+
 /// Answers one entry of `evaluations` in the scope of the request's context. For unary tests
 /// the tested value is bound to `?` in a context of its own on top of the scope, which is
 /// taken off again, so that the next entry sees the context as it was read.
@@ -592,14 +759,32 @@ fn evaluated(
   error_mode: ErrorMode,
   max_steps: Option<u64>,
   node: AstNode,
-  mut warnings: Vec<String>,
+  warnings: Vec<String>,
   started: Instant,
 ) -> Result<String, Failure> {
+  let evaluator = program(node, dialect, language);
+  answered(scope, id, &evaluator, error_mode, max_steps, warnings, started)
+}
+
+/// The evaluator of a parsed expression; of unary tests, the test of the value `?`.
+fn program(node: AstNode, dialect: Dialect, language: rheon_feel_evaluator::Dialect) -> rheon_feel::Evaluator {
   let node = match dialect {
     Dialect::Expression => node,
     Dialect::UnaryTests => AstNode::In(Box::new(AstNode::Name(question_mark())), Box::new(node)),
   };
-  let evaluator = rheon_feel_evaluator::prepare_with_dialect(&node, language);
+  rheon_feel_evaluator::prepare_with_dialect(&node, language)
+}
+
+/// Evaluates `evaluator` in `scope` and returns the text of the response.
+fn answered(
+  scope: &FeelScope,
+  id: Option<String>,
+  evaluator: &rheon_feel::Evaluator,
+  error_mode: ErrorMode,
+  max_steps: Option<u64>,
+  mut warnings: Vec<String>,
+  started: Instant,
+) -> Result<String, Failure> {
   // an evaluation stopped by an implementation limit has no result, only the abort
   let session = match max_steps {
     Some(steps) => Session::new().with_step_budget(steps),

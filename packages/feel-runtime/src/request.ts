@@ -1,5 +1,5 @@
 /** Builds the wasm request JSON (CONTRACT §2) from runtime requests, splicing `RawJson` verbatim. */
-import type { EditorOptions, EvaluateAllRequest, EvaluateAllResponse, EvaluateRequest, EvaluationAnswer, FeelError, ParseOptions, RawJson } from './types.js';
+import type { EditorOptions, EvaluateAllRequest, EvaluateEachRequest, EvaluateRequest, EvaluationAnswer, FeelError, ParseOptions, RawJson } from './types.js';
 
 /**
  * Private brand of `RawJson` values. `Symbol.for` so that values made by another copy of this
@@ -192,8 +192,56 @@ export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number 
   return { json, failures };
 }
 
+/**
+ * `evaluateEach` request → JSON text. Fills `tzOffsetMinutes` from the host unless given. A
+ * `{ rawJson }` value is spliced verbatim as the `context` and as the `input` of an entry. An
+ * entry whose text can not be sent fails in its place ([EvaluateAllJson.failures]); `entries`
+ * that is no array, and an entry that is no object, are sent as they are: the module answers them.
+ */
+export function buildEvaluateEachJson(req: EvaluateEachRequest, defaultTz: number | undefined = localTzOffsetMinutes()): EvaluateAllJson {
+  const failures = new Map<number, EvaluationAnswer>();
+  const dialect = req.dialect ?? 'expression';
+  const list: unknown = req.entries;
+  const first = Array.isArray(list) ? list.find((entry) => entry?.context !== undefined)?.context : undefined;
+  const contextFormat = req.contextFormat ?? (typeof first === 'string' ? 'feel' : 'json');
+  const head = {
+    op: 'evaluateEach',
+    dialect,
+    expression: req.expression,
+    contextFormat,
+    tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    language: req.language,
+    errorMode: req.errorMode,
+    maxSteps: req.maxSteps,
+  };
+  if (!Array.isArray(list)) return { json: serializeRequest({ ...head, entries: list }), failures };
+  const entries: string[] = [];
+  list.forEach((entry: unknown, index) => {
+    try {
+      if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+        const text = JSON.stringify(entry);
+        if (text === undefined || hasLoneSurrogate(text)) throw new RequestError({ kind: 'request', message: 'an entry must be an object' });
+        entries.push(text);
+      } else {
+        const fields = entry as Record<string, unknown>;
+        if (isRawJson(fields.context) && contextFormat === 'feel') {
+          throw new RequestError({ kind: 'context', message: "rawJson context requires contextFormat 'json'" });
+        }
+        // as for `evaluate`, the input is sent for unary tests only
+        entries.push(serializeRequest({ id: fields.id, context: fields.context, input: dialect === 'unaryTests' ? fields.input : undefined }));
+      }
+    } catch (e) {
+      if (!(e instanceof RequestError)) throw e;
+      const id = (entry as { id?: unknown } | null)?.id;
+      failures.set(index, { ok: false, error: e.error, ...(typeof id === 'string' || typeof id === 'number' ? { id } : {}) });
+    }
+  });
+  const json = `${serializeRequest(head).slice(0, -1)},"entries":[${entries.join(',')}]}`;
+  return { json, failures };
+}
+
 /** Puts the entries that were answered here ([EvaluateAllJson.failures]) into their places in the response. */
-export function mergeEvaluateAll(response: EvaluateAllResponse, failures: Map<number, EvaluationAnswer>): EvaluateAllResponse {
+export function mergeEvaluateAll<R extends { ok: true; results: EvaluationAnswer[] } | { ok: false }>(response: R, failures: Map<number, EvaluationAnswer>): R {
   if (failures.size === 0 || !response.ok || !Array.isArray(response.results)) return response;
   const sent = response.results;
   const results: EvaluationAnswer[] = [];

@@ -60,6 +60,34 @@ export interface EvaluateAllRequest {
   evaluations: Evaluation[];
 }
 
+/** One entry of `evaluateEach`: the context of an evaluation and, for unary tests, the tested value. */
+export interface EachEntry {
+  /** Repeated in the answer of the entry. */
+  id?: string | number;
+  /** As for `evaluate`, in the `contextFormat` of the request. */
+  context?: Record<string, unknown> | string | RawJson;
+  /** Unary tests only: the tested value (`?`). */
+  input?: unknown | RawJson;
+}
+
+/**
+ * One expression over several contexts (CONTRACT §2, `evaluateEach`): the expression is parsed
+ * once for the entries whose contexts have the same names.
+ */
+export interface EvaluateEachRequest {
+  dialect?: Dialect;
+  expression: string;
+  /** For the contexts of all entries; `'feel'` by default when the first context is a string. */
+  contextFormat?: 'json' | 'feel';
+  /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
+  tzOffsetMinutes?: number;
+  language?: Language;
+  errorMode?: ErrorMode;
+  /** A budget of steps for each entry. */
+  maxSteps?: number;
+  entries: EachEntry[];
+}
+
 /** FEEL or B-FEEL (DMN 1.6 chapter 11). */
 export type Language = 'feel' | 'b-feel';
 
@@ -117,6 +145,15 @@ export type EvaluationAnswer = EvaluateResponse & { id?: string | number };
  */
 export type EvaluateAllResponse =
   | { ok: true; results: EvaluationAnswer[]; contextWarnings: { message: string }[]; elapsedMicros: number }
+  | { ok: false; error: FeelError };
+
+/**
+ * `results` has one answer per entry of `entries`, in their order: what `evaluate` answers for
+ * the expression with that entry's context and input; an entry that fails is a failure in its
+ * place. A failure of the request itself (a timeout, a crash) has no results.
+ */
+export type EvaluateEachResponse =
+  | { ok: true; results: EvaluationAnswer[]; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
 export type ParseResponse =

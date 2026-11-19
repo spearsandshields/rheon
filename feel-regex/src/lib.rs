@@ -9,4 +9,4 @@ mod unicode_blocks;
 mod utils;
 
 pub use errors::{Limit, RegexError};
-pub use impl_regex::{is_match, replace, split};
+pub use impl_regex::{Patterns, is_match, is_match_with, replace, replace_with, split, split_with};

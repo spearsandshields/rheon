@@ -50,6 +50,23 @@ impl Flags {
     self.literal
   }
 
+  /// Whether `pattern` with these flags matches exactly the inputs that contain it as it is
+  /// written, so no engine is needed: there is no flag, or only `q`; the pattern is not empty;
+  /// with `q` any character stands for itself, and without it the pattern has only letters,
+  /// digits, spaces and punctuation that no pattern syntax gives a meaning; and it has no line
+  /// end, the one thing that an input is changed for before it is matched.
+  pub fn plain(&self, pattern: &str) -> bool {
+    if self.case_insensitive || self.multi_line || self.dot_all || self.free_spacing || pattern.is_empty() {
+      return false;
+    }
+    pattern.chars().all(|ch| match ch {
+      '\r' | '\n' => false,
+      _ if self.literal => true,
+      ' ' | '_' | '@' | ',' | ':' | ';' | '=' | '!' | '\'' | '"' | '/' | '%' | '#' => true,
+      ch => ch.is_alphanumeric(),
+    })
+  }
+
   /// The pattern as an engine reads it, the options it supports as a leading `(?ims)` group.
   ///
   /// With `q` (F&O 3.1 §5.6.2) "all characters in the regular expression are treated as

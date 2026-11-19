@@ -915,7 +915,7 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
     json!({"op": "y".repeat(300)}),
     "request",
     format!(
-      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
       "y".repeat(120)
     ),
   );
@@ -985,7 +985,7 @@ fn request_error_messages() {
   assert_error(
     &req(json!({"op": "explode"})),
     "request",
-    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
   );
   // the expression
   for op in ["evaluate", "parse"] {
@@ -1083,7 +1083,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')";
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1852,7 +1852,7 @@ fn evaluate_all_request_and_response() {
   assert_error(
     &req(json!({"op": "nothing"})),
     "request",
-    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
   );
   let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
   assert_eq!(
