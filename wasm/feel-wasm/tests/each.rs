@@ -165,3 +165,131 @@ fn feel_format_contexts_and_a_request_the_strict_reader_refuses() {
   let response: Json = serde_json::from_str(&feel_wasm::call(text)).unwrap();
   assert_eq!(json!("4"), response["results"][1]["result"]["display"]);
 }
+
+/// Simple deterministic generator (splitmix64).
+struct Rng(u64);
+
+impl Rng {
+  fn next(&mut self) -> u64 {
+    self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    let mut z = self.0;
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
+  }
+
+  fn below(&mut self, n: usize) -> usize {
+    (self.next() % n as u64) as usize
+  }
+
+  fn pick<'a>(&mut self, items: &[&'a str]) -> &'a str {
+    items[self.below(items.len())]
+  }
+}
+
+/// Names that are parts of each other, so that the names in scope decide how a text reads.
+const KEYS: [&str; 14] = ["a", "b", "c", "a b", "b c", "a b c", "unit", "price", "unit price", "a-b", "a  b", "x", "in stock", "date"];
+
+/// A value of a random kind: mostly a scalar, sometimes a context or a list.
+fn random_value(rng: &mut Rng, depth: usize) -> Json {
+  match rng.below(if depth < 3 { 12 } else { 7 }) {
+    0 | 1 | 2 => json!(rng.below(50)),
+    3 => json!(rng.pick(&["open", "a", "x y", ""])),
+    4 => json!(rng.below(2) == 0),
+    5 => Json::Null,
+    6 => json!(rng.below(1000) as f64 / 8.0),
+    7 | 8 | 9 => random_context(rng, depth + 1, None),
+    10 => Json::Array((0..rng.below(3)).map(|_| random_value(rng, depth + 1)).collect()),
+    _ => Json::Array((0..1 + rng.below(2)).map(|_| random_context(rng, depth + 1, None)).collect()),
+  }
+}
+
+/// A context with the keys `keys`, or with random ones.
+fn random_context(rng: &mut Rng, depth: usize, keys: Option<&[&str]>) -> Json {
+  let chosen: Vec<&str> = match keys {
+    Some(keys) => keys.to_vec(),
+    None => (0..rng.below(5)).map(|_| rng.pick(&KEYS)).collect(),
+  };
+  let mut context = serde_json::Map::new();
+  for key in chosen {
+    context.insert(key.to_string(), random_value(rng, depth));
+  }
+  Json::Object(context)
+}
+
+/// A text of names and operators: an expression in some contexts, none in others.
+fn random_expression(rng: &mut Rng) -> String {
+  let mut text = String::new();
+  for part in 0..1 + rng.below(4) {
+    if part > 0 {
+      text.push_str(rng.pick(&[" + ", " - ", " * ", ".", " . ", " ", " = ", "-", " and "]));
+    }
+    text.push_str(rng.pick(&[
+      "a",
+      "b",
+      "c",
+      "a b",
+      "b c",
+      "a b c",
+      "unit price",
+      "unit",
+      "price",
+      "a-b",
+      "x",
+      "in stock",
+      "date",
+      "1",
+      "\"s\"",
+      "count(a)",
+      "a[1]",
+      "{a: 1}.a",
+      "b c.a",
+    ]));
+  }
+  text
+}
+
+/// The number of generated requests: more with `RHEON_FULL_TESTS`.
+fn cases() -> usize {
+  if std::env::var_os("RHEON_FULL_TESTS").is_some() { 40_000 } else { 1_500 }
+}
+
+#[test]
+fn every_answer_is_that_of_evaluate_for_generated_contexts() {
+  let mut rng = Rng(0xEAC4);
+  let (mut answered, mut reused_shapes) = (0, 0);
+  for _ in 0..cases() {
+    let unary = rng.below(5) == 0;
+    let expression = if unary {
+      format!("{}, > {}", random_expression(&mut rng), random_expression(&mut rng))
+    } else {
+      random_expression(&mut rng)
+    };
+    let mut shared = json!({ "expression": expression });
+    if unary {
+      shared["dialect"] = json!("unaryTests");
+    }
+    if rng.below(4) == 0 {
+      shared["errorMode"] = json!("strict");
+    }
+    // runs of contexts with the same keys, whose values are of other kinds from entry to entry
+    let mut keys: Vec<&str> = vec![];
+    let mut entries = vec![];
+    for _ in 0..2 + rng.below(10) {
+      if keys.is_empty() || rng.below(3) == 0 {
+        keys = (0..rng.below(6)).map(|_| rng.pick(&KEYS)).collect();
+      } else {
+        reused_shapes += 1;
+      }
+      let mut entry = json!({ "context": random_context(&mut rng, 0, Some(&keys)) });
+      if unary && rng.below(4) != 0 {
+        entry["input"] = random_value(&mut rng, 2);
+      }
+      entries.push(entry);
+    }
+    let results = each(shared, entries);
+    answered += results.iter().filter(|result| result["ok"] == json!(true)).count();
+  }
+  // the generator gives both: texts that are expressions, and runs of the same keys
+  assert!(answered > cases() && reused_shapes > cases(), "{answered} answered, {reused_shapes} runs");
+}
