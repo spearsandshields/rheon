@@ -13,7 +13,7 @@ use rheon_feel::message::{arg, compose};
 use rheon_feel::values::{FeelList, TypeOf, VALUE_FALSE, VALUE_TRUE, Value, warn_truncated_fraction};
 use rheon_feel::{FeelNumber, FeelScope, IntervalType, Name, ToFeelString, value_null, value_number, value_string};
 use rheon_feel_number::RoundingMode;
-use rheon_feel_regex::RegexError;
+use rheon_feel_regex::{Patterns, RegexError};
 use rheon_feel_temporal::{
   DayOfWeek, DayOfYear, FeelDate, FeelDateTime, FeelDaysAndTimeDuration, FeelOffset, FeelTime, FeelYearsAndMonthsDuration, FeelZone, MonthOfYear, WeekOfYear,
 };
@@ -1422,7 +1422,7 @@ pub fn matches(input: &Value, pattern: &Value, flags: &Value) -> Value {
     Value::String(flags) => flags.as_str(),
     other => return invalid_argument_type!("matches", "string", other),
   };
-  match rheon_feel_regex::is_match(input, pattern, flags) {
+  match diagnostics::kept(|patterns: &mut Patterns| rheon_feel_regex::is_match_with(patterns, input, pattern, flags)) {
     Ok(value) => Value::Boolean(value),
     Err(error) => regex_failure("matches", pattern, error, |reason| value_null!("{}", reason)),
   }
@@ -2155,7 +2155,7 @@ pub fn replace(input_string_value: &Value, pattern_string_value: &Value, replace
     Value::String(flags_string) => flags_string.as_str(),
     _ => return value_null!("replace: flags must be a string"),
   };
-  match rheon_feel_regex::replace(input_string, pattern_string, replacement_string, flags) {
+  match diagnostics::kept(|patterns: &mut Patterns| rheon_feel_regex::replace_with(patterns, input_string, pattern_string, replacement_string, flags)) {
     Ok(result) => Value::String(result.into()),
     Err(error) => regex_failure("replace", pattern_string, error, |_| value_null!("replace: invalid pattern")),
   }
@@ -2253,7 +2253,7 @@ pub fn split(input_string_value: &Value, delimiter_string_value: &Value) -> Valu
   let Value::String(delimiter_string) = delimiter_string_value else {
     return value_null!("split: delimiter must be a string");
   };
-  match rheon_feel_regex::split(input_string, delimiter_string) {
+  match diagnostics::kept(|patterns: &mut Patterns| rheon_feel_regex::split_with(patterns, input_string, delimiter_string)) {
     Ok(parts) => Value::List(parts.into_iter().map(|part| Value::String(part.into())).collect()),
     Err(error) => regex_failure("split", delimiter_string, error, |_| value_null!("split: invalid delimiter")),
   }
