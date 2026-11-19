@@ -849,9 +849,62 @@ impl<'a> Lower<'_, 'a> {
         }
         value
       }
-      _ => return None,
+      _ => fixed_test(ast)?,
     };
     Some(self.builder.konst(value))
+  }
+}
+
+/// The value of a unary comparison, a range or a list of tests whose parts are all literals that
+/// record nothing: what its evaluation builds, built once, so a test against it builds nothing.
+fn fixed_test(ast: &AstNode) -> Option<Value> {
+  match ast {
+    AstNode::ExpressionList(items) => items.iter().map(fixed_item).collect::<Option<_>>().map(Value::ExpressionList),
+    AstNode::NegatedList(items) => items.iter().map(fixed_item).collect::<Option<_>>().map(Value::NegatedCommaList),
+    _ => fixed_single(ast),
+  }
+}
+
+/// [fixed_test] for an item of a list of tests: a literal, a unary comparison or a range.
+fn fixed_item(ast: &AstNode) -> Option<Value> {
+  fixed_scalar(ast).or_else(|| fixed_single(ast))
+}
+
+/// [fixed_test] for a unary comparison or a range.
+fn fixed_single(ast: &AstNode) -> Option<Value> {
+  let boxed = |ast: &AstNode| fixed_scalar(ast).map(Box::new);
+  Some(match ast {
+    AstNode::UnaryEq(value) => Value::UnaryEqual(boxed(value)?),
+    AstNode::UnaryNe(value) => Value::UnaryNotEqual(boxed(value)?),
+    AstNode::UnaryLt(value) => Value::UnaryLess(boxed(value)?),
+    AstNode::UnaryLe(value) => Value::UnaryLessOrEqual(boxed(value)?),
+    AstNode::UnaryGt(value) => Value::UnaryGreater(boxed(value)?),
+    AstNode::UnaryGe(value) => Value::UnaryGreaterOrEqual(boxed(value)?),
+    AstNode::Range(start, end) => match (start.as_ref(), end.as_ref()) {
+      // its bounds are not nested, so the range is within the depth that values may have
+      (AstNode::IntervalStart(start, start_type), AstNode::IntervalEnd(end, end_type)) => Value::Range(boxed(start)?, *start_type, boxed(end)?, *end_type),
+      _ => return None,
+    },
+    _ => return None,
+  })
+}
+
+/// The value of a literal that is not nested and whose evaluation records nothing.
+fn fixed_scalar(ast: &AstNode) -> Option<Value> {
+  match ast {
+    AstNode::Boolean(value) => Some(Value::Boolean(*value)),
+    AstNode::Null => Some(Value::Null(None)),
+    AstNode::String(text) => Some(Value::String(text.as_str().into())),
+    AstNode::Numeric(..) | AstNode::At(_) => match literal(ast)?.ok()? {
+      (value, None) => Some(value),
+      _ => None,
+    },
+    // a negative number: the negation of a number literal is a number and records nothing
+    AstNode::Neg(number) if matches!(number.as_ref(), AstNode::Numeric(..)) => match Arithmetic::negation(fixed_scalar(number)?) {
+      number @ Value::Number(_) => Some(number),
+      _ => None,
+    },
+    _ => None,
   }
 }
 
@@ -924,4 +977,44 @@ fn asks(test: &AstNode) -> Option<bool> {
       | AstNode::InstanceOf(..)
       | AstNode::FunctionInvocation(..)
   ))
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use rheon_feel::{FeelScope, IntervalType};
+
+  /// [fixed_test] of the right operand of `in` in `text`.
+  fn fixed(text: &str) -> Option<Value> {
+    let scope = FeelScope::default();
+    scope.set_value(&"x".into(), Value::Null(None));
+    match &rheon_feel_parser::parse_expression(&scope, text).unwrap() {
+      AstNode::In(_, tests) => fixed_test(tests),
+      other => panic!("no `in`: {other:?}"),
+    }
+  }
+
+  #[test]
+  fn tests_of_literals_are_built_once() {
+    match fixed(r#"x in (< 10, [20..30), "a", true, null, >= @"2026-01-01")"#) {
+      Some(Value::ExpressionList(tests)) => {
+        assert_eq!(6, tests.len());
+        assert!(matches!(tests[0], Value::UnaryLess(_)));
+        assert!(matches!(tests[1], Value::Range(_, IntervalType::Closed, _, IntervalType::Opened)));
+        assert!(matches!(tests[5], Value::UnaryGreaterOrEqual(_)));
+      }
+      other => panic!("no list of tests: {other:?}"),
+    }
+    assert!(matches!(fixed("x in [1..10]"), Some(Value::Range(..))));
+    assert!(matches!(fixed("x in > 5"), Some(Value::UnaryGreater(_))));
+    assert_eq!(Some("[-10..-5]".to_string()), fixed("x in [-10..-5]").map(|range| range.to_string()));
+  }
+
+  #[test]
+  fn tests_with_another_part_are_built_when_evaluated() {
+    // a name, an operation, and a literal whose evaluation records a warning
+    for text in ["x in (< 10, x)", "x in [1..x]", "x in [1..2+3]", "x in < -x", r#"x in (< @"PT0.0000000001S")"#] {
+      assert!(fixed(text).is_none(), "{text}");
+    }
+  }
 }

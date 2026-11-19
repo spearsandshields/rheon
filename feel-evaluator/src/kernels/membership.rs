@@ -12,40 +12,40 @@ use std::collections::HashSet;
 /// FEEL `lhv in rhv`: the right-hand value selects the test (a value, a range, a list, a negated
 /// list, a unary comparison or `-`). With `two_valued` (B-FEEL), a test of a list that cannot be
 /// compared with the tested value is not satisfied.
-pub(crate) fn in_operator(lhv: Value, rhv: Value, two_valued: bool) -> Value {
+pub(crate) fn in_operator(lhv: &Value, rhv: &Value, two_valued: bool) -> Value {
   let tests = if two_valued { Tests::No } else { Tests::Yes };
   match rhv {
-    inner @ Value::Null(_)
-    | inner @ Value::Number(_)
-    | inner @ Value::String(_)
-    | inner @ Value::Boolean(_)
-    | inner @ Value::Date(_)
-    | inner @ Value::Time(_)
-    | inner @ Value::DateTime(_)
-    | inner @ Value::YearsAndMonthsDuration(_)
-    | inner @ Value::DaysAndTimeDuration(_)
+    Value::Null(_)
+    | Value::Number(_)
+    | Value::String(_)
+    | Value::Boolean(_)
+    | Value::Date(_)
+    | Value::Time(_)
+    | Value::DateTime(_)
+    | Value::YearsAndMonthsDuration(_)
+    | Value::DaysAndTimeDuration(_)
     // a single value: `e1 in e2` is `e1 = e2` (DMN 1.6 Table 56, rule 49.c), also where `=` gives
     // null because the values are of different kinds
-    | inner @ Value::Context(_) => super::compare::equal(&lhv, &inner),
-    Value::Range(l, l_type, r, r_type) => eval_in_range(&lhv, &l, l_type, &r, r_type),
+    | Value::Context(_) => super::compare::equal(lhv, rhv),
+    Value::Range(l, l_type, r, r_type) => eval_in_range(lhv, l, *l_type, r, *r_type),
     Value::List(r_inner) => {
       if let Value::List(l_inner) = lhv {
-        eval_in_list_in_list(&mut Equality::default(), &l_inner, &r_inner)
+        eval_in_list_in_list(&mut Equality::default(), l_inner, r_inner)
       } else {
-        eval_in_list(&mut Equality::default(), &lhv, &r_inner, Tests::No)
+        eval_in_list(&mut Equality::default(), lhv, r_inner, Tests::No)
       }
     }
-    Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), &lhv, &inner, tests),
-    Value::NegatedCommaList(inner) => eval_in_negated_list(&mut Equality::default(), &lhv, &inner, tests),
-    Value::UnaryEqual(inner) => eval_in_equal(&mut Equality::default(), &lhv, &inner),
-    Value::UnaryNotEqual(inner) => eval_in_not_equal(&mut Equality::default(), &lhv, &inner),
-    Value::UnaryLess(inner) => eval_in_unary_less(&lhv, inner.borrow()),
-    Value::UnaryLessOrEqual(inner) => eval_in_unary_less_or_equal(&lhv, inner.borrow()),
-    Value::UnaryGreater(inner) => eval_in_unary_greater(&lhv, inner.borrow()),
-    Value::UnaryGreaterOrEqual(inner) => eval_in_unary_greater_or_equal(&lhv, inner.borrow()),
+    Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), lhv, inner, tests),
+    Value::NegatedCommaList(inner) => eval_in_negated_list(&mut Equality::default(), lhv, inner, tests),
+    Value::UnaryEqual(inner) => eval_in_equal(&mut Equality::default(), lhv, inner),
+    Value::UnaryNotEqual(inner) => eval_in_not_equal(&mut Equality::default(), lhv, inner),
+    Value::UnaryLess(inner) => eval_in_unary_less(lhv, inner),
+    Value::UnaryLessOrEqual(inner) => eval_in_unary_less_or_equal(lhv, inner),
+    Value::UnaryGreater(inner) => eval_in_unary_greater(lhv, inner),
+    Value::UnaryGreaterOrEqual(inner) => eval_in_unary_greater_or_equal(lhv, inner),
     Value::Irrelevant => VALUE_TRUE,
-    Value::TestAnswer(answer) => *answer,
-    _ => value_null!("unexpected argument type in 'in' operator: {}", arg(&TypeOf(&rhv))),
+    Value::TestAnswer(answer) => Value::clone(answer),
+    _ => value_null!("unexpected argument type in 'in' operator: {}", arg(&TypeOf(rhv))),
   }
 }
 

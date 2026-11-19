@@ -4,7 +4,7 @@ use crate::bfeel::Dialect;
 use crate::bifs::open_ranges::{self, Relation};
 use crate::equality::Equality;
 use crate::evaluate_range_literal;
-use crate::invocation::{Arguments, call};
+use crate::invocation::call_with;
 use crate::macros::invalid_argument_type;
 use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
@@ -1357,8 +1357,7 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
       // one empty scope for every call: a call leaves the scope as it found it
       let scope = FeelScope::default();
       for item in items {
-        let arguments = Arguments::Positional(vec![item.clone(), new_item.clone()]);
-        let matched = call(&scope, position_or_match.clone(), arguments, Dialect::Feel);
+        let matched = call_with(&scope, function, [item.copied(), new_item.copied()], Dialect::Feel);
         // the answer of a call in a stopped evaluation is not read; the null is never observed
         if diagnostics::stopped() {
           return Value::Null(None);
@@ -2225,8 +2224,10 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
           if diagnostics::stopped() {
             return None;
           }
-          let arguments = Arguments::Positional(vec![items[a].clone(), items[b].clone()]);
-          Some(matches!(call(&scope, ordering_function.clone(), arguments, Dialect::Feel), Value::Boolean(true)))
+          Some(matches!(
+            call_with(&scope, function, [items[a].copied(), items[b].copied()], Dialect::Feel),
+            Value::Boolean(true)
+          ))
         });
         match order {
           Some(order) => Value::List(order.into_iter().map(|position| items[position].clone()).collect()),

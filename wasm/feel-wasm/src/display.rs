@@ -15,14 +15,18 @@
 //! built, until it passes the width left on its line. Each node is then written once, so the
 //! memory of a display is its output, whatever the depth of the value.
 
+use crate::output::write_escaped;
+use rheon_feel::FeelNumber;
 use rheon_feel::values::Value;
 use rheon_feel_temporal::{FeelDateTime, FeelOffset};
+use std::fmt::{self, Write as _};
 use std::io;
 
 /// Lines longer than this are expanded.
 const MAX_INLINE_WIDTH: usize = 80;
 
 /// Renders a value for display.
+#[cfg(test)]
 pub fn display(value: &Value) -> String {
   let mut out = String::new();
   render(value, 0, &mut out);
@@ -42,6 +46,8 @@ trait Sink {
   fn text(&mut self, text: &str) -> Result<(), Full>;
   /// Appends a string JSON-quoted and escaped.
   fn quoted(&mut self, text: &str) -> Result<(), Full>;
+  /// Appends the text of a number, without a text of it in between.
+  fn number(&mut self, number: &FeelNumber) -> Result<(), Full>;
 }
 
 impl Sink for String {
@@ -52,6 +58,12 @@ impl Sink for String {
 
   fn quoted(&mut self, text: &str) -> Result<(), Full> {
     self.push_str(&quote(text));
+    Ok(())
+  }
+
+  fn number(&mut self, number: &FeelNumber) -> Result<(), Full> {
+    // writing into a string never fails
+    let _ = write!(self, "{number}");
     Ok(())
   }
 }
@@ -80,6 +92,19 @@ impl Sink for Measure {
       return Err(Full);
     }
     serde_json::to_writer(&mut *self, text).map_err(|_| Full)
+  }
+
+  fn number(&mut self, number: &FeelNumber) -> Result<(), Full> {
+    write!(Counted(self), "{number}").map_err(|_| Full)
+  }
+}
+
+/// A measure as the destination of formatted text.
+struct Counted<'a>(&'a mut Measure);
+
+impl fmt::Write for Counted<'_> {
+  fn write_str(&mut self, text: &str) -> fmt::Result {
+    self.0.add(text.len()).map_err(|_| fmt::Error)
   }
 }
 
@@ -132,7 +157,7 @@ fn write_scalar(value: &Value, sink: &mut impl Sink) -> Result<(), Full> {
   match value {
     Value::Null(_) => sink.text("null"),
     Value::Boolean(b) => sink.text(if *b { "true" } else { "false" }),
-    Value::Number(n) => sink.text(&n.to_string()),
+    Value::Number(n) => sink.number(n),
     Value::String(s) => sink.quoted(s),
     Value::FunctionDefinition(..) | Value::BuiltInFunction(_) | Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..) => sink.quoted(&value.type_of().to_string()),
     Value::DateTime(date_time) => sink.quoted(&zoned_date_time(date_time).unwrap_or_else(|| date_time.to_string())),
@@ -156,7 +181,51 @@ fn zoned_date_time(date_time: &FeelDateTime) -> Option<String> {
   Some(out)
 }
 
-fn render(value: &Value, indent: usize, out: &mut String) {
+/// Where the text of a value goes, on one line or on several.
+trait Page: Sink {
+  /// Ends a line.
+  fn newline(&mut self);
+}
+
+impl Page for String {
+  fn newline(&mut self) {
+    self.push('\n');
+  }
+}
+
+/// The inside of a JSON string as the destination of the text of a value: what [display] returns
+/// is written there escaped as it is produced, with no text of the whole in between.
+struct Json<'a>(&'a mut String);
+
+impl Sink for Json<'_> {
+  /// The texts between the values, `null`, `true` and `false`: nothing that JSON escapes.
+  fn text(&mut self, text: &str) -> Result<(), Full> {
+    self.0.push_str(text);
+    Ok(())
+  }
+
+  fn quoted(&mut self, text: &str) -> Result<(), Full> {
+    write_escaped(&quote(text), self.0);
+    Ok(())
+  }
+
+  fn number(&mut self, number: &FeelNumber) -> Result<(), Full> {
+    self.0.number(number)
+  }
+}
+
+impl Page for Json<'_> {
+  fn newline(&mut self) {
+    self.0.push_str("\\n");
+  }
+}
+
+/// Writes the text of [display] of `value` as the inside of a JSON string.
+pub(crate) fn write_display(value: &Value, out: &mut String) {
+  render(value, 0, &mut Json(out));
+}
+
+fn render(value: &Value, indent: usize, out: &mut impl Page) {
   // `indent + width <= MAX_INLINE_WIDTH` exactly when `width <= MAX_INLINE_WIDTH - indent`; past
   // that indent no container fits, as its text has at least 2 bytes
   let is_container = matches!(value, Value::List(_) | Value::Context(_));
@@ -168,33 +237,35 @@ fn render(value: &Value, indent: usize, out: &mut String) {
   let close_pad = " ".repeat(indent);
   match value {
     Value::List(items) => {
-      out.push_str("[\n");
+      let _ = out.text("[");
+      out.newline();
       for (i, item) in items.iter().enumerate() {
-        out.push_str(&pad);
+        let _ = out.text(&pad);
         render(item, indent + 2, out);
         if i + 1 < items.len() {
-          out.push(',');
+          let _ = out.text(",");
         }
-        out.push('\n');
+        out.newline();
       }
-      out.push_str(&close_pad);
-      out.push(']');
+      let _ = out.text(&close_pad);
+      let _ = out.text("]");
     }
     Value::Context(ctx) => {
-      out.push_str("{\n");
+      let _ = out.text("{");
+      out.newline();
       let len = ctx.len();
       for (i, (name, v)) in ctx.iter().enumerate() {
-        out.push_str(&pad);
-        out.push_str(&quote(name.as_str()));
-        out.push_str(": ");
+        let _ = out.text(&pad);
+        let _ = out.quoted(name.as_str());
+        let _ = out.text(": ");
         render(v, indent + 2, out);
         if i + 1 < len {
-          out.push(',');
+          let _ = out.text(",");
         }
-        out.push('\n');
+        out.newline();
       }
-      out.push_str(&close_pad);
-      out.push('}');
+      let _ = out.text(&close_pad);
+      let _ = out.text("}");
     }
     _ => {
       let _ = write_inline(value, out);

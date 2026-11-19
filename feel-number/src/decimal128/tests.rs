@@ -840,3 +840,74 @@ fn parse_equals_parse_by_text() {
     assert_eq!(parse_v_by_text(&text), parse_v(&text), "{text:?}");
   }
 }
+
+/// A coefficient of 1 to 34 digits: random, or with a shape that is hard for a
+/// division (a power of ten, one less, a small number times a power of ten).
+fn shaped_coefficient(state: &mut u64) -> u128 {
+  let digits = 1 + (rng(state) % 34) as u32;
+  let low = pow10(digits - 1);
+  let span = pow10(digits) - low;
+  let random = ((u128::from(rng(state)) << 64) | u128::from(rng(state))) % span + low;
+  match rng(state) % 8 {
+    0 => low,
+    1 => low + span - 1,
+    2 => (random / low.max(1)).max(1) * low,
+    3 if digits > 1 => low + rng(state) as u128 % 10,
+    _ => random,
+  }
+}
+
+/// The quotient as [div_v] computed it through the backend.
+fn div_by_backend(a: V, b: V) -> V {
+  match (a, b) {
+    (V::Fin(sa, ca, ea), V::Fin(sb, cb, eb)) if ca != 0 && cb != 0 => {
+      let (v, inexact) = pack(B::div(ca, ea, cb, eb));
+      match ideal(v, inexact, ea - eb) {
+        V::Fin(_, c, e) => V::Fin(sa != sb, c, e),
+        V::Inf(_) => V::Inf(sa != sb),
+        other => other,
+      }
+    }
+    _ => div_v(a, b),
+  }
+}
+
+#[test]
+fn wide_division_gives_the_quotient_and_whether_a_remainder_is_left() {
+  let mut state = 0x5EED_D1F1;
+  for case in 0..if full() { 2_000_000 } else { 100_000 } {
+    // a divisor of 1 to 34 digits, a quotient below 2^128 and a remainder below the divisor
+    let d = shaped_coefficient(&mut state);
+    let q = ((u128::from(rng(&mut state)) << 64) | u128::from(rng(&mut state))) >> (rng(&mut state) % 128);
+    let r = match case % 3 {
+      0 => 0,
+      1 => d - 1,
+      _ => ((u128::from(rng(&mut state)) << 64) | u128::from(rng(&mut state))) % d,
+    };
+    let Some(dividend) = U256::mul(q, d).checked_add(U256::from_u128(r)) else {
+      continue;
+    };
+    assert_eq!((q, r != 0), dividend.div_u128(d), "({q} * {d} + {r}) / {d}");
+  }
+}
+
+#[test]
+fn division_agrees_with_the_backend() {
+  let mut state = 0xD1F1_5EED;
+  let cases = if full() { 20_000_000 } else { 400_000 };
+  for _ in 0..cases {
+    let ca = shaped_coefficient(&mut state);
+    let cb = shaped_coefficient(&mut state);
+    // exponents near each other, far apart, and at the ends of the range (subnormal results,
+    // results that overflow)
+    let exponent = |state: &mut u64| match rng(state) % 10 {
+      0 => EXP_MIN as i32 + (rng(state) % 80) as i32,
+      1 => EXP_MAX as i32 - (rng(state) % 80) as i32,
+      2 => (rng(state) % 12288) as i32 - 6176,
+      _ => (rng(state) % 61) as i32 - 30,
+    };
+    let (ea, eb) = (exponent(&mut state), exponent(&mut state));
+    let (a, b) = (V::Fin(rng(&mut state) & 1 == 0, ca, ea), V::Fin(rng(&mut state) & 1 == 0, cb, eb));
+    assert_eq!(format!("{:?}", div_by_backend(a, b)), format!("{:?}", div_v(a, b)), "{ca}e{ea} / {cb}e{eb}");
+  }
+}

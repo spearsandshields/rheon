@@ -768,11 +768,46 @@ impl Value {
 
   /// [Value::try_coerced] of an owned value: a value that needs no conversion is returned
   /// itself instead of a copy.
+  #[inline]
   pub fn try_into_coerced(self, target_type: &FeelType) -> Option<Value> {
+    // every value conforms to `Any`
+    if matches!(target_type, FeelType::Any) {
+      return Some(self);
+    }
     if self.needs_no_coercion(target_type) { Some(self) } else { self.converted(target_type) }
   }
 
+  /// Whether the value owns nothing: a number, a boolean, or a null without a reason. Copying
+  /// such a value copies its bytes and dropping it does nothing.
+  #[inline(always)]
+  pub fn is_plain(&self) -> bool {
+    matches!(self, Value::Number(_) | Value::Boolean(_) | Value::Null(None))
+  }
+
+  /// A copy of the value, as [Clone::clone] makes it; a value that owns nothing
+  /// ([Value::is_plain]) is copied in place, without the call that copies any kind of value.
+  #[inline(always)]
+  pub fn copied(&self) -> Value {
+    match self {
+      Value::Number(number) => Value::Number(*number),
+      Value::Boolean(boolean) => Value::Boolean(*boolean),
+      Value::Null(None) => Value::Null(None),
+      other => other.clone(),
+    }
+  }
+
+  /// Drops the value; for a value that owns nothing ([Value::is_plain]) without the call that
+  /// drops any kind of value.
+  #[inline(always)]
+  pub fn discard(self) {
+    if self.is_plain() {
+      // nothing is owned, so nothing is leaked
+      std::mem::forget(self);
+    }
+  }
+
   /// [Value::coerced] of an owned value (see [Value::try_into_coerced]).
+  #[inline]
   pub fn into_coerced(self, target_type: &FeelType) -> Value {
     self.try_into_coerced(target_type).unwrap_or_else(|| value_null!("after coercion"))
   }

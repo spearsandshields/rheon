@@ -53,6 +53,23 @@ pub(crate) fn call(scope: &FeelScope, function: Value, arguments: Arguments, dia
   guarded(|| invoke(scope, function, arguments, dialect))
 }
 
+/// [call] of a function definition with the positional arguments `values`, for a built-in that
+/// calls a function for the items of a list: the same binding, body and result, without a list
+/// of the arguments and without a copy of the function value for each call.
+pub(crate) fn call_with<const N: usize>(scope: &FeelScope, function: &Arc<FunctionDefinition>, mut values: [Value; N], dialect: Dialect) -> Value {
+  let code = if function.external { None } else { crate::flat::code_of(&function.body) };
+  let Some((program, proto)) = code else {
+    return call(scope, Value::FunctionDefinition(Arc::clone(function)), Arguments::Positional(values.into()), dialect);
+  };
+  guarded(|| {
+    let parameters = function.parameters();
+    match arity(parameters, N).and_then(|()| coerce_arguments(parameters, &mut values)) {
+      Ok(()) => crate::flat::run_function(scope, function, program, proto, values).into_coerced(function.result_type()),
+      Err(reason) => value_null!(reason),
+    }
+  })
+}
+
 /// Applies a function to arguments (DMN 1.6, Table 64): null when `function` is not a function, or when
 /// the arguments do not match or do not conform to its parameters; the body is then not evaluated.
 pub(crate) fn invoke(scope: &FeelScope, function: Value, arguments: Arguments, dialect: Dialect) -> Value {
@@ -131,6 +148,10 @@ pub(crate) fn in_order<N: std::borrow::Borrow<Name>>(
 /// which gives why.
 pub(crate) fn coerce_arguments(parameters: &[(Name, FeelType)], values: &mut [Value]) -> Result<(), String> {
   for (value, (name, parameter_type)) in values.iter_mut().zip(parameters) {
+    // every value conforms to `Any`, the type of a parameter that declares none
+    if matches!(parameter_type, FeelType::Any) {
+      continue;
+    }
     let argument = std::mem::replace(value, Value::Null(None));
     *value = argument
       .try_into_coerced(parameter_type)

@@ -4,7 +4,7 @@
 //! was before ([result_tree] in the tests): the keys of every object in alphabetical order, no
 //! white space, and its escapes in strings.
 
-use crate::display::display;
+use crate::display::write_display;
 use crate::json::string_stop;
 use rheon_feel::dto::{XSD_BOOLEAN, XSD_DATE, XSD_DATE_TIME, XSD_DECIMAL, XSD_DURATION, XSD_STRING, XSD_TIME};
 use rheon_feel::values::Value;
@@ -39,7 +39,7 @@ const ESCAPES: [u8; 256] = {
 
 /// Writes `text` as the inside of a JSON string: the pieces between the bytes that are escaped
 /// as they are. A long piece is passed eight bytes at a time ([string_stop]).
-fn write_escaped(text: &str, out: &mut String) {
+pub(crate) fn write_escaped(text: &str, out: &mut String) {
   let bytes = text.as_bytes();
   // the start of the piece that is not written yet, and the position
   let (mut piece, mut at) = (0, 0);
@@ -99,8 +99,9 @@ fn write_shown(shown: impl fmt::Display, out: &mut String) {
 
 /// Writes the `result` object of a successful evaluation (CONTRACT §3).
 pub(crate) fn write_result(value: &Value, out: &mut String) {
-  out.push_str("{\"display\":");
-  write_string(&display(value), out);
+  out.push_str("{\"display\":\"");
+  write_display(value, out);
+  out.push('"');
   out.push_str(",\"feel\":");
   write_shown(value, out);
   out.push_str(if value.is_null() { ",\"isNull\":true" } else { ",\"isNull\":false" });
@@ -123,11 +124,20 @@ fn write_typed(value: &Value, out: &mut String) {
     out.push_str("{\"components\":null,\"list\":null,\"simple\":{\"isNil\":false,\"text\":");
     match value {
       Value::String(text) => write_string(text.as_str(), out),
+      // the text of a number or a boolean has no character that JSON escapes
+      Value::Number(number) => {
+        out.push('"');
+        // writing into a string never fails
+        let _ = write!(out, "{number}");
+        out.push('"');
+      }
+      Value::Boolean(boolean) => out.push_str(if *boolean { "\"true\"" } else { "\"false\"" }),
       other => write_shown(other, out),
     }
-    out.push_str(",\"type\":");
-    write_string(xsd_type, out);
-    out.push_str("}}");
+    // nor has the name of an XSD type
+    out.push_str(",\"type\":\"");
+    out.push_str(xsd_type);
+    out.push_str("\"}}");
   };
   match value {
     Value::String(_) => simple(XSD_STRING, out),
@@ -145,7 +155,7 @@ fn write_typed(value: &Value, out: &mut String) {
           out.push(',');
         }
         out.push_str("{\"isNil\":false,\"name\":");
-        write_shown(name, out);
+        write_string(name.as_str(), out);
         out.push_str(",\"value\":");
         write_typed(entry, out);
         out.push('}');
@@ -169,6 +179,7 @@ fn write_typed(value: &Value, out: &mut String) {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::display::display;
   use rheon_feel::dto::ValueDto;
   use rheon_feel::{FeelScope, diagnostics};
   use serde_json::{Value as Json, json};

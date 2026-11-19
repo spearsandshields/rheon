@@ -335,6 +335,81 @@ impl U256 {
     )
   }
 
+  /// The quotient of the division by `d` and whether a remainder is left, for a quotient below
+  /// `2^128`: in `u128` or by 64-bit steps when the operands allow it, otherwise by long
+  /// division on 32-bit limbs (Knuth, The Art of Computer Programming 4.3.1, algorithm D).
+  fn div_u128(self, d: u128) -> (u128, bool) {
+    debug_assert!(d != 0, "division by zero");
+    if self.hi == 0 {
+      return (self.lo / d, !self.lo.is_multiple_of(d));
+    }
+    if let Ok(d) = u64::try_from(d) {
+      let (q, r) = self.div_rem_u64(d);
+      debug_assert!(q.hi == 0, "quotient out of range");
+      return (q.lo, r != 0);
+    }
+    const BASE: u64 = 1 << 32;
+    let limbs = |x: u128| [x as u32, (x >> 32) as u32, (x >> 64) as u32, (x >> 96) as u32];
+    let (lo, hi, divisor) = (limbs(self.lo), limbs(self.hi), limbs(d));
+    let dividend = [lo[0], lo[1], lo[2], lo[3], hi[0], hi[1], hi[2], hi[3]];
+    // the divisor has 3 or 4 limbs, as it is 2^64 or more; both operands are shifted so that
+    // its top limb has its top bit set
+    let n = if divisor[3] != 0 { 4 } else { 3 };
+    let shift = divisor[n - 1].leading_zeros();
+    let shifted = |limbs: &[u32], i: usize| {
+      let low = if i > 0 && shift > 0 { limbs[i - 1] >> (32 - shift) } else { 0 };
+      let high = if i < limbs.len() { limbs[i] << shift } else { 0 };
+      high | low
+    };
+    let mut v = [0u32; 4];
+    for (i, limb) in v.iter_mut().enumerate().take(n) {
+      *limb = shifted(&divisor[..n], i);
+    }
+    let mut u = [0u32; 9];
+    for (i, limb) in u.iter_mut().enumerate() {
+      *limb = shifted(&dividend, i);
+    }
+    let mut q = [0u32; 6];
+    for j in (0..=8 - n).rev() {
+      // an estimate of the quotient limb from the top limbs, at most 2 too large
+      let top = (u64::from(u[j + n]) << 32) | u64::from(u[j + n - 1]);
+      let mut qhat = top / u64::from(v[n - 1]);
+      let mut rhat = top % u64::from(v[n - 1]);
+      while qhat >= BASE || qhat * u64::from(v[n - 2]) > ((rhat << 32) | u64::from(u[j + n - 2])) {
+        qhat -= 1;
+        rhat += u64::from(v[n - 1]);
+        if rhat >= BASE {
+          break;
+        }
+      }
+      // the estimate times the divisor is subtracted; a result below zero means it was 1 too
+      // large, and the divisor is added back
+      let mut borrow: i64 = 0;
+      for i in 0..n {
+        let p = qhat * u64::from(v[i]);
+        let t = i64::from(u[i + j]) - borrow - (p & 0xFFFF_FFFF) as i64;
+        u[i + j] = t as u32;
+        borrow = (p >> 32) as i64 - (t >> 32);
+      }
+      let t = i64::from(u[j + n]) - borrow;
+      u[j + n] = t as u32;
+      if t < 0 {
+        qhat -= 1;
+        let mut carry = 0u64;
+        for i in 0..n {
+          let t = u64::from(u[i + j]) + u64::from(v[i]) + carry;
+          u[i + j] = t as u32;
+          carry = t >> 32;
+        }
+        u[j + n] = (u64::from(u[j + n]) + carry) as u32;
+      }
+      q[j] = qhat as u32;
+    }
+    debug_assert!(q[4] == 0 && q[5] == 0, "quotient out of range");
+    let quotient = u128::from(q[0]) | u128::from(q[1]) << 32 | u128::from(q[2]) << 64 | u128::from(q[3]) << 96;
+    (quotient, u[..n].iter().any(|limb| *limb != 0))
+  }
+
   fn to_decimal(self) -> String {
     const CHUNK: u64 = 10_000_000_000_000_000_000;
     if self.is_zero() {
@@ -652,6 +727,41 @@ fn mul_v(a: V, b: V) -> V {
   }
 }
 
+/// The quotient of the magnitudes `ca · 10^ea` and `cb · 10^eb`, both coefficients not zero,
+/// rounded once, and whether it is inexact.
+///
+/// The dividend is scaled so that the integer quotient has 36 or 37 digits, two or three more
+/// than a number keeps: `ca · 10^k` with `k = 36 + digits(cb) - digits(ca)` lies between
+/// `10^(35 + digits(cb))` and `10^(36 + digits(cb))`, so its quotient by `cb` lies between
+/// `10^35` and `10^37`. A remainder that is left is recorded in the last digit of the quotient,
+/// which is then neither 0 nor 5: that digit is always among the digits dropped, below the one
+/// that decides the rounding, so the quotient rounds as the exact value does.
+fn div_fin(ca: u128, ea: i32, cb: u128, eb: i32) -> (V, bool) {
+  let k = PRECISION as u32 + 2 + digit_count(cb) - digit_count(ca);
+  // below 10^70, which fits in 256 bits
+  let Some(dividend) = U256::from_u128(ca).checked_mul_pow10(k) else {
+    return pack(B::div(ca, ea, cb, eb));
+  };
+  let (mut quotient, rest) = dividend.div_u128(cb);
+  let mut exponent = i64::from(ea) - i64::from(eb) - i64::from(k);
+  if rest {
+    if matches!(quotient % 10, 0 | 5) {
+      quotient += 1;
+    }
+  } else {
+    // an exact quotient: the zeros that the scaling appended are removed, several at a time, up
+    // to the exponent that [ideal] moves an exact result to, which then has little left to do
+    let limit = (i64::from(ea) - i64::from(eb)).min(EXP_MAX);
+    for step in [32u32, 16, 8, 4, 2, 1] {
+      if exponent + i64::from(step) <= limit && quotient.is_multiple_of(pow10(step)) {
+        quotient /= pow10(step);
+        exponent += i64::from(step);
+      }
+    }
+  }
+  round_pack_u128(false, quotient, exponent)
+}
+
 fn div_v(a: V, b: V) -> V {
   match (a, b) {
     (V::NaN, _) | (_, V::NaN) => V::NaN,
@@ -665,7 +775,7 @@ fn div_v(a: V, b: V) -> V {
       if ca == 0 {
         return V::Fin(sa != sb, 0, ((ea - eb) as i64).clamp(EXP_MIN, EXP_MAX) as i32);
       }
-      let (v, inexact) = pack(B::div(ca, ea, cb, eb));
+      let (v, inexact) = div_fin(ca, ea, cb, eb);
       match ideal(v, inexact, ea - eb) {
         V::Fin(_, c, e) => V::Fin(sa != sb, c, e),
         V::Inf(_) => V::Inf(sa != sb),
