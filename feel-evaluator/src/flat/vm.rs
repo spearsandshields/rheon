@@ -455,11 +455,28 @@ impl<'p> Vm<'p> {
             },
           };
         }
+        Op::Kernel2 {
+          kernel: kernel @ (Kernel2::In | Kernel2::InTwoValued),
+          dst,
+          a,
+          b,
+        } => {
+          let two_valued = matches!(kernel, Kernel2::InTwoValued);
+          let a = self.read(a);
+          // tests that are a constant of the program are read where they are
+          let value = match b.decode() {
+            Operand::Const(index) => kernels::in_operator(&a, &self.act.program.consts[index as usize], two_valued),
+            _ => {
+              let b = self.read(b);
+              kernels::in_operator(&a, &b, two_valued)
+            }
+          };
+          *self.slot(dst) = value;
+        }
         Op::Kernel2 { kernel, dst, a, b } => {
           let (a, b) = (self.read(a), self.read(b));
           *self.slot(dst) = match kernel {
-            Kernel2::In => kernels::in_operator(a, b, false),
-            Kernel2::InTwoValued => kernels::in_operator(a, b, true),
+            Kernel2::In | Kernel2::InTwoValued => unreachable!("an `in` is the instruction above"),
             Kernel2::Out => match a {
               Value::Boolean(true) => b,
               _ => value_null!(),
