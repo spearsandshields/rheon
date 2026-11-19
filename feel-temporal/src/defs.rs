@@ -2,9 +2,8 @@
 
 use crate::feel_date_time::FeelDateTime;
 use crate::feel_zone::FeelZone;
+use crate::parts::Parts;
 use chrono::{DateTime, Datelike, FixedOffset, Local, LocalResult, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc};
-use regex::Regex;
-use std::sync::LazyLock;
 use std::sync::atomic::{AtomicI64, Ordering as AtomicOrdering};
 
 /// Sentinel meaning "no local offset override is set".
@@ -41,18 +40,6 @@ pub fn local_now() -> DateTime<FixedOffset> {
   }
 }
 
-/// Regular expression pattern for parsing dates.
-const DATE_PATTERN: &str = r"(?P<sign>-)?(?P<year>[1-9][0-9]{3,8})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})";
-/// Regular expression pattern for parsing time.
-const TIME_PATTERN: &str = r"(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2})(?P<fractional>\.[0-9]+)?";
-/// Regular expression pattern for parsing time zones given as UTC.
-const ZULU_PATTERN: &str = r"(?P<zulu>[zZ])";
-/// Regular expression pattern for parsing time zones given as zone name.
-const ZONE_PATTERN: &str = r"@(?P<zone>[a-zA-Z_/]+)";
-/// Regular expression pattern for parsing time zones given as offset: `±hh:mm`, the lexical
-/// representation of a timezone (XML Schema Part 2 §3.2.7.3: "(('+' | '-') hh ':' mm) | 'Z'").
-const OFFSET_PATTERN: &str = r"(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
-
 pub const ETC_UTC: &str = "Etc/UTC";
 
 /// Type alias for year.
@@ -69,17 +56,6 @@ pub type DayOfYear = u16;
 pub type WeekOfYear = u8;
 /// Type alias for month in year.
 pub type MonthOfYear = (String, u8);
-
-/// Regular expression pattern for parsing time zone.
-pub static TIME_ZONE_PATTERN: LazyLock<String> = LazyLock::new(|| format!("{ZULU_PATTERN}|{ZONE_PATTERN}|{OFFSET_PATTERN}"));
-/// Regular expression for parsing date.
-pub static RE_DATE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}$")).unwrap());
-/// Regular expression for parsing time.
-pub static RE_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
-/// Regular expression for parsing a time zone designator alone; it is never empty.
-pub static RE_ZONE: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^(?:{})$", TIME_ZONE_PATTERN.as_str())).unwrap());
-/// Regular expression for parsing date and time.
-pub static RE_DATE_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(&format!("^{DATE_PATTERN}T{TIME_PATTERN}({})?$", TIME_ZONE_PATTERN.as_str())).unwrap());
 
 pub fn feel_time_offset(me: &FeelDateTime) -> Option<i32> {
   let me_date_tuple = me.date().as_tuple();
@@ -237,7 +213,7 @@ pub(crate) fn parse_fraction_nanos(digits: &str) -> Option<(u32, Option<&str>)> 
 
 /// The digits of the `fractional` group (`.` and digits) of a time pattern match, without the
 /// `.`; empty when the group did not match.
-pub(crate) fn fraction_digits<'t>(captures: &regex::Captures<'t>) -> &'t str {
+pub(crate) fn fraction_digits<'t>(captures: &Parts<'t>) -> &'t str {
   captures.name("fractional").and_then(|fraction| fraction.as_str().get(1..)).unwrap_or_default()
 }
 

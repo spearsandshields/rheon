@@ -14,7 +14,9 @@ edition = { workspace = true }
 [dependencies]
 chrono = { workspace = true }
 chrono-tz = { workspace = true }
-regex = { workspace = true }
 dsntk-common = { workspace = true }
 rheon-feel-number = { workspace = true }
 dsntk-macros = { workspace = true }
+
+[dev-dependencies]
+regex = { workspace = true }

@@ -5,6 +5,7 @@ use crate::defs::*;
 use crate::errors::*;
 use crate::feel_dt_duration::NANOSECONDS_IN_DAY;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
+use crate::parts::split_date;
 use chrono::{DateTime, Datelike, Days, FixedOffset, LocalResult, Months, NaiveDate, TimeZone, Weekday};
 use dsntk_common::DsntkError;
 use rheon_feel_number::FeelNumber;
@@ -29,7 +30,7 @@ impl FromStr for FeelDate {
   type Err = DsntkError;
   /// Converts [String] into [FeelDate].
   fn from_str(date: &str) -> Result<Self, Self::Err> {
-    let captures = RE_DATE.captures(date).ok_or_else(|| err_invalid_date_literal(date))?;
+    let captures = split_date(date).ok_or_else(|| err_invalid_date_literal(date))?;
     if let Some(year_match) = captures.name("year")
       && let Ok(mut year) = year_match.as_str().parse::<Year>()
     {

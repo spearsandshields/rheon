@@ -7,6 +7,7 @@ use crate::errors::*;
 use crate::feel_date_time::FeelDateTime;
 use crate::feel_dt_duration::FeelDaysAndTimeDuration;
 use crate::feel_offset::FeelOffset;
+use crate::parts::split_time;
 use chrono::{NaiveTime, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
@@ -182,7 +183,7 @@ impl FeelTime {
   /// assert_eq!(None, FeelTime::parse_reporting_truncation("10:00:00.1234567890").unwrap().1);
   /// ```
   pub fn parse_reporting_truncation(text: &str) -> Result<(Self, Option<&str>), DsntkError> {
-    if let Some(captures) = RE_TIME.captures(text)
+    if let Some(captures) = split_time(text)
       && let Some(hour_match) = captures.name("hours")
       && let Ok(hour) = hour_match.as_str().parse::<u8>()
       && let Some(min_match) = captures.name("minutes")

@@ -8,6 +8,7 @@ use crate::FeelDaysAndTimeDuration;
 use crate::defs::*;
 use crate::errors::err_date_time_conversion_failed;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
+use crate::parts::split_date_and_time;
 use chrono::{DateTime, Datelike, Duration, FixedOffset, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
@@ -168,7 +169,7 @@ impl FeelDateTime {
   /// assert_eq!(("2018-10-01T12:32:59.123123123", Some("123")), (date_time.to_string().as_str(), dropped));
   /// ```
   pub fn parse_reporting_truncation(s: &str) -> Result<(Self, Option<&str>), DsntkError> {
-    if let Some(captures) = RE_DATE_AND_TIME.captures(s)
+    if let Some(captures) = split_date_and_time(s)
       && let Some(year_match) = captures.name("year")
       && let Ok(mut year) = year_match.as_str().parse::<Year>()
     {

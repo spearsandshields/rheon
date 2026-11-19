@@ -749,7 +749,7 @@ pub fn distinct_values(value: &Value) -> Value {
 /// Converts string value to a days and time or years and months duration.
 pub fn duration(value: &Value) -> Value {
   if let Value::String(s) = value {
-    if let Ok(ym_duration) = FeelYearsAndMonthsDuration::try_from(s.as_str()) {
+    if let Some(ym_duration) = FeelYearsAndMonthsDuration::parse(s.as_str()) {
       Value::YearsAndMonthsDuration(ym_duration)
     } else if let Ok((dt_duration, dropped)) = FeelDaysAndTimeDuration::parse_reporting_truncation(s) {
       warn_truncated_fraction(s.as_str(), dropped);

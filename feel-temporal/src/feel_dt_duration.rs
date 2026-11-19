@@ -2,13 +2,9 @@
 
 use crate::defs::*;
 use crate::errors::*;
+use crate::parts::split_days_and_time;
 use dsntk_common::DsntkError;
-use regex::Regex;
-use std::sync::LazyLock;
 use std::{fmt, ops};
-
-/// Regular expression pattern for parsing days and time duration.
-const REGEX_DAYS_AND_TIME: &str = r"^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$";
 
 /// Number of nanoseconds in a day.
 pub(crate) const NANOSECONDS_IN_DAY: i64 = 24 * NANOSECONDS_IN_HOUR;
@@ -18,8 +14,6 @@ const NANOSECONDS_IN_HOUR: i64 = 60 * NANOSECONDS_IN_MINUTE;
 const NANOSECONDS_IN_MINUTE: i64 = 60 * NANOSECONDS_IN_SECOND;
 /// Number of nanoseconds in a second.
 pub(crate) const NANOSECONDS_IN_SECOND: i64 = 1_000_000_000;
-
-static RE_DAYS_AND_TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_DAYS_AND_TIME).unwrap());
 
 /// FEEL days and time duration.
 ///
@@ -39,7 +33,7 @@ impl FeelDaysAndTimeDuration {
   /// assert_eq!(("PT16M39.999999999S", Some("999")), (duration.to_string().as_str(), dropped));
   /// ```
   pub fn parse_reporting_truncation(value: &str) -> Result<(Self, Option<&str>), DsntkError> {
-    if let Some(captures) = RE_DAYS_AND_TIME.captures(value) {
+    if let Some(captures) = split_days_and_time(value) {
       let mut is_valid = false;
       let mut nanoseconds = 0_i64;
       let mut days_overflow = false;

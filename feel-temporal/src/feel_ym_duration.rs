@@ -1,19 +1,12 @@
 //! Implementation of FEEL years and months duration.
 
 use crate::errors::*;
+use crate::parts::split_years_and_months;
 use dsntk_common::DsntkError;
-use regex::Regex;
-use std::sync::LazyLock;
 use std::{fmt, ops};
-
-/// Regular expression pattern for parsing years and months duration.
-const REGEX_YEARS_AND_MONTHS: &str = r#"^(?P<sign>-)?P((?P<years>[0-9]+)Y)?((?P<months>[0-9]+)M)?$"#;
 
 /// Number of months in a year.
 const MONTHS_IN_YEAR: i64 = 12;
-
-/// Regular expression for parsing years and months duration.
-static RE_YEARS_AND_MONTHS: LazyLock<Regex> = LazyLock::new(|| Regex::new(REGEX_YEARS_AND_MONTHS).unwrap());
 
 /// Years and months duration in FEEL.
 ///
@@ -95,28 +88,33 @@ impl fmt::Display for FeelYearsAndMonthsDuration {
   }
 }
 
+impl FeelYearsAndMonthsDuration {
+  /// The duration that a text is the literal of, or `None` for any other text. This is the
+  /// conversion of [TryFrom] without the error, for a caller that then tries another reading of
+  /// the text.
+  pub fn parse(value: &str) -> Option<Self> {
+    // The literal is valid when it has a component and every component it has fits: a component
+    // that does not fit makes the whole literal invalid, it is never left out.
+    let captures = split_years_and_months(value)?;
+    if captures.name("years").is_none() && captures.name("months").is_none() {
+      return None;
+    }
+    let months_of = |name: &str, months_per_unit: i64| match captures.name(name) {
+      Some(component) => component.as_str().parse::<i64>().ok()?.checked_mul(months_per_unit),
+      None => Some(0),
+    };
+    let total_months = months_of("years", MONTHS_IN_YEAR)
+      .zip(months_of("months", 1))
+      .and_then(|(years, months)| years.checked_add(months))?;
+    Self::from_m(if captures.name("sign").is_some() { -total_months } else { total_months })
+  }
+}
+
 impl TryFrom<&str> for FeelYearsAndMonthsDuration {
   type Error = DsntkError;
   /// Converts a text into [FeelYearsAndMonthsDuration].
   fn try_from(value: &str) -> Result<Self, Self::Error> {
-    // The literal is valid when it has a component and every component it has fits: a component
-    // that does not fit makes the whole literal invalid, it is never left out.
-    if let Some(captures) = RE_YEARS_AND_MONTHS.captures(value)
-      && (captures.name("years").is_some() || captures.name("months").is_some())
-    {
-      let months_of = |name: &str, months_per_unit: i64| match captures.name(name) {
-        Some(component) => component.as_str().parse::<i64>().ok()?.checked_mul(months_per_unit),
-        None => Some(0),
-      };
-      if let Some(total_months) = months_of("years", MONTHS_IN_YEAR)
-        .zip(months_of("months", 1))
-        .and_then(|(years, months)| years.checked_add(months))
-        && let Some(duration) = Self::from_m(if captures.name("sign").is_some() { -total_months } else { total_months })
-      {
-        return Ok(duration);
-      }
-    }
-    Err(err_invalid_years_and_months_duration_literal(value))
+    Self::parse(value).ok_or_else(|| err_invalid_years_and_months_duration_literal(value))
   }
 }
 

@@ -13,6 +13,7 @@ mod feel_offset;
 mod feel_time;
 mod feel_ym_duration;
 mod feel_zone;
+mod parts;
 
 #[cfg(test)]
 mod tests;

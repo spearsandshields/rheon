@@ -2,7 +2,7 @@
 
 use crate::defs::*;
 use crate::feel_offset::FeelOffset;
-use regex::Captures;
+use crate::parts::{Parts, split_zone};
 use std::fmt;
 
 /// FEEL time zone.
@@ -63,8 +63,8 @@ impl From<FeelOffset> for FeelZone {
 }
 
 impl FeelZone {
-  /// Creates [FeelZone] from timezone captures taken from regular expression.
-  pub fn from_captures(captures: &Captures) -> Option<Self> {
+  /// Creates [FeelZone] from the parts of the zone of a literal.
+  pub(crate) fn from_captures(captures: &Parts) -> Option<Self> {
     if captures.name("zulu").is_some() {
       return Some(FeelZone::Utc);
     }
@@ -99,7 +99,7 @@ impl FeelZone {
   /// ±14:00 with minutes below 60, a zone name the zone database knows). `None` for any other
   /// text, the empty one included.
   pub fn from_designator(designator: &str) -> Option<Self> {
-    Self::from_captures(&RE_ZONE.captures(designator)?)
+    Self::from_captures(&split_zone(designator)?)
   }
 
   /// Returns `true` when this [FeelZone] has defined offset (is not local).
@@ -110,7 +110,6 @@ impl FeelZone {
 
 #[cfg(test)]
 mod tests {
-  use crate::defs::*;
   use crate::feel_offset::FeelOffset;
   use crate::feel_zone::FeelZone;
 
@@ -129,7 +128,7 @@ mod tests {
 
   macro_rules! assert_zone {
     ($zone:expr, $time:expr) => {
-      assert_eq!($zone, FeelZone::from_captures(&RE_TIME.captures($time).unwrap()));
+      assert_eq!($zone, FeelZone::from_captures(&crate::parts::split_time($time).unwrap()));
     };
   }
 
@@ -193,7 +192,7 @@ mod tests {
       "00:00:00-00:00:30",
       "00:00:00+00:00:00",
     ] {
-      assert_eq!(None, RE_TIME.captures(literal).and_then(|captures| FeelZone::from_captures(&captures)), "{literal}");
+      assert_eq!(None, crate::parts::split_time(literal).and_then(|captures| FeelZone::from_captures(&captures)), "{literal}");
     }
     for designator in ["+05:00:01", "-05:01:00", "+01:00:30", "-00:00:30", "+00:00:00"] {
       assert_eq!(None, FeelZone::from_designator(designator), "{designator}");
