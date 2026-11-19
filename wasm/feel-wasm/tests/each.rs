@@ -193,12 +193,12 @@ const KEYS: [&str; 14] = ["a", "b", "c", "a b", "b c", "a b c", "unit", "price",
 /// A value of a random kind: mostly a scalar, sometimes a context or a list.
 fn random_value(rng: &mut Rng, depth: usize) -> Json {
   match rng.below(if depth < 3 { 12 } else { 7 }) {
-    0 | 1 | 2 => json!(rng.below(50)),
+    0..=2 => json!(rng.below(50)),
     3 => json!(rng.pick(&["open", "a", "x y", ""])),
     4 => json!(rng.below(2) == 0),
     5 => Json::Null,
     6 => json!(rng.below(1000) as f64 / 8.0),
-    7 | 8 | 9 => random_context(rng, depth + 1, None),
+    7..=9 => random_context(rng, depth + 1, None),
     10 => Json::Array((0..rng.below(3)).map(|_| random_value(rng, depth + 1)).collect()),
     _ => Json::Array((0..1 + rng.below(2)).map(|_| random_context(rng, depth + 1, None)).collect()),
   }
