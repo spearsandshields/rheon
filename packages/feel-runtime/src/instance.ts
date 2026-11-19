@@ -2,8 +2,8 @@
  * In-thread runner: instantiates dist/feel.wasm with the WASI shim and drives the
  * feel_alloc / feel_call / feel_free ABI (CONTRACT §1).
  */
-import { buildEvaluateAllJson, mergeEvaluateAll, serializeRequest, localTzOffsetMinutes, RequestError } from './request.js';
-import type { EvaluateAllRequest } from './types.js';
+import { buildEvaluateAllJson, buildEvaluateEachJson, mergeEvaluateAll, serializeRequest, localTzOffsetMinutes, RequestError } from './request.js';
+import type { EvaluateAllRequest, EvaluateEachRequest } from './types.js';
 import { createWasiShim, type WasiShimOptions } from './wasi.js';
 
 interface FeelExports {
@@ -197,6 +197,11 @@ export async function instantiateFeel(
             // the entries may hold `{rawJson}` inputs; one that can not be sent fails in its place
             const tz = env.tzOffsetMinutes === null ? undefined : (env.tzOffsetMinutes ?? localTzOffsetMinutes());
             const built = buildEvaluateAllJson(obj as unknown as EvaluateAllRequest, tz);
+            return mergeEvaluateAll(JSON.parse(callJson(built.json)), built.failures);
+          }
+          if (obj.op === 'evaluateEach') {
+            const tz = env.tzOffsetMinutes === null ? undefined : (env.tzOffsetMinutes ?? localTzOffsetMinutes());
+            const built = buildEvaluateEachJson(obj as unknown as EvaluateEachRequest, tz);
             return mergeEvaluateAll(JSON.parse(callJson(built.json)), built.failures);
           }
           json = serializeRequest(obj);

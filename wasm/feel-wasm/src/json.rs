@@ -252,6 +252,8 @@ pub(crate) struct Request<'a> {
   pub(crate) fields: Vec<(&'a str, &'a str)>,
   pub(crate) context: Option<Field<'a, FeelContext>>,
   pub(crate) input: Option<Field<'a, Value>>,
+  /// The text of `entries` when it is an array: its items are read one by one ([elements]).
+  pub(crate) entries: Option<&'a str>,
 }
 
 /// Reads a request: `None` when the text is not a JSON object that `serde_json` accepts, or a
@@ -263,6 +265,7 @@ pub(crate) fn request(text: &str) -> Option<Request<'_>> {
     fields: vec![],
     context: None,
     input: None,
+    entries: None,
   };
   let all = top_level(text, |key, at| {
     let nested = matches!(bytes.get(at), Some(b'{' | b'['));
@@ -296,11 +299,17 @@ pub(crate) fn request(text: &str) -> Option<Request<'_>> {
         request.input = Some(field);
         Some((end, false))
       }
+      "entries" if bytes.get(at) == Some(&b'[') => {
+        let end = skip_value(bytes, at, 1)?;
+        request.entries = Some(text.get(at..end)?);
+        Some((end, false))
+      }
       _ => {
         // a later field of the key that is no object or array counts instead of an earlier one
         match key {
           "context" => request.context = None,
           "input" => request.input = None,
+          "entries" => request.entries = None,
           _ => {}
         }
         Some((skip_value(bytes, at, 1)?, true))
@@ -316,7 +325,36 @@ pub(crate) fn request(text: &str) -> Option<Request<'_>> {
   if request.input.is_some() {
     request.fields.retain(|(key, _)| *key != "input");
   }
+  if request.entries.is_some() {
+    request.fields.retain(|(key, _)| *key != "entries");
+  }
   Some(request)
+}
+
+/// The texts of the items of the JSON array `text`, which is a field of a request that
+/// [request] took: `None` when the text is no such array.
+pub(crate) fn elements(text: &str) -> Option<Vec<&str>> {
+  let bytes = text.as_bytes();
+  let mut at = skip_white(bytes, 0);
+  if bytes.get(at) != Some(&b'[') {
+    return None;
+  }
+  at = skip_white(bytes, at + 1);
+  let mut items = vec![];
+  if bytes.get(at) == Some(&b']') {
+    return Some(items);
+  }
+  loop {
+    // inside the object of the request and the array
+    let end = skip_value(bytes, at, 2)?;
+    items.push(text.get(at..end)?);
+    at = skip_white(bytes, end);
+    match bytes.get(at) {
+      Some(b',') => at = skip_white(bytes, at + 1),
+      Some(b']') => return Some(items),
+      _ => return None,
+    }
+  }
 }
 
 /// The fields of a request: each key of the top-level object with the text of its value, in the
