@@ -293,3 +293,55 @@ fn every_answer_is_that_of_evaluate_for_generated_contexts() {
   // the generator gives both: texts that are expressions, and runs of the same keys
   assert!(answered > cases() && reused_shapes > cases(), "{answered} answered, {reused_shapes} runs");
 }
+
+/// `evaluateAll` parses its evaluations with one index of the names of its context: every answer
+/// is that of `evaluate` with the same context, for expressions and unary tests, with and without
+/// a tested value, in contexts of few and of many names.
+#[test]
+fn every_answer_of_evaluate_all_is_that_of_evaluate() {
+  let mut rng = Rng(0xA11);
+  let mut answered = 0;
+  for round in 0..cases() / 5 {
+    let mut context = random_context(&mut rng, 0, None);
+    if round % 3 == 0 {
+      // many names, of several words: the index of the names is read for every text
+      for index in 0..40 {
+        context[format!("total price {index}")] = json!(index);
+        context[format!("a b {index}")] = random_value(&mut rng, 2);
+      }
+    }
+    let mut evaluations = vec![];
+    for id in 0..2 + rng.below(8) {
+      let unary = rng.below(4) == 0;
+      let mut evaluation = if unary {
+        json!({ "id": id, "dialect": "unaryTests", "expression": format!("{}, > {}", random_expression(&mut rng), random_expression(&mut rng)) })
+      } else if rng.below(3) == 0 {
+        json!({ "id": id, "expression": format!("total price {} + a b {} + {}", rng.below(45), rng.below(45), random_expression(&mut rng)) })
+      } else {
+        json!({ "id": id, "expression": random_expression(&mut rng) })
+      };
+      if unary && rng.below(4) != 0 {
+        evaluation["input"] = random_value(&mut rng, 2);
+      }
+      if rng.below(4) == 0 {
+        evaluation["errorMode"] = json!("strict");
+      }
+      evaluations.push(evaluation);
+    }
+    let response = call(&json!({ "op": "evaluateAll", "context": context, "evaluations": evaluations }));
+    assert_eq!(json!(true), response["ok"], "{response}");
+    let results = response["results"].as_array().unwrap();
+    assert_eq!(evaluations.len(), results.len());
+    for (evaluation, result) in evaluations.iter().zip(results) {
+      let mut single = evaluation.clone();
+      single["op"] = json!("evaluate");
+      single["context"] = context.clone();
+      let id = single.as_object_mut().unwrap().remove("id").unwrap();
+      let mut expected = timeless(call(&single));
+      expected["id"] = id;
+      assert_eq!(expected, timeless(result.clone()), "{evaluation} in {context}");
+      answered += usize::from(result["ok"] == json!(true));
+    }
+  }
+  assert!(answered > cases() / 5, "{answered} answered");
+}

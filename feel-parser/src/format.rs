@@ -169,8 +169,11 @@ impl<'a> Formatter<'a> {
     let mut open = vec![0];
     let mut next = 0;
     for (index, token) in tokens.iter().enumerate() {
+      // a node that ended before this token: its last token is the one before
       while open.len() > 1 && ends[*open.last().unwrap_or(&0)] <= token.start {
-        open.pop();
+        if let Some(closed) = open.pop() {
+          nodes[closed].last = index - 1;
+        }
       }
       while next < syntax.nodes.len() && syntax.nodes[next].start <= token.start {
         let node = &syntax.nodes[next];
@@ -179,7 +182,9 @@ impl<'a> Formatter<'a> {
           continue;
         }
         while open.len() > 1 && ends[*open.last().unwrap_or(&0)] <= node.start {
-          open.pop();
+          if let Some(closed) = open.pop() {
+            nodes[closed].last = index - 1;
+          }
         }
         let created = nodes.len();
         nodes.push(Node {
@@ -192,10 +197,11 @@ impl<'a> Formatter<'a> {
         nodes[*open.last().unwrap_or(&0)].children.push(Child::Node(created));
         open.push(created);
       }
-      for &node in &open {
-        nodes[node].last = nodes[node].last.max(index);
-      }
       nodes[*open.last().unwrap_or(&0)].children.push(Child::Token(index));
+    }
+    // the nodes still open hold the last token
+    for node in open {
+      nodes[node].last = tokens.len().saturating_sub(1);
     }
     let mut formatter = Self {
       input,
@@ -437,11 +443,16 @@ pub(crate) fn format<'s>(scope: &dyn Fn() -> ParsingScope<'s>, input: &str, unar
   if formatter.tokens.is_empty() {
     return Formatted::Text(String::new());
   }
+  // a text that is nested more deeply than an expression may be is left as it is, before the
+  // layout follows its nesting: a chain of operators is as deep as it is long
+  let parse = |text: &str| -> Option<AstNode> { Parser::new(&scope(), start(), text).parse().ok().filter(|node| node.depth() <= MAX_DEPTH) };
+  let Some(before) = parse(input) else {
+    return Formatted::Unchanged;
+  };
   formatter.node(0, 0);
   let formatted = formatter.out;
   // the formatted text must be the same expression
-  let parse = |text: &str| -> Option<AstNode> { Parser::new(&scope(), start(), text).parse().ok().filter(|node| node.depth() <= MAX_DEPTH) };
-  match (parse(input), parse(&formatted)) {
+  match (Some(before), parse(&formatted)) {
     (Some(before), Some(after)) if before == after => Formatted::Text(formatted),
     _other => {
       #[cfg(test)]

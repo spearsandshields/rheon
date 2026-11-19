@@ -56,6 +56,48 @@ pub fn parse_unary_tests(scope: &FeelScope, input: &str) -> Result<AstNode> {
   parse(scope, TokenType::StartUnaryTests, input)
 }
 
+/// Contexts with their indexes of names, kept for several parses: a text that is parsed in a
+/// context of many names reads an index of them, and a parse of its own builds that index anew
+/// ([parse_expression]). See [sharing].
+pub struct Shared<'a> {
+  contexts: &'a [std::sync::Arc<rheon_feel::context::FeelContext>],
+  indexes: &'a [index::FrameIndex<'a>],
+}
+
+/// Calls `f` with the indexes of `contexts`, the contexts of a scope bottom first, for the
+/// parses that `f` makes in a scope that holds them ([FeelScope::push_shared]).
+pub fn sharing<R>(contexts: &[std::sync::Arc<rheon_feel::context::FeelContext>], f: impl FnOnce(&Shared<'_>) -> R) -> R {
+  let indexes: Vec<index::FrameIndex<'_>> = contexts.iter().map(|context| index::FrameIndex::new(context)).collect();
+  f(&Shared { contexts, indexes: &indexes })
+}
+
+impl Shared<'_> {
+  /// Parses the input as [parse] does. The indexes kept are used when `scope` holds exactly the
+  /// contexts they were made of, shared and not written into; otherwise the text is parsed in
+  /// `scope` as it is.
+  fn parse(&self, scope: &FeelScope, start_token_type: TokenType, input: &str) -> Result<AstNode> {
+    let same = {
+      let frames = scope.frames();
+      frames.len() == self.contexts.len() && frames.iter().zip(self.contexts).all(|(frame, context)| frame.shares(context))
+    };
+    if !same {
+      return parse(scope, start_token_type, input);
+    }
+    let parsing_scope = ParsingScope::sharing(self.indexes);
+    Parser::new(&parsing_scope, start_token_type, input).parse()
+  }
+
+  /// [parse_expression] in `scope`.
+  pub fn parse_expression(&self, scope: &FeelScope, input: &str) -> Result<AstNode> {
+    self.parse(scope, TokenType::StartExpression, input)
+  }
+
+  /// [parse_unary_tests] in `scope`.
+  pub fn parse_unary_tests(&self, scope: &FeelScope, input: &str) -> Result<AstNode> {
+    self.parse(scope, TokenType::StartUnaryTests, input)
+  }
+}
+
 /// Parses a `range literal` as defined in grammar rule `66`: its endpoints are literals, so it
 /// has no names in scope.
 pub fn parse_range_literal(input: &str) -> Result<AstNode> {

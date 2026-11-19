@@ -401,9 +401,17 @@ fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect,
 }
 
 fn parse_node(scope: &FeelScope, dialect: Dialect, expression: &str) -> Result<AstNode, Failure> {
-  let parsed = match dialect {
-    Dialect::Expression => rheon_feel_parser::parse_expression(scope, expression),
-    Dialect::UnaryTests => rheon_feel_parser::parse_unary_tests(scope, expression),
+  parse_node_sharing(scope, None, dialect, expression)
+}
+
+/// [parse_node] with the indexes of the names of the contexts of `scope`, when they are kept for
+/// the parses of one request.
+fn parse_node_sharing(scope: &FeelScope, shared: Option<&rheon_feel_parser::Shared>, dialect: Dialect, expression: &str) -> Result<AstNode, Failure> {
+  let parsed = match (dialect, shared) {
+    (Dialect::Expression, None) => rheon_feel_parser::parse_expression(scope, expression),
+    (Dialect::UnaryTests, None) => rheon_feel_parser::parse_unary_tests(scope, expression),
+    (Dialect::Expression, Some(shared)) => shared.parse_expression(scope, expression),
+    (Dialect::UnaryTests, Some(shared)) => shared.parse_unary_tests(scope, expression),
   };
   // the message is the parser's; where and what the errors are comes from the tolerant parse
   let node = parsed.map_err(|e| {
@@ -455,7 +463,7 @@ fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Res
     max_steps,
     expression,
   };
-  evaluation.run(&scope, warnings, started)
+  evaluation.run(&scope, None, warnings, started)
 }
 
 /// Evaluates several expressions over one context (`op: "evaluateAll"`): the context is read
@@ -477,27 +485,34 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
   let context = context(&mut req, unread.context, &mut context_warnings)?;
   // unary tests without an input take the entry `?` of the context, when it has one
   let has_question_mark = context.get_entry(&question_mark()).is_some();
-  let scope: FeelScope = context.into();
+  // the context is held here and shared with the scope, so that the index of its names is made
+  // once for the parses of all evaluations
+  let contexts = [std::sync::Arc::new(context)];
+  let scope = FeelScope::new();
+  scope.push_shared(contexts[0].clone());
   let text_of = |tree: Json| serde_json::to_string(&tree).or_else(|e| fail(Kind::Internal, format!("failed to serialize response: {e}")));
-  let mut results = String::from("[");
-  for (index, evaluation) in evaluations.into_iter().enumerate() {
-    if index > 0 {
-      results.push(',');
-    }
-    // the `id` of an entry stands in its answer, also when the entry fails
-    let id = evaluation.get("id").filter(|id| id.is_string() || id.is_number()).cloned();
-    match evaluate_one(evaluation, index, &scope, language, has_question_mark) {
-      Ok(response) => results.push_str(&response),
-      Err(Failure(kind, message, diagnostics)) => {
-        let mut error = error_response(kind, &message, diagnostics);
-        if let (Some(id), Some(fields)) = (id, error.as_object_mut()) {
-          fields.insert("id".to_string(), id);
+  let results = rheon_feel_parser::sharing(&contexts, |shared| -> Result<String, Failure> {
+    let mut results = String::from("[");
+    for (index, evaluation) in evaluations.into_iter().enumerate() {
+      if index > 0 {
+        results.push(',');
+      }
+      // the `id` of an entry stands in its answer, also when the entry fails
+      let id = evaluation.get("id").filter(|id| id.is_string() || id.is_number()).cloned();
+      match evaluate_one(evaluation, index, &scope, shared, language, has_question_mark) {
+        Ok(response) => results.push_str(&response),
+        Err(Failure(kind, message, diagnostics)) => {
+          let mut error = error_response(kind, &message, diagnostics);
+          if let (Some(id), Some(fields)) = (id, error.as_object_mut()) {
+            fields.insert("id".to_string(), id);
+          }
+          results.push_str(&text_of(error)?);
         }
-        results.push_str(&text_of(error)?);
       }
     }
-  }
-  results.push(']');
+    results.push(']');
+    Ok(results)
+  })?;
   let context_warnings = text_of(Json::Array(
     context_warnings
       .into_iter()
@@ -673,7 +688,15 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
 /// Answers one entry of `evaluations` in the scope of the request's context. For unary tests
 /// the tested value is bound to `?` in a context of its own on top of the scope, which is
 /// taken off again, so that the next entry sees the context as it was read.
-fn evaluate_one(evaluation: Json, index: usize, scope: &FeelScope, language: rheon_feel_evaluator::Dialect, has_question_mark: bool) -> Result<String, Failure> {
+fn evaluate_one(
+  evaluation: Json,
+  index: usize,
+  scope: &FeelScope,
+  shared: &rheon_feel_parser::Shared,
+  language: rheon_feel_evaluator::Dialect,
+  has_question_mark: bool,
+) -> Result<String, Failure> {
+  let shared = Some(shared);
   let started = Instant::now();
   let Json::Object(mut entry) = evaluation else {
     return fail(Kind::Request, format!("'evaluations[{index}]' must be an object"));
@@ -714,7 +737,7 @@ fn evaluate_one(evaluation: Json, index: usize, scope: &FeelScope, language: rhe
     frame.insert(question_mark(), value);
     scope.push(frame);
   }
-  let answer = evaluation.run(scope, warnings, started);
+  let answer = evaluation.run(scope, shared, warnings, started);
   // whatever the evaluation left on the scope goes with the context of the tested value
   scope.truncate(depth);
   answer
@@ -735,7 +758,7 @@ impl Evaluation {
   /// Parses and evaluates the expression in `scope` and returns the text of the response.
   /// `warnings` are those of the input, which come before the warnings of the evaluation;
   /// `started` is when the time of the response began.
-  fn run(self, scope: &FeelScope, warnings: Vec<String>, started: Instant) -> Result<String, Failure> {
+  fn run(self, scope: &FeelScope, shared: Option<&rheon_feel_parser::Shared>, warnings: Vec<String>, started: Instant) -> Result<String, Failure> {
     let Evaluation {
       id,
       dialect,
@@ -744,7 +767,7 @@ impl Evaluation {
       max_steps,
       expression,
     } = self;
-    let node = parse_node(scope, dialect, &expression)?;
+    let node = parse_node_sharing(scope, shared, dialect, &expression)?;
     evaluated(scope, id, dialect, language, error_mode, max_steps, node, warnings, started)
   }
 }

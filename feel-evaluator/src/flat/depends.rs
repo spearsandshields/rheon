@@ -36,11 +36,11 @@ pub(crate) fn order(entries: &[AstNode], count: usize) -> (Vec<usize>, Vec<bool>
     }
   }
   // the keys that are written in another form than FEEL reads a name (strings), by that name
-  let aliases: Vec<(Name, usize)> = keys
-    .iter()
-    .filter(|(name, _)| !rheon_feel::names::is_in_name_form(name.as_str()))
-    .map(|(name, index)| (Name::from(rheon_feel::names::name_form(name.as_str())), *index))
-    .collect();
+  // (the first of the keys, in their order, that are one name)
+  let mut aliases: BTreeMap<Name, usize> = BTreeMap::new();
+  for (name, index) in keys.iter().filter(|(name, _)| !rheon_feel::names::is_in_name_form(name.as_str())) {
+    aliases.entry(Name::from(rheon_feel::names::name_form(name.as_str()))).or_insert(*index);
+  }
   // the entries each entry reads, in ascending order, without itself
   let needs: Vec<Vec<usize>> = values
     .iter()
@@ -66,7 +66,8 @@ pub(crate) fn order(entries: &[AstNode], count: usize) -> (Vec<usize>, Vec<bool>
   }
   let function: Vec<bool> = values.iter().map(|value| matches!(value, Some(AstNode::FunctionDefinition(..)))).collect();
   // an entry that is no function definition and reaches itself has no value
-  let circular: Vec<bool> = (0..count).map(|index| !function[index] && reaches_itself(index, &needs)).collect();
+  let cycles = on_cycles(&needs);
+  let circular: Vec<bool> = (0..count).map(|index| !function[index] && cycles[index]).collect();
   // each entry after the entries it needs: a walk with its own stack, in the order written
   let mut state = vec![0u8; count];
   let mut ordered = Vec::with_capacity(count);
@@ -97,26 +98,68 @@ pub(crate) fn order(entries: &[AstNode], count: usize) -> (Vec<usize>, Vec<bool>
   (ordered, circular)
 }
 
-/// Whether the entry `start` needs itself through the entries it needs.
-fn reaches_itself(start: usize, needs: &[Vec<usize>]) -> bool {
-  let mut seen = vec![false; needs.len()];
-  let mut stack = needs[start].clone();
-  while let Some(index) = stack.pop() {
-    if index == start {
-      return true;
+/// For each entry, whether it needs itself through the entries it needs: whether it is one of
+/// two or more entries that all need each other (no entry is among its own needs). One walk over
+/// all entries finds these groups (Tarjan's strongly connected components, with a stack of its
+/// own), so the time is that of the entries and their needs together.
+fn on_cycles(needs: &[Vec<usize>]) -> Vec<bool> {
+  const UNSEEN: usize = usize::MAX;
+  let count = needs.len();
+  let mut number = vec![UNSEEN; count];
+  let mut low = vec![0; count];
+  let mut waiting = vec![false; count];
+  let mut group: Vec<usize> = vec![];
+  let mut cycles = vec![false; count];
+  let mut next_number = 0;
+  let mut stack: Vec<(usize, usize)> = vec![];
+  for first in 0..count {
+    if number[first] != UNSEEN {
+      continue;
     }
-    if !std::mem::replace(&mut seen[index], true) {
-      stack.extend(needs[index].iter().copied());
+    stack.push((first, 0));
+    while let Some(&mut (index, ref mut next)) = stack.last_mut() {
+      if *next == 0 {
+        number[index] = next_number;
+        low[index] = next_number;
+        next_number += 1;
+        group.push(index);
+        waiting[index] = true;
+      }
+      match needs[index].get(*next) {
+        Some(&needed) => {
+          *next += 1;
+          if number[needed] == UNSEEN {
+            stack.push((needed, 0));
+          } else if waiting[needed] {
+            low[index] = low[index].min(number[needed]);
+          }
+        }
+        None => {
+          stack.pop();
+          if let Some(&(parent, _)) = stack.last() {
+            low[parent] = low[parent].min(low[index]);
+          }
+          if low[index] == number[index] {
+            // the entries of the group of `index` are those above it
+            let from = group.iter().rposition(|&member| member == index).unwrap_or(0);
+            let together = group.len() - from > 1;
+            for member in group.drain(from..) {
+              waiting[member] = false;
+              cycles[member] = together;
+            }
+          }
+        }
+      }
     }
   }
-  false
+  cycles
 }
 
 /// The walk over the value of an entry that finds the keys of the literal it reads.
 struct Walk<'a, 'k> {
   keys: &'k BTreeMap<&'a Name, usize>,
   /// The keys written in another form, by the name they are.
-  aliases: &'k [(Name, usize)],
+  aliases: &'k BTreeMap<Name, usize>,
   /// The names that a construct around the position binds: they are not the keys.
   bound: Vec<&'a Name>,
   found: Vec<usize>,
@@ -129,8 +172,8 @@ impl<'a> Walk<'a, '_> {
     }
     if let Some(&index) = self.keys.get(name) {
       self.found.push(index);
-    } else if let Some((_, index)) = self.aliases.iter().find(|(alias, _)| alias == name) {
-      self.found.push(*index);
+    } else if let Some(&index) = self.aliases.get(name) {
+      self.found.push(index);
     }
   }
 
@@ -201,5 +244,64 @@ impl<'a> Walk<'a, '_> {
     }
     self.node(body);
     self.bound.truncate(mark);
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  /// Whether the entry `start` needs itself through the entries it needs, by a search from it.
+  fn reaches_itself(start: usize, needs: &[Vec<usize>]) -> bool {
+    let mut seen = vec![false; needs.len()];
+    let mut stack = needs[start].clone();
+    while let Some(index) = stack.pop() {
+      if index == start {
+        return true;
+      }
+      if !std::mem::replace(&mut seen[index], true) {
+        stack.extend(needs[index].iter().copied());
+      }
+    }
+    false
+  }
+
+  #[test]
+  fn the_entries_on_cycles_are_those_that_reach_themselves() {
+    let mut state = 0x9E37_79B9_7F4A_7C15u64;
+    let mut next = |below: usize| {
+      state ^= state << 13;
+      state ^= state >> 7;
+      state ^= state << 17;
+      (state % below as u64) as usize
+    };
+    let (mut on_a_cycle, mut off) = (0, 0);
+    for _ in 0..20_000 {
+      let count = 1 + next(12);
+      // few needs, so that some graphs have no cycle, some one and some several
+      let needs: Vec<Vec<usize>> = (0..count)
+        .map(|index| {
+          let mut needed: Vec<usize> = (0..next(3)).map(|_| next(count)).filter(|&other| other != index).collect();
+          needed.sort_unstable();
+          needed.dedup();
+          needed
+        })
+        .collect();
+      let expected: Vec<bool> = (0..count).map(|index| reaches_itself(index, &needs)).collect();
+      assert_eq!(expected, on_cycles(&needs), "{needs:?}");
+      on_a_cycle += expected.iter().filter(|&&cycle| cycle).count();
+      off += expected.iter().filter(|&&cycle| !cycle).count();
+    }
+    assert!(on_a_cycle > 10_000 && off > 10_000, "{on_a_cycle} on a cycle, {off} not");
+  }
+
+  #[test]
+  fn a_long_chain_of_entries_is_ordered_in_time_linear_in_its_length() {
+    let count = 200_000;
+    let needs: Vec<Vec<usize>> = (0..count).map(|index| if index == 0 { vec![] } else { vec![index - 1] }).collect();
+    let started = std::time::Instant::now();
+    assert!(on_cycles(&needs).iter().all(|&cycle| !cycle));
+    // a search from every entry is 20,000,000,000 steps
+    assert!(started.elapsed().as_secs() < 20, "took {:?}", started.elapsed());
   }
 }

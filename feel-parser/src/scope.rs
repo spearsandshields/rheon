@@ -36,6 +36,23 @@ impl Lengths {
   }
 }
 
+/// The indexes of the input contexts of a parsing scope: its own, or those kept for several
+/// parses in the same contexts ([crate::Shared]).
+enum Input<'a> {
+  Own(Vec<FrameIndex<'a>>),
+  Shared(&'a [FrameIndex<'a>]),
+}
+
+impl<'a> std::ops::Deref for Input<'a> {
+  type Target = [FrameIndex<'a>];
+  fn deref(&self) -> &Self::Target {
+    match self {
+      Input::Own(indexes) => indexes,
+      Input::Shared(indexes) => indexes,
+    }
+  }
+}
+
 /// Parsing scope: the names the lexer recognizes as names in scope.
 ///
 /// The scope is a stack of contexts: at the bottom the input contexts (the frames of the
@@ -47,7 +64,7 @@ impl Lengths {
 /// The input contexts are borrowed and indexed, never copied.
 pub struct ParsingScope<'a> {
   /// Indexes of the input contexts, bottom first.
-  input: Vec<FrameIndex<'a>>,
+  input: Input<'a>,
   /// Number of input contexts still on the stack (popping more contexts than were pushed pops
   /// input contexts, from the top).
   input_live: Cell<usize>,
@@ -82,7 +99,16 @@ pub struct ParsingScope<'a> {
 impl<'a> ParsingScope<'a> {
   /// Creates a parsing scope over input contexts (bottom first).
   pub(crate) fn new(frames: impl IntoIterator<Item = &'a FeelContext>) -> Self {
-    let input: Vec<FrameIndex<'a>> = frames.into_iter().map(FrameIndex::new).collect();
+    Self::over(Input::Own(frames.into_iter().map(FrameIndex::new).collect()))
+  }
+
+  /// Creates a parsing scope over input contexts that were indexed before (bottom first). The
+  /// indexes hold only what follows from the contexts, so a parse reads them as its own.
+  pub(crate) fn sharing(indexes: &'a [FrameIndex<'a>]) -> Self {
+    Self::over(Input::Shared(indexes))
+  }
+
+  fn over(input: Input<'a>) -> Self {
     Self {
       input_live: Cell::new(input.len()),
       input,

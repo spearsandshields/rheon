@@ -7,9 +7,9 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::names::{is_in_name_form, name_form};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelType, Name};
-use std::cell::{OnceCell, RefCell};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::ptr;
+use std::sync::{Mutex, OnceLock, PoisonError};
 
 /// The names in scope of an input context, indexed without copying the input context: the
 /// names of the [ParsingContext](crate::context::ParsingContext) converted from it.
@@ -43,13 +43,13 @@ pub(crate) struct FrameIndex<'a> {
   /// The other keys and the lengths, indexed on first use, with the lists not decided: a parse
   /// that looks up no name beyond the keys of the input context itself (or none at all) does not
   /// index the input context.
-  keys: OnceCell<Keys<'a>>,
+  keys: OnceLock<Keys<'a>>,
   /// The keys and the lengths with every list decided, indexed when a lookup depends on a list
   /// that `keys` did not decide.
-  decided: OnceCell<Keys<'a>>,
+  decided: OnceLock<Keys<'a>>,
   /// The last first word asked for and its bound ([FrameIndex::group_bound]): the names of one
   /// expression often share their first word, and the input context does not change.
-  group: RefCell<Option<(String, usize)>>,
+  group: Mutex<Option<(String, usize)>>,
 }
 
 /// The keys of an input context below its own keys, and the lengths of all keys.
@@ -244,9 +244,9 @@ impl<'a> FrameIndex<'a> {
   pub(crate) fn new(top: &'a FeelContext) -> Self {
     Self {
       top,
-      keys: OnceCell::new(),
-      decided: OnceCell::new(),
-      group: RefCell::new(None),
+      keys: OnceLock::new(),
+      decided: OnceLock::new(),
+      group: Mutex::new(None),
     }
   }
 
@@ -291,7 +291,8 @@ impl<'a> FrameIndex<'a> {
   /// Upper bound of the length in bytes of the keys of the input context itself whose first word
   /// is `word` (see [first_word]).
   pub(crate) fn group_bound(&self, word: &str) -> usize {
-    let mut group = self.group.borrow_mut();
+    // the lock holds a value that is whole at every step, so a poisoned one is read as it is
+    let mut group = self.group.lock().unwrap_or_else(PoisonError::into_inner);
     if let Some((last, bound)) = &*group
       && last == word
     {
