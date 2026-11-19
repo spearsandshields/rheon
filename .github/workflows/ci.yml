@@ -14,7 +14,7 @@ env:
   CARGO_INCREMENTAL: 0
 
 jobs:
-  # The group tier (scripts/tier.mjs, README "Test tiers") as three jobs side by side, one per set
+  # The group tier (scripts/tier.mjs, docs/DEVELOPING.md "Test tiers") as three jobs side by side, one per set
   # of its steps:
   # - rust: fmt, check, every test of the product crates, clippy, the tier runner's own tests;
   # - module: feel.wasm with its identity check, the identity tool's tests, the number oracle's
