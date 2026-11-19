@@ -37,7 +37,11 @@ const BOTTOM: usize = usize::MAX;
 fn with_slots(size: usize, run: impl FnOnce(&mut [Value]) -> Value) -> Value {
   if size <= INLINE_SLOTS {
     let mut slots: [Value; INLINE_SLOTS] = std::array::from_fn(|_| Value::Null(None));
-    run(&mut slots[..size])
+    let value = run(&mut slots[..size]);
+    for slot in slots {
+      slot.discard();
+    }
+    value
   } else {
     run(&mut vec![Value::Null(None); size])
   }
@@ -92,7 +96,7 @@ impl FeelCode for Program {
 /// `values` (one per parameter, in their order, converted to their types): the body reads its
 /// parameters, the function's home and closure, and then `scope`.
 #[inline(never)]
-pub(crate) fn run_function(scope: &FeelScope, function: &Arc<FunctionDefinition>, program: Arc<Program>, proto: u32, values: Vec<Value>) -> Value {
+pub(crate) fn run_function(scope: &FeelScope, function: &Arc<FunctionDefinition>, program: Arc<Program>, proto: u32, values: impl IntoIterator<Item = Value>) -> Value {
   let body = &program.protos[proto as usize];
   let (entry, slots) = (body.entry, body.slots as usize);
   with_slots(slots, |slots| {
@@ -304,6 +308,13 @@ impl<'p> Vm<'p> {
     }
   }
 
+  /// Gives the slot `slot` of the activation that runs the value `value`; the value it had is
+  /// dropped.
+  #[inline(always)]
+  fn set(&mut self, slot: Slot, value: Value) {
+    std::mem::replace(self.slot(slot), value).discard();
+  }
+
   /// The slot `slot` of the activation whose slots start at `base`.
   fn slot_of(&self, base: usize, slot: Slot) -> &Value {
     match base {
@@ -350,9 +361,9 @@ impl<'p> Vm<'p> {
   /// The value of an operand; a temporary is left null.
   fn read(&mut self, opnd: Opnd) -> Value {
     match opnd.decode() {
-      Operand::Slot(slot) => self.slot(slot).clone(),
+      Operand::Slot(slot) => self.slot(slot).copied(),
       Operand::Take(slot) => self.take(slot),
-      Operand::Const(index) => self.act.program.consts[index as usize].clone(),
+      Operand::Const(index) => self.act.program.consts[index as usize].copied(),
     }
   }
 
@@ -387,37 +398,54 @@ impl<'p> Vm<'p> {
       let op = program.code[pc];
       pc += 1;
       match op {
-        Op::Fail { dst, msg } => *self.slot(dst) = value_null!(&*program.messages[msg as usize]),
+        Op::Fail { dst, msg } => {
+          let value = value_null!(&*program.messages[msg as usize]);
+          self.set(dst, value);
+        }
         Op::Warn { msg } => diagnostics::warn(&program.messages[msg as usize]),
-        Op::LoadName { dst, name, cell } => *self.slot(dst) = self.load_name(program, name, cell),
+        Op::LoadName { dst, name, cell } => {
+          let value = self.load_name(program, name, cell);
+          self.set(dst, value);
+        }
         Op::Search { dst, search } => {
           let info = program.searches[search as usize];
           // a free name is in no scope of the body
           let region = if info.region == NONE { self.bottom_region() } else { info.region };
           let segments = &program.name_lists[info.segments as usize];
-          *self.slot(dst) = self.search_from(region, info.first, segments).unwrap_or_else(kernels::free_qualified_name);
+          let value = self.search_from(region, info.first, segments).unwrap_or_else(kernels::free_qualified_name);
+          self.set(dst, value);
         }
         Op::Path { dst, a, name } => {
           let a = self.read(a);
-          *self.slot(dst) = kernels::path(a, &program.names[name as usize]);
+          let value = kernels::path(a, &program.names[name as usize]);
+          self.set(dst, value);
         }
         Op::Descendant { dst, a, name } => {
           let a = self.read(a);
-          *self.slot(dst) = kernels::descendants(a, &program.names[name as usize]);
+          let value = kernels::descendants(a, &program.names[name as usize]);
+          self.set(dst, value);
         }
-        Op::Move { dst, src } => *self.slot(dst) = self.read(src),
+        Op::Move { dst, src } => {
+          let value = self.read(src);
+          self.set(dst, value);
+        }
         Op::Arith { op, dst, a, b } => {
           let (a, b) = (self.read(a), self.read(b));
-          *self.slot(dst) = op.apply(a, b);
+          let value = op.apply(a, b);
+          self.set(dst, value);
         }
         Op::ArithB { op, dst, a, b } => {
           let (a, b) = (self.read(a), self.read(b));
-          *self.slot(dst) = bfeel::arithmetic(op, a, b);
+          let value = bfeel::arithmetic(op, a, b);
+          self.set(dst, value);
         }
-        Op::Neg { dst, a } => *self.slot(dst) = Arithmetic::negation(self.read(a)),
+        Op::Neg { dst, a } => {
+          let value = Arithmetic::negation(self.read(a));
+          self.set(dst, value);
+        }
         Op::Compare { op, dst, a, b } => {
           let (a, b) = (self.read(a), self.read(b));
-          *self.slot(dst) = match op {
+          let value = match op {
             Compare::Eq => kernels::equal(&a, &b),
             Compare::Ne => kernels::not_equal(&a, &b),
             Compare::Lt => kernels::compare_lt(a, b),
@@ -425,18 +453,21 @@ impl<'p> Vm<'p> {
             Compare::Gt => kernels::compare_gt(a, b),
             Compare::Ge => kernels::compare_ge(a, b),
           };
+          self.set(dst, value);
         }
         Op::Between { dst, args } => {
           let (a, low, high) = (self.take(args), self.take(args + 1), self.take(args + 2));
-          *self.slot(dst) = kernels::between(a, low, high);
+          let value = kernels::between(a, low, high);
+          self.set(dst, value);
         }
         Op::BoolDefault { dst, ne } => {
           let value = self.take(dst);
-          *self.slot(dst) = bfeel::boolean_result(value, ne);
+          let value = bfeel::boolean_result(value, ne);
+          self.set(dst, value);
         }
         Op::Kernel1 { kernel, dst, a } => {
           let a = self.read(a);
-          *self.slot(dst) = match kernel {
+          let value = match kernel {
             Kernel1::UnaryEq => Value::UnaryEqual(Box::new(a)),
             Kernel1::UnaryNe => Value::UnaryNotEqual(Box::new(a)),
             Kernel1::UnaryLt => Value::UnaryLess(Box::new(a)),
@@ -454,6 +485,7 @@ impl<'p> Vm<'p> {
               value => value,
             },
           };
+          self.set(dst, value);
         }
         Op::Kernel2 {
           kernel: kernel @ (Kernel2::In | Kernel2::InTwoValued),
@@ -471,11 +503,12 @@ impl<'p> Vm<'p> {
               kernels::in_operator(&a, &b, two_valued)
             }
           };
-          *self.slot(dst) = value;
+          let value = value;
+          self.set(dst, value);
         }
         Op::Kernel2 { kernel, dst, a, b } => {
           let (a, b) = (self.read(a), self.read(b));
-          *self.slot(dst) = match kernel {
+          let value = match kernel {
             Kernel2::In | Kernel2::InTwoValued => unreachable!("an `in` is the instruction above"),
             Kernel2::Out => match a {
               Value::Boolean(true) => b,
@@ -487,6 +520,7 @@ impl<'p> Vm<'p> {
             Kernel2::FunctionType => kernels::function_type(a, b),
             Kernel2::FormalParameter => kernels::formal_parameter(a, b),
           };
+          self.set(dst, value);
         }
         Op::Jump { to } => pc = to as usize,
         Op::JumpUnlessTrue { c, to } => {
@@ -499,32 +533,36 @@ impl<'p> Vm<'p> {
           if matches!(a, Value::Boolean(false)) {
             pc = to as usize;
           }
-          *self.slot(dst) = a;
+          let value = a;
+          self.set(dst, value);
         }
         Op::AndRight { dst, b } => {
           let (a, b) = (self.take(dst), self.read(b));
-          *self.slot(dst) = match (a, b) {
+          let value = match (a, b) {
             (Value::Boolean(true), b @ Value::Boolean(_)) => b,
             (Value::Boolean(true), _) => value_null!(),
             (_, Value::Boolean(false)) => Value::Boolean(false),
             _ => value_null!(),
           };
+          self.set(dst, value);
         }
         Op::OrLeft { dst, a, to } => {
           let a = self.read(a);
           if matches!(a, Value::Boolean(true)) {
             pc = to as usize;
           }
-          *self.slot(dst) = a;
+          let value = a;
+          self.set(dst, value);
         }
         Op::OrRight { dst, b } => {
           let (a, b) = (self.take(dst), self.read(b));
-          *self.slot(dst) = match (a, b) {
+          let value = match (a, b) {
             (Value::Boolean(false), b @ Value::Boolean(_)) => b,
             (Value::Boolean(false), _) => value_null!(),
             (_, Value::Boolean(true)) => Value::Boolean(true),
             _ => value_null!(),
           };
+          self.set(dst, value);
         }
         Op::ListNew { len } => self.lists.push(Vec::with_capacity(len as usize)),
         Op::ListPush { src } => {
@@ -535,12 +573,13 @@ impl<'p> Vm<'p> {
         }
         Op::ListEnd { kind, dst } => {
           let items = self.lists.pop().unwrap_or_default();
-          *self.slot(dst) = match kind {
+          let value = match kind {
             ListKind::List => kernels::list_of(items),
             ListKind::ExpressionList => Value::ExpressionList(items),
             ListKind::NegatedList => Value::NegatedCommaList(items),
             ListKind::ParameterTypes => Value::ParameterTypes(items),
           };
+          self.set(dst, value);
         }
         Op::FoldNew { kind } => self.folds.push(match kind {
           Fold::ContextType => Folding::ContextType(BTreeMap::new()),
@@ -555,22 +594,28 @@ impl<'p> Vm<'p> {
           };
           if let Err(null) = added {
             self.folds.pop();
-            *self.slot(dst) = null;
+            let value = null;
+            self.set(dst, value);
             pc = fail as usize;
           }
         }
         Op::FoldEnd { dst } => {
-          *self.slot(dst) = match self.folds.pop() {
+          let value = match self.folds.pop() {
             Some(Folding::ContextType(entries)) => Value::FeelType(FeelType::Context(entries)),
             Some(Folding::Parameters(parameters)) => Value::FormalParameters(parameters),
             None => Value::Null(None),
           };
+          self.set(dst, value);
         }
-        Op::Closure { dst, closure } => *self.slot(dst) = self.closure(closure),
+        Op::Closure { dst, closure } => {
+          let value = self.closure(closure);
+          self.set(dst, value);
+        }
         Op::Enter { dst, skip } => match diagnostics::enter_call(MAX_CALL_DEPTH) {
           Some(call) => self.calls.push(call),
           None => {
-            *self.slot(dst) = Value::Null(None);
+            let value = Value::Null(None);
+            self.set(dst, value);
             pc = skip as usize;
           }
         },
@@ -581,12 +626,14 @@ impl<'p> Vm<'p> {
         Op::Leave { dst } => {
           let value = diagnostics::bound_depth(finite(self.take(dst)));
           if let Some(call) = self.calls.pop() {
-            *self.slot(dst) = call.finish(value);
+            let value = call.finish(value);
+            self.set(dst, value);
           }
         }
         Op::BoundDepth { s } => {
           let value = self.take(s);
-          *self.slot(s) = diagnostics::bound_depth(value);
+          let value = diagnostics::bound_depth(value);
+          self.set(s, value);
         }
         Op::HomeOpen { layout } => {
           let names = program.layouts[layout as usize]
@@ -609,7 +656,8 @@ impl<'p> Vm<'p> {
         Op::Clear { layout, visible } => {
           for &(_, place) in &program.layouts[layout as usize].entries[..visible as usize] {
             if let Place::Slot(slot) = place {
-              *self.slot(slot) = Value::Null(None);
+              let value = Value::Null(None);
+              self.set(slot, value);
             }
           }
         }
@@ -624,7 +672,8 @@ impl<'p> Vm<'p> {
           if program.layouts[layout as usize].other_forms {
             context = context.with_other_key_forms(true);
           }
-          *self.slot(dst) = diagnostics::bound_depth(context.into());
+          let value = diagnostics::bound_depth(context.into());
+          self.set(dst, value);
         }
         Op::LoopOpen { record: _, info } => {
           let base = self.domains.len();
@@ -693,7 +742,8 @@ impl<'p> Vm<'p> {
             Value::List(items) => (items, false),
             Value::Null(_) => {
               let filter = &program.filters[info as usize];
-              *self.slot(filter.dst) = value_null!();
+              let value = value_null!();
+              self.set(filter.dst, value);
               pc = filter.after as usize;
               continue;
             }
@@ -719,7 +769,8 @@ impl<'p> Vm<'p> {
           if let Some(Record::Filter(filter)) = self.records.pop() {
             let info = &program.filters[filter.info as usize];
             let value = filter.value.unwrap_or(Value::Null(None));
-            *self.slot(info.dst) = if filter.wrap { diagnostics::bound_depth(value) } else { value };
+            let value = if filter.wrap { diagnostics::bound_depth(value) } else { value };
+            self.set(info.dst, value);
           }
         }
         Op::ProbeItem { dst, probe, found } => {
@@ -728,7 +779,8 @@ impl<'p> Vm<'p> {
             && let Some(value) = item.get_entry(&program.names[probe.name as usize])
           {
             let value = value.clone();
-            *self.slot(dst) = value;
+            let value = value;
+            self.set(dst, value);
             pc = found as usize;
           }
         }
@@ -739,7 +791,8 @@ impl<'p> Vm<'p> {
               Value::Context(context) if filter.item_entry => context.get_entry(&ITEM).cloned().unwrap_or(Value::Null(None)),
               item => item.clone(),
             };
-            *self.slot(dst) = value;
+            let value = value;
+            self.set(dst, value);
             pc = found as usize;
           }
         }
@@ -748,16 +801,21 @@ impl<'p> Vm<'p> {
             let info = &program.loops[walk.info as usize];
             self.domains.truncate(walk.base);
             for &(slot, _) in info.levels.iter() {
-              *self.slot(slot) = Value::Null(None);
+              let value = Value::Null(None);
+              self.set(slot, value);
             }
-            *self.slot(dst) = walk.value.unwrap_or_else(|| match info.kind {
+            let value = walk.value.unwrap_or_else(|| match info.kind {
               LoopKind::For => Value::List(walk.results),
               LoopKind::Some => Value::Boolean(false),
               LoopKind::Every => Value::Boolean(true),
             });
+            self.set(dst, value);
           }
         }
-        Op::LoadPartial { dst, record } => *self.slot(dst) = Value::List(self.walk(record).results.clone()),
+        Op::LoadPartial { dst, record } => {
+          let value = Value::List(self.walk(record).results.clone());
+          self.set(dst, value);
+        }
         Op::Return { src } => {
           let value = self.read(src);
           match self.ret(program, value) {
@@ -877,9 +935,11 @@ impl<'p> Vm<'p> {
           base => apply_feel_built_in(bif, &self.stack[base + args as usize..base + args as usize + argc]),
         };
         for slot in args..args + argc as u32 {
-          *self.slot(slot) = Value::Null(None);
+          let value = Value::Null(None);
+          self.set(slot, value);
         }
-        *self.slot(dst) = value;
+        let value = value;
+        self.set(dst, value);
         return Next::At(pc);
       }
       (function, ..) => function,
@@ -900,7 +960,8 @@ impl<'p> Vm<'p> {
     } else {
       invoke(self.host, function, arguments, program.dialect)
     };
-    *self.slot(dst) = value;
+    let value = value;
+    self.set(dst, value);
     Next::At(pc)
   }
 
@@ -931,15 +992,17 @@ impl<'p> Vm<'p> {
     };
     if let Err(reason) = bound {
       for slot in args..args + argc as u32 {
-        *self.slot(slot) = Value::Null(None);
+        let value = Value::Null(None);
+        self.set(slot, value);
       }
       self.named.clear();
-      *self.slot(dst) = value_null!(reason);
+      let value = value_null!(reason);
+      self.set(dst, value);
       return Next::At(pc);
     }
     let body = &callee.protos[proto as usize];
     let base = self.stack.len();
-    self.stack.resize(base + body.slots as usize, Value::Null(None));
+    self.stack.resize_with(base + body.slots as usize, || Value::Null(None));
     for (index, &slot) in body.params.iter().enumerate() {
       let value = if info.names == NONE {
         self.take(args + index as u32)
@@ -976,11 +1039,16 @@ impl<'p> Vm<'p> {
       Some(function) => value.into_coerced(function.result_type()),
       None => value,
     };
-    self.stack.truncate(self.act.base);
+    while self.stack.len() > self.act.base {
+      if let Some(value) = self.stack.pop() {
+        value.discard();
+      }
+    }
     self.cells.truncate(self.act.cells);
     self.homes.truncate(self.act.homes);
     let callee = std::mem::replace(&mut self.act, frame.activation);
-    *self.slot(frame.dst) = value;
+    let value = value;
+    self.set(frame.dst, value);
     let same = Arc::ptr_eq(&callee.program, &self.act.program);
     drop(callee);
     let next = frame.ret as usize;
