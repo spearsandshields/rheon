@@ -283,7 +283,7 @@ impl FeelDate {
   }
 
   /// The number of days from 1970-01-01 to this date; `None` when it is no date.
-  fn day_number(&self) -> Option<i64> {
+  pub(crate) fn day_number(&self) -> Option<i64> {
     is_valid_date(self.0, self.1, self.2).then(|| day_number(self.0, self.1, self.2))
   }
 

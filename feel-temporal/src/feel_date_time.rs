@@ -79,11 +79,26 @@ impl PartialEq for FeelDateTime {
 
 impl PartialOrd for FeelDateTime {
   /// Returns the ordering of two date and times, compared as instants in UTC
-  /// (`2026-10-17T10:00:00+01:00 < 2026-10-17T10:00:00Z`). Like subtraction, a local date and
-  /// time is ordered only against another local one (`2023-02-09T23:59:59Z >= 2023-02-09T00:00:00`
-  /// is not comparable); when a zone has no known offset, the date and time parts are compared
-  /// as written.
+  /// (`2026-10-17T10:00:00+01:00 < 2026-10-17T10:00:00Z`). A local date and time is one at
+  /// some place, whose offset is between -14:00 and +14:00: against one with an offset it has
+  /// an order only when the two are more than 14 hours apart (XML Schema Part 2, the order
+  /// relation on dateTime); otherwise the two are not comparable. When a zone has no known
+  /// offset, the date and time parts are compared as written.
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    if self.1.zone().has_offset() != other.1.zone().has_offset() {
+      const DAY: i128 = 86_400 * 1_000_000_000;
+      const FOURTEEN_HOURS: i128 = 14 * 3_600 * 1_000_000_000;
+      let days = i128::from(self.0.day_number()?) - i128::from(other.0.day_number()?);
+      // the local one written as its own instant: its instant in UTC is within 14 hours of it
+      let apart = days * DAY + i128::from(self.1.instant_of_the_day()?) - i128::from(other.1.instant_of_the_day()?);
+      return if apart < -FOURTEEN_HOURS {
+        Some(Ordering::Less)
+      } else if apart > FOURTEEN_HOURS {
+        Some(Ordering::Greater)
+      } else {
+        None
+      };
+    }
     if self.1.zone().has_offset() == other.1.zone().has_offset() {
       let lhs: Result<DateTime<FixedOffset>, DsntkError> = self.clone().try_into();
       let rhs: Result<DateTime<FixedOffset>, DsntkError> = other.clone().try_into();

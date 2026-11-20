@@ -4,6 +4,7 @@ use crate::equality::eval_ternary_equality;
 use rheon_feel::message::arg;
 use rheon_feel::value_null;
 use rheon_feel::values::{TypeOf, Value};
+use rheon_feel_temporal::FeelTime;
 
 /// Prepares null value with error message for second argument in `between` operator.
 macro_rules! between_null2 {
@@ -46,6 +47,17 @@ pub(crate) fn not_equal(lhs: &Value, rhs: &Value) -> Value {
   }
 }
 
+/// The null of a comparison of two times that have no order: a time without an offset and one
+/// with an offset that are no more than 14 hours apart (DMN 1.6, 10.3.2.3.4).
+fn times_without_an_order(symbol: &str, lhs: &FeelTime, rhs: &FeelTime) -> Value {
+  value_null!(
+    "comparison '{}' expected two times that have an order, found {} and {}: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
+    symbol,
+    lhs,
+    rhs
+  )
+}
+
 /// An ordering comparison on two values of one ordered kind; otherwise null with an error that
 /// names the operator, the type it expected and the type it found.
 macro_rules! ordering {
@@ -56,8 +68,19 @@ macro_rules! ordering {
         (Value::Number(lh), Value::Number(rh)) => Value::Boolean(lh $operator rh),
         (Value::String(lh), Value::String(rh)) => Value::Boolean(lh $operator rh),
         (Value::Date(lh), Value::Date(rh)) => Value::Boolean(lh $operator rh),
-        (Value::DateTime(lh), Value::DateTime(rh)) => Value::Boolean(lh $operator rh),
-        (Value::Time(lh), Value::Time(rh)) => Value::Boolean(lh $operator rh),
+        (Value::DateTime(lh), Value::DateTime(rh)) => match lh.partial_cmp(rh) {
+          Some(_) => Value::Boolean(lh $operator rh),
+          None => value_null!(
+            "comparison '{}' expected two date and times that have an order, found {} and {}: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
+            $symbol,
+            lh,
+            rh
+          ),
+        },
+        (Value::Time(lh), Value::Time(rh)) => match lh.partial_cmp(rh) {
+          Some(_) => Value::Boolean(lh $operator rh),
+          None => times_without_an_order($symbol, lh, rh),
+        },
         (Value::DaysAndTimeDuration(lh), Value::DaysAndTimeDuration(rh)) => Value::Boolean(lh $operator rh),
         (Value::YearsAndMonthsDuration(lh), Value::YearsAndMonthsDuration(rh)) => Value::Boolean(lh $operator rh),
         _ => unordered($symbol, &lhv, &rhv),
@@ -149,6 +172,12 @@ pub(crate) fn between(lhv: Value, mhv: Value, rhv: Value) -> Value {
     Value::Time(lh) => {
       if let Value::Time(mh) = mhv {
         if let Value::Time(rh) = rhv {
+          if mh.partial_cmp(&lh).is_none() {
+            return times_without_an_order("between", &mh, &lh);
+          }
+          if lh.partial_cmp(&rh).is_none() {
+            return times_without_an_order("between", &lh, &rh);
+          }
           Value::Boolean(mh <= lh && lh <= rh)
         } else {
           between_null3!("time", &rhv)

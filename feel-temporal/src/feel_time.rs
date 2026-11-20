@@ -75,15 +75,23 @@ impl PartialEq for FeelTime {
 
 impl PartialOrd for FeelTime {
   /// Returns the ordering of two times, compared as instants of the day in UTC
-  /// (`10:00:00+01:00 < 10:00:00Z`), nanoseconds included. A local time is ordered only
-  /// against another local time (like subtraction, a local and a zoned time are not
-  /// comparable); when a zone has no known offset, only times written in the same zone are
-  /// comparable, field by field.
+  /// (`10:00:00+01:00 < 10:00:00Z`), nanoseconds included. A local time is a time of day at
+  /// some place, whose offset is between -14:00 and +14:00: against a time with an offset it
+  /// has an order only when the two are more than 14 hours apart, whatever the place is (XML
+  /// Schema Part 2, the order relation on time, which DMN 1.6 10.3.2.3.4 refers to); otherwise
+  /// the two are not comparable. When a zone has no known offset, only times written in the
+  /// same zone are comparable, field by field.
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    if self.4.has_offset() == other.4.has_offset()
-      && let Some((lhs_instant, rhs_instant)) = self.utc_instant(true).zip(other.utc_instant(true))
-    {
-      return Some(lhs_instant.cmp(&rhs_instant));
+    const FOURTEEN_HOURS: i64 = 14 * 3_600 * 1_000_000_000;
+    let instants = self.utc_instant(true).zip(other.utc_instant(true));
+    if let Some((lhs_instant, rhs_instant)) = instants {
+      return match (self.4.has_offset(), other.4.has_offset()) {
+        (true, true) | (false, false) => Some(lhs_instant.cmp(&rhs_instant)),
+        // the local time is written as its own instant; its instant in UTC is within 14 hours of it
+        _ if lhs_instant + FOURTEEN_HOURS < rhs_instant => Some(Ordering::Less),
+        _ if lhs_instant - FOURTEEN_HOURS > rhs_instant => Some(Ordering::Greater),
+        _ => None,
+      };
     }
     if self.4 == other.4 {
       Some((self.0, self.1, self.2, self.3).cmp(&(other.0, other.1, other.2, other.3)))
@@ -161,6 +169,11 @@ impl FeelTime {
       FeelZone::Zone(zone_name) => get_zone_offset_t(zone_name, (self.0 as u32, self.1 as u32, self.2 as u32, if with_nanos { self.3 as u32 } else { 0 }))?,
     };
     self.instant_at(offset, with_nanos)
+  }
+
+  /// [FeelTime::utc_instant] with the nanoseconds, for the order of date and times.
+  pub(crate) fn instant_of_the_day(&self) -> Option<i64> {
+    self.utc_instant(true)
   }
 
   /// The instant of the day in UTC of this time at an offset in seconds; `None` for an offset

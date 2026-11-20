@@ -168,7 +168,14 @@ fn _0029() {
 
 #[test]
 fn _0030() {
-  te_bool(false, &scope!(), r#" @"2023-02-09T23:59:59Z" >= @"2023-02-09T00:00:00" "#, false);
+  // more than 14 hours apart on one day: ordered, wherever the date and time without an offset is
+  te_bool(false, &scope!(), r#" @"2023-02-09T23:59:59Z" >= @"2023-02-09T00:00:00" "#, true);
+  te_null(
+    false,
+    &scope!(),
+    r#" @"2023-02-09T10:00:00Z" >= @"2023-02-09T00:00:00" "#,
+    "comparison '>=' expected two date and times that have an order, found 2023-02-09T10:00:00Z and 2023-02-09T00:00:00: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
+  );
 }
 
 #[test]

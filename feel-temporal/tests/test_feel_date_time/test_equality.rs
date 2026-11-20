@@ -130,3 +130,24 @@ fn a_date_and_time_without_one_instant_equals_itself() {
   assert_eq!(of("2024-03-31T03:30:00@Europe/Paris"), of("2024-03-31T01:30:00Z"));
   assert_eq!(of("2024-03-31T01:30:00@Europe/Paris"), of("2024-03-31T00:30:00Z"));
 }
+
+/// A date and time without an offset has an order against one with an offset only when the
+/// two are more than 14 hours apart, on one day or on two.
+#[test]
+fn a_local_date_and_time_is_ordered_against_a_zoned_one_only_beyond_14_hours() {
+  use std::cmp::Ordering::{Greater, Less};
+  let of = |text: &str| -> FeelDateTime { text.try_into().unwrap() };
+  for (local, zoned, expected) in [
+    ("2026-10-17T10:00:00", "2026-10-17T11:00:00Z", None),
+    ("2026-10-17T10:00:00", "2026-10-18T00:00:00Z", None),
+    ("2026-10-17T10:00:00", "2026-10-18T00:00:01Z", Some(Less)),
+    ("2026-10-17T10:00:00", "2026-10-18T11:00:00Z", Some(Less)),
+    ("2026-10-17T10:00:00", "2026-10-16T20:00:00Z", None),
+    ("2026-10-17T10:00:00", "2026-10-16T19:59:59Z", Some(Greater)),
+    ("2026-10-17T10:00:00", "2025-10-17T10:00:00+02:00", Some(Greater)),
+    ("2026-10-17T00:00:00", "2026-10-17T23:59:59Z", Some(Less)),
+  ] {
+    assert_eq!(expected, of(local).partial_cmp(&of(zoned)), "{local} {zoned}");
+    assert_eq!(expected.map(std::cmp::Ordering::reverse), of(zoned).partial_cmp(&of(local)), "{zoned} {local}");
+  }
+}
