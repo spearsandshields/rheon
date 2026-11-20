@@ -97,7 +97,7 @@ fn _0019() {
     false,
     &scope!(),
     r#"10 = ({c1: {a: {c: "bar", b: "foo"}}})"#,
-    r#"equal err '10' =?= '{c1: {a: {b: "foo", c: "bar"}}}'"#,
+    r#"equal err '10' =?= '{c1: {a: {c: "bar", b: "foo"}}}'"#,
   );
 }
 

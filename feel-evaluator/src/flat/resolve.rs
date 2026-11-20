@@ -154,6 +154,10 @@ pub(crate) struct Layout {
   pub(crate) entries: Box<[(u32, Place)]>,
   /// The entries sorted by name, then by position.
   by_name: Box<[u32]>,
+  /// For a context literal whose entries are bound in another order than they are written in
+  /// (the order they need each other): the entries in the order of writing, each by its place
+  /// among `entries`. Empty when the two orders are one.
+  pub(crate) written: Box<[u32]>,
   /// Whether a key of a context literal is written in another form than FEEL reads a name (a
   /// key that is a string): its context says so ([rheon_feel::context::FeelContext::note_key_forms]).
   pub(crate) other_forms: bool,
@@ -182,6 +186,7 @@ impl Layout {
       kind,
       entries: entries.into(),
       by_name: by_name.into(),
+      written: Box::default(),
       other_forms: false,
       aliases: Box::new([]),
       hidden,
@@ -716,6 +721,15 @@ impl<'a> Resolver<'a> {
       .collect();
     self.out.layouts[layout as usize].other_forms = !aliases.is_empty();
     self.out.layouts[layout as usize].aliases = aliases.into();
+    // the entries are bound in the order they are evaluated in; the context shows them in the
+    // order they are written in
+    if order.iter().enumerate().any(|(position, &index)| position != index) {
+      let mut written = vec![0_u32; order.len()];
+      for (position, &index) in order.iter().enumerate() {
+        written[index] = position as u32;
+      }
+      self.out.layouts[layout as usize].written = written.into();
+    }
     let outer = self.body.region;
     let mut kids = Vec::with_capacity(entries.len());
     let mut region = NONE;

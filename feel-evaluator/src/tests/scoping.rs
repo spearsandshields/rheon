@@ -216,7 +216,7 @@ fn context_entries_are_evaluated_in_the_order_they_need_each_other() {
   pin(r#"{x: f(a: 1, b: 2), f: function(a, b) a-b}.x"#, r#"-1"#, &[], 0);
   // but not in its own value: there the text is read as outside the literal
   pin(r#"{a: 5, b: 2, r: {a-b: a-b}}.r"#, r#"{a-b: 3}"#, &[], 0);
-  pin(r#"{a: 1, b: 2, r: {c: a+b, a+b: a+b}}.r"#, r#"{a+b: 3, c: 3}"#, &[], 0);
+  pin(r#"{a: 1, b: 2, r: {c: a+b, a+b: a+b}}.r"#, r#"{c: 3, a+b: 3}"#, &[], 0);
   // the entry of the literal, not a name outside it
   pin(r#"{b: 100, r: {a: b + 1, b: 1}.a}.r"#, r#"2"#, &[], 0);
   pin(r#"{a: 1, b: {c: a, a: 2}}.b.c"#, r#"2"#, &[], 0);

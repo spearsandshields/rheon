@@ -150,7 +150,7 @@ fn write_typed(value: &Value, out: &mut String) {
     Value::Null(_) => out.push_str("{\"components\":null,\"list\":null,\"simple\":{\"isNil\":true,\"text\":null,\"type\":null}}"),
     Value::Context(context) => {
       out.push_str("{\"components\":[");
-      for (index, (name, entry)) in context.iter().enumerate() {
+      for (index, (name, entry)) in context.iter_written().enumerate() {
         if index > 0 {
           out.push(',');
         }

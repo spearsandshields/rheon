@@ -118,7 +118,7 @@ fn _0016() {
 #[test]
 fn _0017() {
   let invocable = "decision016";
-  let expected = "{copied: {a: 2}, original: {a: 1}}";
+  let expected = "{original: {a: 1}, copied: {a: 2}}";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
@@ -202,13 +202,13 @@ fn _0029() {
 #[test]
 fn _0030() {
   let invocable = "nested011";
-  let expected = "{copied: {a: {b: 2}}, nestedContext01: {a: {b: 1}}}";
+  let expected = "{nestedContext01: {a: {b: 1}}, copied: {a: {b: 2}}}";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 
 #[test]
 fn _0031() {
   let invocable = "nested012";
-  let expected = "{copied: {a: {b: 2}}, original: {a: {b: 1}}}";
+  let expected = "{original: {a: {b: 1}}, copied: {a: {b: 2}}}";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }

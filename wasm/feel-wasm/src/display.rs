@@ -139,7 +139,7 @@ fn write_inline(value: &Value, sink: &mut impl Sink) -> Result<(), Full> {
     }
     Value::Context(ctx) => {
       sink.text("{")?;
-      for (i, (name, v)) in ctx.iter().enumerate() {
+      for (i, (name, v)) in ctx.iter_written().enumerate() {
         if i > 0 {
           sink.text(", ")?;
         }
@@ -254,7 +254,7 @@ fn render(value: &Value, indent: usize, out: &mut impl Page) {
       let _ = out.text("{");
       out.newline();
       let len = ctx.len();
-      for (i, (name, v)) in ctx.iter().enumerate() {
+      for (i, (name, v)) in ctx.iter_written().enumerate() {
         let _ = out.text(&pad);
         let _ = out.quoted(name.as_str());
         let _ = out.text(": ");

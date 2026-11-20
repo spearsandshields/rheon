@@ -11,7 +11,7 @@
 //! (its home), its closure, then the scope of the host. It reads nothing of its caller.
 
 use super::program::{CallInfo, Compare, Domain, Fold, Kernel1, Kernel2, ListKind, LoopKind, NONE, Op, Operand, Opnd, Pc, Program, Slot};
-use super::resolve::{Place, Region, RegionKind};
+use super::resolve::{Layout, Place, Region, RegionKind};
 use crate::Dialect;
 use crate::MAX_CALL_DEPTH;
 use crate::bfeel;
@@ -663,7 +663,10 @@ impl<'p> Vm<'p> {
         }
         Op::Context { dst, layout } => {
           let mut context = FeelContext::default();
-          for &(name, place) in program.layouts[layout as usize].entries.iter() {
+          let Layout { entries, written, .. } = &program.layouts[layout as usize];
+          // in the order the entries are written in, which the context shows them in
+          for position in 0..entries.len() {
+            let (name, place) = entries[written.get(position).map_or(position, |place| *place as usize)];
             if let Place::Slot(slot) = place {
               let value = self.take(slot);
               context.set_entry(&program.names[name as usize], value);

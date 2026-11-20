@@ -140,7 +140,7 @@ impl TryFrom<&Value> for ValueDto {
       }),
       Value::Context(ctx) => {
         let mut components = vec![];
-        for (name, value) in ctx.iter() {
+        for (name, value) in ctx.iter_written() {
           components.push(ComponentDto {
             name: Some(name.to_string()),
             value: Some(value.try_into()?),

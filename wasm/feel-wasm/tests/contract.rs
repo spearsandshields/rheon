@@ -2581,3 +2581,82 @@ fn complete_knows_the_built_in_functions() {
   assert!(complete("(1 + ").get("call").is_none());
   assert!(complete("text(").get("call").is_none());
 }
+
+/// A context is shown in the order its entries were written in: of a context literal, of the
+/// JSON of `context` and `input` however the request is read, and of a FEEL-format context.
+/// The entries of an object of the request that are written twice keep the place of the first.
+#[test]
+fn a_context_is_shown_in_the_order_it_was_written_in() {
+  let shown = |request: String| {
+    let response = raw(&request);
+    assert_eq!(response["ok"], true, "{request}: {response}");
+    let names: Vec<String> = response["result"]["typed"]["components"]
+      .as_array()
+      .map_or(vec![], |components| components.iter().map(|c| c["name"].as_str().unwrap().to_string()).collect());
+    (
+      response["result"]["display"].as_str().unwrap().to_string(),
+      response["result"]["feel"].as_str().unwrap().to_string(),
+      names,
+    )
+  };
+  let (display, feel, names) = shown(r#"{"op":"evaluate","expression":"{z: 1, a: b, b: 2}"}"#.to_string());
+  assert_eq!((r#"{"z": 1, "a": 2, "b": 2}"#, "{z: 1, a: 2, b: 2}"), (display.as_str(), feel.as_str()));
+  assert_eq!(vec!["z", "a", "b"], names);
+  let long = "1234567890123456789012345678901234567890";
+  for (object, expected) in [
+    (r#"{"z":1,"a":2,"m":3}"#.to_string(), r#"{"z": 1, "a": 2, "m": 3}"#),
+    (r#"{"a":1,"b":2}"#.to_string(), r#"{"a": 1, "b": 2}"#),
+    (r#"{"z":1,"a":2,"z":3}"#.to_string(), r#"{"z": 3, "a": 2}"#),
+    (
+      r#"{"z":{"y":1,"x":[{"q":1,"p":2},{"q":3,"p":4}]},"a":null}"#.to_string(),
+      r#"{"z": {"y": 1, "x": [{"q": 1, "p": 2}, {"q": 3, "p": 4}]}, "a": null}"#,
+    ),
+    // through the tree: a key with white space at an end, and a warning in an object out of order
+    (r#"{"z":1," a":2}"#.to_string(), r#"{"z": 1, "a": 2}"#),
+    (format!(r#"{{"z":{long},"a":2}}"#), r#"{"z": 1234567890123456789012345678901235000000, "a": 2}"#),
+    // twelve entries and more, which are built at once
+    (
+      r#"{"l":1,"k":2,"j":3,"i":4,"h":5,"g":6,"f":7,"e":8,"d":9,"c":10,"b":11,"a":12,"m":13}"#.to_string(),
+      r#"{"l": 1, "k": 2, "j": 3, "i": 4, "h": 5, "g": 6, "f": 7, "e": 8, "d": 9, "c": 10, "b": 11, "a": 12, "m": 13}"#,
+    ),
+  ] {
+    let flat = |text: String| {
+      text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .replace("{ ", "{")
+        .replace(" }", "}")
+        .replace("[ ", "[")
+        .replace(" ]", "]")
+    };
+    for request in [
+      format!(r#"{{"op":"evaluate","expression":"v","context":{{"v":{object}}}}}"#),
+      format!(r#"{{"op":"evaluate","expression":"v","context":{{"v":{object}}}}}"#),
+      format!(r#"{{"op":"evaluate","expression":"l[1]","context":{{"l":[{object}]}}}}"#),
+      format!(
+        r#"{{"op":"evaluate","expression":"l[2].inner[1]","context":{{"l":[{{"filler":"{}"}},{{"filler":"{}","inner":[{object}]}}]}}}}"#,
+        "x".repeat(150),
+        "y".repeat(150)
+      ),
+    ] {
+      assert_eq!(expected, flat(shown(request.clone()).0), "{request}");
+    }
+  }
+  // records of one shape, out of the order of their names
+  let (display, ..) = shown(r#"{"op":"evaluate","expression":"rows","context":{"rows":[{"z":1,"a":2},{"z":3,"a":4},{"a":5,"z":6}]}}"#.to_string());
+  assert_eq!(
+    r#"[{"z": 1, "a": 2}, {"z": 3, "a": 4}, {"a": 5, "z": 6}]"#,
+    display
+      .split_whitespace()
+      .collect::<Vec<_>>()
+      .join(" ")
+      .replace("{ ", "{")
+      .replace(" }", "}")
+      .replace("[ ", "[")
+      .replace(" ]", "]")
+  );
+  // a FEEL-format context
+  let (display, ..) = shown(r#"{"op":"evaluate","expression":"v","context":"{v: {z: 1, a: 2}}","contextFormat":"feel"}"#.to_string());
+  assert_eq!(r#"{"z": 1, "a": 2}"#, display);
+}

@@ -137,7 +137,7 @@ fn not_equal_on_kinds_that_equal_cannot_compare_reports_like_equal() {
   // DMN 1.6 §10.3.2.15: "By definition, FEEL(e1 != e2) is FEEL(not(e 1= e2))"
   for (lhs, rhs, lhs_text, rhs_text) in [
     (r#""a""#, "1", r#""a""#, "1"),
-    ("10", r#"{c1: {a: {c: "bar", b: "foo"}}}"#, "10", r#"{c1: {a: {b: "foo", c: "bar"}}}"#),
+    ("10", r#"{c1: {a: {c: "bar", b: "foo"}}}"#, "10", r#"{c1: {a: {c: "bar", b: "foo"}}}"#),
     (r#"{a: {b: "bar", c: "car"}}"#, "15", r#"{a: {b: "bar", c: "car"}}"#, "15"),
     ("[1,2,3]", r#""a""#, "[1, 2, 3]", r#""a""#),
     (r#"@"2018-12-08""#, "2018", "2018-12-08", "2018"),

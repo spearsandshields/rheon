@@ -50,7 +50,7 @@ fn _0004() {
 #[test]
 fn _0005() {
   let ctx = context(r#"{A: "A",B: "B",C: "C"}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision B 1", &ctx, r#"{resolve A: "A", resolve B: "B"}"#);
+  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision B 1", &ctx, r#"{resolve B: "B", resolve A: "A"}"#);
 }
 
 #[test]
@@ -62,7 +62,7 @@ fn _0006() {
     &MODEL_NAME,
     "decision B 2.1",
     &ctx,
-    r#"{resolve B 1: {resolve A: "A", resolve B: "B"}}"#,
+    r#"{resolve B 1: {resolve B: "B", resolve A: "A"}}"#,
   );
 }
 
@@ -75,7 +75,7 @@ fn _0007() {
     &MODEL_NAME,
     "decision B 2.2",
     &ctx,
-    r#"{resolve B 1: {resolve A: "A", resolve B: "B"}}"#,
+    r#"{resolve B 1: {resolve B: "B", resolve A: "A"}}"#,
   );
 }
 
@@ -88,7 +88,7 @@ fn _0008() {
     &MODEL_NAME,
     "decision B 3",
     &ctx,
-    r#"{resolve A 3: {resolve A 2.1: {resolve A 1: {resolve A: "A"}}, resolve A 2.2: {resolve A 1: {resolve A: "A"}}}, resolve B 2.1: {resolve B 1: {resolve A: "A", resolve B: "B"}}, resolve B 2.2: {resolve B 1: {resolve A: "A", resolve B: "B"}}}"#,
+    r#"{resolve B 2.1: {resolve B 1: {resolve B: "B", resolve A: "A"}}, resolve B 2.2: {resolve B 1: {resolve B: "B", resolve A: "A"}}, resolve A 3: {resolve A 2.1: {resolve A 1: {resolve A: "A"}}, resolve A 2.2: {resolve A 1: {resolve A: "A"}}}}"#,
   );
 }
 
@@ -101,7 +101,7 @@ fn _0009() {
     &MODEL_NAME,
     "decision C 1",
     &ctx,
-    r#"{resolve A 3: {resolve A 2.1: {resolve A 1: {resolve A: "A"}}, resolve A 2.2: {resolve A 1: {resolve A: "A"}}}, resolve B 3: {resolve A 3: {resolve A 2.1: {resolve A 1: {resolve A: "A"}}, resolve A 2.2: {resolve A 1: {resolve A: "A"}}}, resolve B 2.1: {resolve B 1: {resolve A: "A", resolve B: "B"}}, resolve B 2.2: {resolve B 1: {resolve A: "A", resolve B: "B"}}}, resolve C: "C"}"#,
+    r#"{resolve C: "C", resolve A 3: {resolve A 2.1: {resolve A 1: {resolve A: "A"}}, resolve A 2.2: {resolve A 1: {resolve A: "A"}}}, resolve B 3: {resolve B 2.1: {resolve B 1: {resolve B: "B", resolve A: "A"}}, resolve B 2.2: {resolve B 1: {resolve B: "B", resolve A: "A"}}, resolve A 3: {resolve A 2.1: {resolve A 1: {resolve A: "A"}}, resolve A 2.2: {resolve A 1: {resolve A: "A"}}}}}"#,
   );
 }
 

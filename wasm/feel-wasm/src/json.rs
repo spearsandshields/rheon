@@ -428,6 +428,65 @@ pub(crate) fn tree(text: &str) -> Result<Json, serde_json::Error> {
   serde_json::from_str::<Checked>(text).and_then(|Checked| serde_json::from_str(text))
 }
 
+/// The order in which the keys of the objects of a JSON text are written: what a tree of JSON
+/// values, which keeps the keys of an object in their own order, does not hold. A context that
+/// is converted from the tree is told it ([Order::of]).
+pub(crate) enum Order {
+  /// A value that is no array or object.
+  Other,
+  /// The items of an array.
+  Array(Vec<Order>),
+  /// The names of the keys of an object (a key without the white space at its ends), each
+  /// once at its first place in the text, with the value that the last entry of the name has.
+  Object(Vec<(Name, Order)>),
+}
+
+impl Order {
+  /// The order of the keys in `text`, a JSON value; `None` when it is no JSON.
+  pub(crate) fn read(text: &str) -> Option<Order> {
+    let mut warnings = vec![];
+    let mut reader = Reader::new(text, 0, 0, &mut warnings);
+    reader.skip_white();
+    let order = reader.read_order().ok()?;
+    (reader.at == text.len()).then_some(order)
+  }
+
+  /// The order under the key `key` of an object.
+  pub(crate) fn field(self, key: &str) -> Option<Order> {
+    match self {
+      Order::Object(entries) => entries.into_iter().find(|(name, _)| name.as_str() == key).map(|(_, order)| order),
+      _ => None,
+    }
+  }
+
+  /// `value`, converted from the tree of the text of this order, with every context in it
+  /// told the order its entries are written in. Where the value is not of the shape of the
+  /// order, it stays as it is.
+  pub(crate) fn of(&self, value: Value) -> Value {
+    match (self, value) {
+      (Order::Array(orders), Value::List(items)) if orders.len() == items.len() => Value::List(items.iter().zip(orders).map(|(item, order)| order.of(item.clone())).collect()),
+      (Order::Object(_), Value::Context(context)) => self.of_context(Arc::unwrap_or_clone(context)).into(),
+      (_, value) => value,
+    }
+  }
+
+  /// [Order::of] for a context.
+  pub(crate) fn of_context(&self, mut context: FeelContext) -> FeelContext {
+    let Order::Object(entries) = self else {
+      return context;
+    };
+    for (name, order) in entries {
+      if !matches!(order, Order::Other)
+        && let Some(value) = context.get_entry(name).cloned()
+      {
+        context.set_entry(name, order.of(value));
+      }
+    }
+    context.set_written_names(entries.iter().map(|(name, _)| name.clone()).collect());
+    context
+  }
+}
+
 /// A JSON value that is read and not kept: what `serde_json` reads as its tree, an object with
 /// its private number key included.
 struct Checked;
@@ -688,6 +747,10 @@ struct Shape {
   /// The names in ascending order, each once: one list for all the objects with these keys.
   /// Empty for the outermost object, which takes no names.
   sorted: Option<std::sync::Arc<[Name]>>,
+  /// When the keys are not ascending: the order they are written in, each key once at its
+  /// first place in the text, as its place in the ascending order. The context shows its
+  /// entries in this order; one list for all the objects with these keys.
+  written: Option<std::sync::Arc<[u32]>>,
   /// Whether a key is written in another form than FEEL reads a name (see
   /// [FeelContext::note_key_forms]).
   other_forms: bool,
@@ -888,6 +951,80 @@ impl<'a, 'w> Reader<'a, 'w> {
     Ok(tree)
   }
 
+  /// Reads the JSON value at the position as [Reader::read_tree] does, for the order of the
+  /// keys of its objects.
+  fn read_order(&mut self) -> Result<Order, Refused> {
+    let order = match self.peek().ok_or(Refused)? {
+      b'{' => {
+        self.enter()?;
+        let mut entries: Vec<(Name, Order)> = vec![];
+        // the place of each name among the entries
+        let mut places: std::collections::HashMap<Name, usize> = std::collections::HashMap::new();
+        if self.peek() == Some(b'}') {
+          self.leave();
+        } else {
+          loop {
+            self.skip_white();
+            let name = Name::from(&*self.read_string()?);
+            self.expect(b':')?;
+            self.skip_white();
+            let order = self.read_order()?;
+            match places.get(&name) {
+              Some(place) => entries[*place].1 = order,
+              None => {
+                places.insert(name.clone(), entries.len());
+                entries.push((name, order));
+              }
+            }
+            match self.peek() {
+              Some(b',') => self.at += 1,
+              Some(b'}') => {
+                self.leave();
+                break;
+              }
+              _ => return Err(Refused),
+            }
+          }
+        }
+        Order::Object(entries)
+      }
+      b'[' => {
+        self.enter()?;
+        let mut items = vec![];
+        if self.peek() == Some(b']') {
+          self.leave();
+        } else {
+          loop {
+            self.skip_white();
+            items.push(self.read_order()?);
+            match self.peek() {
+              Some(b',') => self.at += 1,
+              Some(b']') => {
+                self.leave();
+                break;
+              }
+              _ => return Err(Refused),
+            }
+          }
+        }
+        Order::Array(items)
+      }
+      b'"' => {
+        self.read_string()?;
+        Order::Other
+      }
+      b't' => self.word("true", Order::Other)?,
+      b'f' => self.word("false", Order::Other)?,
+      b'n' => self.word("null", Order::Other)?,
+      _ => {
+        self.at = skip_number(self.text.as_bytes(), self.at).ok_or(Refused)?;
+        Order::Other
+      }
+    };
+    self.skip_white();
+    Ok(order)
+  }
+
   fn word<T>(&mut self, word: &str, value: T) -> Result<T, Refused> {
     if self.text.get(self.at..).is_some_and(|rest| rest.starts_with(word)) {
       self.at += word.len();
@@ -1049,7 +1186,11 @@ impl<'a, 'w> Reader<'a, 'w> {
           self.unordered_values.clear();
           values
         };
-        return Ok(FeelContext::from_shared_names(names.clone(), values).with_other_key_forms(shape.other_forms));
+        let context = FeelContext::from_shared_names(names.clone(), values).with_other_key_forms(shape.other_forms);
+        return Ok(match &shape.written {
+          Some(written) => context.with_written_places(written.clone()),
+          None => context,
+        });
       }
       // fewer keys than the object before
       other_forms = self.shapes[level].other_forms;
@@ -1072,27 +1213,43 @@ impl<'a, 'w> Reader<'a, 'w> {
       self.unordered.clear();
     }
     // the entries are in ascending order of their names now, each name once
-    if first_entry == 0 && self.entries.len() > DIRECT_ENTRIES {
-      // the outermost object takes the buffer as it is, without a copy of its entries
-      return Ok(FeelContext::from_ascending_entries(std::mem::take(&mut self.entries)).with_other_key_forms(other_forms));
-    }
+    let written = self.shapes[level].written.clone();
     // the first object with its keys at its depth shares the names with those after it
     if let Some(names) = &self.shapes[level].sorted
       && names.len() == self.entries.len() - first_entry
+      && !(first_entry == 0 && self.entries.len() > DIRECT_ENTRIES)
     {
       let other_forms = self.shapes[level].other_forms;
       let values = self.entries.drain(first_entry..).map(|entry| entry.1).collect();
-      return Ok(FeelContext::from_shared_names(names.clone(), values).with_other_key_forms(other_forms));
+      let context = FeelContext::from_shared_names(names.clone(), values).with_other_key_forms(other_forms);
+      return Ok(match written {
+        Some(written) => context.with_written_places(written),
+        None => context,
+      });
     }
-    let entries = self.entries.drain(first_entry..);
-    let context = if entries.len() <= DIRECT_ENTRIES {
-      let mut context = FeelContext::default();
-      for (name, value) in entries {
-        context.insert(name, value);
-      }
-      context
+    // the names in the order they are written in
+    let written: Option<Vec<Name>> = written.map(|written| {
+      let entries = &self.entries[first_entry..];
+      written.iter().filter_map(|place| entries.get(*place as usize).map(|entry| entry.0.clone())).collect()
+    });
+    let context = if first_entry == 0 && self.entries.len() > DIRECT_ENTRIES {
+      // the outermost object takes the buffer as it is, without a copy of its entries
+      FeelContext::from_ascending_entries(std::mem::take(&mut self.entries))
     } else {
-      FeelContext::from_ascending_entries(entries)
+      let entries = self.entries.drain(first_entry..);
+      if entries.len() <= DIRECT_ENTRIES {
+        let mut context = FeelContext::default();
+        for (name, value) in entries {
+          context.insert(name, value);
+        }
+        context
+      } else {
+        FeelContext::from_ascending_entries(entries)
+      }
+    };
+    let context = match written {
+      Some(written) => context.with_written_names(written),
+      None => context,
     };
     Ok(context.with_other_key_forms(other_forms))
   }
@@ -1131,6 +1288,27 @@ impl<'a, 'w> Reader<'a, 'w> {
       }
       shape.order.truncate(kept + 1);
     }
+    shape.written = (!shape.ascending).then(|| {
+      // the place of each key in the ascending order, by the index of its last entry
+      let mut place_of = vec![u32::MAX; entries.len()];
+      for (place, index) in shape.order.iter().enumerate() {
+        place_of[*index] = place as u32;
+      }
+      // an earlier entry of a key has the place of the last one, which the search finds
+      let names: Vec<&Name> = shape.order.iter().map(|index| &entries[*index].0).collect();
+      let mut seen = vec![false; names.len()];
+      let mut written = Vec::with_capacity(names.len());
+      for (index, entry) in entries.iter().enumerate() {
+        let place = match place_of[index] {
+          u32::MAX => names.binary_search(&&entry.0).unwrap_or(0) as u32,
+          place => place,
+        };
+        if !std::mem::replace(&mut seen[place as usize], true) {
+          written.push(place);
+        }
+      }
+      written.into()
+    });
     shape.sorted = (level > self.outermost).then(|| {
       if shape.ascending {
         entries.iter().map(|entry| entry.0.clone()).collect()
@@ -1385,7 +1563,15 @@ mod tests {
       return Err("no object".to_string());
     };
     let mut warnings = vec![];
-    json_object_into_context(map, &Path::Root(""), &mut warnings).map(|context| (context, warnings))
+    // the tree keeps the keys in their own order: the context is told the written one
+    let written = |context| Order::read(text).map_or_else(FeelContext::default, |order| order.of_context(context));
+    json_object_into_context(map, &Path::Root(""), &mut warnings).map(|context| (written(context), warnings))
+  }
+
+  /// A context as it is shown, with the contexts in it read: in the order its entries were
+  /// written in.
+  fn shown(context: &FeelContext) -> String {
+    context.to_string()
   }
 
   fn cases() -> usize {
@@ -1415,6 +1601,7 @@ mod tests {
         (Ok(context), Ok((expected, expected_warnings))) => {
           assert_eq!(expected, context, "case {case}: {text}");
           assert_eq!(format!("{expected:?}"), format!("{context:?}"), "case {case}: {text}");
+          assert_eq!(shown(&expected), shown(&context), "case {case}: {text}");
           assert_eq!(expected_warnings, warnings[1..], "case {case}: {text}");
           read += 1;
           with_warnings += usize::from(!expected_warnings.is_empty());
@@ -1592,6 +1779,7 @@ mod tests {
           let copy = context.clone();
           assert_eq!(expected, context, "case {case}: {text}");
           assert_eq!(format!("{expected:?}"), format!("{context:?}"), "case {case}: {text}");
+          assert_eq!(shown(&expected), shown(&context), "case {case}: {text}");
           assert_eq!(expected, copy, "case {case}: {text}");
           assert_eq!(expected_warnings, warnings, "case {case}: {text}");
           assert!(!has_unread(&rows_value), "case {case}: {text}");
@@ -1656,6 +1844,7 @@ mod tests {
       let (expected, _) = through_the_tree(&text).unwrap();
       assert_eq!(expected, read, "case {case}: {text}");
       assert_eq!(format!("{expected:?}"), format!("{read:?}"), "case {case}: {text}");
+      assert_eq!(shown(&expected), shown(&read), "case {case}: {text}");
     }
   }
 

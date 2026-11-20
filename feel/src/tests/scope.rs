@@ -249,7 +249,7 @@ fn test_insert_null() {
   scope.set_name(name_b);
   scope.set_name(name_c);
   scope.set_name(name_d);
-  assert_eq!("[{a: 1}, {b: 2}, {b: null, c: null, d: null}]", scope.to_string());
+  assert_eq!("[{a: 1}, {b: 2}, {c: null, b: null, d: null}]", scope.to_string());
 }
 
 /// A shared context is pushed without a copy; a write into its frame copies it first, so the

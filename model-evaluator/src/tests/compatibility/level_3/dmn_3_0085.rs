@@ -152,10 +152,10 @@ fn _0024() {
 
 #[test]
 fn _0025() {
-  eqs("decision_013_1", CTX, r#"{decisionService_013: "A B", decision_013_3: "D", inputData_013_1: null}"#);
+  eqs("decision_013_1", CTX, r#"{decisionService_013: "A B", inputData_013_1: null, decision_013_3: "D"}"#);
 }
 
 #[test]
 fn _0026() {
-  eqs("decision_014_1", CTX, r#"{decisionService_014: "A B", decision_014_3: "D", inputData_014_1: null}"#);
+  eqs("decision_014_1", CTX, r#"{inputData_014_1: null, decision_014_3: "D", decisionService_014: "A B"}"#);
 }

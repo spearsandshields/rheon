@@ -1,7 +1,7 @@
 //! Request handling: `docs/CONTRACT.md` §2 (request) and §3 (response).
 
 use crate::input::{Path, feel_context, json_into_value, json_object_into_context};
-use crate::json::{self, Field};
+use crate::json::{self, Field, Order};
 use crate::output::write_result;
 use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics::{self, ErrorMode};
@@ -128,6 +128,10 @@ struct Unread<'a> {
   input: Option<Field<'a, Value>>,
   /// The text of the array `entries`, whose items are read one by one.
   entries: Option<&'a str>,
+  /// When the request was read as a tree of JSON values: the order in which the keys of its
+  /// `context` and of its `input` are written, which the tree does not hold.
+  context_order: Option<Order>,
+  input_order: Option<Order>,
 }
 
 /// Reads the request into its fields: with the strict reader when it takes the text, which
@@ -143,10 +147,13 @@ fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Fail
           context: read.context,
           input: read.input,
           entries: read.entries,
+          context_order: None,
+          input_order: None,
         },
       ));
     }
   }
+  let text = request;
   let request = match json::tree(request) {
     Ok(json) => json,
     // Only `context` / `input` can hold nested JSON values, so a nesting limit is a context problem.
@@ -156,7 +163,20 @@ fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Fail
     Err(e) => return fail(Kind::Request, format!("malformed request JSON: {e}")),
   };
   match request {
-    Json::Object(req) => Ok((req, Unread::default())),
+    Json::Object(req) => {
+      let order = |field: &str| {
+        req
+          .get(field)
+          .filter(|value| value.is_object() || value.is_array())
+          .and_then(|_| Order::read(text)?.field(field))
+      };
+      let unread = Unread {
+        context_order: order("context"),
+        input_order: order("input"),
+        ..Unread::default()
+      };
+      Ok((req, unread))
+    }
     _ => fail(Kind::Request, "request must be a JSON object"),
   }
 }
@@ -294,7 +314,7 @@ fn expression(req: &mut Map<String, Json>) -> Result<String, Failure> {
 }
 
 /// Builds the input context from `context` / `contextFormat`, taking the context out of the request.
-fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
+fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, mut order: Option<Order>, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
   const FEEL_FORMAT: &str = "with contextFormat \"feel\", 'context' must be a string holding a FEEL context literal";
   // a &'static str, so that the context can be taken out of the request below
   let format = match req.get("contextFormat") {
@@ -310,12 +330,22 @@ fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, warn
     }
     // an object where the text of a FEEL context is expected
     Some(Field::Read(..)) => return fail(Kind::Context, FEEL_FORMAT),
-    Some(Field::Text(text)) => into_tree(req, "context", text)?,
+    Some(Field::Text(text)) => {
+      into_tree(req, "context", text)?;
+      order = Order::read(text);
+    }
     None => {}
   }
   match (format, req.remove("context")) {
     (_, None | Some(Json::Null)) => Ok(FeelContext::default()),
-    ("json", Some(Json::Object(map))) => json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e, None)),
+    ("json", Some(Json::Object(map))) => {
+      let context = json_object_into_context(map, &Path::Root(""), warnings).map_err(|e| Failure(Kind::Context, e, None))?;
+      // the tree keeps the keys of an object in their own order: the context is told the written one
+      Ok(match order {
+        Some(order) => order.of_context(context),
+        None => context,
+      })
+    }
     ("json", Some(_)) => fail(Kind::Context, "with contextFormat \"json\", 'context' must be a JSON object"),
     (_, Some(Json::String(text))) => feel_context(&text, warnings).map_err(|e| Failure(Kind::Context, e, None)),
     (_, Some(_)) => fail(Kind::Context, FEEL_FORMAT),
@@ -361,7 +391,8 @@ fn prepare_scope(req: Map<String, Json>, unread: Unread, dialect: Dialect, warni
 /// The context that an expression of `dialect` is evaluated in: the `context` of the request,
 /// for unary tests with the tested value as its entry `?`.
 fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect, warnings: &mut Vec<String>) -> Result<FeelContext, Failure> {
-  let mut ctx = context(&mut req, unread.context, warnings)?;
+  let mut ctx = context(&mut req, unread.context, unread.context_order, warnings)?;
+  let mut input_order = unread.input_order;
   if dialect == Dialect::UnaryTests {
     let read = match unread.input {
       Some(Field::Read(value, read_warnings)) => {
@@ -370,6 +401,7 @@ fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect,
       }
       Some(Field::Text(text)) => {
         into_tree(&mut req, "input", text)?;
+        input_order = Order::read(text);
         None
       }
       None => None,
@@ -377,7 +409,13 @@ fn prepare_context(mut req: Map<String, Json>, unread: Unread, dialect: Dialect,
     let input = match read {
       Some(value) => Some(value),
       None => match req.remove("input") {
-        Some(input) => Some(json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e, None))?),
+        Some(input) => {
+          let value = json_into_value(input, &Path::Root("input"), warnings).map_err(|e| Failure(Kind::Context, e, None))?;
+          Some(match &input_order {
+            Some(order) => order.of(value),
+            None => value,
+          })
+        }
         None => None,
       },
     };
@@ -478,7 +516,7 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
     Some(_) => return fail(Kind::Request, "'evaluations' must be an array"),
   };
   let mut context_warnings = vec![];
-  let context = context(&mut req, unread.context, &mut context_warnings)?;
+  let context = context(&mut req, unread.context, unread.context_order, &mut context_warnings)?;
   // unary tests without an input take the entry `?` of the context, when it has one
   let has_question_mark = context.get_entry(&question_mark()).is_some();
   // the context is held here and shared with the scope, so that the index of its names is made
