@@ -7,6 +7,12 @@
 //! [Refused]) is answered by the path through the tree of JSON values, as before, so every
 //! error and its text come from there.
 //!
+//! That tree is built here as well ([tree]), and not by `serde_json`, whose own tree is not the
+//! JSON of every text: built with `arbitrary_precision`, it hands a number to its tree as an
+//! object with the one key `$serde_json::private::Number`, and so reads an object of the text
+//! that has this key first as a number, or refuses the text. Here such an object is an object
+//! like every other. `serde_json` still gives the error of a text that is no JSON.
+//!
 //! The values and the warnings are those of [crate::input::json_into_value] for the same text:
 //! - of two entries of an object with the same key, the later one in the text gives the value;
 //! - the warnings of the entries of an object come in the order of its keys, not of the text.
@@ -26,6 +32,7 @@ use rheon_feel::Name;
 use rheon_feel::context::{DeferredEntries, FeelContext};
 use rheon_feel::values::Value;
 use rheon_feel_number::FeelNumber;
+use serde_json::Value as Json;
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
@@ -38,7 +45,7 @@ const DEFER_FROM: usize = 128;
 /// one that [Reader] reads into a value without a warning and without refusing it, whatever
 /// stands around it. It answers `None` for more than it has to: for a string with an escape,
 /// a number with an exponent or more than 34 digits, and a key that does not start and end
-/// with a visible ASCII character or starts with `$`, and an object that has a key twice when
+/// with a visible ASCII character, and an object that has a key twice when
 /// the value of one of the two is an array or an object (the depth of the object is that of
 /// the entries it keeps), or that has too many keys with such values to compare them.
 ///
@@ -73,7 +80,7 @@ fn plain_end(bytes: &[u8], at: usize, depth: usize, passed: &mut Passed) -> Opti
           }
           let end = string_stop(bytes, at + 1);
           let visible = |byte: &u8| (0x21..=0x7E).contains(byte);
-          if bytes.get(end) != Some(&b'"') || end == at + 1 || bytes[at + 1] == b'$' || !visible(&bytes[at + 1]) || !visible(&bytes[end - 1]) {
+          if bytes.get(end) != Some(&b'"') || end == at + 1 || !visible(&bytes[at + 1]) || !visible(&bytes[end - 1]) {
             return None;
           }
           passed.keys.push((key, end, false));
@@ -227,10 +234,6 @@ fn exponent_as_serde_json(number: &str) -> Cow<'_, str> {
 /// The deepest nesting of arrays and objects that `serde_json` reads is one less than this.
 const NESTING_LIMIT: usize = 128;
 
-/// The key by which `serde_json` (with `arbitrary_precision`) hands a number to its tree: an
-/// object with this key is read as a number there, so it is left to that path.
-const PRIVATE_NUMBER_KEY: &str = "$serde_json::private::Number";
-
 /// The reader does not answer this text.
 #[derive(Debug)]
 pub(crate) struct Refused;
@@ -381,7 +384,7 @@ fn top_level<'a>(text: &'a str, mut value: impl FnMut(&'a str, usize) -> Option<
     at += 1;
   } else {
     loop {
-      let key_end = skip_key(bytes, at)?;
+      let key_end = skip_string(bytes, at)?;
       let key = text.get(at + 1..key_end - 1)?;
       if key.contains('\\') {
         return None;
@@ -409,6 +412,76 @@ fn top_level<'a>(text: &'a str, mut value: impl FnMut(&'a str, usize) -> Option<
   (skip_white(bytes, at) == bytes.len()).then_some(fields)
 }
 
+/// The tree of JSON values of `text`: the one that `serde_json` builds for it, except that an
+/// object with the key by which `serde_json` hands a number to its tree is an object. A text
+/// that is no JSON has the error of `serde_json`.
+pub(crate) fn tree(text: &str) -> Result<Json, serde_json::Error> {
+  let mut warnings = vec![];
+  let mut reader = Reader::new(text, 0, 0, &mut warnings);
+  reader.skip_white();
+  if let Ok(tree) = reader.read_tree()
+    && reader.at == text.len()
+  {
+    return Ok(tree);
+  }
+  // no JSON: the error is that of `serde_json`, which reads the text without building its tree
+  serde_json::from_str::<Checked>(text).and_then(|Checked| serde_json::from_str(text))
+}
+
+/// A JSON value that is read and not kept: what `serde_json` reads as its tree, an object with
+/// its private number key included.
+struct Checked;
+
+impl<'de> serde::Deserialize<'de> for Checked {
+  fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    struct Visitor;
+    impl<'de> serde::de::Visitor<'de> for Visitor {
+      type Value = Checked;
+
+      fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("any valid JSON value")
+      }
+
+      fn visit_bool<E>(self, _: bool) -> Result<Checked, E> {
+        Ok(Checked)
+      }
+
+      // a short integer; every other number comes as an object with the private key
+      fn visit_i64<E>(self, _: i64) -> Result<Checked, E> {
+        Ok(Checked)
+      }
+
+      fn visit_u64<E>(self, _: u64) -> Result<Checked, E> {
+        Ok(Checked)
+      }
+
+      fn visit_f64<E>(self, _: f64) -> Result<Checked, E> {
+        Ok(Checked)
+      }
+
+      fn visit_str<E>(self, _: &str) -> Result<Checked, E> {
+        Ok(Checked)
+      }
+
+      fn visit_unit<E>(self) -> Result<Checked, E> {
+        Ok(Checked)
+      }
+
+      fn visit_seq<A: serde::de::SeqAccess<'de>>(self, mut items: A) -> Result<Checked, A::Error> {
+        while let Some(Checked) = items.next_element()? {}
+        Ok(Checked)
+      }
+
+      // an object, and a number: `serde_json` hands one on as an object with its private key
+      fn visit_map<A: serde::de::MapAccess<'de>>(self, mut entries: A) -> Result<Checked, A::Error> {
+        while let Some((_, Checked)) = entries.next_entry::<String, Checked>()? {}
+        Ok(Checked)
+      }
+    }
+    deserializer.deserialize_any(Visitor)
+  }
+}
+
 /// Returns the position after the white space that starts at `at`.
 fn skip_white(bytes: &[u8], mut at: usize) -> usize {
   while let Some(b' ' | b'\n' | b'\t' | b'\r') = bytes.get(at) {
@@ -434,7 +507,7 @@ fn skip_value(bytes: &[u8], at: usize, depth: usize) -> Option<usize> {
       }
       loop {
         if object {
-          at = skip_white(bytes, skip_key(bytes, at)?);
+          at = skip_white(bytes, skip_string(bytes, at)?);
           if bytes.get(at) != Some(&b':') {
             return None;
           }
@@ -588,26 +661,6 @@ fn skip_string(bytes: &[u8], at: usize) -> Option<usize> {
       _ => return None,
     }
   }
-}
-
-/// Returns the position after the key of an object whose opening quote is at `at`; `None` also
-/// for the [PRIVATE_NUMBER_KEY], however it is written: `serde_json` reads an object with it as
-/// a number or refuses the text.
-fn skip_key(bytes: &[u8], at: usize) -> Option<usize> {
-  let end = skip_string(bytes, at)?;
-  let key = bytes.get(at + 1..end - 1)?;
-  if key.len() < PRIVATE_NUMBER_KEY.len() {
-    return Some(end);
-  }
-  let private = if key.contains(&b'\\') {
-    let text = std::str::from_utf8(bytes.get(at..end)?).ok()?;
-    let mut warnings = vec![];
-    let mut reader = Reader::new(text, 0, 0, &mut warnings);
-    reader.read_string().ok()? == PRIVATE_NUMBER_KEY
-  } else {
-    key == PRIVATE_NUMBER_KEY.as_bytes()
-  };
-  (!private).then_some(end)
 }
 
 /// The value of the four hexadecimal digits at `at`.
@@ -770,7 +823,72 @@ impl<'a, 'w> Reader<'a, 'w> {
     Ok(value)
   }
 
-  fn word(&mut self, word: &str, value: Value) -> Result<Value, Refused> {
+  /// Reads the JSON value at the position into a tree of JSON values, and passes the white
+  /// space after it. A number keeps its text, as `serde_json` hands it on.
+  fn read_tree(&mut self) -> Result<Json, Refused> {
+    let tree = match self.peek().ok_or(Refused)? {
+      b'{' => {
+        self.enter()?;
+        let mut entries = serde_json::Map::new();
+        if self.peek() == Some(b'}') {
+          self.leave();
+        } else {
+          loop {
+            self.skip_white();
+            let key = self.read_string()?.into_owned();
+            self.expect(b':')?;
+            self.skip_white();
+            // of two entries with one key the later one stays
+            entries.insert(key, self.read_tree()?);
+            match self.peek() {
+              Some(b',') => self.at += 1,
+              Some(b'}') => {
+                self.leave();
+                break;
+              }
+              _ => return Err(Refused),
+            }
+          }
+        }
+        Json::Object(entries)
+      }
+      b'[' => {
+        self.enter()?;
+        let mut items = vec![];
+        if self.peek() == Some(b']') {
+          self.leave();
+        } else {
+          loop {
+            self.skip_white();
+            items.push(self.read_tree()?);
+            match self.peek() {
+              Some(b',') => self.at += 1,
+              Some(b']') => {
+                self.leave();
+                break;
+              }
+              _ => return Err(Refused),
+            }
+          }
+        }
+        Json::Array(items)
+      }
+      b'"' => Json::String(self.read_string()?.into_owned()),
+      b't' => self.word("true", Json::Bool(true))?,
+      b'f' => self.word("false", Json::Bool(false))?,
+      b'n' => self.word("null", Json::Null)?,
+      _ => {
+        let end = skip_number(self.text.as_bytes(), self.at).ok_or(Refused)?;
+        let number = self.text.get(self.at..end).ok_or(Refused)?;
+        self.at = end;
+        Json::Number(exponent_as_serde_json(number).parse().map_err(|_| Refused)?)
+      }
+    };
+    self.skip_white();
+    Ok(tree)
+  }
+
+  fn word<T>(&mut self, word: &str, value: T) -> Result<T, Refused> {
     if self.text.get(self.at..).is_some_and(|rest| rest.starts_with(word)) {
       self.at += word.len();
       Ok(value)
@@ -878,7 +996,7 @@ impl<'a, 'w> Reader<'a, 'w> {
       self.skip_white();
       let key = self.read_string()?;
       // an empty key is an error, and a key with white space at an end is another name
-      if key == PRIVATE_NUMBER_KEY || key.is_empty() || rheon_feel::names::trim(&key).len() != key.len() {
+      if key.is_empty() || rheon_feel::names::trim(&key).len() != key.len() {
         return Err(Refused);
       }
       self.expect(b':')?;
@@ -1091,7 +1209,6 @@ impl<'a, 'w> Reader<'a, 'w> {
 mod tests {
   use super::*;
   use crate::input::json_object_into_context;
-  use serde_json::Value as Json;
 
   /// A small deterministic generator (xorshift64*).
   /// The second field: whether an object of the text written last has a key twice or a key
@@ -1264,7 +1381,7 @@ mod tests {
 
   /// The context and the warnings of the conversion through the tree of JSON values, or its error.
   fn through_the_tree(text: &str) -> Result<(FeelContext, Vec<String>), String> {
-    let Json::Object(map) = serde_json::from_str(text).map_err(|e| e.to_string())? else {
+    let Json::Object(map) = tree(text).map_err(|e| e.to_string())? else {
       return Err("no object".to_string());
     };
     let mut warnings = vec![];
@@ -1277,8 +1394,8 @@ mod tests {
 
   /// What the reader reads is what the conversion through the tree reads, with the same warnings
   /// in the same order; it refuses what that conversion refuses, and beyond that only an object
-  /// with the private number key, with a key twice (whose first value may not convert), with a
-  /// key that has white space at an end, or with a warning.
+  /// with a key twice (whose first value may not convert), with a key that has white space at
+  /// an end, or with a warning.
   #[test]
   fn reader_equals_the_conversion_through_the_tree() {
     let mut rng = Rng(0x9E37_79B9_7F4A_7C15, false);
@@ -1305,10 +1422,7 @@ mod tests {
         (Ok(context), Err(error)) => panic!("case {case}: {text}\nread {context:?}\nthe tree refuses: {error}"),
         (Err(Refused), Ok((_, expected_warnings))) => {
           // an entry that a later one with its key replaces is read here and not in the tree
-          assert!(
-            damaged || text.contains(PRIVATE_NUMBER_KEY) || rng.1 || !expected_warnings.is_empty(),
-            "case {case}: refused {text}"
-          );
+          assert!(damaged || rng.1 || !expected_warnings.is_empty(), "case {case}: refused {text}");
           refused += 1;
         }
         (Err(Refused), Err(_)) => refused += 1,
@@ -1545,6 +1659,73 @@ mod tests {
     }
   }
 
+  /// The key by which `serde_json` hands a number to its tree.
+  const PRIVATE_NUMBER_KEY: &str = "$serde_json::private::Number";
+
+  /// `tree` with `to` in the place of `from` in every key and every string.
+  fn renamed(tree: Json, from: &str, to: &str) -> Json {
+    match tree {
+      Json::String(string) => Json::String(string.replace(from, to)),
+      Json::Array(items) => Json::Array(items.into_iter().map(|item| renamed(item, from, to)).collect()),
+      // the keys are those of the text, where the later of two entries with one key stays
+      Json::Object(entries) => Json::Object(entries.into_iter().map(|(key, value)| (key.replace(from, to), renamed(value, from, to))).collect()),
+      other => other,
+    }
+  }
+
+  /// The tree of a text is the tree that `serde_json` builds for it, and a text that is no JSON
+  /// has the error of `serde_json`; with the private number key in the text, they are those of
+  /// the text with another key of the same length in its place.
+  #[test]
+  fn tree_is_that_of_serde_json_but_for_its_private_number_key() {
+    let other_key = "$serde_json::private::NumbeX";
+    let mut rng = Rng(0x0F0F_1234_5678_9ABC, false);
+    let (mut trees, mut errors, mut private) = (0, 0, 0);
+    for case in 0..cases() {
+      let mut text = String::from(rng.pick(&WHITE));
+      value(&mut rng, 0, &mut text);
+      text.push_str(rng.pick(&WHITE));
+      if rng.below(3) == 0 {
+        text = damage(&mut rng, &text);
+      }
+      let has_key = text.contains(PRIVATE_NUMBER_KEY);
+      let expected = serde_json::from_str::<Json>(&text.replace(PRIVATE_NUMBER_KEY, other_key)).map(|tree| renamed(tree, other_key, PRIVATE_NUMBER_KEY));
+      match (tree(&text), expected) {
+        (Ok(tree), Ok(expected)) => {
+          assert_eq!(expected, tree, "case {case}: {text:?}");
+          trees += 1;
+          private += usize::from(has_key);
+        }
+        (Err(error), Err(expected)) => {
+          assert_eq!(expected.to_string(), error.to_string(), "case {case}: {text:?}");
+          errors += 1;
+          private += usize::from(has_key);
+        }
+        (tree, expected) => panic!("case {case}: {text:?}\n{tree:?}\nserde_json: {expected:?}"),
+      }
+    }
+    println!("{trees} trees, {errors} errors, {private} with the private number key");
+    assert!(
+      trees > cases() / 4 && errors > cases() / 20 && private > cases() / 100,
+      "{trees} trees, {errors} errors, {private} with the key"
+    );
+    // a value of the key that is no number text, further keys, the key written with an escape
+    for text in [
+      r#"{"$serde_json::private::Number":"42"}"#,
+      r#"{"$serde_json::private::Number":true}"#,
+      r#"{"$serde_json::private::Number":"42","b":1}"#,
+      r#"[{"a":{"$serde_json::private::Number":{"$serde_json::private::Number":null}}}]"#,
+      r#"{"$serde_json::private::\u004eumber":"1e5"}"#,
+    ] {
+      let tree = tree(text).unwrap_or_else(|error| panic!("{text}: {error}"));
+      assert_eq!(
+        text.matches("::private::").count(),
+        format!("{tree:?}").matches("Object {\"$serde_json::private::Number\"").count(),
+        "{text}: {tree:?}"
+      );
+    }
+  }
+
   /// [fields] takes a text only when `serde_json` reads it as an object, and gives the keys and
   /// the values of that object; it takes every object without an escape in a top-level key.
   #[test]
@@ -1575,14 +1756,14 @@ mod tests {
       // as the context and the input of a request, which are read where they stand
       let wrapped = format!("{{\"op\":\"evaluate\",\"context\":{text},\"input\":[{text}, 1]}}");
       if let Some(read) = request(&wrapped) {
-        let Ok(Json::Object(map)) = serde_json::from_str::<Json>(&wrapped) else {
+        let Ok(Json::Object(map)) = tree(&wrapped) else {
           panic!("case {case}: took the request {wrapped:?}");
         };
         // the fields that were not read into values are those of the tree
         assert!(read.fields.iter().all(|(key, _)| map.contains_key(*key)), "case {case}: {wrapped:?}");
         requests += 1;
       }
-      let tree: Result<Json, _> = serde_json::from_str(&text);
+      let tree = tree(&text);
       match fields(&text) {
         Some(fields) => {
           let Ok(Json::Object(map)) = &tree else {
@@ -1591,8 +1772,8 @@ mod tests {
           // the last field of a key is the entry of the tree
           for (key, value) in &fields {
             let last = fields.iter().rev().find(|(other, _)| other == key).map(|(_, value)| *value);
-            assert_eq!(map.get(*key), serde_json::from_str::<Json>(last.unwrap()).ok().as_ref(), "case {case}: {key} in {text:?}");
-            assert!(serde_json::from_str::<Json>(value).is_ok(), "case {case}: {value:?} in {text:?}");
+            assert_eq!(map.get(*key), super::tree(last.unwrap()).ok().as_ref(), "case {case}: {key} in {text:?}");
+            assert!(super::tree(value).is_ok(), "case {case}: {value:?} in {text:?}");
           }
           assert_eq!(
             map.len(),
@@ -1603,8 +1784,8 @@ mod tests {
         }
         None => {
           if let Ok(Json::Object(_)) = &tree {
-            // refused though it is an object: for an escape in a top-level key, or the private number key
-            assert!(text.contains('\\') || text.contains(PRIVATE_NUMBER_KEY), "case {case}: refused {text:?}");
+            // refused though it is an object: for an escape in a top-level key
+            assert!(text.contains('\\'), "case {case}: refused {text:?}");
           }
           refused += 1;
         }

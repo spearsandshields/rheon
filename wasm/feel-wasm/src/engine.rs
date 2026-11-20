@@ -135,11 +135,7 @@ struct Unread<'a> {
 /// JSON values, which also gives every error of a text that is no request.
 fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Failure> {
   if let Some(read) = json::request(request) {
-    let fields: Option<Map<String, Json>> = read
-      .fields
-      .iter()
-      .map(|(key, text)| serde_json::from_str(text).ok().map(|value| (key.to_string(), value)))
-      .collect();
+    let fields: Option<Map<String, Json>> = read.fields.iter().map(|(key, text)| json::tree(text).ok().map(|value| (key.to_string(), value))).collect();
     if let Some(req) = fields {
       return Ok((
         req,
@@ -151,7 +147,7 @@ fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Fail
       ));
     }
   }
-  let request: Json = match serde_json::from_str(request) {
+  let request = match json::tree(request) {
     Ok(json) => json,
     // Only `context` / `input` can hold nested JSON values, so a nesting limit is a context problem.
     Err(e) if e.to_string().starts_with("recursion limit exceeded") => {
@@ -168,7 +164,7 @@ fn request_fields(request: &str) -> Result<(Map<String, Json>, Unread<'_>), Fail
 /// Puts the JSON `text` of the field `field`, which the strict reader refused, into the request
 /// as a tree of JSON values, for the conversion that gives its error or its value.
 fn into_tree(req: &mut Map<String, Json>, field: &str, text: &str) -> Result<(), Failure> {
-  match serde_json::from_str(text) {
+  match json::tree(text) {
     Ok(tree) => {
       req.insert(field.to_string(), tree);
       Ok(())

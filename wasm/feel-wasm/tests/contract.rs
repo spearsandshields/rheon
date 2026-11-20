@@ -1652,6 +1652,70 @@ fn a_step_budget_is_a_positive_integer() {
 /// request answers the same when its text makes the module read it as a tree of JSON values
 /// first, which a top-level key written with an escape does: values, warnings and their order,
 /// errors and their texts.
+/// `serde_json` hands a number to its tree as an object with one private key. A JSON object of
+/// a request that has this key is an object like every other: wherever it stands, however the
+/// request around it is read, and whatever its other entries and its value are.
+#[test]
+fn an_object_with_the_private_number_key_of_serde_json_is_an_object() {
+  const KEY: &str = "$serde_json::private::Number";
+  let probe = r#"[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]"#;
+  // the display of the probe for the object `object` as the entry `v` of the context
+  let shown = |request: String| {
+    let response = raw(&request);
+    assert_eq!(response["ok"], true, "{request}: {response}");
+    response["result"]["display"].as_str().unwrap().to_string()
+  };
+  for (object, expected) in [
+    (format!(r#"{{"{KEY}":"42"}}"#), r#"[false, 1, "42"]"#),
+    (format!(r#"{{"{KEY}":"42","b":1}}"#), r#"[false, 2, "42"]"#),
+    (format!(r#"{{"b":1,"{KEY}":"42"}}"#), r#"[false, 2, "42"]"#),
+    (format!(r#"{{"{KEY}":true}}"#), "[false, 1, true]"),
+    (format!(r#"{{"{KEY}":42}}"#), "[false, 1, 42]"),
+    (format!(r#"{{"{KEY}":"x"}}"#), r#"[false, 1, "x"]"#),
+    (format!(r#"{{"{KEY}":{{"{KEY}":"1"}}}}"#), r#"[false, 1, {"$serde_json::private::Number": "1"}]"#),
+    (r#"{"$serde_json::private::\u004eumber":"42"}"#.to_string(), r#"[false, 1, "42"]"#),
+  ] {
+    for request in [
+      // read from the text
+      format!(r#"{{"op":"evaluate","expression":"{probe}","context":{{"v":{object}}}}}"#),
+      // the context through the tree: a key with white space at an end beside it
+      format!(r#"{{"op":"evaluate","expression":"{probe}","context":{{"v":{object}," w":1}}}}"#),
+      // the request through the tree: a top-level key with an escape
+      format!(r#"{{"op":"evaluate","expression":"{probe}","\u0063ontext":{{"v":{object}}}}}"#),
+      // an item of a list, and one beside an object that is long enough to be read on first use
+      format!(r#"{{"op":"evaluate","expression":"(for v in l return {probe})[1]","context":{{"l":[{object}]}}}}"#),
+      format!(
+        r#"{{"op":"evaluate","expression":"(for v in l[2].inner return {probe})[1]","context":{{"l":[{{"filler":"{}"}},{{"filler":"{}","inner":[{object}]}}]}}}}"#,
+        "x".repeat(150),
+        "y".repeat(150)
+      ),
+    ] {
+      assert_eq!(expected, shown(request.clone()), "{request}");
+    }
+    // the input of unary tests
+    let request = format!(r#"{{"op":"evaluate","dialect":"unaryTests","expression":"? instance of number","input":{object}}}"#);
+    assert_eq!("false", shown(request.clone()), "{request}");
+    // an entry of `evaluateEach`
+    let response = raw(&format!(r#"{{"op":"evaluateEach","expression":"{probe}","entries":[{{"context":{{"v":{object}}}}}]}}"#));
+    assert_eq!(expected, response["results"][0]["result"]["display"], "{object}: {response}");
+  }
+  // as a field of the request it is no number
+  assert_error(
+    &raw(&format!(r#"{{"op":"evaluate","expression":"1","maxSteps":{{"{KEY}":"5"}}}}"#)),
+    "request",
+    r#"invalid 'maxSteps' {"$serde_json::private::Number":"5"} (expected a positive integer)"#,
+  );
+  // and as a key of the request it is a field that the request does not know
+  assert_eq!("1", shown(format!(r#"{{"op":"evaluate","expression":"1","{KEY}":"42"}}"#)));
+  assert_eq!("1", shown(format!(r#"{{"op":"evaluate","expression":"1","{KEY}":"42","x":1}}"#)));
+  // JSON that is none stays an error of the text, at the place where it is none
+  assert_error(
+    &raw(&format!(r#"{{"op":"evaluate","expression":"a","context":{{"a":{{"{KEY}":"42","b":1}},]}}}}"#)),
+    "request",
+    "malformed request JSON: key must be a string at line 1 column 94",
+  );
+}
+
 #[test]
 fn context_and_input_read_from_the_text_answer_as_read_through_a_tree() {
   let long = "1234567890123456789012345678901234567890";
@@ -1719,13 +1783,6 @@ fn context_and_input_read_from_the_text_answer_as_read_through_a_tree() {
     }
   }
   assert!(read >= 15 && failed >= 10, "{read} answered, {failed} failed");
-  // an object that serde_json refuses is refused as before (the text of the error has a column,
-  // so the request cannot be compared with a longer spelling of itself)
-  assert_error(
-    &raw(r#"{"op":"evaluate","expression":"a","context":{"a":{"$serde_json::private::Number":true}}}"#),
-    "request",
-    "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 85",
-  );
   // one level deeper than the deepest JSON that is read
   let too_deep = raw(&format!(
     r#"{{"op":"evaluate","expression":"count(a)","context":{{"a":{}1{}}}}}"#,

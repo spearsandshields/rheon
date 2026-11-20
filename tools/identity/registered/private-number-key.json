@@ -1,0 +1,3715 @@
+[
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "42",
+        "feel": "42",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "42",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"$serde_json::private::Number\": \"42\"}",
+        "feel": "{$serde_json::private::Number: \"42\"}",
+        "isNull": false,
+        "type": "context<$serde_json::private::Number: string>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "$serde_json::private::Number",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:string"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::get entries] invalid argument type, expected context, actual type is number",
+          "[core::get value] invalid argument type, expected context, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[true, 1, null]",
+        "feel": "[true, 1, null([core::get value] invalid argument type, expected context, actual type is number)]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, \"42\"]",
+        "feel": "[false, 1, \"42\"]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42"
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::get entries] invalid argument type, expected context, actual type is number",
+          "[core::get value] invalid argument type, expected context, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[true, 1, null]",
+        "feel": "[true, 1, null([core::get value] invalid argument type, expected context, actual type is number)]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": true,
+                  "text": null,
+                  "type": null
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, \"42\"]",
+        "feel": "[false, 1, \"42\"]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": "42"
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::get entries] invalid argument type, expected context, actual type is number",
+          "[core::get value] invalid argument type, expected context, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[[true, 1, null]]",
+        "feel": "[[true, 1, null([core::get value] invalid argument type, expected context, actual type is number)]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "true",
+                        "type": "xsd:boolean"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": true,
+                        "text": null,
+                        "type": null
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[false, 1, \"42\"]]",
+        "feel": "[[false, 1, \"42\"]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "false",
+                        "type": "xsd:boolean"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "42",
+                        "type": "xsd:string"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "43",
+        "feel": "43",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "43",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<$serde_json::private::Number: string>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": "42"
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": "42"
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[42]' =?= '42'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[42]' =?= '42')",
+        "isNull": true,
+        "nullReason": "equal err '[42]' =?= '42'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[{$serde_json::private::Number: \"42\"}]' =?= '42'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[{$serde_json::private::Number: \"42\"}]' =?= '42')",
+        "isNull": true,
+        "nullReason": "equal err '[{$serde_json::private::Number: \"42\"}]' =?= '42'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "v": null
+        }
+      }
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "v": {
+            "names": {
+              "$serde_json::private::Number": null
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 86"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"$serde_json::private::Number\": \"42\", \"b\": 1}",
+        "feel": "{$serde_json::private::Number: \"42\", b: 1}",
+        "isNull": false,
+        "type": "context<$serde_json::private::Number: string, b: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "$serde_json::private::Number",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:string"
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "b",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 178"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 2, \"42\"]",
+        "feel": "[false, 2, \"42\"]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 178"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 2, \"42\"]",
+        "feel": "[false, 2, \"42\"]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": "42",
+            "b": 1
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 197"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[false, 2, \"42\"]]",
+        "feel": "[[false, 2, \"42\"]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "false",
+                        "type": "xsd:boolean"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "42",
+                        "type": "xsd:string"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 111"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<$serde_json::private::Number: string, b: number>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": "42",
+        "b": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 121"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 104"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[{$serde_json::private::Number: \"42\", b: 1}]' =?= '42'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[{$serde_json::private::Number: \"42\", b: 1}]' =?= '42')",
+        "isNull": true,
+        "nullReason": "equal err '[{$serde_json::private::Number: \"42\", b: 1}]' =?= '42'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 68"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "v": {
+            "names": {
+              "$serde_json::private::Number": null,
+              "b": null
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 85"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"$serde_json::private::Number\": true}",
+        "feel": "{$serde_json::private::Number: true}",
+        "isNull": false,
+        "type": "context<$serde_json::private::Number: boolean>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "$serde_json::private::Number",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 177"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, true]",
+        "feel": "[false, 1, true]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 177"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, true]",
+        "feel": "[false, 1, true]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "true",
+                  "type": "xsd:boolean"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": true
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 196"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[false, 1, true]]",
+        "feel": "[[false, 1, true]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "false",
+                        "type": "xsd:boolean"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "true",
+                        "type": "xsd:boolean"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 110"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<$serde_json::private::Number: boolean>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": true
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 120"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": true
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 103"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[{$serde_json::private::Number: true}]' =?= '42'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[{$serde_json::private::Number: true}]' =?= '42')",
+        "isNull": true,
+        "nullReason": "equal err '[{$serde_json::private::Number: true}]' =?= '42'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 67"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "v": {
+            "names": {
+              "$serde_json::private::Number": null
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 83"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"$serde_json::private::Number\": 42}",
+        "feel": "{$serde_json::private::Number: 42}",
+        "isNull": false,
+        "type": "context<$serde_json::private::Number: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "$serde_json::private::Number",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 175"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, 42]",
+        "feel": "[false, 1, 42]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 175"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, 42]",
+        "feel": "[false, 1, 42]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "42",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": 42
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 194"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[false, 1, 42]]",
+        "feel": "[[false, 1, 42]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "false",
+                        "type": "xsd:boolean"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "42",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 108"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<$serde_json::private::Number: number>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": 42
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 118"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": 42
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 101"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[{$serde_json::private::Number: 42}]' =?= '42'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[{$serde_json::private::Number: 42}]' =?= '42')",
+        "isNull": true,
+        "nullReason": "equal err '[{$serde_json::private::Number: 42}]' =?= '42'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 65"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "v": {
+            "names": {
+              "$serde_json::private::Number": null
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"$serde_json::private::Number\": \"x\"}",
+        "feel": "{$serde_json::private::Number: \"x\"}",
+        "isNull": false,
+        "type": "context<$serde_json::private::Number: string>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "$serde_json::private::Number",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "x",
+                  "type": "xsd:string"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, \"x\"]",
+        "feel": "[false, 1, \"x\"]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "x",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, \"x\"]",
+        "feel": "[false, 1, \"x\"]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "x",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": "x"
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[false, 1, \"x\"]]",
+        "feel": "[[false, 1, \"x\"]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "false",
+                        "type": "xsd:boolean"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "x",
+                        "type": "xsd:string"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<$serde_json::private::Number: string>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": "x"
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": "x"
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[{$serde_json::private::Number: \"x\"}]' =?= '42'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[{$serde_json::private::Number: \"x\"}]' =?= '42')",
+        "isNull": true,
+        "nullReason": "equal err '[{$serde_json::private::Number: \"x\"}]' =?= '42'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "v": {
+            "names": {
+              "$serde_json::private::Number": null
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 81"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"$serde_json::private::Number\": {\"$serde_json::private::Number\": \"1\"}}",
+        "feel": "{$serde_json::private::Number: {$serde_json::private::Number: \"1\"}}",
+        "isNull": false,
+        "type": "context<$serde_json::private::Number: context<$serde_json::private::Number: string>>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "$serde_json::private::Number",
+              "value": {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "$serde_json::private::Number",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:string"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 173"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, {\"$serde_json::private::Number\": \"1\"}]",
+        "feel": "[false, 1, {$serde_json::private::Number: \"1\"}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "$serde_json::private::Number",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:string"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 173"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[false, 1, {\"$serde_json::private::Number\": \"1\"}]",
+        "feel": "[false, 1, {$serde_json::private::Number: \"1\"}]",
+        "isNull": false,
+        "type": "list<Any>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "false",
+                  "type": "xsd:boolean"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "$serde_json::private::Number",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:string"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": {
+              "$serde_json::private::Number": "1"
+            }
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 192"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[false, 1, {\"$serde_json::private::Number\": \"1\"}]]",
+        "feel": "[[false, 1, {$serde_json::private::Number: \"1\"}]]",
+        "isNull": false,
+        "type": "list<list<Any>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "false",
+                        "type": "xsd:boolean"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": [
+                        {
+                          "isNil": false,
+                          "name": "$serde_json::private::Number",
+                          "value": {
+                            "components": null,
+                            "list": null,
+                            "simple": {
+                              "isNil": false,
+                              "text": "1",
+                              "type": "xsd:string"
+                            }
+                          }
+                        }
+                      ],
+                      "list": null,
+                      "simple": null
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 106"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [builders::add] invalid argument type, expected number, string, date and time, days and time duration, years and months duration, null, actual type is context<$serde_json::private::Number: context<$serde_json::private::Number: string>>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": {
+          "$serde_json::private::Number": "1"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 116"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 99"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '[{$serde_json::private::Number: {$serde_json::private::Number: \"1\"}}]' =?= '42'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '[{$serde_json::private::Number: {$serde_json::private::Number: \"1\"}}]' =?= '42')",
+        "isNull": true,
+        "nullReason": "equal err '[{$serde_json::private::Number: {$serde_json::private::Number: \"1\"}}]' =?= '42'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "outline",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 63"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "outline": {
+        "names": {
+          "v": {
+            "names": {
+              "$serde_json::private::Number": {
+                "names": {
+                  "$serde_json::private::Number": null
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "maxSteps": {
+        "$serde_json::private::Number": "5"
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "invalid 'maxSteps' {\"$serde_json::private::Number\":\"5\"} (expected a positive integer)"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "tzOffsetMinutes": {
+        "$serde_json::private::Number": "60"
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "'tzOffsetMinutes' must be a number, got {\"$serde_json::private::Number\":\"60\"}"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 83"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Name\n └─ `v`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 175"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 175"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": "42",
+            "b": 1
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 194"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `v`\n │     └─ Name\n │        └─ `l`\n └─ EvaluatedExpression\n    └─ List\n       ├─ InstanceOf\n       │  ├─ Name\n       │  │  └─ `v`\n       │  └─ FeelType\n       │     └─ number\n       ├─ FunctionInvocation\n       │  ├─ Name\n       │  │  └─ `count`\n       │  └─ PositionalParameters\n       │     └─ FunctionInvocation\n       │        ├─ Name\n       │        │  └─ `get entries`\n       │        └─ PositionalParameters\n       │           └─ Name\n       │              └─ `v`\n       └─ FunctionInvocation\n          ├─ Name\n          │  └─ `get value`\n          └─ PositionalParameters\n             ├─ Name\n             │  └─ `v`\n             └─ String\n                └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 108"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `v`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": "42",
+        "b": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 118"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ InstanceOf\n    ├─ Name\n    │  └─ `?`\n    └─ FeelType\n       └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": "42",
+          "b": 1
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: trailing comma at line 1 column 101"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Numeric\n    └─ `42`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 82"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Name\n └─ `v`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 174"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 174"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": true
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 193"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `v`\n │     └─ Name\n │        └─ `l`\n └─ EvaluatedExpression\n    └─ List\n       ├─ InstanceOf\n       │  ├─ Name\n       │  │  └─ `v`\n       │  └─ FeelType\n       │     └─ number\n       ├─ FunctionInvocation\n       │  ├─ Name\n       │  │  └─ `count`\n       │  └─ PositionalParameters\n       │     └─ FunctionInvocation\n       │        ├─ Name\n       │        │  └─ `get entries`\n       │        └─ PositionalParameters\n       │           └─ Name\n       │              └─ `v`\n       └─ FunctionInvocation\n          ├─ Name\n          │  └─ `get value`\n          └─ PositionalParameters\n             ├─ Name\n             │  └─ `v`\n             └─ String\n                └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": true
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 107"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `v`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": true
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 117"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ InstanceOf\n    ├─ Name\n    │  └─ `?`\n    └─ FeelType\n       └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": true
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: boolean `true`, expected string containing a number at line 1 column 100"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Numeric\n    └─ `42`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 80"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Name\n └─ `v`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 172"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 172"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": 42
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 191"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `v`\n │     └─ Name\n │        └─ `l`\n └─ EvaluatedExpression\n    └─ List\n       ├─ InstanceOf\n       │  ├─ Name\n       │  │  └─ `v`\n       │  └─ FeelType\n       │     └─ number\n       ├─ FunctionInvocation\n       │  ├─ Name\n       │  │  └─ `count`\n       │  └─ PositionalParameters\n       │     └─ FunctionInvocation\n       │        ├─ Name\n       │        │  └─ `get entries`\n       │        └─ PositionalParameters\n       │           └─ Name\n       │              └─ `v`\n       └─ FunctionInvocation\n          ├─ Name\n          │  └─ `get value`\n          └─ PositionalParameters\n             ├─ Name\n             │  └─ `v`\n             └─ String\n                └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": 42
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 105"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `v`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": 42
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 115"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ InstanceOf\n    ├─ Name\n    │  └─ `?`\n    └─ FeelType\n       └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": 42
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: integer `42`, expected string containing a number at line 1 column 98"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Numeric\n    └─ `42`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Name\n └─ `v`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": "x"
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `v`\n │     └─ Name\n │        └─ `l`\n └─ EvaluatedExpression\n    └─ List\n       ├─ InstanceOf\n       │  ├─ Name\n       │  │  └─ `v`\n       │  └─ FeelType\n       │     └─ number\n       ├─ FunctionInvocation\n       │  ├─ Name\n       │  │  └─ `count`\n       │  └─ PositionalParameters\n       │     └─ FunctionInvocation\n       │        ├─ Name\n       │        │  └─ `get entries`\n       │        └─ PositionalParameters\n       │           └─ Name\n       │              └─ `v`\n       └─ FunctionInvocation\n          ├─ Name\n          │  └─ `get value`\n          └─ PositionalParameters\n             ├─ Name\n             │  └─ `v`\n             └─ String\n                └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": "x"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `v`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": "x"
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ InstanceOf\n    ├─ Name\n    │  └─ `?`\n    └─ FeelType\n       └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": "x"
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid number at line 1 column 1"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Numeric\n    └─ `42`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "v",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 78"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Name\n └─ `v`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 170"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        },
+        " w": 1
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 170"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " List\n ├─ InstanceOf\n │  ├─ Name\n │  │  └─ `v`\n │  └─ FeelType\n │     └─ number\n ├─ FunctionInvocation\n │  ├─ Name\n │  │  └─ `count`\n │  └─ PositionalParameters\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `get entries`\n │        └─ PositionalParameters\n │           └─ Name\n │              └─ `v`\n └─ FunctionInvocation\n    ├─ Name\n    │  └─ `get value`\n    └─ PositionalParameters\n       ├─ Name\n       │  └─ `v`\n       └─ String\n          └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "for v in l return [v instance of number, count(get entries(v)), get value(v, \"$serde_json::private::Number\")]",
+      "context": {
+        "l": [
+          {
+            "$serde_json::private::Number": {
+              "$serde_json::private::Number": "1"
+            }
+          }
+        ]
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 189"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " For\n ├─ IterationContexts\n │  └─ IterationContextSingle\n │     ├─ Name\n │     │  └─ `v`\n │     └─ Name\n │        └─ `l`\n └─ EvaluatedExpression\n    └─ List\n       ├─ InstanceOf\n       │  ├─ Name\n       │  │  └─ `v`\n       │  └─ FeelType\n       │     └─ number\n       ├─ FunctionInvocation\n       │  ├─ Name\n       │  │  └─ `count`\n       │  └─ PositionalParameters\n       │     └─ FunctionInvocation\n       │        ├─ Name\n       │        │  └─ `get entries`\n       │        └─ PositionalParameters\n       │           └─ Name\n       │              └─ `v`\n       └─ FunctionInvocation\n          ├─ Name\n          │  └─ `get value`\n          └─ PositionalParameters\n             ├─ Name\n             │  └─ `v`\n             └─ String\n                └─ `$serde_json::private::Number`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "errorMode": "strict",
+      "expression": "v + 1",
+      "context": {
+        "v": {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 103"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Add\n ├─ Name\n │  └─ `v`\n └─ Numeric\n    └─ `1`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "? instance of number",
+      "input": {
+        "$serde_json::private::Number": {
+          "$serde_json::private::Number": "1"
+        }
+      }
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 113"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ InstanceOf\n    ├─ Name\n    │  └─ `?`\n    └─ FeelType\n       └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "dialect": "unaryTests",
+      "expression": "42",
+      "input": [
+        {
+          "$serde_json::private::Number": {
+            "$serde_json::private::Number": "1"
+          }
+        }
+      ]
+    },
+    "why": "BND-12: a JSON object of a request is an object whatever its keys are (RFC 8259 section 4). serde_json's tree, built with arbitrary_precision, read an object whose first key is $serde_json::private::Number as a number, or refused the request; the request reader now builds the tree itself.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "malformed request JSON: invalid type: map, expected string containing a number at line 1 column 96"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " ExpressionList\n └─ Numeric\n    └─ `42`\n"
+    }
+  }
+]
