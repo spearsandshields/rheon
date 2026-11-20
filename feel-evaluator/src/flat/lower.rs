@@ -947,7 +947,7 @@ fn fixed_scalar(ast: &AstNode) -> Option<Value> {
 /// of a literal that has no value; `None` for another node.
 fn literal(ast: &AstNode) -> Option<Result<(Value, Option<String>), String>> {
   match ast {
-    AstNode::Numeric(before, after, sign, exponent) => Some(kernels::number_literal(before, after, *sign, exponent).map(|number| (Value::Number(number), None))),
+    AstNode::Numeric(before, after, sign, exponent) => Some(kernels::number_literal(before, after, *sign, exponent).map(|(number, warning)| (Value::Number(number), warning))),
     AstNode::At(text) => Some(kernels::at_literal(text)),
     _ => None,
   }

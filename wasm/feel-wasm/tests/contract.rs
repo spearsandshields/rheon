@@ -2698,3 +2698,41 @@ fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
   let response = req(json!({"op": "evaluate", "expression": "1", "x".repeat(5000): 1}));
   assert!(warnings(&response)[0].chars().count() <= 1000, "{response}");
 }
+
+/// A number literal with more digits than a number holds is rounded, and the evaluation says
+/// so, as it does for a number of the context; a literal that a number holds exactly says nothing.
+#[test]
+fn a_number_literal_of_more_than_34_digits_warns() {
+  let long = "1234567890123456789012345678901234567890";
+  let response = req(json!({"op": "evaluate", "expression": format!("{long} + 1")}));
+  assert_eq!(response["result"]["display"], "1234567890123456789012345678901235000000");
+  assert_eq!(
+    vec![format!(
+      "number literal '{long}' has more than 34 significant digits and was rounded to 1234567890123456789012345678901235000000"
+    )],
+    warnings(&response)
+  );
+  let response = req(json!({"op": "evaluate", "expression": "0.1234567890123456789012345678901234567"}));
+  assert_eq!(
+    vec!["number literal '0.1234567890123456789012345678901234567' has more than 34 significant digits and was rounded to 0.1234567890123456789012345678901235"],
+    warnings(&response)
+  );
+  let response = req(json!({"op": "evaluate", "expression": "1e-6200 + 0"}));
+  assert_eq!(
+    vec!["number literal '1e-6200' is too small for a 34-digit decimal (exponent below -6176) and became 0"],
+    warnings(&response)
+  );
+  // in a loop the literal warns as often as it is evaluated, a repeat once
+  let response = req(json!({"op": "evaluate", "expression": format!("for i in 1..3 return {long}")}));
+  assert_eq!(1, warnings(&response).len(), "{response}");
+  for exact in [
+    "1234567890123456789012345678901234",
+    "1.50",
+    "1e6144",
+    "0.0000000000000000000000000000000000001",
+    "12345678901234567890123456789012340000000",
+  ] {
+    let response = req(json!({"op": "evaluate", "expression": exact}));
+    assert!(warnings(&response).is_empty(), "{exact}: {response}");
+  }
+}

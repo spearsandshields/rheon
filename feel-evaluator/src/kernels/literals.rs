@@ -8,8 +8,10 @@ use std::fmt::Write;
 use std::str::FromStr;
 
 /// The number that a numeric literal writes with the digits `before` and `after` its point and the
-/// exponent `sign` and digits, or the error text of a literal that is no number.
-pub(crate) fn number_literal(before: &str, after: &str, sign: char, exponent: &str) -> Result<FeelNumber, String> {
+/// exponent `sign` and digits, with the warning that its evaluation records when a number does
+/// not hold it exactly (more than 34 significant digits, or too small) and it was rounded; or
+/// the error text of a literal that is no number.
+pub(crate) fn number_literal(before: &str, after: &str, sign: char, exponent: &str) -> Result<(FeelNumber, Option<String>), String> {
   let mut text = String::new();
   let _ = write!(&mut text, "{before}");
   if !after.is_empty() {
@@ -18,7 +20,20 @@ pub(crate) fn number_literal(before: &str, after: &str, sign: char, exponent: &s
   if !exponent.is_empty() {
     let _ = write!(&mut text, "e{sign}{exponent}");
   }
-  text.parse::<FeelNumber>().map_err(|_| format!("failed to convert text '{}' into number", arg(&text)))
+  let (number, rounded) = FeelNumber::from_str_reporting_rounding(&text).map_err(|_| format!("failed to convert text '{}' into number", arg(&text)))?;
+  let warning = rounded.then(|| {
+    // the digits of the literal without the zeros at its ends
+    let digits: String = before.chars().chain(after.chars()).filter(char::is_ascii_digit).collect();
+    let significant = digits.trim_start_matches('0').trim_end_matches('0').len();
+    if number.is_zero() {
+      format!("number literal '{}' is too small for a 34-digit decimal (exponent below -6176) and became 0", arg(&text))
+    } else if significant > 34 {
+      format!("number literal '{}' has more than 34 significant digits and was rounded to {}", arg(&text), arg(&number))
+    } else {
+      format!("number literal '{}' is too small for a 34-digit decimal and was rounded to {}", arg(&text), arg(&number))
+    }
+  });
+  Ok((number, warning))
 }
 
 /// The value of the `@` literal `text` and the warning that its evaluation records when fraction
