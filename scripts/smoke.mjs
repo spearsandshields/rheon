@@ -25,7 +25,7 @@ const checks = [
   ['{"op":"evaluate","expression":"Mike\'s age + 0.1","context":{"Mike\'s age":40.000000000000000000001}}',
     (r) => r.result?.display === '40.100000000000000000001'],
   [{ op: 'evaluate', expression: '{total: sum(items), avg: mean(items)}', context: { items: [1, 2, 4] } },
-    (r) => r.result?.display === '{"avg": 2.333333333333333333333333333333333, "total": 7}'],
+    (r) => r.result?.display === '{"total": 7, "avg": 2.333333333333333333333333333333333}'],
   [{ op: 'evaluate', dialect: 'unaryTests', expression: '> 5, < 2', input: 1 }, (r) => r.result?.display === 'true'],
   [{ op: 'evaluate', expression: 'today() = date(now())', tzOffsetMinutes: tz }, (r) => r.result?.display === 'true'],
   [{ op: 'evaluate', expression: 'string(now())', tzOffsetMinutes: tz }, (r) => r.ok],

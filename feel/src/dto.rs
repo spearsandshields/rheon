@@ -35,6 +35,29 @@ pub struct ValueDto {
   list: Option<ListDto>,
 }
 
+impl ValueDto {
+  /// This value with the components of every context in it in the order of their names. A
+  /// context has its components in the order its entries were written in; this is for a reader
+  /// that takes the components of two values by their places (the runner of the DMN TCK).
+  pub fn with_components_by_name(mut self) -> Self {
+    if let Some(components) = self.object.take() {
+      let mut components: Vec<ComponentDto> = components
+        .into_iter()
+        .map(|mut component| {
+          component.value = component.value.map(ValueDto::with_components_by_name);
+          component
+        })
+        .collect();
+      components.sort_by(|a, b| a.name.cmp(&b.name));
+      self.object = Some(components);
+    }
+    if let Some(list) = &mut self.list {
+      list.items = std::mem::take(&mut list.items).into_iter().map(ValueDto::with_components_by_name).collect();
+    }
+    self
+  }
+}
+
 /// DTO representing a simple value.
 #[derive(Default, Serialize, Deserialize)]
 pub struct SimpleDto {

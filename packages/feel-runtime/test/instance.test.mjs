@@ -56,7 +56,7 @@ test('context with spaced names, FEEL context string, nested output', () => {
   const f = ev('b * 2', { context: '{a: 1, b: a + 1}', contextFormat: 'feel' });
   assert.equal(f.result.display, '4');
   const l = ev('{total: sum(items), avg: mean(items)}', { context: { items: [1, 2, 4] } });
-  assert.equal(l.result.display, '{"avg": 2.333333333333333333333333333333333, "total": 7}');
+  assert.equal(l.result.display, '{"total": 7, "avg": 2.333333333333333333333333333333333}');
   assert.match(l.result.type, /^context</);
 });
 
