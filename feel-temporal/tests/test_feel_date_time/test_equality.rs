@@ -97,3 +97,36 @@ fn _0014() {
   let b: FeelDateTime = "2021-10-02T23:00:00+10:00".try_into().unwrap();
   assert_eq!(a, b);
 }
+
+/// A date and time that its zone has no instant for (the hour that a clock change skips) or
+/// two instants for (the hour that it repeats) equals itself, and no value written otherwise.
+#[test]
+fn a_date_and_time_without_one_instant_equals_itself() {
+  let of = |text: &str| -> FeelDateTime { text.try_into().unwrap() };
+  for text in [
+    "2024-03-31T02:30:00@Europe/Paris",
+    "2024-10-27T02:30:00@Europe/Paris",
+    "2024-03-10T02:00:00@America/New_York",
+    "2024-11-03T01:59:59@America/New_York",
+  ] {
+    assert_eq!(of(text), of(text), "{text}");
+    assert_eq!(Some(std::cmp::Ordering::Equal), of(text).partial_cmp(&of(text)), "{text}");
+  }
+  let skipped = of("2024-03-31T02:30:00@Europe/Paris");
+  for other in [
+    "2024-03-31T02:30:01@Europe/Paris",
+    "2024-03-31T03:30:00@Europe/Paris",
+    "2024-03-30T02:30:00@Europe/Paris",
+    "2024-03-31T02:30:00@Europe/Berlin",
+    "2024-03-31T02:30:00+01:00",
+    "2024-03-31T01:30:00Z",
+    "2024-03-31T00:30:00Z",
+    "2024-03-31T02:30:00",
+  ] {
+    assert_ne!(skipped, of(other), "{other}");
+    assert_ne!(of(other), skipped, "{other}");
+  }
+  // a date and time that has one instant is compared by it, as before
+  assert_eq!(of("2024-03-31T03:30:00@Europe/Paris"), of("2024-03-31T01:30:00Z"));
+  assert_eq!(of("2024-03-31T01:30:00@Europe/Paris"), of("2024-03-31T00:30:00Z"));
+}

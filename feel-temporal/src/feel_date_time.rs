@@ -37,6 +37,8 @@ impl TryFrom<&str> for FeelDateTime {
 }
 
 impl PartialEq for FeelDateTime {
+  /// Two date and times are equal when they are the same instant. One that its zone has no
+  /// instant or two instants for equals only a date and time written as it is.
   fn eq(&self, rhs: &Self) -> bool {
     let lhs_zone = self.1.zone();
     let rhs_zone = rhs.1.zone();
@@ -63,7 +65,15 @@ impl PartialEq for FeelDateTime {
         return lhs_date == rhs_date;
       }
     }
-    false
+    // a side without one instant (the hour that a clock change of its zone skips or repeats):
+    // equal when both are written alike, so that such a value equals itself and no other
+    let zones_written_alike = match (lhs_zone, rhs_zone) {
+      (FeelZone::Utc, FeelZone::Utc) | (FeelZone::Local, FeelZone::Local) => true,
+      (FeelZone::Offset(lhs), FeelZone::Offset(rhs)) => lhs == rhs,
+      (FeelZone::Zone(lhs), FeelZone::Zone(rhs)) => lhs == rhs,
+      _ => false,
+    };
+    lhs_date_tuple == rhs_date_tuple && lhs_time_tuple == rhs_time_tuple && zones_written_alike
   }
 }
 
