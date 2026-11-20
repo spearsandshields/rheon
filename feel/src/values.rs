@@ -904,17 +904,17 @@ pub fn warn_truncated_fraction(source: &(impl MessageArg + ?Sized), dropped: Opt
 /// Type alias to a collection of values.
 pub type Values = Vec<Value>;
 
-/// The type of the items of a list, `Null` for an empty one: the type of the first item when
-/// every other item's type conforms to it, `Any` otherwise. Whether they conform is decided
-/// without building a type ([FeelList::items_conform_to_first]), a pair with a shared list or
-/// context once, so only the first item's type is built: building or checking each item's type
-/// followed every path of a list that holds the same list on several paths.
+/// The type of the items of a list, `Null` for an empty one: the type of the item that every
+/// item's type conforms to, wherever it stands, `Any` when there is no such item. Which item it
+/// is is decided without building a type ([FeelList::item_of_the_widest_type]), a pair with a
+/// shared list or context once, so only that item's type is built: building or checking each
+/// item's type followed every path of a list that holds the same list on several paths.
 fn list_item_type(items: &FeelList, budget: &mut impl Budget) -> Option<FeelType> {
-  match items.first() {
-    Some(first) if items.items_conform_to_first() => first.type_of_within(budget),
-    first => {
+  match items.item_of_the_widest_type() {
+    Some(widest) => widest.type_of_within(budget),
+    None => {
       budget.take(1)?;
-      Some(if first.is_some() { FeelType::Any } else { FeelType::Null })
+      Some(if items.is_empty() { FeelType::Null } else { FeelType::Any })
     }
   }
 }

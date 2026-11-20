@@ -529,9 +529,15 @@ fn test_type_of_list_items() {
   };
   let list_of = |item_type: FeelType| FeelType::List(Box::new(item_type));
   let context_a = FeelType::Context(BTreeMap::from([(NAME_A.clone(), FeelType::Number)]));
-  // fixed cases: a null item (first, its type is conformed to only by null; later, it conforms to
-  // any item type), a missing entry, extra entries, nested lists
-  eq_typ!(list_of(FeelType::Any), Value::List(vec![value_null!(), value_number!(1)].into()));
+  // fixed cases: a null item (first or later, it conforms to any item type), a missing entry,
+  // extra entries, nested lists
+  eq_typ!(list_of(FeelType::Number), Value::List(vec![value_null!(), value_number!(1)].into()));
+  eq_typ!(list_of(FeelType::Number), Value::List(vec![value_number!(1), value_null!()].into()));
+  eq_typ!(list_of(context_a.clone()), Value::List(vec![value_null!(), ctx(&[("a", value_number!(1))])].into()));
+  eq_typ!(
+    list_of(context_a.clone()),
+    Value::List(vec![ctx(&[("a", value_number!(2)), ("b", Value::String("x".into()))]), ctx(&[("a", value_number!(1))])].into())
+  );
   eq_typ!(list_of(context_a.clone()), Value::List(vec![ctx(&[("a", value_number!(1))]), value_null!()].into()));
   eq_typ!(
     list_of(FeelType::Any),
@@ -553,21 +559,16 @@ fn full() -> bool {
 }
 
 /// The type of a value by the list typing rule of [Value::type_of], applied at every level and
-/// with [FeelType::is_conformant] on the built type of every item: a list has the type of its
-/// first item when the type of every other item conforms to it, `Any` otherwise.
+/// with [FeelType::is_conformant] on the built type of every item: a list has the type of the
+/// item that the type of every item conforms to, wherever it stands, `Any` when there is none.
 fn reference_type(value: &Value) -> FeelType {
   match value {
-    Value::List(items) => match items.split_first() {
-      None => FeelType::List(Box::new(FeelType::Null)),
-      Some((first, others)) => {
-        let item_type = reference_type(first);
-        if others.iter().all(|item| reference_type(item).is_conformant(&item_type)) {
-          FeelType::List(Box::new(item_type))
-        } else {
-          FeelType::List(Box::new(FeelType::Any))
-        }
-      }
-    },
+    Value::List(items) if items.is_empty() => FeelType::List(Box::new(FeelType::Null)),
+    Value::List(items) => {
+      let types: Vec<FeelType> = items.iter().map(reference_type).collect();
+      let widest = types.iter().find(|widest| types.iter().all(|item| item.is_conformant(widest)));
+      FeelType::List(Box::new(widest.cloned().unwrap_or(FeelType::Any)))
+    }
     Value::Context(ctx) => FeelType::Context(ctx.iter().map(|(name, value)| (name.clone(), reference_type(value))).collect()),
     other => other.type_of(),
   }

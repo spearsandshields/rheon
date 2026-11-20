@@ -153,14 +153,16 @@ fn the_relations_visit_a_shared_list_once() {
   assert!(list.type_instance_of(&nested_list_type(60, FeelType::Number)));
   assert!(list.type_instance_of(&nested_list_type(1, FeelType::Any)));
   assert!(!list.type_instance_of(&nested_list_type(59, FeelType::Number)));
-  // `b` is doubled as `a` is, except that its last item is a string: the items of `b` and of
-  // every list above it are not alike, so their type is `list<Any>`
+  // `b` is doubled as `a` is, except that its last item is a string: the two items of the
+  // lowest list around it are a list of numbers and a list of strings, so its type is
+  // `list<Any>`, and every list above has that list as the item all its items conform to
   let (mut a, mut b) = (doubled(1), Value::List(FeelList::from(vec![Value::String("a".into())])));
   for _ in 1..59 {
     (a, b) = (Value::List(FeelList::from(vec![a.clone(), a.clone()])), Value::List(FeelList::from(vec![a, b])));
   }
   let top = Value::List(FeelList::from(vec![a, b]));
-  assert!(top.has_type(&nested_list_type(1, FeelType::Any)));
+  assert!(top.has_type(&nested_list_type(59, FeelType::Any)));
+  assert!(!top.has_type(&nested_list_type(1, FeelType::Any)));
   assert!(top.type_instance_of(&nested_list_type(1, FeelType::Any)));
   assert!(!top.type_instance_of(&nested_list_type(60, FeelType::Number)));
 }

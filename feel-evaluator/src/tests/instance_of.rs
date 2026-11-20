@@ -420,3 +420,47 @@ fn _0070() {
     crate::tests::eval(&scope!(), &node).to_string()
   );
 }
+
+/// The type of the items of a list is the type of the item that the types of all the others
+/// conform to, wherever that item stands: a null beside numbers is a list of numbers.
+#[test]
+fn the_type_of_a_list_does_not_depend_on_the_order_of_its_items() {
+  for (items, feel_type, expected) in [
+    (vec!["null", "1"], "list<number>", true),
+    (vec!["null", "1", "null", "2"], "list<number>", true),
+    (vec!["null", "1"], "list<string>", false),
+    (vec!["null", "1", r#""a""#], "list<number>", false),
+    (vec!["null", "1", r#""a""#], "list<Any>", true),
+    (vec!["[null]", "[1]"], "list<list<number>>", true),
+    (vec!["[null]", "[1]", "[]"], "list<list<number>>", true),
+    (vec!["{a: null}", "{a: 1}"], "list<context<a: number>>", true),
+    (vec!["{a: 1, b: 2}", "{a: 1}"], "list<context<a: number>>", true),
+    (vec!["{a: 1, b: 2}", "{a: 1}"], "list<context<a: number, b: number>>", false),
+    (vec!["{a: 1}", "{b: 1}"], "list<context<a: number>>", false),
+    (vec!["null", "null"], "list<number>", false),
+    (vec!["null", "null"], "list<Null>", true),
+  ] {
+    // every rotation of the items, and their reverse
+    let mut items = items;
+    for _ in 0..items.len() {
+      items.rotate_left(1);
+      for list in [items.clone(), items.iter().rev().cloned().collect()] {
+        let text = format!("[{}] instance of {feel_type}", list.join(", "));
+        te_bool(false, &scope!(), &text, expected);
+      }
+    }
+  }
+  // the type that a message names
+  te_null(
+    false,
+    &scope!(),
+    "abs([null, 1, 2])",
+    "[core::abs] invalid argument type, expected number, actual type is list<number>",
+  );
+  te_null(
+    false,
+    &scope!(),
+    "abs([1, null, 2])",
+    "[core::abs] invalid argument type, expected number, actual type is list<number>",
+  );
+}

@@ -119,31 +119,32 @@ pub(crate) fn context_type_entries(feel_type: &FeelType) -> Option<&BTreeMap<Nam
 /// names of the item type of the list ([Value::type_of]) when it is a context type, `None`
 /// otherwise.
 ///
-/// The item type of a list is the type of its first item when the types of the other items
-/// conform to it ([FeelList::items_conform_to_first](rheon_feel::values::FeelList::items_conform_to_first)),
-/// so it is a context type when that holds and the type of the first item is a context type
-/// ([context_type_node]). The names are then read from the first item, and no type is built: a
-/// list whose first item is not a context, a context type or an interval end of one is not
-/// looked at further, and the conformance of the items reads them only as far as it needs, a pair
-/// with a shared list or context once.
+/// The item type of a list is the type of the item that the types of all its items conform to
+/// ([FeelList::item_of_the_widest_type](rheon_feel::values::FeelList::item_of_the_widest_type)),
+/// so it is a context type when there is such an item and its type is a context type
+/// ([context_type_node]). The names are then read from that item, and no type is built: a list
+/// whose first item that is not null is not a context, a context type or an interval end of one
+/// is not looked at further (such an item conforms to no context type), and the conformance of
+/// the items reads them only as far as it needs, a pair with a shared list or context once.
 pub(crate) fn list_item_node(value: &Value) -> Option<(Node<'_>, &Value)> {
   let Value::List(items) = value else {
     return None;
   };
-  let first = items.first()?;
-  let node = context_type_node(first)?;
+  context_type_node(items.iter().find(|item| !item.is_null())?)?;
   work!(ListsDecided, 1);
-  items.items_conform_to_first().then_some((node, first))
+  let widest = items.item_of_the_widest_type()?;
+  Some((context_type_node(widest)?, widest))
 }
 
-/// Returns the node of the names of the first item of a list value, with the item, and whether
-/// the items are of one type without a comparison (a list of one item): the node that
-/// [list_item_node] returns when the items conform to the first, taken without deciding it.
+/// Returns the node of the names of the first item of a list value that is not null, with the
+/// item, and whether the items are of one type without a comparison (a list of one item). The
+/// names that [list_item_node] returns are among its names: the item that all the items conform
+/// to has no name that another context of the list lacks. Taken without deciding it.
 fn first_item_node(value: &Value) -> Option<(Node<'_>, &Value, bool)> {
   let Value::List(items) = value else {
     return None;
   };
-  let first = items.first()?;
+  let first = items.iter().find(|item| !item.is_null())?;
   Some((context_type_node(first)?, first, items.len() == 1))
 }
 
