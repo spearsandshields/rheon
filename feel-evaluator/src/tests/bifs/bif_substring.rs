@@ -187,6 +187,6 @@ fn _0025() {
     false,
     &scope!(),
     r#"substring(["homeless"], 9, 2)"#,
-    r#"substring: expected string, actual value type is list<string>"#,
+    r#"substring: invalid range, len = 8, start position = 9, end position = 11"#,
   );
 }

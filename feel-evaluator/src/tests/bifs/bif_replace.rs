@@ -273,7 +273,9 @@ fn every_character_of_the_flags_is_a_flag() {
 #[test]
 fn flags_that_are_no_string_are_null() {
   te_null(false, &scope!(), r#"replace("abc","b","x",1)"#, "replace: flags must be a string");
-  te_null(false, &scope!(), r#"replace("abc","b","x",["i"])"#, "replace: flags must be a string");
+  te_null(false, &scope!(), r#"replace("abc","b","x",["i","s"])"#, "replace: flags must be a string");
+  // a list of one string is that string
+  te_string(false, &scope!(), r#"replace("abc","B","x",["i"])"#, "axc");
   // null flags are no flags
   te_string(false, &scope!(), r#"replace("abc","b","x",null)"#, "axc");
 }

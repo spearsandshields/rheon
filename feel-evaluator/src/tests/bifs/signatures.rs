@@ -239,3 +239,108 @@ fn is_takes_two_values() {
   assert_eq!("false", shown("is(value2: 1)"));
   assert_eq!("true", shown("is(value1: 1, value2: 1)"));
 }
+
+/// A list of one item given for a parameter that is no list is that item (DMN 1.6, 10.3.2.9.4,
+/// from singleton list), by position and by name.
+#[test]
+fn a_list_of_one_item_is_its_item_for_a_parameter_that_is_no_list() {
+  for (text, expected) in [
+    (r#"contains(["foobar"], "of")"#, "false"),
+    (r#"contains(["foobar"], ["ob"])"#, "true"),
+    (r#"string length(["abc"])"#, "3"),
+    (r#"string length(string: ["abc"])"#, "3"),
+    ("abs([-1])", "1"),
+    ("abs(n: [-1])", "1"),
+    (r#"substring(["abc"], [2])"#, r#""bc""#),
+    (r#"substring(string: ["abc"], start position: [2], length: [1])"#, r#""b""#),
+    (r#"date(["2020-01-02"])"#, "2020-01-02"),
+    ("date([2020], 1, [2])", "2020-01-02"),
+    (r#"string join(["a", "b"], ["-"])"#, r#""a-b""#),
+    (r#"get value([{a: 1}], ["a"])"#, "1"),
+    ("not([true])", "false"),
+    (r#"upper case(["abc"])"#, r#""ABC""#),
+    ("decimal([1.555], [2])", "1.56"),
+    ("sort([[2, 1]], [function(a, b) a < b])", "[[2, 1]]"),
+    ("sort([2, 1], [function(a, b) a < b])", "[1, 2]"),
+    ("abs([null])", "null([core::abs] invalid argument type, expected number, actual type is Null)"),
+    // a parameter that is a list or takes every value keeps the list
+    ("count([1])", "1"),
+    ("string([1])", r#""[1]""#),
+    ("sum([2])", "2"),
+    ("max([1])", "1"),
+    ("list contains([1], 1)", "true"),
+    ("list contains([[1]], [1])", "true"),
+    ("append([1], [2])", "[1, [2]]"),
+    ("flatten([[1]])", "[1]"),
+    ("index of([[1]], [1])", "[1]"),
+    ("get entries({a: [1]})[1].value", "[1]"),
+    // a list of another length, and an item that is not of the type of the parameter
+    ("abs([])", "null([core::abs] invalid argument type, expected number, actual type is list<Null>)"),
+    ("abs([1, 2])", "null([core::abs] invalid argument type, expected number, actual type is list<number>)"),
+    (r#"abs(["a"])"#, "null([core::abs] invalid argument type, expected number, actual type is list<string>)"),
+    ("abs([[1]])", "null([core::abs] invalid argument type, expected number, actual type is list<list<number>>)"),
+    (r#"abs(n: ["a"])"#, "null([core::abs] invalid argument type, expected number, actual type is list<string>)"),
+    // the count of the values is not that of a signature
+    ("abs([1], [2])", "null(expected 1 parameters, actual number of parameters is 2)"),
+  ] {
+    assert_eq!(expected, shown(text), "{text}");
+  }
+}
+
+/// Every parameter of every signature that is no list and does not take every value: the
+/// function answers a list of one value of its type as it answers the value.
+#[test]
+fn every_parameter_that_is_no_list_takes_a_list_of_one_item() {
+  let takes_a_list = |feel_type: &str| feel_type.starts_with("list") || feel_type == "Any";
+  let (mut compared, mut differing) = (0, vec![]);
+  for built_in in &BUILT_INS {
+    for signature in built_in.signatures {
+      for (index, parameter) in signature.parameters.iter().enumerate() {
+        // no signature of the function has a list at this place or under this name
+        let list_elsewhere = built_in.signatures.iter().any(|other| {
+          other
+            .parameters
+            .iter()
+            .enumerate()
+            .any(|(place, candidate)| takes_a_list(candidate.feel_type) && (place == index || candidate.name == parameter.name || candidate.rest && place < index))
+        });
+        if list_elsewhere {
+          continue;
+        }
+        let values = |wrapped: bool| -> Vec<String> {
+          signature
+            .parameters
+            .iter()
+            .enumerate()
+            .map(|(place, parameter)| {
+              let value = sample(parameter.feel_type);
+              if wrapped && place == index { format!("[{value}]") } else { value.to_string() }
+            })
+            .collect()
+        };
+        let named = |values: Vec<String>| -> Vec<String> {
+          signature
+            .parameters
+            .iter()
+            .zip(values)
+            .map(|(parameter, value)| format!("{}: {value}", parameter.name))
+            .collect()
+        };
+        let mut pairs = vec![(values(false), values(true))];
+        if signature.named {
+          pairs.push((named(values(false)), named(values(true))));
+        }
+        for (plain, wrapped) in pairs {
+          let (plain, wrapped) = (format!("{}({})", built_in.name, plain.join(", ")), format!("{}({})", built_in.name, wrapped.join(", ")));
+          let (expected, answer) = (shown(&plain), shown(&wrapped));
+          if expected != answer {
+            differing.push(format!("{wrapped}: {answer}\n  {plain}: {expected}"));
+          }
+          compared += 1;
+        }
+      }
+    }
+  }
+  assert!(differing.is_empty(), "{} of {compared}:\n{}", differing.len(), differing.join("\n"));
+  assert!(compared > 200, "{compared}");
+}

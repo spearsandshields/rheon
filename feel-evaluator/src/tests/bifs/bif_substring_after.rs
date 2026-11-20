@@ -53,20 +53,10 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(
-    false,
-    &scope!(),
-    r#"substring after(["foobar"], "ob")"#,
-    r#"substring after: expected string, actual input type is: list<string>"#,
-  );
+  te_string(false, &scope!(), r#"substring after(["foobar"], "ob")"#, "ar");
 }
 
 #[test]
 fn _0009() {
-  te_null(
-    false,
-    &scope!(),
-    r#"substring after("foobar", ["ob"])"#,
-    r#"substring after: expected string, actual match type is: list<string>"#,
-  );
+  te_string(false, &scope!(), r#"substring after("foobar", ["ob"])"#, "ar");
 }

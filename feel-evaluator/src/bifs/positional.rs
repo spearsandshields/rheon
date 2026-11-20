@@ -1,10 +1,18 @@
-use crate::bifs::core;
+use crate::bifs::{core, one_item_lists};
 use crate::macros::invalid_number_of_parameters;
 use rheon_feel::bif::Bif;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, value_null};
 
 pub fn evaluate_bif(bif: Bif, parameters: &[Value]) -> Value {
+  match one_item_lists::by_position(&bif, parameters) {
+    Some(parameters) => apply(bif, &parameters),
+    None => apply(bif, parameters),
+  }
+}
+
+/// Applies `bif` to `parameters`, as they are.
+fn apply(bif: Bif, parameters: &[Value]) -> Value {
   match bif {
     Bif::Abs => bif_abs(parameters),
     Bif::After => bif_after(parameters),

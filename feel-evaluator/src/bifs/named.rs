@@ -1,4 +1,4 @@
-use crate::bifs::core;
+use crate::bifs::{core, one_item_lists};
 use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
 use rheon_feel::message::arg;
@@ -99,6 +99,16 @@ pub fn evaluate_bif(bif: Bif, parameters: &NamedParameters) -> Value {
   if let Some(refused) = names_of_no_signature(&bif, parameters) {
     return refused;
   }
+  if let Value::NamedParameters(given) = parameters
+    && let Some(given) = one_item_lists::by_name(&bif, given)
+  {
+    return apply(bif, &Value::NamedParameters(given));
+  }
+  apply(bif, parameters)
+}
+
+/// Applies `bif` to `parameters`, as they are.
+fn apply(bif: Bif, parameters: &NamedParameters) -> Value {
   match bif {
     Bif::Abs => bif_abs(parameters),
     Bif::After => bif_after(parameters),
