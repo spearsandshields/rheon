@@ -34,10 +34,6 @@
       "types": "./dist/worker.d.ts",
       "default": "./dist/worker.js"
     },
-    "./node": {
-      "types": "./dist/node.d.ts",
-      "default": "./dist/node.js"
-    },
     "./wasi": {
       "types": "./dist/wasi.d.ts",
       "default": "./dist/wasi.js"

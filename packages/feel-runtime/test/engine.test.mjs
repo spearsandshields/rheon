@@ -460,34 +460,3 @@ test('real worker: the editor operations (syntax, complete, outline)', async (t)
   assert.deepEqual(both, { ok: false, error: { kind: 'request', message: "give 'context' or 'outline', not both" } });
   assert.equal(engine.workerStarts, 1);
 });
-
-test('in Node the engine runs in a worker thread of the package, and says so when it is given none', async () => {
-  const { createNodeWorker: shipped, nodeWorkers } = await import('../dist/node.js');
-  const engine = await FeelEngine.create({ wasmBytes: await wasmBytes(), createWorker: shipped, timeoutMs: 10000 });
-  try {
-    const answer = await engine.evaluate({ expression: '{z: 0.1 + 0.2, a: 1}' });
-    assert.equal(answer.ok, true);
-    assert.equal(answer.result.display, '{"z": 0.3, "a": 1}');
-  } finally {
-    engine.dispose();
-  }
-  // a runaway evaluation ends its worker; the next request has a fresh one
-  const hasty = await FeelEngine.create({ wasmBytes: await wasmBytes(), createWorker: shipped, timeoutMs: 200 });
-  try {
-    const stopped = await hasty.evaluate({ expression: 'count(for i in 1..100000 return sum(for j in 1..1000 return j))' });
-    assert.equal(stopped.ok, false);
-    assert.equal(stopped.error.kind, 'timeout');
-    assert.equal((await hasty.evaluate({ expression: '1 + 1' })).result.display, '2');
-  } finally {
-    hasty.dispose();
-  }
-  // workers with resource limits
-  const limited = await FeelEngine.create({ wasmBytes: await wasmBytes(), createWorker: nodeWorkers({ resourceLimits: { stackSizeMb: 8 } }), timeoutMs: 10000 });
-  try {
-    assert.equal((await limited.evaluate({ expression: '2 * 21' })).result.display, '42');
-  } finally {
-    limited.dispose();
-  }
-  // without a worker of its own, Node has no Web Worker: the error names the adapter
-  await assert.rejects(FeelEngine.create({ wasmBytes: await wasmBytes(), startupTimeoutMs: 2000 }), /createNodeWorker.*@rheon\/feel-runtime\/node/);
-});

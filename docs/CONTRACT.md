@@ -369,7 +369,7 @@ export function createWasiShim(opts?): { imports; setMemory(m); recentStderr(): 
 export function rawJson(text: string): RawJson;
 ```
 
-Package exports: `.` (all of the above), `./worker` (the module worker script), `./wasi` (the shim), `./node` (Node only: `createNodeWorker(options?)` and `nodeWorkers(options)`, which give `FeelEngine` a thread of `node:worker_threads` as its worker through `createWorker`; `options.resourceLimits` are those of the thread).
+Package exports: `.` (all of the above), `./worker` (the module worker script), `./wasi` (the shim).
 
 Runtime guarantees:
 - Requests are serialized: one at a time per engine, queued in FIFO order.

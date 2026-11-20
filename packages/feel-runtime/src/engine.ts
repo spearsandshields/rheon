@@ -86,11 +86,6 @@ const DEFAULT_STARTUP_TIMEOUT_MS = 15000;
 export const RESTART_BACKOFF_MS = [100, 500, 2000] as const;
 
 function defaultCreateWorker(): WorkerLike {
-  if (typeof Worker === 'undefined') {
-    throw new Error(
-      "FeelEngine expected a Web Worker, found none: in Node, pass `createWorker: createNodeWorker` from '@rheon/feel-runtime/node'",
-    );
-  }
   // This exact `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })` form is
   // what Vite / webpack 5 / Parcel recognise to bundle the worker.
   return new Worker(new URL('./worker.js', import.meta.url), { type: 'module' }) as unknown as WorkerLike;
