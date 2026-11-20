@@ -140,8 +140,6 @@ Open in 1.6:
   - *`max` and `min` depend on the argument order* with nulls (max skips them after the first
     position, min never does), which carries into the C< and C> hit policies. Both reject dates,
     times and durations.
-  - *Context equality depends on key order*: it returns null at the first pair it can not
-    compare, even when a later pair differs. List equality treats such a pair as unequal.
   - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
     OR (comparison_in.rs asserts AND). The spec also reads differently for `null <= null` (spec:
     `<` or `=`, so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and

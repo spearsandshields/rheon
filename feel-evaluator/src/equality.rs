@@ -101,27 +101,13 @@ impl Equality {
       },
       Value::Context(ls) => match rhs {
         Value::Context(rs) => {
-          if ls.len() == rs.len() {
-            for (key1, value1) in ls.iter() {
-              if let Some(value2) = rs.get_entry(key1) {
-                if let Some(equal) = self.nested(value1, value2) {
-                  if !equal {
-                    return Some(false); // values in entries are NOT EQUAL
-                  }
-                } else {
-                  // values in entries can not be compared
-                  return None;
-                }
-              } else {
-                // there is no such key in the right-side context
-                return Some(false);
-              }
-            }
-            // contexts are EQUAL
-            return Some(true);
-          }
-          // contexts have different number of keys, so they are NOT EQUAL
-          Some(false)
+          // the same keys, and under every key equal values (Table 54): values that are not
+          // equal or can not be compared make the contexts unequal, as the items of lists do
+          let equal = ls.len() == rs.len()
+            && ls
+              .iter()
+              .all(|(key, value1)| rs.get_entry(key).is_some_and(|value2| self.nested(value1, value2) == Some(true)));
+          Some(equal)
         }
         _ => None,
       },
@@ -148,13 +134,8 @@ impl Equality {
       Value::List(ls) => match rhs {
         Value::List(rs) => {
           if ls.len() == rs.len() {
-            for (l, r) in ls.iter().zip(rs.iter()) {
-              if let Some(true) = self.nested(l, r) {
-              } else {
-                return Some(false);
-              }
-            }
-            Some(true)
+            // items that are not equal or can not be compared make the lists unequal
+            Some(ls.iter().zip(rs.iter()).all(|(l, r)| self.nested(l, r) == Some(true)))
           } else {
             Some(false)
           }

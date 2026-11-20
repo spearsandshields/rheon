@@ -123,12 +123,7 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  te_null(
-    false,
-    &scope!(),
-    r#"{a: {b: "bar", c: {x: "car"}}} = {a: {b: "bar", c: 15}}"#,
-    r#"equal err '{a: {b: "bar", c: {x: "car"}}}' =?= '{a: {b: "bar", c: 15}}'"#,
-  );
+  te_bool(false, &scope!(), r#"{a: {b: "bar", c: {x: "car"}}} = {a: {b: "bar", c: 15}}"#, false);
 }
 
 #[test]
@@ -390,6 +385,35 @@ fn _0069() {
   te_bool(false, &scope!(), "{a: 1} = {a: null}", false);
   te_bool(false, &scope!(), "[null] = [1]", false);
   te_bool(false, &scope!(), "[1] = [null]", false);
+}
+
+/// Two lists, two contexts and two ranges are equal or they are not (DMN 1.6, Table 54: the
+/// items, the entries or the endpoints are equal, each to its counterpart): a pair of them that
+/// is of two kinds makes the values unequal, wherever it stands among the others.
+#[test]
+fn values_of_one_kind_that_hold_values_of_two_kinds_are_unequal() {
+  for (lhs, rhs) in [
+    (r#"[1]"#, r#"["a"]"#),
+    (r#"{a: 1}"#, r#"{a: "a"}"#),
+    (r#"{a: 1, b: 2}"#, r#"{a: "a", b: 3}"#),
+    (r#"{a: 1, b: 2}"#, r#"{a: 2, b: "b"}"#),
+    (r#"{a: 1, b: 2}"#, r#"{a: 1, b: "b"}"#),
+    (r#"{a: "a", b: 2}"#, r#"{a: 1, b: 2}"#),
+    (r#"{a: {b: [1]}}"#, r#"{a: {b: [true]}}"#),
+    (r#"[{a: 1}]"#, r#"[{a: "a"}]"#),
+    (r#"{a: [1]}"#, r#"{a: 1}"#),
+    (r#"{a: {b: "bar", c: {x: "car"}}}"#, r#"{a: {b: "bar", c: 15}}"#),
+    (r#"[1..2]"#, r#"["a".."b"]"#),
+  ] {
+    te_bool(false, &scope!(), &format!("{lhs} = {rhs}"), false);
+    te_bool(false, &scope!(), &format!("{rhs} = {lhs}"), false);
+    te_bool(false, &scope!(), &format!("{lhs} != {rhs}"), true);
+    te_bool(false, &scope!(), &format!("[{lhs}] = [{rhs}]"), false);
+    te_bool(false, &scope!(), &format!("{{k: {lhs}}} = {{k: {rhs}}}"), false);
+  }
+  // values of two kinds themselves are not compared
+  te_null(false, &scope!(), r#"{a: 1} = [1]"#, r#"equal err '{a: 1}' =?= '[1]'"#);
+  te_null(false, &scope!(), r#"1 = "a""#, r#"equal err '1' =?= '"a"'"#);
 }
 
 /// Grammar rule 49: a comparison takes the comparison on its left as its operand.
