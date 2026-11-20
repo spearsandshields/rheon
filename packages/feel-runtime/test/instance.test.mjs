@@ -269,3 +269,38 @@ test('functions that see their own context leave no memory behind', async () => 
     assert.ok(raw.memoryBytes - before < 8 * 1024 * 1024, `${expression}: grew by ${raw.memoryBytes - before} bytes`);
   }
 });
+
+test('the check for unpaired surrogates in JSON text reads every escape as a walk over all characters does', async () => {
+  const { hasLoneSurrogate } = await import('../dist/request.js');
+  // the walk over every character: the definition
+  const byCharacter = (json) => {
+    if (!json.isWellFormed()) return true;
+    for (let i = 0; i < json.length; i++) {
+      if (json[i] !== '\\') continue;
+      if (json[i + 1] !== 'u') { i++; continue; }
+      const code = parseInt(json.slice(i + 2, i + 6), 16);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        if (json[i + 6] === '\\' && json[i + 7] === 'u') {
+          const low = parseInt(json.slice(i + 8, i + 12), 16);
+          if (low >= 0xdc00 && low <= 0xdfff) { i += 11; continue; }
+        }
+        return true;
+      }
+      if (code >= 0xdc00 && code <= 0xdfff) return true;
+      i += 5;
+    }
+    return false;
+  };
+  const pieces = ['a', '"', ' ', '\\\\', '\\"', '\\n', '\\u0041', '\\ud83d', '\\uD83D', '\\ude00', '\\uDE00', '\\ud83d\\ude00', '\\', 'u', 'd83d', '\\u', '\\ud8', '😀', '\ud83d', 'é'];
+  let state = 0x9e3779b9;
+  const next = (below) => { state ^= state << 13; state >>>= 0; state ^= state >>> 17; state ^= state << 5; state >>>= 0; return state % below; };
+  let unpaired = 0;
+  const cases = 40000;
+  for (let n = 0; n < cases; n++) {
+    const text = Array.from({ length: next(9) }, () => pieces[next(pieces.length)]).join('');
+    const expected = byCharacter(text);
+    unpaired += expected ? 1 : 0;
+    assert.equal(hasLoneSurrogate(text), expected, JSON.stringify(text));
+  }
+  assert.ok(unpaired > cases / 10 && unpaired < cases - cases / 10, `${unpaired} of ${cases} texts have an unpaired surrogate`);
+});

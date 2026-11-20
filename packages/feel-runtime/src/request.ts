@@ -24,6 +24,9 @@ export function isRawJson(v: unknown): v is RawJson {
 
 const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
 
+/** The start of an escape that may be one of a surrogate. */
+const SURROGATE_ESCAPE = /\\u[dD]/;
+
 /** `true` when `text` is valid Unicode (no unpaired UTF-16 surrogate). */
 function isWellFormed(text: string): boolean {
   const native = (text as { isWellFormed?: () => boolean }).isWellFormed;
@@ -37,6 +40,9 @@ function isWellFormed(text: string): boolean {
  */
 export function hasLoneSurrogate(json: string): boolean {
   if (!isWellFormed(json)) return true;
+  // an escape of a surrogate is `\ud…` or `\uD…`: a text without these has none, and the
+  // search for them is the JavaScript engine's own, not a walk over every character
+  if (!SURROGATE_ESCAPE.test(json)) return false;
   for (let i = 0; i < json.length; i++) {
     if (json[i] !== '\\') continue;
     if (json[i + 1] !== 'u') {
