@@ -103,12 +103,7 @@ fn _0019() {
 
 #[test]
 fn _0020() {
-  te_null(
-    false,
-    &scope!(),
-    r#"day of week(date(999999999,1,1))"#,
-    r#"[core::day of week] invalid argument type, expected date, date and time, actual type is Null"#,
-  );
+  te_be_value(false, &scope!(), r#"day of week(date(999999999,1,1))"#, r#""Friday""#);
 }
 
 #[test]

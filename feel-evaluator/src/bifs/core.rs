@@ -620,12 +620,25 @@ pub fn date_and_time_1(value: &Value) -> Value {
       warn_truncated_fraction(text.as_str(), dropped);
       return Value::DateTime(date_time);
     }
-    if let Ok(date) = FeelDate::from_str(text) {
-      return Value::DateTime(FeelDateTime::new(date, FeelTime::midnight(FeelZone::Local)));
+    if let Some(date_time) = FeelDate::from_str(text)
+      .ok()
+      .and_then(|date| FeelDateTime::try_new(date, FeelTime::midnight(FeelZone::Local)))
+    {
+      return Value::DateTime(date_time);
     }
     value_null!("[core::date and time] invalid date or date and time '{}'", arg(&text))
   } else {
     invalid_argument_type!("date and time", "string", value)
+  }
+}
+
+/// The date and time of a date and a time; null for a date whose year has no instants
+/// ([FeelDateTime::try_new]).
+fn date_time_of(date: FeelDate, time: FeelTime) -> Value {
+  let year = date.year();
+  match FeelDateTime::try_new(date, time) {
+    Some(date_time) => Value::DateTime(date_time),
+    None => value_null!("[core::date and time] expected a year from -262143 to 262142, found the year {}", year),
   }
 }
 
@@ -634,13 +647,13 @@ pub fn date_and_time_2(date_value: &Value, time_value: &Value) -> Value {
   match date_value {
     Value::DateTime(date_time) => {
       if let Value::Time(time) = time_value {
-        return Value::DateTime(FeelDateTime::new(date_time.date(), time.clone()));
+        return date_time_of(date_time.date(), time.clone());
       }
       invalid_argument_type!("date and time", "time", time_value)
     }
     Value::Date(date) => {
       if let Value::Time(time) = time_value {
-        return Value::DateTime(FeelDateTime::new(date.clone(), time.clone()));
+        return date_time_of(date.clone(), time.clone());
       }
       invalid_argument_type!("date and time", "time", time_value)
     }
@@ -675,7 +688,7 @@ pub fn date_and_time_3(date_value: &Value, time_value: &Value, timezone_value: &
     FeelZone::from_designator(&format!("@{zone}"))
   };
   match zone_in_time.and_then(|zone| FeelTime::zone_opt(time.hour(), time.minute(), time.second(), time.nanos(), zone)) {
-    Some(time) => Value::DateTime(FeelDateTime::new(date, time)),
+    Some(time) => date_time_of(date, time),
     None => value_null!("[core::date and time] invalid timezone '{}'", arg(&zone)),
   }
 }

@@ -33,12 +33,7 @@ fn _0006() {
 
 #[test]
 fn _0007() {
-  te_null(
-    false,
-    &scope!(),
-    r#"week of year(date: date(999999999,9,17))"#,
-    "[core::week of year] invalid argument type, expected date, date and time, actual type is Null",
-  );
+  te_be_value(false, &scope!(), r#"week of year(date: date(999999999,9,17))"#, r#"37"#);
 }
 
 #[test]

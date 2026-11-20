@@ -9,7 +9,7 @@ use crate::defs::*;
 use crate::errors::err_date_time_conversion_failed;
 use crate::feel_ym_duration::FeelYearsAndMonthsDuration;
 use crate::parts::split_date_and_time;
-use chrono::{DateTime, Datelike, Duration, FixedOffset, Timelike};
+use chrono::{DateTime, Datelike, Duration, FixedOffset, NaiveDate, Timelike};
 use dsntk_common::{DsntkError, Result};
 use std::cmp::Ordering;
 use std::fmt;
@@ -110,7 +110,7 @@ impl Add<FeelYearsAndMonthsDuration> for FeelDateTime {
   /// Adds [FeelYearsAndMonthsDuration] to [FeelDateTime]: the date moves as a date does, the time
   /// stays.
   fn add(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    Some(FeelDateTime(self.0.add_months(rhs.as_months())?, self.1))
+    FeelDateTime::try_new(self.0.add_months(rhs.as_months())?, self.1)
   }
 }
 
@@ -119,7 +119,7 @@ impl Sub<FeelYearsAndMonthsDuration> for FeelDateTime {
   /// Subtracts [FeelYearsAndMonthsDuration] from [FeelDateTime]: the date moves as a date does, the
   /// time stays.
   fn sub(self, rhs: FeelYearsAndMonthsDuration) -> Self::Output {
-    Some(FeelDateTime(self.0.add_months((-rhs).as_months())?, self.1))
+    FeelDateTime::try_new(self.0.add_months((-rhs).as_months())?, self.1)
   }
 }
 
@@ -213,8 +213,10 @@ impl FeelDateTime {
               return Err(err_invalid_date_time_literal(s));
             }
           }
-          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone) {
-            return Ok((FeelDateTime(date, time), dropped));
+          if let Some(time) = FeelTime::zone_opt(hour, min, sec, nanos, zone)
+            && let Some(date_time) = FeelDateTime::try_new(date, time)
+          {
+            return Ok((date_time, dropped));
           }
         }
       }
@@ -225,6 +227,15 @@ impl FeelDateTime {
   /// Creates date and time from provided [FeelDate] and [FeelTime] values.
   pub fn new(date: FeelDate, time: FeelTime) -> Self {
     Self(date, time)
+  }
+
+  /// Creates date and time from provided [FeelDate] and [FeelTime] values; `None` when the
+  /// year of the date is beyond the years that have instants here. A date has the years of
+  /// FEEL (to 999,999,999); the instants of a date and time, its zones and its arithmetic are
+  /// those of chrono, whose years end at 262,142.
+  pub fn try_new(date: FeelDate, time: FeelTime) -> Option<Self> {
+    NaiveDate::try_from(date.clone()).ok()?;
+    Some(Self(date, time))
   }
 
   /// Returns this date and time moved by `nanos` nanoseconds, forward or back, in the same zone:
@@ -285,21 +296,21 @@ impl FeelDateTime {
   pub fn utc(year: Year, month: Month, day: Day, hour: u8, minute: u8, second: u8, nanosecond: u64) -> Option<Self> {
     let date = FeelDate::new(year, month, day)?;
     let time = FeelTime::utc_opt(hour, minute, second, nanosecond)?;
-    Some(Self(date, time))
+    Self::try_new(date, time)
   }
 
   /// Creates local date and time from specified date and time values.
   pub fn local(year: Year, month: Month, day: Day, hour: u8, minute: u8, second: u8, nanosecond: u64) -> Option<Self> {
     let date = FeelDate::new(year, month, day)?;
     let time = FeelTime::local_opt(hour, minute, second, nanosecond)?;
-    Some(Self(date, time))
+    Self::try_new(date, time)
   }
 
   /// Creates  date and time from specified date, time and offset values.
   pub fn offset(date: (Year, Month, Day), time: (u8, u8, u8, u64), offset: i32) -> Option<Self> {
     let date = FeelDate::new(date.0, date.1, date.2)?;
     let time = FeelTime::offset_opt(time.0, time.1, time.2, time.3, offset)?;
-    Some(Self(date, time))
+    Self::try_new(date, time)
   }
 
   /// Returns today's date and time (local time).

@@ -362,9 +362,8 @@ fn subtract(lhv: Value, rhv: Value) -> Value {
     }
     Value::Date(lh) => match &rhv {
       Value::Date(rh) => {
-        let l = FeelDateTime::new(lh.clone(), FeelTime::midnight(FeelZone::Utc));
-        let r = FeelDateTime::new(rh.clone(), FeelTime::midnight(FeelZone::Utc));
-        if let Some(result) = l - r {
+        // both at UTC midnight: the days between them, in every year of a date
+        if let Some(result) = lh.time_since(rh) {
           return Value::DaysAndTimeDuration(result);
         }
       }

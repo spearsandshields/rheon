@@ -198,10 +198,5 @@ fn _0034() {
 
 #[test]
 fn _0035() {
-  te_null(
-    false,
-    &scope!(),
-    r#"month of year(@"999999999-01-01")"#,
-    "[core::month of year] invalid argument type, expected date, date and time, actual type is Null",
-  );
+  te_be_value(false, &scope!(), r#"month of year(@"999999999-01-01")"#, r#""January""#);
 }

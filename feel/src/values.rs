@@ -747,7 +747,7 @@ impl Value {
     match self {
       // from date to date and time: UTC midnight (DMN 1.6 §10.3.2.9.4 and §10.3.2.3.5)
       Value::Date(date) if *target_type == FeelType::DateTime => {
-        return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc))));
+        return FeelDateTime::try_new(date.clone(), FeelTime::midnight(FeelZone::Utc)).map(Value::DateTime);
       }
       // from singleton list
       Value::List(items) => {
@@ -759,7 +759,7 @@ impl Value {
           if let Value::Date(date) = &value
             && *target_type == FeelType::DateTime
           {
-            return Some(Value::DateTime(FeelDateTime::new(date.clone(), FeelTime::midnight(FeelZone::Utc))));
+            return FeelDateTime::try_new(date.clone(), FeelTime::midnight(FeelZone::Utc)).map(Value::DateTime);
           }
         }
       }
