@@ -1,0 +1,483 @@
+[
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "$serde_json::private::Number": "42"
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "$serde_json::private::Number": "42",
+      "x": 1
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
+        },
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "$serde_json::private::Number": true
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1 + \"a\"",
+      "errorMod": "strict",
+      "maxsteps": 5
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(incompatible types in addition: 1(number) + \"a\"(string))",
+        "isNull": true,
+        "nullReason": "incompatible types in addition: 1(number) + \"a\"(string)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(incompatible types in addition: 1(number) + \"a\"(string))",
+        "isNull": true,
+        "nullReason": "incompatible types in addition: 1(number) + \"a\"(string)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'errorMod', which is not read"
+        },
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'maxsteps', which is not read"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "x": 1
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "Expression": "2"
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'Expression', which is not read"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "dialect": "unaryTests",
+      "expression": "> 1",
+      "input": 2,
+      "inputs": 3
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'inputs', which is not read"
+        }
+      ]
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "1",
+      "errorMode": "strict",
+      "x": 1
+    },
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
+        }
+      ]
+    }
+  }
+]

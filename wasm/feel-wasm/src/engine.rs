@@ -487,7 +487,7 @@ fn evaluate(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Res
   let max_steps = max_steps(&req)?;
   let expression = expression(&mut req)?;
   apply_tz_offset(&req)?;
-  let mut warnings = vec![];
+  let mut warnings = unknown_fields(&req);
   let scope = prepare_scope(req, unread, dialect, &mut warnings)?;
   let evaluation = Evaluation {
     id: None,
@@ -515,7 +515,7 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
     None => return fail(Kind::Request, "missing 'evaluations'"),
     Some(_) => return fail(Kind::Request, "'evaluations' must be an array"),
   };
-  let mut context_warnings = vec![];
+  let mut context_warnings = unknown_fields(&req);
   let context = context(&mut req, unread.context, unread.context_order, &mut context_warnings)?;
   // unary tests without an input take the entry `?` of the context, when it has one
   let has_question_mark = context.get_entry(&question_mark()).is_some();
@@ -624,6 +624,45 @@ fn parse_names(context: &FeelContext, depth: usize, names: &mut Vec<Option<Name>
   true
 }
 
+/// The fields of a request and of an entry of `evaluations` or `entries`, whatever operation
+/// reads them.
+const FIELDS: [&str; 18] = [
+  "op",
+  "dialect",
+  "expression",
+  "context",
+  "contextFormat",
+  "input",
+  "tzOffsetMinutes",
+  "language",
+  "errorMode",
+  "maxSteps",
+  "evaluations",
+  "entries",
+  "id",
+  "cursor",
+  "outline",
+  "tree",
+  "types",
+  "width",
+];
+
+/// A warning for each field of `fields` that a request does not have: it is not read, and a
+/// misspelt `errorMode` or `maxSteps` must not go unseen.
+fn unknown_fields(fields: &Map<String, Json>) -> Vec<String> {
+  fields
+    .keys()
+    .filter(|name| !FIELDS.contains(&name.as_str()))
+    .map(|name| {
+      compose(format_args!(
+        "expected a field of a request ({}), found '{}', which is not read",
+        FIELDS.join(", "),
+        arg(name.as_str())
+      ))
+    })
+    .collect()
+}
+
 /// Evaluates one expression over several contexts (`op: "evaluateEach"`): each entry of
 /// `entries` is answered as an `evaluate` request with the expression and the entry's `context`
 /// and `input` answers it, in the order of the entries. The expression is parsed in the context
@@ -632,6 +671,7 @@ fn parse_names(context: &FeelContext, depth: usize, names: &mut Vec<Option<Name>
 /// its place and the others are answered; a failure of the request itself fails the request.
 /// Nothing of the request is kept after it.
 fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<String, Failure> {
+  let request_warnings = unknown_fields(&req);
   let dialect = dialect(&req)?;
   let language = language(&req)?;
   let error_mode = error_mode(&req)?;
@@ -678,7 +718,9 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
         Some(format) => fields.insert("contextFormat".to_string(), format.clone()),
         None => fields.remove("contextFormat"),
       };
-      let mut warnings = vec![];
+      // the request has no warnings of its own: those of its fields stand in every answer
+      let mut warnings = request_warnings.clone();
+      warnings.extend(unknown_fields(&fields));
       let context = prepare_context(fields, unread, dialect, &mut warnings)?;
       names.clear();
       let comparable = parse_names(&context, 0, &mut names);
@@ -744,7 +786,7 @@ fn evaluate_one(
   let error_mode = error_mode(&entry)?;
   let max_steps = max_steps(&entry)?;
   let expression = expression(&mut entry)?;
-  let mut warnings = vec![];
+  let mut warnings = unknown_fields(&entry);
   let tested = if dialect == Dialect::UnaryTests {
     match entry.remove("input") {
       Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure(Kind::Context, e, None))?),

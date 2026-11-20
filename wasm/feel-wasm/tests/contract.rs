@@ -2662,3 +2662,39 @@ fn a_context_is_shown_in_the_order_it_was_written_in() {
   let (display, ..) = shown(r#"{"op":"evaluate","expression":"v","context":"{v: {z: 1, a: 2}}","contextFormat":"feel"}"#.to_string());
   assert_eq!(r#"{"z": 1, "a": 2}"#, display);
 }
+
+/// A field that a request does not have is not read: the answer says so in a warning, so that
+/// a misspelt `errorMode` or `maxSteps` does not go unseen. The request is answered as without it.
+#[test]
+fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
+  let unknown = |name: &str| {
+    format!(
+      "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '{name}', which is not read"
+    )
+  };
+  let response = req(json!({"op": "evaluate", "expression": "1 + \"a\"", "errorMod": "strict", "maxsteps": 5}));
+  assert_eq!(vec![unknown("errorMod"), unknown("maxsteps")], warnings(&response));
+  assert_eq!(response["result"]["display"], "null");
+  // every field of a request is known, whatever the operation reads of it
+  let response = req(json!({
+    "op": "evaluate", "dialect": "expression", "expression": "1", "context": {}, "contextFormat": "json", "input": 1, "tzOffsetMinutes": 0,
+    "language": "feel", "errorMode": "lenient", "maxSteps": 10, "evaluations": [], "entries": [], "id": 1, "cursor": 0, "outline": null, "tree": false, "types": false, "width": 80
+  }));
+  assert!(warnings(&response).is_empty(), "{response}");
+  // the request of evaluateAll among the warnings of the request, an entry in its own answer
+  let response = req(json!({"op": "evaluateAll", "contxt": {"a": 1}, "evaluations": [{"expression": "1", "errormode": "strict"}, {"expression": "2"}]}));
+  assert_eq!(response["contextWarnings"], json!([{"message": unknown("contxt")}]), "{response}");
+  assert_eq!(response["results"][0]["warnings"], json!([{"message": unknown("errormode")}]), "{response}");
+  assert_eq!(response["results"][1]["warnings"], json!([]), "{response}");
+  // evaluateEach has no warnings of the request: each answer has them
+  let response = req(json!({"op": "evaluateEach", "expression": "a", "langauge": "feel", "entries": [{"context": {"a": 1}}, {"context": {"a": 2}, "Input": 3}]}));
+  assert_eq!(response["results"][0]["warnings"], json!([{"message": unknown("langauge")}]), "{response}");
+  assert_eq!(
+    response["results"][1]["warnings"],
+    json!([{"message": unknown("langauge")}, {"message": unknown("Input")}]),
+    "{response}"
+  );
+  // a long name is shown in part, as every text of a message is
+  let response = req(json!({"op": "evaluate", "expression": "1", "x".repeat(5000): 1}));
+  assert!(warnings(&response)[0].chars().count() <= 1000, "{response}");
+}
