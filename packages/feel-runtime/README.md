@@ -80,7 +80,36 @@ How the engine works:
 - **Worker bundling.** The worker is created with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`. Vite, webpack 5 and Parcel bundle this form automatically. Two cases need attention:
   - If Vite pre-bundles the package from `node_modules`, the `new URL` form breaks. Add `optimizeDeps: { exclude: ['@rheon/feel-runtime'] }`. A linked workspace package (`file:` or `workspace:` dependency) is not pre-bundled.
   - Use `worker: { format: 'es' }` if your Vite config sets a non-ES worker format.
-- **Custom workers.** `createWorker: () => WorkerLike` replaces worker creation, for example with your own `new Worker(...)` call or a `worker_threads` adapter (see `test/helpers.mjs` and `test/worker-bootstrap.mjs`). The worker script is also exported as `@rheon/feel-runtime/worker`. Keep a custom worker's stack at Node's default 4 MiB or more (`resourceLimits.stackSizeMb`); a smaller stack lets a nested recursion trap earlier.
+- **Custom workers.** `createWorker: () => WorkerLike` replaces worker creation, for example with your own `new Worker(...)` call; for Node the package has one (see "Usage in Node (worker)"). The worker script is also exported as `@rheon/feel-runtime/worker`. Keep a custom worker's stack at Node's default 4 MiB or more (`resourceLimits.stackSizeMb`); a smaller stack lets a nested recursion trap earlier.
+
+## Which way to run it
+
+| You have | Use | Why |
+|---|---|---|
+| Input you do not control, or expressions that may run long | `FeelEngine` (a worker): in a browser as it is, in Node with `createNodeWorker` | A timeout ends the worker, a trap or an exhausted memory costs one request, and the calling thread never blocks. |
+| Trusted expressions in Node, short ones, called often | `instantiateFeel` (in-thread) with `maxSteps` on each request | No message passing per call. `maxSteps` bounds the work of an evaluation, so a mistake ends as an error and not as a blocked thread. It does not bound memory. |
+| Several expressions over one context | `evaluateAll` | The context is read once. |
+| One expression over many contexts (the rows of a table) | `evaluateEach` | The expression is parsed once, and the request is one message. |
+
+A step of `maxSteps` is a function call or an item that a loop or a filter visits, so a budget follows from the size of the data an expression should see: a rule over a few hundred rows is far below 1,000,000. The engine keeps nothing between requests in any of these.
+
+## Usage in Node (worker)
+
+```js
+import { readFile } from 'node:fs/promises';
+import { FeelEngine, feelWasmUrl } from '@rheon/feel-runtime';
+import { createNodeWorker } from '@rheon/feel-runtime/node';
+
+const engine = await FeelEngine.create({
+  wasmBytes: await readFile(feelWasmUrl()),
+  createWorker: createNodeWorker,
+  timeoutMs: 2000,
+});
+(await engine.evaluate({ expression: '0.1 + 0.2' })).result.display; // "0.3"
+engine.dispose();
+```
+
+This is the `FeelEngine` of the browser with a thread of `node:worker_threads` as its worker: the queue, the timeout that ends the worker and starts a fresh one, and the recovery after a trap are the same. `nodeWorkers({ resourceLimits })` gives the threads resource limits; keep `stackSizeMb` at Node's default of 4 or more. Import `@rheon/feel-runtime/node` in Node only: a bundle for a browser must not include it. Without `createWorker`, `FeelEngine.create` in Node fails with a message that names this adapter.
 
 ## Usage in Node (in-thread)
 

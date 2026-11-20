@@ -1,23 +1,14 @@
 import { readFile } from 'node:fs/promises';
-import { Worker } from 'node:worker_threads';
+import { createNodeWorker as shippedNodeWorker } from '../dist/node.js';
 import { fileURLToPath } from 'node:url';
 
 export const WASM_PATH = fileURLToPath(new URL('../../../dist/feel.wasm', import.meta.url));
 export const wasmBytes = () => readFile(WASM_PATH);
 
-/** Wraps a node:worker_threads Worker running dist/worker.js as a `WorkerLike`. */
+/** The worker of the package for Node (`@rheon/feel-runtime/node`), with the thread as `raw`. */
 export function createNodeWorker() {
-  const w = new Worker(new URL('./worker-bootstrap.mjs', import.meta.url));
-  const like = {
-    onmessage: null,
-    onerror: null,
-    postMessage: (m) => w.postMessage(m),
-    terminate: () => void w.terminate(),
-    raw: w,
-  };
-  w.on('message', (data) => like.onmessage?.({ data }));
-  w.on('error', (error) => like.onerror?.({ error, message: error.message }));
-  return like;
+  const like = shippedNodeWorker();
+  return Object.assign(like, { raw: like.worker });
 }
 
 /**
