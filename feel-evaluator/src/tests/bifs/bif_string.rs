@@ -105,3 +105,21 @@ fn _0020() {
     r#"expected the parameters of string(from): string, found the parameter name 'f'"#,
   );
 }
+
+/// A null inside a value is written as `null`, whatever made it: the reason of a null is no
+/// part of the value (in a list, a context, a range and a comparison with one endpoint).
+#[test]
+fn a_null_inside_a_value_is_written_without_its_reason() {
+  te_string(false, &scope!(), r#"string([1 + "a"])"#, "[null]");
+  te_string(false, &scope!(), r#"string([1, 1 + "a", null])"#, "[1, null, null]");
+  te_string(false, &scope!(), r#"string({a: 1 + "a"})"#, "{a: null}");
+  te_string(false, &scope!(), r#"string({a: [{b: 1 + "a"}]})"#, "{a: [{b: null}]}");
+  te_string(false, &scope!(), r#"string([[1 + "a"]])"#, "[[null]]");
+  te_string(false, &scope!(), r#"string([(1 + "a")..2])"#, "[null..2]");
+  te_string(false, &scope!(), r#"string([1..(1 + "a")))"#, "[1..null)");
+  te_string(false, &scope!(), r#"string(< (1 + "a"))"#, "< null");
+  te_string(false, &scope!(), r#"string([[1..2], > 3])"#, "[[1..2], > 3]");
+  te_bool(false, &scope!(), r#"string([1 + "a"]) = string([null])"#, true);
+  // the value itself that is null gives null
+  te_null(false, &scope!(), r#"string(1 + "a")"#, "");
+}

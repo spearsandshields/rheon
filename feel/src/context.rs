@@ -386,7 +386,7 @@ impl ToFeelString for FeelContext {
             "\"" => "\"\\\"\"".to_string(),
             _ => name_str,
           };
-          format!(r#"{padded_name_str}: {value}"#)
+          format!("{padded_name_str}: {}", value.to_feel_string())
         })
         .collect::<Vec<String>>()
         .join(", ")

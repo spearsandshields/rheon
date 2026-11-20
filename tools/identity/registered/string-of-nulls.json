@@ -1,0 +1,874 @@
+[
+  {
+    "expression": "string([1 + \"a\"])",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null(incompatible types in addition: 1(number) + \\\"a\\\"(string))]\"",
+        "feel": "\"[null(incompatible types in addition: 1(number) + \"a\"(string))]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null(incompatible types in addition: 1(number) + \"a\"(string))]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null]\"",
+        "feel": "\"[null]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string([1, 1 + \"a\", null])",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[1, null(incompatible types in addition: 1(number) + \\\"a\\\"(string)), null]\"",
+        "feel": "\"[1, null(incompatible types in addition: 1(number) + \"a\"(string)), null]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[1, null(incompatible types in addition: 1(number) + \"a\"(string)), null]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[1, null, null]\"",
+        "feel": "\"[1, null, null]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[1, null, null]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string({a: 1 + \"a\"})",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: null(incompatible types in addition: 1(number) + \\\"a\\\"(string))}\"",
+        "feel": "\"{a: null(incompatible types in addition: 1(number) + \"a\"(string))}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: null(incompatible types in addition: 1(number) + \"a\"(string))}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: null}\"",
+        "feel": "\"{a: null}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: null}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string({a: [{b: 1 + \"a\"}]})",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: [{b: null(incompatible types in addition: 1(number) + \\\"a\\\"(string))}]}\"",
+        "feel": "\"{a: [{b: null(incompatible types in addition: 1(number) + \"a\"(string))}]}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: [{b: null(incompatible types in addition: 1(number) + \"a\"(string))}]}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: [{b: null}]}\"",
+        "feel": "\"{a: [{b: null}]}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: [{b: null}]}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string([[1 + \"a\"]])",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[[null(incompatible types in addition: 1(number) + \\\"a\\\"(string))]]\"",
+        "feel": "\"[[null(incompatible types in addition: 1(number) + \"a\"(string))]]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[[null(incompatible types in addition: 1(number) + \"a\"(string))]]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[[null]]\"",
+        "feel": "\"[[null]]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[[null]]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string([(1 + \"a\")..2])",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null(incompatible types in addition: 1(number) + \\\"a\\\"(string))..2]\"",
+        "feel": "\"[null(incompatible types in addition: 1(number) + \"a\"(string))..2]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null(incompatible types in addition: 1(number) + \"a\"(string))..2]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null..2]\"",
+        "feel": "\"[null..2]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null..2]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string([1..(1 + \"a\")))",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[1..null(incompatible types in addition: 1(number) + \\\"a\\\"(string)))\"",
+        "feel": "\"[1..null(incompatible types in addition: 1(number) + \"a\"(string)))\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[1..null(incompatible types in addition: 1(number) + \"a\"(string)))",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[1..null)\"",
+        "feel": "\"[1..null)\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[1..null)",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(< (1 + \"a\"))",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< null(incompatible types in addition: 1(number) + \\\"a\\\"(string))\"",
+        "feel": "\"< null(incompatible types in addition: 1(number) + \"a\"(string))\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "< null(incompatible types in addition: 1(number) + \"a\"(string))",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"< null\"",
+        "feel": "\"< null\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "< null",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string([1 + \"a\"]) = string([null])",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string({a: \"x\\\"y\"})",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: \\\"x\\\"y\\\"}\"",
+        "feel": "\"{a: \"x\"y\"}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: \"x\"y\"}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: \\\"x\\\\\\\"y\\\"}\"",
+        "feel": "\"{a: \"x\\\"y\"}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: \"x\\\"y\"}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string({a: \"x\\\"y\"})",
+      "language": "b-feel"
+    },
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: \\\"x\\\"y\\\"}\"",
+        "feel": "\"{a: \"x\"y\"}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: \"x\"y\"}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"{a: \\\"x\\\\\\\"y\\\"}\"",
+        "feel": "\"{a: \"x\\\"y\"}\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "{a: \"x\\\"y\"}",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string([abs(\"a\"), date(\"x\"), 1/0])",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[core::abs] invalid argument type, expected number, actual type is string",
+          "[core::date] invalid date string 'x'",
+          "[division] division by zero"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null([core::abs] invalid argument type, expected number, actual type is string), null([core::date] invalid date string 'x'), null([division] division by zero)]\"",
+        "feel": "\"[null([core::abs] invalid argument type, expected number, actual type is string), null([core::date] invalid date string 'x'), null([division] division by zero)]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null([core::abs] invalid argument type, expected number, actual type is string), null([core::date] invalid date string 'x'), null([division] division by zero)]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 3,
+        "messages": [
+          "[core::abs] invalid argument type, expected number, actual type is string",
+          "[core::date] invalid date string 'x'",
+          "[division] division by zero"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null, null, null]\"",
+        "feel": "\"[null, null, null]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null, null, null]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "string([abs(\"a\"), date(\"x\"), 1/0])",
+      "language": "b-feel"
+    },
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "[core::abs] invalid argument type, expected number, actual type is string",
+          "[core::date] invalid date string 'x'",
+          "[division] division by zero"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[0, 1970-01-01, null([division] division by zero)]\"",
+        "feel": "\"[0, 1970-01-01, null([division] division by zero)]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[0, 1970-01-01, null([division] division by zero)]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 4,
+        "messages": [
+          "[core::abs] invalid argument type, expected number, actual type is string",
+          "[core::date] invalid date string 'x'",
+          "[division] division by zero"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[0, 1970-01-01, null]\"",
+        "feel": "\"[0, 1970-01-01, null]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[0, 1970-01-01, null]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string length(string([1 + \"a\"]))",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "63",
+        "feel": "63",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "63",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "6",
+        "feel": "6",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "6",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string(for x in [1, \"a\"] return x + 1)",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected string as a second argument in addition"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[2, null(expected string as a second argument in addition)]\"",
+        "feel": "\"[2, null(expected string as a second argument in addition)]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[2, null(expected string as a second argument in addition)]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected string as a second argument in addition"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[2, null]\"",
+        "feel": "\"[2, null]\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[2, null]",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string([1 + \"a\"]) + \"!\"",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null(incompatible types in addition: 1(number) + \\\"a\\\"(string))]!\"",
+        "feel": "\"[null(incompatible types in addition: 1(number) + \"a\"(string))]!\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null(incompatible types in addition: 1(number) + \"a\"(string))]!",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[null]!\"",
+        "feel": "\"[null]!\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "[null]!",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

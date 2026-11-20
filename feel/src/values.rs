@@ -366,12 +366,27 @@ impl Display for Value {
 }
 
 impl ToFeelString for Value {
-  /// Converts [Value] into `FEEL` string.
+  /// Converts [Value] into `FEEL` string. A null is written as `null`, also one that has a
+  /// reason and wherever it stands inside the value: the reason is no part of the value.
   fn to_feel_string(&self) -> String {
     match self {
       Value::Context(context) => context.to_feel_string(),
       Value::List(items) => values_to_feel_string(items),
       Value::String(value) => format!("\"{}\"", value.replace('"', "\\\"")),
+      Value::Null(_) => "null".to_string(),
+      Value::Range(start, start_type, end, end_type) => format!(
+        "{}{}..{}{}",
+        if start_type.closed() { "[" } else { "(" },
+        if start_type.undefined() { String::new() } else { start.to_feel_string() },
+        if end_type.undefined() { String::new() } else { end.to_feel_string() },
+        if end_type.closed() { "]" } else { ")" }
+      ),
+      Value::UnaryGreater(value) => format!("> {}", value.to_feel_string()),
+      Value::UnaryGreaterOrEqual(value) => format!(">= {}", value.to_feel_string()),
+      Value::UnaryLess(value) => format!("< {}", value.to_feel_string()),
+      Value::UnaryLessOrEqual(value) => format!("<= {}", value.to_feel_string()),
+      Value::UnaryEqual(value) => format!("= {}", value.to_feel_string()),
+      Value::UnaryNotEqual(value) => format!("!= {}", value.to_feel_string()),
       other => other.to_string(),
     }
   }
