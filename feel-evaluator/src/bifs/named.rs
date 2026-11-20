@@ -1,6 +1,8 @@
 use crate::bifs::core;
 use crate::macros::invalid_argument_type;
 use rheon_feel::bif::Bif;
+use rheon_feel::message::arg;
+use rheon_feel::signatures::{self, Signature};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, Name, value_null};
 use std::sync::LazyLock;
@@ -65,7 +67,38 @@ macro_rules! parameter_not_found {
   ($p:expr) => {{ value_null!(r"parameter '{}' not found", *$p) }};
 }
 
+/// Null when the names of `parameters` are not all parameters of one signature of `bif`: a
+/// name that the function does not have, or names of two of its signatures together. A function
+/// that takes no names at all says so itself.
+fn names_of_no_signature(bif: &Bif, parameters: &NamedParameters) -> Option<Value> {
+  let Value::NamedParameters(given) = parameters else {
+    return None;
+  };
+  let built_in = signatures::of(bif)?;
+  let named = || built_in.signatures.iter().filter(|signature| signature.named);
+  let has = |signature: &Signature, name: &Name| signature.parameters.iter().any(|parameter| parameter.name == name.as_str());
+  if named().next().is_none() || named().any(|signature| given.keys().all(|name| has(signature, name))) {
+    return None;
+  }
+  let expected: Vec<String> = named().map(|signature| signature.text(built_in.name)).collect();
+  let one_of = if expected.len() > 1 { "one of " } else { "" };
+  // in the order they are written in
+  let mut names: Vec<(usize, &Name)> = given.iter().map(|(name, (_, position))| (*position, name)).collect();
+  names.sort_unstable();
+  let found = match names.iter().find(|(_, name)| !named().any(|signature| has(signature, name))) {
+    Some((_, name)) => format!("name '{}'", arg(*name)),
+    None => {
+      let names: Vec<String> = names.iter().map(|(_, name)| format!("'{}'", arg(*name))).collect();
+      format!("names {}", names.join(", "))
+    }
+  };
+  Some(value_null!("expected the parameters of {}{}, found the parameter {}", one_of, expected.join(", "), found))
+}
+
 pub fn evaluate_bif(bif: Bif, parameters: &NamedParameters) -> Value {
+  if let Some(refused) = names_of_no_signature(&bif, parameters) {
+    return refused;
+  }
   match bif {
     Bif::Abs => bif_abs(parameters),
     Bif::After => bif_after(parameters),

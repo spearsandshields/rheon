@@ -114,5 +114,12 @@ fn _0010() {
 #[test]
 fn _0011() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision013", &ctx, r#"null(parameter 'list' not found)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision013",
+    &ctx,
+    r#"null(expected the parameters of stddev(list): number, found the parameter name 'l')"#,
+  );
 }

@@ -123,32 +123,62 @@ fn _0019() {
 
 #[test]
 fn _0020() {
-  te_null(false, &scope!(), r#"starts(p: 20, range: [1..20])"#, "[named::starts] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"starts(p: 20, range: [1..20])"#,
+    "expected the parameters of one of starts(point, range): boolean, starts(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), r#"starts(point: 20, r: [1..20])"#, "[named::starts] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"starts(point: 20, r: [1..20])"#,
+    "expected the parameters of one of starts(point, range): boolean, starts(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0022() {
-  te_null(false, &scope!(), r#"starts(p: 20, r: [1..20])"#, "[named::starts] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"starts(p: 20, r: [1..20])"#,
+    "expected the parameters of one of starts(point, range): boolean, starts(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#"starts(range1: [1..20], r2: [1..20])"#, "[named::starts] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"starts(range1: [1..20], r2: [1..20])"#,
+    "expected the parameters of one of starts(point, range): boolean, starts(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0024() {
-  te_null(false, &scope!(), r#"starts(r1: [1..20], range2: [1..20])"#, "[named::starts] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"starts(r1: [1..20], range2: [1..20])"#,
+    "expected the parameters of one of starts(point, range): boolean, starts(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0025() {
-  te_null(false, &scope!(), r#"starts(r1: [1..20], r2: [1..20])"#, "[named::starts] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"starts(r1: [1..20], r2: [1..20])"#,
+    "expected the parameters of one of starts(point, range): boolean, starts(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]

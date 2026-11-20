@@ -48,10 +48,20 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"index of(l:[10,11,12],match:11)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"index of(l:[10,11,12],match:11)"#,
+    r#"expected the parameters of index of(list, match): list<number>, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0010() {
-  te_null(false, &scope!(), r#"index of(list:[10,11,12],m:11)"#, r#"parameter 'match' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"index of(list:[10,11,12],m:11)"#,
+    r#"expected the parameters of index of(list, match): list<number>, found the parameter name 'm'"#,
+  );
 }

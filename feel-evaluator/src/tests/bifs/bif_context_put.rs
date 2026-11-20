@@ -63,17 +63,32 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  te_null(false, &scope!(), r#"context put(context: {}, ky: "a", value: 1)"#, "parameter 'key' or 'keys' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context put(context: {}, ky: "a", value: 1)"#,
+    "expected the parameters of one of context put(context, key, value): context, context put(context, keys, value): context, found the parameter name 'ky'",
+  );
 }
 
 #[test]
 fn _0013() {
-  te_null(false, &scope!(), r#"context put(context: {}, key: "a", v: 1)"#, "parameter 'value' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context put(context: {}, key: "a", v: 1)"#,
+    "expected the parameters of one of context put(context, key, value): context, context put(context, keys, value): context, found the parameter name 'v'",
+  );
 }
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), r#"context put(c: {}, key: "a", value: 1)"#, "parameter 'context' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context put(c: {}, key: "a", value: 1)"#,
+    "expected the parameters of one of context put(context, key, value): context, context put(context, keys, value): context, found the parameter name 'c'",
+  );
 }
 
 #[test]

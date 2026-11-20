@@ -57,7 +57,12 @@ fn _0009() {
 #[test]
 fn _0010() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "even(n:4)", r#"parameter 'number' not found"#);
+  te_null(
+    false,
+    scope,
+    "even(n:4)",
+    r#"expected the parameters of even(number): boolean, found the parameter name 'n'"#,
+  );
 }
 
 #[test]

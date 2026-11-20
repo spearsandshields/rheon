@@ -218,12 +218,22 @@ fn _0043() {
 
 #[test]
 fn _0044() {
-  te_null(false, &scope!(), "round half up(num: 1.23, scale: 1)", "parameter 'n' not found");
+  te_null(
+    false,
+    &scope!(),
+    "round half up(num: 1.23, scale: 1)",
+    "expected the parameters of round half up(n, scale?): number, found the parameter name 'num'",
+  );
 }
 
 #[test]
 fn _0045() {
-  te_null(false, &scope!(), "round half up(n: 1.23, s: 1)", "parameter 'scale' not found");
+  te_null(
+    false,
+    &scope!(),
+    "round half up(n: 1.23, s: 1)",
+    "expected the parameters of round half up(n, scale?): number, found the parameter name 's'",
+  );
 }
 
 #[test]
@@ -232,7 +242,7 @@ fn _0046() {
     false,
     &scope!(),
     "round half up(n: 1.23, scale: 1, foo: 11)",
-    "expected 1,2 parameters, actual number of parameters is 3",
+    "expected the parameters of round half up(n, scale?): number, found the parameter name 'foo'",
   );
 }
 

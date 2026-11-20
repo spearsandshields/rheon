@@ -1,7 +1,11 @@
 //! The signatures of the built-in functions: the names and types of their parameters, the type
 //! of their result and one line that says what they give. For editors (completion, parameter
-//! hints); the evaluator does not read this table. A test of the evaluator invokes every
-//! signature by position and by name and checks that the function takes it.
+//! hints), and for the evaluator, which takes the names of an invocation only when they are
+//! parameters of one signature. A test of the evaluator invokes every signature by position and
+//! by name and checks that the function takes it.
+
+use crate::bif::Bif;
+use std::sync::LazyLock;
 
 /// A parameter of a signature.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,6 +66,23 @@ impl Signature {
 /// The built-in function of this name with its signatures.
 pub fn built_in(name: &str) -> Option<&'static BuiltIn> {
   BUILT_INS.iter().find(|built_in| built_in.name == name)
+}
+
+/// The built-in function `bif` with its signatures.
+pub fn of(bif: &Bif) -> Option<&'static BuiltIn> {
+  /// The entry of each function at the place of its variant.
+  static BY_VARIANT: LazyLock<Vec<Option<&'static BuiltIn>>> = LazyLock::new(|| {
+    let mut entries = vec![None; BUILT_INS.len()];
+    for built_in in &BUILT_INS {
+      if let Ok(bif) = built_in.name.parse::<Bif>()
+        && let Some(entry) = entries.get_mut(bif as usize)
+      {
+        *entry = Some(built_in);
+      }
+    }
+    entries
+  });
+  BY_VARIANT.get(bif.clone() as usize).copied().flatten()
 }
 
 const fn p(name: &'static str, feel_type: &'static str) -> Parameter {

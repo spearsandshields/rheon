@@ -374,7 +374,6 @@ fn bif_insert_before(parameters: &[Value]) -> Value {
 
 fn bif_is(parameters: &[Value]) -> Value {
   match parameters.len() {
-    1 => Value::Boolean(false),
     2 => core::is(&parameters[0], &parameters[1]),
     n => invalid_number_of_parameters!(2, n),
   }

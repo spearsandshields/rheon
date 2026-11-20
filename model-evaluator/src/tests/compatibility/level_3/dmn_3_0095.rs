@@ -108,7 +108,11 @@ fn _0016() {
 
 #[test]
 fn _0017() {
-  eq("null_006", &CTX, r#"null(parameter 'date' not found)"#);
+  eq(
+    "null_006",
+    &CTX,
+    r#"null(expected the parameters of day of year(date): number, found the parameter name 'value')"#,
+  );
 }
 
 #[test]

@@ -45,7 +45,7 @@ fn _0007() {
 #[test]
 fn _0008() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "log(n:4)", r#"parameter 'number' not found"#);
+  te_null(false, scope, "log(n:4)", r#"expected the parameters of log(number): number, found the parameter name 'n'"#);
 }
 
 #[test]

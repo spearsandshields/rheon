@@ -23,7 +23,12 @@ fn _0004() {
 
 #[test]
 fn _0005() {
-  te_null(false, &scope!(), r#"day of year(d: date and time("2019-09-17T00:00:00"))"#, "parameter 'date' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"day of year(d: date and time("2019-09-17T00:00:00"))"#,
+    "expected the parameters of day of year(date): number, found the parameter name 'd'",
+  );
 }
 
 #[test]

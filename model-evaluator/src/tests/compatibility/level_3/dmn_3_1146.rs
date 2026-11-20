@@ -83,7 +83,7 @@ fn _0011() {
 #[test]
 fn _0012() {
   let invocable = "decision011";
-  let expected = "null(parameter 'key' or 'keys' not found)";
+  let expected = "null(expected the parameters of one of context put(context, key, value): context, context put(context, keys, value): context, found the parameter name 'ky')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 

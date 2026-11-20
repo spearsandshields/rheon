@@ -17371,12 +17371,12 @@ Number(+1E+0)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 invocations_of_built_in_functions #11 "abs(m: 1)"
-Null(Some("parameter 'n' not found"))
-Diagnostics { count: 1, messages: ["parameter 'n' not found"], warnings: [] }
+Null(Some("expected the parameters of abs(n): number or duration, found the parameter name 'm'"))
+Diagnostics { count: 1, messages: ["expected the parameters of abs(n): number or duration, found the parameter name 'm'"], warnings: [] }
 
 invocations_of_built_in_functions #12 "abs(m: 1)"
 Number(+0E+0)
-Diagnostics { count: 1, messages: ["parameter 'n' not found"], warnings: [] }
+Diagnostics { count: 1, messages: ["expected the parameters of abs(n): number or duration, found the parameter name 'm'"], warnings: [] }
 
 invocations_of_built_in_functions #13 "string length(\"abc\")"
 Number(+3E+0)

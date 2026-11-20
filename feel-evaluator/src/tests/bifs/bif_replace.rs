@@ -202,7 +202,7 @@ fn _0038() {
     false,
     &scope!(),
     "replace(i:\"abc\",pattern:\".^[d-z]*\",replacement:\"#\",flags:\"smix\")",
-    r#"parameter 'input' not found"#,
+    r#"expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'i'"#,
   );
 }
 
@@ -212,7 +212,7 @@ fn _0039() {
     false,
     &scope!(),
     "replace(input:\"abc\",p:\".^[d-z]*\",replacement:\"#\",flags:\"smix\")",
-    r#"parameter 'pattern' not found"#,
+    r#"expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'p'"#,
   );
 }
 
@@ -222,7 +222,7 @@ fn _0040() {
     false,
     &scope!(),
     "replace(input: \"abc\", pattern: \".^[d-z]*\", r:\"\", flags: \"smix\")",
-    r#"parameter 'replacement' not found"#,
+    r#"expected the parameters of replace(input, pattern, replacement, flags?): string, found the parameter name 'r'"#,
   );
 }
 

@@ -55,7 +55,7 @@ fn _0006() {
     &MODEL_NAME,
     "decision007",
     &ctx,
-    r#"null(parameter 'string' not found)"#,
+    r#"null(expected the parameters of split(string, delimiter): list<string>, found the parameter name 'str')"#,
   );
 }
 

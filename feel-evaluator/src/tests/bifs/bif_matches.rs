@@ -82,27 +82,52 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"matches(i: "foobar", pattern: "^fo*b")"#, "parameter 'input' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(i: "foobar", pattern: "^fo*b")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'",
+  );
 }
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), r#"matches(input: "foobar", p: "^fo*b")"#, "parameter 'pattern' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(input: "foobar", p: "^fo*b")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0017() {
-  te_null(false, &scope!(), r#"matches(i: "foobar", pattern: "^fo*b", flags: "s")"#, "parameter 'input' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(i: "foobar", pattern: "^fo*b", flags: "s")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'i'",
+  );
 }
 
 #[test]
 fn _0018() {
-  te_null(false, &scope!(), r#"matches(input: "foobar", p: "^fo*b", flags: "s")"#, "parameter 'pattern' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(input: "foobar", p: "^fo*b", flags: "s")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0019() {
-  te_null(false, &scope!(), r#"matches(input: "foobar", pattern: "^fo*b", f: "s")"#, "parameter 'flags' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"matches(input: "foobar", pattern: "^fo*b", f: "s")"#,
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'f'",
+  );
 }
 
 #[test]
@@ -111,7 +136,7 @@ fn _0020() {
     false,
     &scope!(),
     r#"matches(input: "abc", pattern: "a", flags: "x", other: "c")"#,
-    "expected 2,3 parameters, actual number of parameters is 4",
+    "expected the parameters of matches(input, pattern, flags?): boolean, found the parameter name 'other'",
   );
 }
 

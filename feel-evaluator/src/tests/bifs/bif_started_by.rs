@@ -238,17 +238,32 @@ fn _0029() {
 
 #[test]
 fn _0030() {
-  te_null(false, &scope!(), r#"started by(range: [1..20],p: 20)"#, "[named::started by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"started by(range: [1..20],p: 20)"#,
+    "expected the parameters of one of started by(range, point): boolean, started by(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0031() {
-  te_null(false, &scope!(), r#"started by(r: [1..20],point: 20)"#, "[named::started by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"started by(r: [1..20],point: 20)"#,
+    "expected the parameters of one of started by(range, point): boolean, started by(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0032() {
-  te_null(false, &scope!(), r#"started by(r: [1..20],p: 20)"#, "[named::started by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"started by(r: [1..20],p: 20)"#,
+    "expected the parameters of one of started by(range, point): boolean, started by(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
@@ -257,7 +272,7 @@ fn _0033() {
     false,
     &scope!(),
     r#"started by(range1: [1..20],r2: [1..20])"#,
-    "[named::started by] invalid named parameters",
+    "expected the parameters of one of started by(range, point): boolean, started by(range1, range2): boolean, found the parameter name 'r2'",
   );
 }
 
@@ -267,13 +282,18 @@ fn _0034() {
     false,
     &scope!(),
     r#"started by(r1: [1..20],range2: [1..20])"#,
-    "[named::started by] invalid named parameters",
+    "expected the parameters of one of started by(range, point): boolean, started by(range1, range2): boolean, found the parameter name 'r1'",
   );
 }
 
 #[test]
 fn _0035() {
-  te_null(false, &scope!(), r#"started by(r1: [1..20],r2: [1..20])"#, "[named::started by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"started by(r1: [1..20],r2: [1..20])"#,
+    "expected the parameters of one of started by(range, point): boolean, started by(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]

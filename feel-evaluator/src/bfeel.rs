@@ -85,7 +85,7 @@ pub fn evaluate_named_bif(bif: Bif, args: &Value) -> Value {
   default_if_null(&bif, result)
 }
 
-fn default_if_null(bif: &Bif, result: Value) -> Value {
+pub(crate) fn default_if_null(bif: &Bif, result: Value) -> Value {
   if result.is_null()
     && let Some(default) = bif_default(bif)
   {

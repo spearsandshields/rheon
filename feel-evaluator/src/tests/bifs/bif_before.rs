@@ -718,7 +718,12 @@ fn _0108() {
 
 #[test]
 fn _0109() {
-  te_null(false, &scope!(), r#"before(p1: 1, point2: 2)"#, r#"[named::before] invalid named parameters"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"before(p1: 1, point2: 2)"#,
+    r#"expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter name 'p1'"#,
+  );
 }
 
 #[test]

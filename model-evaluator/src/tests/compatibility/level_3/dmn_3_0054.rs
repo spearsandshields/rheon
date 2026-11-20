@@ -73,7 +73,7 @@ fn _0009() {
     &MODEL_NAME,
     "decision007",
     &ctx,
-    r#"null(parameter 'number' not found)"#,
+    r#"null(expected the parameters of even(number): boolean, found the parameter name 'n')"#,
   );
 }
 

@@ -90,7 +90,10 @@ fn _0016() {
 
 #[test]
 fn _0017() {
-  eq("decision016", "null(expected 3 parameters, actual number of parameters is 4)");
+  eq(
+    "decision016",
+    "null(expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'foo')",
+  );
 }
 
 #[test]

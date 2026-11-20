@@ -248,29 +248,54 @@ fn _0036() {
 #[test]
 fn _0037() {
   let scope = &scope!();
-  te_null(false, scope, r#"date(f: "2021-01-26")"#, r#"invalid parameters in named::bif_date"#);
+  te_null(
+    false,
+    scope,
+    r#"date(f: "2021-01-26")"#,
+    r#"expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter name 'f'"#,
+  );
 }
 
 #[test]
 fn _0038() {
   let scope = &scope!();
-  te_null(false, scope, r#"date(f: date and time("2012-12-25T12:23:18"))"#, r#"invalid parameters in named::bif_date"#);
+  te_null(
+    false,
+    scope,
+    r#"date(f: date and time("2012-12-25T12:23:18"))"#,
+    r#"expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter name 'f'"#,
+  );
 }
 
 #[test]
 fn _0039() {
   let scope = &scope!();
-  te_null(false, scope, r#"date(m: 12, day: 25, year: 2012)"#, r#"invalid parameters in named::bif_date"#);
+  te_null(
+    false,
+    scope,
+    r#"date(m: 12, day: 25, year: 2012)"#,
+    r#"expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter name 'm'"#,
+  );
 }
 
 #[test]
 fn _0040() {
   let scope = &scope!();
-  te_null(false, scope, r#"date(month: 12, d: 25, year: 2012)"#, r#"invalid parameters in named::bif_date"#);
+  te_null(
+    false,
+    scope,
+    r#"date(month: 12, d: 25, year: 2012)"#,
+    r#"expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter name 'd'"#,
+  );
 }
 
 #[test]
 fn _0041() {
   let scope = &scope!();
-  te_null(false, scope, r#"date(month: 12, day: 25, y: 2012)"#, r#"invalid parameters in named::bif_date"#);
+  te_null(
+    false,
+    scope,
+    r#"date(month: 12, day: 25, y: 2012)"#,
+    r#"expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter name 'y'"#,
+  );
 }

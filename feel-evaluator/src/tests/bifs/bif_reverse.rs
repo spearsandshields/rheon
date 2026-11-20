@@ -48,5 +48,10 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"reverse(l:[10,11,12])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"reverse(l:[10,11,12])"#,
+    r#"expected the parameters of reverse(list): list, found the parameter name 'l'"#,
+  );
 }

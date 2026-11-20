@@ -43,7 +43,12 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"week of year(d: date(2021,9,17))"#, "parameter 'date' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"week of year(d: date(2021,9,17))"#,
+    "expected the parameters of week of year(date): number, found the parameter name 'd'",
+  );
 }
 
 #[test]

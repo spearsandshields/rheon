@@ -53,10 +53,20 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"list contains(l:[10,11,12],match:11)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"list contains(l:[10,11,12],match:11)"#,
+    r#"expected the parameters of list contains(list, match): boolean, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0010() {
-  te_null(false, &scope!(), r#"list contains(list:[10,11,12],m:11)"#, r#"parameter 'match' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"list contains(list:[10,11,12],m:11)"#,
+    r#"expected the parameters of list contains(list, match): boolean, found the parameter name 'm'"#,
+  );
 }

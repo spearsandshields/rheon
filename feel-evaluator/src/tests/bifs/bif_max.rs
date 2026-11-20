@@ -13,12 +13,17 @@ fn _0002() {
 
 #[test]
 fn _0003() {
-  te_null(false, &scope!(), "max(l:[])", r#"parameter 'list' not found"#);
+  te_null(false, &scope!(), "max(l:[])", r#"expected the parameters of max(list): Any, found the parameter name 'l'"#);
 }
 
 #[test]
 fn _0004() {
-  te_null(false, &scope!(), "max(l:[1,2,3])", r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "max(l:[1,2,3])",
+    r#"expected the parameters of max(list): Any, found the parameter name 'l'"#,
+  );
 }
 
 #[test]

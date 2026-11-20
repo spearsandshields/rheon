@@ -55,7 +55,11 @@ fn _0009() {
 
 #[test]
 fn _0010() {
-  eq("decision009", &CTX, "null(parameter 'contexts' not found)");
+  eq(
+    "decision009",
+    &CTX,
+    "null(expected the parameters of context merge(contexts): context, found the parameter name 'context')",
+  );
 }
 
 #[test]

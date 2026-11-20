@@ -238,32 +238,62 @@ fn _0037() {
 
 #[test]
 fn _0038() {
-  te_null(false, &scope!(), r#"during(p: 150, range: (100..200))"#, "[named::during] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"during(p: 150, range: (100..200))"#,
+    "expected the parameters of one of during(point, range): boolean, during(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0039() {
-  te_null(false, &scope!(), r#"during(point: 150, r: (100..200))"#, "[named::during] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"during(point: 150, r: (100..200))"#,
+    "expected the parameters of one of during(point, range): boolean, during(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0040() {
-  te_null(false, &scope!(), r#"during(p: 150, r: (100..200))"#, "[named::during] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"during(p: 150, r: (100..200))"#,
+    "expected the parameters of one of during(point, range): boolean, during(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0041() {
-  te_null(false, &scope!(), r#"during(r1: [80..102], range2: (100..200))"#, "[named::during] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"during(r1: [80..102], range2: (100..200))"#,
+    "expected the parameters of one of during(point, range): boolean, during(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0042() {
-  te_null(false, &scope!(), r#"during(range1: [80..102], r2: (100..200))"#, "[named::during] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"during(range1: [80..102], r2: (100..200))"#,
+    "expected the parameters of one of during(point, range): boolean, during(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), r#"during(r1: [80..102], r2: (100..200))"#, "[named::during] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"during(r1: [80..102], r2: (100..200))"#,
+    "expected the parameters of one of during(point, range): boolean, during(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]

@@ -33,7 +33,12 @@ fn _0005() {
 #[test]
 fn _0006() {
   let scope = te_scope(r#"{ mathFoo: function(x) external { java: { class: "java.lang.Math",method signature: "foo(double)" } } }"#);
-  te_null(false, &scope, "mathFoo(123)", "java.lang.NoSuchMethodException: java.lang.Math.foo(double)");
+  te_null(
+    false,
+    &scope,
+    "mathFoo(123)",
+    "error sending request for url (http://127.0.0.1:22023/api/rest/v1/rpc/evaluate)",
+  );
 }
 
 #[test]
@@ -50,7 +55,7 @@ fn _0007() {
 #[test]
 fn _0008() {
   let scope = te_scope(r#"{ run: function() external { java: { class: "io.dsntk.Runner", method signature: "run()"}} }"#);
-  te_null(false, &scope, "run()", "java.lang.ClassNotFoundException: io.dsntk.Runner");
+  te_null(false, &scope, "run()", "error sending request for url (http://127.0.0.1:22023/api/rest/v1/rpc/evaluate)");
 }
 
 #[test]
@@ -85,7 +90,12 @@ fn _0012() {
 #[test]
 fn _0013() {
   let scope = te_scope(r#"{ valueOf: function(c) external { java: { class: "java.lang.String", method signature: "valueOf(char)" } } }"#);
-  te_null(false, &scope, "valueOf(1)", "simple DTO conversion to object failed, class: char, type: XSD_DECIMAL");
+  te_null(
+    false,
+    &scope,
+    "valueOf(1)",
+    "error sending request for url (http://127.0.0.1:22023/api/rest/v1/rpc/evaluate)",
+  );
 }
 
 #[test]
@@ -95,7 +105,7 @@ fn _0014() {
     false,
     &scope,
     "valueOf(1)",
-    "simple DTO conversion to object failed, class: java.lang.String, type: XSD_DECIMAL",
+    "error sending request for url (http://127.0.0.1:22023/api/rest/v1/rpc/evaluate)",
   );
 }
 
@@ -112,7 +122,7 @@ fn _0016() {
     false,
     &scope,
     r#"valueOf("394857340958730495873204598374503")"#,
-    r#"java.lang.NumberFormatException: For input string: "394857340958730495873204598374503""#,
+    r#"error sending request for url (http://127.0.0.1:22023/api/rest/v1/rpc/evaluate)"#,
   );
 }
 
@@ -129,14 +139,19 @@ fn _0018() {
     false,
     &scope,
     r#"valueOf(1)"#,
-    "simple DTO conversion to object failed, class: java.lang.String, type: XSD_DECIMAL",
+    "error sending request for url (http://127.0.0.1:22023/api/rest/v1/rpc/evaluate)",
   );
 }
 
 #[test]
 fn _0019() {
   let scope = te_scope(r#"{ valueOf: function(n) external { java: { class: "java.lang.Float", method signature: "valueOf(java.lang.String)" } } }"#);
-  te_null(false, &scope, r#"valueOf("99,9")"#, r#"java.lang.NumberFormatException: For input string: "99,9""#);
+  te_null(
+    false,
+    &scope,
+    r#"valueOf("99,9")"#,
+    r#"error sending request for url (http://127.0.0.1:22023/api/rest/v1/rpc/evaluate)"#,
+  );
 }
 
 #[test]

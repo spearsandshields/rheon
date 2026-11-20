@@ -178,17 +178,32 @@ fn _0028() {
 
 #[test]
 fn _0029() {
-  te_null(false, &scope!(), r#"finished by(range: [1..20],p: 20)"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(range: [1..20],p: 20)"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0030() {
-  te_null(false, &scope!(), r#"finished by(r: [1..20],point: 20)"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(r: [1..20],point: 20)"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0031() {
-  te_null(false, &scope!(), r#"finished by(r: [1..20],p: 20)"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(r: [1..20],p: 20)"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
@@ -197,7 +212,7 @@ fn _0032() {
     false,
     &scope!(),
     r#"finished by(range1: [1..20],r2: [1..20])"#,
-    "[named::finished by] invalid named parameters",
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r2'",
   );
 }
 
@@ -207,13 +222,18 @@ fn _0033() {
     false,
     &scope!(),
     r#"finished by(r1: [1..20],range2: [1..20])"#,
-    "[named::finished by] invalid named parameters",
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r1'",
   );
 }
 
 #[test]
 fn _0034() {
-  te_null(false, &scope!(), r#"finished by(r1: [1..20],r2: [1..20])"#, "[named::finished by] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finished by(r1: [1..20],r2: [1..20])"#,
+    "expected the parameters of one of finished by(range, point): boolean, finished by(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]

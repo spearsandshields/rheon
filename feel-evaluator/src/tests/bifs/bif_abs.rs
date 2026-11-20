@@ -46,7 +46,12 @@ fn _0007() {
 #[test]
 fn _0008() {
   let scope = &scope!();
-  te_null(false, scope, "abs(number:-34)", r#"parameter 'n' not found"#);
+  te_null(
+    false,
+    scope,
+    "abs(number:-34)",
+    r#"expected the parameters of abs(n): number or duration, found the parameter name 'number'"#,
+  );
 }
 
 #[test]

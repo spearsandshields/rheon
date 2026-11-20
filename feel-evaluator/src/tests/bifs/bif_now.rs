@@ -12,6 +12,6 @@ fn _0002() {
     false,
     &scope!(),
     r#"now(when: 1)"#,
-    r#"[named::now] this function has no implementation with named parameters"#,
+    r#"expected the parameters of now(): date and time, found the parameter name 'when'"#,
   );
 }

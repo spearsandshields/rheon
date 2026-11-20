@@ -94,17 +94,32 @@ fn _0018() {
 
 #[test]
 fn _0019() {
-  te_null(false, &scope!(), "ceiling(number:5.777)", "parameter 'n' not found");
+  te_null(
+    false,
+    &scope!(),
+    "ceiling(number:5.777)",
+    "expected the parameters of ceiling(n, scale?): number, found the parameter name 'number'",
+  );
 }
 
 #[test]
 fn _0020() {
-  te_null(false, &scope!(), "ceiling(number: 5.777, scale: 1)", "parameter 'n' not found");
+  te_null(
+    false,
+    &scope!(),
+    "ceiling(number: 5.777, scale: 1)",
+    "expected the parameters of ceiling(n, scale?): number, found the parameter name 'number'",
+  );
 }
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), "ceiling(n: 5.777, s: 1)", "parameter 'scale' not found");
+  te_null(
+    false,
+    &scope!(),
+    "ceiling(n: 5.777, s: 1)",
+    "expected the parameters of ceiling(n, scale?): number, found the parameter name 's'",
+  );
 }
 
 #[test]
@@ -113,7 +128,7 @@ fn _0022() {
     false,
     &scope!(),
     "ceiling(n: 5.777, scale: 1, foo: 11)",
-    "expected 1,2 parameters, actual number of parameters is 3",
+    "expected the parameters of ceiling(n, scale?): number, found the parameter name 'foo'",
   );
 }
 

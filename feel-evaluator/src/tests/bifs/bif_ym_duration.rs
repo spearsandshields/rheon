@@ -70,7 +70,7 @@ fn _0008() {
     false,
     &scope!(),
     r#"years and months duration(f: date("2013-08-24"),to: date("2017-12-15"))"#,
-    r#"parameter 'from' not found"#,
+    r#"expected the parameters of years and months duration(from, to): years and months duration, found the parameter name 'f'"#,
   );
 }
 
@@ -80,7 +80,7 @@ fn _0009() {
     false,
     &scope!(),
     r#"years and months duration(from: date("2013-08-24"),t: date("2017-12-15"))"#,
-    r#"parameter 'to' not found"#,
+    r#"expected the parameters of years and months duration(from, to): years and months duration, found the parameter name 't'"#,
   );
 }
 

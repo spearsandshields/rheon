@@ -53,27 +53,52 @@ fn _0010() {
 
 #[test]
 fn _0011() {
-  te_null(false, &scope!(), r#"sublist(l:[1,2,3], start position: 1, length: 1)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(l:[1,2,3], start position: 1, length: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0012() {
-  te_null(false, &scope!(), r#"sublist(list:[1,2,3], sp: 1, length: 1)"#, r#"parameter 'start position' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(list:[1,2,3], sp: 1, length: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'sp'"#,
+  );
 }
 
 #[test]
 fn _0013() {
-  te_null(false, &scope!(), r#"sublist(list:[1,2,3], start position: 1, l: 1)"#, r#"parameter 'length' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(list:[1,2,3], start position: 1, l: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0014() {
-  te_null(false, &scope!(), r#"sublist(list:[1,2,3], sp: 1)"#, r#"parameter 'start position' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(list:[1,2,3], sp: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'sp'"#,
+  );
 }
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"sublist(lista:[1,2,3], start position: 1)"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist(lista:[1,2,3], start position: 1)"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'lista'"#,
+  );
 }
 
 #[test]
@@ -82,7 +107,7 @@ fn _0016() {
     false,
     &scope!(),
     r#"sublist(list:[1,2,3], start position: 1, l: 1, k:5)"#,
-    r#"expected 2,3 parameters, actual number of parameters is 4"#,
+    r#"expected the parameters of sublist(list, start position, length?): list, found the parameter name 'l'"#,
   );
 }
 

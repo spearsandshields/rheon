@@ -123,7 +123,12 @@ fn _0022() {
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#"day of week(d: date(2019,1,15))"#, r#"parameter 'date' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"day of week(d: date(2019,1,15))"#,
+    r#"expected the parameters of day of week(date): string, found the parameter name 'd'"#,
+  );
 }
 
 #[test]

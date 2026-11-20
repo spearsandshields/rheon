@@ -33,7 +33,12 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  te_null(false, &scope!(), r#"product(l: [1,2,3])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"product(l: [1,2,3])"#,
+    r#"expected the parameters of product(list): number, found the parameter name 'l'"#,
+  );
 }
 
 #[test]

@@ -38,12 +38,22 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(false, &scope!(), r#"split(s: "John Doe", delimiter: "\\s")"#, r#"parameter 'string' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"split(s: "John Doe", delimiter: "\\s")"#,
+    r#"expected the parameters of split(string, delimiter): list<string>, found the parameter name 's'"#,
+  );
 }
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"split(string: "John Doe", d: "\\s")"#, r#"parameter 'delimiter' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"split(string: "John Doe", d: "\\s")"#,
+    r#"expected the parameters of split(string, delimiter): list<string>, found the parameter name 'd'"#,
+  );
 }
 
 #[test]

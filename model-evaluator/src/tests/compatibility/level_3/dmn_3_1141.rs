@@ -81,7 +81,7 @@ fn _0012() {
 #[test]
 fn _0013() {
   let invocable = "decision012";
-  let expected = "null(expected 1,2 parameters, actual number of parameters is 3)";
+  let expected = "null(expected the parameters of round up(n, scale?): number, found the parameter name 'foo')";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 #[test]

@@ -1028,7 +1028,12 @@ fn _0137() {
 
 #[test]
 fn _0138() {
-  te_null(false, &scope!(), r#"after(p1:10,point2:1)"#, r#"[named::after] invalid named parameters"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"after(p1:10,point2:1)"#,
+    r#"expected the parameters of one of after(point1, point2): boolean, after(point, range): boolean, after(range, point): boolean, after(range1, range2): boolean, found the parameter name 'p1'"#,
+  );
 }
 
 #[test]

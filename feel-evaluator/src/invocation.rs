@@ -14,6 +14,8 @@ use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, FeelType, FunctionBody, FunctionDefinition, Name, QualifiedName, value_null};
+use std::collections::BTreeMap;
+use std::collections::btree_map::Entry;
 use std::sync::Arc;
 
 /// Maximum number of nested function invocations during one evaluation.
@@ -123,9 +125,15 @@ pub(crate) fn arity(parameters: &[(Name, FeelType)], count: usize) -> Result<(),
   }
 }
 
+/// Why an invocation that gives the parameter `name` twice is refused.
+fn given_twice(name: &Name) -> String {
+  format!("expected each parameter name once, found the name '{}' twice", arg(name))
+}
+
 /// The values of the named `arguments` in `values`, in the order of `parameters` (null for a
 /// parameter that no argument names; an argument of a name that two parameters have goes to the
-/// first), or why they do not match the parameters.
+/// first), or why they do not match the parameters: a name that no parameter has, or a name
+/// that is given twice.
 pub(crate) fn in_order<N: std::borrow::Borrow<Name>>(
   parameters: &[(Name, FeelType)],
   arguments: impl IntoIterator<Item = (N, Value)>,
@@ -133,11 +141,26 @@ pub(crate) fn in_order<N: std::borrow::Borrow<Name>>(
 ) -> Result<(), String> {
   values.clear();
   values.resize(parameters.len(), value_null!());
+  // the parameters that an argument has named: a bit of a word each, and beyond its bits a list
+  let mut few = 0_u64;
+  let mut many = if parameters.len() > u64::BITS as usize { vec![false; parameters.len()] } else { vec![] };
   for (name, value) in arguments {
     let name = name.borrow();
     let Some(index) = parameters.iter().position(|(parameter_name, _)| parameter_name == name) else {
       return Err(format!("function has no parameter named '{}'", arg(name)));
     };
+    let twice = match many.get_mut(index) {
+      Some(given) => std::mem::replace(given, true),
+      None => {
+        let bit = 1_u64 << index;
+        let given = few & bit != 0;
+        few |= bit;
+        given
+      }
+    };
+    if twice {
+      return Err(given_twice(name));
+    }
     values[index] = value;
   }
   Ok(())
@@ -222,7 +245,22 @@ fn apply_built_in(bif: Bif, arguments: Arguments, dialect: Dialect) -> Value {
     },
     Arguments::Named(arguments) => {
       // positions tell `before(point, range)` from `before(range, point)` (bifs/named.rs)
-      let named = Value::NamedParameters(arguments.into_iter().zip(1_usize..).map(|((name, value), position)| (name, (value, position))).collect());
+      let mut named = BTreeMap::new();
+      for ((name, value), position) in arguments.into_iter().zip(1_usize..) {
+        match named.entry(name) {
+          Entry::Vacant(entry) => {
+            entry.insert((value, position));
+          }
+          Entry::Occupied(entry) => {
+            let twice = value_null!(given_twice(entry.key()));
+            return match dialect {
+              Dialect::BFeel => bfeel::default_if_null(&bif, twice),
+              Dialect::Feel => twice,
+            };
+          }
+        }
+      }
+      let named = Value::NamedParameters(named);
       match dialect {
         Dialect::BFeel => bfeel::evaluate_named_bif(bif, &named),
         Dialect::Feel => bifs::named::evaluate_bif(bif, &named),

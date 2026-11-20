@@ -78,12 +78,22 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"string join(list: ["a","c"], delimitr: "X")"#, "parameter 'delimiter' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"string join(list: ["a","c"], delimitr: "X")"#,
+    "expected the parameters of string join(list, delimiter?): string, found the parameter name 'delimitr'",
+  );
 }
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), r#"string join(lst: ["a","c"], delimiter: "X")"#, "parameter 'list' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"string join(lst: ["a","c"], delimiter: "X")"#,
+    "expected the parameters of string join(list, delimiter?): string, found the parameter name 'lst'",
+  );
 }
 
 #[test]
@@ -143,7 +153,12 @@ fn _0023() {
 
 #[test]
 fn _0024() {
-  te_null(false, &scope!(), r#"string join(lst: ["a","c"])"#, "parameter 'list' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"string join(lst: ["a","c"])"#,
+    "expected the parameters of string join(list, delimiter?): string, found the parameter name 'lst'",
+  );
 }
 
 #[test]
@@ -152,6 +167,6 @@ fn _0025() {
     false,
     &scope!(),
     r#"string join(list: ["a","c"], delimiter: "X", other: 1)"#,
-    "expected 1,2 parameters, actual number of parameters is 3",
+    "expected the parameters of string join(list, delimiter?): string, found the parameter name 'other'",
   );
 }

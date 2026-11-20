@@ -13,7 +13,12 @@ fn _0002() {
 
 #[test]
 fn _0003() {
-  te_null(false, &scope!(), r#"context merge(context: [{x:1}, {y:2}])"#, "parameter 'contexts' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"context merge(context: [{x:1}, {y:2}])"#,
+    "expected the parameters of context merge(contexts): context, found the parameter name 'context'",
+  );
 }
 
 #[test]

@@ -53,7 +53,12 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"sum(l: [1,2,3])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sum(l: [1,2,3])"#,
+    r#"expected the parameters of sum(list): number, found the parameter name 'l'"#,
+  );
 }
 
 /// DMN 1.6 §10.3.4.4: `sum([]) = null`, a null the specification defines, so no error.

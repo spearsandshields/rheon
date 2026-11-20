@@ -123,12 +123,22 @@ fn _0024() {
 
 #[test]
 fn _0025() {
-  te_null(false, &scope!(), r#"is(v1:time(12,13,15),value2:time("12:13:14"))"#, "parameter 'value1' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"is(v1:time(12,13,15),value2:time("12:13:14"))"#,
+    "expected the parameters of is(value1, value2): boolean, found the parameter name 'v1'",
+  );
 }
 
 #[test]
 fn _0026() {
-  te_null(false, &scope!(), r#"is(value1:time(12,13,15),v2:time("12:13:14"))"#, "parameter 'value2' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"is(value1:time(12,13,15),v2:time("12:13:14"))"#,
+    "expected the parameters of is(value1, value2): boolean, found the parameter name 'v2'",
+  );
 }
 
 #[test]
@@ -138,7 +148,7 @@ fn _0027() {
 
 #[test]
 fn _0028() {
-  te_bool(false, &scope!(), r#"is(time(12,13,15))"#, false);
+  te_null(false, &scope!(), r#"is(time(12,13,15))"#, "expected 2 parameters, actual number of parameters is 1");
 }
 
 #[test]
@@ -168,7 +178,7 @@ fn _0032() {
 
 #[test]
 fn _0033() {
-  te_bool(false, &scope!(), r#"is(date(2012,11,15))"#, false);
+  te_null(false, &scope!(), r#"is(date(2012,11,15))"#, "expected 2 parameters, actual number of parameters is 1");
 }
 
 #[test]
@@ -182,7 +192,7 @@ fn _0035() {
     false,
     &scope!(),
     r#"is(value1:time(12,13,14), value2:time("12:13:15"), value3:time("12:13:16"))"#,
-    "expected 2 parameters, actual number of parameters is 3",
+    "expected the parameters of is(value1, value2): boolean, found the parameter name 'value3'",
   );
 }
 

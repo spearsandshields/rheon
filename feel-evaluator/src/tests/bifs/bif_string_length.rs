@@ -58,7 +58,12 @@ fn _0010() {
 
 #[test]
 fn _0011() {
-  te_null(false, &scope!(), r#"string length(s: "engos")"#, r#"parameter 'string' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"string length(s: "engos")"#,
+    r#"expected the parameters of string length(string): number, found the parameter name 's'"#,
+  );
 }
 
 #[test]

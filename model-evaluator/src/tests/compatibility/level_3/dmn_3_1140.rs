@@ -80,12 +80,18 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  eq("decision011_a", "null(parameter 'delimiter' not found)");
+  eq(
+    "decision011_a",
+    "null(expected the parameters of string join(list, delimiter?): string, found the parameter name 'delimitr')",
+  );
 }
 
 #[test]
 fn _0016() {
-  eq("decision011_b", "null(parameter 'list' not found)");
+  eq(
+    "decision011_b",
+    "null(expected the parameters of string join(list, delimiter?): string, found the parameter name 'lst')",
+  );
 }
 
 #[test]

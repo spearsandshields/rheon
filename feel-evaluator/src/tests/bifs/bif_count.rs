@@ -44,5 +44,10 @@ fn _0008() {
 
 #[test]
 fn _0009() {
-  te_null(false, &scope!(), r#"count(l: [1,2,3])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"count(l: [1,2,3])"#,
+    r#"expected the parameters of count(list): number, found the parameter name 'l'"#,
+  );
 }

@@ -93,7 +93,7 @@ fn _0010() {
     &MODEL_NAME,
     "decision007",
     &ctx,
-    r#"null(parameter 'divisor' not found)"#,
+    r#"null(expected the parameters of modulo(dividend, divisor): number, found the parameter name 'foo')"#,
   );
 }
 

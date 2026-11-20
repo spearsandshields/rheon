@@ -55,7 +55,14 @@ fn _0006() {
 #[test]
 fn _0007() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision007", &ctx, r#"null(parameter 'n' not found)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision007",
+    &ctx,
+    r#"null(expected the parameters of abs(n): number or duration, found the parameter name 'number')"#,
+  );
 }
 
 #[test]

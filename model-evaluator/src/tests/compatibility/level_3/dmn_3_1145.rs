@@ -85,7 +85,11 @@ fn _0015() {
 
 #[test]
 fn _0016() {
-  eq("decision015", &CTX, "null(parameter 'entries' not found)");
+  eq(
+    "decision015",
+    &CTX,
+    "null(expected the parameters of context(entries): context, found the parameter name 'entris')",
+  );
 }
 
 #[test]

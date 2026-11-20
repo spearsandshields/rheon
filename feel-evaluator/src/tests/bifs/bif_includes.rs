@@ -256,32 +256,62 @@ fn _0039() {
 
 #[test]
 fn _0040() {
-  te_null(false, &scope!(), r#"includes(range: [1..20],p: 20)"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(range: [1..20],p: 20)"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0041() {
-  te_null(false, &scope!(), r#"includes(r: [1..20],point: 20)"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r: [1..20],point: 20)"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0042() {
-  te_null(false, &scope!(), r#"includes(r: [1..20],p: 20)"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r: [1..20],p: 20)"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), r#"includes(range1: [1..20],r2: [1..20])"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(range1: [1..20],r2: [1..20])"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
 fn _0044() {
-  te_null(false, &scope!(), r#"includes(r1: [1..20],range2: [1..20])"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r1: [1..20],range2: [1..20])"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0045() {
-  te_null(false, &scope!(), r#"includes(r1: [1..20],r2: [1..20])"#, "[named::includes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"includes(r1: [1..20],r2: [1..20])"#,
+    "expected the parameters of one of includes(range, point): boolean, includes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]

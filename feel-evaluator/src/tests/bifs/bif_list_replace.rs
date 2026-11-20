@@ -103,7 +103,12 @@ fn _0015() {
 
 #[test]
 fn _0016() {
-  te_null(false, &scope!(), r#"list replace(lists: [1, 7, 3], position: 2, newItem: 4)"#, "parameter 'list' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"list replace(lists: [1, 7, 3], position: 2, newItem: 4)"#,
+    "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'lists'",
+  );
 }
 
 #[test]
@@ -112,7 +117,7 @@ fn _0017() {
     false,
     &scope!(),
     r#"list replace(list: [1, 7, 3], positions: 2, newItem: 4)"#,
-    "parameter 'position' or 'match' not found",
+    "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'positions'",
   );
 }
 
@@ -122,7 +127,7 @@ fn _0018() {
     false,
     &scope!(),
     r#"list replace(list: [1, 7, 3], position: 2, newItems: 4)"#,
-    "parameter 'newItem' not found",
+    "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'newItems'",
   );
 }
 
@@ -132,7 +137,7 @@ fn _0019() {
     false,
     &scope!(),
     r#"list replace(list: [2, 4, 7, 8], matches: function(item, newItem) item < newItem, newItem: 5)"#,
-    "parameter 'position' or 'match' not found",
+    "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matches'",
   );
 }
 
@@ -142,7 +147,7 @@ fn _0020() {
     false,
     &scope!(),
     r#"list replace(list: [2, 4, 7, 8], matche: function(item, newItem) item < newItem, newItem: 5, oldItem: 12)"#,
-    "expected 3 parameters, actual number of parameters is 4",
+    "expected the parameters of one of list replace(list, position, newItem): list, list replace(list, match, newItem): list, found the parameter name 'matche'",
   );
 }
 

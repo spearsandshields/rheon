@@ -70,7 +70,14 @@ fn _0005() {
 #[test]
 fn _0006() {
   let ctx = context(r#"{}"#);
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, "decision_006", &ctx, r#"null(parameter 'm' not found)"#);
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    "decision_006",
+    &ctx,
+    r#"null(expected the parameters of get entries(m): list<context>, found the parameter name 'map')"#,
+  );
 }
 
 #[test]

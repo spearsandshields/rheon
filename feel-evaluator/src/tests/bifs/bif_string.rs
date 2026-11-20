@@ -98,5 +98,10 @@ fn _0019() {
 
 #[test]
 fn _0020() {
-  te_null(false, &scope!(), "string(f:1.1)", r#"parameter 'from' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "string(f:1.1)",
+    r#"expected the parameters of string(from): string, found the parameter name 'f'"#,
+  );
 }

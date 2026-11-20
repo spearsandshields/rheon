@@ -28,7 +28,12 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  te_null(false, &scope!(), "exp(n:4)", r#"parameter 'number' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "exp(n:4)",
+    r#"expected the parameters of exp(number): number, found the parameter name 'n'"#,
+  );
 }
 
 #[test]

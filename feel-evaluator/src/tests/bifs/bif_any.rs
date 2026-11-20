@@ -105,7 +105,12 @@ fn _0020() {
 
 #[test]
 fn _0021() {
-  te_null(false, &scope!(), "any(l: [true])", r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    "any(l: [true])",
+    r#"expected the parameters of any(list): boolean, found the parameter name 'l'"#,
+  );
 }
 
 #[test]

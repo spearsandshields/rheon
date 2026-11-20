@@ -273,22 +273,42 @@ fn _0040() {
 
 #[test]
 fn _0041() {
-  te_null(false, &scope!(), r#"finishes(p: 20, range: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(p: 20, range: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0042() {
-  te_null(false, &scope!(), r#"finishes(point: 20, r: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(point: 20, r: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r'",
+  );
 }
 
 #[test]
 fn _0043() {
-  te_null(false, &scope!(), r#"finishes(p: 20, r: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(p: 20, r: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'p'",
+  );
 }
 
 #[test]
 fn _0044() {
-  te_null(false, &scope!(), r#"finishes(range1: [1..20], r2: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(range1: [1..20], r2: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r2'",
+  );
 }
 
 #[test]
@@ -298,12 +318,22 @@ fn _0045() {
 
 #[test]
 fn _0046() {
-  te_null(false, &scope!(), r#"finishes(r1: [1..20], range2: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(r1: [1..20], range2: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]
 fn _0047() {
-  te_null(false, &scope!(), r#"finishes(r1: [1..20], r2: [1..20])"#, "[named::finishes] invalid named parameters");
+  te_null(
+    false,
+    &scope!(),
+    r#"finishes(r1: [1..20], r2: [1..20])"#,
+    "expected the parameters of one of finishes(point, range): boolean, finishes(range1, range2): boolean, found the parameter name 'r1'",
+  );
 }
 
 #[test]

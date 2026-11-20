@@ -345,7 +345,12 @@ fn _0044() {
 
 #[test]
 fn _0045() {
-  te_null(false, &scope!(), r#"date and time(f: "2012-12-24")"#, r#"invalid parameters in named::bif_date_and_time"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"date and time(f: "2012-12-24")"#,
+    r#"expected the parameters of one of date and time(from): date and time, date and time(date, time): date and time, date and time(date, time, timezone): date and time, found the parameter name 'f'"#,
+  );
 }
 
 #[test]

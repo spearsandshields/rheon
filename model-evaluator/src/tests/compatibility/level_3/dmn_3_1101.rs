@@ -65,12 +65,20 @@ fn _0011() {
 
 #[test]
 fn _0012() {
-  eq("decision012", &CTX, "null(expected 1,2 parameters, actual number of parameters is 3)");
+  eq(
+    "decision012",
+    &CTX,
+    "null(expected the parameters of floor(n, scale?): number, found the parameter name 'stuff')",
+  );
 }
 
 #[test]
 fn _0013() {
-  eq("decision013", &CTX, "null(parameter 'scale' not found)");
+  eq(
+    "decision013",
+    &CTX,
+    "null(expected the parameters of floor(n, scale?): number, found the parameter name 'scal')",
+  );
 }
 
 #[test]

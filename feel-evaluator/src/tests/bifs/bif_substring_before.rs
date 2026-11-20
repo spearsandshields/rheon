@@ -33,12 +33,22 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  te_null(false, &scope!(), r#"substring before(s: "foobar", match: "bar")"#, r#"parameter 'string' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"substring before(s: "foobar", match: "bar")"#,
+    r#"expected the parameters of substring before(string, match): string, found the parameter name 's'"#,
+  );
 }
 
 #[test]
 fn _0007() {
-  te_null(false, &scope!(), r#"substring before(string: "foobar", m: "bar")"#, r#"parameter 'match' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"substring before(string: "foobar", m: "bar")"#,
+    r#"expected the parameters of substring before(string, match): string, found the parameter name 'm'"#,
+  );
 }
 
 #[test]

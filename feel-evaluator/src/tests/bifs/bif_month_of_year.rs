@@ -158,7 +158,12 @@ fn _0030() {
 
 #[test]
 fn _0031() {
-  te_null(false, &scope!(), r#"month of year(d:date(2019,12,17))"#, "parameter 'date' not found");
+  te_null(
+    false,
+    &scope!(),
+    r#"month of year(d:date(2019,12,17))"#,
+    "expected the parameters of month of year(date): string, found the parameter name 'd'",
+  );
 }
 
 #[test]

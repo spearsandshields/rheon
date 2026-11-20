@@ -33,7 +33,12 @@ fn _0005() {
 
 #[test]
 fn _0006() {
-  te_null(false, &scope!(), r#"distinct values(l:[1])"#, r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"distinct values(l:[1])"#,
+    r#"expected the parameters of distinct values(list): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]

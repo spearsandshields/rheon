@@ -94,13 +94,23 @@ fn _0011() {
 #[test]
 fn _0012() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "sort(l: [3,1,4,5,2], precedes: function(x,y) x < y)", r#"parameter 'list' not found"#);
+  te_null(
+    false,
+    scope,
+    "sort(l: [3,1,4,5,2], precedes: function(x,y) x < y)",
+    r#"expected the parameters of sort(list, precedes): list, found the parameter name 'l'"#,
+  );
 }
 
 #[test]
 fn _0013() {
   let scope = &te_scope("{}");
-  te_null(false, scope, "sort(list: [3,1,4,5,2], p: function(x,y) x < y)", r#"parameter 'precedes' not found"#);
+  te_null(
+    false,
+    scope,
+    "sort(list: [3,1,4,5,2], p: function(x,y) x < y)",
+    r#"expected the parameters of sort(list, precedes): list, found the parameter name 'p'"#,
+  );
 }
 
 #[test]
