@@ -205,7 +205,9 @@ pub(crate) fn split_date_and_time(text: &str) -> Option<Parts<'_>> {
 }
 
 /// The parts of a days and time duration:
-/// `^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$`
+/// `^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$`,
+/// where the `T` that begins the time is followed by a component (XML Schema,
+/// `dayTimeDuration`: the pattern `.*[^T]`).
 pub(crate) fn split_days_and_time(text: &str) -> Option<Parts<'_>> {
   let (mut cursor, mut parts) = (Cursor::new(text), Parts::default());
   parts.sign = cursor.eat(b'-');
@@ -242,6 +244,10 @@ pub(crate) fn split_days_and_time(text: &str) -> Option<Parts<'_>> {
         }
         _ => return None,
       }
+    }
+    // a time without a component is none
+    if passed == 0 && parts.seconds.is_none() {
+      return None;
     }
   }
   ended(&cursor, parts)
@@ -282,6 +288,9 @@ mod tests {
   const TIME: &str = r"(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2})(?P<fractional>\.[0-9]+)?";
   const ZONE: &str = r"(?P<zulu>[zZ])|@(?P<zone>[a-zA-Z_/]+)|(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
   const DAYS_AND_TIME: &str = r"^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$";
+  /// A text that the pattern of a duration matches is still none when it ends with the `T` that
+  /// begins the time, as XML Schema says of `dayTimeDuration` with its second pattern `.*[^T]`.
+  const TIME_WITHOUT_A_COMPONENT: &str = "T$";
   const YEARS_AND_MONTHS: &str = r"^(?P<sign>-)?P((?P<years>[0-9]+)Y)?((?P<months>[0-9]+)M)?$";
 
   const NAMES: [&str; 16] = [
@@ -366,15 +375,22 @@ mod tests {
 
   /// Holds a function against its pattern on generated texts, and says how many of them matched.
   fn agree(pattern: &str, split: for<'a> fn(&'a str) -> Option<Parts<'a>>, whole: &[&str], pieces: &[&str]) {
+    agree_except(pattern, None, split, whole, pieces);
+  }
+
+  /// [agree] where a text that the pattern `except` matches is none, whatever `pattern` says.
+  fn agree_except(pattern: &str, except: Option<&str>, split: for<'a> fn(&'a str) -> Option<Parts<'a>>, whole: &[&str], pieces: &[&str]) {
     let pattern = Regex::new(pattern).unwrap();
+    let except = except.map(|except| Regex::new(except).unwrap());
+    let excepted = |text: &str| except.as_ref().is_some_and(|except| except.is_match(text));
     let mut generator = Generator(0x9E37_79B9_7F4A_7C15);
     let mut matched = 0;
     for text in whole {
-      assert!(by_pattern(&pattern, text).is_some(), "{text}");
+      assert!(by_pattern(&pattern, text).is_some() && !excepted(text), "{text}");
     }
     for _ in 0..rounds() {
       let text = generator.text(whole, pieces);
-      let expected = by_pattern(&pattern, &text);
+      let expected = by_pattern(&pattern, &text).filter(|_| !excepted(&text));
       matched += usize::from(expected.is_some());
       assert_eq!(expected, by_hand(split, &text), "{text:?}");
     }
@@ -485,11 +501,23 @@ mod tests {
       "PT2H4S",
       "PT3M4.000000001S",
       "P",
-      "PT",
       "P999999999999999999999DT1H",
-      "P1DT",
+      "P1DT0S",
     ];
-    agree(DAYS_AND_TIME, split_days_and_time, &whole, DURATION_PIECES);
+    agree_except(DAYS_AND_TIME, Some(TIME_WITHOUT_A_COMPONENT), split_days_and_time, &whole, DURATION_PIECES);
+  }
+
+  /// The `T` that begins the time of a duration is followed by a component (XML Schema,
+  /// `dayTimeDuration`, from which DMN 1.6 10.3.2.3.7 derives the type). The point of the seconds
+  /// needs no digit after it: the TCK model 1120 expects `PT0.S` to be `PT0S`.
+  #[test]
+  fn a_time_without_a_component_is_no_duration() {
+    for text in ["P1DT", "PT", "-P1DT", "-PT", "P0DT", "PT.S", "PT.5S"] {
+      assert!(split_days_and_time(text).is_none(), "{text}");
+    }
+    for text in ["P1D", "P1DT0S", "PT0H", "PT7.5S", "PT7.0S", "PT0.S", "-P1DT2H3M4.5S"] {
+      assert!(split_days_and_time(text).is_some(), "{text}");
+    }
   }
 
   #[test]

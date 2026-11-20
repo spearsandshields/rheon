@@ -333,12 +333,12 @@ fn _0051() {
 
 #[test]
 fn _0052() {
-  te_bool(false, &scope!(), r#"after(duration("P1DT10H11M12S"),[duration("P1DT")..duration("P1DT10H11M11S")])"#, true);
+  te_bool(false, &scope!(), r#"after(duration("P1DT10H11M12S"),[duration("P1D")..duration("P1DT10H11M11S")])"#, true);
 }
 
 #[test]
 fn _0053() {
-  te_bool(false, &scope!(), r#"after(duration("P1DT10H11M12S"),[duration("P1DT")..duration("P1DT10H11M12S")))"#, true);
+  te_bool(false, &scope!(), r#"after(duration("P1DT10H11M12S"),[duration("P1D")..duration("P1DT10H11M12S")))"#, true);
 }
 
 #[test]
@@ -468,17 +468,17 @@ fn _0071() {
 
 #[test]
 fn _0072() {
-  te_bool(false, &scope!(), r#"after([duration("P1DT")..duration("P1DT10H11M11S")],duration("P1DT10H11M12S"))"#, false);
+  te_bool(false, &scope!(), r#"after([duration("P1D")..duration("P1DT10H11M11S")],duration("P1DT10H11M12S"))"#, false);
 }
 
 #[test]
 fn _0073() {
-  te_bool(false, &scope!(), r#"after([duration("P1DT")..duration("P1DT10H11M11S")],duration("P1DT"))"#, false);
+  te_bool(false, &scope!(), r#"after([duration("P1D")..duration("P1DT10H11M11S")],duration("P1D"))"#, false);
 }
 
 #[test]
 fn _0074() {
-  te_bool(false, &scope!(), r#"after((duration("P1DT")..duration("P1DT10H11M11S")],duration("P1DT"))"#, true);
+  te_bool(false, &scope!(), r#"after((duration("P1D")..duration("P1DT10H11M11S")],duration("P1D"))"#, true);
 }
 
 #[test]
@@ -526,7 +526,7 @@ fn _0082() {
   te_bool(
     false,
     &scope!(),
-    r#"after(point:duration("P1DT10H11M12S"),range:[duration("P1DT")..duration("P1DT10H11M11S")])"#,
+    r#"after(point:duration("P1DT10H11M12S"),range:[duration("P1D")..duration("P1DT10H11M11S")])"#,
     true,
   );
 }
@@ -566,7 +566,7 @@ fn _0088() {
   te_bool(
     false,
     &scope!(),
-    r#"after(range:[duration("P1DT")..duration("P1DT10H11M11S")],point:duration("P1DT10H11M12S"))"#,
+    r#"after(range:[duration("P1D")..duration("P1DT10H11M11S")],point:duration("P1DT10H11M12S"))"#,
     false,
   );
 }
@@ -766,7 +766,7 @@ fn _0110() {
   te_bool(
     false,
     &scope!(),
-    r#"after(range1:[duration("P1DT12H")..duration("P1DT23H59M59S")],range2:[duration("P1DT")..duration("P1DT11H59M59S")])"#,
+    r#"after(range1:[duration("P1DT12H")..duration("P1DT23H59M59S")],range2:[duration("P1D")..duration("P1DT11H59M59S")])"#,
     true,
   );
 }
@@ -776,7 +776,7 @@ fn _0111() {
   te_bool(
     false,
     &scope!(),
-    r#"after(range1:[duration("P1DT12H")..duration("P1DT23H59M59S")],range2:[duration("P1DT")..duration("P1DT12H")))"#,
+    r#"after(range1:[duration("P1DT12H")..duration("P1DT23H59M59S")],range2:[duration("P1D")..duration("P1DT12H")))"#,
     true,
   );
 }
@@ -786,7 +786,7 @@ fn _0112() {
   te_bool(
     false,
     &scope!(),
-    r#"after(range1:(duration("P1DT12H")..duration("P1DT23H59M59S")],range2:[duration("P1DT")..duration("P1DT12H")])"#,
+    r#"after(range1:(duration("P1DT12H")..duration("P1DT23H59M59S")],range2:[duration("P1D")..duration("P1DT12H")])"#,
     true,
   );
 }
@@ -901,7 +901,7 @@ fn _0124() {
   te_bool(
     false,
     &scope!(),
-    r#"after(range1:[duration("P1DT")..duration("P1DT11H59M59S")],range2:[duration("P1DT12H")..duration("P1DT23H59M59S")])"#,
+    r#"after(range1:[duration("P1D")..duration("P1DT11H59M59S")],range2:[duration("P1DT12H")..duration("P1DT23H59M59S")])"#,
     false,
   );
 }
@@ -956,7 +956,7 @@ fn _0130() {
   te_bool(
     false,
     &scope!(),
-    r#"after(range2:[duration("P1DT")..duration("P1DT11H59M59S")],range1:[duration("P1DT12H")..duration("P1DT23H59M59S")])"#,
+    r#"after(range2:[duration("P1D")..duration("P1DT11H59M59S")],range1:[duration("P1DT12H")..duration("P1DT23H59M59S")])"#,
     true,
   );
 }
@@ -1011,7 +1011,7 @@ fn _0136() {
   te_bool(
     false,
     &scope!(),
-    r#"after(range2:[duration("P1DT12H")..duration("P1DT23H59M59S")],range1:[duration("P1DT")..duration("P1DT11H59M59S")])"#,
+    r#"after(range2:[duration("P1DT12H")..duration("P1DT23H59M59S")],range1:[duration("P1D")..duration("P1DT11H59M59S")])"#,
     false,
   );
 }
