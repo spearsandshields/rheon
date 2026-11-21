@@ -3,6 +3,7 @@
 
 use rheon_feel::FeelScope;
 use rheon_feel::signatures::{BUILT_INS, Signature};
+use rheon_feel::value_number;
 use rheon_feel::values::Value;
 
 /// What a built-in function answers to parameters it does not take.
@@ -131,9 +132,13 @@ fn a_given_parameter_is_never_reported_as_not_found() {
 #[test]
 fn a_parameter_of_another_type_is_named_with_its_type() {
   let scope = FeelScope::default();
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4); an item of
+  // another type is named with its type
   let node = rheon_feel_parser::parse_expression(&scope, "sum(list: 1)").unwrap();
+  assert_eq!(value_number!(1), super::super::eval(&scope, &node));
+  let node = rheon_feel_parser::parse_expression(&scope, r#"sum(list: "a")"#).unwrap();
   assert_eq!(
-    Value::Null(Some("[core::sum] invalid argument type, expected list, actual type is number".to_string())),
+    Value::Null(Some("[core::sum] invalid argument type, expected number, actual type is string".to_string())),
     super::super::eval(&scope, &node)
   );
 }

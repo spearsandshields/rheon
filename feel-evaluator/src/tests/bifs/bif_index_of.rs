@@ -38,12 +38,8 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  te_null(
-    false,
-    &scope!(),
-    r#"index of(10,2)"#,
-    r#"[core::index of] invalid argument type, expected list, actual type is number"#,
-  );
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"index of(10,2)"#, r#"[]"#);
 }
 
 #[test]

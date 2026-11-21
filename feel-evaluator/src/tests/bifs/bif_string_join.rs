@@ -127,7 +127,7 @@ fn _0020() {
     false,
     &scope!(),
     r#"string join(123, "X")"#,
-    "string join: expected list or string, actual value type is number",
+    r#"[core::string join] invalid argument type, expected string, actual type is number"#,
   );
 }
 

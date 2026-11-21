@@ -111,7 +111,7 @@ fn _0019() {
 
 #[test]
 fn _0020() {
-  eq("decision014", "null(string join: expected list or string, actual value type is number)");
+  eq("decision014", "null([core::string join] invalid argument type, expected string, actual type is number)");
 }
 
 #[test]

@@ -98,12 +98,7 @@ fn _0017() {
 
 #[test]
 fn _0018() {
-  te_null(
-    false,
-    &scope!(),
-    r#"context("foo")"#,
-    "[core::context] invalid argument type, expected list or context, actual type is string",
-  );
+  te_null(false, &scope!(), r#"context("foo")"#, r#"context: invalid entry, expected context, actual type is string"#);
 }
 
 #[test]

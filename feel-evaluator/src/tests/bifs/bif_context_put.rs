@@ -93,7 +93,8 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  te_null(false, &scope!(), r#"context put(context: {}, keys: "a", value: 1)"#, "");
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"context put(context: {}, keys: "a", value: 1)"#, r#"{a: 1}"#);
 }
 
 #[test]

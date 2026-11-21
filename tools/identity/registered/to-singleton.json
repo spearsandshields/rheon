@@ -1,0 +1,1987 @@
+[
+  {
+    "expression": "sort(5, function(a, b) a < b)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sort: expected a list of values as a first argument"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sort: expected a list of values as a first argument)",
+        "isNull": true,
+        "nullReason": "sort: expected a list of values as a first argument",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5]",
+        "feel": "[5]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "reverse(5)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::reverse] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::reverse] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::reverse] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5]",
+        "feel": "[5]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "reverse(5)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::reverse] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5]",
+        "feel": "[5]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "append(5, 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::append] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::append] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::append] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5, 1]",
+        "feel": "[5, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "append(5, 1)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::append] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5, 1]",
+        "feel": "[5, 1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "flatten(5)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::flatten] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::flatten] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::flatten] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5]",
+        "feel": "[5]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "flatten(5)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::flatten] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[5]",
+        "feel": "[5]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "5",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "concatenate(1, [2])",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::concatenate] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::concatenate] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::concatenate] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "concatenate(1, [2])",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::concatenate] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "union(1, [2])",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::union] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::union] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::union] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "union(1, [2])",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::union] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2]",
+        "feel": "[1, 2]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sort(3, function(x, y) x < y)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sort: expected a list of values as a first argument"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(sort: expected a list of values as a first argument)",
+        "isNull": true,
+        "nullReason": "sort: expected a list of values as a first argument",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[3]",
+        "feel": "[3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sort(3, function(x, y) x < y)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "sort: expected a list of values as a first argument"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[3]",
+        "feel": "[3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "context put(context: {x: 1}, keys: \"y\", value: 2)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"x\": 1, \"y\": 2}",
+        "feel": "{x: 1, y: 2}",
+        "isNull": false,
+        "type": "context<x: number, y: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "x",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "y",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "context put(context: {x: 1}, keys: \"y\", value: 2)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"x\": 1, \"y\": 2}",
+        "feel": "{x: 1, y: 2}",
+        "isNull": false,
+        "type": "context<x: number, y: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "x",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "y",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sum(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::sum] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::sum] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::sum] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sum(list: 1)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::sum] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "distinct values(\"a\")",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::distinct values] invalid argument type, expected list, actual type is string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::distinct values] invalid argument type, expected list, actual type is string)",
+        "isNull": true,
+        "nullReason": "[core::distinct values] invalid argument type, expected list, actual type is string",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"a\"]",
+        "feel": "[\"a\"]",
+        "isNull": false,
+        "type": "list<string>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "a",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "distinct values(\"a\")",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::distinct values] invalid argument type, expected list, actual type is string"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[\"a\"]",
+        "feel": "[\"a\"]",
+        "isNull": false,
+        "type": "list<string>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "a",
+                  "type": "xsd:string"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "list contains(5, 5)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::list contains] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::list contains] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::list contains] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "list contains(5, 5)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::list contains] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min(list: 3)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "min(list: 3)",
+      "language": "b-feel"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "3",
+        "feel": "3",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "3",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "all(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::all] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::all] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::all] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "any(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::any] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::any] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::any] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mean(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::mean] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::mean] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::mean] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "median(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::median] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::median] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::median] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "mode(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::mode] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::mode] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::mode] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1]",
+        "feel": "[1]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "product(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::product] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::product] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::product] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "stddev(list: 1)",
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::stddev] invalid argument type, expected list, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::stddev] invalid argument type, expected list, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::stddev] invalid argument type, expected list, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(stddev: minimum two input arguments expected)",
+        "isNull": true,
+        "nullReason": "stddev: minimum two input arguments expected",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "sum(list: \"a\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-012: a value that is no list, given a built-in function for a parameter that takes a list, is the list of that one value (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list; 10.3.4.4), where every signature the invocation fits takes a list there: reverse(5) is [5], concatenate(1, [2]) is [1, 2], sort(3, f) is [3], context put(context: c, keys: \"y\", value: v) puts under y. These were invalid-type nulls (only count and list replace wrapped). Null stays null: it is no value of the item type (count(null) is null).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::sum] invalid argument type, expected list, actual type is string"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::sum] invalid argument type, expected number, actual type is string"
+      },
+      "ok": false
+    }
+  }
+]

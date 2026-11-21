@@ -158,7 +158,7 @@ fn _0022() {
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#"sublist("[1,2,3]", 2)"#, r#"sublist: expected list, actual value type is string"#);
+  te_null(false, &scope!(), r#"sublist("[1,2,3]", 2)"#, r#"sublist: position is out of range, len = 1, position = 2"#);
 }
 
 #[test]
@@ -242,7 +242,7 @@ fn _0032() {
     false,
     &scope!(),
     r#"sublist("[1,2,3,4,5]", 2, 3)"#,
-    r#"sublist: expected list, actual value type is string"#,
+    r#"sublist: invalid range, len = 1, start position = 2, end position = 5"#,
   );
 }
 

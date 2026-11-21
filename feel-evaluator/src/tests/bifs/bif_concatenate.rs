@@ -18,12 +18,8 @@ fn _0003() {
 
 #[test]
 fn _0004() {
-  te_null(
-    false,
-    &scope!(),
-    r#"concatenate(1,[2])"#,
-    r#"[core::concatenate] invalid argument type, expected list, actual type is number"#,
-  );
+  // a value that is no list is the list of it where a list is taken (10.3.2.9.4)
+  te_be_value(false, &scope!(), r#"concatenate(1,[2])"#, r#"[1, 2]"#);
 }
 
 #[test]

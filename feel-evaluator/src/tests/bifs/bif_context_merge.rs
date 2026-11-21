@@ -37,7 +37,7 @@ fn _0005() {
     false,
     &scope!(),
     r#"context merge(1)"#,
-    "[core::context merge] invalid argument type, expected list<context>, actual type is number",
+    r#"[core::context merge] invalid argument type, expected context, actual type is number"#,
   );
 }
 

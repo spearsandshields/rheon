@@ -94,11 +94,7 @@ fn _0016() {
 
 #[test]
 fn _0017() {
-  eq(
-    "decision016",
-    &CTX,
-    "null([core::context] invalid argument type, expected list or context, actual type is string)",
-  );
+  eq("decision016", &CTX, "null(context: invalid entry, expected context, actual type is string)");
 }
 
 #[test]

@@ -37,8 +37,9 @@ fn _0005() {
 
 #[test]
 fn _0006() {
+  // 10 is the list [10] for the list parameter (10.3.2.9.4); 10 is no function
   let scope = &te_scope("{}");
-  te_null(false, scope, "sort(10,10)", r#"sort: expected a list of values as a first argument"#);
+  te_null(false, scope, "sort(10,10)", r#"sort: expected ordering function definition as a second argument"#);
 }
 
 #[test]
