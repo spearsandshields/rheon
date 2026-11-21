@@ -143,11 +143,9 @@ Open in 1.6:
     `eval_ternary_equality`: inverted null check on the endpoint, wrong closure for `<=`).
   - *`-` against a null input.* Rule 15.c reads as `? != null`; rheon gives a match. (`null <= null`
     is null by the reading recorded in LIMITATIONS.md.)
-  - *Smaller ones*: null range endpoints are handled differently by kind; `between` checks the
-    kinds of all three operands first; `list in list` is containment of a multiset; the Any and
-    Priority hit policies compare outputs with Rust equality, not FEEL equality; a collection item
-    definition turns a list with a null item into null; a missing input has a null with a reason
-    only when its typeRef is an item definition; the nulls of `eval_in_*` name internal functions.
+  - *Smaller ones*: the Any and Priority hit policies compare outputs with Rust equality, not FEEL
+    equality; a collection item definition turns a list with a null item into null; a missing
+    input has a null with a reason only when its typeRef is an item definition.
 - **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation goes through
   `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
   with input data, `sort` and `list replace`). Open:

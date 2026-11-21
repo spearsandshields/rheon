@@ -957,3 +957,15 @@ fn _0200() {
   // the other comparison decides it
   te_bool(false, scope, r#"@"12:00:00" in [@"09:00:00+01:00"..@"11:00:00"]"#, false);
 }
+
+#[test]
+fn _0201() {
+  // e1 in a list value: an item equal to e1 (e1 = e2 or e1 = e3 ..., Table 56), also when e1 is a list
+  let scope = &scope!();
+  te_bool(false, scope, r#"[1, 2] in [[1, 2], [3]]"#, true);
+  te_bool(false, scope, r#"[3] in [[1, 2], [3]]"#, true);
+  te_bool(false, scope, r#"[2, 1] in [[1, 2]]"#, false);
+  te_bool(false, scope, r#"[1, 2] in [1, 2]"#, false);
+  te_bool(false, scope, r#"5 in [[5]]"#, false);
+  te_bool(false, scope, r#"5 in [5, [6]]"#, true);
+}

@@ -9,7 +9,6 @@ use rheon_feel::value_null;
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::collections::HashSet;
 
 /// FEEL `lhv in rhv`: the right-hand value selects the test (a value, a range, a list, a negated
 /// list, a unary comparison or `-`). With `two_valued` (B-FEEL), a test of a list that cannot be
@@ -30,14 +29,9 @@ pub(crate) fn in_operator(lhv: &Value, rhv: &Value, two_valued: bool) -> Value {
     // null because the values are of different kinds
     | Value::Context(_) => super::compare::equal(lhv, rhv),
     Value::Range(l, l_type, r, r_type) => eval_in_range(lhv, l, *l_type, r, *r_type),
-    Value::List(r_inner) => {
-      if let Value::List(l_inner) = lhv {
-        eval_in_list_in_list(&mut Equality::default(), l_inner, r_inner)
-      } else {
-        eval_in_list(&mut Equality::default(), lhv, r_inner, Tests::No)
-      }
-    }
-    Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), lhv, inner, tests),
+    // a list value: `e1 in e2` is `list contains(e2, e1)` (Table 56), whatever e1 is
+    Value::List(r_inner) => eval_in_list(&mut Equality::default(), lhv, r_inner, Tests::No, Items::Values),
+    Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), lhv, inner, tests, Items::Tests),
     Value::NegatedCommaList(inner) => eval_in_negated_list(&mut Equality::default(), lhv, inner, tests),
     // `e1 in = e2` is `e1 = e2`, and `e1 in != e2` is `e1 != e2` (Table 56)
     Value::UnaryEqual(inner) => super::compare::equal(lhv, inner),
@@ -118,7 +112,14 @@ impl<'a> Answers<'a> {
   }
 }
 
-fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: Tests) -> Value {
+/// Whether the items are the items of a list value (`e1 in [1, [2]]`) or tests (`e1 in (1, < 5)`).
+#[derive(Clone, Copy, PartialEq)]
+enum Items {
+  Values,
+  Tests,
+}
+
+fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: Tests, of: Items) -> Value {
   let mut answers = Answers::default();
   for item in items {
     let found = match item {
@@ -139,8 +140,10 @@ fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: T
       Value::UnaryLessOrEqual(inner) => answers.test(eval_in_unary_less_or_equal(left, inner.borrow())),
       Value::UnaryGreater(inner) => answers.test(eval_in_unary_greater(left, inner.borrow())),
       Value::UnaryGreaterOrEqual(inner) => answers.test(eval_in_unary_greater_or_equal(left, inner.borrow())),
+      // a list among the items of a list value is an item, compared by equality (`[1, 2] in [[1, 2]]`)
+      inner @ Value::List(_) if of == Items::Values => answers.equal(equality, left, inner),
       // a list value among the tests: the tested value is one of its items or it is not
-      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No)),
+      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No, Items::Values)),
       Value::Range(l, l_closed, r, r_closed) => answers.test(eval_in_range(left, l, *l_closed, r, *r_closed)),
       // a boolean expression using `?`: its own answer
       Value::TestAnswer(answer) => answers.test(answer.as_ref().clone()),
@@ -174,7 +177,7 @@ fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value], 
       Value::UnaryLessOrEqual(inner) => answers.test(eval_in_unary_less_or_equal(left, inner.borrow())),
       Value::UnaryGreater(inner) => answers.test(eval_in_unary_greater(left, inner.borrow())),
       Value::UnaryGreaterOrEqual(inner) => answers.test(eval_in_unary_greater_or_equal(left, inner.borrow())),
-      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No)),
+      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No, Items::Values)),
       Value::Range(l, l_closed, r, r_closed) => answers.test(eval_in_range(left, l, *l_closed, r, *r_closed)),
       // a boolean expression using `?`: its own answer
       Value::TestAnswer(answer) => answers.test(answer.as_ref().clone()),
@@ -185,32 +188,6 @@ fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value], 
     }
   }
   answers.unknown(left, tests).unwrap_or(VALUE_TRUE)
-}
-
-/// Checks if all elements from `list` are present in `items`.
-fn eval_in_list_in_list(equality: &mut Equality, l_items: &[Value], r_items: &[Value]) -> Value {
-  for item in r_items {
-    if let Value::List(rhs) = item {
-      let mut available: HashSet<usize> = (0..rhs.len()).collect();
-      for l in l_items {
-        let mut found = false;
-        for (index, r) in rhs.iter().enumerate() {
-          if available.contains(&index)
-            && let Value::Boolean(true) = eval_in_equal(equality, l, r)
-          {
-            available.remove(&index);
-            found = true;
-            break;
-          }
-        }
-        if !found {
-          return VALUE_FALSE;
-        }
-      }
-      return VALUE_TRUE;
-    }
-  }
-  VALUE_FALSE
 }
 
 /// `e1 in` a range (DMN 1.7 Beta 1, Table 56): `e1 > e2 and e1 < e3`, with `>=` and `<=` for included
@@ -243,10 +220,6 @@ fn side(lhv: &Value, endpoint: &Value, accept: fn(Ordering) -> bool) -> Option<b
     Order::Ordered(ordering) => Some(accept(ordering)),
     Order::Indeterminate | Order::Unordered => None,
   }
-}
-
-fn eval_in_equal(equality: &mut Equality, left: &Value, right: &Value) -> Value {
-  if let Some(true) = equality.compare(left, right) { VALUE_TRUE } else { VALUE_FALSE }
 }
 
 /// `e1 in < e2` is `e1 < e2` (Table 56), and so for the other comparisons.
