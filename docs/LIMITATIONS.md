@@ -3,8 +3,9 @@
 What the engine does not do, where it differs from other engines, and the limits it enforces.
 Known bugs are in [BACKLOG.md](BACKLOG.md).
 
-- **Java external functions are not supported.** They need a JVM, and on wasm32 they evaluate to
-  null with a reason.
+- **Java external functions are not supported.** They need a JVM. On every target they evaluate to
+  null with a reason, and an evaluation makes no network call: native builds up to 0.9 posted the
+  call to a Java service on `127.0.0.1:22023`.
 - **Rounding of `exp`, `ln`, `log` and `**`.** These are correctly rounded to 34
   digits (the exact result, rounded once, half-even). Upstream dsntk with the Intel library is
   1 ulp off for roughly 11–16 % of inputs and occasionally more, so the last digit of such results

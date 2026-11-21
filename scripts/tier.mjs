@@ -51,8 +51,8 @@ export const BUDGETS = {
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 
-/** The tests CI skips: they need a Java service, a TCK checkout at ../tck or a checkout named dsntk. */
-const SKIPS = '--skip external_functions --skip dmn_3_0076 --skip compare_the_number_of_models --skip utils::tests::getting_';
+/** The tests CI skips: they need a TCK checkout at ../tck or a checkout named dsntk. */
+const SKIPS = '--skip compare_the_number_of_models --skip utils::tests::getting_';
 /** The Rust copies of the TCK tests (rheon-model-evaluator). */
 const TCK_COPIES = 'tests::compatibility::';
 const PUBLISHED = ['rheon-feel-number', 'rheon-feel-temporal', 'rheon-feel', 'rheon-feel-regex', 'rheon-feel-parser', 'rheon-feel-evaluator', 'rheon-model', 'rheon-model-evaluator', 'rheon-feel-wasm'];

@@ -1,0 +1,120 @@
+[
+  {
+    "expression": "{f: function(x) external {java: {class: \"java.lang.Math\", method signature: \"max(int, int)\"}}, r: f(1)}.f",
+    "why": "Java external functions evaluate to null with one reason on every target: rheon runs no JVM and makes no network call during an evaluation (DMN 1.7 Beta 1, 2.1: the Java kind is optional).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "external Java functions are not supported on wasm32"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"x\"), Any)],_,true,[],{},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "external Java functions are not supported"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"x\"), Any)],_,true,[],{},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(x) external {java: {class: \"java.lang.Math\", method signature: \"max(int, int)\"}}, r: f(1)}.f",
+      "errorMode": "strict"
+    },
+    "why": "Java external functions evaluate to null with one reason on every target: rheon runs no JVM and makes no network call during an evaluation (DMN 1.7 Beta 1, 2.1: the Java kind is optional).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: external Java functions are not supported on wasm32"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: external Java functions are not supported"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "{f: function(x) external {java: {class: \"java.lang.Math\", method signature: \"max(int, int)\"}}, r: f(1)}.f",
+      "language": "b-feel"
+    },
+    "why": "Java external functions evaluate to null with one reason on every target: rheon runs no JVM and makes no network call during an evaluation (DMN 1.7 Beta 1, 2.1: the Java kind is optional).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "external Java functions are not supported on wasm32"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"x\"), Any)],_,true,[],{},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "external Java functions are not supported"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"function<Any>->Any\"",
+        "feel": "FunctionDefinition([(Name(\"x\"), Any)],_,true,[],{},Any)",
+        "isNull": false,
+        "type": "function<Any>->Any",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]
