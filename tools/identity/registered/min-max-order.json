@@ -1,0 +1,1393 @@
+[
+  {
+    "expression": "max([date(\"2020-01-01\"), date(\"2021-01-01\")])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is date"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is date)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is date",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2021-01-01\"",
+        "feel": "2021-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2021-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([date(\"2020-01-01\"), date(\"2021-01-01\")])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, actual type is date"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2021-01-01\"",
+        "feel": "2021-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2021-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([date(\"2020-01-01\"), date(\"2021-01-01\")])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is date"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is date)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is date",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2021-01-01\"",
+        "feel": "2021-01-01",
+        "isNull": false,
+        "type": "date",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2021-01-01",
+            "type": "xsd:date"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min([time(\"10:00:00\"), time(\"09:00:00\")])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected number, string, actual type is time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected number, string, actual type is time)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected number, string, actual type is time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"09:00:00\"",
+        "feel": "09:00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "09:00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "min([time(\"10:00:00\"), time(\"09:00:00\")])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::min] invalid argument type, expected number, string, actual type is time"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"09:00:00\"",
+        "feel": "09:00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "09:00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "min([time(\"10:00:00\"), time(\"09:00:00\")])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected number, string, actual type is time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected number, string, actual type is time)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected number, string, actual type is time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"09:00:00\"",
+        "feel": "09:00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "09:00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max([duration(\"P1D\"), duration(\"PT1H\")])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is days and time duration"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is days and time duration)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is days and time duration",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P1D\"",
+        "feel": "P1D",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P1D",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([duration(\"P1D\"), duration(\"PT1H\")])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, actual type is days and time duration"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P1D\"",
+        "feel": "P1D",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P1D",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([duration(\"P1D\"), duration(\"PT1H\")])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is days and time duration"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is days and time duration)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is days and time duration",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P1D\"",
+        "feel": "P1D",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P1D",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max([1, null])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([1, null])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, actual type is Null"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([1, null])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max([null, 1])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([null, 1])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, actual type is Null"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([null, 1])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min([null, 1])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected number, string, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected number, string, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected number, string, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "min([null, 1])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::min] invalid argument type, expected number, string, actual type is Null"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "min([null, 1])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected number, string, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected number, string, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected number, string, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max([time(\"10:00:00\"), time(\"11:00:00+01:00\")])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is time)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00)",
+        "isNull": true,
+        "nullReason": "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([time(\"10:00:00\"), time(\"11:00:00+01:00\")])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, actual type is time"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([time(\"10:00:00\"), time(\"11:00:00+01:00\")])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is time)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00)",
+        "isNull": true,
+        "nullReason": "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max([true])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([true])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, actual type is boolean"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([true])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max([1], [2])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is list<number>)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is list<number>)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([1], [2])",
+      "errorMode": "strict"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, actual type is list<number>"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is list<number>"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "max([1], [2])",
+      "language": "b-feel"
+    },
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is list<number>)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is list<number>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is list<number>)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is list<number>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "max([time(\"10:00:00\"), time(\"09:00:00Z\")])",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] invalid argument type, expected number, string, actual type is time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] invalid argument type, expected number, string, actual type is time)",
+        "isNull": true,
+        "nullReason": "[core::max] invalid argument type, expected number, string, actual type is time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::max] expected items that have an order, found 10:00:00 and 09:00:00Z"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::max] expected items that have an order, found 10:00:00 and 09:00:00Z)",
+        "isNull": true,
+        "nullReason": "[core::max] expected items that have an order, found 10:00:00 and 09:00:00Z",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "min(time(\"00:00:00\"), time(\"23:00:00Z\"))",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::min] invalid argument type, expected number, string, actual type is time"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::min] invalid argument type, expected number, string, actual type is time)",
+        "isNull": true,
+        "nullReason": "[core::min] invalid argument type, expected number, string, actual type is time",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"00:00:00\"",
+        "feel": "00:00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "00:00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

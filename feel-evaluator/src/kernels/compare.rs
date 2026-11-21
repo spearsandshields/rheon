@@ -58,32 +58,58 @@ fn times_without_an_order(symbol: &str, lhs: &FeelTime, rhs: &FeelTime) -> Value
   )
 }
 
-/// An ordering comparison on two values of one ordered kind; otherwise null with an error that
-/// names the operator, the type it expected and the type it found.
+/// The order of two values (DMN 1.7 Beta 1, Table 53): the one kernel behind `<`, `<=`, `>`,
+/// `>=`, `min`, `max` and the comparisons the range functions and the unary tests make.
+pub(crate) enum Order {
+  /// Two values of one ordered kind, and how they compare.
+  Ordered(std::cmp::Ordering),
+  /// Two times, or two date and times, that have no order: one without an offset and one with an
+  /// offset that are no more than 14 hours apart (10.3.2.3.4).
+  Indeterminate,
+  /// Values that are not both of one ordered kind.
+  Unordered,
+}
+
+/// The [Order] of `lhv` and `rhv`.
+pub(crate) fn order(lhv: &Value, rhv: &Value) -> Order {
+  let ordering = match (lhv, rhv) {
+    (Value::Number(lh), Value::Number(rh)) => lh.partial_cmp(rh),
+    (Value::String(lh), Value::String(rh)) => lh.partial_cmp(rh),
+    (Value::Date(lh), Value::Date(rh)) => lh.partial_cmp(rh),
+    (Value::DateTime(lh), Value::DateTime(rh)) => lh.partial_cmp(rh),
+    (Value::Time(lh), Value::Time(rh)) => lh.partial_cmp(rh),
+    (Value::DaysAndTimeDuration(lh), Value::DaysAndTimeDuration(rh)) => lh.partial_cmp(rh),
+    (Value::YearsAndMonthsDuration(lh), Value::YearsAndMonthsDuration(rh)) => lh.partial_cmp(rh),
+    _ => return Order::Unordered,
+  };
+  ordering.map_or(Order::Indeterminate, Order::Ordered)
+}
+
+/// The null of an ordering comparison on two values of one temporal kind that have no order.
+#[cold]
+#[inline(never)]
+fn without_an_order(symbol: &str, lhv: &Value, rhv: &Value) -> Value {
+  match (lhv, rhv) {
+    (Value::Time(lh), Value::Time(rh)) => times_without_an_order(symbol, lh, rh),
+    _ => value_null!(
+      "comparison '{}' expected two date and times that have an order, found {} and {}: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
+      symbol,
+      arg(lhv),
+      arg(rhv)
+    ),
+  }
+}
+
+/// An ordering comparison on two values of one ordered kind ([order]); otherwise null with an
+/// error that names the operator, the type it expected and the type it found.
 macro_rules! ordering {
-  ($(#[$meta:meta])* $name:ident, $operator:tt, $symbol:literal) => {
+  ($(#[$meta:meta])* $name:ident, $test:ident, $symbol:literal) => {
     $(#[$meta])*
     pub(crate) fn $name(lhv: Value, rhv: Value) -> Value {
-      match (&lhv, &rhv) {
-        (Value::Number(lh), Value::Number(rh)) => Value::Boolean(lh $operator rh),
-        (Value::String(lh), Value::String(rh)) => Value::Boolean(lh $operator rh),
-        (Value::Date(lh), Value::Date(rh)) => Value::Boolean(lh $operator rh),
-        (Value::DateTime(lh), Value::DateTime(rh)) => match lh.partial_cmp(rh) {
-          Some(_) => Value::Boolean(lh $operator rh),
-          None => value_null!(
-            "comparison '{}' expected two date and times that have an order, found {} and {}: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
-            $symbol,
-            lh,
-            rh
-          ),
-        },
-        (Value::Time(lh), Value::Time(rh)) => match lh.partial_cmp(rh) {
-          Some(_) => Value::Boolean(lh $operator rh),
-          None => times_without_an_order($symbol, lh, rh),
-        },
-        (Value::DaysAndTimeDuration(lh), Value::DaysAndTimeDuration(rh)) => Value::Boolean(lh $operator rh),
-        (Value::YearsAndMonthsDuration(lh), Value::YearsAndMonthsDuration(rh)) => Value::Boolean(lh $operator rh),
-        _ => unordered($symbol, &lhv, &rhv),
+      match order(&lhv, &rhv) {
+        Order::Ordered(ordering) => Value::Boolean(ordering.$test()),
+        Order::Indeterminate => without_an_order($symbol, &lhv, &rhv),
+        Order::Unordered => unordered($symbol, &lhv, &rhv),
       }
     }
   };
@@ -91,19 +117,19 @@ macro_rules! ordering {
 
 ordering!(
   /// FEEL `lhv < rhv` on two values of one ordered kind; otherwise null with an error.
-  compare_lt, <, "<"
+  compare_lt, is_lt, "<"
 );
 ordering!(
   /// FEEL `lhv <= rhv` on two values of one ordered kind; otherwise null with an error.
-  compare_le, <=, "<="
+  compare_le, is_le, "<="
 );
 ordering!(
   /// FEEL `lhv > rhv` on two values of one ordered kind; otherwise null with an error.
-  compare_gt, >, ">"
+  compare_gt, is_gt, ">"
 );
 ordering!(
   /// FEEL `lhv >= rhv` on two values of one ordered kind; otherwise null with an error.
-  compare_ge, >=, ">="
+  compare_ge, is_ge, ">="
 );
 
 /// The null of an ordering comparison on operands it does not order (DMN 1.6 Table 53: both of

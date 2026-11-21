@@ -122,6 +122,36 @@ fn _0021() {
     false,
     &scope!(),
     r#"min(true, "a","b","c",1,2)"#,
-    r#"[core::min] invalid argument type, expected number, string, actual type is boolean"#,
+    r#"[core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is boolean"#,
+  );
+}
+
+#[test]
+fn _0022() {
+  // over FEEL's order: dates, times, date and times and durations too (10.3.4.4)
+  let scope = &scope!();
+  te_date(false, scope, r#"min([date("2020-01-01"), date("2021-01-01")])"#, 2020, 1, 1);
+  te_be_value(false, scope, r#"min([duration("P1D"), duration("PT1H")])"#, r#"duration("PT1H")"#);
+  te_be_value(false, scope, r#"min(["a", "b"])"#, r#""a""#);
+  // a null item is outside the domain wherever it is
+  te_null(false, scope, r#"min([1, null])"#, "[core::min] invalid argument type, expected number, actual type is Null");
+  te_null(
+    false,
+    scope,
+    r#"min([null, 1])"#,
+    "[core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
+  );
+  // items of two types, and two times that have no order
+  te_null(
+    false,
+    scope,
+    r#"min([1, "a"])"#,
+    "[core::min] invalid argument type, expected number, actual type is string",
+  );
+  te_null(
+    false,
+    scope,
+    r#"min([time("10:00:00"), time("11:00:00+01:00")])"#,
+    "[core::min] expected items that have an order, found 10:00:00 and 11:00:00+01:00",
   );
 }

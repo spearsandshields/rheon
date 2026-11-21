@@ -5,6 +5,7 @@ use crate::bifs::open_ranges::{self, Relation};
 use crate::equality::{Equality, Seen};
 use crate::evaluate_range_literal;
 use crate::invocation::call_with;
+use crate::kernels::{Order, order};
 use crate::macros::invalid_argument_type;
 use dsntk_common::DsntkError;
 use rheon_feel::context::FeelContext;
@@ -838,44 +839,11 @@ fn regex_failure(function: &str, pattern: &str, error: RegexError, invalid_patte
   }
 }
 
-/// Returns the maximum value in the collection of comparable values.
+/// Returns the largest of the values (DMN 1.7 Beta 1, 10.3.4.4): items of one ordered type, compared
+/// as `>` compares them. An empty list, an item that is null or not of that type, and two items that
+/// have no order give null, whatever their position (10.3.4: a parameter outside its domain).
 pub fn max(values: &[Value]) -> Value {
-  if values.is_empty() {
-    return value_null!();
-  }
-  match &values[0] {
-    Value::Number(n) => {
-      let mut max = *n;
-      for value in values.iter().skip(1) {
-        match value {
-          Value::Number(v) => {
-            if *v > max {
-              max = *v;
-            }
-          }
-          Value::Null(_) => {}
-          other => return invalid_argument_type!("max", "number", other),
-        }
-      }
-      Value::Number(max)
-    }
-    Value::String(s) => {
-      let mut max = s.clone();
-      for value in values.iter().skip(1) {
-        match value {
-          Value::String(v) => {
-            if *v > max {
-              max.clone_from(v)
-            }
-          }
-          Value::Null(_) => {}
-          other => return invalid_argument_type!("max", "string", other),
-        }
-      }
-      Value::String(max)
-    }
-    other => invalid_argument_type!("max", "number, string", other),
-  }
+  extreme("max", values, std::cmp::Ordering::Greater)
 }
 
 /// Returns the mean of numbers.
@@ -926,40 +894,43 @@ pub fn met_by(value1: &Value, value2: &Value) -> Value {
   open_ranges::relation(Relation::MetBy, value1, value2)
 }
 
-/// Returns the minimum value in the collection of comparable values.
+/// Returns the smallest of the values (DMN 1.7 Beta 1, 10.3.4.4), as [max] the largest.
 pub fn min(values: &[Value]) -> Value {
-  if values.is_empty() {
+  extreme("min", values, std::cmp::Ordering::Less)
+}
+
+/// The item of `values` that is `wanted` to every other one under FEEL's order ([order]).
+fn extreme(function: &str, values: &[Value], wanted: std::cmp::Ordering) -> Value {
+  let Some(mut best) = values.first() else {
     return value_null!();
-  }
-  match &values[0] {
-    Value::Number(n) => {
-      let mut min = *n;
-      for value in values.iter().skip(1) {
-        if let Value::Number(v) = value {
-          if *v < min {
-            min = *v;
-          }
-        } else {
-          return invalid_argument_type!("min", "number", value);
-        }
+  };
+  for value in values {
+    match order(value, best) {
+      Order::Ordered(ordering) if ordering == wanted => best = value,
+      Order::Ordered(_) => {}
+      Order::Indeterminate => {
+        return value_null!("core", function, "expected items that have an order, found {} and {}", arg(best), arg(value));
       }
-      Value::Number(min)
-    }
-    Value::String(s) => {
-      let mut min = s.clone();
-      for value in values.iter().skip(1) {
-        if let Value::String(v) = value {
-          if *v < min {
-            min.clone_from(v)
-          }
+      Order::Unordered => {
+        let expected = if values.iter().all(|value| matches!(value, Value::Null(_))) || !is_ordered(best) {
+          "number, string, date, time, date and time, or duration".to_string()
         } else {
-          return invalid_argument_type!("min", "string", value);
-        }
+          TypeOf(best).to_string()
+        };
+        let culprit = if is_ordered(best) { value } else { best };
+        return invalid_argument_type!(function, expected, culprit);
       }
-      Value::String(min)
     }
-    other => invalid_argument_type!("min", "number, string", other),
   }
+  best.clone()
+}
+
+/// Whether `value` is of one of the ordered types (Table 53).
+fn is_ordered(value: &Value) -> bool {
+  matches!(
+    value,
+    Value::Number(_) | Value::String(_) | Value::Date(_) | Value::DateTime(_) | Value::Time(_) | Value::DaysAndTimeDuration(_) | Value::YearsAndMonthsDuration(_)
+  )
 }
 
 /// Returns the mode of numbers.

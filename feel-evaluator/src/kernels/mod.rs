@@ -15,7 +15,7 @@ mod temporal_value;
 mod types;
 
 pub(crate) use arithmetic::{Arithmetic, finite};
-pub(crate) use compare::{between, compare_ge, compare_gt, compare_le, compare_lt, equal, not_equal};
+pub(crate) use compare::{Order, between, compare_ge, compare_gt, compare_le, compare_lt, equal, not_equal, order};
 pub(crate) use functions::{external_body, function_definition};
 pub(crate) use literals::{at_literal, err_circular_context_entry, err_duplicated_context_entry_key, list_of, number_literal, range_of};
 pub(crate) use membership::in_operator;
