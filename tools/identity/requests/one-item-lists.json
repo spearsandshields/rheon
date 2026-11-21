@@ -251,5 +251,10 @@
   {"op": "evaluate", "expression": "string join(\"a\", \"X\")"},
   {"op": "evaluate", "expression": "string join(\"a\", \"X\")", "language": "b-feel"},
   {"op": "evaluate", "expression": "min(list: 3)"},
-  {"op": "evaluate", "expression": "min(list: 3)", "language": "b-feel"}
+  {"op": "evaluate", "expression": "min(list: 3)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "sort([[3..4], [1..2], [5..6]], before)"},
+  {"op": "evaluate", "expression": "sort([1, 2], abs)"},
+  {"op": "evaluate", "expression": "list replace([1, 5, 3], before, 4)"},
+  {"op": "evaluate", "expression": "sort([\"b\", \"a\"], ends with)"},
+  {"op": "evaluate", "expression": "list replace([1, 2], abs, 0)"}
 ]

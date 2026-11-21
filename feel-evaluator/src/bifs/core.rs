@@ -707,15 +707,16 @@ pub fn list_replace(list: &Value, position_or_match: &Value, new_item: &Value) -
         value_null!("position exceeds integer range")
       }
     }
-    Value::FunctionDefinition(function) => {
-      if function.parameters().len() != 2 {
+    callback @ (Value::FunctionDefinition(_) | Value::BuiltInFunction(_)) => {
+      let function = Callback::of(callback).expect("a function");
+      if !function.takes_two() {
         return value_null!("list replace: matching function must have exactly two arguments");
       }
       let mut elements = vec![];
       // one empty scope for every call: a call leaves the scope as it found it
       let scope = FeelScope::default();
       for item in items {
-        let matched = call_with(&scope, function, [item.copied(), new_item.copied()], Dialect::Feel);
+        let matched = function.call(&scope, item.copied(), new_item.copied());
         // the answer of a call in a stopped evaluation is not read; the null is never observed
         if diagnostics::stopped() {
           return Value::Null(None);
@@ -1261,10 +1262,55 @@ fn round_to_scale(n: &Value, scale: &Value, mode: RoundingMode, name: &str, site
   }
 }
 
+/// The function that `sort` and `list replace` call: a function definition, or a built-in function
+/// value (DMN 1.7 Beta 1, 10.3.4.4 and 10.3.4.9: the parameter is a function, built-in ones included).
+enum Callback<'a> {
+  Definition(&'a std::sync::Arc<rheon_feel::FunctionDefinition>),
+  BuiltIn(&'a rheon_feel::bif::Bif),
+}
+
+impl<'a> Callback<'a> {
+  fn of(value: &'a Value) -> Option<Self> {
+    match value {
+      Value::FunctionDefinition(function) => Some(Self::Definition(function)),
+      Value::BuiltInFunction(bif) => Some(Self::BuiltIn(bif)),
+      _ => None,
+    }
+  }
+
+  /// Whether it takes two arguments by position: a definition with two parameters, a built-in with
+  /// a signature that does.
+  fn takes_two(&self) -> bool {
+    match self {
+      Self::Definition(function) => function.parameters().len() == 2,
+      Self::BuiltIn(bif) => rheon_feel::signatures::of(bif).is_some_and(|built_in| {
+        built_in.signatures.iter().any(|signature| {
+          let required = signature.parameters.iter().filter(|parameter| !parameter.optional && !parameter.rest).count();
+          let rest = signature.parameters.last().is_some_and(|parameter| parameter.rest);
+          required <= 2 && (rest || signature.parameters.len() >= 2)
+        })
+      }),
+    }
+  }
+
+  /// Calls it with two arguments, counted in the call depth as every invocation is.
+  fn call(&self, scope: &FeelScope, a: Value, b: Value) -> Value {
+    match self {
+      Self::Definition(function) => call_with(scope, function, [a, b], Dialect::Feel),
+      Self::BuiltIn(bif) => crate::invocation::call(
+        scope,
+        Value::BuiltInFunction((*bif).clone()),
+        crate::invocation::Arguments::Positional(vec![a, b]),
+        Dialect::Feel,
+      ),
+    }
+  }
+}
+
 pub fn sort(list: &Value, ordering_function: &Value) -> Value {
   if let Value::List(items) = list {
-    if let Value::FunctionDefinition(function) = ordering_function {
-      if function.parameters().len() == 2 {
+    if let Some(function) = Callback::of(ordering_function) {
+      if function.takes_two() {
         // an answer other than `true` (false, null, any other value) means "does not precede";
         // once the evaluation was stopped the ordering ends, and its null is never observed
         // one empty scope for every call: a call leaves the scope as it found it
@@ -1273,10 +1319,7 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
           if diagnostics::stopped() {
             return None;
           }
-          Some(matches!(
-            call_with(&scope, function, [items[a].copied(), items[b].copied()], Dialect::Feel),
-            Value::Boolean(true)
-          ))
+          Some(matches!(function.call(&scope, items[a].copied(), items[b].copied()), Value::Boolean(true)))
         });
         match order {
           Some(order) => Value::List(order.into_iter().map(|position| items[position].clone()).collect()),
@@ -1286,7 +1329,7 @@ pub fn sort(list: &Value, ordering_function: &Value) -> Value {
         value_null!("sort: ordering function should take exactly two arguments")
       }
     } else {
-      value_null!("sort: expected ordering function definition as a second argument")
+      value_null!("sort: expected ordering function as a second argument")
     }
   } else {
     value_null!("sort: expected a list of values as a first argument")

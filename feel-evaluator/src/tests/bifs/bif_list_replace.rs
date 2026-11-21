@@ -167,3 +167,10 @@ fn _0021() {
     "list replace: matching function must return boolean value",
   );
 }
+
+#[test]
+fn a_built_in_function_matches() {
+  // a built-in function value is a matching function of two arguments (10.3.4.4)
+  let scope = &te_scope("{}");
+  te_be_value(false, scope, "list replace([1, 5, 3], before, 4)", "[4, 5, 4]");
+}
