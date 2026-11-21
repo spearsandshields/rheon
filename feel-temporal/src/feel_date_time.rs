@@ -37,86 +37,80 @@ impl TryFrom<&str> for FeelDateTime {
 }
 
 impl PartialEq for FeelDateTime {
-  /// Two date and times are equal when they are the same instant. One that its zone has no
-  /// instant or two instants for equals only a date and time written as it is.
+  /// `valuedt(e1) = valuedt(e2)` (DMN 1.7 Beta 1, Table 54 and 10.3.2.3.6): the two as instants in
+  /// whole seconds, a local date and time taking the offset of the other (the rule of Table 55,
+  /// which the owner applies to `=` too, Q-T1). Two local ones are compared as written. One whose
+  /// zone gives it no single instant (the hour that a clock change of its zone skips or repeats)
+  /// equals only a date and time written as it is.
   fn eq(&self, rhs: &Self) -> bool {
-    let lhs_zone = self.1.zone();
-    let rhs_zone = rhs.1.zone();
-    let lhs_date_tuple = self.0.as_tuple();
-    let lhs_time_tuple = ((self.1).hour() as u32, (self.1).minute() as u32, (self.1).second() as u32, 0);
-    let lhs_offset_opt = match lhs_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_t(lhs_time_tuple),
-      FeelZone::Offset(offset) => Some(offset.seconds()),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, lhs_date_tuple, lhs_time_tuple),
-    };
-    let rhs_date_tuple = rhs.0.as_tuple();
-    let rhs_time_tuple = ((rhs.1).hour() as u32, (rhs.1).minute() as u32, (rhs.1).second() as u32, 0);
-    let rhs_offset_opt = match rhs_zone {
-      FeelZone::Utc => Some(0),
-      FeelZone::Local => get_local_offset_t(rhs_time_tuple),
-      FeelZone::Offset(offset) => Some(offset.seconds()),
-      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, rhs_date_tuple, rhs_time_tuple),
-    };
-    if let Some((lhs_offset, rhs_offset)) = lhs_offset_opt.zip(rhs_offset_opt) {
-      let lhs_date_opt = date_time_offset_dt(lhs_date_tuple, lhs_time_tuple, lhs_offset);
-      let rhs_date_opt = date_time_offset_dt(rhs_date_tuple, rhs_time_tuple, rhs_offset);
-      if let Some((lhs_date, rhs_date)) = lhs_date_opt.zip(rhs_date_opt) {
-        return lhs_date == rhs_date;
-      }
+    match self.compared_instants(rhs, false) {
+      Some((lhs, rhs)) => lhs == rhs,
+      None => self.written_alike(rhs),
     }
-    // a side without one instant (the hour that a clock change of its zone skips or repeats):
-    // equal when both are written alike, so that such a value equals itself and no other
-    let zones_written_alike = match (lhs_zone, rhs_zone) {
-      (FeelZone::Utc, FeelZone::Utc) | (FeelZone::Local, FeelZone::Local) => true,
-      (FeelZone::Offset(lhs), FeelZone::Offset(rhs)) => lhs == rhs,
-      (FeelZone::Zone(lhs), FeelZone::Zone(rhs)) => lhs == rhs,
-      _ => false,
-    };
-    lhs_date_tuple == rhs_date_tuple && lhs_time_tuple == rhs_time_tuple && zones_written_alike
   }
 }
 
 impl PartialOrd for FeelDateTime {
-  /// Returns the ordering of two date and times, compared as instants in UTC
-  /// (`2026-10-17T10:00:00+01:00 < 2026-10-17T10:00:00Z`). A local date and time is one at
-  /// some place, whose offset is between -14:00 and +14:00: against one with an offset it has
-  /// an order only when the two are more than 14 hours apart (XML Schema Part 2, the order
-  /// relation on dateTime); otherwise the two are not comparable. When a zone has no known
-  /// offset, the date and time parts are compared as written.
+  /// `valuedt(e1) < valuedt(e2)` (DMN 1.7 Beta 1, Table 55): the two as instants, the fraction of the
+  /// second included;
+  /// "if one input has a null timezone offset, that input uses the timezone offset of the other
+  /// input". Two local ones are compared as written. Without instants (a zone without a single
+  /// offset there), only date and times written in the same zone are ordered, as written.
   fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    if self.1.zone().has_offset() != other.1.zone().has_offset() {
-      const DAY: i128 = 86_400 * 1_000_000_000;
-      const FOURTEEN_HOURS: i128 = 14 * 3_600 * 1_000_000_000;
-      let days = i128::from(self.0.day_number()?) - i128::from(other.0.day_number()?);
-      // the local one written as its own instant: its instant in UTC is within 14 hours of it
-      let apart = days * DAY + i128::from(self.1.instant_of_the_day()?) - i128::from(other.1.instant_of_the_day()?);
-      return if apart < -FOURTEEN_HOURS {
-        Some(Ordering::Less)
-      } else if apart > FOURTEEN_HOURS {
-        Some(Ordering::Greater)
-      } else {
-        None
-      };
+    match self.compared_instants(other, true) {
+      Some((lhs, rhs)) => Some(lhs.cmp(&rhs)),
+      None if self.1.zone_written_alike(&other.1) => Some((self.written(), self.1.nanos()).cmp(&(other.written(), other.1.nanos()))),
+      None => None,
     }
-    if self.1.zone().has_offset() == other.1.zone().has_offset() {
-      let lhs: Result<DateTime<FixedOffset>, DsntkError> = self.clone().try_into();
-      let rhs: Result<DateTime<FixedOffset>, DsntkError> = other.clone().try_into();
-      if let (Ok(lhs), Ok(rhs)) = (lhs, rhs) {
-        return Some(lhs.cmp(&rhs));
+  }
+}
+
+impl FeelDateTime {
+  /// The date and the time of day as written, in whole seconds.
+  fn written(&self) -> ((i32, u32, u32), (u32, u32, u32)) {
+    (self.0.as_tuple(), (self.1.hour() as u32, self.1.minute() as u32, self.1.second() as u32))
+  }
+
+  /// Whether the two are written alike: the same date, time of day in whole seconds and zone.
+  fn written_alike(&self, other: &FeelDateTime) -> bool {
+    self.written() == other.written() && self.1.zone_written_alike(&other.1)
+  }
+
+  /// The offset of this date and time's own zone in seconds at its date and time; `None` for a
+  /// local one and where the zone has no single offset.
+  fn known_offset(&self) -> Option<i32> {
+    let (date, (hour, minute, second)) = self.written();
+    match self.1.zone() {
+      FeelZone::Utc => Some(0),
+      FeelZone::Local => None,
+      FeelZone::Offset(offset) => Some(offset.seconds()),
+      FeelZone::Zone(zone_name) => get_zone_offset_dt(zone_name, date, (hour, minute, second, 0)),
+    }
+  }
+
+  /// This date and time as an instant at `offset` seconds; the fraction of the second only with
+  /// `with_nanos`.
+  fn instant_at(&self, offset: i32, with_nanos: bool) -> Option<DateTime<FixedOffset>> {
+    let (date, (hour, minute, second)) = self.written();
+    date_time_offset_dt(date, (hour, minute, second, if with_nanos { self.1.nanos() as u32 } else { 0 }), offset)
+  }
+
+  /// The two as instants for `=` and `<` (Tables 54 and 55): two local ones as written (at offset
+  /// zero), and a local one at the offset of the other when only one is local.
+  fn compared_instants(&self, other: &FeelDateTime, with_nanos: bool) -> Option<(DateTime<FixedOffset>, DateTime<FixedOffset>)> {
+    let (lhs_offset, rhs_offset) = match (self.1.zone(), other.1.zone()) {
+      (FeelZone::Local, FeelZone::Local) => (0, 0),
+      (FeelZone::Local, _) => {
+        let offset = other.known_offset()?;
+        (offset, offset)
       }
-    }
-    let d = self.0.cmp(&other.0);
-    if let Some(t) = self.1.partial_cmp(&other.1) {
-      return match (d, t) {
-        (Ordering::Equal, Ordering::Equal) => Some(Ordering::Equal),
-        (Ordering::Equal, Ordering::Less) => Some(Ordering::Less),
-        (Ordering::Equal, Ordering::Greater) => Some(Ordering::Greater),
-        (Ordering::Less, _) => Some(Ordering::Less),
-        (Ordering::Greater, _) => Some(Ordering::Greater),
-      };
-    }
-    None
+      (_, FeelZone::Local) => {
+        let offset = self.known_offset()?;
+        (offset, offset)
+      }
+      _ => (self.known_offset()?, other.known_offset()?),
+    };
+    Some((self.instant_at(lhs_offset, with_nanos)?, other.instant_at(rhs_offset, with_nanos)?))
   }
 }
 

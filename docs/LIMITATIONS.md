@@ -69,10 +69,14 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   offset. There are no DST rules for other dates. Without it, local time is UTC on every target.
 - **Temporal comparisons.** Date-times and times with offsets or zones compare as instants
   (`@"…T10:00:00+01:00" < @"…T10:00:00Z"` is true, `@"10:00:00+02:00" = @"08:00:00Z"` is true;
-  `is()` compares the value itself, zone included). A zone-less (local) value has an order against a
-  zoned one only when the two are more than 14 hours apart (10.3.2.3.4); otherwise `<`, `<=`, `>`,
-  `>=`, ranges, unary comparisons, `between`, `min` and `max` give null with a reason, and `=` is
-  false.
+  `is()` compares the value itself, zone included). A zone-less (local) value takes the offset of
+  the other operand (DMN 1.7 Beta 1, Table 55, which the owner applies to `=`, ranges, unary
+  comparisons, `between`, `min`, `max` and sort too): `time("10:00:00") = time("10:00:00Z")` is true
+  and `time("10:00:00") < time("11:00:00+01:00")` is true. So `=` is not transitive across kinds
+  (`10:00:00 = 10:00:00Z` and `10:00:00 = 10:00:00+01:00`, but not `10:00:00Z = 10:00:00+01:00`).
+  `=` compares whole seconds (TCK 0068 time_005); `<` keeps the fraction of the second. Two values
+  have no order only where a zone gives one of them no single offset (a clock change hour) and they
+  are not written in the same zone.
 - **Unary-test semantics.** The engine evaluates `? in (<tests>)`. A boolean
   expression test such as `? > 5` is satisfied when it is true. The usual forms `> 5`,
   `[1..10]` and `"a", "b"` work; a tested value of another kind than the tests gives null. The endpoint of a comparison

@@ -250,13 +250,9 @@ fn _0038() {
     r#" sort([@"2026-10-17T10:00:00Z", @"2026-10-17T10:00:00+01:00"], function(a, b) a < b) "#,
     r#" [@"2026-10-17T10:00:00+01:00", @"2026-10-17T10:00:00Z"] "#,
   );
-  // a local and a zoned date and time an hour apart have no order (like their subtraction): null
-  te_null(
-    false,
-    &scope!(),
-    r#" @"2026-10-17T10:00:00" < @"2026-10-17T11:00:00Z" "#,
-    "comparison '<' expected two date and times that have an order, found 2026-10-17T10:00:00 and 2026-10-17T11:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
-  );
+  // a local date and time takes the offset of the other (Table 55)
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00" < @"2026-10-17T11:00:00Z" "#, true);
+  te_bool(false, &scope!(), r#" @"2026-10-17T10:00:00" = @"2026-10-17T10:00:00@Europe/Warsaw" "#, true);
 }
 
 #[test]
@@ -269,52 +265,42 @@ fn _0039() {
   te_bool(false, &scope!(), r#" @"10:00:00+02:00" <= @"08:00:00Z" "#, true);
   te_bool(false, &scope!(), r#" @"10:00:00+02:00" > @"07:59:59Z" "#, true);
   te_bool(false, &scope!(), r#" @"10:00:00" < @"11:00:00" "#, true);
-  // a time without an offset has no order against one with an offset an hour away
-  let node = rheon_feel_parser::parse_expression(&scope!(), r#" @"10:00:00" < @"11:00:00Z" "#).unwrap();
-  assert!(crate::tests::eval(&scope!(), &node).is_null());
+  // a time without an offset takes the offset of the other (Table 55)
+  te_bool(false, &scope!(), r#" @"10:00:00" < @"11:00:00Z" "#, true);
 }
 
-/// A time without an offset is a time of day somewhere: against a time with an offset it has
-/// an order only when the two are more than 14 hours apart, whatever the place is (DMN 1.6,
-/// 10.3.2.3.4, which refers to the order of XML Schema). Otherwise the comparison is null,
-/// not false; the two are never equal.
+/// A time without an offset takes the offset of the other operand: "if one input has a null
+/// timezone offset, that input uses the timezone offset of the other input" (DMN 1.7 Beta 1,
+/// Table 55; the owner applies it to `=`, `between`, ranges, `min`, `max` and sort too, Q-T1).
 #[test]
-fn a_time_without_an_offset_is_ordered_against_one_with_an_offset_only_beyond_14_hours() {
+fn a_time_without_an_offset_takes_the_offset_of_the_other() {
+  use std::cmp::Ordering::{self, Equal, Greater, Less};
   let scope = &scope!();
-  let unordered = |operator: &str, lhs: &str, rhs: &str| {
-    format!(
-      "comparison '{operator}' expected two times that have an order, found {lhs} and {rhs}: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-    )
+  let answer = |operator: &str, ordering: Ordering| match operator {
+    "<" => ordering == Less,
+    "<=" => ordering != Greater,
+    ">" => ordering == Greater,
+    ">=" => ordering != Less,
+    "=" => ordering == Equal,
+    _ => ordering != Equal,
   };
-  for (lhs, rhs) in [
-    ("10:00:00", "11:00:00Z"),
-    ("11:00:00Z", "10:00:00"),
-    ("10:00:00", "10:00:00+02:00"),
-    ("00:00:00", "14:00:00Z"),
-    ("23:59:59", "09:59:59Z"),
+  for (lhs, rhs, ordering) in [
+    ("10:00:00", "11:00:00Z", Less),
+    ("11:00:00Z", "10:00:00", Greater),
+    ("10:00:00", "10:00:00+02:00", Equal),
+    ("00:00:00", "14:00:00Z", Less),
+    ("23:59:59", "09:59:59Z", Greater),
+    ("10:00:00", "11:00:00+01:00", Less),
   ] {
-    for operator in ["<", "<=", ">", ">="] {
-      te_null(false, scope, &format!(r#"time("{lhs}") {operator} time("{rhs}")"#), &unordered(operator, lhs, rhs));
+    for operator in ["<", "<=", ">", ">=", "=", "!="] {
+      te_bool(false, scope, &format!(r#"time("{lhs}") {operator} time("{rhs}")"#), answer(operator, ordering));
     }
-    te_bool(false, scope, &format!(r#"time("{lhs}") = time("{rhs}")"#), false);
-    te_bool(false, scope, &format!(r#"time("{lhs}") != time("{rhs}")"#), true);
   }
-  // more than 14 hours apart
-  te_bool(false, scope, r#"time("00:00:00") < time("14:00:01Z")"#, true);
-  te_bool(false, scope, r#"time("00:00:00") > time("14:00:01Z")"#, false);
-  te_bool(false, scope, r#"time("14:00:01Z") > time("00:00:00")"#, true);
-  te_bool(false, scope, r#"time("23:00:00") > time("08:59:59Z")"#, true);
-  te_bool(false, scope, r#"time("08:59:59Z") <= time("23:00:00")"#, true);
-  te_bool(false, scope, r#"time("00:00:00") <= time("23:00:00+01:00")"#, true);
   // two times of one kind are ordered as before
   te_bool(false, scope, r#"time("10:00:00") < time("11:00:00")"#, true);
   te_bool(false, scope, r#"time("10:00:00Z") < time("11:00:00+02:00")"#, false);
-  // between and a range ask for the same order
-  te_null(
-    false,
-    scope,
-    r#"time("10:00:00") between time("09:00:00Z") and time("11:00:00Z")"#,
-    &unordered("between", "10:00:00", "09:00:00Z"),
-  );
+  // between and a range take the same offsets
+  te_bool(false, scope, r#"time("10:00:00") between time("09:00:00Z") and time("11:00:00Z")"#, true);
+  te_bool(false, scope, r#"time("10:00:00") in [time("09:00:00+01:00")..time("11:00:00+01:00")]"#, true);
   te_bool(false, scope, r#"time("23:30:00") between time("01:00:00Z") and time("23:59:59")"#, true);
 }

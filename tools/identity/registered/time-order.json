@@ -1,7 +1,7 @@
 [
   {
-    "expression": "date and time(\"2025-01-01T10:00:00\") < date and time(\"2025-01-01T10:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "expression": "time(\"10:00:00\") between time(\"09:00:00Z\") and time(\"11:00:00Z\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -27,25 +27,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two date and times that have an order, found 2025-01-01T10:00:00 and 2025-01-01T10:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two date and times that have an order, found 2025-01-01T10:00:00 and 2025-01-01T10:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two date and times that have an order, found 2025-01-01T10:00:00 and 2025-01-01T10:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -53,8 +50,8 @@
     }
   },
   {
-    "expression": "time(\"10:00:00\") < time(\"10:00:00+01:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "expression": "time(\"10:00:00@Europe/Paris\") = time(\"10:00:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -80,25 +77,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -107,7 +101,7 @@
   },
   {
     "expression": "time(\"10:00:00\") < time(\"11:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -133,25 +127,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -164,7 +155,7 @@
       "expression": "time(\"10:00:00\") < time(\"11:00:00Z\")",
       "errorMode": "strict"
     },
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -189,11 +180,27 @@
       "warnings": []
     },
     "new": {
-      "error": {
-        "kind": "evaluation",
-        "message": "strict error mode: comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
+      "diagnostics": {
+        "count": 0,
+        "messages": []
       },
-      "ok": false
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
     }
   },
   {
@@ -202,7 +209,7 @@
       "expression": "time(\"10:00:00\") < time(\"11:00:00Z\")",
       "language": "b-feel"
     },
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -228,15 +235,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -244,7 +249,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }
@@ -254,7 +259,7 @@
   },
   {
     "expression": "time(\"10:00:00\") <= time(\"11:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -280,43 +285,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<=' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<=' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<=' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"10:00:00\") > time(\"11:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
         "count": 0,
         "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -324,193 +299,8 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '>' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"10:00:00\") >= time(\"11:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"11:00:00Z\") < time(\"10:00:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"11:00:00Z\") <= time(\"10:00:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<=' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<=' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<=' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
           }
         }
       },
@@ -519,7 +309,7 @@
   },
   {
     "expression": "time(\"11:00:00Z\") > time(\"10:00:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -545,25 +335,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -572,7 +359,7 @@
   },
   {
     "expression": "time(\"11:00:00Z\") >= time(\"10:00:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -598,43 +385,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 11:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"10:00:00\") < time(\"10:00:00+02:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
         "count": 0,
         "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -642,34 +399,8 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
           }
         }
       },
@@ -678,7 +409,7 @@
   },
   {
     "expression": "time(\"10:00:00\") <= time(\"10:00:00+02:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -704,43 +435,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<=' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<=' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<=' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"10:00:00\") > time(\"10:00:00+02:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
         "count": 0,
         "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -748,34 +449,8 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '>' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
           }
         }
       },
@@ -784,7 +459,7 @@
   },
   {
     "expression": "time(\"10:00:00\") >= time(\"10:00:00+02:00\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -810,25 +485,122 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 10:00:00 and 10:00:00+02:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") = time(\"10:00:00+02:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") != time(\"10:00:00+02:00\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -837,7 +609,7 @@
   },
   {
     "expression": "time(\"00:00:00\") < time(\"14:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -863,25 +635,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -890,7 +659,7 @@
   },
   {
     "expression": "time(\"00:00:00\") <= time(\"14:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -916,43 +685,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<=' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<=' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<=' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"00:00:00\") > time(\"14:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
         "count": 0,
         "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -960,87 +699,8 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '>' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"00:00:00\") >= time(\"14:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 00:00:00 and 14:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
           }
         }
       },
@@ -1049,7 +709,7 @@
   },
   {
     "expression": "time(\"00:00:00\") < time(\"14:00:01Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1099,7 +759,7 @@
   },
   {
     "expression": "time(\"00:00:00\") <= time(\"14:00:01Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1149,7 +809,7 @@
   },
   {
     "expression": "time(\"23:00:00\") > time(\"08:59:59Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1199,7 +859,7 @@
   },
   {
     "expression": "time(\"23:00:00\") >= time(\"08:59:59Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1248,61 +908,8 @@
     }
   },
   {
-    "expression": "time(\"10:00:00\") < time(\"10:00:00@Europe/Paris\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
     "expression": "time(\"10:00:00\") <= time(\"10:00:00@Europe/Paris\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1328,43 +935,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<=' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '<=' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<=' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "expression": "time(\"10:00:00\") > time(\"10:00:00@Europe/Paris\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
-    "old": {
-      "diagnostics": {
         "count": 0,
         "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -1372,34 +949,8 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
-      },
-      "ok": true,
-      "result": {
-        "display": "null",
-        "feel": "null(comparison '>' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
           }
         }
       },
@@ -1408,7 +959,7 @@
   },
   {
     "expression": "time(\"10:00:00\") >= time(\"10:00:00@Europe/Paris\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1434,25 +985,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 10:00:00 and 10:00:00@Europe/Paris: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -1460,8 +1008,8 @@
     }
   },
   {
-    "expression": "time(\"10:00:00\") between time(\"09:00:00Z\") and time(\"11:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule. The operands are named in the order of the comparison that has no answer (lhv against the endpoint), since between is that comparison (DT-027).",
+    "expression": "time(\"10:00:00\") = time(\"10:00:00@Europe/Paris\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1487,25 +1035,72 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00\") != time(\"10:00:00@Europe/Paris\")",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -1514,7 +1109,7 @@
   },
   {
     "expression": "time(\"23:30:00\") between time(\"01:00:00Z\") and time(\"23:59:59\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1564,7 +1159,7 @@
   },
   {
     "expression": "sort([time(\"10:00:00\"), time(\"09:00:00Z\")], function(a, b) a < b)",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1608,15 +1203,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 09:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "[\"10:00:00\", \"09:00:00Z\"]",
-        "feel": "[10:00:00, 09:00:00Z]",
+        "display": "[\"09:00:00Z\", \"10:00:00\"]",
+        "feel": "[09:00:00Z, 10:00:00]",
         "isNull": false,
         "type": "list<time>",
         "typed": {
@@ -1629,7 +1222,7 @@
                 "list": null,
                 "simple": {
                   "isNil": false,
-                  "text": "10:00:00",
+                  "text": "09:00:00Z",
                   "type": "xsd:time"
                 }
               },
@@ -1638,7 +1231,7 @@
                 "list": null,
                 "simple": {
                   "isNil": false,
-                  "text": "09:00:00Z",
+                  "text": "10:00:00",
                   "type": "xsd:time"
                 }
               }
@@ -1652,7 +1245,7 @@
   },
   {
     "expression": "@\"2023-02-09T23:59:59Z\" >= @\"2023-02-09T00:00:00\"",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1702,7 +1295,7 @@
   },
   {
     "expression": "@\"2023-02-09T10:00:00Z\" >= @\"2023-02-09T00:00:00\"",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1728,25 +1321,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two date and times that have an order, found 2023-02-09T10:00:00Z and 2023-02-09T00:00:00: one without an offset and one with an offset have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two date and times that have an order, found 2023-02-09T10:00:00Z and 2023-02-09T00:00:00: one without an offset and one with an offset have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two date and times that have an order, found 2023-02-09T10:00:00Z and 2023-02-09T00:00:00: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -1755,7 +1345,7 @@
   },
   {
     "expression": "@\"2026-10-17T10:00:00\" < @\"2026-10-17T11:00:00Z\"",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1781,25 +1371,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two date and times that have an order, found 2026-10-17T10:00:00 and 2026-10-17T11:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two date and times that have an order, found 2026-10-17T10:00:00 and 2026-10-17T11:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two date and times that have an order, found 2026-10-17T10:00:00 and 2026-10-17T11:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -1808,7 +1395,7 @@
   },
   {
     "expression": "@\"2026-10-17T10:00:00\" < @\"2026-10-18T11:00:00Z\"",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1858,7 +1445,7 @@
   },
   {
     "expression": "if time(\"10:00:00\") < time(\"11:00:00Z\") then 1 else 2",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1884,15 +1471,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "2",
-        "feel": "2",
+        "display": "1",
+        "feel": "1",
         "isNull": false,
         "type": "number",
         "typed": {
@@ -1900,7 +1485,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "2",
+            "text": "1",
             "type": "xsd:decimal"
           }
         }
@@ -1910,7 +1495,7 @@
   },
   {
     "expression": "[time(\"10:00:00\"), time(\"12:00:00\")][item < time(\"11:00:00Z\")]",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "DT-014 (owner Q-T1, 2026-11-13 and 2026-11-21): a time or date and time without an offset takes the offset of the other operand: \"if one input has a null timezone offset, that input uses the timezone offset of the other input\" (DMN 1.7 Beta 1, Table 55), for =, the orderings, ranges, unary comparisons, between, min, max and sort alike. So time(\"10:00:00\") < time(\"11:00:00Z\") is true and time(\"10:00:00\") = time(\"10:00:00Z\") is true; 0.9.0 compared a local and a zoned value through the host's offset of today (= ) or as false (<), and the 14-hour rule of TMP-6 (712621f) that this replaces gave null within 14 hours. Two values have no order only where a zone gives one no single offset and they are not written in one zone.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1935,23 +1520,30 @@
     },
     "new": {
       "diagnostics": {
-        "count": 2,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-          "comparison '<' expected two times that have an order, found 12:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "[]",
-        "feel": "[]",
+        "display": "[\"10:00:00\"]",
+        "feel": "[10:00:00]",
         "isNull": false,
-        "type": "list<Null>",
+        "type": "list<time>",
         "typed": {
           "components": null,
           "list": {
             "isNil": false,
-            "items": []
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "10:00:00",
+                  "type": "xsd:time"
+                }
+              }
+            ]
           },
           "simple": null
         }

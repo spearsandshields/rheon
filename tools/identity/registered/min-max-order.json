@@ -869,7 +869,7 @@
   },
   {
     "expression": "max([time(\"10:00:00\"), time(\"11:00:00+01:00\")])",
-    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -898,25 +898,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null([core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00)",
-        "isNull": true,
-        "nullReason": "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00",
-        "type": "Null",
+        "display": "\"11:00:00+01:00\"",
+        "feel": "11:00:00+01:00",
+        "isNull": false,
+        "type": "time",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "11:00:00+01:00",
+            "type": "xsd:time"
           }
         }
       },
@@ -929,7 +926,7 @@
       "expression": "max([time(\"10:00:00\"), time(\"11:00:00+01:00\")])",
       "errorMode": "strict"
     },
-    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "error": {
         "kind": "evaluation",
@@ -938,11 +935,27 @@
       "ok": false
     },
     "new": {
-      "error": {
-        "kind": "evaluation",
-        "message": "strict error mode: [core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00"
+      "diagnostics": {
+        "count": 0,
+        "messages": []
       },
-      "ok": false
+      "ok": true,
+      "result": {
+        "display": "\"11:00:00+01:00\"",
+        "feel": "11:00:00+01:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "11:00:00+01:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
     }
   },
   {
@@ -951,7 +964,7 @@
       "expression": "max([time(\"10:00:00\"), time(\"11:00:00+01:00\")])",
       "language": "b-feel"
     },
-    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -980,25 +993,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null([core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00)",
-        "isNull": true,
-        "nullReason": "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00",
-        "type": "Null",
+        "display": "\"11:00:00+01:00\"",
+        "feel": "11:00:00+01:00",
+        "isNull": false,
+        "type": "time",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "11:00:00+01:00",
+            "type": "xsd:time"
           }
         }
       },
@@ -1283,7 +1293,7 @@
   },
   {
     "expression": "max([time(\"10:00:00\"), time(\"09:00:00Z\")])",
-    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1).",
+    "why": "DT-048: min and max take a list of items of one ordered type and compare them as < does (DMN 1.7 Beta 1, 10.3.4.4; Table 53), so dates, times, date and times and durations are taken too (they were invalid-type nulls). A null item, an item of another type and two items without an order are outside the domain, and give null whatever their position (10.3.4); max([1, null]) was 1 while max([null, 1]) was null. The C< and C> hit policies of decision tables use the same functions (8.2.11.1). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -1312,25 +1322,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::max] expected items that have an order, found 10:00:00 and 09:00:00Z"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null([core::max] expected items that have an order, found 10:00:00 and 09:00:00Z)",
-        "isNull": true,
-        "nullReason": "[core::max] expected items that have an order, found 10:00:00 and 09:00:00Z",
-        "type": "Null",
+        "display": "\"10:00:00\"",
+        "feel": "10:00:00",
+        "isNull": false,
+        "type": "time",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "10:00:00",
+            "type": "xsd:time"
           }
         }
       },

@@ -141,17 +141,13 @@ fn _0022() {
     r#"min([null, 1])"#,
     "[core::min] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
   );
-  // items of two types, and two times that have no order
+  // items of two types
   te_null(
     false,
     scope,
     r#"min([1, "a"])"#,
     "[core::min] invalid argument type, expected number, actual type is string",
   );
-  te_null(
-    false,
-    scope,
-    r#"min([time("10:00:00"), time("11:00:00+01:00")])"#,
-    "[core::min] expected items that have an order, found 10:00:00 and 11:00:00+01:00",
-  );
+  // a time without an offset takes the offset of the other (Table 55)
+  te_string(false, scope, r#"string(min([time("10:00:00"), time("11:00:00+01:00")]))"#, "10:00:00");
 }

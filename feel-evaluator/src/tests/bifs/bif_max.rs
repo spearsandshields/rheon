@@ -141,17 +141,13 @@ fn _0022() {
     r#"max([null, 1])"#,
     "[core::max] invalid argument type, expected number, string, date, time, date and time, or duration, actual type is Null",
   );
-  // items of two types, and two times that have no order
+  // items of two types
   te_null(
     false,
     scope,
     r#"max([1, "a"])"#,
     "[core::max] invalid argument type, expected number, actual type is string",
   );
-  te_null(
-    false,
-    scope,
-    r#"max([time("10:00:00"), time("11:00:00+01:00")])"#,
-    "[core::max] expected items that have an order, found 10:00:00 and 11:00:00+01:00",
-  );
+  // a time without an offset takes the offset of the other (Table 55)
+  te_string(false, scope, r#"string(max([time("10:00:00"), time("11:00:00+01:00")]))"#, "11:00:00+01:00");
 }

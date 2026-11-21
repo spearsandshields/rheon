@@ -762,11 +762,7 @@ fn _0113() {
   te_bool(false, scope, r#"started by([1..5], [1..10])"#, false);
   te_bool(false, scope, r#"started by([1..10], [1..5])"#, true);
   te_bool(false, scope, r#"includes([5..5), 5)"#, true);
-  // a time without an offset has no order against one with an offset within 14 hours
-  te_null(
-    false,
-    scope,
-    r#"before(time("10:00:00"), time("10:00:00+02:00"))"#,
-    r#"[before] expected values that have an order, found 10:00:00 and 10:00:00+02:00"#,
-  );
+  // a time without an offset takes the offset of the other (Table 55): the same instant
+  te_bool(false, scope, r#"before(time("10:00:00"), time("10:00:00+02:00"))"#, false);
+  te_bool(false, scope, r#"before(time("09:00:00"), time("10:00:00+02:00"))"#, true);
 }

@@ -941,20 +941,9 @@ fn _0200() {
   // `in = e` and `in != e` are = and !=: null for values of other kinds
   te_null(false, scope, r#""a" in = 1"#, r#"equal err '"a"' =?= '1'"#);
   te_null(false, scope, r#""a" in != 1"#, r#"equal err '"a"' =?= '1'"#);
-  // a time without an offset has no order against one with an offset within 14 hours
-  te_null(
-    false,
-    scope,
-    r#"@"10:00:00" in < @"10:30:00+01:00""#,
-    "comparison '<' expected two times that have an order, found 10:00:00 and 10:30:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-  );
-  te_null(
-    false,
-    scope,
-    r#"@"10:00:00" in [@"09:00:00+01:00"..@"11:00:00"]"#,
-    "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-  );
-  // the other comparison decides it
+  // a time without an offset takes the offset of the other (Table 55)
+  te_bool(false, scope, r#"@"10:00:00" in < @"10:30:00+01:00""#, true);
+  te_bool(false, scope, r#"@"10:00:00" in [@"09:00:00+01:00"..@"11:00:00"]"#, true);
   te_bool(false, scope, r#"@"12:00:00" in [@"09:00:00+01:00"..@"11:00:00"]"#, false);
 }
 

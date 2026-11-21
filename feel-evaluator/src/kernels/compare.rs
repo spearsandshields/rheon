@@ -25,11 +25,12 @@ pub(crate) fn not_equal(lhs: &Value, rhs: &Value) -> Value {
   }
 }
 
-/// The null of a comparison of two times that have no order: a time without an offset and one
-/// with an offset that are no more than 14 hours apart (DMN 1.6, 10.3.2.3.4).
+/// The null of a comparison of two times that have no order: a zone gives one of them no single
+/// offset (the hour that a clock change of the zone skips or repeats, or a zone the time zone
+/// database does not know), and the two are not written in the same zone.
 fn times_without_an_order(symbol: &str, lhs: &FeelTime, rhs: &FeelTime) -> Value {
   value_null!(
-    "comparison '{}' expected two times that have an order, found {} and {}: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
+    "comparison '{}' expected two times that have an order, found {} and {}: the zone of one gives it no single offset, and they are not written in the same zone",
     symbol,
     lhs,
     rhs
@@ -41,8 +42,9 @@ fn times_without_an_order(symbol: &str, lhs: &FeelTime, rhs: &FeelTime) -> Value
 pub(crate) enum Order {
   /// Two values of one ordered kind, and how they compare.
   Ordered(std::cmp::Ordering),
-  /// Two times, or two date and times, that have no order: one without an offset and one with an
-  /// offset that are no more than 14 hours apart (10.3.2.3.4).
+  /// Two times, or two date and times, that have no order: the zone of one gives it no single
+  /// offset, and the two are not written in the same zone. (A value without an offset takes the
+  /// offset of the other, Table 55.)
   Indeterminate,
   /// Values that are not both of one ordered kind.
   Unordered,
@@ -70,7 +72,7 @@ fn without_an_order(symbol: &str, lhv: &Value, rhv: &Value) -> Value {
   match (lhv, rhv) {
     (Value::Time(lh), Value::Time(rh)) => times_without_an_order(symbol, lh, rh),
     _ => value_null!(
-      "comparison '{}' expected two date and times that have an order, found {} and {}: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
+      "comparison '{}' expected two date and times that have an order, found {} and {}: the zone of one gives it no single offset there, and they are not written in the same zone",
       symbol,
       arg(lhv),
       arg(rhv)

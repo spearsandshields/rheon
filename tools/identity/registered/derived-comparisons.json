@@ -1898,7 +1898,7 @@
   },
   {
     "expression": "@\"10:00:00\" in < @\"10:30:00+01:00\"",
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1924,25 +1924,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 10:30:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 10:00:00 and 10:30:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 10:00:00 and 10:30:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -1955,7 +1952,7 @@
       "expression": "@\"10:00:00\" in < @\"10:30:00+01:00\"",
       "errorMode": "strict"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1980,11 +1977,27 @@
       "warnings": []
     },
     "new": {
-      "error": {
-        "kind": "evaluation",
-        "message": "strict error mode: comparison '<' expected two times that have an order, found 10:00:00 and 10:30:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
+      "diagnostics": {
+        "count": 0,
+        "messages": []
       },
-      "ok": false
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
     }
   },
   {
@@ -1993,7 +2006,7 @@
       "expression": "@\"10:00:00\" in < @\"10:30:00+01:00\"",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2019,15 +2032,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 10:30:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -2035,7 +2046,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }
@@ -2045,7 +2056,7 @@
   },
   {
     "expression": "@\"10:00:00\" in [@\"09:00:00+01:00\"..@\"11:00:00+01:00\"]",
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2071,25 +2082,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -2102,7 +2110,7 @@
       "expression": "@\"10:00:00\" in [@\"09:00:00+01:00\"..@\"11:00:00+01:00\"]",
       "errorMode": "strict"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2127,11 +2135,27 @@
       "warnings": []
     },
     "new": {
-      "error": {
-        "kind": "evaluation",
-        "message": "strict error mode: comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
+      "diagnostics": {
+        "count": 0,
+        "messages": []
       },
-      "ok": false
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
     }
   },
   {
@@ -2140,7 +2164,7 @@
       "expression": "@\"10:00:00\" in [@\"09:00:00+01:00\"..@\"11:00:00+01:00\"]",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2166,15 +2190,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00+01:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -2182,7 +2204,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }
@@ -2196,7 +2218,7 @@
       "expression": "time(\"10:00:00\") between time(\"09:00:00Z\") and time(\"11:00:00Z\")",
       "errorMode": "strict"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2221,11 +2243,27 @@
       "warnings": []
     },
     "new": {
-      "error": {
-        "kind": "evaluation",
-        "message": "strict error mode: comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
+      "diagnostics": {
+        "count": 0,
+        "messages": []
       },
-      "ok": false
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
     }
   },
   {
@@ -2234,7 +2272,7 @@
       "expression": "time(\"10:00:00\") between time(\"09:00:00Z\") and time(\"11:00:00Z\")",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2260,15 +2298,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -2276,7 +2312,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }
@@ -2286,7 +2322,7 @@
   },
   {
     "expression": "@\"2020-01-01T10:00:00\" between @\"2020-01-01T09:00:00Z\" and @\"2020-01-01T11:00:00Z\"",
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2312,25 +2348,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison 'between' expected two date and times that have an order, found 2020-01-01T10:00:00 and 2020-01-01T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison 'between' expected two date and times that have an order, found 2020-01-01T10:00:00 and 2020-01-01T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison 'between' expected two date and times that have an order, found 2020-01-01T10:00:00 and 2020-01-01T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -2343,7 +2376,7 @@
       "expression": "@\"2020-01-01T10:00:00\" between @\"2020-01-01T09:00:00Z\" and @\"2020-01-01T11:00:00Z\"",
       "errorMode": "strict"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2368,11 +2401,27 @@
       "warnings": []
     },
     "new": {
-      "error": {
-        "kind": "evaluation",
-        "message": "strict error mode: comparison 'between' expected two date and times that have an order, found 2020-01-01T10:00:00 and 2020-01-01T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart"
+      "diagnostics": {
+        "count": 0,
+        "messages": []
       },
-      "ok": false
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
     }
   },
   {
@@ -2381,7 +2430,7 @@
       "expression": "@\"2020-01-01T10:00:00\" between @\"2020-01-01T09:00:00Z\" and @\"2020-01-01T11:00:00Z\"",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2407,15 +2456,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison 'between' expected two date and times that have an order, found 2020-01-01T10:00:00 and 2020-01-01T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -2423,7 +2470,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }
@@ -3047,7 +3094,7 @@
   },
   {
     "expression": "time(\"10:00:00\") in [time(\"09:00:00Z\")..time(\"11:00:00Z\")]",
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3073,25 +3120,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -3100,7 +3144,7 @@
   },
   {
     "expression": "time(\"10:00:00\") in (> time(\"09:00:00Z\"))",
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3126,25 +3170,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -3153,7 +3194,7 @@
   },
   {
     "expression": "@\"2026-10-17T10:00:00\" in [@\"2026-10-17T09:00:00Z\"..@\"2026-10-17T11:00:00Z\"]",
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3179,25 +3220,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two date and times that have an order, found 2026-10-17T10:00:00 and 2026-10-17T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two date and times that have an order, found 2026-10-17T10:00:00 and 2026-10-17T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two date and times that have an order, found 2026-10-17T10:00:00 and 2026-10-17T09:00:00Z: one without an offset and one with an offset have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -3212,7 +3250,7 @@
       "context": "{\"?\": time(\"10:00:00\")}",
       "contextFormat": "feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3238,25 +3276,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '<' expected two times that have an order, found 10:00:00 and 11:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },
@@ -3271,7 +3306,7 @@
       "context": "{\"?\": time(\"10:00:00\")}",
       "contextFormat": "feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). DT-014: a time or date and time without an offset takes the offset of the other operand (Table 55, owner Q-T1).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3297,25 +3332,22 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null(comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
-        "isNull": true,
-        "nullReason": "comparison '>=' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
-        "type": "Null",
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
           }
         }
       },

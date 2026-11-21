@@ -1328,10 +1328,11 @@ fn temporal_ordering_across_offsets_and_midnight_wrap() {
     tz0(r#"sort([@"2026-10-17T10:00:00Z", @"2026-10-17T10:00:00+01:00"], function(a, b) a < b)"#),
     r#"["2026-10-17T10:00:00+01:00", "2026-10-17T10:00:00Z"]"#
   );
-  // a local and a zoned value within 14 hours have no order (DMN 1.6, 10.3.2.3.4): null, not false
-  assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-17T11:00:00Z""#), "null");
+  // a local value takes the offset of the other (DMN 1.7 Beta 1, Table 55), whatever tzOffsetMinutes is
+  assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-17T11:00:00Z""#), "true");
   assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-18T11:00:00Z""#), "true");
-  assert_eq!(tz0(r#"@"10:00:00" < @"11:00:00Z""#), "null");
+  assert_eq!(tz0(r#"@"10:00:00" < @"11:00:00Z""#), "true");
+  assert_eq!(tz0(r#"@"10:00:00" = @"10:00:00+02:00""#), "true");
   assert_eq!(tz0(r#"@"2026-10-17T10:00:00" < @"2026-10-17T11:00:00""#), "true");
   // time + duration wraps around midnight, nanoseconds included
   assert_eq!(display(r#"time("23:59:59") + duration("PT1S")"#), r#""00:00:00""#);
