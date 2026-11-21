@@ -255,8 +255,8 @@ pub static BUILT_INS: [BuiltIn; 89] = [
   built("is", "Whether the two values are the same value of the same type.", &[
     named(&[p("value1", "Any"), p("value2", "Any")], "boolean"),
   ]),
-  built("list contains", "Whether the list has an item that equals the match.", &[
-    named(&[p("list", "list"), p("match", "Any")], "boolean"),
+  built("list contains", "Whether the list has an item that equals the element.", &[
+    named(&[p("list", "list"), p("element", "Any")], "boolean"),
   ]),
   built("list replace", "The list with the item at a position, or every item a function matches, replaced.", &[
     named(&[p("list", "list"), p("position", "number"), p("newItem", "Any")], "list"),

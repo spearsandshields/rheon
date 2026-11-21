@@ -15,6 +15,7 @@ static NAME_DECIMAL_SEPARATOR: LazyLock<Name> = LazyLock::new(|| Name::new(&["de
 static NAME_DELIMITER: LazyLock<Name> = LazyLock::new(|| Name::from("delimiter"));
 static NAME_DIVIDEND: LazyLock<Name> = LazyLock::new(|| Name::from("dividend"));
 static NAME_DIVISOR: LazyLock<Name> = LazyLock::new(|| Name::from("divisor"));
+static NAME_ELEMENT: LazyLock<Name> = LazyLock::new(|| Name::from("element"));
 static NAME_ENTRIES: LazyLock<Name> = LazyLock::new(|| Name::from("entries"));
 static NAME_FLAGS: LazyLock<Name> = LazyLock::new(|| Name::from("flags"));
 static NAME_FROM: LazyLock<Name> = LazyLock::new(|| Name::from("from"));
@@ -625,10 +626,10 @@ fn bif_is(parameters: &NamedParameters) -> Value {
 
 fn bif_list_contains(parameters: &NamedParameters) -> Value {
   if let Some((list_value, _)) = get_param(parameters, &NAME_LIST) {
-    if let Some((match_value, _)) = get_param(parameters, &NAME_MATCH) {
-      core::list_contains(list_value, match_value)
+    if let Some((element, _)) = get_param(parameters, &NAME_ELEMENT) {
+      core::list_contains(list_value, element)
     } else {
-      parameter_not_found!(NAME_MATCH)
+      parameter_not_found!(NAME_ELEMENT)
     }
   } else {
     parameter_not_found!(NAME_LIST)

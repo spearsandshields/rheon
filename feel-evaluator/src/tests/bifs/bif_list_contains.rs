@@ -18,7 +18,7 @@ fn _0003() {
 
 #[test]
 fn _0004() {
-  te_bool(false, &scope!(), r#"list contains(list: [1,2,3,4],match: 2)"#, true);
+  te_bool(false, &scope!(), r#"list contains(list: [1,2,3,4],element: 2)"#, true);
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn _0009() {
     false,
     &scope!(),
     r#"list contains(l:[10,11,12],match:11)"#,
-    r#"expected the parameters of list contains(list, match): boolean, found the parameter name 'l'"#,
+    r#"expected the parameters of list contains(list, element): boolean, found the parameter name 'l'"#,
   );
 }
 
@@ -67,6 +67,17 @@ fn _0010() {
     false,
     &scope!(),
     r#"list contains(list:[10,11,12],m:11)"#,
-    r#"expected the parameters of list contains(list, match): boolean, found the parameter name 'm'"#,
+    r#"expected the parameters of list contains(list, element): boolean, found the parameter name 'm'"#,
+  );
+}
+
+#[test]
+fn _0011() {
+  // the second parameter is named element (DMN 1.7 Beta 1, 10.3.4.4), not match
+  te_null(
+    false,
+    &scope!(),
+    r#"list contains(list: [1, 2], match: 2)"#,
+    "expected the parameters of list contains(list, element): boolean, found the parameter name 'match'",
   );
 }
