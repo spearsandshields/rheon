@@ -51,3 +51,15 @@ fn _0009() {
     r#"expected the parameters of count(list): number, found the parameter name 'l'"#,
   );
 }
+
+#[test]
+fn _0010() {
+  // null is outside the domain: null, as for the other list functions
+  te_null(
+    false,
+    &scope!(),
+    r#"count(null)"#,
+    r#"[core::count] invalid argument type, expected list, actual type is Null"#,
+  );
+  te_number(false, &scope!(), r#"count([null])"#, 1, 0);
+}

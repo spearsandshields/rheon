@@ -151,11 +151,10 @@ Open in 1.6:
     `<` or `=`, so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and
     a match.
   - *Smaller ones*: null range endpoints are handled differently by kind; `between` checks the
-    kinds of all three operands first; `list in list` is containment of a multiset; `count(null)`
-    is 1; the Any and Priority hit policies compare outputs with Rust equality, not FEEL
-    equality; a collection item definition turns a list with a null item into null; a missing
-    input has a null with a reason only when its typeRef is an item definition; the nulls of
-    `eval_in_*` name internal functions.
+    kinds of all three operands first; `list in list` is containment of a multiset; the Any and
+    Priority hit policies compare outputs with Rust equality, not FEEL equality; a collection item
+    definition turns a list with a null item into null; a missing input has a null with a reason
+    only when its typeRef is an item definition; the nulls of `eval_in_*` name internal functions.
 - **Invocation follow-ups** `[dmn]` (2026-11-12). Every invocation goes through
   `feel-evaluator/src/invocation.rs` (Table 64: FEEL and boxed invocations, invocables invoked
   with input data, `sort` and `list replace`). Open:

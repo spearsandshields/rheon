@@ -567,12 +567,14 @@ pub fn context_merge(contexts: &Value) -> Value {
   }
 }
 
-/// Returns size of list, or zero if list is empty.
+/// Returns size of list, or zero if list is empty. A value that is no list is a list of one item (the
+/// conversion to a singleton list, DMN 1.7 Beta 1, 10.3.2.9.4); null is no list of anything, so
+/// `count(null)` is null, as `reverse(null)` and the other list functions are.
 pub fn count(list: &Value) -> Value {
-  if let Value::List(items) = list {
-    Value::Number(items.len().into())
-  } else {
-    Value::Number(1.into())
+  match list {
+    Value::List(items) => Value::Number(items.len().into()),
+    Value::Null(_) => invalid_argument_type!("count", "list", list),
+    _ => Value::Number(1.into()),
   }
 }
 

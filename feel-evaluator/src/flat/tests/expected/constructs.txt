@@ -83,8 +83,8 @@ List([Null(Some("[addition] incompatible types: 1 + null(context has no value fo
 Diagnostics { count: 6, messages: ["context has no value for key 'i'", "[addition] incompatible types: 1 + null(context has no value for key 'i')", "context has no value for key 'i'", "[addition] incompatible types: 2 + null(context has no value for key 'i')", "context has no value for key 'i'", "[addition] incompatible types: 3 + null(context has no value for key 'i')"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #2 "for i in 1..3 return g(i)"
-List([Number(+1E+0), Number(+1E+0), Number(+1E+0)])
-Diagnostics { count: 3, messages: ["context has no value for key 'partial'"], warnings: [] }
+List([Null(Some("[core::count] invalid argument type, expected list, actual type is Null")), Null(Some("[core::count] invalid argument type, expected list, actual type is Null")), Null(Some("[core::count] invalid argument type, expected list, actual type is Null"))])
+Diagnostics { count: 6, messages: ["context has no value for key 'partial'", "[core::count] invalid argument type, expected list, actual type is Null", "context has no value for key 'partial'", "[core::count] invalid argument type, expected list, actual type is Null", "context has no value for key 'partial'", "[core::count] invalid argument type, expected list, actual type is Null"], warnings: [] }
 
 a_function_of_the_host_sees_the_variables_of_the_walk #3 "for i in 1..2, j in h(i) return j"
 List([Number(+1E+0), Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'i'")), Number(+2E+0), Null(Some("context has no value for key 'partial'")), Null(Some("context has no value for key 'i'"))])
@@ -14780,11 +14780,11 @@ Diagnostics { count: 0, messages: [], warnings: [] }
 
 for_walks_every_combination_of_its_variables #53 "count(for i in 1..600 return partial)"
 Null(Some("values are nested too deeply (more than 500 levels); evaluation stopped"))
-Diagnostics { count: 1, messages: ["values are nested too deeply (more than 500 levels); evaluation stopped"], warnings: [] }
+Diagnostics { count: 2, messages: ["[core::count] invalid argument type, expected list, actual type is Null", "values are nested too deeply (more than 500 levels); evaluation stopped"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #54 "count(for i in 1..600 return partial)"
 Null(Some("values are nested too deeply (more than 500 levels); evaluation stopped"))
-Diagnostics { count: 1, messages: ["values are nested too deeply (more than 500 levels); evaluation stopped"], warnings: [] }
+Diagnostics { count: 2, messages: ["[core::count] invalid argument type, expected list, actual type is Null", "values are nested too deeply (more than 500 levels); evaluation stopped"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #55 "for i in [1], i in [2] return i"
 Null(Some("duplicate iteration variable 'i'"))
