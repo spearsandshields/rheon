@@ -170,3 +170,11 @@ fn _0025() {
     "expected the parameters of string join(list, delimiter?): string, found the parameter name 'other'",
   );
 }
+
+#[test]
+fn _0026() {
+  // null items are ignored: no delimiter for them, also before the first string
+  te_string(false, &scope!(), r#"string join([null, "b"], "X")"#, "b");
+  te_string(false, &scope!(), r#"string join([null, null, "a", null, "b", null], ", ")"#, "a, b");
+  te_string(false, &scope!(), r#"string join([null, null], "X")"#, "");
+}

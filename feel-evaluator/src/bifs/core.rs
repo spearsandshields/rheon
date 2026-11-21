@@ -2549,13 +2549,16 @@ pub fn string_join(list: &Value, delimiter: &Value) -> Value {
         Value::Null(_) => "",
         _ => return value_null!("string join: invalid delimiter, expected string, actual value type is {}", arg(&TypeOf(delimiter))),
       };
+      // null items are ignored (DMN 1.7 Beta 1, 10.3.4.3), so a delimiter goes only between strings
       let mut joined_string = String::new();
-      for (i, item) in items.iter().enumerate() {
+      let mut first = true;
+      for item in items.iter() {
         match item {
           Value::String(s) => {
-            if i > 0 {
+            if !first {
               joined_string.push_str(delimiter);
             }
+            first = false;
             joined_string.push_str(s);
           }
           Value::Null(_) => {}

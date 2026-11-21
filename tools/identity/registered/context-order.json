@@ -23092,5 +23092,293 @@
       },
       "warnings": []
     }
+  },
+  {
+    "expression": "context put({x: 1, y: {b: 1}}, [\"y\", \"a\"], 2)",
+    "why": "VAL-16 (owner decision, 2026-11-20): a context is shown in the order its entries were written in. DMN 1.6, 10.3.2.6 calls a context a partially ordered collection of entries and asks nowhere for the order of the names, which it was shown in. The order of evaluation is unchanged (10.3.2.11.1: the order the entries need each other), and so are equality and the type, which do not depend on the order.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"x\": 1, \"y\": {\"a\": 2, \"b\": 1}}",
+        "feel": "{x: 1, y: {a: 2, b: 1}}",
+        "isNull": false,
+        "type": "context<x: number, y: context<a: number, b: number>>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "x",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "y",
+              "value": {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"x\": 1, \"y\": {\"b\": 1, \"a\": 2}}",
+        "feel": "{x: 1, y: {b: 1, a: 2}}",
+        "isNull": false,
+        "type": "context<x: number, y: context<a: number, b: number>>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "x",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "y",
+              "value": {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "context put({x: 1, y: {b: 1}}, [\"y\", \"a\"], 2)",
+      "errorMode": "strict"
+    },
+    "why": "VAL-16 (owner decision, 2026-11-20): a context is shown in the order its entries were written in. DMN 1.6, 10.3.2.6 calls a context a partially ordered collection of entries and asks nowhere for the order of the names, which it was shown in. The order of evaluation is unchanged (10.3.2.11.1: the order the entries need each other), and so are equality and the type, which do not depend on the order.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"x\": 1, \"y\": {\"a\": 2, \"b\": 1}}",
+        "feel": "{x: 1, y: {a: 2, b: 1}}",
+        "isNull": false,
+        "type": "context<x: number, y: context<a: number, b: number>>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "x",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "y",
+              "value": {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"x\": 1, \"y\": {\"b\": 1, \"a\": 2}}",
+        "feel": "{x: 1, y: {b: 1, a: 2}}",
+        "isNull": false,
+        "type": "context<x: number, y: context<a: number, b: number>>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "x",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            },
+            {
+              "isNil": false,
+              "name": "y",
+              "value": {
+                "components": [
+                  {
+                    "isNil": false,
+                    "name": "b",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  },
+                  {
+                    "isNil": false,
+                    "name": "a",
+                    "value": {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  }
+                ],
+                "list": null,
+                "simple": null
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
   }
 ]
