@@ -209,6 +209,10 @@ mod tests {
     assert_eq!(Some(-3_540), offset_seconds(FeelZone::from_designator("-00:59")));
     assert_eq!(Some(50_400), offset_seconds(FeelZone::from_designator("+14:00")));
     assert_eq!(Some(FeelZone::Zone("Europe/Paris".to_string())), FeelZone::from_designator("@Europe/Paris"));
+    // the tz database's names also hold digits, '-' and '+'
+    for name in ["America/Port-au-Prince", "America/Blanc-Sablon", "Etc/GMT+5", "Etc/GMT-14", "EST5EDT"] {
+      assert_eq!(Some(FeelZone::Zone(name.to_string())), FeelZone::from_designator(&format!("@{name}")), "{name}");
+    }
     for designator in [
       "",
       " Z",
@@ -222,7 +226,7 @@ mod tests {
       "+15:00",
       "+2:00",
       "@Mars/Olympus",
-      "@America/Port-au-Prince",
+      "@Etc/GMT+15",
       "@@Europe/Paris",
       "Z@Europe/Paris",
       "+02:00Z",

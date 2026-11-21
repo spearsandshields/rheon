@@ -137,7 +137,11 @@ fn time<'a>(cursor: &mut Cursor<'a>, parts: &mut Parts<'a>) -> Option<()> {
   Some(())
 }
 
-/// `(?P<zulu>[zZ])|@(?P<zone>[a-zA-Z_/]+)|(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})`
+/// `(?P<zulu>[zZ])|@(?P<zone>[a-zA-Z0-9_/+-]+)|(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})`
+///
+/// A zone id holds the characters of the tz database's names: ASCII letters and digits, `_`, `/`,
+/// `-` and `+` (`America/Port-au-Prince`, `Etc/GMT+5`, `EST5EDT`); the database decides whether a
+/// name is a zone.
 fn zone<'a>(cursor: &mut Cursor<'a>, parts: &mut Parts<'a>) -> Option<()> {
   match cursor.peek()? {
     b'z' | b'Z' => parts.zulu = Some(cursor.take(1)),
@@ -145,7 +149,7 @@ fn zone<'a>(cursor: &mut Cursor<'a>, parts: &mut Parts<'a>) -> Option<()> {
       cursor.take(1);
       let length = cursor.text.as_bytes()[cursor.at..]
         .iter()
-        .take_while(|byte| byte.is_ascii_alphabetic() || matches!(byte, b'_' | b'/'))
+        .take_while(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'/' | b'-' | b'+'))
         .count();
       if length == 0 {
         return None;
@@ -286,7 +290,7 @@ mod tests {
 
   const DATE: &str = r"(?P<sign>-)?(?P<year>[1-9][0-9]{3,8})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})";
   const TIME: &str = r"(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2})(?P<fractional>\.[0-9]+)?";
-  const ZONE: &str = r"(?P<zulu>[zZ])|@(?P<zone>[a-zA-Z_/]+)|(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
+  const ZONE: &str = r"(?P<zulu>[zZ])|@(?P<zone>[a-zA-Z0-9_/+-]+)|(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
   const DAYS_AND_TIME: &str = r"^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$";
   /// A text that the pattern of a duration matches is still none when it ends with the `T` that
   /// begins the time, as XML Schema says of `dayTimeDuration` with its second pattern `.*[^T]`.

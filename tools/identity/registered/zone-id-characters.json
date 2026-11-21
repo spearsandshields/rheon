@@ -1,0 +1,798 @@
+[
+  {
+    "expression": "time(\"10:00:00@America/Port-au-Prince\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@America/Port-au-Prince', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(time: invalid time literal '10:00:00@America/Port-au-Prince', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)",
+        "isNull": true,
+        "nullReason": "time: invalid time literal '10:00:00@America/Port-au-Prince', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@America/Port-au-Prince\"",
+        "feel": "10:00:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@America/Port-au-Prince",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@America/Port-au-Prince\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: time: invalid time literal '10:00:00@America/Port-au-Prince', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@America/Port-au-Prince\"",
+        "feel": "10:00:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@America/Port-au-Prince",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00@America/Blanc-Sablon\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@America/Blanc-Sablon', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(time: invalid time literal '10:00:00@America/Blanc-Sablon', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)",
+        "isNull": true,
+        "nullReason": "time: invalid time literal '10:00:00@America/Blanc-Sablon', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@America/Blanc-Sablon\"",
+        "feel": "10:00:00@America/Blanc-Sablon",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@America/Blanc-Sablon",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@America/Blanc-Sablon\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: time: invalid time literal '10:00:00@America/Blanc-Sablon', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@America/Blanc-Sablon\"",
+        "feel": "10:00:00@America/Blanc-Sablon",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@America/Blanc-Sablon",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00@Etc/GMT+5\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@Etc/GMT+5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(time: invalid time literal '10:00:00@Etc/GMT+5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)",
+        "isNull": true,
+        "nullReason": "time: invalid time literal '10:00:00@Etc/GMT+5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@Etc/GMT+5\"",
+        "feel": "10:00:00@Etc/GMT+5",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@Etc/GMT+5",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@Etc/GMT+5\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: time: invalid time literal '10:00:00@Etc/GMT+5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@Etc/GMT+5\"",
+        "feel": "10:00:00@Etc/GMT+5",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@Etc/GMT+5",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00@Etc/GMT-14\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@Etc/GMT-14', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(time: invalid time literal '10:00:00@Etc/GMT-14', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)",
+        "isNull": true,
+        "nullReason": "time: invalid time literal '10:00:00@Etc/GMT-14', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@Etc/GMT-14\"",
+        "feel": "10:00:00@Etc/GMT-14",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@Etc/GMT-14",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@Etc/GMT-14\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: time: invalid time literal '10:00:00@Etc/GMT-14', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@Etc/GMT-14\"",
+        "feel": "10:00:00@Etc/GMT-14",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@Etc/GMT-14",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00@EST5EDT\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@EST5EDT', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(time: invalid time literal '10:00:00@EST5EDT', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)",
+        "isNull": true,
+        "nullReason": "time: invalid time literal '10:00:00@EST5EDT', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@EST5EDT\"",
+        "feel": "10:00:00@EST5EDT",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@EST5EDT",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@EST5EDT\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: time: invalid time literal '10:00:00@EST5EDT', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@EST5EDT\"",
+        "feel": "10:00:00@EST5EDT",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@EST5EDT",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(\"2025-06-01T10:00:00@America/Port-au-Prince\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid date or date and time '2025-06-01T10:00:00@America/Port-au-Prince'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid date or date and time '2025-06-01T10:00:00@America/Port-au-Prince')",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid date or date and time '2025-06-01T10:00:00@America/Port-au-Prince'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2025-06-01T10:00:00-04:00[America/Port-au-Prince]\"",
+        "feel": "2025-06-01T10:00:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2025-06-01T10:00:00@America/Port-au-Prince",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date and time(\"2025-06-01T10:00:00@America/Port-au-Prince\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::date and time] invalid date or date and time '2025-06-01T10:00:00@America/Port-au-Prince'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2025-06-01T10:00:00-04:00[America/Port-au-Prince]\"",
+        "feel": "2025-06-01T10:00:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2025-06-01T10:00:00@America/Port-au-Prince",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(date(\"2024-12-24\"), time(\"23:59:00\"), \"America/Port-au-Prince\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid timezone 'America/Port-au-Prince'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid timezone 'America/Port-au-Prince')",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid timezone 'America/Port-au-Prince'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2024-12-24T23:59:00-05:00[America/Port-au-Prince]\"",
+        "feel": "2024-12-24T23:59:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2024-12-24T23:59:00@America/Port-au-Prince",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date and time(date(\"2024-12-24\"), time(\"23:59:00\"), \"America/Port-au-Prince\")",
+      "errorMode": "strict"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::date and time] invalid timezone 'America/Port-au-Prince'"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2024-12-24T23:59:00-05:00[America/Port-au-Prince]\"",
+        "feel": "2024-12-24T23:59:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2024-12-24T23:59:00@America/Port-au-Prince",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(\"2025-01-01T10:00:00@Etc/GMT+5\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid date or date and time '2025-01-01T10:00:00@Etc/GMT+5'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid date or date and time '2025-01-01T10:00:00@Etc/GMT+5')",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid date or date and time '2025-01-01T10:00:00@Etc/GMT+5'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2025-01-01T10:00:00-05:00[Etc/GMT+5]\"",
+        "feel": "2025-01-01T10:00:00@Etc/GMT+5",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2025-01-01T10:00:00@Etc/GMT+5",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "date and time(date(2020,1,1), time(10,0,0.5), \"America/Port-au-Prince\")",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid timezone 'America/Port-au-Prince'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date and time] invalid timezone 'America/Port-au-Prince')",
+        "isNull": true,
+        "nullReason": "[core::date and time] invalid timezone 'America/Port-au-Prince'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2020-01-01T10:00:00.5-05:00[America/Port-au-Prince]\"",
+        "feel": "2020-01-01T10:00:00.5@America/Port-au-Prince",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2020-01-01T10:00:00.5@America/Port-au-Prince",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "time(\"10:00:00.5@Etc/GMT-1\").value",
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00.5@Etc/GMT-1', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(time: invalid time literal '10:00:00.5@Etc/GMT-1', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00)",
+        "isNull": true,
+        "nullReason": "time: invalid time literal '10:00:00.5@Etc/GMT-1', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "32400.5",
+        "feel": "32400.5",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "32400.5",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]
