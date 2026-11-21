@@ -484,3 +484,12 @@ fn built_in_functions_are_of_function_types() {
   te_bool(false, scope, "sort instance of function<list<number>, function<number, number>->boolean>->list<Any>", true);
   te_bool(false, scope, "abs instance of number", false);
 }
+
+#[test]
+fn a_rest_parameter_takes_one_argument_or_more() {
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "sum instance of function<>->number", false);
+  te_bool(false, scope, "sum instance of function<number>->number", true);
+  // instance of holds a result of type Any against the target
+  te_bool(false, scope, "max instance of function<list<number>>->number", false);
+}

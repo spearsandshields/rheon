@@ -485,7 +485,7 @@ impl Conformance {
         _ => false,
       },
       Value::BuiltInFunction(bif) => match target {
-        FeelType::Function(parameter_types, result_type) => crate::signatures::conforms(bif, parameter_types, result_type),
+        FeelType::Function(parameter_types, result_type) => crate::signatures::conforms(bif, parameter_types, result_type, true),
         _ => false,
       },
       _ => false,

@@ -71,14 +71,17 @@ impl Signature {
 /// every type its result can have conforms to the target's result type. A result written as the
 /// type of a parameter with several types (`abs(n: number or duration): number or duration`) is
 /// one function for each of them: its result is of the types of that parameter that the target
-/// gives it, so abs is a `function<number>->number`.
-pub fn conforms(bif: &Bif, parameters: &[FeelType], result: &FeelType) -> bool {
+/// gives it, so abs is a `function<number>->number`. A rest parameter stands for one argument or
+/// more. With `binding` (a function bound to a parameter or a variable, not `instance of`), a
+/// result of type Any is not held against the target's result type, as for a function literal,
+/// whose result type is not inferred.
+pub fn conforms(bif: &Bif, parameters: &[FeelType], result: &FeelType, binding: bool) -> bool {
   let Some(built_in) = of(bif) else {
     return false;
   };
   built_in.signatures.iter().any(|signature| {
     let declared = signature.parameters;
-    let required = declared.iter().filter(|parameter| !parameter.optional && !parameter.rest).count();
+    let required = declared.iter().filter(|parameter| !parameter.optional).count();
     let rest = declared.last().filter(|parameter| parameter.rest);
     if parameters.len() < required || (rest.is_none() && parameters.len() > declared.len()) {
       return false;
@@ -100,7 +103,7 @@ pub fn conforms(bif: &Bif, parameters: &[FeelType], result: &FeelType) -> bool {
         .enumerate()
         .find(|(place, _)| declared.get(*place).or(rest).is_some_and(|parameter| parameter.feel_type == signature.result))
     });
-    let result_conforms = |declared: Option<FeelType>| declared.is_some_and(|declared| declared.is_conformant(result));
+    let result_conforms = |declared: Option<FeelType>| declared.is_some_and(|declared| (binding && declared == FeelType::Any) || declared.is_conformant(result));
     takes
       && match follows.flatten() {
         Some((_, target)) => table_types(signature.result).filter(|declared| takes_target(declared, target)).all(result_conforms),

@@ -80,7 +80,7 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
       value @ Value::FunctionDefinition { .. } => Value::Boolean(value.type_of().is_conformant(&feel_type)),
       Value::BuiltInFunction(bif) => match feel_type {
         FeelType::Any => VALUE_TRUE,
-        FeelType::Function(parameters, result) => Value::Boolean(rheon_feel::signatures::conforms(&bif, &parameters, &result)),
+        FeelType::Function(parameters, result) => Value::Boolean(rheon_feel::signatures::conforms(&bif, &parameters, &result, false)),
         _ => VALUE_FALSE,
       },
       // the parameters of an external function are not known here: it is a function, of type Any

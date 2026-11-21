@@ -676,8 +676,7 @@ impl<'a> Lower<'_, 'a> {
   }
 
   /// The domain of a variable whose domain has `count` parts, the next of `parts`: an interval
-  /// from its two parts, a range literal of a `for` from its start and end, or the items of a
-  /// value.
+  /// from its two parts, or the items of a value (a range is none, [crate::Sequence::of_context]).
   fn domain(&mut self, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), Malformed<'a>> {
     let resolved = self.resolved;
     let first = parts.next().ok_or(Malformed {

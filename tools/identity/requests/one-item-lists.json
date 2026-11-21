@@ -338,5 +338,11 @@
   {"op": "evaluate", "expression": "null instance of Any"},
   {"op": "evaluate", "expression": "{a: function(x) external {java: {class: \"C\", method signature: \"m(int)\"}}, b: function(x) external {java: {class: \"C\", method signature: \"m(int)\"}}, r: a = b}.r"},
   {"op": "evaluate", "expression": "{a: function(x) external {pmml: {document: \"d\", model: \"m\"}}, b: function(x) external {pmml: {document: \"d\", model: \"n\"}}, r: a = b}.r"},
-  {"op": "evaluate", "expression": "(function(x) external {onnx: {file: \"f\", function signature: \"s\"}})(1)"}
+  {"op": "evaluate", "expression": "(function(x) external {onnx: {file: \"f\", function signature: \"s\"}})(1)"},
+  {"op": "evaluate", "expression": "sum instance of function<>->number"},
+  {"op": "evaluate", "expression": "sum instance of function<number>->number"},
+  {"op": "evaluate", "expression": "{f: function(g: function<list<number>>->number) g([1, 2]), r: f(max)}.r"},
+  {"op": "evaluate", "expression": "{f: function(g: function<>->number) g(), r: f(sum)}.r"},
+  {"op": "evaluate", "expression": "max instance of function<list<number>>->number"},
+  {"op": "evaluate", "expression": "sort([3, 1], function(a, b) a < b)"}
 ]

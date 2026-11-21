@@ -1285,7 +1285,8 @@ impl<'a> Callback<'a> {
       Self::Definition(function) => function.parameters().len() == 2,
       Self::BuiltIn(bif) => rheon_feel::signatures::of(bif).is_some_and(|built_in| {
         built_in.signatures.iter().any(|signature| {
-          let required = signature.parameters.iter().filter(|parameter| !parameter.optional && !parameter.rest).count();
+          // a rest parameter stands for one argument or more
+          let required = signature.parameters.iter().filter(|parameter| !parameter.optional).count();
           let rest = signature.parameters.last().is_some_and(|parameter| parameter.rest);
           required <= 2 && (rest || signature.parameters.len() >= 2)
         })
