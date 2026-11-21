@@ -23,7 +23,9 @@ pub struct FeelDate(Year, Month, Day);
 impl Display for FeelDate {
   /// Converts [FeelDate] into [String].
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{:04}-{:02}-{:02}", self.0, self.1, self.2)
+    // at least four digits of the year after its sign (XML Schema Part 2, yearFrag): -0044, not -044
+    let sign = if self.0 < 0 { "-" } else { "" };
+    write!(f, "{sign}{:04}-{:02}-{:02}", self.0.unsigned_abs(), self.1, self.2)
   }
 }
 

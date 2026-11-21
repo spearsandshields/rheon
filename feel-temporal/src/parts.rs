@@ -107,13 +107,16 @@ impl<'a> Cursor<'a> {
   }
 }
 
-/// `(?P<sign>-)?(?P<year>[1-9][0-9]{3,8})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})`
+/// `(?P<sign>-)?(?P<year>[1-9][0-9]{3,8}|0[1-9][0-9]{2}|00[1-9][0-9]|000[1-9])-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})`
 fn date<'a>(cursor: &mut Cursor<'a>, parts: &mut Parts<'a>) -> Option<()> {
   parts.sign = cursor.eat(b'-');
-  if cursor.peek() == Some(b'0') {
+  // XML Schema Part 2, yearFrag: four digits with leading zeros, or more digits without one; the
+  // year 0000 is no year of the 1.0 lexical space, which DMN 1.6 dates follow (owner Q-T7)
+  let year = cursor.digits(4, 9)?;
+  if year.starts_with('0') && (year.len() > 4 || year == "0000") {
     return None;
   }
-  parts.year = Some(cursor.digits(4, 9)?);
+  parts.year = Some(year);
   cursor.eat(b'-')?;
   parts.month = Some(cursor.digits(2, 2)?);
   cursor.eat(b'-')?;
@@ -288,7 +291,7 @@ mod tests {
   use super::*;
   use regex::Regex;
 
-  const DATE: &str = r"(?P<sign>-)?(?P<year>[1-9][0-9]{3,8})-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})";
+  const DATE: &str = r"(?P<sign>-)?(?P<year>[1-9][0-9]{3,8}|0[1-9][0-9]{2}|00[1-9][0-9]|000[1-9])-(?P<month>[0-9]{2})-(?P<day>[0-9]{2})";
   const TIME: &str = r"(?P<hours>[0-9]{2}):(?P<minutes>[0-9]{2}):(?P<seconds>[0-9]{2})(?P<fractional>\.[0-9]+)?";
   const ZONE: &str = r"(?P<zulu>[zZ])|@(?P<zone>[a-zA-Z0-9_/+-]+)|(?P<offSign>[+-])(?P<offHours>[0-9]{2}):(?P<offMinutes>[0-9]{2})";
   const DAYS_AND_TIME: &str = r"^(?P<sign>-)?P((?P<days>[0-9]+)D)?(T((?P<hours>[0-9]+)H)?((?P<minutes>[0-9]+)M)?((?P<seconds>[0-9]+)(?P<fractional>\.[0-9]*)?S)?)?$";

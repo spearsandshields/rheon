@@ -386,3 +386,18 @@ fn _0042() {
     "[core::date] invalid date string '2020-01-01@Europe/Paris'",
   );
 }
+
+#[test]
+fn _0043() {
+  // a year of four digits may have leading zeros, and a negative year keeps four digits after its
+  // sign (XML Schema Part 2, yearFrag), so a date's text reads back as the date
+  te_date(false, &scope!(), r#"date("0044-01-01")"#, 44, 1, 1);
+  te_date(false, &scope!(), r#"date("-0044-03-15")"#, -44, 3, 15);
+  te_date(false, &scope!(), r#"date("0001-01-01")"#, 1, 1, 1);
+  te_string(false, &scope!(), r#"string(date(-44, 3, 15))"#, "-0044-03-15");
+  te_string(false, &scope!(), r#"string(date(-5, 1, 1))"#, "-0005-01-01");
+  te_bool(false, &scope!(), r#"date(string(date(44, 1, 1))) = date(44, 1, 1)"#, true);
+  // the year 0000 and a longer year with a leading zero are no years
+  te_null(false, &scope!(), r#"date("0000-01-01")"#, "[core::date] invalid date string '0000-01-01'");
+  te_null(false, &scope!(), r#"date("00044-01-01")"#, "[core::date] invalid date string '00044-01-01'");
+}
