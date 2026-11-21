@@ -1,0 +1,292 @@
+[
+  {
+    "expression": "context merge([])",
+    "why": "DT-064: the domain of context merge is a list of contexts (DMN 1.7 Beta 1, 10.3.4.10). The empty list merges to the empty context, as context([]) is {} (it was null), and a null item is outside the domain like any other item that is no context (it was skipped).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{}",
+        "feel": "{}",
+        "isNull": false,
+        "type": "context<>",
+        "typed": {
+          "components": [],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "context merge([])",
+      "errorMode": "strict"
+    },
+    "why": "DT-064: the domain of context merge is a list of contexts (DMN 1.7 Beta 1, 10.3.4.10). The empty list merges to the empty context, as context([]) is {} (it was null), and a null item is outside the domain like any other item that is no context (it was skipped).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{}",
+        "feel": "{}",
+        "isNull": false,
+        "type": "context<>",
+        "typed": {
+          "components": [],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "context merge([{a: 1}, null])",
+    "why": "DT-064: the domain of context merge is a list of contexts (DMN 1.7 Beta 1, 10.3.4.10). The empty list merges to the empty context, as context([]) is {} (it was null), and a null item is outside the domain like any other item that is no context (it was skipped).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"a\": 1}",
+        "feel": "{a: 1}",
+        "isNull": false,
+        "type": "context<a: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "a",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::context merge] invalid argument type, expected context, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::context merge] invalid argument type, expected context, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::context merge] invalid argument type, expected context, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "context merge([{a: 1}, null])",
+      "errorMode": "strict"
+    },
+    "why": "DT-064: the domain of context merge is a list of contexts (DMN 1.7 Beta 1, 10.3.4.10). The empty list merges to the empty context, as context([]) is {} (it was null), and a null item is outside the domain like any other item that is no context (it was skipped).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"a\": 1}",
+        "feel": "{a: 1}",
+        "isNull": false,
+        "type": "context<a: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "a",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::context merge] invalid argument type, expected context, actual type is Null"
+      },
+      "ok": false
+    }
+  },
+  {
+    "expression": "context merge([null])",
+    "why": "DT-064: the domain of context merge is a list of contexts (DMN 1.7 Beta 1, 10.3.4.10). The empty list merges to the empty context, as context([]) is {} (it was null), and a null item is outside the domain like any other item that is no context (it was skipped).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{}",
+        "feel": "{}",
+        "isNull": false,
+        "type": "context<>",
+        "typed": {
+          "components": [],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::context merge] invalid argument type, expected context, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::context merge] invalid argument type, expected context, actual type is Null)",
+        "isNull": true,
+        "nullReason": "[core::context merge] invalid argument type, expected context, actual type is Null",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "context merge([null])",
+      "errorMode": "strict"
+    },
+    "why": "DT-064: the domain of context merge is a list of contexts (DMN 1.7 Beta 1, 10.3.4.10). The empty list merges to the empty context, as context([]) is {} (it was null), and a null item is outside the domain like any other item that is no context (it was skipped).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{}",
+        "feel": "{}",
+        "isNull": false,
+        "type": "context<>",
+        "typed": {
+          "components": [],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: [core::context merge] invalid argument type, expected context, actual type is Null"
+      },
+      "ok": false
+    }
+  }
+]

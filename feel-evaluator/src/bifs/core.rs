@@ -546,14 +546,13 @@ pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
 pub fn context_merge(contexts: &Value) -> Value {
   match contexts {
     Value::List(items) => {
-      if items.is_empty() {
-        return value_null!();
-      }
+      // the domain is a list of contexts (DMN 1.7 Beta 1, 10.3.4.10): the empty list merges to the
+      // empty context, as context([]) is {}, and an item that is no context, null included, is
+      // outside the domain
       let mut result_ctx = FeelContext::default();
       for item in items {
         match item {
           Value::Context(ctx) => result_ctx.zip(ctx),
-          Value::Null(_) => {}
           other => return invalid_argument_type!("context merge", "context", other),
         }
       }

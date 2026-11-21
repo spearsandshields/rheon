@@ -40,3 +40,16 @@ fn _0005() {
     "[core::context merge] invalid argument type, expected list<context>, actual type is number",
   );
 }
+
+#[test]
+fn _0006() {
+  // the domain is a list of contexts: the empty list merges to the empty context, as context([]) is
+  // {}, and a null item is outside the domain like any other item that is no context
+  te_value(false, &scope!(), r#"context merge([])"#, "{}");
+  te_null(
+    false,
+    &scope!(),
+    r#"context merge([{a: 1}, null])"#,
+    "[core::context merge] invalid argument type, expected context, actual type is Null",
+  );
+}
