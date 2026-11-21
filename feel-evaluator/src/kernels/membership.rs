@@ -73,7 +73,6 @@ enum Unknown<'a> {
 #[derive(Default)]
 struct Answers<'a> {
   unknown: Option<Unknown<'a>>,
-  not_equal: Vec<bool>,
 }
 
 impl<'a> Answers<'a> {
@@ -97,9 +96,15 @@ impl<'a> Answers<'a> {
     false
   }
 
-  /// `true` when the list has tests `!= e` and the tested value differs from each endpoint.
-  fn differs_from_all(&self) -> bool {
-    !self.not_equal.is_empty() && self.not_equal.iter().all(|value| *value)
+  /// Takes the test `!= item` of the tested value; `true` when they differ. Values that `=` cannot
+  /// compare give the null of `=`, as `!=` does (10.3.2.15).
+  fn not_equal(&mut self, equality: &mut Equality, left: &Value, item: &'a Value) -> bool {
+    match equality.compare(left, item) {
+      Some(false) => return true,
+      None if self.unknown.is_none() => self.unknown = Some(Unknown::Equal(item)),
+      _ => {}
+    }
+    false
   }
 
   /// The null of the first test without an answer, when there is one and the items are tests:
@@ -128,10 +133,8 @@ fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: T
       | inner @ Value::DaysAndTimeDuration(_)
       | inner @ Value::Context(_) => answers.equal(equality, left, inner),
       Value::UnaryEqual(inner) => answers.equal(equality, left, inner.borrow()),
-      Value::UnaryNotEqual(inner) => {
-        answers.not_equal.push(!matches!(eval_in_equal(equality, left, inner.borrow()), Value::Boolean(true)));
-        false
-      }
+      // `!= e` is a test like the others (`or` joins them, Table 56): true when the values differ
+      Value::UnaryNotEqual(inner) => answers.not_equal(equality, left, inner.borrow()),
       Value::UnaryLess(inner) => answers.test(eval_in_unary_less(left, inner.borrow())),
       Value::UnaryLessOrEqual(inner) => answers.test(eval_in_unary_less_or_equal(left, inner.borrow())),
       Value::UnaryGreater(inner) => answers.test(eval_in_unary_greater(left, inner.borrow())),
@@ -146,9 +149,6 @@ fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: T
     if found {
       return VALUE_TRUE;
     }
-  }
-  if answers.differs_from_all() {
-    return VALUE_TRUE;
   }
   answers.unknown(left, tests).unwrap_or(VALUE_FALSE)
 }
@@ -168,10 +168,8 @@ fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value], 
       | inner @ Value::DaysAndTimeDuration(_)
       | inner @ Value::YearsAndMonthsDuration(_) => answers.equal(equality, left, inner),
       Value::UnaryEqual(inner) => answers.equal(equality, left, inner.borrow()),
-      Value::UnaryNotEqual(inner) => {
-        answers.not_equal.push(!matches!(eval_in_equal(equality, left, inner.borrow()), Value::Boolean(true)));
-        false
-      }
+      // `!= e` is a test like the others (`or` joins them, Table 56): true when the values differ
+      Value::UnaryNotEqual(inner) => answers.not_equal(equality, left, inner.borrow()),
       Value::UnaryLess(inner) => answers.test(eval_in_unary_less(left, inner.borrow())),
       Value::UnaryLessOrEqual(inner) => answers.test(eval_in_unary_less_or_equal(left, inner.borrow())),
       Value::UnaryGreater(inner) => answers.test(eval_in_unary_greater(left, inner.borrow())),
@@ -185,9 +183,6 @@ fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value], 
     if found {
       return VALUE_FALSE;
     }
-  }
-  if answers.differs_from_all() {
-    return VALUE_FALSE;
   }
   answers.unknown(left, tests).unwrap_or(VALUE_TRUE)
 }

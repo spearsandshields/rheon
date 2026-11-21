@@ -141,10 +141,8 @@ Open in 1.6:
   - *Ranges against unary comparisons.* `(< 10)` and the like compared with a range can give a
     wrong `true`, and the result depends on the operand order (the Unary* arms of
     `eval_ternary_equality`: inverted null check on the endpoint, wrong closure for `<=`).
-  - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
-    OR (comparison_in.rs asserts AND). The spec also reads differently for `-` against a null
-    input (rule 15.c reads as `? != null`); rheon gives a match. (`null <= null` is null by the
-    reading recorded in LIMITATIONS.md.)
+  - *`-` against a null input.* Rule 15.c reads as `? != null`; rheon gives a match. (`null <= null`
+    is null by the reading recorded in LIMITATIONS.md.)
   - *Smaller ones*: null range endpoints are handled differently by kind; `between` checks the
     kinds of all three operands first; `list in list` is containment of a multiset; the Any and
     Priority hit policies compare outputs with Rust equality, not FEEL equality; a collection item

@@ -796,7 +796,11 @@ fn _0148() {
 
 #[test]
 fn _0149() {
-  te_bool(false, &scope!(), r#"5 in (!=4,!=5,!=6)"#, false);
+  // a list of tests is the or of its tests (Table 56, grammar rule 15): 5 != 4 is true
+  te_bool(false, &scope!(), r#"5 in (!=4,!=5,!=6)"#, true);
+  te_bool(false, &scope!(), r#"5 in (!=5)"#, false);
+  te_bool(false, &scope!(), r#"5 in (!=5, !=5)"#, false);
+  te_null(false, &scope!(), r#""a" in (!=5, !=6)"#, r#"equal err '"a"' =?= '5'"#);
 }
 
 #[test]

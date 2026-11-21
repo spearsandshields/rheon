@@ -281,7 +281,8 @@ fn _0051() {
 
 #[test]
 fn _0052() {
-  satisfies(false, &scope!(), "5", "", "not(!=4,!=5,!=6)", true);
+  // not(tests) negates the or of the tests: 5 != 4 is true, so the negation is false
+  satisfies(false, &scope!(), "5", "", "not(!=4,!=5,!=6)", false);
 }
 
 #[test]
