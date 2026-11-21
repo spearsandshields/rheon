@@ -708,7 +708,8 @@ fn nesting_and_recursion_limits_body() {
     assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", call_depth);
   }
   // values nest at most 500 levels: a value 501 levels deep stops the evaluation, also when a
-  // loop or a key list would nest it far deeper, and a value 500 levels deep is bound and returned
+  // loop would nest it far deeper or a key list would put a value too deep, and a value 500 levels
+  // deep is bound and returned
   let value_depth = "values are nested too deeply (more than 500 levels); evaluation stopped";
   // a list `5 * calls + base` levels deep, built by a recursion that adds 5 levels per call
   let list = |calls: u32, base: usize| {
@@ -722,7 +723,8 @@ fn nesting_and_recursion_limits_body() {
     list(100, 1),
     format!("{{a: {}}}", list(99, 5)),
     format!("for i in 1..2 return {}", list(99, 5)),
-    "context put({}, for i in 1..100000 return \"a\", 0)".to_string(),
+    // a key list builds no context, but puts into the contexts its path names (here 498 deep)
+    "(function(c) context put(c, for i in 1..499 return \"a\", [[]]))((for i in 1..499 return if i = 1 then {} else {a: partial[-1]})[-1])".to_string(),
     "{f: function(x, n) if n = 0 then x else f([x], n - 1), r: for i in 1..50 return f(partial[-1], 190)}.r".to_string(),
   ] {
     assert_error(&req(json!({"op": "evaluate", "expression": e})), "evaluation", value_depth);

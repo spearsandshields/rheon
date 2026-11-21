@@ -527,8 +527,28 @@ pub fn context_put(context: &Value, keys: &Value, value: &Value) -> Value {
               other => return invalid_argument_type!("context put", "string", other),
             }
           }
-          if result_ctx.apply_entries(&names, value.clone()).is_err() {
-            return value_null!();
+          // The composite definition (DMN 1.7 Beta 1, 10.3.4.10) puts under key' the result of
+          // context put(context.key', keys', value). For a key' the context does not have, that
+          // inner context is null, outside the domain, so key' gets null: the key list builds no
+          // context. An entry on the path that holds a value that is no context makes the whole
+          // result null, as TCK 1146 nested009 reads it.
+          let mut at: &FeelContext = ctx;
+          for (i, name) in names[..names.len() - 1].iter().enumerate() {
+            match at.get_entry(name) {
+              Some(Value::Context(inner)) => at = inner,
+              Some(other) => return value_null!("context put: the entry '{}' on the key path holds {}, not a context", name, arg(&TypeOf(other))),
+              None => {
+                let missing = value_null!("context put: the context has no entry '{}' to put into", name);
+                if let Err(reason) = result_ctx.apply_entries(&names[..=i], missing) {
+                  return value_null!("context put: {}", reason);
+                }
+                result_ctx.note_key_forms();
+                return result_ctx.into();
+              }
+            }
+          }
+          if let Err(reason) = result_ctx.apply_entries(&names, value.clone()) {
+            return value_null!("context put: {}", reason);
           }
         }
         null @ Value::Null(_) => return null.clone(),

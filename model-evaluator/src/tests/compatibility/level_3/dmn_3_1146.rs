@@ -188,7 +188,7 @@ fn _0027() {
 #[test]
 fn _0028() {
   let invocable = "nested009";
-  let expected = "null";
+  let expected = "null(context put: the entry 'a' on the key path holds number, not a context)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 

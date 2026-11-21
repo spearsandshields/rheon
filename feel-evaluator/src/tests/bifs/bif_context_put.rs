@@ -130,3 +130,21 @@ fn _0019() {
     "[core::context put] invalid argument type, expected string, actual type is number",
   );
 }
+
+#[test]
+fn _0020() {
+  // context put(context, keys, value) puts under the first key the result of context put of the
+  // entry under it (10.3.4.10): a key the context does not have gives that entry null, and the key
+  // list builds no context
+  te_string(false, &scope!(), r#"string(context put({x: 1}, ["y", "a"], 2))"#, r#"{x: 1, y: null}"#);
+  te_string(false, &scope!(), r#"string(context put({}, ["a", "b", "c"], 1))"#, r#"{a: null}"#);
+  te_string(false, &scope!(), r#"string(context put({x: {}}, ["x", "a", "b"], 1))"#, r#"{x: {a: null}}"#);
+  te_value(false, &scope!(), r#"context put({x: {y: {}}}, ["x", "y", "z"], 1)"#, r#"{x: {y: {z: 1}}}"#);
+  // an entry on the path that is no context: the whole result is null (TCK 1146 nested009)
+  te_null(
+    false,
+    &scope!(),
+    r#"context put({x: 1, y: 3}, ["y", "a"], 2)"#,
+    "context put: the entry 'y' on the key path holds number, not a context",
+  );
+}
