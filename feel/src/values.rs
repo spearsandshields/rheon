@@ -916,6 +916,23 @@ pub fn warn_truncated_fraction(source: &(impl MessageArg + ?Sized), dropped: Opt
   }
 }
 
+/// The warning that the date string `source` had the zone `zone`, which a date does not hold (DMN
+/// 1.7 Beta 1, 10.3.2.3.5: a date is a year, a month and a day): the date is taken without it.
+pub fn dropped_date_zone_warning(source: &(impl MessageArg + ?Sized), zone: &str) -> String {
+  compose(format_args!(
+    "the date '{}' has the zone '{}', which a date does not hold; the date is taken without it",
+    arg(source),
+    arg(zone)
+  ))
+}
+
+/// Records [dropped_date_zone_warning] in the active collection when a `zone` was dropped.
+pub fn warn_dropped_date_zone(source: &(impl MessageArg + ?Sized), zone: Option<&str>) {
+  if let Some(zone) = zone {
+    diagnostics::warn(&dropped_date_zone_warning(source, zone));
+  }
+}
+
 /// Type alias to a collection of values.
 pub type Values = Vec<Value>;
 

@@ -1,6 +1,7 @@
 //! Implementation of FEEL date.
 
 use crate::FeelDaysAndTimeDuration;
+use crate::FeelZone;
 use crate::defs::*;
 use crate::errors::*;
 use crate::feel_dt_duration::NANOSECONDS_IN_DAY;
@@ -47,6 +48,38 @@ impl FromStr for FeelDate {
       }
     }
     Err(err_invalid_date_literal(date))
+  }
+}
+
+impl FeelDate {
+  /// Parses a date string of the XML Schema date lexical space (DMN 1.7 Beta 1, 10.3.4.1: the date
+  /// string is an xs:date), which allows a zone suffix after the date: `Z` or an offset `±hh:mm`
+  /// (`2020-01-01Z`, `2020-01-01+02:00`). A FEEL date has no zone (10.3.2.3.5), so the zone is
+  /// dropped and returned beside the date for the warning that says so.
+  ///
+  /// ```
+  /// use rheon_feel_temporal::FeelDate;
+  /// let (date, zone) = FeelDate::parse_reporting_zone("2020-01-01+02:00").unwrap();
+  /// assert_eq!(("2020-01-01", Some("+02:00")), (date.to_string().as_str(), zone));
+  /// assert_eq!(None, FeelDate::parse_reporting_zone("2020-01-01").unwrap().1);
+  /// assert!(FeelDate::parse_reporting_zone("2020-01-01@Europe/Paris").is_err());
+  /// ```
+  pub fn parse_reporting_zone(text: &str) -> Result<(Self, Option<&str>), DsntkError> {
+    if let Ok(date) = text.parse::<FeelDate>() {
+      return Ok((date, None));
+    }
+    let split = if text.ends_with(['Z', 'z']) {
+      text.len() - 1
+    } else if text.len() > 6 && text.is_char_boundary(text.len() - 6) && text[text.len() - 6..].starts_with(['+', '-']) {
+      text.len() - 6
+    } else {
+      return Err(err_invalid_date_literal(text));
+    };
+    let (date, zone) = text.split_at(split);
+    match (date.parse::<FeelDate>(), FeelZone::from_designator(zone)) {
+      (Ok(date), Some(_)) => Ok((date, Some(zone))),
+      _ => Err(err_invalid_date_literal(text)),
+    }
   }
 }
 

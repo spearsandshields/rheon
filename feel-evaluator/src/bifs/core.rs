@@ -263,7 +263,8 @@ pub fn count(list: &Value) -> Value {
 pub fn date_1(value: &Value) -> Value {
   match value {
     Value::String(text) => {
-      if let Ok(date) = FeelDate::from_str(text) {
+      if let Ok((date, zone)) = FeelDate::parse_reporting_zone(text) {
+        rheon_feel::values::warn_dropped_date_zone(text.as_str(), zone);
         Value::Date(date)
       } else {
         value_null!("[core::date] invalid date string '{}'", arg(&text))

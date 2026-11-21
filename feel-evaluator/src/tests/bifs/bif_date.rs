@@ -352,3 +352,37 @@ fn a_date_and_time_has_no_year_beyond_the_instants() {
   }
   te_be_value(false, scope, r#"string(date and time("262142-12-31T23:00:00Z"))"#, r#""262142-12-31T23:00:00Z""#);
 }
+
+#[test]
+fn _0042() {
+  // the date string is an xs:date, which may have a zone; a date holds none, so it is dropped with a
+  // warning (10.3.4.1, 10.3.2.3.5)
+  te_warnings(
+    r#"date("2020-01-01Z")"#,
+    "2020-01-01",
+    &["the date '2020-01-01Z' has the zone 'Z', which a date does not hold; the date is taken without it"],
+  );
+  te_warnings(
+    r#"date("2020-01-01+02:00")"#,
+    "2020-01-01",
+    &["the date '2020-01-01+02:00' has the zone '+02:00', which a date does not hold; the date is taken without it"],
+  );
+  te_warnings(
+    r#"@"2020-01-01Z""#,
+    "2020-01-01",
+    &["the date '2020-01-01Z' has the zone 'Z', which a date does not hold; the date is taken without it"],
+  );
+  te_warnings(
+    r#"date("2020-06-30-05:30")"#,
+    "2020-06-30",
+    &["the date '2020-06-30-05:30' has the zone '-05:30', which a date does not hold; the date is taken without it"],
+  );
+  te_warnings(r#"date("2020-01-01")"#, "2020-01-01", &[]);
+  te_null(false, &scope!(), r#"date("2020-01-01+15:00")"#, "[core::date] invalid date string '2020-01-01+15:00'");
+  te_null(
+    false,
+    &scope!(),
+    r#"date("2020-01-01@Europe/Paris")"#,
+    "[core::date] invalid date string '2020-01-01@Europe/Paris'",
+  );
+}

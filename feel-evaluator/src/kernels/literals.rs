@@ -42,6 +42,9 @@ pub(crate) fn at_literal(text: &str) -> Result<(Value, Option<String>), String> 
   let truncated = |value: Value, dropped: Option<&str>| (value, dropped.map(|dropped| truncated_fraction_warning(text, dropped)));
   if let Ok(date) = FeelDate::from_str(text) {
     Ok((Value::Date(date), None))
+  } else if let Ok((date, Some(zone))) = FeelDate::parse_reporting_zone(text) {
+    // the xs:date lexical space allows a zone, which a date does not hold (10.3.2.3.5)
+    Ok((Value::Date(date), Some(rheon_feel::values::dropped_date_zone_warning(text, zone))))
   } else if let Ok((date_time, dropped)) = FeelDateTime::parse_reporting_truncation(text) {
     Ok(truncated(Value::DateTime(date_time), dropped))
   } else if let Ok((time, dropped)) = FeelTime::parse_reporting_truncation(text) {
