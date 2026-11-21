@@ -77,7 +77,7 @@ fn _0010() {
 #[test]
 fn _0011() {
   let invocable = "decision011_a";
-  let expected = "null(parameter 'n' not found)";
+  let expected = "null([core::round half down] invalid argument type, expected number, actual type is Null)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 

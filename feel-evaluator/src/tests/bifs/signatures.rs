@@ -349,3 +349,14 @@ fn every_parameter_that_is_no_list_takes_a_list_of_one_item() {
   assert!(differing.is_empty(), "{} of {compared}:\n{}", differing.len(), differing.join("\n"));
   assert!(compared > 200, "{compared}");
 }
+
+#[test]
+fn an_unsupplied_named_parameter_is_null() {
+  // parameters not supplied are bound to null (10.3.2.13.5); optional ones keep their meaning
+  assert_eq!(shown("list contains(list: [1, null])"), "true");
+  assert_eq!(shown("index of(list: [null, 1])"), "[1]");
+  assert_eq!(shown("insert before(list: [1], position: 1)"), "[null, 1]");
+  assert_eq!(shown(r#"substring(string: "abc", start position: 2)"#), r#""bc""#);
+  assert!(shown("date(year: 2020, month: 1)").starts_with("null("));
+  assert_eq!(shown("is(value1: null)"), "true");
+}

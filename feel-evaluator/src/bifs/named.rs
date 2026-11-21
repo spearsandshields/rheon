@@ -5,6 +5,7 @@ use rheon_feel::message::arg;
 use rheon_feel::signatures::{self, Signature};
 use rheon_feel::values::Value;
 use rheon_feel::{FeelNumber, Name, value_null};
+use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
 static NAME_CONTEXT: LazyLock<Name> = LazyLock::new(|| Name::from("context"));
@@ -100,12 +101,50 @@ pub fn evaluate_bif(bif: Bif, parameters: &NamedParameters) -> Value {
   if let Some(refused) = names_of_no_signature(&bif, parameters) {
     return refused;
   }
-  if let Value::NamedParameters(given) = parameters
-    && let Some(given) = one_item_lists::by_name(&bif, given)
-  {
-    return apply(bif, &Value::NamedParameters(given));
+  let Value::NamedParameters(given) = parameters else {
+    return apply(bif, parameters);
+  };
+  let bound = unsupplied_bound_to_null(&bif, given);
+  let given = bound.as_ref().unwrap_or(given);
+  match one_item_lists::by_name(&bif, given) {
+    Some(converted) => apply(bif, &Value::NamedParameters(converted)),
+    None if bound.is_some() => apply(bif, &Value::NamedParameters(given.clone())),
+    None => apply(bif, parameters),
   }
-  apply(bif, parameters)
+}
+
+/// The named arguments with every required parameter that is not supplied bound to null (DMN 1.7
+/// Beta 1, 10.3.2.13.5: "parameters not supplied are bound to null"), so that
+/// `list contains(list: [1, null])` asks for null; `None` when none is missing. The parameters are
+/// those of the one signature that has every name given; when several do and they miss different
+/// parameters (`context put` with neither `key` nor `keys`), nothing is bound and the function
+/// says which is missing. Optional parameters stay unsupplied: their absence has its own meaning
+/// (`substring(string: "abc", start position: 2)` takes the rest of the string).
+fn unsupplied_bound_to_null(bif: &Bif, given: &BTreeMap<Name, (Value, usize)>) -> Option<BTreeMap<Name, (Value, usize)>> {
+  let built_in = signatures::of(bif)?;
+  let has = |signature: &Signature, name: &Name| signature.parameters.iter().any(|parameter| parameter.name == name.as_str());
+  let missing = |signature: &'static Signature| {
+    signature
+      .parameters
+      .iter()
+      .filter(|parameter| !parameter.optional && !parameter.rest && !given.keys().any(|name| name.as_str() == parameter.name))
+      .map(|parameter| parameter.name)
+      .collect::<Vec<&'static str>>()
+  };
+  let mut fitting = built_in
+    .signatures
+    .iter()
+    .filter(|signature| signature.named && given.keys().all(|name| has(signature, name)))
+    .map(missing);
+  let first = fitting.next()?;
+  if first.is_empty() || fitting.any(|other| other != first) {
+    return None;
+  }
+  let mut bound = given.clone();
+  for (place, name) in first.into_iter().enumerate() {
+    bound.insert(Name::from(name), (Value::Null(None), given.len() + place));
+  }
+  Some(bound)
 }
 
 /// Applies `bif` to `parameters`, as they are.

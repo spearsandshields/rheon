@@ -256,5 +256,14 @@
   {"op": "evaluate", "expression": "sort([1, 2], abs)"},
   {"op": "evaluate", "expression": "list replace([1, 5, 3], before, 4)"},
   {"op": "evaluate", "expression": "sort([\"b\", \"a\"], ends with)"},
-  {"op": "evaluate", "expression": "list replace([1, 2], abs, 0)"}
+  {"op": "evaluate", "expression": "list replace([1, 2], abs, 0)"},
+  {"op": "evaluate", "expression": "list contains(list: [1, null])"},
+  {"op": "evaluate", "expression": "index of(list: [null, 1])"},
+  {"op": "evaluate", "expression": "insert before(list: [1], position: 1)"},
+  {"op": "evaluate", "expression": "insert after(list: [1], position: 1)"},
+  {"op": "evaluate", "expression": "substring(string: \"abc\", start position: 2)"},
+  {"op": "evaluate", "expression": "date(year: 2020, month: 1)"},
+  {"op": "evaluate", "expression": "context put(context: {a: 1}, value: 2)"},
+  {"op": "evaluate", "expression": "get value(m: {a: 1})"},
+  {"op": "evaluate", "expression": "string join(list: [\"a\", \"b\"])"}
 ]
