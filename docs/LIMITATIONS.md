@@ -109,6 +109,13 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *`count(null)`* (10.3.4 against the conversion to a singleton list, 10.3.2.9.4). It is null,
     as an argument outside a built-in's domain is; a value that is no list and not null counts as
     a list of one item. Upstream dsntk read null as `[null]` and answered 1.
+  - *The components of a negative duration* (10.3.2.15, Table 63). `duration("-P2Y3M").years` is 2
+    and `duration("-P2D").days` is 2: the properties are magnitudes, and the sign is the duration's
+    (owner Q-T6); XPath's `years-from-duration` would give -2.
+  - *Adding months to a date at the end of a month* (Table 58). `date("2020-03-31") - duration("P1M")`
+    is 2020-02-29 and `date and time("2021-01-31T10:00:00") + duration("P1M")` is
+    2021-02-28T10:00:00: the day is clamped to the end of the shorter month, as 9.4 and the XPath
+    functions do (FORK item 61); the literal Table 58 formula gives date(2020, 2, 31), which is null.
   - *`number(from, grouping separator, decimal separator)`* (10.3.4.1, footnote). The cleaned
     string is checked against grammar rule 35 (a numeric literal); the footnote cites rule 37
     (digits), which would reject the table's own example `number("1.1")`.
