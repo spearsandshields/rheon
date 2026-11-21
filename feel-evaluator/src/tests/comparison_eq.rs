@@ -474,3 +474,33 @@ fn functions_that_close_over_shared_functions_are_compared_once() {
   );
   assert!(started.elapsed().as_secs() < 5, "took {:?}", started.elapsed());
 }
+
+#[test]
+fn external_functions_are_equal_with_the_same_mapping() {
+  // Table 54: externally defined functions must have the same parameters and mapping
+  let scope = &te_scope("{}");
+  let java = |method: &str| format!(r#"function(x) external {{java: {{class: "C", method signature: "{method}"}}}}"#);
+  te_bool(false, scope, &format!("{{a: {}, b: {}, r: a = b}}.r", java("m(int)"), java("m(int)")), true);
+  te_bool(false, scope, &format!("{{a: {}, b: {}, r: a = b}}.r", java("m(int)"), java("n(int)")), false);
+  te_bool(
+    false,
+    scope,
+    &format!(
+      r#"{{a: {}, b: function(y) external {{java: {{class: "C", method signature: "m(int)"}}}}, r: a = b}}.r"#,
+      java("m(int)")
+    ),
+    false,
+  );
+  te_bool(
+    false,
+    scope,
+    r#"{a: function(x) external {pmml: {document: "d", model: "m"}}, b: function(x) external {pmml: {document: "d", model: "m"}}, r: a = b}.r"#,
+    true,
+  );
+  te_null(
+    false,
+    scope,
+    r#"(function(x) external {onnx: {file: "f", function signature: "s"}})(1)"#,
+    "external ONNX functions are not supported",
+  );
+}

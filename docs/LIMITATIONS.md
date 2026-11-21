@@ -120,8 +120,13 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *Equality of functions* (Table 54: "the same parameters, body, and scope"). The body is the
     function literal where it is written: two literals are two functions even when their text is
     alike (`{f: function(x) x}.f = {f: function(x) x}.f` is false), and one literal evaluated twice
-    in equal scopes gives equal functions. A function of a DMN model or an external function is the
-    same when it is the same evaluator. A built-in function equals only itself.
+    in equal scopes gives equal functions. An external function is equal to one with the same
+    parameters and the same Java class and method signature, or PMML document and model; an ONNX
+    function, whose mapping rheon does not keep, only to itself. A function of a DMN model (a boxed
+    expression body) is the same when it is the same evaluator. A built-in function equals only
+    itself. The values a function closes over are compared by `=`: functions that close over
+    `@"2020-01-01T10:00:00Z"` and `@"2020-01-01T11:00:00+01:00"` are equal, although `string(x)` in
+    their bodies differs.
   - *The endpoints of `(!= 10)`* (10.3.2.7). Its `start`, `end` and inclusion properties are those
     of `(= 10)`; the spec's rule (the other endpoint undefined, not included) fits neither form.
   - *`count(null)`* (10.3.4 against the conversion to a singleton list, 10.3.2.9.4). It is null,

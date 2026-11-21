@@ -6,8 +6,8 @@
 //! take exponential time; this one remembers the answer for each pair of shared lists or shared
 //! contexts it compared, and compares a pair again only when it was not met before.
 
-use rheon_feel::FunctionDefinition;
 use rheon_feel::values::Value;
+use rheon_feel::{FeelScope, FunctionBody, FunctionDefinition};
 use std::collections::HashMap;
 use std::hash::{BuildHasher, Hash, Hasher, RandomState};
 use std::sync::Arc;
@@ -123,7 +123,7 @@ impl Equality {
 
   /// [Equality::functions] of two function definitions that are not one value, not remembered.
   fn different_functions(&mut self, lf: &Arc<FunctionDefinition>, rf: &Arc<FunctionDefinition>) -> bool {
-    if lf.parameters() != rf.parameters() || lf.result_type() != rf.result_type() || lf.external != rf.external || lf.closure != rf.closure || !lf.body.is_same(&rf.body) {
+    if lf.parameters() != rf.parameters() || lf.result_type() != rf.result_type() || lf.external != rf.external || lf.closure != rf.closure || !same_bodies(&lf.body, &rf.body) {
       return false;
     }
     let (ls, rs) = (&lf.closure_ctx, &rf.closure_ctx);
@@ -353,6 +353,22 @@ fn hash(state: &RandomState, value: &Value) -> u64 {
   let mut hasher = state.build_hasher();
   digest(value, &mut hasher, true);
   hasher.finish()
+}
+
+/// Whether two function bodies are the same body (Table 54): externally defined functions have the
+/// same mapping (a Java class and method signature, a PMML document and model), which their bodies
+/// give when evaluated, recording nothing; other bodies are the same code ([FunctionBody::is_same]).
+/// An ONNX body gives no mapping, and is the same only as itself.
+fn same_bodies(lhs: &FunctionBody, rhs: &FunctionBody) -> bool {
+  if let (FunctionBody::External(_), FunctionBody::External(_)) = (lhs, rhs) {
+    let scope = FeelScope::default();
+    match (lhs.evaluate(&scope), rhs.evaluate(&scope)) {
+      (Value::ExternalJavaFunction(l_class, l_method), Value::ExternalJavaFunction(r_class, r_method)) => return l_class == r_class && l_method == r_method,
+      (Value::ExternalPmmlFunction(l_iri, l_model), Value::ExternalPmmlFunction(r_iri, r_model)) => return l_iri == r_iri && l_model == r_model,
+      _ => {}
+    }
+  }
+  lhs.is_same(rhs)
 }
 
 /// Whether `value` is a function of any kind.

@@ -228,7 +228,9 @@ fn apply_external(scope: &FeelScope, body: &FunctionBody, arguments: &[Value]) -
   match body.evaluate(scope) {
     Value::ExternalJavaFunction(class_name, method_signature) => evaluate_external_java_function(&class_name, &method_signature, arguments),
     Value::ExternalPmmlFunction(document, model_name) => evaluate_external_pmml_function(&document, &model_name, arguments),
-    null @ Value::Null(_) => null,
+    // the null of a kind that is not executed (ONNX), recorded here
+    Value::Null(Some(reason)) => value_null!("{}", reason),
+    null @ Value::Null(None) => null,
     other => value_null!("expected a Java, ONNX or PMML mapping, actual value is {}", arg(&other)),
   }
 }

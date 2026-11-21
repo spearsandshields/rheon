@@ -335,5 +335,8 @@
   {"op": "evaluate", "expression": "{y: 3, r: 5 instance of y}.r"},
   {"op": "evaluate", "expression": "1 instance of context<a: numbre>"},
   {"op": "evaluate", "expression": "null instance of Null"},
-  {"op": "evaluate", "expression": "null instance of Any"}
+  {"op": "evaluate", "expression": "null instance of Any"},
+  {"op": "evaluate", "expression": "{a: function(x) external {java: {class: \"C\", method signature: \"m(int)\"}}, b: function(x) external {java: {class: \"C\", method signature: \"m(int)\"}}, r: a = b}.r"},
+  {"op": "evaluate", "expression": "{a: function(x) external {pmml: {document: \"d\", model: \"m\"}}, b: function(x) external {pmml: {document: \"d\", model: \"n\"}}, r: a = b}.r"},
+  {"op": "evaluate", "expression": "(function(x) external {onnx: {file: \"f\", function signature: \"s\"}})(1)"}
 ]

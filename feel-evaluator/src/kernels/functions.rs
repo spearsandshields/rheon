@@ -75,7 +75,9 @@ pub(crate) fn external_body(mapping_value: Value) -> Value {
       if let Some(Value::Context(onnx_mapping)) = mapping_information.get_entry(&"onnx".into()) {
         return match (onnx_mapping.get_entry(&"file".into()), onnx_mapping.get_entry(&"function signature".into())) {
           (Some(Value::String(_)), Some(Value::String(_))) => {
-            let onnx_evaluator = Box::new(|_: &FeelScope| value_null!("external ONNX functions are not supported")) as Evaluator;
+            // the null is recorded where the function is invoked (apply_external), not here: the
+            // body is also evaluated to compare functions, which records nothing
+            let onnx_evaluator = Box::new(|_: &FeelScope| Value::Null(Some("external ONNX functions are not supported".to_string()))) as Evaluator;
             Value::FunctionBody(FunctionBody::External(Arc::new(onnx_evaluator)), true)
           }
           (None, _) => value_null!("invalid ONNX function mapping, no file entry in context {}", arg(&onnx_mapping)),
