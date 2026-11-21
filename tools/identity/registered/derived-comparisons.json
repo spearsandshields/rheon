@@ -1154,7 +1154,7 @@
       "expression": "\"b\" in (\"a\"..null)",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1180,10 +1180,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "comparison '<' expected string on the right, as on the left, found Null"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1201,7 +1199,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "comparison '<' expected string on the right, as on the left, found Null"
+        }
+      ]
     }
   },
   {
@@ -1699,7 +1701,7 @@
       "expression": "\"a\" in = 1",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1725,10 +1727,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "equal err '\"a\"' =?= '1'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1746,7 +1746,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "equal err '\"a\"' =?= '1'"
+        }
+      ]
     }
   },
   {
@@ -2836,7 +2840,7 @@
       "expression": "(1 + \"a\") in [(2 * \"b\")..(3 - \"c\")]",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 5,
@@ -2868,13 +2872,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 4,
-        "messages": [
-          "incompatible types in addition: 1(number) + \"a\"(string)",
-          "[multiplication] incompatible types: 2 * \"b\"",
-          "[core::number] not a FEEL numeric literal: b",
-          "[subtraction] incompatible types: 3 - \"c\""
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2892,7 +2891,20 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "incompatible types in addition: 1(number) + \"a\"(string)"
+        },
+        {
+          "message": "[multiplication] incompatible types: 2 * \"b\""
+        },
+        {
+          "message": "[core::number] not a FEEL numeric literal: b"
+        },
+        {
+          "message": "[subtraction] incompatible types: 3 - \"c\""
+        }
+      ]
     }
   },
   {
@@ -2965,7 +2977,7 @@
       "expression": "(1 + \"a\") in (< (2 * \"b\"), > (3 - \"c\"))",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 5,
@@ -2997,12 +3009,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 5,
+        "count": 1,
         "messages": [
-          "incompatible types in addition: 1(number) + \"a\"(string)",
-          "[multiplication] incompatible types: 2 * \"b\"",
-          "[core::number] not a FEEL numeric literal: b",
-          "[subtraction] incompatible types: 3 - \"c\"",
           "comparison '<' expected string on the right, as on the left, found number"
         ]
       },
@@ -3022,7 +3030,20 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "incompatible types in addition: 1(number) + \"a\"(string)"
+        },
+        {
+          "message": "[multiplication] incompatible types: 2 * \"b\""
+        },
+        {
+          "message": "[core::number] not a FEEL numeric literal: b"
+        },
+        {
+          "message": "[subtraction] incompatible types: 3 - \"c\""
+        }
+      ]
     }
   },
   {
@@ -3031,7 +3052,7 @@
       "expression": "(1 + \"a\") between (2 * \"b\") and (3 - \"c\")",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 5,
@@ -3063,13 +3084,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 4,
-        "messages": [
-          "incompatible types in addition: 1(number) + \"a\"(string)",
-          "[multiplication] incompatible types: 2 * \"b\"",
-          "[core::number] not a FEEL numeric literal: b",
-          "[subtraction] incompatible types: 3 - \"c\""
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -3087,7 +3103,20 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "incompatible types in addition: 1(number) + \"a\"(string)"
+        },
+        {
+          "message": "[multiplication] incompatible types: 2 * \"b\""
+        },
+        {
+          "message": "[core::number] not a FEEL numeric literal: b"
+        },
+        {
+          "message": "[subtraction] incompatible types: 3 - \"c\""
+        }
+      ]
     }
   },
   {

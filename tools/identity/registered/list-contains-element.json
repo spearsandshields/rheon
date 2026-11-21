@@ -33690,7 +33690,7 @@
       "expression": "list contains(list: [1, 2], match: 2)",
       "language": "b-feel"
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -33716,10 +33716,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of list contains(list, element): boolean, found the parameter name 'match'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -33737,7 +33735,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of list contains(list, element): boolean, found the parameter name 'match'"
+        }
+      ]
     }
   }
 ]

@@ -96,7 +96,7 @@
       "expression": "duration(\"P1DT\")",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -122,10 +122,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "duration: invalid duration literal: 'P1DT'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -143,7 +141,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'P1DT'"
+        }
+      ]
     }
   },
   {
@@ -443,7 +445,7 @@
       "expression": "duration(\"-P1DT\")",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -469,10 +471,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "duration: invalid duration literal: '-P1DT'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -490,7 +490,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: '-P1DT'"
+        }
+      ]
     }
   },
   {
@@ -790,7 +794,7 @@
       "expression": "duration(\"P0DT\")",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -816,10 +820,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "duration: invalid duration literal: 'P0DT'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -837,7 +839,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'P0DT'"
+        }
+      ]
     }
   },
   {
@@ -1137,7 +1143,7 @@
       "expression": "duration(from: \"P1DT\")",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1163,10 +1169,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "duration: invalid duration literal: 'P1DT'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1184,7 +1188,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'P1DT'"
+        }
+      ]
     }
   },
   {
@@ -1283,7 +1291,7 @@
       "expression": "duration(\"P1DT\") = duration(\"P1D\")",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1309,11 +1317,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 2,
-        "messages": [
-          "duration: invalid duration literal: 'P1DT'",
-          "equal err 'P0M' =?= 'P1D'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1331,7 +1336,14 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'P1DT'"
+        },
+        {
+          "message": "equal err 'P0M' =?= 'P1D'"
+        }
+      ]
     }
   },
   {
@@ -1418,7 +1430,7 @@
       "expression": "[duration(\"P1DT\")..duration(\"P2D\")]",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1440,10 +1452,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "duration: invalid duration literal: 'P1DT'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1457,7 +1467,11 @@
           "simple": null
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'P1DT'"
+        }
+      ]
     }
   },
   {
@@ -1556,7 +1570,7 @@
       "expression": "string(duration(\"P1DT\"))",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1582,10 +1596,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "duration: invalid duration literal: 'P1DT'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1603,7 +1615,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'P1DT'"
+        }
+      ]
     }
   },
   {
@@ -1704,7 +1720,7 @@
       "expression": "date(\"2020-01-01\") + duration(\"P1DT\")",
       "language": "b-feel"
     },
-    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already.",
+    "why": "TMP-8: the T that begins the time of a duration is followed by a component: P1DT is no duration (DMN 1.6, 10.3.2.3.7 derives days and time duration from the XML Schema type dayTimeDuration, whose pattern .*[^T] refuses a text that ends with T). It was read as P1D. PT, which has no component at all, was refused already. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1730,10 +1746,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "duration: invalid duration literal: 'P1DT'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1751,7 +1765,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'P1DT'"
+        }
+      ]
     }
   },
   {

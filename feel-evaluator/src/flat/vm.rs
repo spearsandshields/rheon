@@ -187,6 +187,9 @@ struct Vm<'p> {
   calls: Vec<diagnostics::Call>,
   /// The open walks, innermost last: the record of a walk of an activation is its index there.
   records: Vec<Record>,
+  /// B-FEEL: the diagnostics before the operations whose nulls may be replaced, innermost last
+  /// (an [Op::DiagMark] and its [Op::BoolDefault] stand around one operation).
+  marks: Vec<diagnostics::Tentative>,
   /// The domains of the variables that have a value in the open walks, innermost last.
   domains: Vec<Sequence>,
   /// For each layout of the program the run starts with, the scope that invocations of
@@ -294,6 +297,7 @@ impl<'p> Vm<'p> {
       folds: vec![],
       calls: vec![],
       records: vec![],
+      marks: vec![],
       domains: vec![],
       layout_scopes: vec![],
       scopes: vec![],
@@ -463,8 +467,15 @@ impl<'p> Vm<'p> {
           let value = kernels::between(a, low, high);
           self.set(dst, value);
         }
-        Op::BoolDefault { dst, ne } => {
+        Op::DiagMark => self.marks.push(diagnostics::tentative_mark()),
+        Op::BoolDefault { dst, ne, marked } => {
           let value = self.take(dst);
+          let mark = if marked { self.marks.pop() } else { None };
+          if let Some(mark) = mark
+            && value.is_null()
+          {
+            mark.demote();
+          }
           let value = bfeel::boolean_result(value, ne);
           self.set(dst, value);
         }

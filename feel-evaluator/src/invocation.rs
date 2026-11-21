@@ -256,10 +256,10 @@ fn apply_built_in(bif: Bif, arguments: Arguments, dialect: Dialect) -> Value {
             entry.insert((value, position));
           }
           Entry::Occupied(entry) => {
-            let twice = value_null!(given_twice(entry.key()));
+            let twice = || value_null!(given_twice(entry.key()));
             return match dialect {
-              Dialect::BFeel => bfeel::default_if_null(&bif, twice),
-              Dialect::Feel => twice,
+              Dialect::BFeel => bfeel::defaulted(twice, |null| bfeel::default_if_null(&bif, null)),
+              Dialect::Feel => twice(),
             };
           }
         }

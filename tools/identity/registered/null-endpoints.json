@@ -279,7 +279,7 @@
       "expression": "during(5, (null..10])",
       "language": "b-feel"
     },
-    "why": "Review of F2: an endpoint of a range written as null takes part in the range function's Table 79 formula as null (a comparison with it has no answer, an equality with it is false), as it does in e1 in a range (Table 56): during(15, (null..10]) is false like 15 in (null..10], and during(5, (null..10]) is null; it was an invalid-type null. A null point is still no argument the function takes.",
+    "why": "Review of F2: an endpoint of a range written as null takes part in the range function's Table 79 formula as null (a comparison with it has no answer, an equality with it is false), as it does in e1 in a range (Table 56): during(15, (null..10]) is false like 15 in (null..10], and during(5, (null..10]) is null; it was an invalid-type null. A null point is still no argument the function takes. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -307,10 +307,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[during] expected values that have an order, found 5 and (null..10]"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -328,7 +326,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[during] expected values that have an order, found 5 and (null..10]"
+        }
+      ]
     }
   },
   {
@@ -393,7 +395,7 @@
       "expression": "after([null..null], null)",
       "language": "b-feel"
     },
-    "why": "Review of F2: an endpoint of a range written as null takes part in the range function's Table 79 formula as null (a comparison with it has no answer, an equality with it is false), as it does in e1 in a range (Table 56): during(15, (null..10]) is false like 15 in (null..10], and during(5, (null..10]) is null; it was an invalid-type null. A null point is still no argument the function takes.",
+    "why": "Review of F2: an endpoint of a range written as null takes part in the range function's Table 79 formula as null (a comparison with it has no answer, an equality with it is false), as it does in e1 in a range (Table 56): during(15, (null..10]) is false like 15 in (null..10], and during(5, (null..10]) is null; it was an invalid-type null. A null point is still no argument the function takes. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -421,10 +423,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::after] invalid argument type, expected scalar or range<scalar>, actual type is Null"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -442,7 +442,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[core::after] invalid argument type, expected scalar or range<scalar>, actual type is Null"
+        }
+      ]
     }
   }
 ]

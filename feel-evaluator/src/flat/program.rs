@@ -201,8 +201,13 @@ pub(crate) enum Op {
   /// `dst` is whether the value of the temporary `args` is between those of `args + 1` and
   /// `args + 2`.
   Between { dst: Slot, args: Slot },
-  /// B-FEEL: a null in `dst` becomes `ne` (`false` for `=` and the others, `true` for `!=`).
-  BoolDefault { dst: Slot, ne: bool },
+  /// B-FEEL: a null in `dst` becomes `ne` (`false` for `=` and the others, `true` for `!=`); with
+  /// `marked`, the errors recorded since the last [Op::DiagMark] become warnings when it does, and
+  /// the mark is taken off.
+  BoolDefault { dst: Slot, ne: bool, marked: bool },
+  /// B-FEEL: marks what the diagnostics hold before an operation whose null a [Op::BoolDefault]
+  /// may replace, so that its errors can become warnings (DMN 1.7 Beta 1, 11.1).
+  DiagMark,
   /// `dst` is the kernel `kernel` on the value of `a`.
   Kernel1 { kernel: Kernel1, dst: Slot, a: Opnd },
   /// `dst` is the kernel `kernel` on the values of `a` and `b`.
@@ -609,7 +614,7 @@ impl Program {
           check.opnd(b)?;
         }
         Op::Visit { src, .. } => check.opnd(src)?,
-        Op::Step { .. } => {}
+        Op::Step { .. } | Op::DiagMark => {}
         Op::LoopClose { dst, .. } | Op::LoadPartial { dst, .. } | Op::ItemSelf { dst, .. } => check.slot(dst)?,
         Op::FilterOpen { info, list, .. } => {
           check.index(info, self.filters.len(), "filter out of range")?;

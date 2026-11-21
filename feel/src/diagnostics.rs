@@ -145,6 +145,23 @@ struct Mark {
 }
 
 impl Tentative {
+  /// Makes the errors recorded since the mark warnings: the count is set back, the messages cut
+  /// to their marked length, and the cut messages kept among the warnings (B-FEEL, DMN 1.7 Beta 1,
+  /// 11.1: where B-FEEL defines a result for what FEEL calls an error, the error is no error).
+  pub fn demote(self) {
+    if let Some(mark) = self.0 {
+      COUNT.with(|count| count.set(mark.count));
+      let demoted = MESSAGES.with(|messages| {
+        let mut messages = messages.borrow_mut();
+        let at = mark.messages.min(messages.len());
+        messages.split_off(at)
+      });
+      for message in demoted {
+        keep(&WARNINGS, &message);
+      }
+    }
+  }
+
   /// Removes the errors and the warnings recorded since the mark: the count is set back and both
   /// lists are cut to their marked lengths. A message that repeated the last one before the mark
   /// was counted but not kept, so the cut is exact, also at the cap; a collection nested in the

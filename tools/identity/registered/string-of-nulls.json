@@ -653,7 +653,7 @@
       "expression": "string([abs(\"a\"), date(\"x\"), 1/0])",
       "language": "b-feel"
     },
-    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped.",
+    "why": "ERR-6: string() of a list, a context or a range writes a null inside it as null, also when the null came from an error: the reason of a null is no part of the value (DMN 1.6, 10.3.4.1, string(from): the value as a string; 10.3.2.1: null is the one value of its type). The text held the reason, so two equal values had two strings. A string inside a context is now written as inside a list, with a quote escaped. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 4,
@@ -683,10 +683,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 4,
+        "count": 2,
         "messages": [
-          "[core::abs] invalid argument type, expected number, actual type is string",
-          "[core::date] invalid date string 'x'",
           "[division] division by zero"
         ]
       },
@@ -706,7 +704,14 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[core::abs] invalid argument type, expected number, actual type is string"
+        },
+        {
+          "message": "[core::date] invalid date string 'x'"
+        }
+      ]
     }
   },
   {

@@ -188,8 +188,9 @@ impl<'a> Lower<'_, 'a> {
           _ => Compare::Ge,
         };
         let (a, b) = self.operands(node)?;
+        let marked = self.diag_mark();
         self.builder.emit(Op::Compare { op, dst, a, b });
-        self.boolean_default(dst, op == Compare::Ne);
+        self.boolean_default(dst, op == Compare::Ne, marked);
       }
       AstNode::Between(..) => {
         let args = self.temporary();
@@ -199,8 +200,9 @@ impl<'a> Lower<'_, 'a> {
         for (slot, &kid) in (args..).zip(resolved.kids(node)) {
           self.into(kid, slot)?;
         }
+        let marked = self.diag_mark();
         self.builder.emit(Op::Between { dst, args });
-        self.boolean_default(dst, false);
+        self.boolean_default(dst, false, marked);
       }
       AstNode::And(..) | AstNode::Or(..) => {
         // the right operand only when the left one does not decide (DMN 1.6, Table 51)
@@ -218,7 +220,8 @@ impl<'a> Lower<'_, 'a> {
           _ => Op::OrRight { dst, b },
         });
         self.builder.patch(left);
-        self.boolean_default(dst, false);
+        // and and or record no error of their own
+        self.boolean_default(dst, false, false);
       }
       AstNode::If(..) => {
         let kids = self.resolved.kids(node);
@@ -270,9 +273,11 @@ impl<'a> Lower<'_, 'a> {
           AstNode::ContextTypeEntry(..) => Kernel2::ContextTypeEntry,
           _ => Kernel2::FunctionType,
         };
+        let membership = matches!(kernel, Kernel2::In | Kernel2::InTwoValued);
+        let marked = membership && self.diag_mark();
         self.builder.emit(Op::Kernel2 { kernel, dst, a, b });
-        if matches!(kernel, Kernel2::In | Kernel2::InTwoValued) {
-          self.boolean_default(dst, false);
+        if membership {
+          self.boolean_default(dst, false, marked);
         }
       }
       AstNode::Out(..) => {
@@ -666,7 +671,7 @@ impl<'a> Lower<'_, 'a> {
     let exit = self.builder.emit(Op::LoopClose { record, dst });
     // some and every are boolean expressions: B-FEEL answers false where FEEL answers null (11.2)
     if kind != LoopKind::For {
-      self.boolean_default(dst, false);
+      self.boolean_default(dst, false, false);
     }
     let info = self.builder.iteration_mut(info);
     info.step = step;
@@ -743,11 +748,23 @@ impl<'a> Lower<'_, 'a> {
     if self.dialect == Dialect::BFeel { Kernel2::InTwoValued } else { Kernel2::In }
   }
 
-  /// B-FEEL: a boolean operator never gives null, but `ne` (DMN 1.6 chapter 11).
-  fn boolean_default(&mut self, dst: Slot, ne: bool) {
+  /// B-FEEL: a boolean operator never gives null, but `ne` (DMN 1.6 chapter 11). With `marked`,
+  /// the operation before was marked ([Lower::diag_mark]): its errors become warnings when its
+  /// null is replaced.
+  fn boolean_default(&mut self, dst: Slot, ne: bool, marked: bool) {
     if self.dialect == Dialect::BFeel {
-      self.builder.emit(Op::BoolDefault { dst, ne });
+      self.builder.emit(Op::BoolDefault { dst, ne, marked });
     }
+  }
+
+  /// B-FEEL: marks the diagnostics before an operation that records the error behind the null a
+  /// [Lower::boolean_default] replaces (11.1: that error is no error in B-FEEL).
+  fn diag_mark(&mut self) -> bool {
+    let marked = self.dialect == Dialect::BFeel;
+    if marked {
+      self.builder.emit(Op::DiagMark);
+    }
+    marked
   }
 
   /// `dst` is null with the error `text`, recorded at every evaluation.

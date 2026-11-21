@@ -1426,10 +1426,14 @@ fn ok(request: Json) -> Json {
 
 #[test]
 fn b_feel_language() {
-  // DMN 1.6 chapter 11: language "b-feel"; the FEEL error behind the default is a diagnostic
+  // DMN 1.6 chapter 11: language "b-feel"; the FEEL error behind the default is a warning, as
+  // B-FEEL defines the result as normal (11.1), so strict mode accepts it
   let response = ok(json!({"op": "evaluate", "expression": "\"The result is: \" + 1", "language": "b-feel"}));
   assert_eq!(response["result"]["display"], "\"The result is: 1\"", "{response}");
-  assert_eq!(response["diagnostics"]["count"], 1, "{response}");
+  assert_eq!(response["diagnostics"]["count"], 0, "{response}");
+  assert_eq!(response["warnings"], json!([{"message": "expected string as a second argument in addition"}]), "{response}");
+  let strict = ok(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel", "errorMode": "strict"}));
+  assert_eq!(strict["result"]["display"], "false", "{strict}");
   let response = ok(json!({"op": "evaluate", "expression": "\"a\" = 1", "language": "b-feel"}));
   assert_eq!(response["result"]["display"], "false", "{response}");
   let response = ok(json!({"op": "evaluate", "expression": "\"a\" = 1"}));
@@ -1519,7 +1523,9 @@ fn not_equal_reports_like_equal() {
   assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
   let b_feel = ok(json!({"op": "evaluate", "expression": "\"a\" != 1", "language": "b-feel"}));
   assert_eq!(b_feel["result"]["display"], "true", "{b_feel}");
-  assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+  // the error behind B-FEEL's answer is a warning (11.1)
+  assert_eq!(b_feel["diagnostics"]["messages"], json!([]), "{b_feel}");
+  assert_eq!(b_feel["warnings"], json!([{"message": message}]), "{b_feel}");
 }
 
 #[test]
@@ -1552,7 +1558,7 @@ fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
     assert_eq!(strict["error"]["message"], format!("strict error mode: {message}"), "{strict}");
   }
   // B-FEEL (§11.9-§11.11) converts the null operand and gives a value; the FEEL error behind it
-  // stays listed
+  // stays listed, as a warning (11.1)
   for (expression, display, message) in [
     ("1 + null", "1", "[addition] incompatible types: 1 + null"),
     ("null - 6", "-6", "[subtraction] incompatible types: null - 6"),
@@ -1562,7 +1568,8 @@ fn a_null_operand_of_an_arithmetic_operator_is_an_error() {
   ] {
     let b_feel = ok(json!({"op": "evaluate", "expression": expression, "language": "b-feel"}));
     assert_eq!(b_feel["result"]["display"], display, "{b_feel}");
-    assert_eq!(b_feel["diagnostics"]["messages"], json!([message]), "{b_feel}");
+    assert_eq!(b_feel["diagnostics"]["messages"], json!([]), "{b_feel}");
+    assert_eq!(b_feel["warnings"], json!([{"message": message}]), "{b_feel}");
   }
 }
 

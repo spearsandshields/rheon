@@ -14,9 +14,9 @@
 
 use crate::bifs;
 use crate::kernels::Arithmetic;
-use rheon_feel::FeelNumber;
 use rheon_feel::bif::Bif;
 use rheon_feel::values::Value;
+use rheon_feel::{FeelNumber, diagnostics};
 use rheon_feel_temporal::{FeelDate, FeelDateTime, FeelOffset, FeelTime, FeelYearsAndMonthsDuration, FeelZone};
 
 /// The expression language of an expression: FEEL (the default) or B-FEEL.
@@ -75,14 +75,32 @@ pub fn positional_arguments(bif: &Bif, args: Vec<Value>) -> Vec<Value> {
 /// Evaluates a positional built-in call in B-FEEL.
 pub fn evaluate_positional_bif(bif: Bif, args: Vec<Value>) -> Value {
   let args = positional_arguments(&bif, args);
-  let result = bifs::positional::evaluate_bif(bif.clone(), &args);
-  default_if_null(&bif, result)
+  defaulted(|| bifs::positional::evaluate_bif(bif.clone(), &args), |null| default_if_null(&bif, null))
 }
 
 /// Evaluates a named built-in call in B-FEEL.
 pub fn evaluate_named_bif(bif: Bif, args: &Value) -> Value {
-  let result = bifs::named::evaluate_bif(bif.clone(), args);
-  default_if_null(&bif, result)
+  defaulted(|| bifs::named::evaluate_bif(bif.clone(), args), |null| default_if_null(&bif, null))
+}
+
+/// The value of the FEEL operation `feel`, or, when it is null, what `b_feel` makes of that null.
+/// When B-FEEL gives a value there, the errors that the operation recorded become warnings: B-FEEL
+/// defines that result as normal ("null only means missing data, never an error", DMN 1.7 Beta 1,
+/// 11.1), so a strict evaluation accepts it, and the messages stay to be read.
+pub(crate) fn defaulted(feel: impl FnOnce() -> Value, b_feel: impl FnOnce(Value) -> Value) -> Value {
+  let mark = diagnostics::tentative_mark();
+  let value = feel();
+  if !value.is_null() {
+    drop(mark);
+    return value;
+  }
+  let value = b_feel(value);
+  if value.is_null() {
+    drop(mark);
+  } else {
+    mark.demote();
+  }
+  value
 }
 
 pub(crate) fn default_if_null(bif: &Bif, result: Value) -> Value {
@@ -130,10 +148,12 @@ pub fn to_duration(value: &Value) -> Value {
 /// matching rule, in the spec's order of precedence, converts the mismatched operand and FEEL
 /// semantics apply to the converted values ([Arithmetic::apply] each time).
 pub(crate) fn arithmetic(operator: Arithmetic, lhs: Value, rhs: Value) -> Value {
-  let feel = operator.apply(lhs.clone(), rhs.clone());
-  if !feel.is_null() {
-    return feel;
-  }
+  let (l, r) = (lhs.clone(), rhs.clone());
+  defaulted(move || operator.apply(l, r), move |feel| converted_arithmetic(operator, lhs, rhs, feel))
+}
+
+/// [arithmetic] once the FEEL result `feel` is null: the conversion of the first matching rule.
+fn converted_arithmetic(operator: Arithmetic, lhs: Value, rhs: Value, feel: Value) -> Value {
   let either = |f: fn(&Value) -> bool| f(&lhs) || f(&rhs);
   // convert the operand that does not satisfy `is`, keep the other one
   let convert = |is: fn(&Value) -> bool, to: fn(&Value) -> Value| {

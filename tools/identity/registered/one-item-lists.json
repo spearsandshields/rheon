@@ -2569,7 +2569,7 @@
       "expression": "abs([null])",
       "language": "b-feel"
     },
-    "why": "BIF-3: a list of one item given for a parameter of a built-in function that is no list is that item (DMN 1.6, 10.3.2.9.4, from singleton list: a list of one item of the type T where T is expected is its item). Before, only upper case and the typed parameters of function definitions did this; the other built-in functions were null with a type error. A parameter that is a list or takes every value keeps the list, and so does a list whose item is not of the type of the parameter.",
+    "why": "BIF-3: a list of one item given for a parameter of a built-in function that is no list is that item (DMN 1.6, 10.3.2.9.4, from singleton list: a list of one item of the type T where T is expected is its item). Before, only upper case and the typed parameters of function definitions did this; the other built-in functions were null with a type error. A parameter that is a list or takes every value keeps the list, and so does a list whose item is not of the type of the parameter. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -2597,10 +2597,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::abs] invalid argument type, expected number, actual type is Null"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2618,7 +2616,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[core::abs] invalid argument type, expected number, actual type is Null"
+        }
+      ]
     }
   },
   {

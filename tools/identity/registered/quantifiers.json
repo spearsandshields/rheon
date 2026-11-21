@@ -543,7 +543,7 @@
       "expression": "every i in [(1 + \"a\"), 2] satisfies (2 * \"b\")",
       "language": "b-feel"
     },
-    "why": "DT-016: some is the or and every the and of the values of satisfies over the iteration (DMN 1.7 Beta 1, 10.3.2.15, Table 51): a value that is no boolean does not end the iteration, so a later true (some) or false (every) still decides it, and the result is null only when none does. The quantifiers stopped with null at the first value that was no boolean, so some x in [null, true] satisfies x was null and the answer depended on the order of the items. The boxed some and every of DMN models keep null at a value that is no boolean (10.2.1.10; TCK 1153, 1154). Review of F2: B-FEEL some and every are false where FEEL gives null (11.2).",
+    "why": "DT-016: some is the or and every the and of the values of satisfies over the iteration (DMN 1.7 Beta 1, 10.3.2.15, Table 51): a value that is no boolean does not end the iteration, so a later true (some) or false (every) still decides it, and the result is null only when none does. The quantifiers stopped with null at the first value that was no boolean, so some x in [null, true] satisfies x was null and the answer depended on the order of the items. The boxed some and every of DMN models keep null at a value that is no boolean (10.2.1.10; TCK 1153, 1154). Review of F2: B-FEEL some and every are false where FEEL gives null (11.2). B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 3,
@@ -573,14 +573,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 5,
-        "messages": [
-          "incompatible types in addition: 1(number) + \"a\"(string)",
-          "[multiplication] incompatible types: 2 * \"b\"",
-          "[core::number] not a FEEL numeric literal: b",
-          "[multiplication] incompatible types: 2 * \"b\"",
-          "[core::number] not a FEEL numeric literal: b"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -598,7 +592,23 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "incompatible types in addition: 1(number) + \"a\"(string)"
+        },
+        {
+          "message": "[multiplication] incompatible types: 2 * \"b\""
+        },
+        {
+          "message": "[core::number] not a FEEL numeric literal: b"
+        },
+        {
+          "message": "[multiplication] incompatible types: 2 * \"b\""
+        },
+        {
+          "message": "[core::number] not a FEEL numeric literal: b"
+        }
+      ]
     }
   }
 ]

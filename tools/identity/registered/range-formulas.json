@@ -83,7 +83,7 @@
       "expression": "before(1, [[2..3]])",
       "language": "b-feel"
     },
-    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for.",
+    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -111,10 +111,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::before] invalid argument type, expected number or range<number>, actual type is list<range<number>>"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -132,7 +130,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[core::before] invalid argument type, expected number or range<number>, actual type is list<range<number>>"
+        }
+      ]
     }
   },
   {
@@ -2692,7 +2694,7 @@
       "expression": "before(1, \"a\")",
       "language": "b-feel"
     },
-    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for.",
+    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -2720,10 +2722,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::before] invalid argument type, expected number or range<number>, actual type is string"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2741,7 +2741,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[core::before] invalid argument type, expected number or range<number>, actual type is string"
+        }
+      ]
     }
   },
   {
@@ -2828,7 +2832,7 @@
       "expression": "meets([1..5], 5)",
       "language": "b-feel"
     },
-    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for.",
+    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -2856,10 +2860,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::meets] invalid argument type, expected range<number>, actual type is number"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2877,7 +2879,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[core::meets] invalid argument type, expected range<number>, actual type is number"
+        }
+      ]
     }
   },
   {
@@ -2964,7 +2970,7 @@
       "expression": "includes(5, [1..10])",
       "language": "b-feel"
     },
-    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for.",
+    "why": "DT-052: every range function is the formula of Table 79 (DMN 1.7 Beta 1, 10.3.4.7) over its points and endpoints, evaluated with FEEL's comparisons, for ranges with both endpoints as already for ranges with one (FORK 274). The per-type code it replaces gave null for strings, a definite answer for times without an order, true for meets/met by with two open ends, and dropped a conjunct of finishes, finished by and started by; includes/during of a degenerate range follow the formula (owner veto list, 2026-11-21). Type errors name the argument that does not fit and the type the other one asks for. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -2992,10 +2998,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "[core::includes] invalid argument type, expected range of scalars, actual type is number"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -3013,7 +3017,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "[core::includes] invalid argument type, expected range of scalars, actual type is number"
+        }
+      ]
     }
   },
   {

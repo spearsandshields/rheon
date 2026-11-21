@@ -83,7 +83,7 @@
       "expression": "substring(string: \"abc\", start: 2)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -111,10 +111,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of substring(string, start position, length?): string, found the parameter name 'start'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -132,7 +130,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of substring(string, start position, length?): string, found the parameter name 'start'"
+        }
+      ]
     }
   },
   {
@@ -219,7 +221,7 @@
       "expression": "abs(m: -1)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -247,10 +249,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of abs(n): number or duration, found the parameter name 'm'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -268,7 +268,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of abs(n): number or duration, found the parameter name 'm'"
+        }
+      ]
     }
   },
   {
@@ -928,7 +932,7 @@
       "expression": "abs(n: -1, x: 2)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -954,10 +958,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -975,7 +977,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+        }
+      ]
     }
   },
   {
@@ -1062,7 +1068,7 @@
       "expression": "abs(x: 2)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -1090,10 +1096,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1111,7 +1115,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of abs(n): number or duration, found the parameter name 'x'"
+        }
+      ]
     }
   },
   {
@@ -1211,7 +1219,7 @@
       "expression": "abs(n: -1, n: 2)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1237,10 +1245,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected each parameter name once, found the name 'n' twice"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1258,7 +1264,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'n' twice"
+        }
+      ]
     }
   },
   {
@@ -1358,7 +1368,7 @@
       "expression": "abs(n: 1, n: 1)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1384,10 +1394,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected each parameter name once, found the name 'n' twice"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1405,7 +1413,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'n' twice"
+        }
+      ]
     }
   },
   {
@@ -1505,7 +1517,7 @@
       "expression": "substring(string: \"abc\", start position: 2, size: 1)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1531,10 +1543,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of substring(string, start position, length?): string, found the parameter name 'size'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1552,7 +1562,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of substring(string, start position, length?): string, found the parameter name 'size'"
+        }
+      ]
     }
   },
   {
@@ -1652,7 +1666,7 @@
       "expression": "substring(start position: 1, string: \"abc\", start position: 2)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1678,10 +1692,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected each parameter name once, found the name 'start position' twice"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1699,7 +1711,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'start position' twice"
+        }
+      ]
     }
   },
   {
@@ -1799,7 +1815,7 @@
       "expression": "before(point: 1, range: [2..3], point1: 5)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1825,10 +1841,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter names 'point', 'range', 'point1'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1846,7 +1860,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of one of before(point1, point2): boolean, before(point, range): boolean, before(range, point): boolean, before(range1, range2): boolean, found the parameter names 'point', 'range', 'point1'"
+        }
+      ]
     }
   },
   {
@@ -1946,7 +1964,7 @@
       "expression": "date(from: \"2020-01-01\", year: 1)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1972,10 +1990,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter names 'from', 'year'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -1993,7 +2009,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of one of date(from): date, date(year, month, day): date, found the parameter names 'from', 'year'"
+        }
+      ]
     }
   },
   {
@@ -2093,7 +2113,7 @@
       "expression": "is(1)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2119,10 +2139,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected 2 parameters, actual number of parameters is 1"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2140,7 +2158,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected 2 parameters, actual number of parameters is 1"
+        }
+      ]
     }
   },
   {
@@ -2227,7 +2249,7 @@
       "expression": "is(value1: 1, value3: 1)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -2255,10 +2277,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of is(value1, value2): boolean, found the parameter name 'value3'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2276,7 +2296,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of is(value1, value2): boolean, found the parameter name 'value3'"
+        }
+      ]
     }
   },
   {
@@ -2726,7 +2750,7 @@
       "expression": "sum(list: [1, 2], n: 3)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2752,10 +2776,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of sum(list): number, found the parameter name 'n'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2773,7 +2795,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of sum(list): number, found the parameter name 'n'"
+        }
+      ]
     }
   },
   {
@@ -2873,7 +2899,7 @@
       "expression": "contains(string: \"abc\", match: \"b\", flags: \"i\")",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -2899,10 +2925,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of contains(string, match): boolean, found the parameter name 'flags'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -2920,7 +2944,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of contains(string, match): boolean, found the parameter name 'flags'"
+        }
+      ]
     }
   },
   {
@@ -3020,7 +3048,7 @@
       "expression": "number(from: \"1\", grouping separator: \",\", decimal separator: \".\", scale: 2)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3046,10 +3074,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'scale'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -3067,7 +3093,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of one of number(from): number, number(from, grouping separator, decimal separator): number, found the parameter name 'scale'"
+        }
+      ]
     }
   },
   {
@@ -3203,7 +3233,7 @@
       "expression": "sort(list: [2, 1], precedes: function(a, b) a < b, key: 1)",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3247,10 +3277,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of sort(list, precedes): list, found the parameter name 'key'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -3267,7 +3295,11 @@
           "simple": null
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of sort(list, precedes): list, found the parameter name 'key'"
+        }
+      ]
     }
   },
   {
@@ -3367,7 +3399,7 @@
       "expression": "string(from: 1, mask: \"0\")",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3393,10 +3425,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected the parameters of string(from): string, found the parameter name 'mask'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -3414,7 +3444,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected the parameters of string(from): string, found the parameter name 'mask'"
+        }
+      ]
     }
   },
   {
@@ -3514,7 +3548,7 @@
       "expression": "count(list: [1], list: [2])",
       "language": "b-feel"
     },
-    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found.",
+    "why": "BIF-4: an invocation by name gives each parameter of one signature of the function once (DMN 1.6, 10.3.2.13.5 and Table 64: the names are those of the formal parameters; 10.3.4: the signatures of the built-in functions). A name that no signature of the function has, names of two signatures together and a name given twice are null, also for a function definition; before, the function was applied to the names it knew and to the last value of a repeated name. By position, is() takes two values: is(1) is null, not false. Where the answer was null before, its message now names the signatures and the name that was found. B-FEEL defaults are warnings (DT-043, owner decision 4): the FEEL error behind a B-FEEL result moved from diagnostics to warnings.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -3540,10 +3574,8 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "expected each parameter name once, found the name 'list' twice"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
@@ -3561,7 +3593,11 @@
           }
         }
       },
-      "warnings": []
+      "warnings": [
+        {
+          "message": "expected each parameter name once, found the name 'list' twice"
+        }
+      ]
     }
   },
   {
