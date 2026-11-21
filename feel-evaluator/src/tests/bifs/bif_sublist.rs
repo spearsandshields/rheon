@@ -269,3 +269,24 @@ fn dmn_1_6_fractional_position() {
   te_be_value(false, &scope!(), "sublist([1,2,3], -1.5)", "[3]");
   te_be_value(false, &scope!(), "sublist([1,2,3], 1.5, 2.9)", "[1,2]");
 }
+
+#[test]
+fn _0034() {
+  // the length is in [1..E]; a decimal length is converted to an integer first
+  te_null(false, &scope!(), r#"sublist([1, 2, 3], 1, 0)"#, r#"sublist: length must be at least 1, actual length is 0"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist([1, 2, 3], 2, 0.5)"#,
+    r#"sublist: length must be at least 1, actual length is 0.5"#,
+  );
+  te_be_value(false, &scope!(), r#"sublist([1, 2, 3], 2, 1.5)"#, r#"[2]"#);
+  te_null(
+    false,
+    &scope!(),
+    r#"sublist([1, 2, 3], 1, -1)"#,
+    r#"sublist: length must be at least 1, actual length is -1"#,
+  );
+  // the position is checked first
+  te_null(false, &scope!(), r#"sublist([1, 2, 3], 0, 0)"#, r#"sublist: position must not be zero"#);
+}

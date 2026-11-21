@@ -2668,6 +2668,11 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
           } else {
             return value_null!("sublist: position must not be zero");
           };
+          // the length is in [1..E] (DMN 1.7 Beta 1, 10.3.4.4, note 2), also after a decimal length
+          // is converted to an integer (note 3): a length below 1 is outside the domain
+          if length == 0 {
+            return value_null!("sublist: length must be at least 1, actual length is {}", arg(length_number));
+          }
           let last = first + length as i128;
           if first >= 0 && first < len && last <= len {
             Value::List(items[first as usize..last as usize].to_vec().into())
@@ -2677,6 +2682,8 @@ pub fn sublist3(list: &Value, position_value: &Value, length_value: &Value) -> V
         } else {
           value_null!("sublist: expected number, actual position value type is {}", arg(&TypeOf(position_value)))
         }
+      } else if length_number.trunc() < FeelNumber::one() {
+        value_null!("sublist: length must be at least 1, actual length is {}", arg(length_number))
       } else {
         value_null!("sublist: invalid length value: {}", arg(length_number))
       }
