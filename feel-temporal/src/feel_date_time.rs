@@ -400,30 +400,10 @@ impl FeelDateTime {
     feel_time_zone(self)
   }
 
+  /// Whether the two are the same element of the semantic domain (DMN 1.7 Beta 1, 10.3.2.2): the
+  /// same date and the same time ([FeelTime::is]), zone or offset included, not only the same
+  /// instant.
   pub fn is(&self, rhs: &FeelDateTime) -> bool {
-    match (self.1.zone(), rhs.1.zone()) {
-      (FeelZone::Offset(offset_1), FeelZone::Offset(offset_2)) if offset_1 != offset_2 => {
-        // When offsets differ, then even the date and times are equal,
-        // then treat them semantically not equal.
-        return false;
-      }
-      (FeelZone::Offset(_), FeelZone::Zone(_)) => {
-        // When one date time has offset, and the other one has zone name
-        // then treat them semantically not equal.
-        return false;
-      }
-      (FeelZone::Zone(zone_name_1), FeelZone::Zone(zone_name_2)) if zone_name_1 != zone_name_2 => {
-        // When zone names differ, then even the date and times are equal,
-        // then treat them semantically not equal.
-        return false;
-      }
-      (FeelZone::Zone(_), FeelZone::Offset(_)) => {
-        // When one date time has zone name, and the other one has offset
-        // then treat them semantically not equal.
-        return false;
-      }
-      _ => {}
-    };
-    self == rhs
+    self.0 == rhs.0 && self.1.is(&rhs.1)
   }
 }

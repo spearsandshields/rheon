@@ -53,6 +53,17 @@ pub(crate) fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
 #[derive(Default)]
 pub(crate) struct Equality {
   shared: Option<HashMap<(usize, usize), Option<bool>>>,
+  /// Identity (`is`, 10.3.2.2) instead of equality: values of other kinds are not the same, times
+  /// and date and times are the same only with the same fields and zone, and functions only as
+  /// the same function. Never `None`.
+  identity: bool,
+}
+
+/// Whether two values are the same element of the FEEL semantic domain (DMN 1.7 Beta 1, 10.3.2.2):
+/// `is`, which "never results in null". Lists, contexts and ranges are the same when their parts
+/// are; shared parts are compared once, as by equality.
+pub(crate) fn identical(lhs: &Value, rhs: &Value) -> bool {
+  Equality { shared: None, identity: true }.compare(lhs, rhs) == Some(true)
 }
 
 impl Equality {
@@ -83,6 +94,11 @@ impl Equality {
   }
 
   pub(crate) fn compare(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
+    let answer = self.compare_kinds(lhs, rhs);
+    if self.identity { Some(answer == Some(true)) } else { answer }
+  }
+
+  fn compare_kinds(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
     if lhs.is_null() || rhs.is_null() {
       return Some(lhs.is_null() && rhs.is_null());
     }
@@ -116,13 +132,17 @@ impl Equality {
         _ => None,
       },
       Value::Time(ls) => match rhs {
+        Value::Time(rs) if self.identity => Some(ls.is(rs)),
         Value::Time(rs) => Some(*ls == *rs),
         _ => None,
       },
       Value::DateTime(ls) => match rhs {
+        Value::DateTime(rs) if self.identity => Some(ls.is(rs)),
         Value::DateTime(rs) => Some(*ls == *rs),
         _ => None,
       },
+      Value::BuiltInFunction(lb) if self.identity => Some(matches!(rhs, Value::BuiltInFunction(rb) if lb == rb)),
+      Value::FunctionDefinition(lf) if self.identity => Some(matches!(rhs, Value::FunctionDefinition(rf) if std::sync::Arc::ptr_eq(lf, rf))),
       Value::DaysAndTimeDuration(ls) => match rhs {
         Value::DaysAndTimeDuration(rs) => Some(*ls == *rs),
         _ => None,

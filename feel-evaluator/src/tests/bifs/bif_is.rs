@@ -233,12 +233,8 @@ fn _0042() {
 
 #[test]
 fn _0043() {
-  te_null(
-    false,
-    &scope!(),
-    r#"is(Null,duration("P1D"))"#,
-    "[core::is] invalid argument type, expected scalar, actual type is Null",
-  );
+  // is never results in null (10.3.2.2): two nulls are the same element, a null and a duration are not
+  te_bool(false, &scope!(), r#"is(Null,duration("P1D"))"#, false);
 }
 
 #[test]
@@ -303,10 +299,30 @@ fn _0054() {
 
 #[test]
 fn _0055() {
-  te_null(
-    false,
-    &scope!(),
-    r#"is(@"999999999-04-02T23:00:00Z", @"999999999-04-02T23:00:00Z")"#,
-    "[core::is] invalid argument type, expected scalar, actual type is Null",
-  );
+  // is never results in null (10.3.2.2): two nulls are the same element, a null and a duration are not
+  te_bool(false, &scope!(), r#"is(@"999999999-04-02T23:00:00Z", @"999999999-04-02T23:00:00Z")"#, true);
+}
+
+#[test]
+fn _0056() {
+  // the same element of the semantic domain (10.3.2.2, 10.3.4.6): any kind, never null
+  let scope = &scope!();
+  te_bool(false, scope, r#"is(null, null)"#, true);
+  te_bool(false, scope, r#"is(1, null)"#, false);
+  te_bool(false, scope, r#"is(null, 1)"#, false);
+  te_bool(false, scope, r#"is([1, 2], [1, 2])"#, true);
+  te_bool(false, scope, r#"is([1, 2], [2, 1])"#, false);
+  te_bool(false, scope, r#"is({a: 1}, {a: 1})"#, true);
+  te_bool(false, scope, r#"is([1..2], [1..2])"#, true);
+  te_bool(false, scope, r#"is([1..2], (1..2])"#, false);
+  te_bool(false, scope, r#"is(abs, abs)"#, true);
+  te_bool(false, scope, r#"is(abs, floor)"#, false);
+  te_bool(false, scope, r#"{f: function() 1, r: is(f, f)}.r"#, true);
+  // the fraction of the second, and the zone, are parts of the element
+  te_bool(false, scope, r#"is(@"10:00:00.5", @"10:00:00")"#, false);
+  te_bool(false, scope, r#"is(time("23:00:50z"), time("23:00:50"))"#, false);
+  te_bool(false, scope, r#"is(time("23:00:50z"), time("23:00:50+00:00"))"#, true);
+  te_bool(false, scope, r#"is(@"2012-12-25T10:00:00Z", @"2012-12-25T12:00:00+02:00")"#, false);
+  te_bool(false, scope, r#"is(@"2012-12-25T10:00:00", @"2012-12-25T10:00:00Z")"#, false);
+  te_bool(false, scope, r#"is([@"10:00:00.5"], [@"10:00:00"])"#, false);
 }

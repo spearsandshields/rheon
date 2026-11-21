@@ -650,43 +650,10 @@ pub fn insert_before(list: &Value, position_value: &Value, new_item_value: &Valu
   value_null!("index is out of range")
 }
 
-/// Returns `true` if both values are the same element in the FEEL semantic domain.
+/// Whether both values are the same element of the FEEL semantic domain (DMN 1.7 Beta 1, 10.3.4.6
+/// and 10.3.2.2): a boolean for every pair of values, null included.
 pub fn is(value1: &Value, value2: &Value) -> Value {
-  match value1 {
-    Value::Number(v1) => match value2 {
-      Value::Number(v2) => Value::Boolean(v1 == v2),
-      _ => Value::Boolean(false),
-    },
-    Value::String(v1) => match value2 {
-      Value::String(v2) => Value::Boolean(v1 == v2),
-      _ => Value::Boolean(false),
-    },
-    Value::Boolean(v1) => match value2 {
-      Value::Boolean(v2) => Value::Boolean(v1 == v2),
-      _ => Value::Boolean(false),
-    },
-    Value::Date(v1) => match value2 {
-      Value::Date(v2) => Value::Boolean(v1 == v2),
-      _ => Value::Boolean(false),
-    },
-    Value::Time(v1) => match value2 {
-      Value::Time(v2) => Value::Boolean(v1.is(v2)),
-      _ => Value::Boolean(false),
-    },
-    Value::DateTime(v1) => match value2 {
-      Value::DateTime(v2) => Value::Boolean(v1.is(v2)),
-      _ => Value::Boolean(false),
-    },
-    Value::DaysAndTimeDuration(v1) => match value2 {
-      Value::DaysAndTimeDuration(v2) => Value::Boolean(v1 == v2),
-      _ => Value::Boolean(false),
-    },
-    Value::YearsAndMonthsDuration(v1) => match value2 {
-      Value::YearsAndMonthsDuration(v2) => Value::Boolean(v1 == v2),
-      _ => Value::Boolean(false),
-    },
-    _ => invalid_argument_type!("is", "scalar", value1),
-  }
+  Value::Boolean(crate::equality::identical(value1, value2))
 }
 
 /// Returns `true` when the list contain the specified element.

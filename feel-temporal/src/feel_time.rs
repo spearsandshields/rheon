@@ -282,7 +282,8 @@ impl FeelTime {
       (FeelZone::Zone(zone_name_1), FeelZone::Zone(zone_name_2)) => zone_name_1 == zone_name_2,
       _ => false,
     };
-    same_zone && self.0 == rhs.0 && self.1 == rhs.1 && self.2 == rhs.2
+    // the same element of the semantic domain: the fraction of the second too (10.3.2.2)
+    same_zone && self.0 == rhs.0 && self.1 == rhs.1 && self.2 == rhs.2 && self.3 == rhs.3
   }
 
   pub fn zone(&self) -> &FeelZone {

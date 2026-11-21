@@ -141,8 +141,6 @@ Open in 1.6:
   - *Ranges against unary comparisons.* `(< 10)` and the like compared with a range can give a
     wrong `true`, and the result depends on the operand order (the Unary* arms of
     `eval_ternary_equality`: inverted null check on the endpoint, wrong closure for `<=`).
-  - *`is()` decides by its first argument.* `is(null, 1)` is null and `is(1, null)` is false;
-    `is` never results in null (§10.3.2.2).
   - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
     OR (comparison_in.rs asserts AND). The spec also reads differently for `-` against a null
     input (rule 15.c reads as `? != null`); rheon gives a match. (`null <= null` is null by the
