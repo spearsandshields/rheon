@@ -299,7 +299,7 @@ fn _0054() {
 
 #[test]
 fn _0055() {
-  // is never results in null (10.3.2.2): two nulls are the same element, a null and a duration are not
+  // both literals are null (a year beyond the calendar of date and times): two nulls are the same element
   te_bool(false, &scope!(), r#"is(@"999999999-04-02T23:00:00Z", @"999999999-04-02T23:00:00Z")"#, true);
 }
 
@@ -325,4 +325,10 @@ fn _0056() {
   te_bool(false, scope, r#"is(@"2012-12-25T10:00:00Z", @"2012-12-25T12:00:00+02:00")"#, false);
   te_bool(false, scope, r#"is(@"2012-12-25T10:00:00", @"2012-12-25T10:00:00Z")"#, false);
   te_bool(false, scope, r#"is([@"10:00:00.5"], [@"10:00:00"])"#, false);
+}
+
+#[test]
+fn _0057() {
+  // Z and +00:00 are the same zone (10.3.4.6), also when a time holds the zero offset itself
+  te_bool(false, &scope!(), r#"is(time("10:00:00Z"), time(10, 0, 0, duration("PT0H")))"#, true);
 }

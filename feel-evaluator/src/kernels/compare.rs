@@ -138,7 +138,7 @@ fn unordered(symbol: &str, lhv: &Value, rhv: &Value) -> Value {
   }
 }
 
-/// FEEL `lhv between mhv and rhv` (DMN 1.7 Beta 1, Table 55): `lhv >= mhv and lhv <= rhv` by the
+/// FEEL `lhv between mhv and rhv` (DMN 1.7 Beta 1, Table 56, grammar rule 49.b): `lhv >= mhv and lhv <= rhv` by the
 /// ordering kernel and the `and` of Table 51, the three values evaluated before. One comparison
 /// that is false decides it, whatever the other one is (`5 between 10 and null` is false); where
 /// neither decides, the null names the operand that has no order with `lhv`, and a null `lhv` is
