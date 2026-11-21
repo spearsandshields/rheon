@@ -10,7 +10,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::Value;
-use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, IntervalType, value_null};
+use rheon_feel::{Evaluator, FeelScope, FeelType, FunctionBody, value_null};
 use rheon_feel_evaluator::{Domain, FilterExpressionEvaluator, Iteration, Sequence, evaluate_invocation};
 use rheon_feel_parser::{ClosureBuilder, parse_name};
 use rheon_model::*;
@@ -377,10 +377,11 @@ pub fn build_for_evaluator(scope: &FeelScope, r#for: &For, model_builder: &Model
   // prepare `for` evaluator
   let domain: Domain = Box::new(move |scope: &FeelScope| match in_evaluator(scope) {
     value @ Value::List(_) => Ok(Sequence::of(value)),
-    Value::Range(start, IntervalType::Closed, end, IntervalType::Closed) => Sequence::interval(*start, *end),
     // null in the `in` row: unspecified, iterates over nothing
     Value::Null(_) => Ok(Sequence::empty()),
-    // any other value is a singleton list (DMN 1.6 boxed for, implicit conversion)
+    // any other value, a range included, is a singleton list: the `in` row "MUST resolve to a
+    // collection including implicit conversion to singleton list" (DMN 1.7 Beta 1, 10.2.1.10),
+    // as for boxed some and every
     value => Ok(Sequence::of(value)),
   });
   let iteration = Iteration::boxed(iterator_variable, domain);
