@@ -309,60 +309,6 @@
   {
     "request": {
       "op": "evaluate",
-      "expression": "\"a\" in (!=5, !=6)",
-      "language": "b-feel"
-    },
-    "why": "DT-015: a list of unary tests is the or of its tests (DMN 1.7 Beta 1, Table 56; grammar rule 15), the tests != e included: 5 in (!=4, !=5, !=6) is true because 5 != 4, and an input entry '!=4, !=5' matches every input (owner veto list, 2026-11-21: follow the spec). The != tests of a list were joined by and (true only when the value differs from every endpoint). A value that = cannot compare gives the null of =, as != does.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "true",
-        "feel": "true",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "true",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
-      "op": "evaluate",
       "dialect": "unaryTests",
       "expression": "!=4, !=5",
       "input": 5
@@ -917,62 +863,6 @@
     "request": {
       "op": "evaluate",
       "dialect": "unaryTests",
-      "expression": "!= 5",
-      "input": "a",
-      "language": "b-feel"
-    },
-    "why": "DT-015: a list of unary tests is the or of its tests (DMN 1.7 Beta 1, Table 56; grammar rule 15), the tests != e included: 5 in (!=4, !=5, !=6) is true because 5 != 4, and an input entry '!=4, !=5' matches every input (owner veto list, 2026-11-21: follow the spec). The != tests of a list were joined by and (true only when the value differs from every endpoint). A value that = cannot compare gives the null of =, as != does.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "true",
-        "feel": "true",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "true",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    }
-  },
-  {
-    "request": {
-      "op": "evaluate",
-      "dialect": "unaryTests",
       "expression": "!= 5, != 6",
       "input": "a"
     },
@@ -1184,62 +1074,6 @@
         "message": "strict error mode: equal err '\"a\"' =?= '5'"
       },
       "ok": false
-    }
-  },
-  {
-    "request": {
-      "op": "evaluate",
-      "dialect": "unaryTests",
-      "expression": "!= 5, != 6",
-      "input": "a",
-      "language": "b-feel"
-    },
-    "why": "DT-015: a list of unary tests is the or of its tests (DMN 1.7 Beta 1, Table 56; grammar rule 15), the tests != e included: 5 in (!=4, !=5, !=6) is true because 5 != 4, and an input entry '!=4, !=5' matches every input (owner veto list, 2026-11-21: follow the spec). The != tests of a list were joined by and (true only when the value differs from every endpoint). A value that = cannot compare gives the null of =, as != does.",
-    "old": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "true",
-        "feel": "true",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "true",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
-    },
-    "new": {
-      "diagnostics": {
-        "count": 0,
-        "messages": []
-      },
-      "ok": true,
-      "result": {
-        "display": "false",
-        "feel": "false",
-        "isNull": false,
-        "type": "boolean",
-        "typed": {
-          "components": null,
-          "list": null,
-          "simple": {
-            "isNil": false,
-            "text": "false",
-            "type": "xsd:boolean"
-          }
-        }
-      },
-      "warnings": []
     }
   }
 ]

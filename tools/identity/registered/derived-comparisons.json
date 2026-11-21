@@ -1846,7 +1846,7 @@
       "expression": "\"a\" in != 1",
       "language": "b-feel"
     },
-    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range).",
+    "why": "DT-027: a range, a unary comparison and between are the comparisons that Table 56 and Table 55 give (DMN 1.7 Beta 1, 10.3.2.15), made by the one ordering kernel and joined by the and of Table 51: e1 in (e2..e3] is e1 > e2 and e1 <= e3, e1 in < e2 is e1 < e2, e1 in = e2 is e1 = e2, e1 between e2 and e3 is e1 >= e2 and e1 <= e3. So an endpoint written as null is a comparison with null, not an unbounded end (\"b\" in (\"a\"..null) is null; owner veto list), a comparison that is false decides alone (5 between 10 and null is false), a value of another kind gives null (\"a\" in = 1), and a time without an offset against one with an offset within 14 hours gives null as < does (TMP-6). The nulls name the comparison instead of internal functions (eval_in_range). Review of F2: in B-FEEL an incomparable != is true (DMN 1.7 Beta 1, 11.2), also as a unary test, in a list of tests and under not().",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1872,15 +1872,13 @@
     },
     "new": {
       "diagnostics": {
-        "count": 1,
-        "messages": [
-          "equal err '\"a\"' =?= '1'"
-        ]
+        "count": 0,
+        "messages": []
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -1888,7 +1886,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }

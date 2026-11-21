@@ -15487,8 +15487,8 @@ Null(Some("equal err '\"b\"' =?= '5'"))
 Diagnostics { count: 1, messages: ["equal err '\"b\"' =?= '5'"], warnings: [] }
 
 in_and_not_in_with_every_right_hand_form #62 "(\"b\") in (!= 5)"
-Boolean(false)
-Diagnostics { count: 1, messages: ["equal err '\"b\"' =?= '5'"], warnings: [] }
+Boolean(true)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 in_and_not_in_with_every_right_hand_form #63 "(\"b\") in (<= 5, >= 9)"
 Null(Some("comparison '<=' expected string on the right, as on the left, found number"))
@@ -15615,8 +15615,8 @@ Null(Some("equal err '2024-02-01' =?= '5'"))
 Diagnostics { count: 1, messages: ["equal err '2024-02-01' =?= '5'"], warnings: [] }
 
 in_and_not_in_with_every_right_hand_form #94 "(@\"2024-02-01\") in (!= 5)"
-Boolean(false)
-Diagnostics { count: 1, messages: ["equal err '2024-02-01' =?= '5'"], warnings: [] }
+Boolean(true)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 in_and_not_in_with_every_right_hand_form #95 "(@\"2024-02-01\") in (<= 5, >= 9)"
 Null(Some("comparison '<=' expected date on the right, as on the left, found number"))

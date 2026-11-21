@@ -11,8 +11,8 @@ use std::borrow::Borrow;
 use std::cmp::Ordering;
 
 /// FEEL `lhv in rhv`: the right-hand value selects the test (a value, a range, a list, a negated
-/// list, a unary comparison or `-`). With `two_valued` (B-FEEL), a test of a list that cannot be
-/// compared with the tested value is not satisfied.
+/// list, a unary comparison or `-`). With `two_valued` (B-FEEL, DMN 1.7 Beta 1, 11.2), a test of a
+/// list that cannot be compared with the tested value is not satisfied, except `!=`, which is.
 pub(crate) fn in_operator(lhv: &Value, rhv: &Value, two_valued: bool) -> Value {
   let tests = if two_valued { Tests::No } else { Tests::Yes };
   match rhv {
@@ -30,11 +30,13 @@ pub(crate) fn in_operator(lhv: &Value, rhv: &Value, two_valued: bool) -> Value {
     | Value::Context(_) => super::compare::equal(lhv, rhv),
     Value::Range(l, l_type, r, r_type) => eval_in_range(lhv, l, *l_type, r, *r_type),
     // a list value: `e1 in e2` is `list contains(e2, e1)` (Table 56), whatever e1 is
-    Value::List(r_inner) => eval_in_list(&mut Equality::default(), lhv, r_inner, Tests::No, Items::Values),
-    Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), lhv, inner, tests, Items::Tests),
-    Value::NegatedCommaList(inner) => eval_in_negated_list(&mut Equality::default(), lhv, inner, tests),
-    // `e1 in = e2` is `e1 = e2`, and `e1 in != e2` is `e1 != e2` (Table 56)
+    Value::List(r_inner) => eval_in_list(&mut Equality::default(), lhv, r_inner, Tests::No, Items::Values, two_valued),
+    Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), lhv, inner, tests, Items::Tests, two_valued),
+    Value::NegatedCommaList(inner) => eval_in_negated_list(&mut Equality::default(), lhv, inner, tests, two_valued),
+    // `e1 in = e2` is `e1 = e2`, and `e1 in != e2` is `e1 != e2` (grammar rule 7.a); in B-FEEL an
+    // incomparable != is true (11.2)
     Value::UnaryEqual(inner) => super::compare::equal(lhv, inner),
+    Value::UnaryNotEqual(inner) if two_valued && Equality::default().compare(lhv, inner).is_none() => VALUE_TRUE,
     Value::UnaryNotEqual(inner) => super::compare::not_equal(lhv, inner),
     Value::UnaryLess(inner) => eval_in_unary_less(lhv, inner),
     Value::UnaryLessOrEqual(inner) => eval_in_unary_less_or_equal(lhv, inner),
@@ -46,9 +48,9 @@ pub(crate) fn in_operator(lhv: &Value, rhv: &Value, two_valued: bool) -> Value {
   }
 }
 
-/// Whether the items of a list are tests that `or` joins (`e1 in (e2, e3)` and unary tests, DMN
-/// 1.6 Table 56), or the items of a list value, where an item that cannot be compared is
-/// another item.
+/// Whether a list without a true test answers the null of its first test without an answer (`Yes`:
+/// FEEL tests, which `or` joins, Table 56), or false (`No`: a list value, whose items are compared
+/// by `list contains`, and the two-valued tests of B-FEEL).
 #[derive(Clone, Copy, PartialEq)]
 enum Tests {
   Yes,
@@ -64,12 +66,17 @@ enum Unknown<'a> {
 }
 
 /// The answers of the tests of a list seen so far, none of them true.
-#[derive(Default)]
 struct Answers<'a> {
   unknown: Option<Unknown<'a>>,
+  /// B-FEEL (11.2): an incomparable `!=` is true.
+  two_valued: bool,
 }
 
 impl<'a> Answers<'a> {
+  fn new(two_valued: bool) -> Self {
+    Self { unknown: None, two_valued }
+  }
+
   /// Takes the answer of a test; `true` when the test is true.
   fn test(&mut self, answer: Value) -> bool {
     match answer {
@@ -91,10 +98,11 @@ impl<'a> Answers<'a> {
   }
 
   /// Takes the test `!= item` of the tested value; `true` when they differ. Values that `=` cannot
-  /// compare give the null of `=`, as `!=` does (10.3.2.15).
+  /// compare give the null of `=`, as `!=` does (10.3.2.15), and true in B-FEEL (11.2).
   fn not_equal(&mut self, equality: &mut Equality, left: &Value, item: &'a Value) -> bool {
     match equality.compare(left, item) {
       Some(false) => return true,
+      None if self.two_valued => return true,
       None if self.unknown.is_none() => self.unknown = Some(Unknown::Equal(item)),
       _ => {}
     }
@@ -119,8 +127,8 @@ enum Items {
   Tests,
 }
 
-fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: Tests, of: Items) -> Value {
-  let mut answers = Answers::default();
+fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: Tests, of: Items, two_valued: bool) -> Value {
+  let mut answers = Answers::new(two_valued);
   for item in items {
     let found = match item {
       inner @ Value::Null(_)
@@ -143,10 +151,12 @@ fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: T
       // a list among the items of a list value is an item, compared by equality (`[1, 2] in [[1, 2]]`)
       inner @ Value::List(_) if of == Items::Values => answers.equal(equality, left, inner),
       // a list value among the tests: the tested value is one of its items or it is not
-      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No, Items::Values)),
+      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No, Items::Values, two_valued)),
       Value::Range(l, l_closed, r, r_closed) => answers.test(eval_in_range(left, l, *l_closed, r, *r_closed)),
       // a boolean expression using `?`: its own answer
       Value::TestAnswer(answer) => answers.test(answer.as_ref().clone()),
+      // any other item of a list value (a function, say) is an item, compared by equality
+      inner if of == Items::Values => answers.equal(equality, left, inner),
       other => return value_null!("unexpected type in list: {}", arg(&TypeOf(other))),
     };
     if found {
@@ -157,8 +167,8 @@ fn eval_in_list(equality: &mut Equality, left: &Value, items: &[Value], tests: T
 }
 
 /// `not(tests)`: the negation of what the tests answer, so null where they answer null.
-fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value], tests: Tests) -> Value {
-  let mut answers = Answers::default();
+fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value], tests: Tests, two_valued: bool) -> Value {
+  let mut answers = Answers::new(two_valued);
   for item in items {
     let found = match item {
       inner @ Value::Null(_)
@@ -177,7 +187,7 @@ fn eval_in_negated_list(equality: &mut Equality, left: &Value, items: &[Value], 
       Value::UnaryLessOrEqual(inner) => answers.test(eval_in_unary_less_or_equal(left, inner.borrow())),
       Value::UnaryGreater(inner) => answers.test(eval_in_unary_greater(left, inner.borrow())),
       Value::UnaryGreaterOrEqual(inner) => answers.test(eval_in_unary_greater_or_equal(left, inner.borrow())),
-      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No, Items::Values)),
+      Value::List(inner) => answers.test(eval_in_list(equality, left, inner, Tests::No, Items::Values, two_valued)),
       Value::Range(l, l_closed, r, r_closed) => answers.test(eval_in_range(left, l, *l_closed, r, *r_closed)),
       // a boolean expression using `?`: its own answer
       Value::TestAnswer(answer) => answers.test(answer.as_ref().clone()),

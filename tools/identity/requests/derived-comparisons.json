@@ -111,5 +111,11 @@
   {"op": "evaluate", "expression": "some p in [{age: null}, {age: 20}] satisfies p.age > 18", "language": "b-feel"},
   {"op": "evaluate", "expression": "every x in [1, \"a\", 0] satisfies x > 0"},
   {"op": "evaluate", "expression": "every x in [1, \"a\", 0] satisfies x > 0", "errorMode": "strict"},
-  {"op": "evaluate", "expression": "every x in [1, \"a\", 0] satisfies x > 0", "language": "b-feel"}
+  {"op": "evaluate", "expression": "every x in [1, \"a\", 0] satisfies x > 0", "language": "b-feel"},
+  {"op": "evaluate", "expression": "\"a\" in not(!= 5)"},
+  {"op": "evaluate", "expression": "\"a\" in not(!= 5)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "\"a\" in (!= 5, = 6)"},
+  {"op": "evaluate", "expression": "\"a\" in (!= 5, = 6)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "10 in [(function() 1)]"},
+  {"op": "evaluate", "expression": "10 in [(function() 1)]", "language": "b-feel"}
 ]

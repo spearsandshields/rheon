@@ -103,3 +103,18 @@ fn a_regex_engine_limit_is_not_a_default() {
     r"matches: the pattern '^(a|a)*\1$' exceeds the regex engine's backtracking limit; evaluation stopped",
   );
 }
+
+#[test]
+fn an_incomparable_not_equal_test_is_satisfied() {
+  // in B-FEEL an incompatible type is false, except for != where it is true (11.2), also in a test
+  for (e, x) in [
+    (r#""a" in != 1"#, "true"),
+    (r#""a" in (!= 5, != 6)"#, "true"),
+    (r#""a" in (!= 5, = 6)"#, "true"),
+    (r#""a" in not(!= 5)"#, "false"),
+    (r#""a" in (= 5, < 6)"#, "false"),
+    (r#"5 in (!= 5)"#, "false"),
+  ] {
+    bf(e, x, None);
+  }
+}

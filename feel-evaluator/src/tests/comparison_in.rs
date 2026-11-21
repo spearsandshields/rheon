@@ -746,7 +746,8 @@ fn _0138() {
 
 #[test]
 fn _0139() {
-  te_null(false, &scope!(), r#" 10 in [(function() 1)] "#, "unexpected type in list: function<>->Any");
+  // an item of a list value is compared by equality, a function too (list contains)
+  te_bool(false, &scope!(), r#" 10 in [(function() 1)] "#, false);
 }
 
 #[test]

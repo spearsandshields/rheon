@@ -1,0 +1,164 @@
+[
+  {
+    "expression": "\"a\" in (!= 5, = 6)",
+    "why": "Review of F2: in B-FEEL an incompatible type in a boolean expression is false except for != where it is true (DMN 1.7 Beta 1, 11.2), also when != is a unary test, a test of a list or under not(); and an item of a list value that is no scalar, a function say, is compared by equality (list contains) instead of stopping with 'unexpected type in list'.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "equal err '\"a\"' =?= '5'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(equal err '\"a\"' =?= '5')",
+        "isNull": true,
+        "nullReason": "equal err '\"a\"' =?= '5'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "10 in [(function() 1)]",
+    "why": "Review of F2: in B-FEEL an incompatible type in a boolean expression is false except for != where it is true (DMN 1.7 Beta 1, 11.2), also when != is a unary test, a test of a list or under not(); and an item of a list value that is no scalar, a function say, is compared by equality (list contains) instead of stopping with 'unexpected type in list'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected type in list: function<>->Any"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(unexpected type in list: function<>->Any)",
+        "isNull": true,
+        "nullReason": "unexpected type in list: function<>->Any",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "10 in [(function() 1)]",
+      "language": "b-feel"
+    },
+    "why": "Review of F2: in B-FEEL an incompatible type in a boolean expression is false except for != where it is true (DMN 1.7 Beta 1, 11.2), also when != is a unary test, a test of a list or under not(); and an item of a list value that is no scalar, a function say, is compared by equality (list contains) instead of stopping with 'unexpected type in list'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "unexpected type in list: function<>->Any"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]
