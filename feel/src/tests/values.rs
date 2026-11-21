@@ -507,7 +507,8 @@ fn test_coerced() {
   assert_eq!(r#"["a"]"#, coerced(&v_string, &T_LIST_D));
   assert_eq!(r#""A""#, coerced(&v_list_string_1, T_STRING));
   assert_eq!(r#"10"#, coerced(&v_number, T_NUMBER));
-  assert_eq!(r#"FunctionDefinition([(Name("a"), Number)],_,false,[],{},number)"#, coerced(&v_function_a, T_NUMBER));
+  // a function is kept only where its type conforms (10.3.2.9.4)
+  assert_eq!(r#"null(after coercion)"#, coerced(&v_function_a, T_NUMBER));
   assert_eq!(r#"null(after coercion)"#, coerced(&v_irrelevant, T_NUMBER));
   assert_eq!(r#"null(after coercion)"#, coerced(&v_context_d, &T_CONTEXT_A));
   assert_eq!(r#"2022-09-27T00:00:00Z"#, coerced(&v_date, T_DATE_TIME));

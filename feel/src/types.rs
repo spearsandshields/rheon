@@ -361,15 +361,13 @@ impl FeelType {
         if let FeelType::Function(parameters_self, result_self) = self
           && parameters_self.len() == parameters_other.len()
         {
-          for (i, parameter_other) in parameters_other.iter().enumerate() {
-            if !parameter_other.is_conformant(&parameters_self[i]) {
-              return false;
-            }
-            if !result_self.is_conformant(result_other) {
-              return false;
-            }
-          }
-          return true;
+          // the parameters are contravariant and the result covariant (10.3.2.9.2); the result
+          // is checked also when there are no parameters
+          return parameters_other
+            .iter()
+            .zip(parameters_self)
+            .all(|(parameter_other, parameter_self)| parameter_other.is_conformant(parameter_self))
+            && result_self.is_conformant(result_other);
         }
         return false;
       }

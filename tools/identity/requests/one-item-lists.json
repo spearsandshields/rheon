@@ -283,5 +283,15 @@
   {"op": "evaluate", "expression": "string length instance of function<string>->number"},
   {"op": "evaluate", "expression": "sort instance of function<list<number>, function<number, number>->boolean>->list<Any>"},
   {"op": "evaluate", "expression": "abs instance of number"},
-  {"op": "evaluate", "expression": "sum instance of function<number, number>->number"}
+  {"op": "evaluate", "expression": "sum instance of function<number, number>->number"},
+  {"op": "evaluate", "expression": "abs instance of function<number>->number"},
+  {"op": "evaluate", "expression": "{f: function(g: function<number>->number) g(2), r: f(function(x: string) x)}.r"},
+  {"op": "evaluate", "expression": "{f: function(g: function<number>->number) g(2), r: f(function(x) x * 2)}.r"},
+  {"op": "evaluate", "expression": "{f: function(g: function<number>->number) g(-2), r: f(abs)}.r"},
+  {"op": "evaluate", "expression": "{f: function(g: function<string>->string) g(\"a\"), r: f(abs)}.r"},
+  {"op": "evaluate", "expression": "{f: function(n: number) n, r: f(abs)}.r"},
+  {"op": "evaluate", "expression": "(function(x: number) x) instance of function<Any>->Any"},
+  {"op": "evaluate", "expression": "(function(x: Any) x) instance of function<number>->Any"},
+  {"op": "evaluate", "expression": "(function() 1) instance of function<>->Any"},
+  {"op": "evaluate", "expression": "(function(x: number) x) instance of function<number>->Any"}
 ]

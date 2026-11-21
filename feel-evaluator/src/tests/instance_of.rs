@@ -470,8 +470,10 @@ fn built_in_functions_are_of_function_types() {
   // a built-in is of a function type when one of its signatures is (10.3.2.9.2)
   let scope = &te_scope("{}");
   te_bool(false, scope, "abs instance of Any", true);
-  // abs takes a number or a duration and gives either: its result is not only a number
-  te_bool(false, scope, "abs instance of function<number>->number", false);
+  // abs of a number is a number, and abs of a duration a duration (TCK 0092 decision_014_1)
+  te_bool(false, scope, "abs instance of function<number>->number", true);
+  te_bool(false, scope, "abs instance of function<years and months duration>->years and months duration", true);
+  te_bool(false, scope, "abs instance of function<number>->string", false);
   te_bool(false, scope, "abs instance of function<number>->Any", true);
   te_bool(false, scope, "sqrt instance of function<number>->number", true);
   te_bool(false, scope, "sqrt instance of function<string>->number", false);

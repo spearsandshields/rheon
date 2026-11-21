@@ -104,6 +104,12 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *Equality of the two duration kinds* (9.4 against Table 53). `@"P1D" = @"P1M"` and
     `@"P0D" = @"P0Y"` are null: Table 53 requires one kind, and TCK 0068 (`P1Y = P365D` is null)
     reads it so; 9.4 says the kinds compare.
+  - *The result type of a function literal* (10.3.2.9, 10.3.2.9.2). It is not inferred: the type of
+    `function(x: number) x` is `function<number>->Any`, so it is no instance of
+    `function<number>->number`. Bound to a parameter or a variable of a function type, a function
+    whose result type is Any (not declared) is not held against the target's result type, so
+    `f(function(x) x * 2)` works where f takes a `function<number>->number`; its parameters are
+    checked (contravariant).
   - *Equality of functions* (Table 54: "the same parameters, body, and scope"). The body is the
     function literal where it is written: two literals are two functions even when their text is
     alike (`{f: function(x) x}.f = {f: function(x) x}.f` is false), and one literal evaluated twice

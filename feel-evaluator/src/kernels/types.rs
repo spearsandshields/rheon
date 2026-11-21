@@ -74,13 +74,13 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
         FeelType::Any => VALUE_TRUE,
         expected => Value::Boolean(value.type_instance_of(&expected)),
       },
-      value @ Value::FunctionDefinition { .. } => match feel_type {
-        FeelType::Any => VALUE_TRUE,
-        expected => Value::Boolean(value.has_type(&expected)),
-      },
+      // a function is an instance of the function types its type conforms to (10.3.2.9.2): its
+      // declared result type counts, Any when it is not declared (the result type of a function
+      // literal is not inferred), as a binding does not hold it against the target
+      value @ Value::FunctionDefinition { .. } => Value::Boolean(value.type_of().is_conformant(&feel_type)),
       Value::BuiltInFunction(bif) => match feel_type {
         FeelType::Any => VALUE_TRUE,
-        FeelType::Function(parameters, result) => Value::Boolean(built_in_conforms(&bif, &parameters, &result)),
+        FeelType::Function(parameters, result) => Value::Boolean(rheon_feel::signatures::conforms(&bif, &parameters, &result)),
         _ => VALUE_FALSE,
       },
       // the parameters of an external function are not known here: it is a function, of type Any
@@ -89,69 +89,6 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
     }
   } else {
     Value::Boolean(lhv.has_type_of(&rhv))
-  }
-}
-
-/// Whether the built-in function `bif` is of the function type `parameters -> result` (DMN 1.7 Beta 1,
-/// 10.3.2.9.2): one of its signatures, from the table of signatures, takes that many arguments by
-/// position, every parameter type of the target conforms to the type of the parameter there, and
-/// every type its result can have conforms to the target's result type.
-fn built_in_conforms(bif: &rheon_feel::bif::Bif, parameters: &[FeelType], result: &FeelType) -> bool {
-  let Some(built_in) = rheon_feel::signatures::of(bif) else {
-    return false;
-  };
-  built_in.signatures.iter().any(|signature| {
-    let declared = signature.parameters;
-    let required = declared.iter().filter(|parameter| !parameter.optional && !parameter.rest).count();
-    let rest = declared.last().filter(|parameter| parameter.rest);
-    if parameters.len() < required || (rest.is_none() && parameters.len() > declared.len()) {
-      return false;
-    }
-    let takes = parameters.iter().enumerate().all(|(place, target)| {
-      let Some(parameter) = declared.get(place).or(rest) else {
-        return false;
-      };
-      table_types(parameter.feel_type).any(|declared| match declared {
-        Some(declared) => target.is_conformant(&declared),
-        None => matches!(target, FeelType::Function(..) | FeelType::Null),
-      })
-    });
-    takes && table_types(signature.result).all(|declared| declared.is_some_and(|declared| declared.is_conformant(result)))
-  })
-}
-
-/// The types that a type of the table of signatures stands for, several joined by `or`; `None`
-/// for `function`, which is every function type.
-fn table_types(text: &'static str) -> impl Iterator<Item = Option<FeelType>> {
-  text.split(" or ").flat_map(|text| {
-    let types: Vec<Option<FeelType>> = match text {
-      "duration" => vec![Some(FeelType::DaysAndTimeDuration), Some(FeelType::YearsAndMonthsDuration)],
-      "function" => vec![None],
-      text => vec![Some(table_type(text))],
-    };
-    types
-  })
-}
-
-/// The FEEL type of one type of the table: `list` and `range` take items of any type, a context
-/// any entries.
-fn table_type(text: &str) -> FeelType {
-  match text {
-    "number" => FeelType::Number,
-    "string" => FeelType::String,
-    "boolean" => FeelType::Boolean,
-    "date" => FeelType::Date,
-    "time" => FeelType::Time,
-    "date and time" => FeelType::DateTime,
-    "days and time duration" => FeelType::DaysAndTimeDuration,
-    "years and months duration" => FeelType::YearsAndMonthsDuration,
-    "context" => FeelType::Context(BTreeMap::new()),
-    "range" => FeelType::Range(Box::new(FeelType::Any)),
-    "list" => FeelType::List(Box::new(FeelType::Any)),
-    text => match text.strip_prefix("list<").and_then(|text| text.strip_suffix('>')) {
-      Some(item) => FeelType::List(Box::new(table_type(item))),
-      None => FeelType::Any,
-    },
   }
 }
 

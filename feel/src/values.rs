@@ -730,15 +730,11 @@ impl Value {
     }
   }
 
-  /// `true` when [Value::try_coerced] returns the value unchanged: a function definition
-  /// (whatever the target type), a built-in function whose type conforms to the target type,
-  /// or a value that conforms to it.
+  /// `true` when [Value::try_coerced] returns the value unchanged: a value that conforms to the
+  /// target type, a function value included (10.3.2.9.2): a function is kept only where its
+  /// type conforms, and is null elsewhere, as every other value.
   fn needs_no_coercion(&self, target_type: &FeelType) -> bool {
-    match self {
-      Value::FunctionDefinition(_) => true,
-      Value::BuiltInFunction(bif) if bif.feel_type().is_conformant(target_type) => true,
-      _ => self.is_conformant(target_type),
-    }
+    self.is_conformant(target_type)
   }
 
   /// The implicit conversions of [Value::try_coerced] of a value that needs one: from date to

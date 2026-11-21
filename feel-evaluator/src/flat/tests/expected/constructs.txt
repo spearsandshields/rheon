@@ -17099,11 +17099,11 @@ Boolean(false)
 Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
 
 instance_of_and_types #369 "(abs) instance of function<number> -> number"
-Boolean(false)
+Boolean(true)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #370 "(abs) instance of function<number> -> number"
-Boolean(false)
+Boolean(true)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #371 "(abs) instance of function<number, string> -> boolean"

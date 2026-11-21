@@ -469,15 +469,23 @@ impl Conformance {
         _ => false,
       },
       Value::FunctionDefinition(function) => match target {
+        // the parameters are contravariant: the target's parameter types conform to the
+        // function's, and the result covariant (10.3.2.9.2). A result type that is Any is one
+        // not declared: the result type of a function literal is not inferred, so it is not
+        // held against the target
         FeelType::Function(parameter_types, result_type) => {
           function.parameters().len() == parameter_types.len()
-            && function.result_type().is_conformant(result_type)
+            && (*function.result_type() == FeelType::Any || function.result_type().is_conformant(result_type))
             && function
               .parameters()
               .iter()
               .zip(parameter_types)
-              .all(|((_, parameter_type), target_type)| parameter_type.is_conformant(target_type))
+              .all(|((_, parameter_type), target_type)| target_type.is_conformant(parameter_type))
         }
+        _ => false,
+      },
+      Value::BuiltInFunction(bif) => match target {
+        FeelType::Function(parameter_types, result_type) => crate::signatures::conforms(bif, parameter_types, result_type),
         _ => false,
       },
       _ => false,

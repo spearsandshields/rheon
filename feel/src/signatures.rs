@@ -4,7 +4,9 @@
 //! parameters of one signature. A test of the evaluator invokes every signature by position and
 //! by name and checks that the function takes it.
 
+use crate::FeelType;
 use crate::bif::Bif;
+use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
 /// A parameter of a signature.
@@ -60,6 +62,85 @@ impl Signature {
       })
       .collect();
     format!("{name}({}): {}", parameters.join(", "), self.result)
+  }
+}
+
+/// Whether the built-in function `bif` is of the function type `parameters -> result` (DMN 1.7 Beta 1,
+/// 10.3.2.9.2): one of its signatures, from the table of signatures, takes that many arguments by
+/// position, every parameter type of the target conforms to the type of the parameter there, and
+/// every type its result can have conforms to the target's result type. A result written as the
+/// type of a parameter with several types (`abs(n: number or duration): number or duration`) is
+/// one function for each of them: its result is of the types of that parameter that the target
+/// gives it, so abs is a `function<number>->number`.
+pub fn conforms(bif: &Bif, parameters: &[FeelType], result: &FeelType) -> bool {
+  let Some(built_in) = of(bif) else {
+    return false;
+  };
+  built_in.signatures.iter().any(|signature| {
+    let declared = signature.parameters;
+    let required = declared.iter().filter(|parameter| !parameter.optional && !parameter.rest).count();
+    let rest = declared.last().filter(|parameter| parameter.rest);
+    if parameters.len() < required || (rest.is_none() && parameters.len() > declared.len()) {
+      return false;
+    }
+    let takes_target = |declared: &Option<FeelType>, target: &FeelType| match declared {
+      Some(declared) => target.is_conformant(declared),
+      None => matches!(target, FeelType::Function(..) | FeelType::Null),
+    };
+    let takes = parameters.iter().enumerate().all(|(place, target)| {
+      let Some(parameter) = declared.get(place).or(rest) else {
+        return false;
+      };
+      table_types(parameter.feel_type).any(|declared| takes_target(&declared, target))
+    });
+    // the parameter whose types the result follows, and the type the target gives it there
+    let follows = signature.result.contains(" or ").then(|| {
+      parameters
+        .iter()
+        .enumerate()
+        .find(|(place, _)| declared.get(*place).or(rest).is_some_and(|parameter| parameter.feel_type == signature.result))
+    });
+    let result_conforms = |declared: Option<FeelType>| declared.is_some_and(|declared| declared.is_conformant(result));
+    takes
+      && match follows.flatten() {
+        Some((_, target)) => table_types(signature.result).filter(|declared| takes_target(declared, target)).all(result_conforms),
+        None => table_types(signature.result).all(result_conforms),
+      }
+  })
+}
+
+/// The types that a type of the table of signatures stands for, several joined by `or`; `None`
+/// for `function`, which is every function type.
+fn table_types(text: &'static str) -> impl Iterator<Item = Option<FeelType>> {
+  text.split(" or ").flat_map(|text| {
+    let types: Vec<Option<FeelType>> = match text {
+      "duration" => vec![Some(FeelType::DaysAndTimeDuration), Some(FeelType::YearsAndMonthsDuration)],
+      "function" => vec![None],
+      text => vec![Some(table_type(text))],
+    };
+    types
+  })
+}
+
+/// The FEEL type of one type of the table: `list` and `range` take items of any type, a context
+/// any entries.
+fn table_type(text: &str) -> FeelType {
+  match text {
+    "number" => FeelType::Number,
+    "string" => FeelType::String,
+    "boolean" => FeelType::Boolean,
+    "date" => FeelType::Date,
+    "time" => FeelType::Time,
+    "date and time" => FeelType::DateTime,
+    "days and time duration" => FeelType::DaysAndTimeDuration,
+    "years and months duration" => FeelType::YearsAndMonthsDuration,
+    "context" => FeelType::Context(BTreeMap::new()),
+    "range" => FeelType::Range(Box::new(FeelType::Any)),
+    "list" => FeelType::List(Box::new(FeelType::Any)),
+    text => match text.strip_prefix("list<").and_then(|text| text.strip_suffix('>')) {
+      Some(item) => FeelType::List(Box::new(table_type(item))),
+      None => FeelType::Any,
+    },
   }
 }
 

@@ -425,7 +425,7 @@
   },
   {
     "expression": "abs instance of function<number> -> number",
-    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'. Function conformance (DT-009): abs of a number is a number.",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -459,8 +459,8 @@
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -468,7 +468,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }
@@ -482,7 +482,7 @@
       "expression": "abs instance of function<number> -> number",
       "errorMode": "strict"
     },
-    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'. Function conformance (DT-009): abs of a number is a number.",
     "old": {
       "error": {
         "kind": "evaluation",
@@ -497,8 +497,8 @@
       },
       "ok": true,
       "result": {
-        "display": "false",
-        "feel": "false",
+        "display": "true",
+        "feel": "true",
         "isNull": false,
         "type": "boolean",
         "typed": {
@@ -506,7 +506,7 @@
           "list": null,
           "simple": {
             "isNil": false,
-            "text": "false",
+            "text": "true",
             "type": "xsd:boolean"
           }
         }
