@@ -8,12 +8,22 @@ fn _0001() {
 
 #[test]
 fn _0002() {
-  te_null(false, &scope!(), r#"2 in ["a".."z"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#"2 in ["a".."z"]"#,
+    "comparison '>=' expected number on the right, as on the left, found string",
+  );
 }
 
 #[test]
 fn _0003() {
-  te_null(false, &scope!(), r#"2 in [1.."z"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#"2 in [1.."z"]"#,
+    "comparison '<=' expected number on the right, as on the left, found string",
+  );
 }
 
 #[test]
@@ -108,22 +118,42 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  te_null(false, &scope!(), r#" "k" in [1.."z"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" "k" in [1.."z"]"#,
+    "comparison '>=' expected string on the right, as on the left, found number",
+  );
 }
 
 #[test]
 fn _0023() {
-  te_null(false, &scope!(), r#" "k" in ["a"..34]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" "k" in ["a"..34]"#,
+    "comparison '<=' expected string on the right, as on the left, found number",
+  );
 }
 
 #[test]
 fn _0024() {
-  te_null(false, &scope!(), r#" @"2023-02-06" in ["2023-02-01"..@"2023-02-28"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"2023-02-06" in ["2023-02-01"..@"2023-02-28"]"#,
+    "comparison '>=' expected date on the right, as on the left, found string",
+  );
 }
 
 #[test]
 fn _0025() {
-  te_null(false, &scope!(), r#" @"2023-02-06" in [@"2023-02-01".."2023-02-28"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"2023-02-06" in [@"2023-02-01".."2023-02-28"]"#,
+    "comparison '<=' expected date on the right, as on the left, found string",
+  );
 }
 
 #[test]
@@ -132,7 +162,7 @@ fn _0026() {
     false,
     &scope!(),
     r#" @"2023-02-06T10:11:12" in ["2023-02-01T00:00:00"..@"2023-02-28T23:59:59"]"#,
-    "eval_in_range",
+    "comparison '>=' expected date and time on the right, as on the left, found string",
   );
 }
 
@@ -142,43 +172,78 @@ fn _0027() {
     false,
     &scope!(),
     r#" @"2023-02-06T10:11:12" in [@"2023-02-01T00:00:00".."2023-02-28T23:59:59"]"#,
-    "eval_in_range",
+    "comparison '<=' expected date and time on the right, as on the left, found string",
   );
 }
 
 #[test]
 fn _0028() {
-  te_null(false, &scope!(), r#" @"10:11:12" in ["00:00:00"..@"23:59:59"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"10:11:12" in ["00:00:00"..@"23:59:59"]"#,
+    "comparison '>=' expected time on the right, as on the left, found string",
+  );
 }
 
 #[test]
 fn _0029() {
-  te_null(false, &scope!(), r#" @"10:11:12" in [@"00:00:00".."23:59:59"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"10:11:12" in [@"00:00:00".."23:59:59"]"#,
+    "comparison '<=' expected time on the right, as on the left, found string",
+  );
 }
 
 #[test]
 fn _0030() {
-  te_null(false, &scope!(), r#" @"P5D" in [1..@"P5D"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"P5D" in [1..@"P5D"]"#,
+    "comparison '>=' expected days and time duration on the right, as on the left, found number",
+  );
 }
 
 #[test]
 fn _0031() {
-  te_null(false, &scope!(), r#" @"P5D" in [@"P1D"..5]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"P5D" in [@"P1D"..5]"#,
+    "comparison '<=' expected days and time duration on the right, as on the left, found number",
+  );
 }
 
 #[test]
 fn _0032() {
-  te_null(false, &scope!(), r#" @"P5Y" in [1..@"P5Y"]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"P5Y" in [1..@"P5Y"]"#,
+    "comparison '>=' expected years and months duration on the right, as on the left, found number",
+  );
 }
 
 #[test]
 fn _0033() {
-  te_null(false, &scope!(), r#" @"P5Y" in [@"P1Y"..5]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" @"P5Y" in [@"P1Y"..5]"#,
+    "comparison '<=' expected years and months duration on the right, as on the left, found number",
+  );
 }
 
 #[test]
 fn _0034() {
-  te_null(false, &scope!(), r#" true in [false..true]"#, "eval_in_range");
+  te_null(
+    false,
+    &scope!(),
+    r#" true in [false..true]"#,
+    "comparison '>=' expected a number, string, date, time, date and time, or duration on the left, found boolean",
+  );
 }
 
 #[test]

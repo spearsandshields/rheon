@@ -1,12 +1,14 @@
 //! Membership: `in` against every right-hand form (DMN 1.6 Table 56 and the unary tests of
 //! §10.3.2.9).
 
+use super::compare::{Order, compare_ge, compare_gt, compare_le, compare_lt, order};
 use crate::equality::Equality;
 use rheon_feel::IntervalType;
 use rheon_feel::message::arg;
 use rheon_feel::value_null;
 use rheon_feel::values::{TypeOf, VALUE_FALSE, VALUE_TRUE, Value};
 use std::borrow::Borrow;
+use std::cmp::Ordering;
 use std::collections::HashSet;
 
 /// FEEL `lhv in rhv`: the right-hand value selects the test (a value, a range, a list, a negated
@@ -37,8 +39,9 @@ pub(crate) fn in_operator(lhv: &Value, rhv: &Value, two_valued: bool) -> Value {
     }
     Value::ExpressionList(inner) => eval_in_list(&mut Equality::default(), lhv, inner, tests),
     Value::NegatedCommaList(inner) => eval_in_negated_list(&mut Equality::default(), lhv, inner, tests),
-    Value::UnaryEqual(inner) => eval_in_equal(&mut Equality::default(), lhv, inner),
-    Value::UnaryNotEqual(inner) => eval_in_not_equal(&mut Equality::default(), lhv, inner),
+    // `e1 in = e2` is `e1 = e2`, and `e1 in != e2` is `e1 != e2` (Table 56)
+    Value::UnaryEqual(inner) => super::compare::equal(lhv, inner),
+    Value::UnaryNotEqual(inner) => super::compare::not_equal(lhv, inner),
     Value::UnaryLess(inner) => eval_in_unary_less(lhv, inner),
     Value::UnaryLessOrEqual(inner) => eval_in_unary_less_or_equal(lhv, inner),
     Value::UnaryGreater(inner) => eval_in_unary_greater(lhv, inner),
@@ -215,132 +218,35 @@ fn eval_in_list_in_list(equality: &mut Equality, l_items: &[Value], r_items: &[V
   VALUE_FALSE
 }
 
+/// `e1 in` a range (DMN 1.7 Beta 1, Table 56): `e1 > e2 and e1 < e3`, with `>=` and `<=` for included
+/// endpoints, by the ordering kernel and the `and` of Table 51; an undefined endpoint has no
+/// comparison. So a value that has no order against an endpoint, or an endpoint written as null,
+/// gives null where the other comparison does not decide the answer.
 fn eval_in_range(lhv: &Value, start: &Value, start_type: IntervalType, end: &Value, end_type: IntervalType) -> Value {
-  match lhv {
-    Value::Number(value) => match start {
-      Value::Number(lv) => match end {
-        Value::Number(rv) => {
-          let start_ok = if start_type.closed() { value >= lv } else { value > lv };
-          let end_ok = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(start_ok && end_ok)
-        }
-        Value::Null(_) if end_type.undefined() => {
-          let start_in_range = if start_type.closed() { value >= lv } else { value > lv };
-          Value::Boolean(start_in_range)
-        }
-        Value::Null(_) => value_null!(),
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) if start_type.undefined() => match end {
-        Value::Number(rv) => {
-          let end_in_range = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(end_in_range)
-        }
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) => match end {
-        Value::Number(_) => value_null!(),
-        _ => value_null!("eval_in_range"),
-      },
-      _ => value_null!("eval_in_range"),
-    },
-    Value::String(value) => match start {
-      Value::String(lv) => match end {
-        Value::String(rv) => {
-          let start_ok = if start_type.closed() { value >= lv } else { value > lv };
-          let end_ok = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(start_ok && end_ok)
-        }
-        Value::Null(_) if end_type.opened() => Value::Boolean(if start_type.closed() { value >= lv } else { value > lv }),
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) if start_type.opened() => match end {
-        Value::String(rv) => Value::Boolean(if end_type.closed() { value <= rv } else { value < rv }),
-        _ => value_null!("eval_in_range"),
-      },
-      _ => value_null!("eval_in_range"),
-    },
-    Value::Date(value) => match start {
-      Value::Date(lv) => match end {
-        Value::Date(rv) => {
-          let start_ok = if start_type.closed() { value >= lv } else { value > lv };
-          let end_ok = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(start_ok && end_ok)
-        }
-        Value::Null(_) if end_type.opened() => Value::Boolean(if start_type.closed() { value >= lv } else { value > lv }),
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) if start_type.opened() => match end {
-        Value::Date(rv) => Value::Boolean(if end_type.closed() { value <= rv } else { value < rv }),
-        _ => value_null!("eval_in_range"),
-      },
-      _ => value_null!("eval_in_range"),
-    },
-    Value::Time(value) => match start {
-      Value::Time(lv) => match end {
-        Value::Time(rv) => {
-          let start_ok = if start_type.closed() { value >= lv } else { value > lv };
-          let end_ok = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(start_ok && end_ok)
-        }
-        Value::Null(_) if end_type.opened() => Value::Boolean(if start_type.closed() { value >= lv } else { value > lv }),
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) if start_type.opened() => match end {
-        Value::Time(rv) => Value::Boolean(if end_type.closed() { value <= rv } else { value < rv }),
-        _ => value_null!("eval_in_range"),
-      },
-      _ => value_null!("eval_in_range"),
-    },
-    Value::DateTime(value) => match start {
-      Value::DateTime(lv) => match end {
-        Value::DateTime(rv) => {
-          let start_ok = if start_type.closed() { value >= lv } else { value > lv };
-          let end_ok = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(start_ok && end_ok)
-        }
-        Value::Null(_) if end_type.opened() => Value::Boolean(if start_type.closed() { value >= lv } else { value > lv }),
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) if start_type.opened() => match end {
-        Value::DateTime(rv) => Value::Boolean(if end_type.closed() { value <= rv } else { value < rv }),
-        _ => value_null!("eval_in_range"),
-      },
-      _ => value_null!("eval_in_range"),
-    },
-    Value::YearsAndMonthsDuration(value) => match start {
-      Value::YearsAndMonthsDuration(lv) => match end {
-        Value::YearsAndMonthsDuration(rv) => {
-          let start_ok = if start_type.closed() { value >= lv } else { value > lv };
-          let end_ok = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(start_ok && end_ok)
-        }
-        Value::Null(_) if end_type.opened() => Value::Boolean(if start_type.closed() { value >= lv } else { value > lv }),
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) if start_type.opened() => match end {
-        Value::YearsAndMonthsDuration(rv) => Value::Boolean(if end_type.closed() { value <= rv } else { value < rv }),
-        _ => value_null!("eval_in_range"),
-      },
-      _ => value_null!("eval_in_range"),
-    },
-    Value::DaysAndTimeDuration(value) => match start {
-      Value::DaysAndTimeDuration(lv) => match end {
-        Value::DaysAndTimeDuration(rv) => {
-          let start_ok = if start_type.closed() { value >= lv } else { value > lv };
-          let end_ok = if end_type.closed() { value <= rv } else { value < rv };
-          Value::Boolean(start_ok && end_ok)
-        }
-        Value::Null(_) if end_type.opened() => Value::Boolean(if start_type.closed() { value >= lv } else { value > lv }),
-        _ => value_null!("eval_in_range"),
-      },
-      Value::Null(_) if start_type.opened() => match end {
-        Value::DaysAndTimeDuration(rv) => Value::Boolean(if end_type.closed() { value <= rv } else { value < rv }),
-        _ => value_null!("eval_in_range"),
-      },
-      _ => value_null!("eval_in_range"),
-    },
-    _ => value_null!("eval_in_range"),
+  let accept_start = if start_type.closed() { Ordering::is_ge } else { Ordering::is_gt };
+  let low = if start_type.undefined() { Some(true) } else { side(lhv, start, accept_start) };
+  if low == Some(false) {
+    return VALUE_FALSE;
+  }
+  let accept_end = if end_type.closed() { Ordering::is_le } else { Ordering::is_lt };
+  let high = if end_type.undefined() { Some(true) } else { side(lhv, end, accept_end) };
+  match (low, high) {
+    (_, Some(false)) => VALUE_FALSE,
+    (Some(true), Some(true)) => VALUE_TRUE,
+    // the null of the comparison that has no answer, with its reason
+    (None, _) if start_type.closed() => compare_ge(lhv.clone(), start.clone()),
+    (None, _) => compare_gt(lhv.clone(), start.clone()),
+    (_, _) if end_type.closed() => compare_le(lhv.clone(), end.clone()),
+    (_, _) => compare_lt(lhv.clone(), end.clone()),
+  }
+}
+
+/// The answer of comparing the tested value with an endpoint by the ordering kernel, or None when
+/// the comparison has none (values of other kinds, or without an order).
+fn side(lhv: &Value, endpoint: &Value, accept: fn(Ordering) -> bool) -> Option<bool> {
+  match order(lhv, endpoint) {
+    Order::Ordered(ordering) => Some(accept(ordering)),
+    Order::Indeterminate | Order::Unordered => None,
   }
 }
 
@@ -348,174 +254,19 @@ fn eval_in_equal(equality: &mut Equality, left: &Value, right: &Value) -> Value 
   if let Some(true) = equality.compare(left, right) { VALUE_TRUE } else { VALUE_FALSE }
 }
 
-fn eval_in_not_equal(equality: &mut Equality, left: &Value, right: &Value) -> Value {
-  if let Some(false) = equality.compare(left, right) { VALUE_TRUE } else { VALUE_FALSE }
-}
-
+/// `e1 in < e2` is `e1 < e2` (Table 56), and so for the other comparisons.
 fn eval_in_unary_less(left: &Value, right: &Value) -> Value {
-  match right {
-    Value::Number(r) => {
-      if let Value::Number(l) = left {
-        return Value::Boolean(*l < *r);
-      }
-    }
-    Value::String(r) => {
-      if let Value::String(l) = left {
-        return Value::Boolean(l < r);
-      }
-    }
-    Value::Date(r) => {
-      if let Value::Date(l) = left {
-        return Value::Boolean(l < r);
-      }
-    }
-    Value::Time(r) => {
-      if let Value::Time(l) = left {
-        return Value::Boolean(l < r);
-      }
-    }
-    Value::DateTime(r) => {
-      if let Value::DateTime(l) = left {
-        return Value::Boolean(l < r);
-      }
-    }
-    Value::YearsAndMonthsDuration(r) => {
-      if let Value::YearsAndMonthsDuration(l) = left {
-        return Value::Boolean(l < r);
-      }
-    }
-    Value::DaysAndTimeDuration(r) => {
-      if let Value::DaysAndTimeDuration(l) = left {
-        return Value::Boolean(l < r);
-      }
-    }
-    _ => {}
-  }
-  value_null!("eval_in_unary_less")
+  compare_lt(left.clone(), right.clone())
 }
 
 fn eval_in_unary_less_or_equal(left: &Value, right: &Value) -> Value {
-  match right {
-    Value::Number(r) => {
-      if let Value::Number(l) = left {
-        return Value::Boolean(*l <= *r);
-      }
-    }
-    Value::String(r) => {
-      if let Value::String(l) = left {
-        return Value::Boolean(l <= r);
-      }
-    }
-    Value::Date(r) => {
-      if let Value::Date(l) = left {
-        return Value::Boolean(l <= r);
-      }
-    }
-    Value::Time(r) => {
-      if let Value::Time(l) = left {
-        return Value::Boolean(l <= r);
-      }
-    }
-    Value::DateTime(r) => {
-      if let Value::DateTime(l) = left {
-        return Value::Boolean(l <= r);
-      }
-    }
-    Value::YearsAndMonthsDuration(r) => {
-      if let Value::YearsAndMonthsDuration(l) = left {
-        return Value::Boolean(l <= r);
-      }
-    }
-    Value::DaysAndTimeDuration(r) => {
-      if let Value::DaysAndTimeDuration(l) = left {
-        return Value::Boolean(l <= r);
-      }
-    }
-    _ => {}
-  }
-  value_null!("eval_in_unary_less_or_equal")
+  compare_le(left.clone(), right.clone())
 }
 
 fn eval_in_unary_greater(left: &Value, right: &Value) -> Value {
-  match right {
-    Value::Number(r) => {
-      if let Value::Number(l) = left {
-        return Value::Boolean(*l > *r);
-      }
-    }
-    Value::String(r) => {
-      if let Value::String(l) = left {
-        return Value::Boolean(l > r);
-      }
-    }
-    Value::Date(r) => {
-      if let Value::Date(l) = left {
-        return Value::Boolean(l > r);
-      }
-    }
-    Value::Time(r) => {
-      if let Value::Time(l) = left {
-        return Value::Boolean(l > r);
-      }
-    }
-    Value::DateTime(r) => {
-      if let Value::DateTime(l) = left {
-        return Value::Boolean(l > r);
-      }
-    }
-    Value::YearsAndMonthsDuration(r) => {
-      if let Value::YearsAndMonthsDuration(l) = left {
-        return Value::Boolean(l > r);
-      }
-    }
-    Value::DaysAndTimeDuration(r) => {
-      if let Value::DaysAndTimeDuration(l) = left {
-        return Value::Boolean(l > r);
-      }
-    }
-    _ => {}
-  }
-  value_null!("eval_in_unary_greater")
+  compare_gt(left.clone(), right.clone())
 }
 
 fn eval_in_unary_greater_or_equal(left: &Value, right: &Value) -> Value {
-  match right {
-    Value::Number(r) => {
-      if let Value::Number(l) = left {
-        return Value::Boolean(*l >= *r);
-      }
-    }
-    Value::String(r) => {
-      if let Value::String(left_value) = left {
-        return Value::Boolean(left_value >= r);
-      }
-    }
-    Value::Date(r) => {
-      if let Value::Date(l) = left {
-        return Value::Boolean(l >= r);
-      }
-    }
-    Value::Time(r) => {
-      if let Value::Time(l) = left {
-        return Value::Boolean(l >= r);
-      }
-    }
-    Value::DateTime(r) => {
-      if let Value::DateTime(l) = left {
-        return Value::Boolean(l >= r);
-      }
-    }
-    Value::YearsAndMonthsDuration(r) => {
-      if let Value::YearsAndMonthsDuration(l) = left {
-        return Value::Boolean(l >= r);
-      }
-    }
-    Value::DaysAndTimeDuration(r) => {
-      if let Value::DaysAndTimeDuration(l) = left {
-        return Value::Boolean(l >= r);
-      }
-    }
-    _ => {}
-  }
-  value_null!("eval_in_unary_greater_or_equal")
+  compare_ge(left.clone(), right.clone())
 }

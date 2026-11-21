@@ -314,7 +314,7 @@ fn a_time_without_an_offset_is_ordered_against_one_with_an_offset_only_beyond_14
     false,
     scope,
     r#"time("10:00:00") between time("09:00:00Z") and time("11:00:00Z")"#,
-    &unordered("between", "09:00:00Z", "10:00:00"),
+    &unordered("between", "10:00:00", "09:00:00Z"),
   );
   te_bool(false, scope, r#"time("23:30:00") between time("01:00:00Z") and time("23:59:59")"#, true);
 }

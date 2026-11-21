@@ -1461,7 +1461,7 @@
   },
   {
     "expression": "time(\"10:00:00\") between time(\"09:00:00Z\") and time(\"11:00:00Z\")",
-    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule.",
+    "why": "TMP-6: a time without an offset is a time of day at some place and is only sometimes comparable to a time with an offset (DMN 1.6, 10.3.2.3.4, which refers to the order of XML Schema Part 2: determinate only when the two are more than 14 hours apart). Such a comparison was false for <, <=, > and >=; it is null where the order is not determinate and the order where it is. The two are never equal, as before. A date and time without an offset against one with an offset follows the same rule. The operands are named in the order of the comparison that has no answer (lhv against the endpoint), since between is that comparison (DT-027).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -1489,15 +1489,15 @@
       "diagnostics": {
         "count": 1,
         "messages": [
-          "comparison 'between' expected two times that have an order, found 09:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
+          "comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart"
         ]
       },
       "ok": true,
       "result": {
         "display": "null",
-        "feel": "null(comparison 'between' expected two times that have an order, found 09:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
+        "feel": "null(comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart)",
         "isNull": true,
-        "nullReason": "comparison 'between' expected two times that have an order, found 09:00:00Z and 10:00:00: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
+        "nullReason": "comparison 'between' expected two times that have an order, found 10:00:00 and 09:00:00Z: a time without an offset and a time with one have an order only when they are more than 14 hours apart",
         "type": "Null",
         "typed": {
           "components": null,

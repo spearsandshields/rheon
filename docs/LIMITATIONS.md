@@ -69,10 +69,10 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   offset. There are no DST rules for other dates. Without it, local time is UTC on every target.
 - **Temporal comparisons.** Date-times and times with offsets or zones compare as instants
   (`@"…T10:00:00+01:00" < @"…T10:00:00Z"` is true, `@"10:00:00+02:00" = @"08:00:00Z"` is true;
-  `is()` stays zone-strict). A zone-less (local) value is only ordered against another local
-  value: `<`, `>`, `<=`, `>=` between a local and a zoned date-time are false, like dsntk's
-  subtraction of the two (null), although `=` applies the fixed offset. `max` and `min` take items
-  of any one ordered type and compare them as `<` does.
+  `is()` compares the value itself, zone included). A zone-less (local) value has an order against a
+  zoned one only when the two are more than 14 hours apart (10.3.2.3.4); otherwise `<`, `<=`, `>`,
+  `>=`, ranges, unary comparisons, `between`, `min` and `max` give null with a reason, and `=` is
+  false.
 - **Unary-test semantics.** The engine evaluates `? in (<tests>)`. A boolean
   expression test such as `? > 5` is satisfied when it is true. The usual forms `> 5`,
   `[1..10]` and `"a", "b"` work; a tested value of another kind than the tests gives null. The endpoint of a comparison

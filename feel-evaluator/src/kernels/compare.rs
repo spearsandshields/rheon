@@ -6,28 +6,6 @@ use rheon_feel::value_null;
 use rheon_feel::values::{TypeOf, Value};
 use rheon_feel_temporal::FeelTime;
 
-/// Prepares null value with error message for second argument in `between` operator.
-macro_rules! between_null2 {
-  ($expected:literal, $actual:expr) => {
-    value_null!(
-      "expected {} as a second argument in 'between' operator, actual value type is {}",
-      $expected,
-      arg(&TypeOf($actual))
-    )
-  };
-}
-
-/// Prepares null value with error message for third argument in `between` operator.
-macro_rules! between_null3 {
-  ($expected:literal, $actual:expr) => {
-    value_null!(
-      "expected {} as a third argument in 'between' operator, actual value type is {}",
-      $expected,
-      arg(&TypeOf($actual))
-    )
-  };
-}
-
 /// FEEL `lhs = rhs` (DMN 1.6 Table 53, Table 54): a boolean, or null with an error when the operands
 /// cannot be compared.
 pub(crate) fn equal(lhs: &Value, rhs: &Value) -> Value {
@@ -158,99 +136,42 @@ fn unordered(symbol: &str, lhv: &Value, rhv: &Value) -> Value {
   }
 }
 
-/// FEEL `lhv between mhv and rhv` (DMN 1.6 Table 55): the three values are evaluated before
-/// any is checked; a null `lhv` is the result, and values of other kinds give an error.
+/// FEEL `lhv between mhv and rhv` (DMN 1.7 Beta 1, Table 55): `lhv >= mhv and lhv <= rhv` by the
+/// ordering kernel and the `and` of Table 51, the three values evaluated before. One comparison
+/// that is false decides it, whatever the other one is (`5 between 10 and null` is false); where
+/// neither decides, the null names the operand that has no order with `lhv`, and a null `lhv` is
+/// the result.
 pub(crate) fn between(lhv: Value, mhv: Value, rhv: Value) -> Value {
-  match lhv {
-    Value::Number(lh) => {
-      if let Value::Number(mh) = mhv {
-        if let Value::Number(rh) = rhv {
-          Value::Boolean(mh <= lh && lh <= rh)
-        } else {
-          between_null3!("number", &rhv)
-        }
-      } else {
-        between_null2!("number", &mhv)
-      }
-    }
-    Value::String(lh) => {
-      if let Value::String(mh) = mhv {
-        if let Value::String(rh) = rhv {
-          Value::Boolean(mh <= lh && lh <= rh)
-        } else {
-          between_null3!("string", &rhv)
-        }
-      } else {
-        between_null2!("string", &mhv)
-      }
-    }
-    Value::Date(lh) => {
-      if let Value::Date(mh) = mhv {
-        if let Value::Date(rh) = rhv {
-          Value::Boolean(mh <= lh && lh <= rh)
-        } else {
-          between_null3!("date", &rhv)
-        }
-      } else {
-        between_null2!("date", &mhv)
-      }
-    }
-    Value::Time(lh) => {
-      if let Value::Time(mh) = mhv {
-        if let Value::Time(rh) = rhv {
-          if mh.partial_cmp(&lh).is_none() {
-            return times_without_an_order("between", &mh, &lh);
-          }
-          if lh.partial_cmp(&rh).is_none() {
-            return times_without_an_order("between", &lh, &rh);
-          }
-          Value::Boolean(mh <= lh && lh <= rh)
-        } else {
-          between_null3!("time", &rhv)
-        }
-      } else {
-        between_null2!("time", &mhv)
-      }
-    }
-    Value::DateTime(lh) => {
-      if let Value::DateTime(mh) = mhv {
-        if let Value::DateTime(rh) = rhv {
-          Value::Boolean(mh <= lh && lh <= rh)
-        } else {
-          between_null3!("date and time", &rhv)
-        }
-      } else {
-        between_null2!("date and time", &mhv)
-      }
-    }
-    Value::DaysAndTimeDuration(lh) => {
-      if let Value::DaysAndTimeDuration(mh) = mhv {
-        if let Value::DaysAndTimeDuration(rh) = rhv {
-          Value::Boolean(mh <= lh && lh <= rh)
-        } else {
-          between_null3!("days and time duration", &rhv)
-        }
-      } else {
-        between_null2!("days and time duration", &mhv)
-      }
-    }
-    Value::YearsAndMonthsDuration(lh) => {
-      if let Value::YearsAndMonthsDuration(mh) = mhv {
-        if let Value::YearsAndMonthsDuration(rh) = rhv {
-          Value::Boolean(mh <= lh && lh <= rh)
-        } else {
-          between_null3!("years and months duration", &rhv)
-        }
-      } else {
-        between_null2!("years and months duration", &mhv)
-      }
-    }
-    other => {
-      if other.is_null() {
-        other
-      } else {
-        value_null!("unexpected value type in 'between' operator: {}", arg(&TypeOf(&other)))
-      }
-    }
+  let low = order(&lhv, &mhv);
+  let high = order(&lhv, &rhv);
+  match (&low, &high) {
+    (Order::Ordered(low), _) if low.is_lt() => return Value::Boolean(false),
+    (_, Order::Ordered(high)) if high.is_gt() => return Value::Boolean(false),
+    (Order::Ordered(_), Order::Ordered(_)) => return Value::Boolean(true),
+    _ => {}
+  }
+  if lhv.is_null() {
+    return lhv;
+  }
+  let ordered = matches!(
+    lhv,
+    Value::Number(_) | Value::String(_) | Value::Date(_) | Value::DateTime(_) | Value::Time(_) | Value::DaysAndTimeDuration(_) | Value::YearsAndMonthsDuration(_)
+  );
+  if !ordered {
+    return value_null!("unexpected value type in 'between' operator: {}", arg(&TypeOf(&lhv)));
+  }
+  // the operand without an answer: the second one unless it has one
+  let (operand, which, order) = match low {
+    Order::Ordered(_) => (&rhv, "third", high),
+    _ => (&mhv, "second", low),
+  };
+  match order {
+    Order::Indeterminate => without_an_order("between", &lhv, operand),
+    _ => value_null!(
+      "expected {} as a {} argument in 'between' operator, actual value type is {}",
+      arg(&TypeOf(&lhv)),
+      which,
+      arg(&TypeOf(operand))
+    ),
   }
 }
