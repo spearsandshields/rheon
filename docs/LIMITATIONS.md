@@ -104,6 +104,14 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *Equality of the two duration kinds* (9.4 against Table 53). `@"P1D" = @"P1M"` and
     `@"P0D" = @"P0Y"` are null: Table 53 requires one kind, and TCK 0068 (`P1Y = P365D` is null)
     reads it so; 9.4 says the kinds compare.
+  - *B-FEEL results that stay null* (11.1 against 11.2-11.11). 11.1 says a B-FEEL null only means
+    missing data, but the sections that follow give results only for boolean operators and
+    functions, functions by their result type, and the arithmetic operators. Where none applies,
+    B-FEEL keeps FEEL's null: unary negation (`-"a"`), paths and filters on null, `for` (its result
+    is a list of the body's results), and the functions whose result has no default: `context`,
+    `context merge`, `context put`, `get value`, `max`, `min` (a context or any type). So does an
+    arithmetic conversion whose FEEL operation on the converted values still fails (11.9-11.10).
+    Their FEEL errors stay errors.
   - *Range literals out of order or of two types* (10.3.2.7 against Tables 56 and 79). 10.3.2.7 says
     the endpoints of `[a..b]` "must be of equivalent types" and ordered, but gives no answer for a
     range that is not; the tests on ranges are defined by comparisons of the endpoints (Table 56),
