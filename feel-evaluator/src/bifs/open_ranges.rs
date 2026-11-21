@@ -1,13 +1,14 @@
-//! The range functions on a range with an undefined endpoint.
+//! The range functions (DMN 1.7 Beta 1, 10.3.4.7, Table 79).
 //!
-//! DMN 1.6 Table 42: a range written with one endpoint (`< 10`, `range("(..10)")`) has the other
-//! endpoint undefined and not included. Table 79 gives each range function as a FEEL formula
-//! over the endpoints of its arguments and whether they are included ("Evaluates to true if and
-//! only if"). An undefined endpoint is null there (`(< 10).start`), so the formula is evaluated
-//! with the three values of FEEL: an ordering comparison with an undefined endpoint is null, an
-//! equality with it is true for two undefined endpoints and false otherwise, and `and`, `or` and
-//! `not` are those of Table 51. The result is the value of the formula: true or false where the
-//! endpoints that are defined decide it, and null with an error where they do not.
+//! Table 79 gives each range function as a FEEL formula over its points and the endpoints of its
+//! ranges and whether they are included ("Evaluates to true if and only if"). Every argument is
+//! taken through that formula, with the comparisons of FEEL: `<` on values of one ordered type,
+//! null where they have no order (a time without an offset against one with an offset, 10.3.2.3.4),
+//! and `=` of FEEL. A range written with one endpoint (`< 10`, `range("(..10)")`, Table 42) has
+//! the other endpoint undefined and not included; it is null in the formula (`(< 10).start`), so an
+//! ordering comparison with it is null, and an equality with it is true for two undefined endpoints
+//! and false otherwise. `and`, `or` and `not` are those of Table 51. The result is the value of the
+//! formula: true or false where the values decide it, and null with an error where they do not.
 
 use crate::equality::{eval_ternary_equality, range_parts};
 use crate::kernels::compare_lt;
@@ -122,24 +123,27 @@ fn operand(value: &Value) -> Operand<'_> {
   }
 }
 
-/// The value of the range function `relation` on `value1` and `value2` when either is a range
-/// with an undefined endpoint, and the values that are there are of one ordered type. None
-/// otherwise: the function takes its arguments as for ranges with both endpoints.
-pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Option<Value> {
+/// The value of the range function `relation` on `value1` and `value2` (Table 79): a boolean, or
+/// null with an error where the values do not decide the formula. When the points and the defined
+/// endpoints are not values of one ordered type, or the function has no signature for the two
+/// arguments, null with an error that names the argument that does not fit.
+pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Value {
   let (first, second) = (operand(value1), operand(value2));
+  let Some(truth) = one_ordered_type(&[first, second]).then(|| formula(relation, first, second)).flatten() else {
+    return invalid(relation, value1, value2);
+  };
   let open = |operand: &Operand| matches!(operand, Operand::Range(range) if range.start.is_none() || range.end.is_none());
   let named = if open(&first) {
     value1
   } else if open(&second) {
     value2
   } else {
-    return None;
+    return match truth {
+      Some(result) => Value::Boolean(result),
+      None => value_null!("[{}] expected values that have an order, found {} and {}", relation.name(), arg(value1), arg(value2)),
+    };
   };
-  if !one_ordered_type(&[first, second]) {
-    return None;
-  }
-  let truth = formula(relation, first, second)?;
-  Some(match truth {
+  match truth {
     Some(result) => Value::Boolean(result),
     None => value_null!(
       "[{}] expected endpoints that decide the result, found the range {} with an undefined endpoint{}",
@@ -152,7 +156,47 @@ pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Op
         _ => "",
       }
     ),
-  })
+  }
+}
+
+/// The error of a range function given arguments it does not take. The first argument that is
+/// no point or range of an ordered type is named; when the first one is, the second is named, with
+/// the type the first one asks for: `number or range<number>`, or `range<number>` where the
+/// function takes only ranges there.
+#[cold]
+#[inline(never)]
+fn invalid(relation: Relation, value1: &Value, value2: &Value) -> Value {
+  use Relation::*;
+  // whether the function takes a point (and not only a range) as its first or second argument
+  let (point1, point2) = match relation {
+    Before | After | Coincides => (true, true),
+    Finishes | Starts | During => (true, true),
+    FinishedBy | StartedBy | Includes => (false, true),
+    Meets | MetBy | Overlaps | OverlapsBefore | OverlapsAfter => (false, false),
+  };
+  let generic = |point: bool| {
+    if point {
+      "scalar or range of scalars".to_string()
+    } else {
+      "range of scalars".to_string()
+    }
+  };
+  let fits = |value: &Value, point: bool| !matches!(value, Value::Null(_)) && one_ordered_type(&[operand(value)]) && (point || matches!(operand(value), Operand::Range(_)));
+  if !fits(value1, point1) {
+    return crate::macros::invalid_argument_type!(module "core", relation.name(), generic(point1), value1);
+  }
+  // the kind the first argument holds: its point, or a defined endpoint of its range
+  let kind = match operand(value1) {
+    Operand::Point(point) => Some(point),
+    Operand::Range(range) => range.start.or(range.end),
+  }
+  .map(|value| rheon_feel::values::TypeOf(value).to_string());
+  let expected = match kind {
+    Some(kind) if point2 => format!("{kind} or range<{kind}>"),
+    Some(kind) => format!("range<{kind}>"),
+    None => generic(point2),
+  };
+  crate::macros::invalid_argument_type!(module "core", relation.name(), expected, value2)
 }
 
 /// Whether the points and the defined endpoints of `operands` are values of one ordered type.
@@ -179,6 +223,9 @@ fn formula(relation: Relation, first: Operand, second: Operand) -> Option<Truth>
   use Operand::{Point, Range};
   let point = |value| Some(value);
   Some(match (relation, first, second) {
+    (Relation::Before, Point(a), Point(b)) => lt(point(a), point(b)),
+    (Relation::After, Point(a), Point(b)) => gt(point(a), point(b)),
+    (Relation::Coincides, Point(a), Point(b)) => eq(point(a), point(b)),
     (Relation::Before, Point(p), Range(r)) => or(lt(point(p), r.start), and(eq(point(p), r.start), Some(!r.start_in))),
     (Relation::Before, Range(r), Point(p)) => or(lt(r.end, point(p)), and(eq(r.end, point(p)), Some(!r.end_in))),
     (Relation::Before, Range(a), Range(b)) => or(lt(a.end, b.start), and(Some(!a.end_in || !b.start_in), eq(a.end, b.start))),

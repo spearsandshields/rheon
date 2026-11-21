@@ -12,7 +12,7 @@ fn _0002() {
     false,
     &scope!(),
     r#"starts(duration("P1D"),[1..20])"#,
-    "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is days and time duration",
+    "[core::starts] invalid argument type, expected days and time duration or range<days and time duration>, actual type is range<number>",
   );
 }
 
@@ -187,7 +187,7 @@ fn _0026() {
     false,
     &scope!(),
     r#"starts("a", [1..20])"#,
-    "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is string",
+    "[core::starts] invalid argument type, expected string or range<string>, actual type is range<number>",
   );
 }
 
@@ -197,6 +197,6 @@ fn _0027() {
     false,
     &scope!(),
     r#"starts(["a".."z"], [1..20])"#,
-    "[core::starts] invalid argument type, expected scalar or range of scalars, actual type is range<string>",
+    "[core::starts] invalid argument type, expected string or range<string>, actual type is range<number>",
   );
 }

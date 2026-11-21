@@ -728,12 +728,7 @@ fn _0109() {
 
 #[test]
 fn _0110() {
-  te_null(
-    false,
-    &scope!(),
-    r#"before("abc","bcd")"#,
-    r#"[core::before] invalid argument type, expected scalar or range of scalars, actual type is string"#,
-  );
+  te_bool(false, &scope!(), r#"before("abc","bcd")"#, true);
 }
 
 #[test]
@@ -748,5 +743,30 @@ fn _0112() {
     &scope!(),
     r#"before([date("2021-01-01")..date("2021-12-31")],[date("2022-01-01")..date("2022-12-31")])"#,
     true,
+  );
+}
+
+#[test]
+fn _0113() {
+  // every range function is the formula of Table 79, with FEEL's comparisons (10.3.4.7)
+  let scope = &scope!();
+  te_bool(false, scope, r#"before("a", "b")"#, true);
+  te_bool(false, scope, r#"coincides("a", "a")"#, true);
+  te_bool(false, scope, r#"includes(["a".."z"], "m")"#, true);
+  te_bool(false, scope, r#"meets([1..5), (5..10])"#, false);
+  te_bool(false, scope, r#"meets([1..5], [5..10])"#, true);
+  te_bool(false, scope, r#"met by((5..10], [1..5))"#, false);
+  te_bool(false, scope, r#"finishes([1..10], [5..10])"#, false);
+  te_bool(false, scope, r#"finishes([5..10], [1..10])"#, true);
+  te_bool(false, scope, r#"finished by([5..10], [1..10])"#, false);
+  te_bool(false, scope, r#"started by([1..5], [1..10])"#, false);
+  te_bool(false, scope, r#"started by([1..10], [1..5])"#, true);
+  te_bool(false, scope, r#"includes([5..5), 5)"#, true);
+  // a time without an offset has no order against one with an offset within 14 hours
+  te_null(
+    false,
+    scope,
+    r#"before(time("10:00:00"), time("10:00:00+02:00"))"#,
+    r#"[before] expected values that have an order, found 10:00:00 and 10:00:00+02:00"#,
   );
 }

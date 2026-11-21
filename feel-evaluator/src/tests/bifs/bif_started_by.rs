@@ -32,7 +32,7 @@ fn _0006() {
     false,
     &scope!(),
     r#"started by([1..20],["a".."z"])"#,
-    "[core::started by] invalid argument type, expected range<number>, actual type is range<string>",
+    "[core::started by] invalid argument type, expected number or range<number>, actual type is range<string>",
   );
 }
 
@@ -77,7 +77,7 @@ fn _0011() {
     false,
     &scope!(),
     r#"started by([date("2022-01-01")..date("2022-02-01")],[1..10])"#,
-    "[core::started by] invalid argument type, expected range<date>, actual type is range<number>",
+    "[core::started by] invalid argument type, expected date or range<date>, actual type is range<number>",
   );
 }
 
@@ -117,7 +117,7 @@ fn _0015() {
     false,
     &scope!(),
     r#"started by([date and time("2022-01-01T00:00:00")..date and time("2022-02-01T23:59:59")],[1..10])"#,
-    "[core::started by] invalid argument type, expected range<date and time>, actual type is range<number>",
+    "[core::started by] invalid argument type, expected date and time or range<date and time>, actual type is range<number>",
   );
 }
 
@@ -152,7 +152,7 @@ fn _0019() {
     false,
     &scope!(),
     r#"started by([time("00:00:00")..time("23:59:59")],[1..10])"#,
-    "[core::started by] invalid argument type, expected range<time>, actual type is range<number>",
+    "[core::started by] invalid argument type, expected time or range<time>, actual type is range<number>",
   );
 }
 
@@ -187,7 +187,7 @@ fn _0023() {
     false,
     &scope!(),
     r#"started by([duration("P1D")..duration("P10D")],[1..10])"#,
-    "[core::started by] invalid argument type, expected range<days and time duration>, actual type is range<number>",
+    "[core::started by] invalid argument type, expected days and time duration or range<days and time duration>, actual type is range<number>",
   );
 }
 
@@ -222,7 +222,7 @@ fn _0027() {
     false,
     &scope!(),
     r#"started by([duration("P1Y")..duration("P10Y")],[1..10])"#,
-    "[core::started by] invalid argument type, expected range<years and months duration>, actual type is range<number>",
+    "[core::started by] invalid argument type, expected years and months duration or range<years and months duration>, actual type is range<number>",
   );
 }
 
@@ -302,7 +302,7 @@ fn _0036() {
     false,
     &scope!(),
     r#"started by(["a".."z"],[1..20])"#,
-    "[core::started by] invalid argument type, expected scalar or range<scalar>, actual type is range<string>",
+    "[core::started by] invalid argument type, expected string or range<string>, actual type is range<number>",
   );
 }
 
@@ -312,6 +312,6 @@ fn _0037() {
     false,
     &scope!(),
     r#"started by("a",[1..20])"#,
-    "[core::started by] invalid argument type, expected range<scalar>, actual type is string",
+    "[core::started by] invalid argument type, expected range of scalars, actual type is string",
   );
 }

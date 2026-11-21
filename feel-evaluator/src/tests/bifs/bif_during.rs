@@ -78,7 +78,7 @@ fn _0014() {
 
 #[test]
 fn _0015() {
-  te_bool(false, &scope!(), r#"during(10,[20..10])"#, false);
+  te_bool(false, &scope!(), r#"during(10,[20..10])"#, true);
 }
 
 #[test]

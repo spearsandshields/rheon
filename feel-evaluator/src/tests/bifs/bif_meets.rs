@@ -187,6 +187,6 @@ fn _0025() {
     false,
     &scope!(),
     r#"meets(["a".."b"],[time("11:59:59")..time("23:59:59")])"#,
-    "[core::meets] invalid argument type, expected range of scalars, actual type is range<string>",
+    "[core::meets] invalid argument type, expected range<string>, actual type is range<time>",
   );
 }

@@ -197,6 +197,6 @@ fn _0023() {
     false,
     &scope!(),
     r#"overlaps(1, [date("2022-12-28")..date("2022-12-31")])"#,
-    "[core::overlaps] invalid argument type, expected range<scalar>, actual type is number",
+    "[core::overlaps] invalid argument type, expected range of scalars, actual type is number",
   );
 }

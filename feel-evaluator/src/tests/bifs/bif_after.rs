@@ -227,7 +227,7 @@ fn _0039() {
     false,
     &scope!(),
     r#"after(11,[date("2021-01-01")..date("2021-05-30")])"#,
-    "[core::after] invalid argument type, expected range of numbers, actual type is range<date>",
+    "[core::after] invalid argument type, expected number or range<number>, actual type is range<date>",
   );
 }
 
@@ -247,7 +247,7 @@ fn _0042() {
     false,
     &scope!(),
     r#"after(date("2021-06-01"),[time("00:00:00")..time("10:11:11")])"#,
-    "[core::after] invalid argument type, expected range of dates, actual type is range<time>",
+    "[core::after] invalid argument type, expected date or range<date>, actual type is range<time>",
   );
 }
 
@@ -257,7 +257,7 @@ fn _0043() {
     false,
     &scope!(),
     r#"after(date("2021-06-01"),10.0)"#,
-    "[core::after] invalid argument type, expected date or range of dates, actual type is number",
+    "[core::after] invalid argument type, expected date or range<date>, actual type is number",
   );
 }
 
@@ -277,7 +277,7 @@ fn _0046() {
     false,
     &scope!(),
     r#"after(time("10:11:12"),[1..10])"#,
-    "[core::after] invalid argument type, expected range of times, actual type is range<number>",
+    "[core::after] invalid argument type, expected time or range<time>, actual type is range<number>",
   );
 }
 
@@ -287,7 +287,7 @@ fn _0047() {
     false,
     &scope!(),
     r#"after(time("10:11:12"),1.0)"#,
-    "[core::after] invalid argument type, expected time or range of times, actual type is number",
+    "[core::after] invalid argument type, expected time or range<time>, actual type is number",
   );
 }
 
@@ -317,7 +317,7 @@ fn _0050() {
     false,
     &scope!(),
     r#"after(date and time("2021-01-01T10:11:12"),[1..10])"#,
-    "[core::after] invalid argument type, expected range of date and times, actual type is range<number>",
+    "[core::after] invalid argument type, expected date and time or range<date and time>, actual type is range<number>",
   );
 }
 
@@ -327,7 +327,7 @@ fn _0051() {
     false,
     &scope!(),
     r#"after(date and time("2021-01-01T10:11:12"),1.0)"#,
-    "[core::after] invalid argument type, expected date and time or range of date and times, actual type is number",
+    "[core::after] invalid argument type, expected date and time or range<date and time>, actual type is number",
   );
 }
 
@@ -347,7 +347,7 @@ fn _0054() {
     false,
     &scope!(),
     r#"after(duration("P1DT10H11M12S"),[1..10])"#,
-    "[core::after] invalid argument type, expected range of date and time durations, actual type is range<number>",
+    "[core::after] invalid argument type, expected days and time duration or range<days and time duration>, actual type is range<number>",
   );
 }
 
@@ -357,7 +357,7 @@ fn _0055() {
     false,
     &scope!(),
     r#"after(duration("P1DT10H11M12S"),1.0)"#,
-    "[core::after] invalid argument type, expected date and time duration or range of date and time durations, actual type is number",
+    "[core::after] invalid argument type, expected days and time duration or range<days and time duration>, actual type is number",
   );
 }
 
@@ -377,7 +377,7 @@ fn _0058() {
     false,
     &scope!(),
     r#"after(duration("P2Y1M"),[1..10])"#,
-    "[core::after] invalid argument type, expected range of years and months durations, actual type is range<number>",
+    "[core::after] invalid argument type, expected years and months duration or range<years and months duration>, actual type is range<number>",
   );
 }
 
@@ -387,7 +387,7 @@ fn _0059() {
     false,
     &scope!(),
     r#"after(duration("P2Y1M"),1.0)"#,
-    "[core::after] invalid argument type, expected years and months duration or range of years and months durations, actual type is number",
+    "[core::after] invalid argument type, expected years and months duration or range<years and months duration>, actual type is number",
   );
 }
 
@@ -597,7 +597,7 @@ fn _0093() {
     false,
     &scope!(),
     r#"after(range1:[11..20],range2:[date("2020-11-18")..date("2021-01-05")])"#,
-    "[core::after] invalid argument type, expected range of numbers, actual type is range<date>",
+    "[core::after] invalid argument type, expected number or range<number>, actual type is range<date>",
   );
 }
 
@@ -607,7 +607,7 @@ fn _0094() {
     false,
     &scope!(),
     r#"after([11..20], null)"#,
-    "[core::after] invalid argument type, expected number or range of numbers, actual type is Null",
+    "[core::after] invalid argument type, expected number or range<number>, actual type is Null",
   );
 }
 
@@ -647,7 +647,7 @@ fn _0098() {
     false,
     &scope!(),
     r#"after([date("2021-01-06")..date("2021-01-23")], null)"#,
-    "[core::after] invalid argument type, expected date or range of dates, actual type is Null",
+    "[core::after] invalid argument type, expected date or range<date>, actual type is Null",
   );
 }
 
@@ -657,7 +657,7 @@ fn _0099() {
     false,
     &scope!(),
     r#"after([date("2021-01-06")..date("2021-01-23")], [1..10])"#,
-    "[core::after] invalid argument type, expected range of dates, actual type is range<number>",
+    "[core::after] invalid argument type, expected date or range<date>, actual type is range<number>",
   );
 }
 
@@ -697,7 +697,7 @@ fn _0103() {
     false,
     &scope!(),
     r#"after([time("12:00:00")..time("23:59:59")], null)"#,
-    "[core::after] invalid argument type, expected time or range of times, actual type is Null",
+    "[core::after] invalid argument type, expected time or range<time>, actual type is Null",
   );
 }
 
@@ -707,7 +707,7 @@ fn _0104() {
     false,
     &scope!(),
     r#"after([time("12:00:00")..time("23:59:59")], [1..10])"#,
-    "[core::after] invalid argument type, expected range of times, actual type is range<number>",
+    "[core::after] invalid argument type, expected time or range<time>, actual type is range<number>",
   );
 }
 
@@ -747,7 +747,7 @@ fn _0108() {
     false,
     &scope!(),
     r#"after([date and time("2021-01-01T12:00:00")..date and time("2021-01-01T23:59:59")], null)"#,
-    "[core::after] invalid argument type, expected date and time or range of date and times, actual type is Null",
+    "[core::after] invalid argument type, expected date and time or range<date and time>, actual type is Null",
   );
 }
 
@@ -757,7 +757,7 @@ fn _0109() {
     false,
     &scope!(),
     r#"after([date and time("2021-01-01T12:00:00")..date and time("2021-01-01T23:59:59")], [1..10])"#,
-    "[core::after] invalid argument type, expected range of date and times, actual type is range<number>",
+    "[core::after] invalid argument type, expected date and time or range<date and time>, actual type is range<number>",
   );
 }
 
@@ -797,7 +797,7 @@ fn _0113() {
     false,
     &scope!(),
     r#"after([duration("P1DT12H")..duration("P1DT23H59M59S")], null)"#,
-    "[core::after] invalid argument type, expected days and time duration or range of days and time durations, actual type is Null",
+    "[core::after] invalid argument type, expected days and time duration or range<days and time duration>, actual type is Null",
   );
 }
 
@@ -807,7 +807,7 @@ fn _0114() {
     false,
     &scope!(),
     r#"after([duration("P1DT12H")..duration("P1DT23H59M59S")], [1..10])"#,
-    "[core::after] invalid argument type, expected range of days and time durations, actual type is range<number>",
+    "[core::after] invalid argument type, expected days and time duration or range<days and time duration>, actual type is range<number>",
   );
 }
 
@@ -847,7 +847,7 @@ fn _0118() {
     false,
     &scope!(),
     r#"after([duration("P2Y")..duration("P2Y3M")], null)"#,
-    "[core::after] invalid argument type, expected years and months duration or range of years and months durations, actual type is Null",
+    "[core::after] invalid argument type, expected years and months duration or range<years and months duration>, actual type is Null",
   );
 }
 
@@ -857,7 +857,7 @@ fn _0119() {
     false,
     &scope!(),
     r#"after([duration("P2Y")..duration("P2Y3M")], [1..10])"#,
-    "[core::after] invalid argument type, expected range of years and months durations, actual type is range<number>",
+    "[core::after] invalid argument type, expected years and months duration or range<years and months duration>, actual type is range<number>",
   );
 }
 
@@ -1062,7 +1062,7 @@ fn _0142() {
     false,
     &scope!(),
     r#"after(1,null)"#,
-    r#"[core::after] invalid argument type, expected number or range of numbers, actual type is Null"#,
+    r#"[core::after] invalid argument type, expected number or range<number>, actual type is Null"#,
   );
 }
 
@@ -1072,7 +1072,7 @@ fn _0143() {
     false,
     &scope!(),
     r#"after([null..null],null)"#,
-    r#"[core::after] invalid argument type, expected scalar or range of scalars, actual type is Null"#,
+    r#"[core::after] invalid argument type, expected scalar or range of scalars, actual type is range<Null>"#,
   );
 }
 

@@ -92,7 +92,7 @@ fn _0018() {
     false,
     &scope!(),
     r#"finishes([date("2022-11-03")..date("2022-12-10")],[date("2022-12-01")..date("2022-12-10")])"#,
-    true,
+    false,
   );
 }
 
@@ -118,21 +118,21 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  te_bool(
+  te_null(
     false,
     &scope!(),
     r#"finishes([time("11:23:420")..time("12:18:03")],[time("12:00:00")..time("12:18:03")])"#,
-    true,
+    r#"[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is range<Any>"#,
   );
 }
 
 #[test]
 fn _0023() {
-  te_bool(
+  te_null(
     false,
     &scope!(),
     r#"finishes([time("11:23:420")..time("12:18:03")],[time("12:00:00")..time("12:18:03")))"#,
-    false,
+    r#"[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is range<Any>"#,
   );
 }
 
@@ -162,7 +162,7 @@ fn _0026() {
     false,
     &scope!(),
     r#"finishes([date and time("2022-12-01T11:00:00")..date and time("2022-12-01T12:18:03")],[date and time("2022-12-01T12:00:00")..date and time("2022-12-01T12:18:03")])"#,
-    true,
+    false,
   );
 }
 
@@ -202,7 +202,7 @@ fn _0030() {
     false,
     &scope!(),
     r#"finishes([duration("P1DT0H1M1S")..duration("P2DT1H1M1S")],[duration("P1DT1H1M1S")..duration("P2DT1H1M1S")])"#,
-    true,
+    false,
   );
 }
 
@@ -247,7 +247,7 @@ fn _0036() {
     false,
     &scope!(),
     r#"finishes([1..20],20)"#,
-    "[core::finishes] invalid argument type, expected range of scalars, actual type is number",
+    "[core::finishes] invalid argument type, expected number or range<number>, actual type is number",
   );
 }
 
@@ -258,7 +258,7 @@ fn _0037() {
 
 #[test]
 fn _0038() {
-  te_bool(false, &scope!(), r#"finishes(range1: [1..20],range2: [5..20])"#, true);
+  te_bool(false, &scope!(), r#"finishes(range1: [1..20],range2: [5..20])"#, false);
 }
 
 #[test]
@@ -342,6 +342,6 @@ fn _0048() {
     false,
     &scope!(),
     r#"finishes("alfa", [1..20])"#,
-    "[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is string",
+    "[core::finishes] invalid argument type, expected string or range<string>, actual type is range<number>",
   );
 }

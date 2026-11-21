@@ -182,6 +182,6 @@ fn _0021() {
     false,
     &scope!(),
     r#"overlaps before(1, [3..8])"#,
-    "[core::overlaps] invalid argument type, expected range<scalar>, actual type is number",
+    "[core::overlaps before] invalid argument type, expected range of scalars, actual type is number",
   );
 }
