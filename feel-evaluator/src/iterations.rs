@@ -314,9 +314,11 @@ impl Iteration {
     self.quantified(scope, body, false, "iteration context of a `every` expression")
   }
 
-  /// Evaluates a `some` expression (`decisive` is `true`) or an `every` expression (`decisive` is
-  /// `false`): the first value of the body that is `decisive` decides the result, and so does the
-  /// first value that is not a boolean (null); without either, the result is `!decisive`.
+  /// Evaluates a boxed `some` (`decisive` is `true`) or `every` (`decisive` is `false`): the first
+  /// value of the body that is `decisive` decides the result, and so does the first value that is
+  /// not a boolean, which is null, as the satisfies of a boxed iterator "MUST resolve to a boolean"
+  /// (DMN 1.7 Beta 1, 10.2.1.10; TCK 1153 and 1154 006); without either, the result is `!decisive`.
+  /// The textual `some` and `every` are the or and the and of the values instead (Table 50).
   fn quantified(&self, scope: &FeelScope, body: &Evaluator, decisive: bool, expression: &str) -> Value {
     let walked = self.walk(scope, expression, None, |ctx| {
       match evaluate_in_iteration_context(scope, ctx, body).map(|(value, _)| value) {

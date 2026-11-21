@@ -252,6 +252,9 @@ struct Walk {
   base: usize,
   results: FeelList,
   value: Option<Value>,
+  /// `some` and `every`: an item's `satisfies` gave no boolean. The answer is then null unless a
+  /// later item decides it (Table 51: `null or true` is true, `null and false` is false).
+  undecided: bool,
 }
 
 impl Drop for Vm<'_> {
@@ -685,6 +688,7 @@ impl<'p> Vm<'p> {
             base,
             results: FeelList::new(),
             value: None,
+            undecided: false,
           }));
         }
         Op::LevelPush { record, domain, a, b } => {
@@ -733,8 +737,8 @@ impl<'p> Vm<'p> {
                   info.exit
                 }
                 _ => {
-                  walk.value = Some(value_null!());
-                  info.exit
+                  walk.undecided = true;
+                  info.step
                 }
               }
             }
@@ -815,6 +819,8 @@ impl<'p> Vm<'p> {
             }
             let value = walk.value.unwrap_or_else(|| match info.kind {
               LoopKind::For => Value::List(walk.results),
+              // no item decided it and one gave no boolean: the or (and) of the answers is null
+              LoopKind::Some | LoopKind::Every if walk.undecided => value_null!(),
               LoopKind::Some => Value::Boolean(false),
               LoopKind::Every => Value::Boolean(true),
             });

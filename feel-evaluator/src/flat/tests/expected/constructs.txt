@@ -18515,19 +18515,19 @@ Null(None)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 some_and_every_end_at_a_value_that_decides #11 "every x in [true, null, false] satisfies x"
-Null(None)
+Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 some_and_every_end_at_a_value_that_decides #12 "every x in [true, null, false] satisfies x"
-Null(None)
+Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 some_and_every_end_at_a_value_that_decides #13 "some x in [false, \"a\", true] satisfies x"
-Null(None)
+Boolean(true)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 some_and_every_end_at_a_value_that_decides #14 "some x in [false, \"a\", true] satisfies x"
-Null(None)
+Boolean(true)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 some_and_every_end_at_a_value_that_decides #15 "every x in [] satisfies false"

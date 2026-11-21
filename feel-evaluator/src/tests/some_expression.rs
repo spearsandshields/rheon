@@ -52,9 +52,12 @@ fn _0007() {
 
 #[test]
 fn _0008() {
-  // the first `true` or non-boolean value decides the result
+  // the or of the values (Table 51): a true decides it wherever it is, a null does not
   let scope = &te_scope("{}");
-  te_null(false, scope, "some x in [null, true] satisfies x", "");
+  te_bool(false, scope, "some x in [null, true] satisfies x", true);
+  te_null(false, scope, "some x in [null, false] satisfies x", "");
+  te_bool(false, scope, "every x in [true, null, false] satisfies x", false);
+  te_null(false, scope, "every x in [true, null] satisfies x", "");
   te_bool(false, scope, "some x in [false, true, null] satisfies x", true);
   te_bool(false, scope, "some x in [1, 2], y in [2, 3] satisfies x = y", true);
   te_bool(false, scope, "some x in [] satisfies x", false);
