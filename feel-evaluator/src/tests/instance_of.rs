@@ -376,7 +376,8 @@ fn _0062() {
 #[test]
 fn _0063() {
   let scope = &te_scope(r#"{Power: 25.5,engine:{power:280.5}}"#);
-  te_bool(false, scope, "Power instance of engine.power", true);
+  // a value on the right maps to no node of the type lattice: null (Table 62)
+  te_null(false, scope, "Power instance of engine.power", "instance of expected a type on the right, found number");
 }
 
 #[test]

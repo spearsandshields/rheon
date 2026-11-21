@@ -8,7 +8,7 @@ use rheon_feel::{FeelType, Name};
 use std::collections::BTreeMap;
 
 /// FEEL `lhv instance of rhv`: with a type on the right the conformance of the value; otherwise
-/// whether the two values have the same type.
+/// null, as the right operand maps to no node of the type lattice (DMN 1.7 Beta 1, Table 62).
 pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
   if let Value::FeelType(feel_type) = rhv {
     match lhv {
@@ -87,26 +87,28 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
       Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..) => Value::Boolean(feel_type == FeelType::Any),
       other => value_null!("invalid value in 'instance of' operator: {}", arg(&other)),
     }
+  } else if let Value::Null(Some(_)) = rhv {
+    // the reason why the right operand is no type
+    rhv
   } else {
-    Value::Boolean(lhv.has_type_of(&rhv))
+    // a right operand that maps to no node of the type lattice: the test is null (Table 62)
+    value_null!("instance of expected a type on the right, found {}", arg(&TypeOf(&rhv)))
   }
 }
 
 /// The type `list<t>` of the evaluated element type `element`.
 pub(crate) fn list_type(element: Value) -> Value {
-  if let Value::FeelType(feel_type) = element {
-    Value::FeelType(FeelType::List(Box::new(feel_type)))
-  } else {
-    value_null!("expected a feel type")
+  match element {
+    Value::FeelType(feel_type) => Value::FeelType(FeelType::List(Box::new(feel_type))),
+    other => value_null!("type 'list<T>' expected a type for T, found {}", arg(&TypeOf(&other))),
   }
 }
 
 /// The type `range<t>` of the evaluated element type `element`.
 pub(crate) fn range_type(element: Value) -> Value {
-  if let Value::FeelType(feel_type) = element {
-    Value::FeelType(FeelType::Range(Box::new(feel_type)))
-  } else {
-    value_null!("expected a feel type")
+  match element {
+    Value::FeelType(feel_type) => Value::FeelType(FeelType::Range(Box::new(feel_type))),
+    other => value_null!("type 'range<T>' expected a type for T, found {}", arg(&TypeOf(&other))),
   }
 }
 
@@ -116,7 +118,7 @@ pub(crate) fn context_type_entry(lhv: Value, rhv: Value) -> Value {
     if let Value::FeelType(feel_type) = rhv {
       Value::ContextTypeEntry(name, feel_type)
     } else {
-      value_null!("expected a type in context type entry")
+      value_null!("context type entry '{}' expected a type, found {}", arg(&name), arg(&TypeOf(&rhv)))
     }
   } else {
     value_null!("expected a name in context type entry")

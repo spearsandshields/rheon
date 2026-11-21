@@ -739,8 +739,9 @@ fn _0105() {
 
 #[test]
 fn _0106() {
+  // `numbre` maps to no node of the type lattice: null (Table 62); the official case is disabled
   let invocable = "ym_duration_011";
-  let expected = "false";
+  let expected = "null(context type entry 'age' expected a type, found Null)";
   assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable, &CTX, expected);
 }
 

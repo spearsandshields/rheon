@@ -1,9 +1,9 @@
 a_body_searches_the_scopes_of_its_callers #1 "{f: function() 2 instance of t, r: for t in [1] return f()}.r"
-List([Boolean(false)])
+List([Null(Some("no value for qualified name"))])
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #2 "{f: function() 2 instance of a.b, r: for a in [{b: 1}] return f()}.r"
-List([Boolean(false)])
+List([Null(Some("no value for qualified name"))])
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 a_body_searches_the_scopes_of_its_callers #3 "{f: function() 2 instance of a.b, r: [{a: {b: 1}}][f()]}.r"
@@ -15723,12 +15723,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #25 "(1) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #26 "(1) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #27 "(1) instance of function<number> -> number"
 Boolean(false)
@@ -15755,27 +15755,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #33 "(1) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #34 "(1) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #35 "(1) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #36 "(1) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #37 "(1) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #38 "(1) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #39 "(\"a\") instance of number"
@@ -15875,12 +15875,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #63 "(\"a\") instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #64 "(\"a\") instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #65 "(\"a\") instance of function<number> -> number"
 Boolean(false)
@@ -15907,27 +15907,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #71 "(\"a\") instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #72 "(\"a\") instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #73 "(\"a\") instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #74 "(\"a\") instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #75 "(\"a\") instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #76 "(\"a\") instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #77 "(true) instance of number"
@@ -16027,12 +16027,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #101 "(true) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #102 "(true) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #103 "(true) instance of function<number> -> number"
 Boolean(false)
@@ -16059,27 +16059,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #109 "(true) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #110 "(true) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #111 "(true) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #112 "(true) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #113 "(true) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #114 "(true) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #115 "(null) instance of number"
@@ -16179,12 +16179,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #139 "(null) instance of context<a: t, b: u>"
-Boolean(true)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #140 "(null) instance of context<a: t, b: u>"
-Boolean(true)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #141 "(null) instance of function<number> -> number"
 Boolean(false)
@@ -16211,27 +16211,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #147 "(null) instance of list<t>"
-Boolean(true)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #148 "(null) instance of list<t>"
-Boolean(true)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #149 "(null) instance of range<t>"
-Boolean(true)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #150 "(null) instance of range<t>"
-Boolean(true)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #151 "(null) instance of t"
-Boolean(true)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #152 "(null) instance of t"
-Boolean(true)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #153 "(@\"2024-01-31\") instance of number"
@@ -16331,12 +16331,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #177 "(@\"2024-01-31\") instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #178 "(@\"2024-01-31\") instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #179 "(@\"2024-01-31\") instance of function<number> -> number"
 Boolean(false)
@@ -16363,27 +16363,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #185 "(@\"2024-01-31\") instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #186 "(@\"2024-01-31\") instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #187 "(@\"2024-01-31\") instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #188 "(@\"2024-01-31\") instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #189 "(@\"2024-01-31\") instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #190 "(@\"2024-01-31\") instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #191 "(@\"P1D\") instance of number"
@@ -16483,12 +16483,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #215 "(@\"P1D\") instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #216 "(@\"P1D\") instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #217 "(@\"P1D\") instance of function<number> -> number"
 Boolean(false)
@@ -16515,27 +16515,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #223 "(@\"P1D\") instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #224 "(@\"P1D\") instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #225 "(@\"P1D\") instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #226 "(@\"P1D\") instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #227 "(@\"P1D\") instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #228 "(@\"P1D\") instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #229 "([1, 2]) instance of number"
@@ -16635,12 +16635,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #253 "([1, 2]) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #254 "([1, 2]) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #255 "([1, 2]) instance of function<number> -> number"
 Boolean(false)
@@ -16667,27 +16667,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #261 "([1, 2]) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #262 "([1, 2]) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #263 "([1, 2]) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #264 "([1, 2]) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #265 "([1, 2]) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #266 "([1, 2]) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #267 "([[\"a\"]]) instance of number"
@@ -16787,12 +16787,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #291 "([[\"a\"]]) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #292 "([[\"a\"]]) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #293 "([[\"a\"]]) instance of function<number> -> number"
 Boolean(false)
@@ -16819,27 +16819,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #299 "([[\"a\"]]) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #300 "([[\"a\"]]) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #301 "([[\"a\"]]) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #302 "([[\"a\"]]) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #303 "([[\"a\"]]) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #304 "([[\"a\"]]) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #305 "([1..2]) instance of number"
@@ -16939,12 +16939,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #329 "([1..2]) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #330 "([1..2]) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #331 "([1..2]) instance of function<number> -> number"
 Boolean(false)
@@ -16971,27 +16971,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #337 "([1..2]) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #338 "([1..2]) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #339 "([1..2]) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #340 "([1..2]) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #341 "([1..2]) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #342 "([1..2]) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #343 "(abs) instance of number"
@@ -17091,12 +17091,12 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #367 "(abs) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #368 "(abs) instance of context<a: t, b: u>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #369 "(abs) instance of function<number> -> number"
 Boolean(true)
@@ -17123,27 +17123,27 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #375 "(abs) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #376 "(abs) instance of list<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #377 "(abs) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #378 "(abs) instance of range<t>"
-Boolean(false)
-Diagnostics { count: 2, messages: ["no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 2, messages: ["no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #379 "(abs) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #380 "(abs) instance of t"
-Boolean(false)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #381 "(x) instance of number"
@@ -17243,12 +17243,12 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["context has no value for key 'x'"], warnings: [] }
 
 instance_of_and_types #405 "(x) instance of context<a: t, b: u>"
-Boolean(true)
-Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #406 "(x) instance of context<a: t, b: u>"
-Boolean(true)
-Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "expected a type in context type entry"], warnings: [] }
+Null(Some("context type entry 'a' expected a type, found Null"))
+Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "context type entry 'a' expected a type, found Null"], warnings: [] }
 
 instance_of_and_types #407 "(x) instance of function<number> -> number"
 Boolean(false)
@@ -17275,27 +17275,27 @@ Boolean(false)
 Diagnostics { count: 2, messages: ["context has no value for key 'x'", "no value for qualified name"], warnings: [] }
 
 instance_of_and_types #413 "(x) instance of list<t>"
-Boolean(true)
-Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #414 "(x) instance of list<t>"
-Boolean(true)
-Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #415 "(x) instance of range<t>"
-Boolean(true)
-Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #416 "(x) instance of range<t>"
-Boolean(true)
-Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "expected a feel type"], warnings: [] }
+Null(Some("type 'range<T>' expected a type for T, found Null"))
+Diagnostics { count: 3, messages: ["context has no value for key 'x'", "no value for qualified name", "type 'range<T>' expected a type for T, found Null"], warnings: [] }
 
 instance_of_and_types #417 "(x) instance of t"
-Boolean(true)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 2, messages: ["context has no value for key 'x'", "no value for qualified name"], warnings: [] }
 
 instance_of_and_types #418 "(x) instance of t"
-Boolean(true)
+Null(Some("no value for qualified name"))
 Diagnostics { count: 2, messages: ["context has no value for key 'x'", "no value for qualified name"], warnings: [] }
 
 invocations_count_against_the_call_depth_limit #1 "abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(abs(1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))"
@@ -17707,15 +17707,15 @@ Null(None)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 malformed_types_are_errors #2 a tree built by hand
-Boolean(true)
-Diagnostics { count: 0, messages: [], warnings: [] }
+Null(Some("instance of expected a type on the right, found Null"))
+Diagnostics { count: 1, messages: ["instance of expected a type on the right, found Null"], warnings: [] }
 
 malformed_types_are_errors #3 a tree built by hand
 Null(Some("expected context type entry, actual value type is number"))
 Diagnostics { count: 1, messages: ["expected context type entry, actual value type is number"], warnings: [] }
 
 malformed_types_are_errors #4 a tree built by hand
-Boolean(true)
+Null(Some("expected context type entry, actual value type is number"))
 Diagnostics { count: 1, messages: ["expected context type entry, actual value type is number"], warnings: [] }
 
 malformed_types_are_errors #5 a tree built by hand
@@ -17723,7 +17723,7 @@ Null(Some("expected a name in context type entry"))
 Diagnostics { count: 1, messages: ["expected a name in context type entry"], warnings: [] }
 
 malformed_types_are_errors #6 a tree built by hand
-Boolean(true)
+Null(Some("expected a name in context type entry"))
 Diagnostics { count: 1, messages: ["expected a name in context type entry"], warnings: [] }
 
 malformed_types_are_errors #7 a tree built by hand
@@ -17735,19 +17735,19 @@ Boolean(false)
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 malformed_types_are_errors #9 a tree built by hand
-Null(Some("expected a feel type"))
-Diagnostics { count: 1, messages: ["expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 1, messages: ["type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 malformed_types_are_errors #10 a tree built by hand
-Boolean(true)
-Diagnostics { count: 1, messages: ["expected a feel type"], warnings: [] }
+Null(Some("type 'list<T>' expected a type for T, found Null"))
+Diagnostics { count: 1, messages: ["type 'list<T>' expected a type for T, found Null"], warnings: [] }
 
 malformed_types_are_errors #11 a tree built by hand
 Null(Some("expected function's parameter types"))
 Diagnostics { count: 1, messages: ["expected function's parameter types"], warnings: [] }
 
 malformed_types_are_errors #12 a tree built by hand
-Boolean(true)
+Null(Some("expected function's parameter types"))
 Diagnostics { count: 1, messages: ["expected function's parameter types"], warnings: [] }
 
 malformed_types_are_errors #13 a tree built by hand
@@ -17763,7 +17763,7 @@ Null(Some("expected function's result type"))
 Diagnostics { count: 1, messages: ["expected function's result type"], warnings: [] }
 
 malformed_types_are_errors #16 a tree built by hand
-Boolean(true)
+Null(Some("expected function's result type"))
 Diagnostics { count: 1, messages: ["expected function's result type"], warnings: [] }
 
 names_read_the_input_then_built_ins #1 "x"

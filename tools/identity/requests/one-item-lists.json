@@ -326,5 +326,14 @@
   {"op": "evaluate", "expression": "{f: function(x: list<list<number>>) x, r: f([1, 2])}.r"},
   {"op": "evaluate", "expression": "{f: function(x: list<list<number>>) x, r: f([[1], [2]])}.r"},
   {"op": "evaluate", "expression": "{f: function(x: list<number>) x, r: f([[1]])}.r"},
-  {"op": "evaluate", "expression": "{f: function(x: list<list<string>>) x, r: f([1])}.r"}
+  {"op": "evaluate", "expression": "{f: function(x: list<list<string>>) x, r: f([1])}.r"},
+  {"op": "evaluate", "expression": "123 instance of list"},
+  {"op": "evaluate", "expression": "123 instance of range"},
+  {"op": "evaluate", "expression": "[123] instance of list<number>"},
+  {"op": "evaluate", "expression": "{Power: 25.5, engine: {power: 280.5}, r: Power instance of engine.power}.r"},
+  {"op": "evaluate", "expression": "5 instance of Unknown"},
+  {"op": "evaluate", "expression": "{y: 3, r: 5 instance of y}.r"},
+  {"op": "evaluate", "expression": "1 instance of context<a: numbre>"},
+  {"op": "evaluate", "expression": "null instance of Null"},
+  {"op": "evaluate", "expression": "null instance of Any"}
 ]

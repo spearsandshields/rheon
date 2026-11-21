@@ -37,7 +37,10 @@ fn _0004() {
 #[test]
 fn _0005() {
   let node = AstNode::ListType(Box::new(AstNode::Numeric("0".into(), "0".into(), '+', "".into())));
-  assert_eq!(r#"null(expected a feel type)"#, crate::tests::eval(&scope!(), &node).to_string());
+  assert_eq!(
+    r#"null(type 'list<T>' expected a type for T, found number)"#,
+    crate::tests::eval(&scope!(), &node).to_string()
+  );
 }
 
 #[test]
@@ -49,5 +52,8 @@ fn _0006() {
 #[test]
 fn _0007() {
   let node = AstNode::RangeType(Box::new(AstNode::Numeric("0".into(), "0".into(), '+', "".into())));
-  assert_eq!(r#"null(expected a feel type)"#, crate::tests::eval(&scope!(), &node).to_string());
+  assert_eq!(
+    r#"null(type 'range<T>' expected a type for T, found number)"#,
+    crate::tests::eval(&scope!(), &node).to_string()
+  );
 }

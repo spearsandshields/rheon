@@ -120,8 +120,22 @@ fn todays_scoping_is_pinned() {
     &["context has no value for key 'p'"],
     1,
   );
-  pin(r#"for a in [{b: 1}] return 2 instance of a.b"#, r#"[true]"#, &[], 0);
-  pin(r#"[{t: 1}, {t: "a"}][2 instance of t]"#, r#"[{t: 1}]"#, &[], 0);
+  pin(
+    r#"for a in [{b: 1}] return 2 instance of a.b"#,
+    r#"[null(instance of expected a type on the right, found number)]"#,
+    &["instance of expected a type on the right, found number"],
+    1,
+  );
+  // a value is no type (Table 62): null, so the filter keeps no item
+  pin(
+    r#"[{t: 1}, {t: "a"}][2 instance of t]"#,
+    r#"[]"#,
+    &[
+      "instance of expected a type on the right, found number",
+      "instance of expected a type on the right, found string",
+    ],
+    2,
+  );
   pin(r#"{f: function(n) if n = 0 then 0 else abs(abs(f(n - 1))), r: f(66)}.r"#, r#"0"#, &[], 0);
   pin(
     r#"{f: function(n) if n = 0 then 0 else abs(abs(f(n - 1))), r: f(67)}.r"#,
@@ -154,7 +168,12 @@ fn todays_scoping_is_pinned() {
     &["context has no value for key 'x'"],
     3,
   );
-  pin(r#"{a: {b: 1}, f: function() 1 instance of a.b, r: f()}.r"#, r#"true"#, &[], 0);
+  pin(
+    r#"{a: {b: 1}, f: function() 1 instance of a.b, r: f()}.r"#,
+    r#"null(instance of expected a type on the right, found number)"#,
+    &["instance of expected a type on the right, found number"],
+    1,
+  );
 }
 
 /// A function sees the names in scope where it is written (DMN 1.6 §10.3.2.13.2), and of the
