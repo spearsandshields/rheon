@@ -168,3 +168,13 @@ fn _0018() {
   te_null(false, scope, r#"f(x: "a")"#, not_conformant);
   te_null(false, scope, r#"f([1])"#, "external PMML functions are not supported");
 }
+
+#[test]
+fn a_list_is_the_list_of_it_where_a_list_of_lists_is_taken() {
+  // to singleton list applies to a list as to any value of type T (10.3.2.9.4)
+  let scope = &te_scope("{}");
+  te_be_value(false, scope, "{f: function(x: list<list<number>>) x, r: f([1, 2])}.r", "[[1, 2]]");
+  te_be_value(false, scope, "{f: function(x: list<list<number>>) x, r: f([[1], [2]])}.r", "[[1], [2]]");
+  // from singleton list comes first: [[1]] is the list [1]
+  te_be_value(false, scope, "{f: function(x: list<number>) x, r: f([[1]])}.r", "[1]");
+}

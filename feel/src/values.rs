@@ -745,7 +745,8 @@ impl Value {
       Value::Date(date) if *target_type == FeelType::DateTime => {
         return FeelDateTime::try_new(date.clone(), FeelTime::midnight(FeelZone::Utc)).map(Value::DateTime);
       }
-      // from singleton list
+      // from singleton list, or else to singleton list: a list is a value of type T too, and
+      // where list<T> is expected it is the list of it (`[1, 2]` for list<list<number>>)
       Value::List(items) => {
         if items.len() == 1 {
           let value = items[0].clone();
@@ -757,6 +758,11 @@ impl Value {
           {
             return FeelDateTime::try_new(date.clone(), FeelTime::midnight(FeelZone::Utc)).map(Value::DateTime);
           }
+        }
+        if let FeelType::List(list_type) = target_type
+          && self.is_conformant(list_type)
+        {
+          return Some(Value::List(vec![self.clone()].into()));
         }
       }
       // to singleton list

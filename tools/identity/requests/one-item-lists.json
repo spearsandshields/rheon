@@ -322,5 +322,9 @@
   {"op": "evaluate", "expression": "for i in 3..1 return i"},
   {"op": "evaluate", "expression": "for i in 3..1 return i", "language": "b-feel"},
   {"op": "evaluate", "expression": "every x in (< 3) satisfies x"},
-  {"op": "evaluate", "expression": "every x in (< 3) satisfies x", "language": "b-feel"}
+  {"op": "evaluate", "expression": "every x in (< 3) satisfies x", "language": "b-feel"},
+  {"op": "evaluate", "expression": "{f: function(x: list<list<number>>) x, r: f([1, 2])}.r"},
+  {"op": "evaluate", "expression": "{f: function(x: list<list<number>>) x, r: f([[1], [2]])}.r"},
+  {"op": "evaluate", "expression": "{f: function(x: list<number>) x, r: f([[1]])}.r"},
+  {"op": "evaluate", "expression": "{f: function(x: list<list<string>>) x, r: f([1])}.r"}
 ]

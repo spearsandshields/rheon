@@ -1,0 +1,82 @@
+[
+  {
+    "expression": "{f: function(x: list<list<number>>) x, r: f([1, 2])}.r",
+    "why": "DT-012 (D-0325): a list given where list<T> is expected and the list is a value of T is the list of it (DMN 1.7 Beta 1, 10.3.2.9.4, to singleton list applies to every T): [1, 2] bound to list<list<number>> is [[1, 2]]; it was null. From singleton list comes first.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "argument for parameter 'x' does not conform to type list<list<number>>"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(argument for parameter 'x' does not conform to type list<list<number>>)",
+        "isNull": true,
+        "nullReason": "argument for parameter 'x' does not conform to type list<list<number>>",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[[1, 2]]",
+        "feel": "[[1, 2]]",
+        "isNull": false,
+        "type": "list<list<number>>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": {
+                  "isNil": false,
+                  "items": [
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "1",
+                        "type": "xsd:decimal"
+                      }
+                    },
+                    {
+                      "components": null,
+                      "list": null,
+                      "simple": {
+                        "isNil": false,
+                        "text": "2",
+                        "type": "xsd:decimal"
+                      }
+                    }
+                  ]
+                },
+                "simple": null
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]
