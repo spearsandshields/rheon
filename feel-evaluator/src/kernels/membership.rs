@@ -232,19 +232,32 @@ fn side(lhv: &Value, endpoint: &Value, accept: fn(Ordering) -> bool) -> Option<b
   }
 }
 
-/// `e1 in < e2` is `e1 < e2` (Table 56), and so for the other comparisons.
+/// `e1 in < e2` is `e1 < e2` (Table 56), and so for the other comparisons: by the ordering kernel
+/// on the borrowed values, and through the comparison only for the null and its reason.
 fn eval_in_unary_less(left: &Value, right: &Value) -> Value {
-  compare_lt(left.clone(), right.clone())
+  match order(left, right) {
+    Order::Ordered(ordering) => Value::Boolean(ordering.is_lt()),
+    _ => compare_lt(left.clone(), right.clone()),
+  }
 }
 
 fn eval_in_unary_less_or_equal(left: &Value, right: &Value) -> Value {
-  compare_le(left.clone(), right.clone())
+  match order(left, right) {
+    Order::Ordered(ordering) => Value::Boolean(ordering.is_le()),
+    _ => compare_le(left.clone(), right.clone()),
+  }
 }
 
 fn eval_in_unary_greater(left: &Value, right: &Value) -> Value {
-  compare_gt(left.clone(), right.clone())
+  match order(left, right) {
+    Order::Ordered(ordering) => Value::Boolean(ordering.is_gt()),
+    _ => compare_gt(left.clone(), right.clone()),
+  }
 }
 
 fn eval_in_unary_greater_or_equal(left: &Value, right: &Value) -> Value {
-  compare_ge(left.clone(), right.clone())
+  match order(left, right) {
+    Order::Ordered(ordering) => Value::Boolean(ordering.is_ge()),
+    _ => compare_ge(left.clone(), right.clone()),
+  }
 }

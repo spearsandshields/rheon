@@ -11,7 +11,7 @@
 //! formula: true or false where the values decide it, and null with an error where they do not.
 
 use crate::equality::{eval_ternary_equality, range_parts};
-use crate::kernels::compare_lt;
+use crate::kernels::{Order, order};
 use rheon_feel::message::arg;
 use rheon_feel::value_null;
 use rheon_feel::values::Value;
@@ -78,11 +78,13 @@ fn or(a: Truth, b: Truth) -> Truth {
 /// An endpoint: a value, or None when it is undefined.
 type Endpoint<'a> = Option<&'a Value>;
 
-/// `a < b`: null with an undefined endpoint.
+/// `a < b` by the ordering kernel: null with an undefined endpoint and for values without an order.
+/// It records nothing: a comparison that does not decide the formula is no error, and the formula's
+/// null gets its one reason in [relation].
 fn lt(a: Endpoint, b: Endpoint) -> Truth {
-  match compare_lt(a?.clone(), b?.clone()) {
-    Value::Boolean(result) => Some(result),
-    _ => None,
+  match order(a?, b?) {
+    Order::Ordered(ordering) => Some(ordering.is_lt()),
+    Order::Indeterminate | Order::Unordered => None,
   }
 }
 
