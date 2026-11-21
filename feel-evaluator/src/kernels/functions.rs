@@ -33,8 +33,11 @@ pub(crate) fn function_definition(parameters: Value, body: Value, closure: &Clos
   }
 }
 
-/// The body of an external function from its evaluated mapping: a context with a `java` entry
-/// (`class` and `method signature`) or a `pmml` entry (`document` and `model`).
+/// The body of an external function from its evaluated mapping (DMN 1.7 Beta 1, 10.3.2.13.3): a
+/// context with a `java` entry (`class` and `method signature`), an `onnx` entry (`file` and
+/// `function signature`) or a `pmml` entry (`document` and an optional `model`; without one the
+/// function is the first model of the document). rheon executes none of these kinds: invoking the
+/// function gives null with a reason.
 pub(crate) fn external_body(mapping_value: Value) -> Value {
   match mapping_value {
     Value::Context(mapping_information) => {
@@ -55,21 +58,37 @@ pub(crate) fn external_body(mapping_value: Value) -> Value {
       }
       if let Some(Value::Context(pmml_mapping)) = mapping_information.get_entry(&"pmml".into()) {
         return if let Some(Value::String(document)) = pmml_mapping.get_entry(&"document".into()) {
-          if let Some(Value::String(model_name)) = pmml_mapping.get_entry(&"model".into()) {
-            let pmml_document = document.as_str().to_owned();
-            let pmml_model_name = model_name.as_str().to_owned();
-            let pmml_evaluator = Box::new(move |_: &FeelScope| Value::ExternalPmmlFunction(pmml_document.clone(), pmml_model_name.clone())) as Evaluator;
-            let lhe = Arc::new(pmml_evaluator);
-            Value::FunctionBody(FunctionBody::External(lhe), true)
-          } else {
-            value_null!("invalid PMML function mapping, no model name entry in context {}", arg(&pmml_mapping))
-          }
+          let model_name = match pmml_mapping.get_entry(&"model".into()) {
+            None | Some(Value::Null(_)) => "",
+            Some(Value::String(model_name)) => model_name.as_str(),
+            Some(_) => return value_null!("invalid PMML function mapping, the model entry is not a string in context {}", arg(&pmml_mapping)),
+          };
+          let pmml_document = document.as_str().to_owned();
+          let pmml_model_name = model_name.to_owned();
+          let pmml_evaluator = Box::new(move |_: &FeelScope| Value::ExternalPmmlFunction(pmml_document.clone(), pmml_model_name.clone())) as Evaluator;
+          let lhe = Arc::new(pmml_evaluator);
+          Value::FunctionBody(FunctionBody::External(lhe), true)
         } else {
           value_null!("invalid PMML function mapping, no document entry in context {}", arg(&pmml_mapping))
         };
       }
+      if let Some(Value::Context(onnx_mapping)) = mapping_information.get_entry(&"onnx".into()) {
+        return match (onnx_mapping.get_entry(&"file".into()), onnx_mapping.get_entry(&"function signature".into())) {
+          (Some(Value::String(_)), Some(Value::String(_))) => {
+            let onnx_evaluator = Box::new(|_: &FeelScope| value_null!("external ONNX functions are not supported")) as Evaluator;
+            Value::FunctionBody(FunctionBody::External(Arc::new(onnx_evaluator)), true)
+          }
+          (None, _) => value_null!("invalid ONNX function mapping, no file entry in context {}", arg(&onnx_mapping)),
+          (Some(Value::String(_)), None) => value_null!("invalid ONNX function mapping, no function signature entry in context {}", arg(&onnx_mapping)),
+          (Some(Value::String(_)), Some(_)) => value_null!(
+            "invalid ONNX function mapping, the function signature entry is not a string in context {}",
+            arg(&onnx_mapping)
+          ),
+          (Some(_), _) => value_null!("invalid ONNX function mapping, the file entry is not a string in context {}", arg(&onnx_mapping)),
+        };
+      }
       value_null!(
-        "invalid external function mapping, expected 'java' or 'pmml' entry in context {}",
+        "invalid external function mapping, expected 'java', 'onnx' or 'pmml' entry in context {}",
         arg(&mapping_information)
       )
     }

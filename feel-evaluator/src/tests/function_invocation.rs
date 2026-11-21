@@ -166,5 +166,5 @@ fn _0018() {
   let not_conformant = "argument for parameter 'x' does not conform to type number";
   te_null(false, scope, r#"f("a")"#, not_conformant);
   te_null(false, scope, r#"f(x: "a")"#, not_conformant);
-  te_string(false, scope, r#"f([1])"#, "PMML, document = d, model name = m");
+  te_null(false, scope, r#"f([1])"#, "external PMML functions are not supported");
 }

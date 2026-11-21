@@ -175,5 +175,14 @@
   {"op": "evaluate", "expression": "{f: function(x) x, r: [f, f][2](4)}.r", "language": "b-feel"},
   {"op": "evaluate", "expression": "{f: function(n) if n = 0 then [] else [f(n - 1)], r: count(f(10))}.r"},
   {"op": "evaluate", "expression": "{f: function(n) if n = 0 then [] else [f(n - 1)], r: count(f(10))}.r", "errorMode": "strict"},
-  {"op": "evaluate", "expression": "{f: function(n) if n = 0 then [] else [f(n - 1)], r: count(f(10))}.r", "language": "b-feel"}
+  {"op": "evaluate", "expression": "{f: function(n) if n = 0 then [] else [f(n - 1)], r: count(f(10))}.r", "language": "b-feel"},
+  {"op": "evaluate", "expression": "{f: function(x) external {pmml: {document: \"d\", model: \"m\"}}, r: f(1)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x) external {pmml: {document: \"d\", model: \"m\"}}, r: f(1)}.r", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "{f: function(x) external {pmml: {document: \"d\", model: 1}}, r: f(1)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x) external {onnx: {file: \"m.onnx\", function signature: \"float[1]\"}}, r: f(1)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x) external {onnx: {file: \"m.onnx\"}}, r: f(1)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x) external {onnx: {file: \"m.onnx\", function signature: \"float[1]\"}}, r: f(1)}.r", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "{f: function(x) external {pmml: {document: \"d\", model: null}}, r: f(1)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x) external {onnx: {file: 1, function signature: \"float[1]\"}}, r: f(1)}.r"},
+  {"op": "evaluate", "expression": "{f: function(x) external {onnx: {file: \"m.onnx\", function signature: 1}}, r: f(1)}.r"}
 ]

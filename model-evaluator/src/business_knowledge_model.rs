@@ -96,7 +96,7 @@ fn build_bkm_evaluator(
   if *function_definition.kind() == FunctionKind::Onnx {
     // DMN 1.6 (DMN16-90, DMN16-134): ONNX execution is optional; the BKM is a function whose
     // invocation gives null with a diagnostic, and the rest of the model evaluates normally.
-    let evaluator: rheon_feel::Evaluator = Box::new(|_: &FeelScope| rheon_feel::value_null!("ONNX functions are not supported"));
+    let evaluator: rheon_feel::Evaluator = Box::new(|_: &FeelScope| rheon_feel::value_null!("external ONNX functions are not supported"));
     let function = Value::from(rheon_feel::FunctionDefinition::new(
       formal_parameters,
       FunctionBody::LiteralExpression(Arc::new(evaluator)),

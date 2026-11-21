@@ -6,6 +6,13 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
 - **Java external functions are not supported.** They need a JVM. On every target they evaluate to
   null with a reason, and an evaluation makes no network call: native builds up to 0.9 posted the
   call to a Java service on `127.0.0.1:22023`.
+- **PMML and ONNX external functions are not supported.** In FEEL, a function with a `pmml` or
+  `onnx` mapping (DMN 1.7 Beta 1, 10.3.2.13.3) is a function value, and invoking it gives null with
+  a reason; so does invoking a boxed PMML function definition of a DMN model. Up to 0.9 a PMML call
+  returned a made-up string naming the document and the model. The three kinds are optional for
+  conformance (2.1). The DMN model layer still differs in three places (BACKLOG.md, *Java and PMML
+  BKMs are not external*): a BKM of kind Java or PMML returns its mapping context, a boxed ONNX
+  function definition is null rather than a function, and a boxed PMML mapping needs its `model`.
 - **Rounding of `exp`, `ln`, `log` and `**`.** These are correctly rounded to 34
   digits (the exact result, rounded once, half-even). Upstream dsntk with the Intel library is
   1 ulp off for roughly 11–16 % of inputs and occasionally more, so the last digit of such results

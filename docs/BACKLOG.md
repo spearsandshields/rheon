@@ -165,7 +165,10 @@ Open in 1.6:
     (decision_service.rs), so the invocation must push the parameters last, and it converts them
     a second time through the input data and input decision evaluators.
   - *Java and PMML BKMs are not external.* `build_bkm_evaluator` special-cases only ONNX; a BKM
-    with `kind="Java"` or `"PMML"` returns its mapping context instead of calling the function.
+    with `kind="Java"` or `"PMML"` returns its mapping context instead of a function whose call is
+    null with a reason, as FEEL's external functions are. A boxed ONNX function definition
+    (boxed_expressions.rs) evaluates to null instead of such a function, and a boxed PMML mapping
+    still requires its `model` entry, which 10.3.2.13.3 makes optional.
   - *Binding types are not checked.* A binding's parameter `typeRef` is ignored (§7.3.6 binds by
     name); §7.3.4 asks it to be compatible with the value.
   - *`try_coerced` lets any function value pass* whatever the target type (feel/src/values.rs).

@@ -222,12 +222,14 @@ pub(crate) fn closed_over(search: impl Fn(&QualifiedName) -> Option<Value>, resu
   }
 }
 
-/// Calls the Java method or the PMML model an external function is mapped to.
+/// Applies an external function: its Java, PMML or ONNX mapping, which rheon does not execute, so the
+/// result is null with a reason.
 fn apply_external(scope: &FeelScope, body: &FunctionBody, arguments: &[Value]) -> Value {
-  match &body.evaluate(scope) {
-    Value::ExternalJavaFunction(class_name, method_signature) => evaluate_external_java_function(class_name, method_signature, arguments),
-    Value::ExternalPmmlFunction(document, model_name) => evaluate_external_pmml_function(document, model_name, arguments),
-    other => value_null!("expected JAVA or PMML mapping, actual value is {}", arg(&other)),
+  match body.evaluate(scope) {
+    Value::ExternalJavaFunction(class_name, method_signature) => evaluate_external_java_function(&class_name, &method_signature, arguments),
+    Value::ExternalPmmlFunction(document, model_name) => evaluate_external_pmml_function(&document, &model_name, arguments),
+    null @ Value::Null(_) => null,
+    other => value_null!("expected a Java, ONNX or PMML mapping, actual value is {}", arg(&other)),
   }
 }
 
@@ -281,6 +283,6 @@ mod tests {
     let body = FunctionBody::External(Arc::new(evaluator));
     let function = FunctionDefinition::new(vec![], body, true, Closure::default(), FeelContext::default(), FeelType::Boolean).into();
     let result = invoke(&scope!(), function, Arguments::Positional(vec![]), Dialect::Feel);
-    assert_eq!("null(expected JAVA or PMML mapping, actual value is false)", result.to_string())
+    assert_eq!("null(expected a Java, ONNX or PMML mapping, actual value is false)", result.to_string())
   }
 }

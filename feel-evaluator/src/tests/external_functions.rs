@@ -39,12 +39,7 @@ fn _0006() {
 #[test]
 fn _0007() {
   let scope = te_scope(r#"{ Weather on Ῥόδος: function() external { pmml:{document: "https://en.wiktionary.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82", model: "weather"}} }"#);
-  te_string(
-    false,
-    &scope,
-    "Weather on Ῥόδος()",
-    r#"PMML, document = https://en.wiktionary.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82, model name = weather"#,
-  );
+  te_null(false, &scope, "Weather on Ῥόδος()", "external PMML functions are not supported");
 }
 
 #[test]
@@ -62,7 +57,7 @@ fn _0009() {
 #[test]
 fn _0010() {
   let scope = te_scope(r#"{ Weather on Ῥόδος: function() external { pmml:{document: "https://en.wiktionary.org/wiki/%E1%BF%AC%CF%8C%CE%B4%CE%BF%CF%82", model: ""}} }"#);
-  te_null(false, &scope, "Weather on Ῥόδος()", r#"PMML model name not specified"#);
+  te_null(false, &scope, "Weather on Ῥόδος()", "external PMML functions are not supported");
 }
 
 #[test]
@@ -153,13 +148,9 @@ fn _0021() {
 
 #[test]
 fn _0022() {
+  // the model is optional: the function is the first model of the document (10.3.2.13.3)
   let scope = te_scope(r#"{ valueOf: function(n) external { pmml: { document: "document-name" } } }"#);
-  te_null(
-    false,
-    &scope,
-    r#"valueOf("99,9")"#,
-    "expected built-in function name or function definition, actual is null(invalid body in function definition)",
-  );
+  te_null(false, &scope, r#"valueOf("99,9")"#, "external PMML functions are not supported");
 }
 
 #[test]
@@ -188,4 +179,34 @@ fn _0024() {
 fn _0025() {
   let scope = te_scope(r#"{ format: function(s1, n1) external { java: { class: "java.lang.String", method signature: "format(java.lang.String, [Ljava.lang.Object;)" } } }"#);
   te_null(false, &scope, r#"format("foo %s", "bar")"#, "external Java functions are not supported");
+}
+
+#[test]
+fn _0026() {
+  // the onnx form of the mapping (10.3.2.13.3) is a function; rheon does not run ONNX models
+  let scope = te_scope(r#"{ score: function(x) external { onnx: { file: "model.onnx", function signature: "float[1,2]" } } }"#);
+  te_null(false, &scope, "score(1)", "external ONNX functions are not supported");
+  te_bool(false, &scope, "score instance of function<Any>->Any", true);
+}
+
+#[test]
+fn _0027() {
+  let scope = te_scope(r#"{ score: function(x) external { onnx: { file: "model.onnx" } } }"#);
+  te_null(
+    false,
+    &scope,
+    "score(1)",
+    "expected built-in function name or function definition, actual is null(invalid body in function definition)",
+  );
+}
+
+#[test]
+fn _0028() {
+  let scope = te_scope(r#"{ valueOf: function(n) external { pmml: { document: "d", model: 1 } } }"#);
+  te_null(
+    false,
+    &scope,
+    r#"valueOf(1)"#,
+    "expected built-in function name or function definition, actual is null(invalid body in function definition)",
+  );
 }

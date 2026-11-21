@@ -15060,11 +15060,11 @@ Diagnostics { count: 2, messages: ["invalid Java function mapping, no method sig
 
 function_definitions_and_their_invocations #55 "function(x: t) external {pmml: {document: \"d\"}}"
 Null(Some("expected type of the formal parameter"))
-Diagnostics { count: 3, messages: ["no value for qualified name", "expected type of the formal parameter", "invalid PMML function mapping, no model name entry in context {document: \"d\"}"], warnings: [] }
+Diagnostics { count: 2, messages: ["no value for qualified name", "expected type of the formal parameter"], warnings: [] }
 
 function_definitions_and_their_invocations #56 "function(x: t) external {pmml: {document: \"d\"}}"
 Null(Some("expected type of the formal parameter"))
-Diagnostics { count: 3, messages: ["no value for qualified name", "expected type of the formal parameter", "invalid PMML function mapping, no model name entry in context {document: \"d\"}"], warnings: [] }
+Diagnostics { count: 2, messages: ["no value for qualified name", "expected type of the formal parameter"], warnings: [] }
 
 function_definitions_and_their_invocations #57 "{a: {b: 1}, f: function() a.b, r: f()}"
 Context(FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)})), Name("f"): FunctionDefinition(FunctionDefinition { parameters: [], body: FunctionBodyLiteralExpression, external: false, closure: Closure({QualifiedName([Name("a"), Name("b")])}), closure_ctx: FeelContext({Name("a"): Context(FeelContext({Name("b"): Number(+1E+0)}))}), result_type: Any }), Name("r"): Number(+1E+0)}))
