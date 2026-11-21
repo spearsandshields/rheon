@@ -766,3 +766,24 @@ fn _0113() {
   te_bool(false, scope, r#"before(time("10:00:00"), time("10:00:00+02:00"))"#, false);
   te_bool(false, scope, r#"before(time("09:00:00"), time("10:00:00+02:00"))"#, true);
 }
+
+#[test]
+fn _0114() {
+  // a point or an endpoint written as null takes part in the formula as null (Table 79), as in `in`
+  let scope = &scope!();
+  te_bool(false, scope, r#"during(15, (null..10])"#, false);
+  te_bool(false, scope, r#"includes((null..10], 15)"#, false);
+  te_bool(false, scope, r#"15 in (null..10]"#, false);
+  te_null(
+    false,
+    scope,
+    r#"during(5, (null..10])"#,
+    "[during] expected values that have an order, found 5 and (null..10]",
+  );
+  te_null(
+    false,
+    scope,
+    r#"before(null, 1)"#,
+    "[core::before] invalid argument type, expected scalar or range of scalars, actual type is Null",
+  );
+}

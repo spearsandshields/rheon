@@ -1072,7 +1072,7 @@ fn _0143() {
     false,
     &scope!(),
     r#"after([null..null],null)"#,
-    r#"[core::after] invalid argument type, expected scalar or range of scalars, actual type is range<Null>"#,
+    r#"[core::after] invalid argument type, expected scalar or range<scalar>, actual type is Null"#,
   );
 }
 

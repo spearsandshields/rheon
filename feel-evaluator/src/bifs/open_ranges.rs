@@ -192,7 +192,7 @@ fn invalid(relation: Relation, value1: &Value, value2: &Value) -> Value {
   // the kind the first argument holds: its point, or a defined endpoint of its range
   let kind = match operand(value1) {
     Operand::Point(point) => Some(point),
-    Operand::Range(range) => range.start.or(range.end),
+    Operand::Range(range) => range.start.filter(|start| !start.is_null()).or(range.end.filter(|end| !end.is_null())),
   }
   .map(|value| rheon_feel::values::TypeOf(value).to_string())
   .unwrap_or_else(|| "scalar".to_string());
@@ -205,15 +205,23 @@ fn invalid(relation: Relation, value1: &Value, value2: &Value) -> Value {
   crate::macros::invalid_argument_type!(module "core", relation.name(), expected, value2)
 }
 
-/// Whether the points and the defined endpoints of `operands` are values of one ordered type.
+/// Whether the points and the defined endpoints of `operands` are values of one ordered type, an
+/// endpoint written as null aside.
 fn one_ordered_type(operands: &[Operand]) -> bool {
   let mut kind = None;
+  // (a value, and whether it is an endpoint of a range)
   let mut values = operands.iter().flat_map(|operand| match operand {
-    Operand::Point(point) => [Some(*point), None],
-    Operand::Range(range) => [range.start, range.end],
+    Operand::Point(point) => [Some((*point, false)), None],
+    Operand::Range(range) => [range.start.map(|start| (start, true)), range.end.map(|end| (end, true))],
   });
   values.all(|value| {
-    let Some(value) = value else { return true };
+    let Some((value, endpoint)) = value else { return true };
+    // an endpoint written as null: the formula compares it as null (a comparison with null has no
+    // answer, an equality with it is false), as `in` does; a null point is no argument the
+    // function takes
+    if endpoint && value.is_null() {
+      return true;
+    }
     let ordered = matches!(
       value,
       Value::Number(_) | Value::String(_) | Value::Date(_) | Value::DateTime(_) | Value::Time(_) | Value::DaysAndTimeDuration(_) | Value::YearsAndMonthsDuration(_)

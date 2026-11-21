@@ -118,21 +118,19 @@ fn _0021() {
 
 #[test]
 fn _0022() {
-  te_null(
-    false,
-    &scope!(),
-    r#"finishes([time("11:23:420")..time("12:18:03")],[time("12:00:00")..time("12:18:03")])"#,
-    r#"[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is range<Any>"#,
-  );
+  // the start is the null of an invalid time literal: the formula has no answer (Table 79)
+  let node = rheon_feel_parser::parse_expression(&scope!(), r#"finishes([time("11:23:420")..time("12:18:03")],[time("12:00:00")..time("12:18:03")])"#).unwrap();
+  assert!(crate::tests::eval(&scope!(), &node).is_null());
 }
 
 #[test]
 fn _0023() {
-  te_null(
+  // the start is the null of an invalid time literal, compared as null; the ends differ (Table 79)
+  te_bool(
     false,
     &scope!(),
     r#"finishes([time("11:23:420")..time("12:18:03")],[time("12:00:00")..time("12:18:03")))"#,
-    r#"[core::finishes] invalid argument type, expected scalar or range of scalars, actual type is range<Any>"#,
+    false,
   );
 }
 

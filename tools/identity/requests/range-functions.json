@@ -95,5 +95,15 @@
   {"op": "evaluate", "expression": "finishes([1..20], 20)"},
   {"op": "evaluate", "expression": "coincides(5, [1..5])"},
   {"op": "evaluate", "expression": "coincides([1..5], 5)"},
-  {"op": "evaluate", "expression": "starts(1, 2)"}
+  {"op": "evaluate", "expression": "starts(1, 2)"},
+  {"op": "evaluate", "expression": "during(15, (null..10])"},
+  {"op": "evaluate", "expression": "during(15, (null..10])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "includes((null..10], 15)"},
+  {"op": "evaluate", "expression": "includes((null..10], 15)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "during(5, (null..10])"},
+  {"op": "evaluate", "expression": "during(5, (null..10])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "after([null..null], null)"},
+  {"op": "evaluate", "expression": "after([null..null], null)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "before(null, 1)"},
+  {"op": "evaluate", "expression": "before(null, 1)", "language": "b-feel"}
 ]
