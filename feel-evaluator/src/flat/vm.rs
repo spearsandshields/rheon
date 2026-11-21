@@ -695,8 +695,7 @@ impl<'p> Vm<'p> {
           let a = self.read(a);
           let domain = match domain {
             Domain::Interval => Sequence::interval(a, self.read(b)),
-            Domain::Range => Sequence::range(a, self.read(b)),
-            Domain::Of => Ok(Sequence::of(a)),
+            Domain::Of => Sequence::of_context(a),
           };
           let walk = self.walk(record);
           let info = &program.loops[walk.info as usize];

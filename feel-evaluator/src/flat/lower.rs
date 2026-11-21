@@ -640,7 +640,7 @@ impl<'a> Lower<'_, 'a> {
     let mark = self.next;
     let kids = resolved.kids(node);
     let mut parts = kids.iter().copied();
-    let (domain, a, b) = self.domain(kind, variables[0].1.len(), &mut parts)?;
+    let (domain, a, b) = self.domain(variables[0].1.len(), &mut parts)?;
     let info = self.builder.iteration(LoopInfo {
       kind,
       step: 0,
@@ -653,7 +653,7 @@ impl<'a> Lower<'_, 'a> {
     let step = self.builder.emit(Op::Step { record });
     for (level, (_, domain_parts)) in variables.iter().enumerate().skip(1) {
       levels[level - 1].1 = self.builder.here();
-      let (domain, a, b) = self.domain(kind, domain_parts.len(), &mut parts)?;
+      let (domain, a, b) = self.domain(domain_parts.len(), &mut parts)?;
       self.builder.emit(Op::LevelPush { record, domain, a, b });
       self.next = mark;
     }
@@ -678,7 +678,7 @@ impl<'a> Lower<'_, 'a> {
   /// The domain of a variable whose domain has `count` parts, the next of `parts`: an interval
   /// from its two parts, a range literal of a `for` from its start and end, or the items of a
   /// value.
-  fn domain(&mut self, kind: LoopKind, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), Malformed<'a>> {
+  fn domain(&mut self, count: usize, parts: &mut impl Iterator<Item = u32>) -> Result<(Domain, Opnd, Opnd), Malformed<'a>> {
     let resolved = self.resolved;
     let first = parts.next().ok_or(Malformed {
       at: resolved.nodes[resolved.root() as usize].ast,
@@ -690,14 +690,6 @@ impl<'a> Lower<'_, 'a> {
       let a = self.value(first, None)?;
       let b = self.value(second, None)?;
       return Ok((Domain::Interval, a, b));
-    }
-    if kind == LoopKind::For
-      && let AstNode::Range(..) = resolved.nodes[first as usize].ast
-    {
-      let kids = resolved.kids(first);
-      let a = self.value(kids[0], None)?;
-      let b = self.value(kids[1], None)?;
-      return Ok((Domain::Range, a, b));
     }
     let a = self.value(first, None)?;
     Ok((Domain::Of, a, a))

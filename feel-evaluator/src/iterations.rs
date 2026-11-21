@@ -11,7 +11,7 @@ use rheon_feel::context::FeelContext;
 use rheon_feel::diagnostics;
 use rheon_feel::message::arg;
 use rheon_feel::values::{FeelList, ListItems, TypeOf, Value};
-use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, IntervalType, Name, ScopeFrame, value_null};
+use rheon_feel::{Evaluator, FEEL_TYPE_NAME_DATE, FEEL_TYPE_NAME_NUMBER, FeelNumber, FeelScope, Name, ScopeFrame, value_null};
 use rheon_feel_temporal::FeelDate;
 use std::ops::ControlFlow;
 use std::sync::Arc;
@@ -53,6 +53,23 @@ impl Sequence {
     }
   }
 
+  /// The items of the value of an iteration context (DMN 1.7 Beta 1, 10.3.2.14): those of a list,
+  /// or a value that is no list as the only item; a range is no iteration context ("an expression
+  /// that returns a list of elements, or two expressions that return integers connected by `..`"),
+  /// and its iteration is null, as TCK 0084 has it for `for i in [2..1]`.
+  pub(crate) fn of_context(value: Value) -> Result<Self> {
+    match value {
+      range @ (Value::Range(..)
+      | Value::UnaryGreater(_)
+      | Value::UnaryGreaterOrEqual(_)
+      | Value::UnaryLess(_)
+      | Value::UnaryLessOrEqual(_)
+      | Value::UnaryEqual(_)
+      | Value::UnaryNotEqual(_)) => Err(err_range_iteration_context(arg(&range))),
+      value => Ok(Self::of(value)),
+    }
+  }
+
   /// No items.
   pub fn empty() -> Self {
     Self(Items::One(None))
@@ -61,26 +78,15 @@ impl Sequence {
   /// The numbers from `start` to `end` by steps of one, or the dates by steps of one day, in
   /// either direction (an interval `start..end`).
   pub fn interval(start: Value, end: Value) -> Result<Self> {
-    Self::between(start, end, false)
+    Self::between(start, end)
   }
 
-  /// The numbers or the dates of a range literal `[start..end]`: closed at both ends, with its
-  /// start not above its end.
-  pub(crate) fn range(start: Value, end: Value) -> Result<Self> {
-    match start {
-      Value::IntervalStart(start, IntervalType::Closed) => match end {
-        Value::IntervalEnd(end, IntervalType::Closed) => Self::between(*start, *end, true),
-        other => Err(err_invalid_range_end(arg(&other))),
-      },
-      other => Err(err_invalid_range_start(arg(&other))),
-    }
-  }
-
-  /// The numbers or the dates from `start` to `end`; `ascending_only` rejects a start above the end.
-  fn between(start: Value, end: Value, ascending_only: bool) -> Result<Self> {
+  /// The integers or the dates from `start` to `end`, in either direction (10.3.2.14: "two
+  /// expressions that return integers", or dates).
+  fn between(start: Value, end: Value) -> Result<Self> {
     match start {
       Value::Number(start) => match end {
-        Value::Number(end) if ascending_only && start > end => Err(err_invalid_range()),
+        Value::Number(end) if !start.is_integer() || !end.is_integer() => Err(err_interval_not_integers(start, end)),
         Value::Number(end) => Ok(Self(match (start.unscaled_i64(), end.unscaled_i64()) {
           (Some(first), Some(last)) => Items::Integers {
             next: Some(first),
@@ -96,7 +102,6 @@ impl Sequence {
         other => Err(err_invalid_interval_end(FEEL_TYPE_NAME_NUMBER, arg(&TypeOf(&other)))),
       },
       Value::Date(start) => match end {
-        Value::Date(end) if ascending_only && start > end => Err(err_invalid_range()),
         Value::Date(end) => {
           let ascending = start <= end;
           Ok(Self(Items::Dates {

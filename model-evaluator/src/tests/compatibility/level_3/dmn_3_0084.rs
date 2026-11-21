@@ -130,7 +130,7 @@ fn _0017() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    "null(<FeelEvaluatorError> invalid type of interval start: string)",
+    r#"null(<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range ["a".."z"])"#,
   );
 }
 
@@ -156,7 +156,7 @@ fn _0019() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    "null(<FeelEvaluatorError> invalid type of interval start: date and time)",
+    r#"null(<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1980-01-03T00:00:00..1980-01-01T00:00:00])"#,
   );
 }
 
@@ -182,7 +182,7 @@ fn _0021() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    "null(<FeelEvaluatorError> invalid type of interval start: time)",
+    r#"null(<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [00:00:00..00:00:00])"#,
   );
 }
 
@@ -208,14 +208,21 @@ fn _0023() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    "null(<FeelEvaluatorError> invalid type of interval start: days and time duration)",
+    r#"null(<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [P1D..P2D])"#,
   );
 }
 
 #[test]
 fn _0024() {
   let invocable_name = "decision_023";
-  assert_decision(&MODEL_EVALUATOR, &MODEL_NAMESPACE, &MODEL_NAME, invocable_name, &CTX, "[1, 2]");
+  assert_decision(
+    &MODEL_EVALUATOR,
+    &MODEL_NAMESPACE,
+    &MODEL_NAME,
+    invocable_name,
+    &CTX,
+    "null(<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..2])",
+  );
 }
 
 #[test]
@@ -227,7 +234,7 @@ fn _0025() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    "[1980-01-01, 1980-01-02, 1980-01-03]",
+    r#"null(<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1980-01-01..1980-01-03])"#,
   );
 }
 
@@ -240,6 +247,6 @@ fn _0026() {
     &MODEL_NAME,
     invocable_name,
     &CTX,
-    "null(<FeelEvaluatorError> range start must be less or equal then range end)",
+    r#"null(<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [2..1])"#,
   );
 }

@@ -153,9 +153,8 @@ pub(crate) enum ListKind {
 pub(crate) enum Domain {
   /// The numbers or dates from the first operand to the second (`a..b`).
   Interval,
-  /// The numbers or dates of a range literal of a `for` (`[a..b]`), from its start and end.
-  Range,
-  /// The items of the value of the first operand, or the value itself when it is no list.
+  /// The items of the value of the first operand, or the value itself when it is no list; a
+  /// range is no domain.
   Of,
 }
 

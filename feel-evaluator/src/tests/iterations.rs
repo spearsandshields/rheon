@@ -163,7 +163,8 @@ fn _0017() {
     (vec![State::Interval("i", number("1"), number("5"))], "[{i: 1}, {i: 2}, {i: 3}, {i: 4}, {i: 5}]"),
     (vec![State::Interval("i", number("5"), number("1"))], "[{i: 5}, {i: 4}, {i: 3}, {i: 2}, {i: 1}]"),
     (vec![State::Interval("i", number("3"), number("3"))], "[{i: 3}]"),
-    (vec![State::Interval("i", number("1.5"), number("4"))], "[{i: 1.5}, {i: 2.5}, {i: 3.5}]"),
+    // an end that is no integer makes no interval (10.3.2.14: "two expressions that return integers")
+    (vec![State::Interval("i", number("1.5"), number("4"))], "[]"),
     (vec![State::Interval("i", number("-1"), number("1"))], "[{i: -1}, {i: 0}, {i: 1}]"),
     (vec![State::Interval("i", number("1e34"), number("1e34"))], "[{i: 10000000000000000000000000000000000}]"),
     (
@@ -401,12 +402,9 @@ fn an_interval_of_integers_gives_the_numbers_that_stepping_by_one_gives() {
     ("-1", "0"),
     ("1", "0"),
     ("9007199254740990", "9007199254740994"),
-    // held with a scale, or not integers: stepped as numbers
+    // integers held with a scale: stepped as numbers
     ("1.0", "4"),
     ("1", "4.0"),
-    ("1.5", "4"),
-    ("1", "3.5"),
-    ("4", "1.5"),
     ("1e2", "103"),
   ];
   let mut pairs: Vec<(FeelNumber, FeelNumber)> = cases

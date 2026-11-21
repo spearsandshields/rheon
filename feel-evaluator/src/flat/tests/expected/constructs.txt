@@ -14603,36 +14603,36 @@ List([Number(+2E+0), Number(+4E+0), Number(+6E+0)])
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 for_walks_every_combination_of_its_variables #9 "for i in [1..3] return i"
-List([Number(+1E+0), Number(+2E+0), Number(+3E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #10 "for i in [1..3] return i"
-List([Number(+1E+0), Number(+2E+0), Number(+3E+0)])
-Diagnostics { count: 0, messages: [], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #11 "for i in [3..1] return i"
-Null(Some("<FeelEvaluatorError> range start must be less or equal then range end"))
-Diagnostics { count: 1, messages: ["<FeelEvaluatorError> range start must be less or equal then range end"], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [3..1]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [3..1]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #12 "for i in [3..1] return i"
-Null(Some("<FeelEvaluatorError> range start must be less or equal then range end"))
-Diagnostics { count: 1, messages: ["<FeelEvaluatorError> range start must be less or equal then range end"], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [3..1]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [3..1]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #13 "for i in (1..3] return i"
-Null(Some("<FeelEvaluatorError> invalid range start: IntervalStart"))
-Diagnostics { count: 1, messages: ["<FeelEvaluatorError> invalid range start: IntervalStart"], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range (1..3]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range (1..3]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #14 "for i in (1..3] return i"
-Null(Some("<FeelEvaluatorError> invalid range start: IntervalStart"))
-Diagnostics { count: 1, messages: ["<FeelEvaluatorError> invalid range start: IntervalStart"], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range (1..3]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range (1..3]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #15 "for i in [1..3) return i"
-Null(Some("<FeelEvaluatorError> invalid range end: IntervalEnd"))
-Diagnostics { count: 1, messages: ["<FeelEvaluatorError> invalid range end: IntervalEnd"], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3)"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3)"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #16 "for i in [1..3) return i"
-Null(Some("<FeelEvaluatorError> invalid range end: IntervalEnd"))
-Diagnostics { count: 1, messages: ["<FeelEvaluatorError> invalid range end: IntervalEnd"], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3)"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3)"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #17 "for i in 1 return i"
 List([Number(+1E+0)])
@@ -14675,12 +14675,12 @@ List([Date(FeelDate(2024, 2, 27)), Date(FeelDate(2024, 2, 28)), Date(FeelDate(20
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 for_walks_every_combination_of_its_variables #27 "for d in [@\"2024-02-28\"..@\"2024-03-01\"] return d"
-List([Date(FeelDate(2024, 2, 28)), Date(FeelDate(2024, 2, 29)), Date(FeelDate(2024, 3, 1))])
-Diagnostics { count: 0, messages: [], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [2024-02-28..2024-03-01]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [2024-02-28..2024-03-01]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #28 "for d in [@\"2024-02-28\"..@\"2024-03-01\"] return d"
-List([Date(FeelDate(2024, 2, 28)), Date(FeelDate(2024, 2, 29)), Date(FeelDate(2024, 3, 1))])
-Diagnostics { count: 0, messages: [], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [2024-02-28..2024-03-01]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [2024-02-28..2024-03-01]"], warnings: [] }
 
 for_walks_every_combination_of_its_variables #29 "for i in \"a\"..3 return i"
 Null(Some("<FeelEvaluatorError> invalid type of interval start: string"))
@@ -18595,12 +18595,12 @@ Boolean(true)
 Diagnostics { count: 2, messages: ["context has no value for key 'partial'"], warnings: [] }
 
 some_and_every_end_at_a_value_that_decides #31 "some x in [1..3] satisfies x = 2"
-Null(None)
-Diagnostics { count: 1, messages: ["equal err '[1..3]' =?= '2'"], warnings: [] }
+Null(Some("<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3]"))
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3]"], warnings: [] }
 
 some_and_every_end_at_a_value_that_decides #32 "some x in [1..3] satisfies x = 2"
 Boolean(false)
-Diagnostics { count: 1, messages: ["equal err '[1..3]' =?= '2'"], warnings: [] }
+Diagnostics { count: 1, messages: ["<FeelEvaluatorError> iteration context expected a list or an interval a..b, found the range [1..3]"], warnings: [] }
 
 unary_tests_read_the_input_value #1 a tree built by hand
 Boolean(true)
