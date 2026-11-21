@@ -267,5 +267,16 @@
 {"op":"evaluate","expression":"split(\";\",\";\")"},
 {"op":"evaluate","expression":"split(\"abracadabra\",\"(ab)|(a)\")"},
 {"op":"evaluate","expression":"split(\"The cat sat on the mat\",\"\\\\s+\")"},
-{"op":"evaluate","expression":"split(\"abc\",\";\")"}
+{"op":"evaluate","expression":"split(\"abc\",\";\")"},
+  {"op": "evaluate", "expression": "matches(\"555-1234\", \"\\\\d{3}-[0-9]{4}\")"},
+  {"op": "evaluate", "expression": "matches(\"a-1\", \"a\\\\-[0-9]\")"},
+  {"op": "evaluate", "expression": "matches(\"a1\", \"a-[0-9]\")"},
+  {"op": "evaluate", "expression": "matches(\"b\", \"^[a-z-[aeiou]]$\")"},
+  {"op": "evaluate", "expression": "matches(\"e\", \"^[a-z-[aeiou]]$\")"},
+  {"op": "evaluate", "expression": "replace(\"555-1234\", \"\\\\d{3}-([0-9]{4})\", \"$1\")"},
+  {"op": "evaluate", "expression": "split(\"a-1b-2\", \"-[0-9]\")"},
+  {"op": "evaluate", "expression": "matches(\"e\", \"^[^a-z-[aeiou]]$\")"},
+  {"op": "evaluate", "expression": "matches(\"1\", \"^[^a-z-[aeiou]]$\")"},
+  {"op": "evaluate", "expression": "matches(\"b\", \"^[^a-z-[aeiou]]$\")"},
+  {"op": "evaluate", "expression": "matches(\"1\", \"^[^a-z-[0-9]]$\")"}
 ]

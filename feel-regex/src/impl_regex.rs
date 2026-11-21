@@ -134,9 +134,62 @@ fn fix_input(s: &str) -> String {
 }
 
 /// A pattern in the syntax of the backtracking engine: the XSD block names (`\p{IsBasicLatin}`)
-/// become their ranges, and a class subtraction (`[a-z-[aeiou]]`) becomes the engine's `--[`.
+/// become their ranges, and a class subtraction (`[a-z-[aeiou]]`, XSD `charClassSub`) becomes the
+/// engine's `--[`. Only a `-[` inside a character class is a subtraction: outside one, as in
+/// `\d{3}-[0-9]{4}`, it is a hyphen followed by a class, and an escaped `\-` is a hyphen.
 fn translate(pattern: &str) -> String {
-  replace_block_names(pattern).replace("-[", "--[")
+  subtractions(&replace_block_names(pattern))
+}
+
+/// Writes each class subtraction `-[` of `pattern` as `--[`, leaving every other character as it is.
+/// XSD reads `[^P-[C]]` as the characters not in P, less those in C (XSD Part 2, F.1.1), while the
+/// engine's negation covers the whole class (`[^P--[C]]` is not (P less C)), so a negated class with
+/// a subtraction becomes `[[^P]--[C]]`.
+fn subtractions(pattern: &str) -> String {
+  struct Class {
+    /// Where the class's `[` is in the output.
+    start: usize,
+    negated: bool,
+    /// A subtraction of a negated class has been written: its negated part is already wrapped.
+    wrapped: bool,
+  }
+  let mut out = String::with_capacity(pattern.len() + 4);
+  let mut chars = pattern.chars().peekable();
+  let mut classes: Vec<Class> = Vec::new();
+  while let Some(c) = chars.next() {
+    match c {
+      '\\' => {
+        out.push(c);
+        if let Some(escaped) = chars.next() {
+          out.push(escaped);
+        }
+      }
+      '[' => {
+        let negated = chars.peek() == Some(&'^');
+        classes.push(Class {
+          start: out.len(),
+          negated,
+          wrapped: false,
+        });
+        out.push(c);
+      }
+      ']' if !classes.is_empty() => {
+        classes.pop();
+        out.push(c);
+      }
+      '-' if !classes.is_empty() && chars.peek() == Some(&'[') => {
+        let class = classes.last_mut().expect("inside a class");
+        if class.negated && !class.wrapped {
+          out.insert(class.start, '[');
+          out.push(']');
+          class.wrapped = true;
+        }
+        out.push_str("--");
+      }
+      _ => out.push(c),
+    }
+  }
+  out
 }
 
 #[cfg(test)]
@@ -147,6 +200,33 @@ mod tests {
   fn by_engine(input: &str, pattern: &str, flags: &str) -> Result<bool, RegexError> {
     let source = Flags::parse(flags)?.source(pattern, translate);
     search(&mut Patterns::default(), input, &source, pattern)
+  }
+
+  #[test]
+  fn only_a_hyphen_before_a_class_inside_a_class_is_a_subtraction() {
+    assert_eq!(r"[a-z--[aeiou]]", subtractions(r"[a-z-[aeiou]]"));
+    assert_eq!(r"[[^a-z]--[aeiou]]x", subtractions(r"[^a-z-[aeiou]]x"));
+    assert_eq!(r"[a-z--[[^b-d]--[c]]]", subtractions(r"[a-z-[^b-d-[c]]]"));
+    assert_eq!(r"[^abc]", subtractions(r"[^abc]"));
+    assert_eq!(r"[a-z--[b-d--[c]]]", subtractions(r"[a-z-[b-d-[c]]]"));
+    assert_eq!(r"\d{3}-[0-9]{4}", subtractions(r"\d{3}-[0-9]{4}"));
+    assert_eq!(r"a\-[0-9]", subtractions(r"a\-[0-9]"));
+    assert_eq!(r"[\]-]-[x]", subtractions(r"[\]-]-[x]"));
+    assert_eq!(r"-[x]", subtractions(r"-[x]"));
+  }
+
+  #[test]
+  fn a_hyphen_before_a_class_outside_a_class_matches_a_hyphen() {
+    assert!(is_match("555-1234", r"\d{3}-[0-9]{4}", "").unwrap());
+    assert!(is_match("a-1", r"a\-[0-9]", "").unwrap());
+    assert!(!is_match("a1", r"a-[0-9]", "").unwrap());
+    assert!(is_match("b", r"^[a-z-[aeiou]]$", "").unwrap());
+    assert!(!is_match("e", r"^[a-z-[aeiou]]$", "").unwrap());
+    // a negated class less a class: the characters outside a-z, less the vowels
+    assert!(!is_match("e", r"^[^a-z-[aeiou]]$", "").unwrap());
+    assert!(!is_match("b", r"^[^a-z-[aeiou]]$", "").unwrap());
+    assert!(is_match("1", r"^[^a-z-[aeiou]]$", "").unwrap());
+    assert!(!is_match("1", r"^[^a-z-[0-9]]$", "").unwrap());
   }
 
   #[test]

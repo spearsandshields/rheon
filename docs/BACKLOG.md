@@ -104,6 +104,12 @@ was written.
   through the scope stack (`FeelScope::get_value`).
 - **Regular expressions are compiled on every call** `[fork]`: `matches` (`feel-regex`),
   `replace` and `split` compile their pattern for each invocation.
+- **XSD regex syntax only partly translated** `[fork]` (2026-11-21). `matches` translates XSD block
+  names and class subtractions into the engine's syntax (`feel-regex/src/impl_regex.rs`), but
+  `replace` and `split` compile their pattern as written, so a class subtraction (`[a-z-[aeiou]]`)
+  or a block name (`\p{IsBasicLatin}`) there means what the engine reads. In every function, `&&`
+  and `~~` inside a class are plain characters in XSD but intersection and symmetric difference to
+  the engine. The XSD regex front end (gap theme DT-050) replaces the translation.
 - **`sort` on long lists with few distinct values** `[fork]` (2026-11-14). `sort` merges runs of
   its own (`feel-evaluator/src/bifs/sorting.rs`), and on long lists with few distinct values it
   calls the predicate more often than the standard library's sort: 10,000 items of seven distinct

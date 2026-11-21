@@ -1,0 +1,202 @@
+[
+  {
+    "expression": "matches(\"555-1234\", \"\\\\d{3}-[0-9]{4}\")",
+    "why": "DT-047: only a '-[' inside a character class is a class subtraction (XSD charClassSub); the translation rewrote every '-[' to the engine's '--[', so a hyphen before a class outside brackets, as in matches(\"555-1234\", \"\\\\d{3}-[0-9]{4}\"), never matched (DMN 1.7 Beta 1, 10.3.4.3 matches; XSD Part 2, F.1).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(\"a-1\", \"a\\\\-[0-9]\")",
+    "why": "DT-047: an escaped hyphen is a hyphen, and a \"-[\" outside a character class is no class subtraction (XSD Part 2, charClassSub). The translation rewrote a\\-[0-9] to a\\--[0-9], which matched \"a--1\", so matches(\"a-1\", \"a\\-[0-9]\") was false (DMN 1.7 Beta 1, 10.3.4.3 matches).",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(\"e\", \"^[^a-z-[aeiou]]$\")",
+    "why": "DT-047: a negated class less a class, [^P-[C]], is the characters not in P less those in C (XSD Part 2, F.1.1); the engine's negation covers the whole class, so the translation writes [[^P]--[C]]. matches(\"e\", \"^[^a-z-[aeiou]]$\") was true.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(\"1\", \"^[^a-z-[0-9]]$\")",
+    "why": "DT-047: a negated class less a class, [^P-[C]], is the characters not in P less those in C (XSD Part 2, F.1.1); the engine's negation covers the whole class, so the translation writes [[^P]--[C]]. matches(\"e\", \"^[^a-z-[aeiou]]$\") was true.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]
