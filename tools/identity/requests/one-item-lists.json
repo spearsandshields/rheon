@@ -265,5 +265,15 @@
   {"op": "evaluate", "expression": "date(year: 2020, month: 1)"},
   {"op": "evaluate", "expression": "context put(context: {a: 1}, value: 2)"},
   {"op": "evaluate", "expression": "get value(m: {a: 1})"},
-  {"op": "evaluate", "expression": "string join(list: [\"a\", \"b\"])"}
+  {"op": "evaluate", "expression": "string join(list: [\"a\", \"b\"])"},
+  {"op": "evaluate", "expression": "abs = abs"},
+  {"op": "evaluate", "expression": "abs = floor"},
+  {"op": "evaluate", "expression": "abs != floor"},
+  {"op": "evaluate", "expression": "{f: function(x) x, g: f, r: f = g}.r"},
+  {"op": "evaluate", "expression": "{fs: for i in [1, 2] return function(x) x + i, r: fs[1] = fs[2]}.r"},
+  {"op": "evaluate", "expression": "{fs: for i in [1, 2] return function(x) x, r: fs[1] = fs[2]}.r"},
+  {"op": "evaluate", "expression": "abs = function(x) x"},
+  {"op": "evaluate", "expression": "distinct values([abs, abs, floor])"},
+  {"op": "evaluate", "expression": "list contains([abs], abs)"},
+  {"op": "evaluate", "expression": "is({f: function(x) x, g: f}.f, {f: function(x) x, g: f}.g)"}
 ]

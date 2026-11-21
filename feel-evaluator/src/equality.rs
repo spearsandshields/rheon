@@ -6,9 +6,11 @@
 //! take exponential time; this one remembers the answer for each pair of shared lists or shared
 //! contexts it compared, and compares a pair again only when it was not met before.
 
+use rheon_feel::FunctionDefinition;
 use rheon_feel::values::Value;
 use std::collections::HashMap;
 use std::hash::{BuildHasher, Hash, Hasher, RandomState};
+use std::sync::Arc;
 
 /// The key of a pair of lists of one length or of contexts with as many entries, when either side
 /// is shared ([Value::is_shared]): the addresses of their nodes ([Value::node_address]). `None` for
@@ -93,6 +95,24 @@ impl Equality {
     }
   }
 
+  /// Whether two function definitions are the same function (Table 54): the same parameters with
+  /// their types, the same result type, the same body, and equal values of the names they close
+  /// over. Two evaluations of one function text in one scope give equal functions.
+  fn functions(&mut self, lf: &Arc<FunctionDefinition>, rf: &Arc<FunctionDefinition>) -> bool {
+    if Arc::ptr_eq(lf, rf) {
+      return true;
+    }
+    if lf.parameters() != rf.parameters() || lf.result_type() != rf.result_type() || lf.external != rf.external || lf.closure != rf.closure || !lf.body.is_same(&rf.body) {
+      return false;
+    }
+    let (ls, rs) = (&lf.closure_ctx, &rf.closure_ctx);
+    Arc::ptr_eq(ls, rs)
+      || (ls.len() == rs.len()
+        && ls
+          .iter()
+          .all(|(key, value1)| rs.get_entry(key).is_some_and(|value2| self.nested(value1, value2) == Some(true))))
+  }
+
   pub(crate) fn compare(&mut self, lhs: &Value, rhs: &Value) -> Option<bool> {
     let answer = self.compare_kinds(lhs, rhs);
     if self.identity { Some(answer == Some(true)) } else { answer }
@@ -141,8 +161,28 @@ impl Equality {
         Value::DateTime(rs) => Some(*ls == *rs),
         _ => None,
       },
-      Value::BuiltInFunction(lb) if self.identity => Some(matches!(rhs, Value::BuiltInFunction(rb) if lb == rb)),
-      Value::FunctionDefinition(lf) if self.identity => Some(matches!(rhs, Value::FunctionDefinition(rf) if std::sync::Arc::ptr_eq(lf, rf))),
+      // functions (Table 54): internal ones are equal when they have the same parameters, body and
+      // scope, external ones the same parameters and mapping; a function is no other function
+      Value::BuiltInFunction(lb) => match rhs {
+        Value::BuiltInFunction(rb) => Some(lb == rb),
+        rhs if is_function(rhs) => Some(false),
+        _ => None,
+      },
+      Value::FunctionDefinition(lf) => match rhs {
+        Value::FunctionDefinition(rf) => Some(self.functions(lf, rf)),
+        rhs if is_function(rhs) => Some(false),
+        _ => None,
+      },
+      Value::ExternalJavaFunction(l_class, l_method) => match rhs {
+        Value::ExternalJavaFunction(r_class, r_method) => Some(l_class == r_class && l_method == r_method),
+        rhs if is_function(rhs) => Some(false),
+        _ => None,
+      },
+      Value::ExternalPmmlFunction(l_iri, l_model) => match rhs {
+        Value::ExternalPmmlFunction(r_iri, r_model) => Some(l_iri == r_iri && l_model == r_model),
+        rhs if is_function(rhs) => Some(false),
+        _ => None,
+      },
       Value::DaysAndTimeDuration(ls) => match rhs {
         Value::DaysAndTimeDuration(rs) => Some(*ls == *rs),
         _ => None,
@@ -292,6 +332,14 @@ fn hash(state: &RandomState, value: &Value) -> u64 {
   let mut hasher = state.build_hasher();
   digest(value, &mut hasher, true);
   hasher.finish()
+}
+
+/// Whether `value` is a function of any kind.
+fn is_function(value: &Value) -> bool {
+  matches!(
+    value,
+    Value::BuiltInFunction(_) | Value::FunctionDefinition(_) | Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..)
+  )
 }
 
 /// Writes what the hash of a value is taken of. A list or a context adds its items when `items`

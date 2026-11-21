@@ -24,9 +24,9 @@ fn equality_compares_each_pair_of_shared_lists_once() {
     "[true, false, true, false]",
     &[],
   );
-  // items that can not be compared make the lists unequal, however often they are reached
+  // functions are compared as other items (Table 54), however often they are reached
   let functions = doubled(60, "f");
-  te_warnings(&format!("{{f: function() 1, x: {functions}, r: [x = x, {{a: x}} = {{a: x}}]}}.r"), "[false, false]", &[]);
+  te_warnings(&format!("{{f: function() 1, x: {functions}, r: [x = x, {{a: x}} = {{a: x}}]}}.r"), "[true, true]", &[]);
 }
 
 /// A small deterministic generator (xorshift).

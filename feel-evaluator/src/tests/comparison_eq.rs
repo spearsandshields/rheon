@@ -436,3 +436,20 @@ fn comparisons_are_left_associative() {
     "comparison '<' expected a number, string, date, time, date and time, or duration on the left, found boolean",
   );
 }
+
+#[test]
+fn functions_are_equal_when_they_are_the_same_function() {
+  // Table 54: the same parameters, body and scope; a function is no other function
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "abs = abs", true);
+  te_bool(false, scope, "abs = floor", false);
+  te_bool(false, scope, "abs != floor", true);
+  te_bool(false, scope, "{f: function(x) x, g: f, r: f = g}.r", true);
+  // two function literals are two bodies, also when they are written alike
+  te_bool(false, scope, "{f: function(x) x, g: f}.g = {f: function(x) x, g: f}.f", false);
+  te_bool(false, scope, "{f: function(x) x + 1, g: function(x) x + 1, r: f = g}.r", false);
+  te_bool(false, scope, "{fs: for i in [1, 2] return function(x) x, r: fs[1] = fs[2]}.r", true);
+  te_bool(false, scope, "{fs: for i in [1, 2] return function(x) x + i, r: fs[1] = fs[2]}.r", false);
+  te_bool(false, scope, "abs = function(x) x", false);
+  te_null(false, scope, "abs = 1", "equal err 'BuiltInFunction' =?= '1'");
+}

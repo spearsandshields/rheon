@@ -104,6 +104,11 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *Equality of the two duration kinds* (9.4 against Table 53). `@"P1D" = @"P1M"` and
     `@"P0D" = @"P0Y"` are null: Table 53 requires one kind, and TCK 0068 (`P1Y = P365D` is null)
     reads it so; 9.4 says the kinds compare.
+  - *Equality of functions* (Table 54: "the same parameters, body, and scope"). The body is the
+    function literal where it is written: two literals are two functions even when their text is
+    alike (`{f: function(x) x}.f = {f: function(x) x}.f` is false), and one literal evaluated twice
+    in equal scopes gives equal functions. A function of a DMN model or an external function is the
+    same when it is the same evaluator. A built-in function equals only itself.
   - *The endpoints of `(!= 10)`* (10.3.2.7). Its `start`, `end` and inclusion properties are those
     of `(= 10)`; the spec's rule (the other endpoint undefined, not included) fits neither form.
   - *`count(null)`* (10.3.4 against the conversion to a singleton list, 10.3.2.9.4). It is null,
