@@ -84,6 +84,28 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   tree with positions from the engine's own parser (`syntax` and `complete`, docs/CONTRACT.md
   §3), through `@rheon/feel-codemirror`. A syntax error of `evaluate` carries the same
   diagnostics with their places (`error.diagnostics`).
-- **Context entries are sorted.** dsntk keeps contexts in a `BTreeMap`, so results list keys in
-  name order.
+- **Context entries are shown in the order they were written.** A context keeps its entries by
+  name and the written order beside it; results, `string()` and the JSON list the entries in the
+  written order, and equality does not depend on it. The entries of a context literal are evaluated
+  in the order they depend on each other, not as written.
+- **Readings of rules the spec leaves unclear or contradicts.** Each follows the official TCK
+  where it decides, otherwise the reading given here:
+  - *Unknown string escapes* (DMN 1.7 Beta 1, grammar rules 33 and 64). An escape outside rule 64,
+    such as `"\q"` or `"\d"`, is kept as the backslash and the character, so `string length("\s")`
+    is 2, while `"\n"` is a newline. TCK 0067, 1109 and 1111 write regex patterns with one backslash
+    and need it.
+  - *`<=` and `>=` on values that have no order* (Table 51 against Table 55). They are null for
+    kinds without an order, as `<` and `>` are: `null <= null` and `[1] <= [1]` are null, although
+    "`<` or `=`" would give true.
+  - *Equality of the two duration kinds* (9.4 against Table 53). `@"P1D" = @"P1M"` and
+    `@"P0D" = @"P0Y"` are null: Table 53 requires one kind, and TCK 0068 (`P1Y = P365D` is null)
+    reads it so; 9.4 says the kinds compare.
+  - *The endpoints of `(!= 10)`* (10.3.2.7). Its `start`, `end` and inclusion properties are those
+    of `(= 10)`; the spec's rule (the other endpoint undefined, not included) fits neither form.
+  - *`count(null)`* (10.3.4 against the conversion to a singleton list, 10.3.2.9.4). It is null,
+    as an argument outside a built-in's domain is; a value that is no list and not null counts as
+    a list of one item. Upstream dsntk read null as `[null]` and answered 1.
+  - *`number(from, grouping separator, decimal separator)`* (10.3.4.1, footnote). The cleaned
+    string is checked against grammar rule 35 (a numeric literal); the footnote cites rule 37
+    (digits), which would reject the table's own example `number("1.1")`.
 - **Only Chromium was tested** in a real browser.

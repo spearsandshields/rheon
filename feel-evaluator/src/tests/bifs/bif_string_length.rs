@@ -70,3 +70,13 @@ fn _0011() {
 fn _0012() {
   te_null(false, &scope!(), r#"string length(10)"#, r#"string length: expected string as an argument"#);
 }
+
+#[test]
+fn _0013() {
+  // an escape outside grammar rule 64 keeps its backslash (TCK 0067, 1109 and 1111 need it, see
+  // docs/LIMITATIONS.md); the escapes of rule 64 are one character
+  te_number(false, &scope!(), r#"string length("\s")"#, 2, 0);
+  te_number(false, &scope!(), r#"string length("\q")"#, 2, 0);
+  te_number(false, &scope!(), r#"string length("\n")"#, 1, 0);
+  te_number(false, &scope!(), r#"string length("\\")"#, 1, 0);
+}

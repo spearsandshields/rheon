@@ -147,9 +147,9 @@ Open in 1.6:
     position, min never does), which carries into the C< and C> hit policies. Both reject dates,
     times and durations.
   - *Lists of `!=` unary tests are combined with AND*; the spec defines a list of unary tests as
-    OR (comparison_in.rs asserts AND). The spec also reads differently for `null <= null` (spec:
-    `<` or `=`, so true) and `-` against a null input (rule 15.c reads as `? != null`); rheon gives null and
-    a match.
+    OR (comparison_in.rs asserts AND). The spec also reads differently for `-` against a null
+    input (rule 15.c reads as `? != null`); rheon gives a match. (`null <= null` is null by the
+    reading recorded in LIMITATIONS.md.)
   - *Smaller ones*: null range endpoints are handled differently by kind; `between` checks the
     kinds of all three operands first; `list in list` is containment of a multiset; the Any and
     Priority hit policies compare outputs with Rust equality, not FEEL equality; a collection item
