@@ -55,6 +55,10 @@ pub(crate) fn eval_ternary_equality(lhs: &Value, rhs: &Value) -> Option<bool> {
 #[derive(Default)]
 pub(crate) struct Equality {
   shared: Option<HashMap<(usize, usize), Option<bool>>>,
+  /// The answers for the pairs of function definitions compared, by their addresses: functions
+  /// that close over the same functions under several names are compared once, as shared lists
+  /// and contexts are, so a comparison stays linear in the size of the values.
+  functions: Option<HashMap<(usize, usize), bool>>,
   /// Identity (`is`, 10.3.2.2) instead of equality: values of other kinds are not the same, times
   /// and date and times are the same only with the same fields and zone, and functions only as
   /// the same function. Never `None`.
@@ -65,7 +69,13 @@ pub(crate) struct Equality {
 /// `is`, which "never results in null". Lists, contexts and ranges are the same when their parts
 /// are; shared parts are compared once, as by equality.
 pub(crate) fn identical(lhs: &Value, rhs: &Value) -> bool {
-  Equality { shared: None, identity: true }.compare(lhs, rhs) == Some(true)
+  Equality {
+    shared: None,
+    functions: None,
+    identity: true,
+  }
+  .compare(lhs, rhs)
+    == Some(true)
 }
 
 impl Equality {
@@ -102,6 +112,17 @@ impl Equality {
     if Arc::ptr_eq(lf, rf) {
       return true;
     }
+    let key = (Arc::as_ptr(lf).addr(), Arc::as_ptr(rf).addr());
+    if let Some(answer) = self.functions.as_ref().and_then(|functions| functions.get(&key)) {
+      return *answer;
+    }
+    let answer = self.different_functions(lf, rf);
+    self.functions.get_or_insert_with(HashMap::new).insert(key, answer);
+    answer
+  }
+
+  /// [Equality::functions] of two function definitions that are not one value, not remembered.
+  fn different_functions(&mut self, lf: &Arc<FunctionDefinition>, rf: &Arc<FunctionDefinition>) -> bool {
     if lf.parameters() != rf.parameters() || lf.result_type() != rf.result_type() || lf.external != rf.external || lf.closure != rf.closure || !lf.body.is_same(&rf.body) {
       return false;
     }

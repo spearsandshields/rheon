@@ -453,3 +453,24 @@ fn functions_are_equal_when_they_are_the_same_function() {
   te_bool(false, scope, "abs = function(x) x", false);
   te_null(false, scope, "abs = 1", "equal err 'BuiltInFunction' =?= '1'");
 }
+
+#[test]
+fn functions_that_close_over_shared_functions_are_compared_once() {
+  // each function closes over the one before under two names: compared pair by pair, the
+  // comparison doubled at every level (2^40 calls)
+  let scope = &te_scope("{}");
+  let started = std::time::Instant::now();
+  te_bool(
+    false,
+    scope,
+    "{mk: function(x, y) function() [x, y], build: function() (for i in 1..40 return if i = 1 then mk(0, 0) else mk(partial[-1], partial[-1]))[40], r: build() = build()}.r",
+    true,
+  );
+  te_bool(
+    false,
+    scope,
+    "{mk: function(x, y) function() [x, y], build: function() (for i in 1..40 return if i = 1 then mk(0, 0) else mk(partial[-1], partial[-1]))[40], r: is(build(), build())}.r",
+    true,
+  );
+  assert!(started.elapsed().as_secs() < 5, "took {:?}", started.elapsed());
+}
