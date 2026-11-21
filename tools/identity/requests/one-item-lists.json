@@ -293,5 +293,16 @@
   {"op": "evaluate", "expression": "(function(x: number) x) instance of function<Any>->Any"},
   {"op": "evaluate", "expression": "(function(x: Any) x) instance of function<number>->Any"},
   {"op": "evaluate", "expression": "(function() 1) instance of function<>->Any"},
-  {"op": "evaluate", "expression": "(function(x: number) x) instance of function<number>->Any"}
+  {"op": "evaluate", "expression": "(function(x: number) x) instance of function<number>->Any"},
+  {"op": "evaluate", "expression": "5 in [10..1]"},
+  {"op": "evaluate", "expression": "[10..1]"},
+  {"op": "evaluate", "expression": "[1..\"a\"]"},
+  {"op": "evaluate", "expression": "[true..false]"},
+  {"op": "evaluate", "expression": "5 in [1..10]"},
+  {"op": "evaluate", "expression": "\"b\" in [\"a\"..\"c\"]"},
+  {"op": "evaluate", "expression": "[1..null)"},
+  {"op": "evaluate", "expression": "x in [1..2]"},
+  {"op": "evaluate", "expression": "[[1..2]..[3..4]]"},
+  {"op": "evaluate", "expression": "[@\"2020-01-02\"..@\"2020-01-01\"]"},
+  {"op": "evaluate", "expression": "before([1..2], [4..3])"}
 ]

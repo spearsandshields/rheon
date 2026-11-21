@@ -104,6 +104,13 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *Equality of the two duration kinds* (9.4 against Table 53). `@"P1D" = @"P1M"` and
     `@"P0D" = @"P0Y"` are null: Table 53 requires one kind, and TCK 0068 (`P1Y = P365D` is null)
     reads it so; 9.4 says the kinds compare.
+  - *Range literals out of order or of two types* (10.3.2.7 against Tables 56 and 79). 10.3.2.7 says
+    the endpoints of `[a..b]` "must be of equivalent types" and ordered, but gives no answer for a
+    range that is not; the tests on ranges are defined by comparisons of the endpoints (Table 56),
+    and the range functions by formulas (Table 79), which answer for every range. So `[10..1]` is a
+    range value: `5 in [10..1]` is false, `2 in [1.."z"]` is null (2 <= "z" is null), and
+    `before([1..2], [4..3])` is true. Making such a literal null would make `2 in [1.."z"]` the test
+    `2 in null`, which is false.
   - *The result type of a function literal* (10.3.2.9, 10.3.2.9.2). It is not inferred: the type of
     `function(x: number) x` is `function<number>->Any`, so it is no instance of
     `function<number>->number`. Bound to a parameter or a variable of a function type, a function
