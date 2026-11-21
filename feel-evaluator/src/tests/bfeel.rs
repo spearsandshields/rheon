@@ -132,3 +132,17 @@ fn some_and_every_are_never_null() {
     bf(e, x, None);
   }
 }
+
+#[test]
+fn named_lists_of_the_list_number_functions_drop_what_is_no_number() {
+  // 11.3, 11.7: by name as by position; FEEL gives null
+  for (named, positional, expected) in [
+    ("sum(list: [1, null, 3])", "sum([1, null, 3])", "4"),
+    ("mean(list: [1, \"a\", 3])", "mean([1, \"a\", 3])", "2"),
+    ("mode(list: [null, 1, 1, 2])", "mode([null, 1, 1, 2])", "[1]"),
+    ("product(list: [2, true, 3])", "product([2, true, 3])", "6"),
+  ] {
+    bf(named, expected, Some("null"));
+    bf(positional, expected, Some("null"));
+  }
+}

@@ -344,5 +344,17 @@
   {"op": "evaluate", "expression": "{f: function(g: function<list<number>>->number) g([1, 2]), r: f(max)}.r"},
   {"op": "evaluate", "expression": "{f: function(g: function<>->number) g(), r: f(sum)}.r"},
   {"op": "evaluate", "expression": "max instance of function<list<number>>->number"},
-  {"op": "evaluate", "expression": "sort([3, 1], function(a, b) a < b)"}
+  {"op": "evaluate", "expression": "sort([3, 1], function(a, b) a < b)"},
+  {"op": "evaluate", "expression": "sum(list: [1, null, 3])"},
+  {"op": "evaluate", "expression": "sum(list: [1, null, 3])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "mean(list: [1, \"a\", 3])"},
+  {"op": "evaluate", "expression": "mean(list: [1, \"a\", 3])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "mode(list: [null, 1, 1, 2])"},
+  {"op": "evaluate", "expression": "mode(list: [null, 1, 1, 2])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "median(list: [3, null, 1])"},
+  {"op": "evaluate", "expression": "median(list: [3, null, 1])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "stddev(list: [2, \"x\", 4])"},
+  {"op": "evaluate", "expression": "stddev(list: [2, \"x\", 4])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "product(list: [2, true, 3])"},
+  {"op": "evaluate", "expression": "product(list: [2, true, 3])", "language": "b-feel"}
 ]

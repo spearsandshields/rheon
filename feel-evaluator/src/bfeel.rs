@@ -59,10 +59,15 @@ pub fn bif_default(bif: &Bif) -> Option<Value> {
   })
 }
 
+/// Whether B-FEEL's `bif` ignores the items that are no numbers (11.3, 11.7).
+fn takes_numbers_only(bif: &Bif) -> bool {
+  matches!(bif, Bif::Mean | Bif::Median | Bif::Product | Bif::Stddev | Bif::Sum | Bif::Mode)
+}
+
 /// Arguments of a positional built-in call as B-FEEL passes them: the list-number functions drop
 /// non-numeric items (from a single list argument, or from the arguments themselves).
 pub fn positional_arguments(bif: &Bif, args: Vec<Value>) -> Vec<Value> {
-  if !matches!(bif, Bif::Mean | Bif::Median | Bif::Product | Bif::Stddev | Bif::Sum | Bif::Mode) {
+  if !takes_numbers_only(bif) {
     return args;
   }
   let numbers = |items: &[Value]| items.iter().filter(|v| matches!(v, Value::Number(_))).cloned().collect::<Vec<Value>>();
@@ -80,7 +85,32 @@ pub fn evaluate_positional_bif(bif: Bif, args: Vec<Value>) -> Value {
 
 /// Evaluates a named built-in call in B-FEEL.
 pub fn evaluate_named_bif(bif: Bif, args: &Value) -> Value {
+  let filtered = named_arguments(&bif, args);
+  let args = filtered.as_ref().unwrap_or(args);
   defaulted(|| bifs::named::evaluate_bif(bif.clone(), args), |null| default_if_null(&bif, null))
+}
+
+/// The arguments of a named built-in call as B-FEEL passes them: the list-number functions drop
+/// the items of their `list` that are no numbers, as by position (11.3, 11.7: `sum(list: [1,
+/// null, 3])` is 4); `None` when nothing is dropped.
+fn named_arguments(bif: &Bif, args: &Value) -> Option<Value> {
+  if !takes_numbers_only(bif) {
+    return None;
+  }
+  let Value::NamedParameters(given) = args else {
+    return None;
+  };
+  let list = rheon_feel::Name::from("list");
+  let (Value::List(items), position) = given.get(&list)? else {
+    return None;
+  };
+  if items.iter().all(|item| matches!(item, Value::Number(_))) {
+    return None;
+  }
+  let numbers: Vec<Value> = items.iter().filter(|item| matches!(item, Value::Number(_))).cloned().collect();
+  let mut given = given.clone();
+  given.insert(list, (Value::List(numbers.into()), *position));
+  Some(Value::NamedParameters(given))
 }
 
 /// The value of the FEEL operation `feel`, or, when it is null, what `b_feel` makes of that null.
