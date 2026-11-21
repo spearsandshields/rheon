@@ -247,7 +247,7 @@ fn _0036() {
     false,
     &scope!(),
     r#"finishes([1..20],20)"#,
-    "[core::finishes] invalid argument type, expected number or range<number>, actual type is number",
+    "[core::finishes] invalid argument type, expected range<number>, actual type is number",
   );
 }
 
@@ -342,6 +342,6 @@ fn _0048() {
     false,
     &scope!(),
     r#"finishes("alfa", [1..20])"#,
-    "[core::finishes] invalid argument type, expected string or range<string>, actual type is range<number>",
+    "[core::finishes] invalid argument type, expected range<string>, actual type is range<number>",
   );
 }

@@ -161,42 +161,46 @@ pub(crate) fn relation(relation: Relation, value1: &Value, value2: &Value) -> Va
   }
 }
 
-/// The error of a range function given arguments it does not take. The first argument that is
-/// no point or range of an ordered type is named; when the first one is, the second is named, with
-/// the type the first one asks for: `number or range<number>`, or `range<number>` where the
-/// function takes only ranges there.
+/// The error of a range function given arguments it does not take (the signatures of Table 79).
+/// The first argument that is no point or range of an ordered type, or not of a shape the
+/// function takes there, is named; when the first one fits, the second is named with the type it
+/// must have: `number or range<number>`, `range<number>`, or for `coincides` the first one's shape.
 #[cold]
 #[inline(never)]
 fn invalid(relation: Relation, value1: &Value, value2: &Value) -> Value {
   use Relation::*;
-  // whether the function takes a point (and not only a range) as its first or second argument
-  let (point1, point2) = match relation {
-    Before | After | Coincides => (true, true),
-    Finishes | Starts | During => (true, true),
-    FinishedBy | StartedBy | Includes => (false, true),
-    Meets | MetBy | Overlaps | OverlapsBefore | OverlapsAfter => (false, false),
+  /// What a function takes as its second argument.
+  enum Second {
+    PointOrRange,
+    Range,
+    SameShapeAsFirst,
+  }
+  // whether the function takes a point as its first argument, and what it takes as its second
+  let (point1, second) = match relation {
+    Before | After => (true, Second::PointOrRange),
+    Coincides => (true, Second::SameShapeAsFirst),
+    Finishes | Starts | During => (true, Second::Range),
+    FinishedBy | StartedBy | Includes => (false, Second::PointOrRange),
+    Meets | MetBy | Overlaps | OverlapsBefore | OverlapsAfter => (false, Second::Range),
   };
-  let generic = |point: bool| {
-    if point {
-      "scalar or range of scalars".to_string()
-    } else {
-      "range of scalars".to_string()
-    }
-  };
-  let fits = |value: &Value, point: bool| !matches!(value, Value::Null(_)) && one_ordered_type(&[operand(value)]) && (point || matches!(operand(value), Operand::Range(_)));
-  if !fits(value1, point1) {
-    return crate::macros::invalid_argument_type!(module "core", relation.name(), generic(point1), value1);
+  let ordered = |value: &Value| !matches!(value, Value::Null(_)) && one_ordered_type(&[operand(value)]);
+  let is_range = |value: &Value| matches!(operand(value), Operand::Range(_));
+  if !ordered(value1) || !(point1 || is_range(value1)) {
+    let expected = if point1 { "scalar or range of scalars" } else { "range of scalars" };
+    return crate::macros::invalid_argument_type!(module "core", relation.name(), expected, value1);
   }
   // the kind the first argument holds: its point, or a defined endpoint of its range
   let kind = match operand(value1) {
     Operand::Point(point) => Some(point),
     Operand::Range(range) => range.start.or(range.end),
   }
-  .map(|value| rheon_feel::values::TypeOf(value).to_string());
-  let expected = match kind {
-    Some(kind) if point2 => format!("{kind} or range<{kind}>"),
-    Some(kind) => format!("range<{kind}>"),
-    None => generic(point2),
+  .map(|value| rheon_feel::values::TypeOf(value).to_string())
+  .unwrap_or_else(|| "scalar".to_string());
+  let expected = match second {
+    Second::PointOrRange => format!("{kind} or range<{kind}>"),
+    Second::Range => format!("range<{kind}>"),
+    Second::SameShapeAsFirst if is_range(value1) => format!("range<{kind}>"),
+    Second::SameShapeAsFirst => kind,
   };
   crate::macros::invalid_argument_type!(module "core", relation.name(), expected, value2)
 }

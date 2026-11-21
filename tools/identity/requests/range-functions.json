@@ -91,5 +91,9 @@
   {"op": "evaluate", "expression": "meets([1..5], 5)", "language": "b-feel"},
   {"op": "evaluate", "expression": "includes(5, [1..10])"},
   {"op": "evaluate", "expression": "includes(5, [1..10])", "errorMode": "strict"},
-  {"op": "evaluate", "expression": "includes(5, [1..10])", "language": "b-feel"}
+  {"op": "evaluate", "expression": "includes(5, [1..10])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "finishes([1..20], 20)"},
+  {"op": "evaluate", "expression": "coincides(5, [1..5])"},
+  {"op": "evaluate", "expression": "coincides([1..5], 5)"},
+  {"op": "evaluate", "expression": "starts(1, 2)"}
 ]
