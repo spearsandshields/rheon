@@ -16995,100 +16995,100 @@ Boolean(false)
 Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #343 "(abs) instance of number"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #344 "(abs) instance of number"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #345 "(abs) instance of string"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #346 "(abs) instance of string"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #347 "(abs) instance of boolean"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #348 "(abs) instance of boolean"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #349 "(abs) instance of date"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #350 "(abs) instance of date"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #351 "(abs) instance of Any"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(true)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #352 "(abs) instance of Any"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(true)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #353 "(abs) instance of Null"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #354 "(abs) instance of Null"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #355 "(abs) instance of days and time duration"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #356 "(abs) instance of days and time duration"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #357 "(abs) instance of list<number>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #358 "(abs) instance of list<number>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #359 "(abs) instance of list<list<string>>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #360 "(abs) instance of list<list<string>>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #361 "(abs) instance of range<number>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #362 "(abs) instance of range<number>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #363 "(abs) instance of context<a: number, b: string>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #364 "(abs) instance of context<a: number, b: string>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #365 "(abs) instance of context<a: number, a: string>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #366 "(abs) instance of context<a: number, a: string>"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #367 "(abs) instance of context<a: t, b: u>"
 Boolean(false)
@@ -17099,28 +17099,28 @@ Boolean(false)
 Diagnostics { count: 2, messages: ["no value for qualified name", "expected a type in context type entry"], warnings: [] }
 
 instance_of_and_types #369 "(abs) instance of function<number> -> number"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #370 "(abs) instance of function<number> -> number"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #371 "(abs) instance of function<number, string> -> boolean"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #372 "(abs) instance of function<number, string> -> boolean"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 1, messages: ["invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 0, messages: [], warnings: [] }
 
 instance_of_and_types #373 "(abs) instance of function<t> -> number"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 2, messages: ["no value for qualified name", "invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #374 "(abs) instance of function<t> -> number"
-Null(Some("invalid value in 'instance of' operator: BuiltInFunction"))
-Diagnostics { count: 2, messages: ["no value for qualified name", "invalid value in 'instance of' operator: BuiltInFunction"], warnings: [] }
+Boolean(false)
+Diagnostics { count: 1, messages: ["no value for qualified name"], warnings: [] }
 
 instance_of_and_types #375 "(abs) instance of list<t>"
 Boolean(false)

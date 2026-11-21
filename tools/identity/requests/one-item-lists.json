@@ -275,5 +275,13 @@
   {"op": "evaluate", "expression": "abs = function(x) x"},
   {"op": "evaluate", "expression": "distinct values([abs, abs, floor])"},
   {"op": "evaluate", "expression": "list contains([abs], abs)"},
-  {"op": "evaluate", "expression": "is({f: function(x) x, g: f}.f, {f: function(x) x, g: f}.g)"}
+  {"op": "evaluate", "expression": "is({f: function(x) x, g: f}.f, {f: function(x) x, g: f}.g)"},
+  {"op": "evaluate", "expression": "abs instance of Any"},
+  {"op": "evaluate", "expression": "abs instance of function<number>->Any"},
+  {"op": "evaluate", "expression": "sqrt instance of function<number>->number"},
+  {"op": "evaluate", "expression": "sqrt instance of function<string>->number"},
+  {"op": "evaluate", "expression": "string length instance of function<string>->number"},
+  {"op": "evaluate", "expression": "sort instance of function<list<number>, function<number, number>->boolean>->list<Any>"},
+  {"op": "evaluate", "expression": "abs instance of number"},
+  {"op": "evaluate", "expression": "sum instance of function<number, number>->number"}
 ]

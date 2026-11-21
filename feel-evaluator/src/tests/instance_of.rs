@@ -464,3 +464,20 @@ fn the_type_of_a_list_does_not_depend_on_the_order_of_its_items() {
     "[core::abs] invalid argument type, expected number, actual type is list<number>",
   );
 }
+
+#[test]
+fn built_in_functions_are_of_function_types() {
+  // a built-in is of a function type when one of its signatures is (10.3.2.9.2)
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "abs instance of Any", true);
+  // abs takes a number or a duration and gives either: its result is not only a number
+  te_bool(false, scope, "abs instance of function<number>->number", false);
+  te_bool(false, scope, "abs instance of function<number>->Any", true);
+  te_bool(false, scope, "sqrt instance of function<number>->number", true);
+  te_bool(false, scope, "sqrt instance of function<string>->number", false);
+  te_bool(false, scope, "sqrt instance of function<number, number>->number", false);
+  te_bool(false, scope, "string length instance of function<string>->number", true);
+  te_bool(false, scope, "sum instance of function<number, number, number>->number", true);
+  te_bool(false, scope, "sort instance of function<list<number>, function<number, number>->boolean>->list<Any>", true);
+  te_bool(false, scope, "abs instance of number", false);
+}

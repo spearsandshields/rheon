@@ -1,0 +1,608 @@
+[
+  {
+    "expression": "abs instance of Any",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "abs instance of function<number>->Any",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sqrt instance of function<number>->number",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sqrt instance of function<string>->number",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "string length instance of function<string>->number",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sort instance of function<list<number>, function<number, number>->boolean>->list<Any>",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "abs instance of number",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "sum instance of function<number, number>->number",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "abs instance of function<number> -> number",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs instance of function<number> -> number",
+      "errorMode": "strict"
+    },
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: invalid value in 'instance of' operator: BuiltInFunction"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "abs instance of function<Any> -> Any",
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid value in 'instance of' operator: BuiltInFunction"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid value in 'instance of' operator: BuiltInFunction)",
+        "isNull": true,
+        "nullReason": "invalid value in 'instance of' operator: BuiltInFunction",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "abs instance of function<Any> -> Any",
+      "errorMode": "strict"
+    },
+    "why": "DT-024: a built-in function value is an instance of Any, and of a function type when one of its signatures (table of signatures) takes the target's parameter types by position and every type of its result conforms to the target's result type (DMN 1.7 Beta 1, 10.3.2.9.2); it is of no other type. It was a null 'invalid value in instance of'.",
+    "old": {
+      "error": {
+        "kind": "evaluation",
+        "message": "strict error mode: invalid value in 'instance of' operator: BuiltInFunction"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]
