@@ -118,3 +118,17 @@ fn an_incomparable_not_equal_test_is_satisfied() {
     bf(e, x, None);
   }
 }
+
+#[test]
+fn some_and_every_are_never_null() {
+  // some and every are boolean expressions: no item that decides them gives false, not null (11.2)
+  for (e, x) in [
+    (r#"some x in [null, false] satisfies x"#, "false"),
+    (r#"every x in [true, null] satisfies x"#, "false"),
+    (r#"every i in [(1 + "a"), 2] satisfies (2 * "b")"#, "false"),
+    (r#"some x in [null, true] satisfies x"#, "true"),
+    (r#"every x in [true, true] satisfies x"#, "true"),
+  ] {
+    bf(e, x, None);
+  }
+}

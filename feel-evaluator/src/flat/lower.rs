@@ -664,6 +664,10 @@ impl<'a> Lower<'_, 'a> {
     self.builder.emit(Op::Visit { record, src });
     self.next = mark;
     let exit = self.builder.emit(Op::LoopClose { record, dst });
+    // some and every are boolean expressions: B-FEEL answers false where FEEL answers null (11.2)
+    if kind != LoopKind::For {
+      self.boolean_default(dst, false);
+    }
     let info = self.builder.iteration_mut(info);
     info.step = step;
     info.exit = exit;

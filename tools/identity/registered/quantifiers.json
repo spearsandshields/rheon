@@ -543,7 +543,7 @@
       "expression": "every i in [(1 + \"a\"), 2] satisfies (2 * \"b\")",
       "language": "b-feel"
     },
-    "why": "DT-016: some is the or and every the and of the values of satisfies over the iteration (DMN 1.7 Beta 1, 10.3.2.15, Table 51): a value that is no boolean does not end the iteration, so a later true (some) or false (every) still decides it, and the result is null only when none does. The quantifiers stopped with null at the first value that was no boolean, so some x in [null, true] satisfies x was null and the answer depended on the order of the items. The boxed some and every of DMN models keep null at a value that is no boolean (10.2.1.10; TCK 1153, 1154).",
+    "why": "DT-016: some is the or and every the and of the values of satisfies over the iteration (DMN 1.7 Beta 1, 10.3.2.15, Table 51): a value that is no boolean does not end the iteration, so a later true (some) or false (every) still decides it, and the result is null only when none does. The quantifiers stopped with null at the first value that was no boolean, so some x in [null, true] satisfies x was null and the answer depended on the order of the items. The boxed some and every of DMN models keep null at a value that is no boolean (10.2.1.10; TCK 1153, 1154). Review of F2: B-FEEL some and every are false where FEEL gives null (11.2).",
     "old": {
       "diagnostics": {
         "count": 3,
@@ -584,17 +584,17 @@
       },
       "ok": true,
       "result": {
-        "display": "null",
-        "feel": "null",
-        "isNull": true,
-        "type": "Null",
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
         "typed": {
           "components": null,
           "list": null,
           "simple": {
-            "isNil": true,
-            "text": null,
-            "type": null
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
           }
         }
       },
