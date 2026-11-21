@@ -794,5 +794,397 @@
       },
       "warnings": []
     }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@America/Port-au-Prince\")",
+      "language": "b-feel"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@America/Port-au-Prince', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"00:00:00+00:00\"",
+        "feel": "00:00:00+00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "00:00:00+00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@America/Port-au-Prince\"",
+        "feel": "10:00:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@America/Port-au-Prince",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@America/Blanc-Sablon\")",
+      "language": "b-feel"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@America/Blanc-Sablon', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"00:00:00+00:00\"",
+        "feel": "00:00:00+00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "00:00:00+00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@America/Blanc-Sablon\"",
+        "feel": "10:00:00@America/Blanc-Sablon",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@America/Blanc-Sablon",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@Etc/GMT+5\")",
+      "language": "b-feel"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@Etc/GMT+5', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"00:00:00+00:00\"",
+        "feel": "00:00:00+00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "00:00:00+00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@Etc/GMT+5\"",
+        "feel": "10:00:00@Etc/GMT+5",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@Etc/GMT+5",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@Etc/GMT-14\")",
+      "language": "b-feel"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@Etc/GMT-14', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"00:00:00+00:00\"",
+        "feel": "00:00:00+00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "00:00:00+00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@Etc/GMT-14\"",
+        "feel": "10:00:00@Etc/GMT-14",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@Etc/GMT-14",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "time(\"10:00:00@EST5EDT\")",
+      "language": "b-feel"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "time: invalid time literal '10:00:00@EST5EDT', expected hh:mm:ss with an optional fraction and an optional Z, @zone or ±hh:mm offset within -14:00..+14:00"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"00:00:00+00:00\"",
+        "feel": "00:00:00+00:00",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "00:00:00+00:00",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"10:00:00@EST5EDT\"",
+        "feel": "10:00:00@EST5EDT",
+        "isNull": false,
+        "type": "time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "10:00:00@EST5EDT",
+            "type": "xsd:time"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date and time(\"2025-06-01T10:00:00@America/Port-au-Prince\")",
+      "language": "b-feel"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid date or date and time '2025-06-01T10:00:00@America/Port-au-Prince'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"1970-01-01T00:00:00+00:00\"",
+        "feel": "1970-01-01T00:00:00+00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1970-01-01T00:00:00+00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2025-06-01T10:00:00-04:00[America/Port-au-Prince]\"",
+        "feel": "2025-06-01T10:00:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2025-06-01T10:00:00@America/Port-au-Prince",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "date and time(date(\"2024-12-24\"), time(\"23:59:00\"), \"America/Port-au-Prince\")",
+      "language": "b-feel"
+    },
+    "why": "DT-054: a zone id of a time or date and time string, and the timezone parameter of date and time, is a name of the tz database, which may hold ASCII letters and digits, '_', '/', '-' and '+' (America/Port-au-Prince, Etc/GMT+5, EST5EDT); only letters, '_' and '/' were read, so such zones were null (DMN 1.7 Beta 1, 10.3.4.1: the IANA tz database). The database still decides whether a name is a zone. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date and time] invalid timezone 'America/Port-au-Prince'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"1970-01-01T00:00:00+00:00\"",
+        "feel": "1970-01-01T00:00:00+00:00",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1970-01-01T00:00:00+00:00",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"2024-12-24T23:59:00-05:00[America/Port-au-Prince]\"",
+        "feel": "2024-12-24T23:59:00@America/Port-au-Prince",
+        "isNull": false,
+        "type": "date and time",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2024-12-24T23:59:00@America/Port-au-Prince",
+            "type": "xsd:dateTime"
+          }
+        }
+      },
+      "warnings": []
+    }
   }
 ]

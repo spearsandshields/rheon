@@ -364,5 +364,61 @@
       },
       "warnings": []
     }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "count(null)",
+      "language": "b-feel"
+    },
+    "why": "DT-058: count(null) is null. The domain of count is a list (DMN 1.7 Beta 1, 10.3.4.4), and \"whenever a parameter is outside its domain, the result of the built-in is null\" (10.3.4, dmn-1.7-Beta1.txt:7250-7251), as reverse(null) and the other list functions answer; a value that is no list and not null still counts as a list of one item (10.3.2.9.4, to singleton list). count(null) was 1, so a missing list input counted as one item. B-FEEL (DMN 1.7 Beta 1, 11) answers with the default of the result type where FEEL answers null.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::count] invalid argument type, expected list, actual type is Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "0",
+        "feel": "0",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "0",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
   }
 ]
