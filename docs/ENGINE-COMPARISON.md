@@ -91,6 +91,9 @@ TIMEOUT = killed at the cap.
   times and date-times with different offsets were always `false` (now compared as instants, so
   the "zone-less `<` zoned" row above stays `false` but offset-vs-offset ordering works). The lexer's
   name-prefix search was cubic on long `.a.a.a` chains; now linear.
+- 2026-11-21: a zone-less value compared with a zoned one takes the zoned one's offset (DMN 1.7 Beta 1,
+  Table 55), so the "zone-less `<` / `=` zoned" row is no longer `false` in rheon: `@"10:00:00" = @"10:00:00+02:00"`
+  is true. Subtraction is unchanged.
 - 2026-10-18: the scale-based rounding functions accept the full FEEL scale range (-6111..=6176):
   `round up(5.5, 6176)` is `5.5` and `decimal(1e33, 1)` (B4) is `1e33` instead of null, since a
   value with no digit below the requested scale is returned unchanged. `matches` supports
