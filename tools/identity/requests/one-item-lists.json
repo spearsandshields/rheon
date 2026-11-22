@@ -356,5 +356,17 @@
   {"op": "evaluate", "expression": "stddev(list: [2, \"x\", 4])"},
   {"op": "evaluate", "expression": "stddev(list: [2, \"x\", 4])", "language": "b-feel"},
   {"op": "evaluate", "expression": "product(list: [2, true, 3])"},
-  {"op": "evaluate", "expression": "product(list: [2, true, 3])", "language": "b-feel"}
+  {"op": "evaluate", "expression": "product(list: [2, true, 3])", "language": "b-feel"},
+  {"op": "evaluate", "expression": "\"a\" in (< 10, > 20)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "\"a\" in (< 10, > 20)", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "\"a\" in ([1..5], 7)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "\"a\" in ([1..5], 7)", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "\"a\" in not(< 10)", "language": "b-feel"},
+  {"op": "evaluate", "expression": "\"a\" in not(< 10)", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "some x in [1..3] satisfies x > 0", "language": "b-feel"},
+  {"op": "evaluate", "expression": "some x in [1..3] satisfies x > 0", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "every x in 1..\"a\" satisfies true", "language": "b-feel"},
+  {"op": "evaluate", "expression": "every x in 1..\"a\" satisfies true", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "some x in 1..2.5 satisfies true", "language": "b-feel"},
+  {"op": "evaluate", "expression": "some x in 1..2.5 satisfies true", "language": "b-feel", "errorMode": "strict"}
 ]

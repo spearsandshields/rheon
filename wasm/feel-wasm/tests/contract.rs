@@ -2746,3 +2746,21 @@ fn a_number_literal_of_more_than_34_digits_warns() {
     assert!(warnings(&response).is_empty(), "{exact}: {response}");
   }
 }
+
+#[test]
+fn b_feel_strict_accepts_the_answers_b_feel_defines() {
+  // the errors behind them are warnings (11.1): two-valued `in` over a list of tests, and some
+  // and every over a domain that is no iteration context
+  for (expression, display) in [
+    (r#""a" in (< 10, > 20)"#, "false"),
+    (r#""a" in ([1..5], 7)"#, "false"),
+    (r#""a" in not(< 10)"#, "false"),
+    ("some x in [1..3] satisfies x > 0", "false"),
+    ("every x in (< 3) satisfies x", "false"),
+  ] {
+    let strict = ok(json!({"op": "evaluate", "expression": expression, "language": "b-feel", "errorMode": "strict"}));
+    assert_eq!(strict["result"]["display"], display, "{expression}: {strict}");
+    assert_eq!(strict["diagnostics"]["count"], 0, "{expression}: {strict}");
+    assert_ne!(strict["warnings"], json!([]), "{expression}: {strict}");
+  }
+}

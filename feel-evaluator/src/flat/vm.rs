@@ -470,10 +470,10 @@ impl<'p> Vm<'p> {
         Op::DiagMark => self.marks.push(diagnostics::tentative_mark()),
         Op::BoolDefault { dst, ne, marked } => {
           let value = self.take(dst);
-          let mark = if marked { self.marks.pop() } else { None };
-          if let Some(mark) = mark
-            && value.is_null()
-          {
+          // what was recorded since the mark is the operation's own (its operands came before):
+          // B-FEEL defines its result, also where the operation gave it itself (a list of tests
+          // in two-valued `in`, which answers false for a test that is null)
+          if marked && let Some(mark) = self.marks.pop() {
             mark.demote();
           }
           let value = bfeel::boolean_result(value, ne);
@@ -716,7 +716,15 @@ impl<'p> Vm<'p> {
               info.step
             }
             Err(reason) => {
-              walk.value = Some(value_null!(reason));
+              // B-FEEL defines the answer of some and every then (false, 11.7), so its reason is
+              // a warning
+              walk.value = Some(if info.defaulted {
+                let reason = rheon_feel::message::compose(format_args!("{reason}"));
+                diagnostics::warn(&reason);
+                Value::Null(Some(reason))
+              } else {
+                value_null!(reason)
+              });
               info.exit
             }
           } as usize;

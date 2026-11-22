@@ -107,11 +107,13 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *B-FEEL results that stay null* (11.1 against 11.2-11.11). 11.1 says a B-FEEL null only means
     missing data, but the sections that follow give results only for boolean operators and
     functions, functions by their result type, and the arithmetic operators. Where none applies,
-    B-FEEL keeps FEEL's null: unary negation (`-"a"`), paths and filters on null, `for` (its result
-    is a list of the body's results), and the functions whose result has no default: `context`,
+    B-FEEL keeps FEEL's null: unary negation (`-"a"`), paths and filters on null, and the functions
+    whose result has no default: `context`,
     `context merge`, `context put`, `get value`, `max`, `min` (a context or any type). So does an
     arithmetic conversion whose FEEL operation on the converted values still fails (11.9-11.10).
-    Their FEEL errors stay errors.
+    Their FEEL errors stay errors. DMN 1.7 Beta 1 adds to 11.7 that `for x in null return x` is `[]`
+    in B-FEEL; rheon answers `[null]`, as DMN 1.6 has it, until the 1.7 answers that change 1.6
+    ones are gated (owner decision 3, with the FEEL rule of DT-017).
   - *Range literals out of order or of two types* (10.3.2.7 against Tables 56 and 79). 10.3.2.7 says
     the endpoints of `[a..b]` "must be of equivalent types" and ordered, but gives no answer for a
     range that is not; the tests on ranges are defined by comparisons of the endpoints (Table 56),

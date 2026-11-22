@@ -648,6 +648,7 @@ impl<'a> Lower<'_, 'a> {
     let (domain, a, b) = self.domain(variables[0].1.len(), &mut parts)?;
     let info = self.builder.iteration(LoopInfo {
       kind,
+      defaulted: self.dialect == Dialect::BFeel && kind != LoopKind::For,
       step: 0,
       exit: 0,
       levels: Box::new([]),

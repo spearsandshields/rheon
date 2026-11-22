@@ -322,6 +322,9 @@ pub(crate) struct CallInfo {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LoopInfo {
   pub(crate) kind: LoopKind,
+  /// B-FEEL `some` or `every`: a domain that is no iteration context makes the answer false, so
+  /// its reason is a warning, not an error.
+  pub(crate) defaulted: bool,
   pub(crate) step: Pc,
   pub(crate) exit: Pc,
   pub(crate) levels: Box<[(Slot, Pc)]>,
