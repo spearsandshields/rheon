@@ -184,6 +184,18 @@ back-references via fancy-regex). The unpatched subset stands at 289/298. Remain
 - **Dates beyond chrono's range** (1115/1117): years outside ±262143 are not supported.
 - **0036 typeRefs** is DMN-layer (item definition type references).
 
+## DMN 1.7
+
+- **Parameter qualifiers `?` and `...`** `[feel]` (2026-11-21). DMN 1.7 Beta 1 lets a formal
+  parameter be optional (`b?`) or take a variable number of arguments (`b...`), and function types
+  carry these qualifiers in equivalence and conformance (10.3.2.9.1-10.3.2.9.2). `...` is a syntax
+  error today and would be additive, but `?` changes a 1.6 meaning (`function(a, b?)` names a
+  parameter `b?`), so it waits for models of the 1.7 namespace (owner, 2026-11-21). Both need one
+  design of qualifiers in the AST, the function value and FeelType; they are built together.
+- **1.7 answers that change 1.6 ones** `[dmn]` (owner, 2026-11-21): `for x in null return x` is
+  `[]` in 1.7 (FEEL and B-FEEL; `[null]` in 1.6), and the `?` qualifier: they apply to models of the
+  DMN 1.7 namespace only, once rheon reads them; plain FEEL keeps the 1.6 answers.
+
 ## DMN model evaluator
 
 - **Cycle protection** `[fork]` (2026-10-18). Decision→decision and BKM→BKM cycles recurse until the
