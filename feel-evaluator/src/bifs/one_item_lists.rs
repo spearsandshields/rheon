@@ -49,15 +49,6 @@ fn is_of_the_type(value: &Value, parameter: &Parameter) -> bool {
   }) || matches!(value, Value::Null(_))
 }
 
-/// Whether a signature of `built_in` has a parameter that takes a list: without one, and without an
-/// argument that is a list, no argument is converted (most calls, decided without the table).
-fn has_list_parameters(built_in: &signatures::BuiltIn) -> bool {
-  built_in
-    .signatures
-    .iter()
-    .any(|signature| signature.parameters.iter().any(|parameter| parameter.feel_type.starts_with("list")))
-}
-
 /// Whether every one of the parameters `parameters` takes only a list, and there is one.
 fn takes_only_lists<'s>(mut parameters: impl Iterator<Item = &'s Parameter> + Clone) -> bool {
   parameters.clone().next().is_some() && parameters.all(|parameter| parameter.feel_type.starts_with("list"))
@@ -94,10 +85,11 @@ fn at_place(signature: &Signature, place: usize, count: usize) -> Option<&Parame
 /// The arguments by position of `bif` with every argument converted that the invocation context
 /// converts ([converted]); `None` when none is.
 pub(super) fn by_position(bif: &Bif, arguments: &[Value]) -> Option<Vec<Value>> {
-  let built_in = signatures::of(bif)?;
-  if !arguments.iter().any(|argument| matches!(argument, Value::List(_))) && !has_list_parameters(built_in) {
+  // most calls: no argument is a list and no parameter takes one, decided without the table
+  if !signatures::takes_lists(bif) && !arguments.iter().any(|argument| matches!(argument, Value::List(_))) {
     return None;
   }
+  let built_in = signatures::of(bif)?;
   let convert = |place: usize| {
     let parameters = built_in.signatures.iter().filter_map(|signature| at_place(signature, place, arguments.len()));
     converted(&arguments[place], parameters)
@@ -117,10 +109,10 @@ pub(super) fn by_position(bif: &Bif, arguments: &[Value]) -> Option<Vec<Value>> 
 /// converts ([converted]); `None` when none is. The signatures that the invocation fits are those
 /// that have every name of it.
 pub(super) fn by_name(bif: &Bif, arguments: &BTreeMap<Name, (Value, usize)>) -> Option<BTreeMap<Name, (Value, usize)>> {
-  let built_in = signatures::of(bif)?;
-  if !arguments.values().any(|(argument, _)| matches!(argument, Value::List(_))) && !has_list_parameters(built_in) {
+  if !signatures::takes_lists(bif) && !arguments.values().any(|(argument, _)| matches!(argument, Value::List(_))) {
     return None;
   }
+  let built_in = signatures::of(bif)?;
   let named = |signature: &&Signature, name: &Name| signature.parameters.iter().find(|parameter| parameter.name == name.as_str());
   let fitting = || {
     built_in

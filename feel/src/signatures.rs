@@ -150,6 +150,26 @@ fn table_type(text: &str) -> FeelType {
   }
 }
 
+/// Whether a signature of `bif` has a parameter that takes a list: computed once for every
+/// built-in function, as the table of signatures does not change.
+pub fn takes_lists(bif: &Bif) -> bool {
+  static BY_VARIANT: LazyLock<Vec<bool>> = LazyLock::new(|| {
+    let mut entries = vec![false; BUILT_INS.len()];
+    for built_in in &BUILT_INS {
+      if let Ok(bif) = built_in.name.parse::<Bif>()
+        && let Some(entry) = entries.get_mut(bif as usize)
+      {
+        *entry = built_in
+          .signatures
+          .iter()
+          .any(|signature| signature.parameters.iter().any(|parameter| parameter.feel_type.starts_with("list")));
+      }
+    }
+    entries
+  });
+  BY_VARIANT.get(bif.clone() as usize).copied().unwrap_or(false)
+}
+
 /// The built-in function of this name with its signatures.
 pub fn built_in(name: &str) -> Option<&'static BuiltIn> {
   BUILT_INS.iter().find(|built_in| built_in.name == name)
