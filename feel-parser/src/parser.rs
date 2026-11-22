@@ -1942,10 +1942,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       }
       T::Name => {
         let name = self.name_as(At::Start, TokenClass::Type)?;
-        // the abstract types of DMN 1.7 (Figure 10-26), and `context` without entries, where no
-        // name of the same text is in scope: a name of a model or of the context wins
+        // the abstract types of DMN 1.7 (Figure 10-26), and `context` without entries: decided
+        // where the name is read, so a name of the model or of the context wins
         match abstract_type(&name) {
-          Some(feel_type) if !self.scope.contains(name.as_str()) && self.look(At::AfterOperand)? != T::Dot => AstNode::FeelType(feel_type),
+          Some(feel_type) if self.look(At::AfterOperand)? != T::Dot => AstNode::AbstractType(Box::new(self.qualified_name(name)?), Box::new(AstNode::FeelType(feel_type))),
           _ => self.qualified_name(name)?,
         }
       }

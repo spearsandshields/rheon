@@ -577,6 +577,7 @@ impl<'a> Resolver<'a> {
       | Out(a, b)
       | InstanceOf(a, b)
       | As(a, b)
+      | AbstractType(a, b)
       | Range(a, b)
       | ContextEntry(a, b)
       | ContextTypeEntry(a, b)

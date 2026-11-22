@@ -551,3 +551,19 @@ fn the_abstract_types_of_dmn_1_7() {
   let scope = &te_scope("{temporal: 5}");
   te_null(false, scope, "1 instance of temporal", "instance of expected a type on the right, found number");
 }
+
+#[test]
+fn a_type_of_the_context_wins_over_an_abstract_type() {
+  // an item definition named duration, as a model gives it through its context: the type wins
+  let mut ctx = rheon_feel::context::FeelContext::default();
+  ctx.set_entry(&"duration".into(), rheon_feel::values::Value::FeelType(rheon_feel::FeelType::Number));
+  let scope = rheon_feel::FeelScope::default();
+  scope.push(ctx);
+  let node = rheon_feel_parser::parse_expression(&scope, "5 instance of duration").unwrap();
+  assert_eq!("true", super::eval(&scope, &node).to_string());
+  let node = rheon_feel_parser::parse_expression(&scope, r#"@"P1D" instance of duration"#).unwrap();
+  assert_eq!("false", super::eval(&scope, &node).to_string());
+  // in a filter, a key named duration does not hide the type
+  let scope = &te_scope("{}");
+  te_be_value(false, scope, r#"{a: {duration: 1}, b: [@"P1D"][item instance of duration]}.b"#, r#"[@"P1D"]"#);
+}

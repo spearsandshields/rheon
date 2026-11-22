@@ -1,0 +1,17 @@
+[
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{temporal: 5, r: 1 instance of temporal}.r"
+    },
+    "why": "Review of F7: the parse tree of a type name that may be an abstract type is AbstractType (the name and the type), decided where it is read.",
+    "old": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `temporal`\n │  │  └─ Numeric\n │  │     └─ `5`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ InstanceOf\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ QualifiedName\n │           └─ Name\n │              └─ `temporal`\n └─ Name\n    └─ `r`\n"
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `temporal`\n │  │  └─ Numeric\n │  │     └─ `5`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ InstanceOf\n │        ├─ Numeric\n │        │  └─ `1`\n │        └─ AbstractType\n │           ├─ QualifiedName\n │           │  └─ Name\n │           │     └─ `temporal`\n │           └─ FeelType\n │              └─ temporal\n └─ Name\n    └─ `r`\n"
+    }
+  }
+]

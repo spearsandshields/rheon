@@ -186,7 +186,7 @@ impl<'a> Walk<'a, '_> {
         }
       }
       // the name after the dot is the name of an entry of the value, and a type reads no name
-      AstNode::Path(base, _) | AstNode::Descendant(base, _) | AstNode::InstanceOf(base, _) | AstNode::As(base, _) => self.node(base),
+      AstNode::Path(base, _) | AstNode::Descendant(base, _) | AstNode::InstanceOf(base, _) | AstNode::As(base, _) | AstNode::AbstractType(base, _) => self.node(base),
       AstNode::NamedParameter(_, value) => self.node(value),
       AstNode::For(contexts, body) => self.iteration(variables(contexts, false), body),
       AstNode::Some(contexts, body) | AstNode::Every(contexts, body) => self.iteration(variables(contexts, true), body),

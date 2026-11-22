@@ -264,6 +264,12 @@ impl<'a> Lower<'_, 'a> {
         }
         self.builder.emit(Op::ListEnd { kind, dst });
       }
+      AstNode::AbstractType(..) => {
+        // the mark takes off the error of a name that nothing holds
+        self.builder.emit(Op::DiagMark);
+        let (a, b) = self.operands(node)?;
+        self.builder.emit(Op::TypeName { dst, a, b });
+      }
       AstNode::In(..) | AstNode::Range(..) | AstNode::InstanceOf(..) | AstNode::As(..) | AstNode::ContextTypeEntry(..) | AstNode::FunctionType(..) => {
         let (a, b) = self.operands(node)?;
         let kernel = match ast {

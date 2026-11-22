@@ -483,14 +483,14 @@
       "op": "parse",
       "expression": "1 instance of comparable"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ QualifiedName\n    └─ Name\n       └─ `comparable`\n"
     },
     "new": {
       "ok": true,
-      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ FeelType\n    └─ comparable\n"
+      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ AbstractType\n    ├─ QualifiedName\n    │  └─ Name\n    │     └─ `comparable`\n    └─ FeelType\n       └─ comparable\n"
     }
   },
   {
@@ -498,14 +498,14 @@
       "op": "parse",
       "expression": "@\"2020-01-01\" instance of temporal"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " InstanceOf\n ├─ At\n │  └─ `2020-01-01`\n └─ QualifiedName\n    └─ Name\n       └─ `temporal`\n"
     },
     "new": {
       "ok": true,
-      "tree": " InstanceOf\n ├─ At\n │  └─ `2020-01-01`\n └─ FeelType\n    └─ temporal\n"
+      "tree": " InstanceOf\n ├─ At\n │  └─ `2020-01-01`\n └─ AbstractType\n    ├─ QualifiedName\n    │  └─ Name\n    │     └─ `temporal`\n    └─ FeelType\n       └─ temporal\n"
     }
   },
   {
@@ -513,14 +513,14 @@
       "op": "parse",
       "expression": "@\"P1D\" instance of duration"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " InstanceOf\n ├─ At\n │  └─ `P1D`\n └─ QualifiedName\n    └─ Name\n       └─ `duration`\n"
     },
     "new": {
       "ok": true,
-      "tree": " InstanceOf\n ├─ At\n │  └─ `P1D`\n └─ FeelType\n    └─ duration\n"
+      "tree": " InstanceOf\n ├─ At\n │  └─ `P1D`\n └─ AbstractType\n    ├─ QualifiedName\n    │  └─ Name\n    │     └─ `duration`\n    └─ FeelType\n       └─ duration\n"
     }
   },
   {
@@ -528,14 +528,14 @@
       "op": "parse",
       "expression": "1 instance of duration"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ QualifiedName\n    └─ Name\n       └─ `duration`\n"
     },
     "new": {
       "ok": true,
-      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ FeelType\n    └─ duration\n"
+      "tree": " InstanceOf\n ├─ Numeric\n │  └─ `1`\n └─ AbstractType\n    ├─ QualifiedName\n    │  └─ Name\n    │     └─ `duration`\n    └─ FeelType\n       └─ duration\n"
     }
   },
   {
@@ -543,14 +543,14 @@
       "op": "parse",
       "expression": "{a: 1} instance of context"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " InstanceOf\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a`\n │     └─ Numeric\n │        └─ `1`\n └─ QualifiedName\n    └─ Name\n       └─ `context`\n"
     },
     "new": {
       "ok": true,
-      "tree": " InstanceOf\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a`\n │     └─ Numeric\n │        └─ `1`\n └─ FeelType\n    └─ context<>\n"
+      "tree": " InstanceOf\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a`\n │     └─ Numeric\n │        └─ `1`\n └─ AbstractType\n    ├─ QualifiedName\n    │  └─ Name\n    │     └─ `context`\n    └─ FeelType\n       └─ context<>\n"
     }
   },
   {
@@ -558,14 +558,14 @@
       "op": "parse",
       "expression": "[1, true] instance of list<comparable>"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " InstanceOf\n ├─ List\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Boolean\n │     └─ `true`\n └─ ListType\n    └─ QualifiedName\n       └─ Name\n          └─ `comparable`\n"
     },
     "new": {
       "ok": true,
-      "tree": " InstanceOf\n ├─ List\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Boolean\n │     └─ `true`\n └─ ListType\n    └─ FeelType\n       └─ comparable\n"
+      "tree": " InstanceOf\n ├─ List\n │  ├─ Numeric\n │  │  └─ `1`\n │  └─ Boolean\n │     └─ `true`\n └─ ListType\n    └─ AbstractType\n       ├─ QualifiedName\n       │  └─ Name\n       │     └─ `comparable`\n       └─ FeelType\n          └─ comparable\n"
     }
   },
   {
@@ -573,14 +573,14 @@
       "op": "parse",
       "expression": "(function(x: comparable) x)(2)"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " FunctionInvocation\n ├─ FunctionDefinition\n │  ├─ FormalParameters\n │  │  └─ FormalParameter\n │  │     ├─ ParameterName\n │  │     │  └─ `x`\n │  │     └─ QualifiedName\n │  │        └─ Name\n │  │           └─ `comparable`\n │  └─ FunctionBody\n │     └─ Name\n │        └─ `x`\n └─ PositionalParameters\n    └─ Numeric\n       └─ `2`\n"
     },
     "new": {
       "ok": true,
-      "tree": " FunctionInvocation\n ├─ FunctionDefinition\n │  ├─ FormalParameters\n │  │  └─ FormalParameter\n │  │     ├─ ParameterName\n │  │     │  └─ `x`\n │  │     └─ FeelType\n │  │        └─ comparable\n │  └─ FunctionBody\n │     └─ Name\n │        └─ `x`\n └─ PositionalParameters\n    └─ Numeric\n       └─ `2`\n"
+      "tree": " FunctionInvocation\n ├─ FunctionDefinition\n │  ├─ FormalParameters\n │  │  └─ FormalParameter\n │  │     ├─ ParameterName\n │  │     │  └─ `x`\n │  │     └─ AbstractType\n │  │        ├─ QualifiedName\n │  │        │  └─ Name\n │  │        │     └─ `comparable`\n │  │        └─ FeelType\n │  │           └─ comparable\n │  └─ FunctionBody\n │     └─ Name\n │        └─ `x`\n └─ PositionalParameters\n    └─ Numeric\n       └─ `2`\n"
     }
   },
   {
@@ -588,14 +588,14 @@
       "op": "parse",
       "expression": "(function(x: temporal) x)(1)"
     },
-    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types.",
+    "why": "DT-010: the abstract types of DMN 1.7 (Figure 10-26) are types: comparable (numbers, strings, temporal values, durations), temporal (dates, times, dates and times), duration (both kinds), and context (every context, as context<>), where no name of the same text is in scope. Before, comparable, temporal and context were unknown names and duration the built-in function, all no types. Review of F7: abstract type names are decided where they are read.",
     "old": {
       "ok": true,
       "tree": " FunctionInvocation\n ├─ FunctionDefinition\n │  ├─ FormalParameters\n │  │  └─ FormalParameter\n │  │     ├─ ParameterName\n │  │     │  └─ `x`\n │  │     └─ QualifiedName\n │  │        └─ Name\n │  │           └─ `temporal`\n │  └─ FunctionBody\n │     └─ Name\n │        └─ `x`\n └─ PositionalParameters\n    └─ Numeric\n       └─ `1`\n"
     },
     "new": {
       "ok": true,
-      "tree": " FunctionInvocation\n ├─ FunctionDefinition\n │  ├─ FormalParameters\n │  │  └─ FormalParameter\n │  │     ├─ ParameterName\n │  │     │  └─ `x`\n │  │     └─ FeelType\n │  │        └─ temporal\n │  └─ FunctionBody\n │     └─ Name\n │        └─ `x`\n └─ PositionalParameters\n    └─ Numeric\n       └─ `1`\n"
+      "tree": " FunctionInvocation\n ├─ FunctionDefinition\n │  ├─ FormalParameters\n │  │  └─ FormalParameter\n │  │     ├─ ParameterName\n │  │     │  └─ `x`\n │  │     └─ AbstractType\n │  │        ├─ QualifiedName\n │  │        │  └─ Name\n │  │        │     └─ `temporal`\n │  │        └─ FeelType\n │  │           └─ temporal\n │  └─ FunctionBody\n │     └─ Name\n │        └─ `x`\n └─ PositionalParameters\n    └─ Numeric\n       └─ `1`\n"
     }
   }
 ]

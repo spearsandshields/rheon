@@ -468,6 +468,20 @@ impl<'p> Vm<'p> {
           self.set(dst, value);
         }
         Op::DiagMark => self.marks.push(diagnostics::tentative_mark()),
+        Op::TypeName { dst, a, b } => {
+          let mark = self.marks.pop();
+          let value = match self.read(a) {
+            Value::Null(_) | Value::BuiltInFunction(_) => {
+              // the name holds nothing of its own: the abstract type, and no error of the read
+              if let Some(mark) = mark {
+                mark.discard();
+              }
+              self.read(b)
+            }
+            value => value,
+          };
+          self.set(dst, value);
+        }
         Op::BoolDefault { dst, ne, marked } => {
           let value = self.take(dst);
           // what was recorded since the mark is the operation's own (its operands came before):

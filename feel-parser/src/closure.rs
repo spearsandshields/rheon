@@ -78,6 +78,7 @@ impl ClosureBuilder {
       AstNode::In(lhs, rhs) => self.visit_2(lhs, rhs, path_level),
       AstNode::InstanceOf(lhs, rhs) => self.visit_2(lhs, rhs, path_level),
       AstNode::As(lhs, rhs) => self.visit_2(lhs, rhs, path_level),
+      AstNode::AbstractType(lhs, rhs) => self.visit_2(lhs, rhs, path_level),
       AstNode::IntervalEnd(lhs, _) => self.visit_1(lhs, path_level),
       AstNode::IntervalStart(lhs, _) => self.visit_1(lhs, path_level),
       AstNode::Irrelevant => self.visit_0(path_level),
