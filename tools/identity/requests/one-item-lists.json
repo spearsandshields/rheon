@@ -446,5 +446,10 @@
   {"op": "evaluate", "expression": "matches(\"a\\r\\nb\", \"a\\nb\")"},
   {"op": "evaluate", "expression": "matches(\"x\", \"\\\\i\")"},
   {"op": "evaluate", "expression": "matches(\"-\", \"^[0-9-.]$\")"},
-  {"op": "evaluate", "expression": "replace(\"abc\", \"[a-c-[b]]\", \"x\")"}
+  {"op": "evaluate", "expression": "replace(\"abc\", \"[a-c-[b]]\", \"x\")"},
+  {"op": "evaluate", "expression": "matches(\"b\", \"^(a)?\\\\1b$\")"},
+  {"op": "evaluate", "expression": "matches(\"a\", \"^*a\")"},
+  {"op": "evaluate", "expression": "matches(\"\\uE000\", \"^\\\\p{IsPrivateUse}$\")"},
+  {"op": "evaluate", "expression": "matches(\"a\", \"[+--]\")"},
+  {"op": "evaluate", "expression": "replace(\"b\", \"(a)?\\\\1b\", \"x\")"}
 ]

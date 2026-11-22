@@ -103,7 +103,19 @@ fn init_blocks() -> Blocks {
   map.insert("IsHighSurrogates", r#"[\uD800-\uDB7F]"#);
   map.insert("IsHighPrivateUseSurrogates", r#"[\uDB80-\uDBFF]"#);
   map.insert("IsLowSurrogates", r#"[\uDC00-\uDFFF]"#);
-  map.insert("IsPrivateUse lub IsPrivateUseArea", r#"[\uE000-\uF8FF]"#);
+  // XML Schema names the three private use ranges of Unicode 3.1 by one block name
+  map.insert("IsPrivateUse", r#"[\uE000-\uF8FF\x{F0000}-\x{FFFFF}\x{100000}-\x{10FFFF}]"#);
+  map.insert("IsPrivateUseArea", r#"[\uE000-\uF8FF]"#);
+  // the blocks above the basic multilingual plane that XML Schema 1.0 names
+  map.insert("IsOldItalic", r#"[\x{10300}-\x{1032F}]"#);
+  map.insert("IsGothic", r#"[\x{10330}-\x{1034F}]"#);
+  map.insert("IsDeseret", r#"[\x{10400}-\x{1044F}]"#);
+  map.insert("IsByzantineMusicalSymbols", r#"[\x{1D000}-\x{1D0FF}]"#);
+  map.insert("IsMusicalSymbols", r#"[\x{1D100}-\x{1D1FF}]"#);
+  map.insert("IsMathematicalAlphanumericSymbols", r#"[\x{1D400}-\x{1D7FF}]"#);
+  map.insert("IsCJKUnifiedIdeographsExtensionB", r#"[\x{20000}-\x{2A6DF}]"#);
+  map.insert("IsCJKCompatibilityIdeographsSupplement", r#"[\x{2F800}-\x{2FA1F}]"#);
+  map.insert("IsTags", r#"[\x{E0000}-\x{E007F}]"#);
   map.insert("IsCJKCompatibilityIdeographs", r#"[\uF900-\uFAFF]"#);
   map.insert("IsAlphabeticPresentationForms", r#"[\uFB00-\uFB4F]"#);
   map.insert("IsArabicPresentationForms-A", r#"[\uFB50-\uFDFF]"#);

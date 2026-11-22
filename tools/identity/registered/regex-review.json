@@ -1,0 +1,158 @@
+[
+  {
+    "expression": "matches(\"b\", \"^(a)?\\\\1b$\")",
+    "why": "Review of F8: a back-reference to a group that matched nothing matches the zero-length string (F&O 7.6.1); ^ and $ may be quantified; IsPrivateUse and the supplementary blocks of XML Schema 1.0 are known; an unescaped '-' is no endpoint of a range; with x an invalid pattern is quoted as written.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "true",
+        "feel": "true",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "true",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "matches(\"a\", \"[+--]\")",
+    "why": "Review of F8: a back-reference to a group that matched nothing matches the zero-length string (F&O 7.6.1); ^ and $ may be quantified; IsPrivateUse and the supplementary blocks of XML Schema 1.0 are known; an unescaped '-' is no endpoint of a range; with x an invalid pattern is quoted as written.",
+    "old": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "false",
+        "feel": "false",
+        "isNull": false,
+        "type": "boolean",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "false",
+            "type": "xsd:boolean"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "<FeelRegexError> invalid regex pattern '[+--]': expected a range of two characters other than '-' (write \\- for a hyphen) at character 2"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(<FeelRegexError> invalid regex pattern '[+--]': expected a range of two characters other than '-' (write \\- for a hyphen) at character 2)",
+        "isNull": true,
+        "nullReason": "<FeelRegexError> invalid regex pattern '[+--]': expected a range of two characters other than '-' (write \\- for a hyphen) at character 2",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "replace(\"b\", \"(a)?\\\\1b\", \"x\")",
+    "why": "Review of F8: a back-reference to a group that matched nothing matches the zero-length string (F&O 7.6.1); ^ and $ may be quantified; IsPrivateUse and the supplementary blocks of XML Schema 1.0 are known; an unescaped '-' is no endpoint of a range; with x an invalid pattern is quoted as written.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "replace: invalid pattern"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(replace: invalid pattern)",
+        "isNull": true,
+        "nullReason": "replace: invalid pattern",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"x\"",
+        "feel": "\"x\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "x",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  }
+]

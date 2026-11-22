@@ -60,6 +60,7 @@ pub(crate) fn translate(pattern: &str, dot_all: bool, level: Level) -> Result<Tr
     groups: 0,
     closed: Vec::new(),
     open: Vec::new(),
+    classes: 0,
   };
   reader.reg_exp()?;
   if reader.at < reader.chars.len() {
@@ -77,10 +78,13 @@ struct Reader {
   level: Level,
   /// The capturing groups opened so far.
   groups: usize,
-  /// The numbers of the capturing groups that are closed: a back-reference names one of them.
-  closed: Vec<usize>,
+  /// For each capturing group, by its number less one, whether it is closed: a back-reference names
+  /// a closed one.
+  closed: Vec<bool>,
   /// The groups that are open, innermost last: the number of a capturing one, 0 for another.
   open: Vec<usize>,
+  /// The character classes that are open: a subtraction nests one in another.
+  classes: usize,
 }
 
 impl Reader {
@@ -124,13 +128,15 @@ impl Reader {
 
   /// piece ::= atom quantifier?
   fn piece(&mut self) -> Result<(), Refused> {
+    let start = self.out.len();
     let anchor = self.atom()?;
     if let Some(c) = self.peek()
       && matches!(c, '?' | '*' | '+' | '{')
     {
-      // F&O: an anchor is no atom a quantifier applies to
+      // F&O §7.6.1 makes `^` and `$` atoms, which a quantifier may follow: grouped for the engine
       if anchor {
-        return Err(self.refuse("an atom before a quantifier, not '^' or '$'"));
+        self.out.insert_str(start, "(?:");
+        self.out.push(')');
       }
       self.quantifier()?;
     }
@@ -170,7 +176,7 @@ impl Reader {
         }
         // the engine counts repetitions in 32 bits; XSD has no limit, and a larger count than the
         // engine takes is refused as a limit of the engine would be
-        let small = |digits: &str| digits.len() <= 9;
+        let small = |digits: &str| trimmed(digits).len() <= 9;
         if !small(&min) || max.as_deref().is_some_and(|max| !small(max)) {
           return Err(self.refuse("a quantity of at most 999999999 repetitions"));
         }
@@ -228,6 +234,7 @@ impl Reader {
           }
         } else {
           self.groups += 1;
+          self.closed.push(false);
           self.open.push(self.groups);
           self.out.push('(');
         }
@@ -246,7 +253,7 @@ impl Reader {
         self.out.push(')');
         let group = self.open.pop().unwrap_or(0);
         if group != 0 {
-          self.closed.push(group);
+          self.closed[group - 1] = true;
         }
         Ok(false)
       }
@@ -301,12 +308,14 @@ impl Reader {
       number = candidate;
       end = start + digits;
     }
-    if end == start || !self.closed.contains(&number) {
+    if end == start || !self.closed.get(number.wrapping_sub(1)).copied().unwrap_or(false) {
       return Err(self.refuse("a back-reference to a group closed before it"));
     }
     self.at = end;
-    // grouped, so that a digit after it is no digit of its number for the engine
-    self.out.push_str(&format!("(?:\\{number})"));
+    // F&O §7.6.1: a back-reference to a group that matched nothing matches the zero-length
+    // string; the engine's back-reference fails there, so it is asked only when the group took
+    // part (a conditional), and the group around it keeps a digit after it out of its number
+    self.out.push_str(&format!("(?:(?({number})\\{number}))"));
     Ok(())
   }
 
@@ -369,6 +378,8 @@ impl Reader {
     if let Some(block_name) = name.strip_prefix("Is") {
       return match block(&name) {
         // the block's ranges, without the brackets of its class
+        // the surrogate blocks hold no character of a string: an empty set
+        Some(_) if name.contains("Surrogate") => Ok(r"\P{any}".to_string()),
         Some(ranges) => Ok(ranges.trim_start_matches('[').trim_end_matches(']').to_string()),
         None if block_name.is_empty() => Err(Refused {
           at,
@@ -395,6 +406,21 @@ impl Reader {
 
   /// charClassExpr ::= '[' charGroup ']', charGroup ::= ( posCharGroup | negCharGroup ) ( '-' charClassExpr )?
   fn class_expr(&mut self) -> Result<String, Refused> {
+    self.classes += 1;
+    if self.classes > MAX_NESTING {
+      return Err(Refused {
+        at: self.at,
+        expected: "classes nested at most 250 deep",
+        nesting: true,
+      });
+    }
+    let class = self.class_group();
+    self.classes -= 1;
+    class
+  }
+
+  /// [Reader::class_expr] within the depth limit.
+  fn class_group(&mut self) -> Result<String, Refused> {
     self.at += 1;
     let negated = self.peek() == Some('^');
     if negated {
@@ -444,8 +470,15 @@ impl Reader {
       items.push_str(&escape);
       return self.no_range_after_a_set(start_at);
     };
-    // seRange ::= charOrEsc '-' charOrEsc
+    // seRange ::= charOrEsc '-' charOrEsc, where a charOrEsc is no unescaped '-'
     if self.peek() == Some('-') && !matches!(self.peek_at(1), Some(']') | Some('[') | None) {
+      if self.chars[start_at] == '-' || self.peek_at(1) == Some('-') {
+        return Err(Refused {
+          at: start_at,
+          expected: "a range of two characters other than '-' (write \\- for a hyphen)",
+          nesting: false,
+        });
+      }
       self.at += 1;
       let end_at = self.at;
       let Some(end) = self.class_char(false)? else {

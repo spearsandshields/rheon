@@ -133,8 +133,11 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
     would take it (`\b`, `(?i)`, look-around, `\x41`, a lone `{`). Readings: a `-` that starts no
     range is a character (`[0-9-.]`, as XML Schema 1.1 and TCK 1111 have it); `\i` and `\c` are
     the name characters of XML 1.0 fifth edition; case-insensitive matching (`i`) uses Unicode simple
-    case folding; the flag `q` of F&O 3.1 is kept as an extension; a pattern nested more than 250
-    groups deep, or deeper than the engine reads, is a limit that stops the evaluation.
+    case folding, which applies to categories and blocks too (`\p{Lu}` with `i` matches `a`; F&O 3.1
+    says it should not, F&O 2.0 is not explicit); a back-reference to a group that matched nothing
+    matches the zero-length string; the surrogate blocks are empty sets; the flag `q` of F&O 3.1 is
+    kept as an extension; a pattern nested deeper than the engine reads (about 60 groups) is a
+    limit that stops the evaluation.
   - *Range literals out of order or of two types* (10.3.2.7 against Tables 56 and 79). 10.3.2.7 says
     the endpoints of `[a..b]` "must be of equivalent types" and ordered, but gives no answer for a
     range that is not; the tests on ranges are defined by comparisons of the endpoints (Table 56),

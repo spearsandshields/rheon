@@ -23,6 +23,11 @@ pub fn err_zero_length_match() -> DsntkError {
   FeelRegexError("the pattern matches the zero-length string".to_string()).into()
 }
 
+/// A pattern refused by the XSD front end, with what was expected but not where.
+pub fn err_invalid_pattern_expecting(pattern: &str, expected: &str) -> DsntkError {
+  FeelRegexError(format!("invalid regex pattern '{pattern}': expected {expected}")).into()
+}
+
 /// A pattern refused by the XSD front end: what was expected at the character `at` (counted from 0).
 pub fn err_invalid_pattern_at(pattern: &str, at: usize, expected: &str) -> DsntkError {
   FeelRegexError(format!("invalid regex pattern '{pattern}': expected {expected} at character {}", at + 1)).into()

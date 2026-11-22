@@ -1,4 +1,4 @@
-use crate::errors::{Limit, RegexError, err_invalid_pattern_at, err_zero_length_match};
+use crate::errors::{Limit, RegexError, err_invalid_pattern_at, err_invalid_pattern_expecting, err_zero_length_match};
 use crate::flags::Flags;
 use crate::replacement::Replacement;
 use crate::xsd::{Level, translate};
@@ -37,12 +37,16 @@ pub fn is_match_with(patterns: &mut Patterns, input: &str, pattern: &str, flags:
 /// The engine's source of `pattern` with `flags`: read by the XSD front end ([translate]), or
 /// quoted with `q`.
 fn source(pattern: &str, flags: &Flags) -> Result<String, RegexError> {
-  flags.try_source(pattern, |pattern| {
-    translate(pattern, flags.dot_all(), Level::Fo20).map(|translated| translated.source).map_err(|refused| {
+  flags.try_source(pattern, |read| {
+    translate(read, flags.dot_all(), Level::Fo20).map(|translated| translated.source).map_err(|refused| {
       if refused.nesting {
         RegexError::LimitExceeded(Limit::Nesting)
-      } else {
+      } else if read.len() == pattern.len() {
         RegexError::InvalidPattern(err_invalid_pattern_at(pattern, refused.at, refused.expected))
+      } else {
+        // with `x` the place is one in the pattern without its whitespace: the pattern as the
+        // caller wrote it is quoted, with what was expected
+        RegexError::InvalidPattern(err_invalid_pattern_expecting(pattern, refused.expected))
       }
     })
   })

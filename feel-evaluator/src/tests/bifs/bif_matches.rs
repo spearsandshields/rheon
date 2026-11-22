@@ -282,7 +282,7 @@ fn _0042() {
     false,
     &scope!(),
     r#"matches("hello world", "\p{ IsLatin}+", "x")"#,
-    r#"<FeelRegexError> invalid regex pattern '\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4"#,
+    r#"<FeelRegexError> invalid regex pattern '\p{ IsLatin}+': expected the name of a Unicode block known to XML Schema"#,
   );
 }
 
@@ -304,7 +304,7 @@ fn _0044() {
     false,
     &scope!(),
     r#"matches("hello world", "\p{ I s L a t i n }+", "x")"#,
-    r#"<FeelRegexError> invalid regex pattern '\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4"#,
+    r#"<FeelRegexError> invalid regex pattern '\p{ I s L a t i n }+': expected the name of a Unicode block known to XML Schema"#,
   );
 }
 

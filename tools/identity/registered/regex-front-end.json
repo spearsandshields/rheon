@@ -587,7 +587,7 @@
   },
   {
     "expression": "matches(\"hello world\", \"\\p{ IsLatin}+\", \"x\")",
-    "why": "DT-050 (Q-R1, Q-R2): regex patterns are read in the syntax of XML Schema 1.0 with the additions of F&O 2.0 and mean what XSD says: \\s is the four XML spaces, \\w excludes punctuation, separators and others, . excludes both line ends, \\i and \\c are the XML name characters; the engine's own syntax (\\b, (?i), look-around, \\x41, a lone {, --, &&) is an invalid pattern; the input is no longer rewritten (\\r\\n stays); replace and split read the pattern as matches does (back-references, subtraction, block names); invalid-pattern messages say what was expected and where.",
+    "why": "DT-050 (Q-R1, Q-R2): regex patterns are read in the syntax of XML Schema 1.0 with the additions of F&O 2.0 and mean what XSD says: \\s is the four XML spaces, \\w excludes punctuation, separators and others, . excludes both line ends, \\i and \\c are the XML name characters; the engine's own syntax (\\b, (?i), look-around, \\x41, a lone {, --, &&) is an invalid pattern; the input is no longer rewritten (\\r\\n stays); replace and split read the pattern as matches does (back-references, subtraction, block names); invalid-pattern messages say what was expected and where. Review of F8: with x an invalid pattern is quoted as written.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -615,15 +615,15 @@
       "diagnostics": {
         "count": 1,
         "messages": [
-          "<FeelRegexError> invalid regex pattern '\\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4"
+          "<FeelRegexError> invalid regex pattern '\\p{ IsLatin}+': expected the name of a Unicode block known to XML Schema"
         ]
       },
       "ok": true,
       "result": {
         "display": "null",
-        "feel": "null(<FeelRegexError> invalid regex pattern '\\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4)",
+        "feel": "null(<FeelRegexError> invalid regex pattern '\\p{ IsLatin}+': expected the name of a Unicode block known to XML Schema)",
         "isNull": true,
-        "nullReason": "<FeelRegexError> invalid regex pattern '\\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4",
+        "nullReason": "<FeelRegexError> invalid regex pattern '\\p{ IsLatin}+': expected the name of a Unicode block known to XML Schema",
         "type": "Null",
         "typed": {
           "components": null,
@@ -693,7 +693,7 @@
   },
   {
     "expression": "matches(\"hello world\", \"\\p{ I s L a t i n }+\", \"x\")",
-    "why": "DT-050 (Q-R1, Q-R2): regex patterns are read in the syntax of XML Schema 1.0 with the additions of F&O 2.0 and mean what XSD says: \\s is the four XML spaces, \\w excludes punctuation, separators and others, . excludes both line ends, \\i and \\c are the XML name characters; the engine's own syntax (\\b, (?i), look-around, \\x41, a lone {, --, &&) is an invalid pattern; the input is no longer rewritten (\\r\\n stays); replace and split read the pattern as matches does (back-references, subtraction, block names); invalid-pattern messages say what was expected and where.",
+    "why": "DT-050 (Q-R1, Q-R2): regex patterns are read in the syntax of XML Schema 1.0 with the additions of F&O 2.0 and mean what XSD says: \\s is the four XML spaces, \\w excludes punctuation, separators and others, . excludes both line ends, \\i and \\c are the XML name characters; the engine's own syntax (\\b, (?i), look-around, \\x41, a lone {, --, &&) is an invalid pattern; the input is no longer rewritten (\\r\\n stays); replace and split read the pattern as matches does (back-references, subtraction, block names); invalid-pattern messages say what was expected and where. Review of F8: with x an invalid pattern is quoted as written.",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -721,15 +721,15 @@
       "diagnostics": {
         "count": 1,
         "messages": [
-          "<FeelRegexError> invalid regex pattern '\\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4"
+          "<FeelRegexError> invalid regex pattern '\\p{ I s L a t i n }+': expected the name of a Unicode block known to XML Schema"
         ]
       },
       "ok": true,
       "result": {
         "display": "null",
-        "feel": "null(<FeelRegexError> invalid regex pattern '\\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4)",
+        "feel": "null(<FeelRegexError> invalid regex pattern '\\p{ I s L a t i n }+': expected the name of a Unicode block known to XML Schema)",
         "isNull": true,
-        "nullReason": "<FeelRegexError> invalid regex pattern '\\p{IsLatin}+': expected the name of a Unicode block known to XML Schema at character 4",
+        "nullReason": "<FeelRegexError> invalid regex pattern '\\p{ I s L a t i n }+': expected the name of a Unicode block known to XML Schema",
         "type": "Null",
         "typed": {
           "components": null,

@@ -59,7 +59,7 @@ impl Flags {
   /// written, so no engine is needed: there is no flag, or only `q`; the pattern is not empty;
   /// with `q` any character stands for itself, and without it the pattern has only letters,
   /// digits, spaces and punctuation that no pattern syntax gives a meaning; and it has no line
-  /// end, the one thing that an input is changed for before it is matched.
+  /// end.
   pub fn plain(&self, pattern: &str) -> bool {
     if self.case_insensitive || self.multi_line || self.dot_all || self.free_spacing || pattern.is_empty() {
       return false;

@@ -104,7 +104,6 @@ fn back_references_and_quantifiers() {
   assert!(matches("aaa", "^a{2,}$"));
   assert!(matches("aa", "^a{1,3}?$"));
   assert!(invalid("a{3,2}"));
-  assert!(invalid("^*"));
   // back-references in replace and split too
   assert_eq!(Ok("x-x".to_string()), replace("aa-bb", r"(.)\1", "x", ""));
   assert_eq!(Ok(vec!["a".to_string(), "b".to_string()]), split("a11b", r"(1)\1"));
@@ -124,4 +123,35 @@ fn the_set_operators_of_the_engine_are_characters() {
   assert!(matches("&", "^[a&&b]$"));
   assert!(matches("~", "^[a~~b]$"));
   assert!(!matches("c", "^[a&&b]$"));
+}
+
+#[test]
+fn review_of_f8() {
+  // a back-reference to a group that matched nothing matches the zero-length string (F&O §7.6.1)
+  assert!(matches("b", r"^(a)?\1b$"));
+  assert!(matches("b", r"(a)|b\1"));
+  assert!(matches("aab", r"^(a)?\1b$"));
+  // a quantifier may follow ^ and $, which are atoms (F&O §7.6.1)
+  assert!(matches("a", "^*a"));
+  assert!(matches("a", "a$?"));
+  // leading zeros do not count against the repetition limit
+  assert!(matches("aaa", "^a{0000000003}$"));
+  // an unescaped '-' is no endpoint of a range
+  for pattern in ["[+--]", "[!--]", "[--a]"] {
+    assert!(invalid(pattern), "{pattern:?} should be invalid");
+  }
+  assert!(matches("-", r"^[+-\-]$"));
+  // the block names of XML Schema 1.0, private use and the surrogates included
+  assert!(matches("\u{E000}", r"^\p{IsPrivateUse}$"));
+  assert!(matches("\u{10300}", r"^\p{IsOldItalic}$"));
+  assert!(!matches("a", r"\p{IsHighSurrogates}"));
+  assert!(matches("a", r"^\P{IsHighSurrogates}$"));
+  // deeply nested subtractions are a limit, not a crash
+  let deep = format!("[a{}{}", "-[a".repeat(5000), "]".repeat(5001));
+  assert!(matches!(is_match("a", &deep, ""), Err(RegexError::LimitExceeded(_))));
+  // with x, the pattern is quoted as written
+  match is_match("a", "[ a", "x") {
+    Err(RegexError::InvalidPattern(error)) => assert!(error.to_string().contains("'[ a'"), "{error}"),
+    other => panic!("{other:?}"),
+  }
 }
