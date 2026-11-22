@@ -104,6 +104,11 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *Equality of the two duration kinds* (9.4 against Table 53). `@"P1D" = @"P1M"` and
     `@"P0D" = @"P0Y"` are null: Table 53 requires one kind, and TCK 0068 (`P1Y = P365D` is null)
     reads it so; 9.4 says the kinds compare.
+  - *Products and quotients too small for decimal128* (Table 60, 10.3.2.3.1). A result whose value
+    needs an exponent below decimal128's range (`1e-6000 * 1e-6000`) is rounded to a subnormal
+    number or to 0, as the decimal128 arithmetic of IEEE 754 does, with no error; a result too large
+    is null, as Table 60 says of results outside the range. Making underflow null too would turn
+    sums of tiny products into nulls; the rounding is the number core's (CONTRACT.md, numbers).
   - *B-FEEL results that stay null* (11.1 against 11.2-11.11). 11.1 says a B-FEEL null only means
     missing data, but the sections that follow give results only for boolean operators and
     functions, functions by their result type, and the arithmetic operators. Where none applies,
