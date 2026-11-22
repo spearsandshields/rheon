@@ -368,5 +368,16 @@
   {"op": "evaluate", "expression": "every x in 1..\"a\" satisfies true", "language": "b-feel"},
   {"op": "evaluate", "expression": "every x in 1..\"a\" satisfies true", "language": "b-feel", "errorMode": "strict"},
   {"op": "evaluate", "expression": "some x in 1..2.5 satisfies true", "language": "b-feel"},
-  {"op": "evaluate", "expression": "some x in 1..2.5 satisfies true", "language": "b-feel", "errorMode": "strict"}
+  {"op": "evaluate", "expression": "some x in 1..2.5 satisfies true", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "some i in 1..3 satisfies i > 2"},
+  {"op": "evaluate", "expression": "some i in 1..3 satisfies i > 2", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "every i in 1..3 satisfies i > 0"},
+  {"op": "evaluate", "expression": "every i in 1..3 satisfies i > 0", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "every i in 3..1 satisfies i > 1"},
+  {"op": "evaluate", "expression": "every i in 3..1 satisfies i > 1", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "some i in 1..2, j in i..3 satisfies i + j = 5"},
+  {"op": "evaluate", "expression": "some i in 1..2, j in i..3 satisfies i + j = 5", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "some i in 1..2.5 satisfies true"},
+  {"op": "evaluate", "expression": "some i in 1..2.5 satisfies true", "language": "b-feel", "errorMode": "strict"},
+  {"op": "evaluate", "expression": "every x in 1..\"a\" satisfies true"}
 ]

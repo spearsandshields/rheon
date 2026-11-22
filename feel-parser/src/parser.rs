@@ -1878,7 +1878,14 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       self.lexer.add_name_to_scope(name);
       self.expect(T::In, At::Start)?;
       let domain = self.boxed(LOWEST)?;
-      contexts.push(AstNode::QuantifiedContext(variable, domain));
+      // an iteration context, as of `for` (DMN 1.7 Beta 1, grammar rule 46): a list, or `a..b`
+      contexts.push(if self.kind == T::Ellipsis {
+        self.bump();
+        let end = self.boxed(LOWEST)?;
+        AstNode::IterationContextInterval(variable, domain, end)
+      } else {
+        AstNode::QuantifiedContext(variable, domain)
+      });
       if self.kind != T::Comma {
         break;
       }

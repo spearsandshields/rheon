@@ -90,3 +90,20 @@ fn a_quantified_context_sees_the_variables_bound_before_it() {
   te_errors("some x in [[],[1]], y in x satisfies y = 1", "true", &[]);
   te_errors("some x in [], y in [1/0] satisfies true", "false", &[]);
 }
+
+#[test]
+fn an_interval_is_an_iteration_context() {
+  // DMN 1.7 Beta 1, grammar rule 46: some and every take the iteration contexts of for
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "some i in 1..3 satisfies i > 2", true);
+  te_bool(false, scope, "every i in 1..3 satisfies i > 0", true);
+  te_bool(false, scope, "every i in 3..1 satisfies i > 1", false);
+  te_bool(false, scope, "some i in 1..2, j in i..3 satisfies i + j = 5", true);
+  te_bool(false, scope, r#"some d in @"2024-02-28"..@"2024-03-01" satisfies day of week(d) = "Friday""#, true);
+  te_null(
+    false,
+    scope,
+    "some i in 1..2.5 satisfies true",
+    "<FeelEvaluatorError> interval a..b expected two integers or two dates, found 1 and 2.5",
+  );
+}

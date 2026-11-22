@@ -978,10 +978,19 @@ pub(crate) fn variables(contexts: &AstNode, quantified: bool) -> Vec<(&Name, Vec
     }
     AstNode::QuantifiedContexts(items) if quantified => {
       for item in items {
-        if let AstNode::QuantifiedContext(name, domain) = item
-          && let AstNode::Name(name) = name.as_ref()
-        {
-          variables.push((name, vec![domain.as_ref()]));
+        match item {
+          AstNode::QuantifiedContext(name, domain) => {
+            if let AstNode::Name(name) = name.as_ref() {
+              variables.push((name, vec![domain.as_ref()]));
+            }
+          }
+          // `some i in 1..3` (DMN 1.7 Beta 1, grammar rule 46)
+          AstNode::IterationContextInterval(name, start, end) => {
+            if let AstNode::Name(name) = name.as_ref() {
+              variables.push((name, vec![start.as_ref(), end.as_ref()]));
+            }
+          }
+          _ => {}
         }
       }
     }
