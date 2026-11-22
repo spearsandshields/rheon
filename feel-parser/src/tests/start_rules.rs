@@ -125,3 +125,17 @@ fn lists_of_expressions() {
     vec!["Expected a textual expression, found a list, a context or a function definition alone `{x: 1}`: write it in parentheses.".to_string()]
   );
 }
+
+#[test]
+fn a_long_path_is_read_in_linear_time() {
+  // review of DT-002: the check of a qualified name does not read the path again at each dot
+  let text = format!("a{}", ".a".repeat(5_000));
+  for rule in [StartRule::Expression, StartRule::SimpleExpression] {
+    let started = std::time::Instant::now();
+    let _ = parse_tolerant_start(&scope(), &text, rule);
+    let _ = parse_start(&scope(), rule, &text);
+    assert!(started.elapsed() < std::time::Duration::from_secs(1), "{rule:?}: {:?}", started.elapsed());
+  }
+  assert!(parses(StartRule::SimpleExpression, "a.b.c.d"));
+  assert!(!parses(StartRule::SimpleExpression, "(a).b"));
+}

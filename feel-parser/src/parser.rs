@@ -505,15 +505,6 @@ impl StartRule {
 /// What a simple expression is expected as, in the message of a construct S-FEEL has not.
 const SIMPLE: &str = "a simple expression (S-FEEL, DMN 9.2)";
 
-/// Whether `node` is a name or a qualified name: a simple value of S-FEEL (rule 14).
-fn names_only(node: &AstNode) -> bool {
-  match node {
-    AstNode::Name(_) | AstNode::QualifiedName(_) => true,
-    AstNode::Path(base, name) => matches!(name.as_ref(), AstNode::Name(_)) && names_only(base),
-    _ => false,
-  }
-}
-
 /// Whether the invocation of `callee` with `parameters` is a date time literal of S-FEEL
 /// (clause 9.2, rule 34): `date`, `time`, `duration`, `days and time duration` or `years and
 /// months duration` of one string literal.
@@ -1316,15 +1307,18 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// endpoint of an interval that a `[` after it ends.
   #[inline(never)]
   fn infix(&mut self, lhs: &mut AstNode, start: usize, level: u8, end_endpoint: bool) -> Result<()> {
+    // in a simple expression: `lhs` is a name or a qualified name so far (S-FEEL rule 15), kept
+    // as the path grows so that a long path is read in linear time
+    let mut names = self.simple && matches!(lhs, AstNode::Name(_) | AstNode::QualifiedName(_));
     loop {
       let binary: fn(Box<AstNode>, Box<AstNode>) -> AstNode;
       let operator_level;
       match self.look(At::AfterOperand)? {
         T::Dot | T::Descendant => {
-          let qualified = self.kind == T::Dot && names_only(lhs);
+          names = names && self.kind == T::Dot;
           self.path(lhs)?;
           self.note("Path", start);
-          if self.simple && !qualified {
+          if self.simple && !names {
             self.refuse(SIMPLE, "a path", start, "")?;
           }
           continue;
@@ -1334,6 +1328,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             break;
           }
           self.filter(lhs)?;
+          names = false;
           self.note("Filter", start);
           if self.simple {
             self.refuse(SIMPLE, "a filter", start, "")?;
@@ -1342,6 +1337,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         T::LeftParen => {
           self.invocation(lhs)?;
+          names = false;
           self.note("Invocation", start);
           if self.simple && !matches!(lhs, AstNode::FunctionInvocation(callee, parameters) if simple_temporal(callee, parameters)) {
             self.refuse(SIMPLE, "a function invocation", start, "")?;
@@ -1350,6 +1346,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         T::Instance => {
           self.instance_of(lhs)?;
+          names = false;
           self.note("InstanceOf", start);
           if self.simple {
             self.refuse(SIMPLE, "an instance of test", start, "")?;
@@ -1358,6 +1355,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         }
         T::As => {
           self.as_type(lhs)?;
+          names = false;
           self.note("As", start);
           if self.simple {
             self.refuse(SIMPLE, "an `as` conversion", start, "")?;
@@ -1369,6 +1367,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             break;
           }
           self.between(lhs)?;
+          names = false;
           self.note("Between", start);
           if self.simple {
             self.refuse(SIMPLE, "a between test", start, "")?;
@@ -1380,6 +1379,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
             break;
           }
           self.comparison_in(lhs)?;
+          names = false;
           self.note("In", start);
           if self.simple {
             self.refuse(SIMPLE, "an in test", start, "")?;
@@ -1406,6 +1406,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         break;
       }
       self.binary(lhs, binary, operator_level)?;
+      names = false;
       self.note(operator_name(operator_level), start);
       if self.simple && operator_level <= AND {
         self.refuse(SIMPLE, if operator_level == OR { "a disjunction" } else { "a conjunction" }, start, "")?;

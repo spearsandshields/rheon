@@ -45,10 +45,15 @@ pub fn set_clock_override(instant: Option<DateTime<Utc>>) {
   CLOCK_OVERRIDE.with(|clock| clock.set(instant));
 }
 
-/// The instant of an ISO 8601 date and time with its offset or `Z` (RFC 3339:
+/// The instant of an ISO 8601 date and time with its offset or `Z` (RFC 3339 with `T` and `Z`:
 /// `2026-01-01T10:00:00Z`, `2026-01-01T12:00:00.5+02:00`), for [set_clock_override]; `None` for
 /// any other text, a local one included.
 pub fn parse_instant(text: &str) -> Option<DateTime<Utc>> {
+  // RFC 3339 also takes a space or a lower case `t` between the date and the time, and a
+  // lower case `z`; ISO 8601 writes `T` and `Z`
+  if text.bytes().any(|byte| matches!(byte, b' ' | b't' | b'z')) {
+    return None;
+  }
   DateTime::parse_from_rfc3339(text).ok().map(|instant| instant.with_timezone(&Utc))
 }
 

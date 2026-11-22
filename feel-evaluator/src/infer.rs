@@ -423,11 +423,25 @@ impl<'n> Typer<'_, 'n> {
   fn context(&mut self, entries: &'n [AstNode]) -> FeelType {
     let mark = self.bound.len();
     let mut types = BTreeMap::new();
-    for entry in entries {
+    for (position, entry) in entries.iter().enumerate() {
       if let AstNode::ContextEntry(key, value) = entry
         && let AstNode::ContextEntryKey(name) = key.as_ref()
       {
-        let value_type = match self.node(value) {
+        // the body of a function literal runs when it is invoked, and sees the entries written
+        // after it too: their names hide the names outside, of no type known here
+        let shadows = self.bound.len();
+        if let AstNode::FunctionDefinition(..) = value.as_ref() {
+          for later in &entries[position + 1..] {
+            if let AstNode::ContextEntry(key, _) = later
+              && let AstNode::ContextEntryKey(later) = key.as_ref()
+            {
+              self.bound.push((later.clone(), FeelType::Any));
+            }
+          }
+        }
+        let value_type = self.node(value);
+        self.unbind(shadows);
+        let value_type = match value_type {
           FeelType::Null => FeelType::Any,
           value_type => value_type,
         };
@@ -520,12 +534,18 @@ impl<'n> Typer<'_, 'n> {
       ),
       _ => None,
     };
-    // the names bound after the literal are not seen in its body
-    let hidden_bound = self.bound.split_off(index + 1);
+    // the names bound after the literal are not those of its body: the parameters of the
+    // constructs around the invocation are not seen there, and an entry of the context written
+    // after the literal is seen with a value not typed here; a name of them is of no known type
+    // in the body, so a name outside of the same text is not read in its place
+    let mark = index + 1;
+    let hidden_bound = self.bound.split_off(mark);
     let split = self.definitions.partition_point(|(at, _)| *at <= index);
     let hidden_definitions = self.definitions.split_off(split);
     self.active.push(definition);
-    let mark = self.bound.len();
+    for (hidden, _) in &hidden_bound {
+      self.bound.push((hidden.clone(), FeelType::Any));
+    }
     for (position, item) in items.iter().enumerate() {
       if let AstNode::FormalParameter(parameter, parameter_type) = item
         && let AstNode::ParameterName(parameter) = parameter.as_ref()

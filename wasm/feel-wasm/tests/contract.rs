@@ -2795,7 +2795,16 @@ fn now_pins_the_clock_of_a_request() {
   let all = ok(json!({"op": "evaluateAll", "now": "2001-02-03T04:05:06Z", "tzOffsetMinutes": 0, "evaluations": [{"expression": "today().year"}]}));
   assert!(all.to_string().contains("2001"), "{all}");
   // a text that is no instant is a request error
-  for now in [json!("2001-02-03"), json!("2001-02-03T04:05:06"), json!("yesterday"), json!(5)] {
+  for now in [
+    json!("2001-02-03"),
+    json!("2001-02-03T04:05:06"),
+    json!("yesterday"),
+    json!(5),
+    // RFC 3339 takes these, ISO 8601 does not (review of DT-065)
+    json!("2001-02-03 04:05:06Z"),
+    json!("2001-02-03t04:05:06Z"),
+    json!("2001-02-03T04:05:06z"),
+  ] {
     let response = req(json!({"op": "evaluate", "expression": "now()", "now": now}));
     assert_eq!(error_kind(&response), "request", "{response}");
   }
@@ -2874,4 +2883,7 @@ fn completion_types_function_literals_and_their_invocations() {
   // the members of an invocation of a literal written before it
   assert_eq!(type_of("{p: function(a, b) {sum: a + b, prod: a ** b}, q: p(1, 2).", "sum"), Some(json!("number")));
   assert_eq!(type_of("{mk: function(n) {name: n}, q: mk(\"x\").", "name"), Some(json!("string")));
+  // the entries before the literal in the order they are written (review of DT-025)
+  let completed = ok(json!({"op": "complete", "expression": "{k: {m: 1}, f: function() k, q: f().", "context": {"k": "s"}}));
+  assert!(completed["items"].as_array().unwrap().iter().any(|item| item["label"] == "m"), "{completed}");
 }

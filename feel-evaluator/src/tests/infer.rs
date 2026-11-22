@@ -235,6 +235,9 @@ fn an_invocation_of_a_function_literal_types_its_body_with_the_arguments() {
     ("{loop: function(n) loop(n), r: loop(1)}.r", "Any"),
     // a call whose arguments give null keeps the type of the body
     ("{inc: function(x) x + 1, r: inc(\"a\")}.r", "number"),
+    // an entry written after the literal hides the name outside (review of DT-025)
+    ("{f: function() s, s: 1, r: f()}.r", "Any"),
+    ("{f: function() s, s: 1}.f", "function<>->Any"),
   ] {
     assert_eq!(expected, ty(INPUT, text), "{text}");
   }

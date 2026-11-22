@@ -612,23 +612,18 @@ fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Bound 
         if literal.depth() > MAX_AST_DEPTH {
           continue;
         }
-        if let FeelType::Context(types) = infer_type_with(&literal, scope, &bound.names, &bound.literals) {
-          // the function literals of the entries, for the invocations of their names
-          let mut functions: Vec<(&Name, &AstNode)> = vec![];
-          if let AstNode::Context(entries) = &literal {
-            for entry in entries {
-              if let AstNode::ContextEntry(key, value) = entry
-                && let (AstNode::ContextEntryKey(name), AstNode::FunctionDefinition(..)) = (key.as_ref(), value.as_ref())
-              {
-                functions.push((name, value));
+        if let (FeelType::Context(types), AstNode::Context(entries)) = (infer_type_with(&literal, scope, &bound.names, &bound.literals), &literal) {
+          // the entries in the order they are written (a function literal sees the entries
+          // before it), with the function literals for the invocations of their names
+          for entry in entries {
+            if let AstNode::ContextEntry(key, value) = entry
+              && let AstNode::ContextEntryKey(name) = key.as_ref()
+            {
+              if let AstNode::FunctionDefinition(..) = value.as_ref() {
+                bound.literals.push((bound.names.len(), (**value).clone()));
               }
+              bound.names.push((name.clone(), types.get(name).cloned().unwrap_or(FeelType::Any)));
             }
-          }
-          for (name, entry_type) in types {
-            if let Some((_, function)) = functions.iter().rev().find(|(function, _)| **function == name) {
-              bound.literals.push((bound.names.len(), (*function).clone()));
-            }
-            bound.names.push((name, entry_type));
           }
         }
       }
