@@ -409,5 +409,15 @@
   {"op": "evaluate", "expression": "days and time duration(1)"},
   {"op": "evaluate", "expression": "days and time duration(1)", "language": "b-feel"},
   {"op": "evaluate", "expression": "range(\"[days and time duration(\\\"P1D\\\")..days and time duration(\\\"P2D\\\")]\")"},
-  {"op": "evaluate", "expression": "range(\"[days and time duration(\\\"P1D\\\")..days and time duration(\\\"P2D\\\")]\")", "language": "b-feel"}
+  {"op": "evaluate", "expression": "range(\"[days and time duration(\\\"P1D\\\")..days and time duration(\\\"P2D\\\")]\")", "language": "b-feel"},
+  {"op": "evaluate", "expression": "\"abc\" as string"},
+  {"op": "evaluate", "expression": "123 as string"},
+  {"op": "evaluate", "expression": "[1, 2, 3] as list<number>"},
+  {"op": "evaluate", "expression": "{x: 5, r: abs(x as number)}.r"},
+  {"op": "evaluate", "expression": "null as number"},
+  {"op": "evaluate", "expression": "{as of date: \"2020\", r: as of date}.r"},
+  {"op": "evaluate", "expression": "{price as of today: 7, r: price as of today + 1}.r"},
+  {"op": "evaluate", "expression": "price as of today"},
+  {"op": "evaluate", "expression": "{a: 1} as context<a: number>"},
+  {"op": "evaluate", "expression": "1 as Any"}
 ]

@@ -92,6 +92,7 @@ pub enum TokenValue {
   Gt,
   If,
   In,
+  As,
   Instance,
   List,
   Minus,
@@ -142,6 +143,11 @@ pub struct Lexer<'lexer, 'scope> {
   /// keywords `list`, `range` and `context`. Set by the parser before every type, and over
   /// with the token read next.
   type_name: bool,
+  /// A complete operand was read: the next token may be the operator `as` (DMN 1.7 Beta 1,
+  /// grammar rule 51). `as` is no keyword elsewhere, so a name may start with it (`as of date`),
+  /// and a name in scope that holds it is read whole before (`price as of today`). Set by the
+  /// parser before every token, as where it reads it.
+  after_operand: bool,
   /// ???
   till_in: bool,
   /// The text is a name that is being declared ([crate::parse_name]): a name that is not in
@@ -205,6 +211,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       position: 0,
       unary_tests: false,
       type_name: false,
+      after_operand: false,
       till_in: false,
       whole_names: false,
       after_dot: false,
@@ -244,6 +251,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   pub fn set_type_name(&mut self) {
     self.type_name = true;
+  }
+
+  /// Tells whether the next token follows a complete operand ([Lexer::after_operand]).
+  pub fn set_after_operand(&mut self, after_operand: bool) {
+    self.after_operand = after_operand;
   }
 
   pub fn set_till_in(&mut self) {
@@ -334,6 +346,10 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       ['f', 'u', 'n', 'c', 't', 'i', 'o', 'n', _, _, _, _] if self.is_function_separator(8) => {
         self.position += 8;
         Ok((TokenType::Function, TokenValue::Function))
+      }
+      ['a', 's', ch, _, _, _, _, _, _, _, _, _] if self.after_operand && ends_word(ch) => {
+        self.position += 2;
+        Ok((TokenType::As, TokenValue::As))
       }
       ['i', 'n', 's', 't', 'a', 'n', 'c', 'e', ch, _, _, _] if ends_word(ch) => {
         self.position += 8;

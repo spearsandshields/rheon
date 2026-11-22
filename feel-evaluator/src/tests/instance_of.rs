@@ -504,3 +504,19 @@ fn the_context_type_without_entries_is_every_context() {
   te_bool(false, scope, "1 instance of context<>", false);
   te_number(false, scope, "(function(c: context<>) c.a)({a: 5})", 5, 0);
 }
+
+#[test]
+fn as_converts_to_a_type_the_value_is_of() {
+  // DMN 1.7 Beta 1, Table 62: e as T is e when e instance of T, otherwise null
+  let scope = &te_scope(r#"{x: 5, as of date: "2020", price as of today: 7, y: "s"}"#);
+  te_string(false, scope, r#""abc" as string"#, "abc");
+  te_null(false, scope, "123 as string", "a value of type number is no string");
+  te_be_value(false, scope, "[1, 2, 3] as list<number>", "[1, 2, 3]");
+  te_number(false, scope, "abs(x as number)", 5, 0);
+  te_null(false, scope, "abs(y as number)", "[core::abs] invalid argument type, expected number, actual type is Null");
+  te_null(false, scope, "null as number", "");
+  // names that hold `as` keep their meaning
+  te_string(false, scope, "as of date", "2020");
+  te_number(false, scope, "price as of today", 7, 0);
+  te_number(false, scope, "price as of today + 1", 8, 0);
+}

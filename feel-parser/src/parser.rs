@@ -61,6 +61,7 @@ enum T {
   Gt,
   If,
   In,
+  As,
   Instance,
   Le,
   LeftBrace,
@@ -120,6 +121,7 @@ fn kind_of(value: &TokenValue) -> T {
     TokenValue::Gt => T::Gt,
     TokenValue::If => T::If,
     TokenValue::In => T::In,
+    TokenValue::As => T::As,
     TokenValue::Instance => T::Instance,
     TokenValue::Le => T::Le,
     TokenValue::LeftBrace => T::LeftBrace,
@@ -343,6 +345,7 @@ fn class_of(kind: T) -> TokenClass {
     | T::If
     | T::In
     | T::Instance
+    | T::As
     | T::List
     | T::Not
     | T::Of
@@ -674,6 +677,7 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   /// Reads the next token from the lexer.
   #[inline(never)]
   fn read(&mut self, at: At) -> Result<()> {
+    self.lexer.set_after_operand(at == At::AfterOperand);
     #[allow(unused_mut)]
     let (mut token_type, mut token_value) = if self.syntax.is_some() { self.next_token_tolerant()? } else { self.lexer.next_token()? };
     // the places of the token: only a tolerant parse reads them
@@ -1184,6 +1188,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           self.note("InstanceOf", start);
           continue;
         }
+        T::As => {
+          self.as_type(lhs)?;
+          self.note("As", start);
+          continue;
+        }
         T::Between => {
           if COMPARISON <= level {
             break;
@@ -1267,6 +1276,17 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.bump();
     let parameters = Box::new(self.parameters()?);
     wrap(lhs, |lhs| AstNode::FunctionInvocation(lhs, parameters));
+    self.made = Made::Textual;
+    Ok(())
+  }
+
+  /// `as` and a type (DMN 1.7 Beta 1, grammar rule 51).
+  #[inline(never)]
+  fn as_type(&mut self, lhs: &mut AstNode) -> Result<()> {
+    self.bump();
+    self.lexer.set_type_name();
+    let target_type = Box::new(self.type_expression()?);
+    wrap(lhs, |lhs| AstNode::As(lhs, target_type));
     self.made = Made::Textual;
     Ok(())
   }

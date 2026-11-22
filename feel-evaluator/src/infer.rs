@@ -250,6 +250,8 @@ impl Typer<'_> {
         let end = endpoint(self, end);
         FeelType::Range(Box::new(join(start, end)))
       }
+      // `e as T` is of the type T, or null (DMN 1.7 Beta 1, Table 62)
+      A::As(_, written) => type_written(written).unwrap_or(FeelType::Any),
       A::UnaryLt(end) | A::UnaryLe(end) | A::UnaryGt(end) | A::UnaryGe(end) | A::UnaryEq(end) | A::UnaryNe(end) => FeelType::Range(Box::new(self.node(end))),
       A::Eq(..)
       | A::Nq(..)

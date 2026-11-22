@@ -91,6 +91,25 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
   }
 }
 
+/// FEEL `lhv as rhv` (DMN 1.7 Beta 1, Table 62): the value itself when it is an instance of the
+/// type, otherwise null: "If e1 instance of e2 is false or null, the result is null". A value that
+/// is of another type gives a null that explains it and is no error, as a test that answers no;
+/// a right operand that is no type gives the null of `instance of`.
+pub(crate) fn as_type(lhv: Value, rhv: Value) -> Value {
+  // null is null, of whatever type
+  if lhv.is_null() && matches!(rhv, Value::FeelType(_)) {
+    return lhv;
+  }
+  match instance_of(lhv.clone(), rhv.clone()) {
+    Value::Boolean(true) => lhv,
+    Value::Boolean(false) => match rhv {
+      Value::FeelType(feel_type) => value_null!(note: "a value of type {} is no {}", arg(&TypeOf(&lhv)), feel_type),
+      _ => value_null!(note: "a value of type {} is no value of the type", arg(&TypeOf(&lhv))),
+    },
+    null => null,
+  }
+}
+
 /// The type `list<t>` of the evaluated element type `element`.
 pub(crate) fn list_type(element: Value) -> Value {
   match element {

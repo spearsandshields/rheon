@@ -264,12 +264,13 @@ impl<'a> Lower<'_, 'a> {
         }
         self.builder.emit(Op::ListEnd { kind, dst });
       }
-      AstNode::In(..) | AstNode::Range(..) | AstNode::InstanceOf(..) | AstNode::ContextTypeEntry(..) | AstNode::FunctionType(..) => {
+      AstNode::In(..) | AstNode::Range(..) | AstNode::InstanceOf(..) | AstNode::As(..) | AstNode::ContextTypeEntry(..) | AstNode::FunctionType(..) => {
         let (a, b) = self.operands(node)?;
         let kernel = match ast {
           AstNode::In(..) => self.membership(),
           AstNode::Range(..) => Kernel2::Range,
           AstNode::InstanceOf(..) => Kernel2::InstanceOf,
+          AstNode::As(..) => Kernel2::As,
           AstNode::ContextTypeEntry(..) => Kernel2::ContextTypeEntry,
           _ => Kernel2::FunctionType,
         };

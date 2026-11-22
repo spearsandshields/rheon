@@ -1,0 +1,552 @@
+[
+  {
+    "expression": "\"abc\" as string",
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 6,
+            "message": "Unexpected `as string`: an operator or the end of the expression is expected here.",
+            "to": 15
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: \"abc\" as string"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"abc\"",
+        "feel": "\"abc\"",
+        "isNull": false,
+        "type": "string",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "abc",
+            "type": "xsd:string"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "123 as string",
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 4,
+            "message": "Unexpected `as string`: an operator or the end of the expression is expected here.",
+            "to": 13
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 123 as string"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(a value of type number is no string)",
+        "isNull": true,
+        "nullReason": "a value of type number is no string",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "[1, 2, 3] as list<number>",
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 10,
+            "message": "Unexpected `as list`: an operator or the end of the expression is expected here.",
+            "to": 17
+          },
+          {
+            "code": "expected-expression",
+            "from": 25,
+            "message": "Expected an expression after `>`, but the expression ends here.",
+            "to": 25
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: [1, 2, 3] as list<number>"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "[1, 2, 3]",
+        "feel": "[1, 2, 3]",
+        "isNull": false,
+        "type": "list<number>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": [
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "2",
+                  "type": "xsd:decimal"
+                }
+              },
+              {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "3",
+                  "type": "xsd:decimal"
+                }
+              }
+            ]
+          },
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{x: 5, r: abs(x as number)}.r",
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "expected",
+            "from": 16,
+            "message": "Expected `,` or `)` in the argument list, found `as number`.",
+            "to": 25
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: {x: 5, r: abs(x as number)}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "5",
+        "feel": "5",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "5",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "null as number",
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 5,
+            "message": "Unexpected `as number`: an operator or the end of the expression is expected here.",
+            "to": 14
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: null as number"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "{a: 1} as context<a: number>",
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 7,
+            "message": "Unexpected `as context`: an operator or the end of the expression is expected here.",
+            "to": 17
+          },
+          {
+            "code": "unexpected",
+            "from": 19,
+            "message": "Unexpected `:`: an operator or the end of the expression is expected here.",
+            "to": 20
+          },
+          {
+            "code": "expected-expression",
+            "from": 28,
+            "message": "Expected an expression after `>`, but the expression ends here.",
+            "to": 28
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: {a: 1} as context<a: number>"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "{\"a\": 1}",
+        "feel": "{a: 1}",
+        "isNull": false,
+        "type": "context<a: number>",
+        "typed": {
+          "components": [
+            {
+              "isNil": false,
+              "name": "a",
+              "value": {
+                "components": null,
+                "list": null,
+                "simple": {
+                  "isNil": false,
+                  "text": "1",
+                  "type": "xsd:decimal"
+                }
+              }
+            }
+          ],
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "1 as Any",
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 2,
+            "message": "Unexpected `as Any`: an operator or the end of the expression is expected here.",
+            "to": 8
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 as Any"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "1",
+        "feel": "1",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "1",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "\"abc\" as string"
+    },
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 6,
+            "message": "Unexpected `as string`: an operator or the end of the expression is expected here.",
+            "to": 15
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: \"abc\" as string"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " As\n ├─ String\n │  └─ `abc`\n └─ FeelType\n    └─ string\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "123 as string"
+    },
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 4,
+            "message": "Unexpected `as string`: an operator or the end of the expression is expected here.",
+            "to": 13
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 123 as string"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " As\n ├─ Numeric\n │  └─ `123`\n └─ FeelType\n    └─ string\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "[1, 2, 3] as list<number>"
+    },
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 10,
+            "message": "Unexpected `as list`: an operator or the end of the expression is expected here.",
+            "to": 17
+          },
+          {
+            "code": "expected-expression",
+            "from": 25,
+            "message": "Expected an expression after `>`, but the expression ends here.",
+            "to": 25
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: [1, 2, 3] as list<number>"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " As\n ├─ List\n │  ├─ Numeric\n │  │  └─ `1`\n │  ├─ Numeric\n │  │  └─ `2`\n │  └─ Numeric\n │     └─ `3`\n └─ ListType\n    └─ FeelType\n       └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{x: 5, r: abs(x as number)}.r"
+    },
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "expected",
+            "from": 16,
+            "message": "Expected `,` or `)` in the argument list, found `as number`.",
+            "to": 25
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: {x: 5, r: abs(x as number)}.r"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " Path\n ├─ Context\n │  ├─ ContextEntry\n │  │  ├─ ContextEntryKey\n │  │  │  └─ `x`\n │  │  └─ Numeric\n │  │     └─ `5`\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `r`\n │     └─ FunctionInvocation\n │        ├─ Name\n │        │  └─ `abs`\n │        └─ PositionalParameters\n │           └─ As\n │              ├─ Name\n │              │  └─ `x`\n │              └─ FeelType\n │                 └─ number\n └─ Name\n    └─ `r`\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "null as number"
+    },
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 5,
+            "message": "Unexpected `as number`: an operator or the end of the expression is expected here.",
+            "to": 14
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: null as number"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " As\n ├─ Null\n └─ FeelType\n    └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "{a: 1} as context<a: number>"
+    },
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 7,
+            "message": "Unexpected `as context`: an operator or the end of the expression is expected here.",
+            "to": 17
+          },
+          {
+            "code": "unexpected",
+            "from": 19,
+            "message": "Unexpected `:`: an operator or the end of the expression is expected here.",
+            "to": 20
+          },
+          {
+            "code": "expected-expression",
+            "from": 28,
+            "message": "Expected an expression after `>`, but the expression ends here.",
+            "to": 28
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: {a: 1} as context<a: number>"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " As\n ├─ Context\n │  └─ ContextEntry\n │     ├─ ContextEntryKey\n │     │  └─ `a`\n │     └─ Numeric\n │        └─ `1`\n └─ ContextType\n    └─ ContextTypeEntry\n       ├─ Name\n       │  └─ `a`\n       └─ FeelType\n          └─ number\n"
+    }
+  },
+  {
+    "request": {
+      "op": "parse",
+      "expression": "1 as Any"
+    },
+    "why": "DT-011: e as T (DMN 1.7 Beta 1, grammar rule 51, Table 62) is e when e is an instance of T, otherwise null (a note, not an error; null as T is null). as is an operator only after a complete operand, so a name that starts with or holds as keeps its 1.6 meaning; before, such texts were syntax errors.",
+    "old": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "unexpected",
+            "from": 2,
+            "message": "Unexpected `as Any`: an operator or the end of the expression is expected here.",
+            "to": 8
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 as Any"
+      },
+      "ok": false
+    },
+    "new": {
+      "ok": true,
+      "tree": " As\n ├─ Numeric\n │  └─ `1`\n └─ FeelType\n    └─ Any\n"
+    }
+  }
+]

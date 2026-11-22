@@ -118,6 +118,8 @@ pub(crate) enum Kernel2 {
   Range,
   /// `a instance of b`.
   InstanceOf,
+  /// `e as T` (DMN 1.7 Beta 1, Table 62).
+  As,
   /// An entry `name: type` of a context type.
   ContextTypeEntry,
   /// The type `function<t1, …> -> r`.

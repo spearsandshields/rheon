@@ -530,6 +530,7 @@ impl<'p> Vm<'p> {
             },
             Kernel2::Range => kernels::range_of(a, b),
             Kernel2::InstanceOf => kernels::instance_of(a, b),
+            Kernel2::As => kernels::as_type(a, b),
             Kernel2::ContextTypeEntry => kernels::context_type_entry(a, b),
             Kernel2::FunctionType => kernels::function_type(a, b),
             Kernel2::FormalParameter => kernels::formal_parameter(a, b),
