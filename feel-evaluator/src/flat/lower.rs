@@ -266,7 +266,7 @@ impl<'a> Lower<'_, 'a> {
       }
       AstNode::AbstractType(..) => {
         // the mark takes off the error of a name that nothing holds
-        self.builder.emit(Op::DiagMark);
+        self.builder.emit(Op::ReadMark);
         let (a, b) = self.operands(node)?;
         self.builder.emit(Op::TypeName { dst, a, b });
       }

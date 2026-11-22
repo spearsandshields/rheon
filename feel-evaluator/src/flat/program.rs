@@ -210,7 +210,10 @@ pub(crate) enum Op {
   /// B-FEEL: marks what the diagnostics hold before an operation whose answer a [Op::BoolDefault]
   /// makes boolean, so that its errors become warnings (11.1, 11.2).
   DiagMark,
-  /// `dst` is the value of `a`, a name read after an [Op::DiagMark], when it holds a value other than
+  /// Marks what the diagnostics hold before a name read of an [Op::TypeName], whose error is taken
+  /// off when the name holds nothing.
+  ReadMark,
+  /// `dst` is the value of `a`, a name read after an [Op::ReadMark], when it holds a value other than
   /// the built-in function of its name, else the abstract type in `b`, with the error of the read
   /// taken off (DMN 1.7 Beta 1, Figure 10-26: a name of the model or of the context wins).
   TypeName { dst: Slot, a: Opnd, b: Opnd },
@@ -623,7 +626,7 @@ impl Program {
           check.opnd(b)?;
         }
         Op::Visit { src, .. } => check.opnd(src)?,
-        Op::Step { .. } | Op::DiagMark => {}
+        Op::Step { .. } | Op::DiagMark | Op::ReadMark => {}
         Op::LoopClose { dst, .. } | Op::LoadPartial { dst, .. } | Op::ItemSelf { dst, .. } => check.slot(dst)?,
         Op::FilterOpen { info, list, .. } => {
           check.index(info, self.filters.len(), "filter out of range")?;

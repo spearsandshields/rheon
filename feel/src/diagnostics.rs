@@ -45,6 +45,8 @@ thread_local! {
   static COUNT: Cell<usize> = const { Cell::new(0) };
   static MESSAGES: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
   static WARNINGS: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+  /// The errors recorded now are warnings ([as_warnings]).
+  static AS_WARNINGS: Cell<bool> = const { Cell::new(false) };
 }
 
 /// Errors and warnings recorded during one evaluation.
@@ -91,8 +93,21 @@ pub fn record(severity: Severity, message: &str) {
   if severity == Severity::Note || !ACTIVE.with(Cell::get) {
     return;
   }
+  if AS_WARNINGS.with(Cell::get) {
+    keep(&WARNINGS, message);
+    return;
+  }
   COUNT.with(|count| count.set(count.get() + 1));
   keep(&MESSAGES, message);
+}
+
+/// Makes the errors recorded from now on warnings (`on`), or errors again, and gives what was in
+/// force before, for the caller to put back. B-FEEL turns on around an operation whose answer it
+/// defines whatever it is (a comparison, `between`, `in`: DMN 1.7 Beta 1, 11.1), so its errors
+/// become warnings as they are recorded, not moved there after. A collection starts with it off
+/// and puts back what was in force around it, also when the evaluation stops.
+pub fn as_warnings(on: bool) -> bool {
+  AS_WARNINGS.with(|flag| flag.replace(on))
 }
 
 /// Records a warning when a collection is active; outside one it has no effect, as [record].
@@ -151,14 +166,20 @@ impl Tentative {
   pub fn demote(self) {
     if let Some(mark) = self.0 {
       COUNT.with(|count| count.set(mark.count));
-      let demoted = MESSAGES.with(|messages| {
+      // the messages are moved, not copied, and no list is made for them: a B-FEEL evaluation
+      // demotes on every operation whose answer it defines
+      MESSAGES.with(|messages| {
         let mut messages = messages.borrow_mut();
         let at = mark.messages.min(messages.len());
-        messages.split_off(at)
+        WARNINGS.with(|warnings| {
+          let mut warnings = warnings.borrow_mut();
+          for message in messages.drain(at..) {
+            if warnings.len() < MAX_MESSAGES && warnings.last() != Some(&message) {
+              warnings.push(message);
+            }
+          }
+        });
       });
-      for message in demoted {
-        keep(&WARNINGS, &message);
-      }
     }
   }
 
@@ -180,6 +201,7 @@ impl Tentative {
 /// when the evaluation panics (a thread that keeps collecting would record forever).
 struct Collection {
   was_active: bool,
+  saved_as_warnings: bool,
   saved_count: usize,
   saved_messages: Vec<String>,
   saved_warnings: Vec<String>,
@@ -189,6 +211,7 @@ impl Collection {
   fn start() -> Self {
     Self {
       was_active: ACTIVE.with(|active| active.replace(true)),
+      saved_as_warnings: AS_WARNINGS.with(|flag| flag.replace(false)),
       saved_count: COUNT.with(|count| count.replace(0)),
       saved_messages: MESSAGES.with(|messages| messages.replace(Vec::new())),
       saved_warnings: WARNINGS.with(|warnings| warnings.replace(Vec::new())),
@@ -209,6 +232,7 @@ impl Drop for Collection {
   fn drop(&mut self) {
     let count = COUNT.with(Cell::get);
     ACTIVE.with(|active| active.set(self.was_active));
+    AS_WARNINGS.with(|flag| flag.set(self.saved_as_warnings));
     COUNT.with(|outer| outer.set(self.saved_count + if self.was_active { count } else { 0 }));
     restore(&MESSAGES, std::mem::take(&mut self.saved_messages), self.was_active);
     restore(&WARNINGS, std::mem::take(&mut self.saved_warnings), self.was_active);

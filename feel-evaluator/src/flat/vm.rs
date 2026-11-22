@@ -187,9 +187,12 @@ struct Vm<'p> {
   calls: Vec<diagnostics::Call>,
   /// The open walks, innermost last: the record of a walk of an activation is its index there.
   records: Vec<Record>,
-  /// B-FEEL: the diagnostics before the operations whose nulls may be replaced, innermost last
-  /// (an [Op::DiagMark] and its [Op::BoolDefault] stand around one operation).
-  marks: Vec<diagnostics::Tentative>,
+  /// B-FEEL: whether errors were recorded as warnings before each operation whose errors are
+  /// recorded as warnings, innermost last (an [Op::DiagMark] and its [Op::BoolDefault] stand
+  /// around one operation).
+  marks: Vec<bool>,
+  /// The diagnostics before the name reads of [Op::TypeName], innermost last.
+  reads: Vec<diagnostics::Tentative>,
   /// The domains of the variables that have a value in the open walks, innermost last.
   domains: Vec<Sequence>,
   /// For each layout of the program the run starts with, the scope that invocations of
@@ -298,6 +301,7 @@ impl<'p> Vm<'p> {
       calls: vec![],
       records: vec![],
       marks: vec![],
+      reads: vec![],
       domains: vec![],
       layout_scopes: vec![],
       scopes: vec![],
@@ -467,9 +471,10 @@ impl<'p> Vm<'p> {
           let value = kernels::between(a, low, high);
           self.set(dst, value);
         }
-        Op::DiagMark => self.marks.push(diagnostics::tentative_mark()),
+        Op::DiagMark => self.marks.push(diagnostics::as_warnings(true)),
+        Op::ReadMark => self.reads.push(diagnostics::tentative_mark()),
         Op::TypeName { dst, a, b } => {
-          let mark = self.marks.pop();
+          let mark = self.reads.pop();
           let value = match self.read(a) {
             Value::Null(_) | Value::BuiltInFunction(_) => {
               // the name holds nothing of its own: the abstract type, and no error of the read
@@ -484,11 +489,11 @@ impl<'p> Vm<'p> {
         }
         Op::BoolDefault { dst, ne, marked } => {
           let value = self.take(dst);
-          // what was recorded since the mark is the operation's own (its operands came before):
-          // B-FEEL defines its result, also where the operation gave it itself (a list of tests
-          // in two-valued `in`, which answers false for a test that is null)
-          if marked && let Some(mark) = self.marks.pop() {
-            mark.demote();
+          // what the operation recorded since its mark went to the warnings (its operands came
+          // before): B-FEEL defines its result, also where the operation gave it itself (a list
+          // of tests in two-valued `in`, which answers false for a test that is null)
+          if marked && let Some(before) = self.marks.pop() {
+            diagnostics::as_warnings(before);
           }
           let value = bfeel::boolean_result(value, ne);
           self.set(dst, value);
