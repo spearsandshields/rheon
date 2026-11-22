@@ -379,5 +379,10 @@
   {"op": "evaluate", "expression": "some i in 1..2, j in i..3 satisfies i + j = 5", "language": "b-feel", "errorMode": "strict"},
   {"op": "evaluate", "expression": "some i in 1..2.5 satisfies true"},
   {"op": "evaluate", "expression": "some i in 1..2.5 satisfies true", "language": "b-feel", "errorMode": "strict"},
-  {"op": "evaluate", "expression": "every x in 1..\"a\" satisfies true"}
+  {"op": "evaluate", "expression": "every x in 1..\"a\" satisfies true"},
+  {"op": "evaluate", "expression": "{a: 1} instance of context<>"},
+  {"op": "evaluate", "expression": "{} instance of context<>"},
+  {"op": "evaluate", "expression": "1 instance of context<>"},
+  {"op": "evaluate", "expression": "(function(c: context<>) c.a)({a: 5})"},
+  {"op": "evaluate", "expression": "(function(c: context<>) c)(1)"}
 ]

@@ -493,3 +493,13 @@ fn a_rest_parameter_takes_one_argument_or_more() {
   // instance of holds a result of type Any against the target
   te_bool(false, scope, "max instance of function<list<number>>->number", false);
 }
+
+#[test]
+fn the_context_type_without_entries_is_every_context() {
+  // DMN 1.7 Beta 1, grammar rule 54: context<>
+  let scope = &te_scope("{}");
+  te_bool(false, scope, "{a: 1} instance of context<>", true);
+  te_bool(false, scope, "{} instance of context<>", true);
+  te_bool(false, scope, "1 instance of context<>", false);
+  te_number(false, scope, "(function(c: context<>) c.a)({a: 5})", 5, 0);
+}

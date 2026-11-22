@@ -1944,6 +1944,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.expect(T::Lt, At::Start)?;
     let between = std::mem::replace(&mut self.between, false);
     let mut entries = vec![];
+    // `context<>`, the context type without entries: every context (DMN 1.7 Beta 1, rule 54)
+    if self.look(At::Start)? == T::Gt {
+      self.bump();
+      self.between = between;
+      return Ok(AstNode::ContextType(entries));
+    }
     loop {
       let name = self.name(At::Start)?;
       self.expect(T::Colon, At::Start)?;
