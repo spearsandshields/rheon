@@ -433,5 +433,18 @@
   {"op": "evaluate", "expression": "[1..5] instance of range<Any>"},
   {"op": "evaluate", "expression": "(< 5) instance of range<number>"},
   {"op": "evaluate", "expression": "abs instance of function<duration>->duration"},
-  {"op": "evaluate", "expression": "[1..5] as range<comparable>"}
+  {"op": "evaluate", "expression": "[1..5] as range<comparable>"},
+  {"op": "evaluate", "expression": "matches(\" \", \"^\\\\s$\")"},
+  {"op": "evaluate", "expression": "matches(\"\\u00A0\", \"^\\\\s$\")"},
+  {"op": "evaluate", "expression": "matches(\"_\", \"^\\\\w$\")"},
+  {"op": "evaluate", "expression": "matches(\"+\", \"^\\\\w$\")"},
+  {"op": "evaluate", "expression": "matches(\"a\\nb\", \"a.b\")"},
+  {"op": "evaluate", "expression": "matches(\"ab\", \"\\\\bab\")"},
+  {"op": "evaluate", "expression": "matches(\"A\", \"(?i)a\")"},
+  {"op": "evaluate", "expression": "replace(\"aa-bb\", \"(.)\\\\1\", \"x\")"},
+  {"op": "evaluate", "expression": "split(\"a11b\", \"(1)\\\\1\")"},
+  {"op": "evaluate", "expression": "matches(\"a\\r\\nb\", \"a\\nb\")"},
+  {"op": "evaluate", "expression": "matches(\"x\", \"\\\\i\")"},
+  {"op": "evaluate", "expression": "matches(\"-\", \"^[0-9-.]$\")"},
+  {"op": "evaluate", "expression": "replace(\"abc\", \"[a-c-[b]]\", \"x\")"}
 ]

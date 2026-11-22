@@ -127,6 +127,14 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
     not known when the text is read runs on through `as` (`p.age as number` reads the entry
     `age as number` of `p`). Write `(p.age) as number`. A known name is read as it is
     (`{age: 1}.age as number`).
+  - *Regular expressions* (10.3.4.3, F&O §7.6.1, XML Schema Part 2 Appendix F). Patterns are read
+    in the syntax of XML Schema 1.0 with the additions of F&O 2.0 (anchors, reluctant quantifiers,
+    back-references, `\$`), and anything else is an invalid pattern, also where the engine below
+    would take it (`\b`, `(?i)`, look-around, `\x41`, a lone `{`). Readings: a `-` that starts no
+    range is a character (`[0-9-.]`, as XML Schema 1.1 and TCK 1111 have it); `\i` and `\c` are
+    the name characters of XML 1.0 fifth edition; case-insensitive matching (`i`) uses Unicode simple
+    case folding; the flag `q` of F&O 3.1 is kept as an extension; a pattern nested more than 250
+    groups deep, or deeper than the engine reads, is a limit that stops the evaluation.
   - *Range literals out of order or of two types* (10.3.2.7 against Tables 56 and 79). 10.3.2.7 says
     the endpoints of `[a..b]` "must be of equivalent types" and ordered, but gives no answer for a
     range that is not; the tests on ranges are defined by comparisons of the endpoints (Table 56),

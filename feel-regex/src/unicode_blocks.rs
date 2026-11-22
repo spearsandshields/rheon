@@ -117,84 +117,20 @@ fn init_blocks() -> Blocks {
   map
 }
 
-pub fn replace_block_names(input: &str) -> String {
-  let mut output = String::new();
-  let mut buffer = String::new();
-  let mut name = String::new();
-  let mut state = 0;
-  for ch in input.chars() {
-    match state {
-      0 => {
-        if ch == '\\' {
-          buffer.push(ch);
-          state = 1;
-        } else {
-          output.push(ch);
-          // State remains 0.
-        }
-      }
-      1 => {
-        if ch == 'p' {
-          buffer.push(ch);
-          state = 2;
-        } else {
-          output.push_str(&buffer);
-          buffer.clear();
-          output.push(ch);
-          state = 0;
-        }
-      }
-      2 => {
-        if ch == '{' {
-          buffer.push(ch);
-          state = 3;
-        } else {
-          output.push_str(&buffer);
-          buffer.clear();
-          output.push(ch);
-          state = 0;
-        }
-      }
-      3 => {
-        buffer.push(ch);
-        match ch {
-          '}' => {
-            // Reached the end of the block name.
-            if let Some(block) = UNICODE_BLOCKS.get(name.as_str()) {
-              output.push_str(block);
-            } else {
-              output.push_str(&buffer);
-            }
-            buffer.clear();
-            name.clear();
-            state = 0;
-          }
-          other => {
-            // Collect the next character of the block name.
-            name.push(other);
-            // State remains 3.
-          }
-        }
-      }
-      _ => break,
-    }
-  }
-  if !buffer.is_empty() {
-    output.push_str(&buffer);
-  }
-  output
+/// The class of the XSD block name `name` (`IsBasicLatin`), with its brackets.
+pub(crate) fn block(name: &str) -> Option<&'static str> {
+  UNICODE_BLOCKS.get(name).copied()
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+
   #[test]
-  fn replacing_block_names_should_work() {
-    assert_eq!(r#"[\u0000-\u007F]+"#, replace_block_names(r#"\p{IsBasicLatin}+"#));
-    assert_eq!(r#"[\u0000-\u007F]+\s[\uFFF0-\uFFFF]+"#, replace_block_names(r#"\p{IsBasicLatin}+\s\p{IsSpecials}+"#));
-    assert_eq!(r#"[\u0000-\u007F]+\s"#, replace_block_names(r#"\p{IsBasicLatin}+\s"#));
-    assert_eq!(r#"\p{IsBasicLatin+"#, replace_block_names(r#"\p{IsBasicLatin+"#));
-    assert_eq!(r#"\p{}+"#, replace_block_names(r#"\p{}+"#));
-    assert_eq!(r#"\p{NonExistingBlockName}+"#, replace_block_names(r#"\p{NonExistingBlockName}+"#));
+  fn block_names_name_their_classes() {
+    assert_eq!(Some(r"[\u0000-\u007F]"), block("IsBasicLatin"));
+    assert_eq!(Some(r"[\uFFF0-\uFFFF]"), block("IsSpecials"));
+    assert_eq!(None, block("IsLatin"));
+    assert_eq!(None, block("BasicLatin"));
   }
 }

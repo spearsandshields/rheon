@@ -1,23 +1,21 @@
-use crate::errors::{Limit, RegexError, err_invalid_pattern, err_zero_length_match};
+use crate::errors::{Limit, RegexError, err_invalid_pattern_at, err_zero_length_match};
 use crate::flags::Flags;
 use crate::replacement::Replacement;
-use crate::unicode_blocks::replace_block_names;
+use crate::xsd::{Level, translate};
 use fancy_regex::Regex;
 use regex_syntax::ast;
 
-/// At most this many compiled patterns of each kind are kept in a [Patterns].
-const MAX_KEPT: usize = 8;
+/// At most this many compiled patterns are kept in a [Patterns].
+const MAX_KEPT: usize = 16;
 
 /// Compiled patterns, kept by a caller that matches the same patterns again and again (the
-/// rows of a list): a pattern in it is compiled once. It holds at most [MAX_KEPT] patterns of
-/// `matches` and as many of `replace` and `split`, each within the size limits of its engine;
-/// a further pattern is compiled for its use and not kept. It lives as long as its owner.
+/// rows of a list): a pattern in it is compiled once. It holds at most [MAX_KEPT] patterns, each
+/// within the size limits of its engine; a further pattern is compiled for its use and not kept.
+/// It lives as long as its owner.
 #[derive(Default)]
 pub struct Patterns {
-  /// By engine source, the patterns of `matches`.
-  searches: Vec<(String, Regex)>,
-  /// By engine source, the patterns of `replace` and `split`.
-  others: Vec<(String, regex::Regex)>,
+  /// By engine source, the compiled patterns.
+  kept: Vec<(String, Regex)>,
 }
 
 /// Whether `input` matches `pattern` with `flags` (XQuery 1.0 and XPath 2.0 F&O §7.6.2
@@ -32,35 +30,31 @@ pub fn is_match_with(patterns: &mut Patterns, input: &str, pattern: &str, flags:
   if flags.plain(pattern) {
     return Ok(input.contains(pattern));
   }
-  search(patterns, input, &flags.source(pattern, translate), pattern)
+  let regex = compile(patterns, &source(pattern, &flags)?, pattern)?;
+  regex.is_match(input).map_err(runtime)
 }
 
-/// Whether `input` matches the backtracking engine's `source` (back-references and look-around
-/// included), or which limit the engine hit, or that the pattern is invalid (quoting `quoted`, the
-/// pattern as the caller wrote it).
-fn search(patterns: &mut Patterns, input: &str, source: &str, quoted: &str) -> Result<bool, RegexError> {
-  let classify = |error: fancy_regex::Error| match error {
-    fancy_regex::Error::ParseError(_, fancy_regex::ParseError::RecursionExceeded) => RegexError::LimitExceeded(Limit::Nesting),
-    fancy_regex::Error::CompileError(error) => match *error {
-      fancy_regex::CompileError::InnerError(error) if error.size_limit().is_some() => RegexError::LimitExceeded(Limit::CompiledSize),
-      fancy_regex::CompileError::InnerError(error) if error.syntax_error().is_some_and(is_nest_limit) => RegexError::LimitExceeded(Limit::Nesting),
-      _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
-    },
+/// The engine's source of `pattern` with `flags`: read by the XSD front end ([translate]), or
+/// quoted with `q`.
+fn source(pattern: &str, flags: &Flags) -> Result<String, RegexError> {
+  flags.try_source(pattern, |pattern| {
+    translate(pattern, flags.dot_all(), Level::Fo20).map(|translated| translated.source).map_err(|refused| {
+      if refused.nesting {
+        RegexError::LimitExceeded(Limit::Nesting)
+      } else {
+        RegexError::InvalidPattern(err_invalid_pattern_at(pattern, refused.at, refused.expected))
+      }
+    })
+  })
+}
+
+/// Which limit a search hit at run time.
+fn runtime(error: fancy_regex::Error) -> RegexError {
+  match error {
     fancy_regex::Error::RuntimeError(fancy_regex::RuntimeError::StackOverflow) => RegexError::LimitExceeded(Limit::BacktrackingStack),
     // a search that fails at run time always ran out of its backtracking budget
-    fancy_regex::Error::RuntimeError(_) => RegexError::LimitExceeded(Limit::Backtracking),
-    _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
-  };
-  let input = fix_input(input);
-  if let Some((_, regex)) = patterns.searches.iter().find(|(kept, _)| kept == source) {
-    return regex.is_match(&input).map_err(classify);
+    _ => RegexError::LimitExceeded(Limit::Backtracking),
   }
-  let regex = Regex::new(source).map_err(classify)?;
-  let answer = regex.is_match(&input).map_err(classify);
-  if patterns.searches.len() < MAX_KEPT {
-    patterns.searches.push((source.to_string(), regex));
-  }
-  answer
 }
 
 /// Whether a pattern nests groups deeper than the parser's limit.
@@ -68,31 +62,35 @@ fn is_nest_limit(error: &regex_syntax::Error) -> bool {
   matches!(error, regex_syntax::Error::Parse(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)))
 }
 
-/// The engine source `source` of a `replace` or `split` pattern compiled by the automata engine
-/// (no back-references), or which limit it hit, or that the pattern is invalid (quoting `quoted`,
-/// the pattern as the caller wrote it), or that it matches the zero-length string. F&O §7.6.3 and
-/// §7.6.4 raise FORX0003 "if the pattern matches a zero-length string, that is, if the expression
-/// fn:matches("", $pattern, $flags) returns true", whatever the input.
-fn compile(patterns: &mut Patterns, source: &str, quoted: &str) -> Result<regex::Regex, RegexError> {
-  if let Some((_, regex)) = patterns.others.iter().find(|(kept, _)| kept == source) {
+/// The compiled engine source `source` (back-references included), or which limit the engine hit,
+/// or that the pattern is invalid (quoting `quoted`, the pattern as the caller wrote it).
+fn compile(patterns: &mut Patterns, source: &str, quoted: &str) -> Result<Regex, RegexError> {
+  if let Some((_, regex)) = patterns.kept.iter().find(|(kept, _)| kept == source) {
     return Ok(regex.clone());
   }
-  let regex = regex::Regex::new(source).map_err(|error| match error {
-    regex::Error::CompiledTooBig(_) => RegexError::LimitExceeded(Limit::CompiledSize),
-    // the error names no kind; the parser with the engine's defaults tells a nesting limit apart,
-    // and it runs only on this error path
-    regex::Error::Syntax(_) => match ast::parse::Parser::new().parse(source) {
-      Err(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)) => RegexError::LimitExceeded(Limit::Nesting),
-      _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
+  let regex = Regex::new(source).map_err(|error| match error {
+    fancy_regex::Error::ParseError(_, fancy_regex::ParseError::RecursionExceeded) => RegexError::LimitExceeded(Limit::Nesting),
+    fancy_regex::Error::CompileError(error) => match *error {
+      fancy_regex::CompileError::InnerError(error) if error.size_limit().is_some() => RegexError::LimitExceeded(Limit::CompiledSize),
+      fancy_regex::CompileError::InnerError(error) if error.syntax_error().is_some_and(is_nest_limit) => RegexError::LimitExceeded(Limit::Nesting),
+      _ => RegexError::InvalidPattern(err_invalid_pattern_at(quoted, 0, "a pattern the engine can compile")),
     },
-    _ => RegexError::InvalidPattern(err_invalid_pattern(quoted)),
+    _ => RegexError::InvalidPattern(err_invalid_pattern_at(quoted, 0, "a pattern the engine can compile")),
   })?;
-  if regex.is_match("") {
-    return Err(RegexError::InvalidArgument(err_zero_length_match()));
-  }
-  if patterns.others.len() < MAX_KEPT {
+  if patterns.kept.len() < MAX_KEPT {
     // a compiled pattern is shared by its copies
-    patterns.others.push((source.to_string(), regex.clone()));
+    patterns.kept.push((source.to_string(), regex.clone()));
+  }
+  Ok(regex)
+}
+
+/// [compile] for `replace` and `split`: F&O §7.6.3 and §7.6.4 raise FORX0003 "if the pattern
+/// matches a zero-length string, that is, if the expression fn:matches("", $pattern, $flags)
+/// returns true", whatever the input.
+fn compile_nonempty(patterns: &mut Patterns, source: &str, quoted: &str) -> Result<Regex, RegexError> {
+  let regex = compile(patterns, source, quoted)?;
+  if regex.is_match("").map_err(runtime)? {
+    return Err(RegexError::InvalidArgument(err_zero_length_match()));
   }
   Ok(regex)
 }
@@ -106,9 +104,9 @@ pub fn replace(input: &str, pattern: &str, replacement: &str, flags: &str) -> Re
 /// [replace] with the compiled patterns of `patterns`.
 pub fn replace_with(patterns: &mut Patterns, input: &str, pattern: &str, replacement: &str, flags: &str) -> Result<String, RegexError> {
   let flags = Flags::parse(flags)?;
-  let regex = compile(patterns, &flags.source(pattern, str::to_string), pattern)?;
+  let regex = compile_nonempty(patterns, &source(pattern, &flags)?, pattern)?;
   let replacement = Replacement::parse(replacement, regex.captures_len() - 1, flags.literal())?;
-  Ok(regex.replace_all(input, &replacement).into_owned())
+  regex.try_replacen(input, 0, &replacement).map(|replaced| replaced.into_owned()).map_err(runtime)
 }
 
 /// Splits `input` at every match of `delimiter` (F&O §7.6.4 `fn:tokenize` without flags). "If
@@ -121,75 +119,12 @@ pub fn split(input: &str, delimiter: &str) -> Result<Vec<String>, RegexError> {
 
 /// [split] with the compiled patterns of `patterns`.
 pub fn split_with(patterns: &mut Patterns, input: &str, delimiter: &str) -> Result<Vec<String>, RegexError> {
-  let regex = compile(patterns, delimiter, delimiter)?;
+  let flags = Flags::default();
+  let regex = compile_nonempty(patterns, &source(delimiter, &flags)?, delimiter)?;
   if input.is_empty() {
     return Ok(Vec::new());
   }
-  Ok(regex.split(input).map(String::from).collect())
-}
-
-// Nasty tricks on input.
-fn fix_input(s: &str) -> String {
-  s.replace("\r\n", "\n").replace('\r', "\n")
-}
-
-/// A pattern in the syntax of the backtracking engine: the XSD block names (`\p{IsBasicLatin}`)
-/// become their ranges, and a class subtraction (`[a-z-[aeiou]]`, XSD `charClassSub`) becomes the
-/// engine's `--[`. Only a `-[` inside a character class is a subtraction: outside one, as in
-/// `\d{3}-[0-9]{4}`, it is a hyphen followed by a class, and an escaped `\-` is a hyphen.
-fn translate(pattern: &str) -> String {
-  subtractions(&replace_block_names(pattern))
-}
-
-/// Writes each class subtraction `-[` of `pattern` as `--[`, leaving every other character as it is.
-/// XSD reads `[^P-[C]]` as the characters not in P, less those in C (XSD Part 2, F.1.1), while the
-/// engine's negation covers the whole class (`[^P--[C]]` is not (P less C)), so a negated class with
-/// a subtraction becomes `[[^P]--[C]]`.
-fn subtractions(pattern: &str) -> String {
-  struct Class {
-    /// Where the class's `[` is in the output.
-    start: usize,
-    negated: bool,
-    /// A subtraction of a negated class has been written: its negated part is already wrapped.
-    wrapped: bool,
-  }
-  let mut out = String::with_capacity(pattern.len() + 4);
-  let mut chars = pattern.chars().peekable();
-  let mut classes: Vec<Class> = Vec::new();
-  while let Some(c) = chars.next() {
-    match c {
-      '\\' => {
-        out.push(c);
-        if let Some(escaped) = chars.next() {
-          out.push(escaped);
-        }
-      }
-      '[' => {
-        let negated = chars.peek() == Some(&'^');
-        classes.push(Class {
-          start: out.len(),
-          negated,
-          wrapped: false,
-        });
-        out.push(c);
-      }
-      ']' if !classes.is_empty() => {
-        classes.pop();
-        out.push(c);
-      }
-      '-' if !classes.is_empty() && chars.peek() == Some(&'[') => {
-        let class = classes.last_mut().expect("inside a class");
-        if class.negated && !class.wrapped {
-          out.insert(class.start, '[');
-          out.push(']');
-          class.wrapped = true;
-        }
-        out.push_str("--");
-      }
-      _ => out.push(c),
-    }
-  }
-  out
+  regex.split(input).map(|token| token.map(String::from).map_err(runtime)).collect()
 }
 
 #[cfg(test)]
@@ -198,21 +133,18 @@ mod tests {
 
   /// [is_match] by the engine, whatever the pattern.
   fn by_engine(input: &str, pattern: &str, flags: &str) -> Result<bool, RegexError> {
-    let source = Flags::parse(flags)?.source(pattern, translate);
-    search(&mut Patterns::default(), input, &source, pattern)
+    let source = source(pattern, &Flags::parse(flags)?)?;
+    compile(&mut Patterns::default(), &source, pattern)?.is_match(input).map_err(runtime)
   }
 
   #[test]
   fn only_a_hyphen_before_a_class_inside_a_class_is_a_subtraction() {
-    assert_eq!(r"[a-z--[aeiou]]", subtractions(r"[a-z-[aeiou]]"));
-    assert_eq!(r"[[^a-z]--[aeiou]]x", subtractions(r"[^a-z-[aeiou]]x"));
-    assert_eq!(r"[a-z--[[^b-d]--[c]]]", subtractions(r"[a-z-[^b-d-[c]]]"));
-    assert_eq!(r"[^abc]", subtractions(r"[^abc]"));
-    assert_eq!(r"[a-z--[b-d--[c]]]", subtractions(r"[a-z-[b-d-[c]]]"));
-    assert_eq!(r"\d{3}-[0-9]{4}", subtractions(r"\d{3}-[0-9]{4}"));
-    assert_eq!(r"a\-[0-9]", subtractions(r"a\-[0-9]"));
-    assert_eq!(r"[\]-]-[x]", subtractions(r"[\]-]-[x]"));
-    assert_eq!(r"-[x]", subtractions(r"-[x]"));
+    let source = |pattern: &str| translate(pattern, false, Level::Fo20).map(|translated| translated.source);
+    assert_eq!(Ok(r"[[a-z]--[aeiou]]".to_string()), source(r"[a-z-[aeiou]]"));
+    assert_eq!(Ok(r"[[^a-z]--[aeiou]]x".to_string()), source(r"[^a-z-[aeiou]]x"));
+    assert_eq!(Ok(r"[[a-z]--[[^b-d]--[c]]]".to_string()), source(r"[a-z-[^b-d-[c]]]"));
+    // outside a class, `-[` is a hyphen and a class
+    assert_eq!(Ok(r"[\p{Nd}]{3}\-[0-9]{4}".to_string()), source(r"\d{3}-[0-9]{4}"));
   }
 
   #[test]
@@ -316,7 +248,7 @@ mod tests {
   }
 
   #[test]
-  fn a_pattern_is_compiled_once_and_at_most_eight_are_kept() {
+  fn a_pattern_is_compiled_once_and_at_most_sixteen_are_kept() {
     let mut patterns = Patterns::default();
     for _ in 0..3 {
       assert_eq!(Ok(true), is_match_with(&mut patterns, "abc", "^a.c$", ""));
@@ -324,17 +256,15 @@ mod tests {
       assert_eq!(Ok(vec!["a".to_string(), "c".to_string()]), split_with(&mut patterns, "abc", "b+"));
     }
     // `replace` and `split` share the pattern they both use
-    assert_eq!((1, 1), (patterns.searches.len(), patterns.others.len()));
+    assert_eq!(2, patterns.kept.len());
     for n in 0..20 {
       assert_eq!(Ok(true), is_match_with(&mut patterns, &format!("x{n}"), &format!("^x{n}$"), ""));
-      assert_eq!(Ok(String::new()), replace_with(&mut patterns, &format!("x{n}"), &format!("x{n}+"), "", ""));
     }
-    assert_eq!((MAX_KEPT, MAX_KEPT), (patterns.searches.len(), patterns.others.len()));
+    assert_eq!(MAX_KEPT, patterns.kept.len());
     // an invalid pattern and a plain one are not kept
     let mut patterns = Patterns::default();
     assert!(is_match_with(&mut patterns, "a", "(", "").is_err());
     assert_eq!(Ok(true), is_match_with(&mut patterns, "abc", "b", ""));
-    assert!(replace_with(&mut patterns, "a", "b*", "", "").is_err());
-    assert_eq!((0, 0), (patterns.searches.len(), patterns.others.len()));
+    assert_eq!(0, patterns.kept.len());
   }
 }

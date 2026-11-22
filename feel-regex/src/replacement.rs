@@ -94,8 +94,8 @@ impl Replacement {
   }
 }
 
-impl regex::Replacer for &Replacement {
-  fn replace_append(&mut self, captures: &regex::Captures<'_>, output: &mut String) {
+impl fancy_regex::Replacer for &Replacement {
+  fn replace_append(&mut self, captures: &fancy_regex::Captures<'_, str>, output: &mut String) {
     for part in &self.0 {
       match part {
         Part::Literal(text) => output.push_str(text),

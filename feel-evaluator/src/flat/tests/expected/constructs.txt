@@ -17467,12 +17467,12 @@ Date(FeelDate(2024, 1, 1))
 Diagnostics { count: 0, messages: [], warnings: [] }
 
 invocations_of_built_in_functions #35 "matches(\"a\", \"[\")"
-Null(Some("<FeelRegexError> invalid regex pattern: '['"))
-Diagnostics { count: 1, messages: ["<FeelRegexError> invalid regex pattern: '['"], warnings: [] }
+Null(Some("<FeelRegexError> invalid regex pattern '[': expected ']' to close a character class at character 2"))
+Diagnostics { count: 1, messages: ["<FeelRegexError> invalid regex pattern '[': expected ']' to close a character class at character 2"], warnings: [] }
 
 invocations_of_built_in_functions #36 "matches(\"a\", \"[\")"
 Boolean(false)
-Diagnostics { count: 0, messages: [], warnings: ["<FeelRegexError> invalid regex pattern: '['"] }
+Diagnostics { count: 0, messages: [], warnings: ["<FeelRegexError> invalid regex pattern '[': expected ']' to close a character class at character 2"] }
 
 invocations_of_built_in_functions #37 "abs(abs(abs(-1)))"
 Number(+1E+0)
