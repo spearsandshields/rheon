@@ -9,13 +9,21 @@ use regex_syntax::ast;
 const MAX_KEPT: usize = 16;
 
 /// Compiled patterns, kept by a caller that matches the same patterns again and again (the
-/// rows of a list): a pattern in it is compiled once. It holds at most [MAX_KEPT] patterns, each
-/// within the size limits of its engine; a further pattern is compiled for its use and not kept.
-/// It lives as long as its owner.
+/// rows of a list): a pattern in it is read and compiled once. It holds at most [MAX_KEPT]
+/// patterns, each within the size limits of its engine; a further pattern is compiled for its use
+/// and not kept. It lives as long as its owner.
 #[derive(Default)]
 pub struct Patterns {
-  /// By engine source, the compiled patterns.
-  kept: Vec<(String, Regex)>,
+  kept: Vec<Kept>,
+}
+
+/// A pattern as the caller wrote it, with its flags, and what was made of it.
+struct Kept {
+  pattern: String,
+  flags: String,
+  regex: Regex,
+  /// Whether it matches the zero-length string, once a `replace` or a `split` asked.
+  empty: Option<bool>,
 }
 
 /// Whether `input` matches `pattern` with `flags` (XQuery 1.0 and XPath 2.0 F&O §7.6.2
@@ -25,12 +33,12 @@ pub fn is_match(input: &str, pattern: &str, flags: &str) -> Result<bool, RegexEr
 }
 
 /// [is_match] with the compiled patterns of `patterns`.
-pub fn is_match_with(patterns: &mut Patterns, input: &str, pattern: &str, flags: &str) -> Result<bool, RegexError> {
-  let flags = Flags::parse(flags)?;
+pub fn is_match_with(patterns: &mut Patterns, input: &str, pattern: &str, flags_text: &str) -> Result<bool, RegexError> {
+  let flags = Flags::parse(flags_text)?;
   if flags.plain(pattern) {
     return Ok(input.contains(pattern));
   }
-  let regex = compile(patterns, &source(pattern, &flags)?, pattern)?;
+  let (regex, _) = compile(patterns, pattern, flags_text, &flags)?;
   regex.is_match(input).map_err(runtime)
 }
 
@@ -66,34 +74,53 @@ fn is_nest_limit(error: &regex_syntax::Error) -> bool {
   matches!(error, regex_syntax::Error::Parse(error) if matches!(error.kind(), ast::ErrorKind::NestLimitExceeded(_)))
 }
 
-/// The compiled engine source `source` (back-references included), or which limit the engine hit,
-/// or that the pattern is invalid (quoting `quoted`, the pattern as the caller wrote it).
-fn compile(patterns: &mut Patterns, source: &str, quoted: &str) -> Result<Regex, RegexError> {
-  if let Some((_, regex)) = patterns.kept.iter().find(|(kept, _)| kept == source) {
-    return Ok(regex.clone());
+/// The compiled `pattern` with `flags` (written `flags_text`), kept or read by the front end and
+/// compiled, and where it is kept; or which limit the engine hit, or that the pattern is invalid.
+/// The patterns kept are found by the text of the pattern and its flags, so a kept pattern is
+/// neither read nor translated again.
+fn compile(patterns: &mut Patterns, pattern: &str, flags_text: &str, flags: &Flags) -> Result<(Regex, Option<usize>), RegexError> {
+  if let Some(at) = patterns.kept.iter().position(|kept| kept.pattern == pattern && kept.flags == flags_text) {
+    return Ok((patterns.kept[at].regex.clone(), Some(at)));
   }
-  let regex = Regex::new(source).map_err(|error| match error {
+  let source = source(pattern, flags)?;
+  let regex = Regex::new(&source).map_err(|error| match error {
     fancy_regex::Error::ParseError(_, fancy_regex::ParseError::RecursionExceeded) => RegexError::LimitExceeded(Limit::Nesting),
     fancy_regex::Error::CompileError(error) => match *error {
       fancy_regex::CompileError::InnerError(error) if error.size_limit().is_some() => RegexError::LimitExceeded(Limit::CompiledSize),
       fancy_regex::CompileError::InnerError(error) if error.syntax_error().is_some_and(is_nest_limit) => RegexError::LimitExceeded(Limit::Nesting),
-      _ => RegexError::InvalidPattern(err_invalid_pattern_at(quoted, 0, "a pattern the engine can compile")),
+      _ => RegexError::InvalidPattern(err_invalid_pattern_at(pattern, 0, "a pattern the engine can compile")),
     },
-    _ => RegexError::InvalidPattern(err_invalid_pattern_at(quoted, 0, "a pattern the engine can compile")),
+    _ => RegexError::InvalidPattern(err_invalid_pattern_at(pattern, 0, "a pattern the engine can compile")),
   })?;
   if patterns.kept.len() < MAX_KEPT {
     // a compiled pattern is shared by its copies
-    patterns.kept.push((source.to_string(), regex.clone()));
+    patterns.kept.push(Kept {
+      pattern: pattern.to_string(),
+      flags: flags_text.to_string(),
+      regex: regex.clone(),
+      empty: None,
+    });
+    return Ok((regex, Some(patterns.kept.len() - 1)));
   }
-  Ok(regex)
+  Ok((regex, None))
 }
 
 /// [compile] for `replace` and `split`: F&O §7.6.3 and §7.6.4 raise FORX0003 "if the pattern
 /// matches a zero-length string, that is, if the expression fn:matches("", $pattern, $flags)
-/// returns true", whatever the input.
-fn compile_nonempty(patterns: &mut Patterns, source: &str, quoted: &str) -> Result<Regex, RegexError> {
-  let regex = compile(patterns, source, quoted)?;
-  if regex.is_match("").map_err(runtime)? {
+/// returns true", whatever the input. A kept pattern is asked once.
+fn compile_nonempty(patterns: &mut Patterns, pattern: &str, flags_text: &str, flags: &Flags) -> Result<Regex, RegexError> {
+  let (regex, at) = compile(patterns, pattern, flags_text, flags)?;
+  let empty = match at.and_then(|at| patterns.kept[at].empty) {
+    Some(empty) => empty,
+    None => {
+      let empty = regex.is_match("").map_err(runtime)?;
+      if let Some(at) = at {
+        patterns.kept[at].empty = Some(empty);
+      }
+      empty
+    }
+  };
+  if empty {
     return Err(RegexError::InvalidArgument(err_zero_length_match()));
   }
   Ok(regex)
@@ -106,9 +133,9 @@ pub fn replace(input: &str, pattern: &str, replacement: &str, flags: &str) -> Re
 }
 
 /// [replace] with the compiled patterns of `patterns`.
-pub fn replace_with(patterns: &mut Patterns, input: &str, pattern: &str, replacement: &str, flags: &str) -> Result<String, RegexError> {
-  let flags = Flags::parse(flags)?;
-  let regex = compile_nonempty(patterns, &source(pattern, &flags)?, pattern)?;
+pub fn replace_with(patterns: &mut Patterns, input: &str, pattern: &str, replacement: &str, flags_text: &str) -> Result<String, RegexError> {
+  let flags = Flags::parse(flags_text)?;
+  let regex = compile_nonempty(patterns, pattern, flags_text, &flags)?;
   let replacement = Replacement::parse(replacement, regex.captures_len() - 1, flags.literal())?;
   regex.try_replacen(input, 0, &replacement).map(|replaced| replaced.into_owned()).map_err(runtime)
 }
@@ -123,8 +150,7 @@ pub fn split(input: &str, delimiter: &str) -> Result<Vec<String>, RegexError> {
 
 /// [split] with the compiled patterns of `patterns`.
 pub fn split_with(patterns: &mut Patterns, input: &str, delimiter: &str) -> Result<Vec<String>, RegexError> {
-  let flags = Flags::default();
-  let regex = compile_nonempty(patterns, &source(delimiter, &flags)?, delimiter)?;
+  let regex = compile_nonempty(patterns, delimiter, "", &Flags::default())?;
   if input.is_empty() {
     return Ok(Vec::new());
   }
@@ -137,8 +163,7 @@ mod tests {
 
   /// [is_match] by the engine, whatever the pattern.
   fn by_engine(input: &str, pattern: &str, flags: &str) -> Result<bool, RegexError> {
-    let source = source(pattern, &Flags::parse(flags)?)?;
-    compile(&mut Patterns::default(), &source, pattern)?.is_match(input).map_err(runtime)
+    compile(&mut Patterns::default(), pattern, flags, &Flags::parse(flags)?)?.0.is_match(input).map_err(runtime)
   }
 
   #[test]
