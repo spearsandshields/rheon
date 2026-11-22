@@ -66,6 +66,23 @@ impl PartialOrd for FeelDateTime {
 }
 
 impl FeelDateTime {
+  /// The [crate::EqualityKey] of this date and time: its date and wall-clock time in whole
+  /// seconds, and its instant at its own offset when that is known.
+  pub fn equality_key(&self) -> crate::EqualityKey {
+    let (date, (hour, minute, second)) = self.written();
+    let Some(wall) = date_time_offset_dt(date, (hour, minute, second, 0), 0).map(|wall| wall.timestamp()) else {
+      return crate::EqualityKey::Loose;
+    };
+    match (self.1.zone(), self.known_offset()) {
+      (FeelZone::Local, _) => crate::EqualityKey::Local { wall },
+      (_, Some(offset)) => crate::EqualityKey::Zoned {
+        wall,
+        instant: wall - i64::from(offset),
+      },
+      (_, None) => crate::EqualityKey::Loose,
+    }
+  }
+
   /// The date and the time of day as written, in whole seconds.
   fn written(&self) -> ((i32, u32, u32), (u32, u32, u32)) {
     (self.0.as_tuple(), (self.1.hour() as u32, self.1.minute() as u32, self.1.second() as u32))

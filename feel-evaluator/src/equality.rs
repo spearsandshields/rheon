@@ -8,6 +8,7 @@
 
 use rheon_feel::values::Value;
 use rheon_feel::{FeelScope, FunctionBody, FunctionDefinition};
+use rheon_feel_temporal::EqualityKey;
 use std::collections::HashMap;
 use std::hash::{BuildHasher, Hash, Hasher, RandomState};
 use std::sync::Arc;
@@ -288,6 +289,65 @@ pub(crate) struct Seen<'a> {
   /// and for each value held the index of the one before it with the same hash.
   index: Option<(RandomState, HashMap<u64, usize>)>,
   before: Vec<usize>,
+  /// Above [SEEN_BY_HASH] values: the times and dates and times held, by their equality keys
+  /// ([EqualityKey]): equal ones meet under one key, though `=` is no equivalence over them.
+  temporal: Temporal,
+}
+
+/// The times and dates and times of a [Seen], by kind (0 for a time, 1 for a date and time): by
+/// wall-clock time (every one that has it), by instant (the zoned ones), and those compared with
+/// every value of their kind ([EqualityKey::Loose]).
+#[derive(Default)]
+struct Temporal {
+  by_wall: HashMap<(u8, i64), Vec<usize>>,
+  by_instant: HashMap<(u8, i64), Vec<usize>>,
+  loose: Vec<usize>,
+}
+
+/// The kind and the equality key of a time or a date and time.
+fn temporal_key(value: &Value) -> Option<(u8, EqualityKey)> {
+  match value {
+    Value::Time(time) => Some((0, time.equality_key())),
+    Value::DateTime(date_time) => Some((1, date_time.equality_key())),
+    _ => None,
+  }
+}
+
+impl Temporal {
+  /// Holds the value at `at` under its key.
+  fn insert(&mut self, kind: u8, key: EqualityKey, at: usize) {
+    match key {
+      EqualityKey::Local { wall } => self.by_wall.entry((kind, wall)).or_default().push(at),
+      EqualityKey::Zoned { wall, instant } => {
+        self.by_wall.entry((kind, wall)).or_default().push(at);
+        self.by_instant.entry((kind, instant)).or_default().push(at);
+      }
+      EqualityKey::Loose => self.loose.push(at),
+    }
+  }
+
+  /// The values that may be equal to a value of `kind` and `key`: those of its keys, and the loose
+  /// ones; a value with no key of its own (loose) may equal any of its kind.
+  fn candidates(&self, kind: u8, key: EqualityKey) -> Vec<usize> {
+    let mut found = Vec::new();
+    let mut add = |map: &HashMap<(u8, i64), Vec<usize>>, k: i64| found.extend(map.get(&(kind, k)).into_iter().flatten().copied());
+    match key {
+      EqualityKey::Local { wall } => add(&self.by_wall, wall),
+      EqualityKey::Zoned { wall, instant } => {
+        add(&self.by_wall, wall);
+        add(&self.by_instant, instant);
+      }
+      EqualityKey::Loose => {
+        for ((k, _), at) in &self.by_wall {
+          if *k == kind {
+            found.extend(at.iter().copied());
+          }
+        }
+      }
+    }
+    found.extend(self.loose.iter().copied());
+    found
+  }
 }
 
 /// Marks the end of a chain of values with one hash.
@@ -305,6 +365,12 @@ impl<'a> Seen<'a> {
 
   /// True when a value equal to this one is held.
   pub(crate) fn contains(&mut self, value: &Value) -> bool {
+    if self.index.is_some()
+      && let Some((kind, key)) = temporal_key(value)
+    {
+      let candidates = self.temporal.candidates(kind, key);
+      return candidates.into_iter().any(|at| self.equality.compare(self.values[at], value) == Some(true));
+    }
     match &self.index {
       None => self.values.iter().any(|held| self.equality.compare(held, value) == Some(true)),
       Some((state, last)) => {
@@ -329,18 +395,33 @@ impl<'a> Seen<'a> {
     match &mut self.index {
       Some((state, last)) => {
         let at = self.values.len() - 1;
-        self.before.push(last.insert(hash(state, value), at).unwrap_or(NONE));
+        // a time or a date and time is held by its keys, not in the chains of the hash
+        match temporal_key(value) {
+          Some((kind, key)) => {
+            self.temporal.insert(kind, key, at);
+            self.before.push(NONE);
+          }
+          None => self.before.push(last.insert(hash(state, value), at).unwrap_or(NONE)),
+        }
       }
       None if self.values.len() > SEEN_BY_HASH => {
         let state = RandomState::new();
         let mut last = HashMap::new();
+        let mut temporal = Temporal::default();
         self.before = self
           .values
           .iter()
           .enumerate()
-          .map(|(at, held)| last.insert(hash(&state, held), at).unwrap_or(NONE))
+          .map(|(at, held)| match temporal_key(held) {
+            Some((kind, key)) => {
+              temporal.insert(kind, key, at);
+              NONE
+            }
+            None => last.insert(hash(&state, held), at).unwrap_or(NONE),
+          })
           .collect();
         self.index = Some((state, last));
+        self.temporal = temporal;
       }
       None => {}
     }

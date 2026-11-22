@@ -103,6 +103,23 @@ impl Sub<FeelDaysAndTimeDuration> for FeelTime {
 const NANOS_PER_DAY: i128 = 24 * 60 * 60 * 1_000_000_000;
 
 impl FeelTime {
+  /// The [crate::EqualityKey] of this time: its wall-clock time in whole seconds, and its instant
+  /// at its own offset when that is known.
+  pub fn equality_key(&self) -> crate::EqualityKey {
+    if self.0 > 23 || self.1 > 59 || self.2 > 59 {
+      return crate::EqualityKey::Loose;
+    }
+    let wall = i64::from(self.0) * 3600 + i64::from(self.1) * 60 + i64::from(self.2);
+    match (&self.4, self.known_offset()) {
+      (FeelZone::Local, _) => crate::EqualityKey::Local { wall },
+      (_, Some(offset)) => crate::EqualityKey::Zoned {
+        wall,
+        instant: wall - i64::from(offset),
+      },
+      (_, None) => crate::EqualityKey::Loose,
+    }
+  }
+
   /// Returns this time moved by `nanos` nanoseconds, modulo 24 hours, in the same zone.
   fn add_nanos(self, nanos: i128) -> Self {
     let seconds_of_day = (self.0 as i128) * 3600 + (self.1 as i128) * 60 + self.2 as i128;
