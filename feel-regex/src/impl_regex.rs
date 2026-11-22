@@ -9,7 +9,7 @@ use regex_syntax::ast;
 const MAX_KEPT: usize = 16;
 
 /// Compiled patterns, kept by a caller that matches the same patterns again and again (the
-/// rows of a list): a pattern in it is read and compiled once. It holds at most [MAX_KEPT]
+/// rows of a list): a pattern in it is read and compiled once. It holds at most 16
 /// patterns, each within the size limits of its engine; a further pattern is compiled for its use
 /// and not kept. It lives as long as its owner.
 #[derive(Default)]
