@@ -1030,6 +1030,7 @@ fn asks(test: &AstNode) -> Option<bool> {
       | AstNode::Between(..)
       | AstNode::In(..)
       | AstNode::InstanceOf(..)
+      | AstNode::As(..)
       | AstNode::FunctionInvocation(..)
   ))
 }

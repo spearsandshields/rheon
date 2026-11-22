@@ -32,10 +32,9 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
       | Value::UnaryLess(_)
       | Value::UnaryLessOrEqual(_)
       | Value::UnaryEqual(_)
-      | Value::UnaryNotEqual(_)) => match feel_type {
-        FeelType::Any => VALUE_TRUE,
-        expected => Value::Boolean(value.has_type(&expected)),
-      },
+      | Value::UnaryNotEqual(_)) => Value::Boolean(value.is_conformant(&feel_type)),
+      // a range is an instance of the range types it conforms to (Table 62), as a list or a context:
+      // its endpoints conform to the endpoint type.
       // a list or a context is an instance of the types it conforms to (Table 62): each item of a
       // list conforms to the item type, each entry of the target type is an entry that conforms
       value @ (Value::List { .. } | Value::Context { .. }) => Value::Boolean(value.is_conformant(&feel_type)),

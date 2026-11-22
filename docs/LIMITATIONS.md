@@ -122,6 +122,11 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
     one, the FEEL `for x in null`, the `?` parameter marker) are to apply to models of the DMN 1.7
     namespace only, once rheon reads 1.7 models; plain FEEL keeps the 1.6 answers (owner,
     2026-11-21).
+  - *`as` after a path* (DMN 1.7 Beta 1, grammar rule 51). `as` is read as the operator only after a
+    complete operand, so that names holding it keep their 1.6 meaning; a name after a dot that is
+    not known when the text is read runs on through `as` (`p.age as number` reads the entry
+    `age as number` of `p`). Write `(p.age) as number`. A known name is read as it is
+    (`{age: 1}.age as number`).
   - *Range literals out of order or of two types* (10.3.2.7 against Tables 56 and 79). 10.3.2.7 says
     the endpoints of `[a..b]` "must be of equivalent types" and ordered, but gives no answer for a
     range that is not; the tests on ranges are defined by comparisons of the endpoints (Table 56),

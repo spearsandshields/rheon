@@ -291,6 +291,10 @@ impl FeelType {
           return Ok(value.clone());
         }
       }
+      // the abstract types of DMN 1.7: a value of a type below them
+      FeelType::Comparable | FeelType::Temporal | FeelType::Duration if value.is_conformant(self) => {
+        return Ok(value.clone());
+      }
       _ => {}
     }
     Err(err_invalid_value_for_retrieving_using_feel_type(self, value))

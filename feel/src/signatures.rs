@@ -106,7 +106,10 @@ pub fn conforms(bif: &Bif, parameters: &[FeelType], result: &FeelType, binding: 
     let result_conforms = |declared: Option<FeelType>| declared.is_some_and(|declared| (binding && declared == FeelType::Any) || declared.is_conformant(result));
     takes
       && match follows.flatten() {
-        Some((_, target)) => table_types(signature.result).filter(|declared| takes_target(declared, target)).all(result_conforms),
+        // the result is of the type of the argument there: what the target gives it conforms to
+        // the target's result type (`abs` is a function<number>->number and a
+        // function<duration>->duration)
+        Some((_, target)) => target.is_conformant(result),
         None => table_types(signature.result).all(result_conforms),
       }
   })
@@ -117,7 +120,7 @@ pub fn conforms(bif: &Bif, parameters: &[FeelType], result: &FeelType, binding: 
 fn table_types(text: &'static str) -> impl Iterator<Item = Option<FeelType>> {
   text.split(" or ").flat_map(|text| {
     let types: Vec<Option<FeelType>> = match text {
-      "duration" => vec![Some(FeelType::DaysAndTimeDuration), Some(FeelType::YearsAndMonthsDuration)],
+      "duration" => vec![Some(FeelType::DaysAndTimeDuration), Some(FeelType::YearsAndMonthsDuration), Some(FeelType::Duration)],
       "function" => vec![None],
       text => vec![Some(table_type(text))],
     };

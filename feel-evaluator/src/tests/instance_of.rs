@@ -567,3 +567,17 @@ fn a_type_of_the_context_wins_over_an_abstract_type() {
   let scope = &te_scope("{}");
   te_be_value(false, scope, r#"{a: {duration: 1}, b: [@"P1D"][item instance of duration]}.b"#, r#"[@"P1D"]"#);
 }
+
+#[test]
+fn review_of_f7_types() {
+  let scope = &te_scope("{}");
+  // a range is an instance of the range types it conforms to (Table 62)
+  te_bool(false, scope, "[1..5] instance of range<comparable>", true);
+  te_bool(false, scope, "[1..5] instance of range<Any>", true);
+  te_bool(false, scope, "[1..5] instance of range<string>", false);
+  // abs is a function of a duration to a duration
+  te_bool(false, scope, "abs instance of function<duration>->duration", true);
+  te_bool(false, scope, "abs instance of function<years and months duration>->years and months duration", true);
+  te_bool(false, scope, "abs instance of function<number>->string", false);
+  te_bool(false, scope, "sum instance of function<>->number", false);
+}

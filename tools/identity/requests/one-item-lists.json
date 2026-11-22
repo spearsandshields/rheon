@@ -428,5 +428,10 @@
   {"op": "evaluate", "expression": "[1, true] instance of list<comparable>"},
   {"op": "evaluate", "expression": "{temporal: 5, r: 1 instance of temporal}.r"},
   {"op": "evaluate", "expression": "(function(x: comparable) x)(2)"},
-  {"op": "evaluate", "expression": "(function(x: temporal) x)(1)"}
+  {"op": "evaluate", "expression": "(function(x: temporal) x)(1)"},
+  {"op": "evaluate", "expression": "[1..5] instance of range<comparable>"},
+  {"op": "evaluate", "expression": "[1..5] instance of range<Any>"},
+  {"op": "evaluate", "expression": "(< 5) instance of range<number>"},
+  {"op": "evaluate", "expression": "abs instance of function<duration>->duration"},
+  {"op": "evaluate", "expression": "[1..5] as range<comparable>"}
 ]
