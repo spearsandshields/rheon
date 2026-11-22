@@ -2852,3 +2852,26 @@ fn start_rules_of_s_feel_and_lists_of_expressions() {
   let each = ok(json!({"op": "evaluateEach", "dialect": "simpleExpression", "expression": "Age * 2", "entries": [{"context": {"Age": 1}}, {"context": {"Age": 2}}]}));
   assert_eq!(each["results"][1]["result"]["display"], "4", "{each}");
 }
+
+#[test]
+fn completion_types_function_literals_and_their_invocations() {
+  // DT-025, for editors: the type of a function literal and of its invocations
+  let items = |expression: &str| -> Vec<(String, Json)> {
+    let completed = ok(json!({"op": "complete", "expression": expression}));
+    completed["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|item| (item["label"].as_str().unwrap().to_string(), item["type"].clone()))
+      .collect()
+  };
+  let type_of = |expression: &str, label: &str| items(expression).into_iter().find(|(name, _)| name == label).map(|(_, feel_type)| feel_type);
+  assert_eq!(type_of("{inc: function(x) x + 1, r: inc(2), s: ", "inc"), Some(json!("function<Any>->number")));
+  assert_eq!(type_of("{inc: function(x) x + 1, r: inc(2), s: ", "r"), Some(json!("number")));
+  assert_eq!(type_of("{f: function(a: string) a + \"!\", s: ", "f"), Some(json!("function<string>->string")));
+  // a function of which nothing is known stays a function
+  assert_eq!(type_of("{g: function(x) x, s: ", "g"), Some(json!("function")));
+  // the members of an invocation of a literal written before it
+  assert_eq!(type_of("{p: function(a, b) {sum: a + b, prod: a ** b}, q: p(1, 2).", "sum"), Some(json!("number")));
+  assert_eq!(type_of("{mk: function(n) {name: n}, q: mk(\"x\").", "name"), Some(json!("string")));
+}

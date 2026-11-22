@@ -150,7 +150,9 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
     `function<number>->number`. Bound to a parameter or a variable of a function type, a function
     whose result type is Any (not declared) is not held against the target's result type, so
     `f(function(x) x * 2)` works where f takes a `function<number>->number`; its parameters are
-    checked (contravariant).
+    checked (contravariant). The editor ops infer it (best effort, for completion and hints): the
+    type of the body, the arguments of an invocation giving the types of parameters written
+    without one. The evaluation never reads that guess, so it cannot change an answer.
   - *Equality of functions* (Table 54: "the same parameters, body, and scope"). The body is the
     function literal where it is written: two literals are two functions even when their text is
     alike (`{f: function(x) x}.f = {f: function(x) x}.f` is false), and one literal evaluated twice

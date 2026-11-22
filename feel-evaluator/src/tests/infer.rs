@@ -186,7 +186,72 @@ fn names_bound_around_the_expression_have_the_types_given() {
   // the innermost binding of a name is the one read
   let bound = [(Name::from("x"), FeelType::String), (Name::from("x"), line), (Name::from("n"), FeelType::Number)];
   assert_eq!("number", infer_type(&node, &scope, &bound).to_string());
-  assert_eq!("Any", infer_type(&node, &scope, &[]).to_string());
+  let price = rheon_feel_parser::parse_expression(&scope, "x.price").unwrap();
+  assert_eq!("Any", infer_type(&price, &scope, &[]).to_string());
+}
+
+#[test]
+fn an_operand_of_no_known_type_beside_one_of_a_known_type() {
+  // FEEL adds and subtracts a number only with a number, a string only to a string, has a power
+  // only of numbers, multiplies a duration only by a number and divides a number only by a
+  // number (Tables 57 to 61): a result that is not null is of the one type
+  for (text, expected) in [
+    ("unknown + 1", "number"),
+    ("1 - unknown", "number"),
+    (r#"unknown + "!""#, "string"),
+    ("unknown ** 2", "number"),
+    ("unknown ** other", "number"),
+    ("dd * unknown", "days and time duration"),
+    ("unknown * ym", "years and months duration"),
+    ("n / unknown", "number"),
+    // more than one type stays open
+    ("unknown * 2", "Any"),
+    ("unknown / 2", "Any"),
+    ("unknown + dd", "Any"),
+    ("-unknown", "Any"),
+    ("unknown + other", "Any"),
+  ] {
+    assert_eq!(expected, ty(INPUT, text), "{text}");
+  }
+}
+
+#[test]
+fn an_invocation_of_a_function_literal_types_its_body_with_the_arguments() {
+  for (text, expected) in [
+    // the parameter has the type of its argument
+    ("{double: function(x) x * 2, r: double(3)}.r", "number"),
+    ("{mk: function(a, b) {a: a, b: b}, r: mk(\"x\", d)}.r", "context<a: string, b: date>"),
+    // named arguments by their names
+    ("{mk: function(a, b) {a: a, b: b}, r: mk(b: 1, a: true)}.r", "context<a: boolean, b: number>"),
+    // a type written for the parameter is its type
+    ("{f: function(a: string) a, r: f(1)}.r", "string"),
+    // the literal itself, without an invocation
+    ("{inc: function(x) x + 1}.inc", "function<Any>->number"),
+    ("{f: function(a: number) a * 2}.f", "function<number>->number"),
+    // the body sees the names where the literal is, not those of the invocation
+    ("{f: function() k, g: function(k) f(), r: g(1)}.r", "Any"),
+    // a literal that invokes itself is not typed again inside itself
+    ("{fact: function(n) if n = 0 then 1 else n * fact(n - 1), r: fact(5)}.r", "Any"),
+    ("{loop: function(n) loop(n), r: loop(1)}.r", "Any"),
+    // a call whose arguments give null keeps the type of the body
+    ("{inc: function(x) x + 1, r: inc(\"a\")}.r", "number"),
+  ] {
+    assert_eq!(expected, ty(INPUT, text), "{text}");
+  }
+}
+
+#[test]
+fn invocations_of_literals_that_invoke_each_other_are_typed_within_the_limit() {
+  // f0 invokes f1 twice, f1 invokes f2 twice, ...: typing every body at every invocation would
+  // type 2^40 bodies; the inference ends after its limit of nodes
+  let mut entries: Vec<String> = (0..40).map(|i| format!("f{i}: function(x) f{}(x) + f{}(x)", i + 1, i + 1)).collect();
+  entries.push("f40: function(x) x".to_string());
+  entries.push("r: f0(1)".to_string());
+  let text = format!("{{{}}}.r", entries.join(", "));
+  let started = std::time::Instant::now();
+  // beyond the limit a literal has the type of its body with the parameters as written
+  assert_eq!("Any", ty("{}", &text));
+  assert!(started.elapsed() < std::time::Duration::from_secs(2), "{:?}", started.elapsed());
 }
 
 #[test]

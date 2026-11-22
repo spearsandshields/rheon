@@ -20,14 +20,37 @@ const MAX_DEPTH: usize = 300;
 /// The deepest value of the scope whose type is read: below it the type is `Any`.
 const MAX_VALUE_DEPTH: usize = 16;
 
+/// The most nodes that one inference types: the body of a function literal is typed again at
+/// each invocation of it with the types of the arguments, and a text of many invocations of
+/// functions that invoke each other would type their bodies without end. Beyond it a function
+/// literal has the type its body has with the types of its parameters as written.
+const MAX_STEPS: usize = 20_000;
+
 /// Returns the type of the value of `node` in `scope`, where the names of `bound` (the
 /// variables and parameters of the constructs around the expression, the innermost last) have
 /// the types given with them.
 pub fn infer_type(node: &AstNode, scope: &FeelScope, bound: &[(Name, FeelType)]) -> FeelType {
+  infer_type_with(node, scope, bound, &[])
+}
+
+/// [infer_type] where names of `bound` are bound to function literals of the text: `literals`
+/// gives the index of such a name in `bound` and the literal (an editor that types a piece of a
+/// context literal gives the functions of the entries before it). An invocation of the name
+/// types the body of the literal with the types of the arguments.
+pub fn infer_type_with<'n>(node: &'n AstNode, scope: &FeelScope, bound: &[(Name, FeelType)], literals: &'n [(usize, AstNode)]) -> FeelType {
+  let mut definitions: Vec<(usize, &AstNode)> = literals
+    .iter()
+    .filter(|(at, literal)| *at < bound.len() && matches!(literal, AstNode::FunctionDefinition(..)))
+    .map(|(at, literal)| (*at, literal))
+    .collect();
+  definitions.sort_by_key(|(at, _)| *at);
   let mut typer = Typer {
     scope,
     bound: bound.to_vec(),
+    definitions,
+    active: vec![],
     depth: 0,
+    steps: 0,
   };
   typer.node(node)
 }
@@ -163,24 +186,43 @@ fn join(a: FeelType, b: FeelType) -> FeelType {
   }
 }
 
-struct Typer<'a> {
+struct Typer<'a, 'n> {
   scope: &'a FeelScope,
+  /// The names bound around the node being typed, the innermost last, with their types.
   bound: Vec<(Name, FeelType)>,
+  /// The function literals that names of `bound` are bound to: the index of the name in
+  /// `bound`, and the literal. An invocation of such a name types the body of the literal with
+  /// the types of the arguments.
+  definitions: Vec<(usize, &'n AstNode)>,
+  /// The function literals whose bodies are being typed for an invocation (a literal that
+  /// invokes itself is not typed again inside itself).
+  active: Vec<*const AstNode>,
   depth: usize,
+  /// The nodes typed so far ([MAX_STEPS]).
+  steps: usize,
 }
 
-impl Typer<'_> {
-  fn node(&mut self, node: &AstNode) -> FeelType {
+impl<'n> Typer<'_, 'n> {
+  /// Forgets the names bound from the index `mark` of `bound` on.
+  fn unbind(&mut self, mark: usize) {
+    self.bound.truncate(mark);
+    while self.definitions.last().is_some_and(|(index, _)| *index >= mark) {
+      self.definitions.pop();
+    }
+  }
+
+  fn node(&mut self, node: &'n AstNode) -> FeelType {
     if self.depth >= MAX_DEPTH {
       return FeelType::Any;
     }
+    self.steps += 1;
     self.depth += 1;
     let feel_type = self.typed(node);
     self.depth -= 1;
     feel_type
   }
 
-  fn typed(&mut self, node: &AstNode) -> FeelType {
+  fn typed(&mut self, node: &'n AstNode) -> FeelType {
     use AstNode as A;
     match node {
       A::Numeric(..) => FeelType::Number,
@@ -242,7 +284,7 @@ impl Typer<'_> {
       }
       A::Context(entries) => self.context(entries),
       A::Range(start, end) => {
-        let endpoint = |typer: &mut Self, node: &AstNode| match node {
+        let endpoint = |typer: &mut Self, node: &'n AstNode| match node {
           A::IntervalStart(value, _) | A::IntervalEnd(value, _) => typer.node(value),
           other => typer.node(other),
         };
@@ -284,27 +326,27 @@ impl Typer<'_> {
         let (a, b) = (self.node(a), self.node(b));
         match (&a, &b) {
           (FeelType::Number, FeelType::Number) => FeelType::Number,
-          (duration @ (FeelType::DaysAndTimeDuration | FeelType::YearsAndMonthsDuration), FeelType::Number)
-          | (FeelType::Number, duration @ (FeelType::DaysAndTimeDuration | FeelType::YearsAndMonthsDuration)) => duration.clone(),
+          // a duration is multiplied only by a number, a number by a number or a duration (Table 60)
+          (duration @ (FeelType::DaysAndTimeDuration | FeelType::YearsAndMonthsDuration), FeelType::Number | FeelType::Any)
+          | (FeelType::Number | FeelType::Any, duration @ (FeelType::DaysAndTimeDuration | FeelType::YearsAndMonthsDuration)) => duration.clone(),
           _ => FeelType::Any,
         }
       }
       A::Div(a, b) => {
         let (a, b) = (self.node(a), self.node(b));
         match (&a, &b) {
-          (FeelType::Number, FeelType::Number) => FeelType::Number,
+          // a number is divided only by a number (Table 60)
+          (FeelType::Number, FeelType::Number | FeelType::Any) => FeelType::Number,
           (duration @ (FeelType::DaysAndTimeDuration | FeelType::YearsAndMonthsDuration), FeelType::Number) => duration.clone(),
           (FeelType::DaysAndTimeDuration, FeelType::DaysAndTimeDuration) | (FeelType::YearsAndMonthsDuration, FeelType::YearsAndMonthsDuration) => FeelType::Number,
           _ => FeelType::Any,
         }
       }
+      // only numbers have a power (Table 61): a power that is not null is a number
       A::Exp(a, b) => {
         let (a, b) = (self.node(a), self.node(b));
-        if a == FeelType::Number && b == FeelType::Number {
-          FeelType::Number
-        } else {
-          FeelType::Any
-        }
+        let number = |feel_type: &FeelType| matches!(feel_type, FeelType::Number | FeelType::Any);
+        if number(&a) && number(&b) { FeelType::Number } else { FeelType::Any }
       }
       A::If(_, then, otherwise) => {
         let then = self.node(then);
@@ -315,7 +357,7 @@ impl Typer<'_> {
         let mark = self.bound.len();
         self.bind(variables(contexts, false));
         let body = self.node(body);
-        self.bound.truncate(mark);
+        self.unbind(mark);
         FeelType::List(Box::new(if body == FeelType::Null { FeelType::Any } else { body }))
       }
       A::EvaluatedExpression(inner) | A::Satisfies(inner) => self.node(inner),
@@ -337,7 +379,7 @@ impl Typer<'_> {
           A::FunctionBody(expression, false) => self.node(expression),
           _ => FeelType::Any,
         };
-        self.bound.truncate(mark);
+        self.unbind(mark);
         FeelType::Function(parameter_types, Box::new(result))
       }
       A::FunctionInvocation(callee, arguments) => self.invocation(callee, arguments),
@@ -358,7 +400,7 @@ impl Typer<'_> {
   }
 
   /// Binds the variables of an iteration to the types of the items of their domains.
-  fn bind(&mut self, variables: Vec<(&Name, Vec<&AstNode>)>) {
+  fn bind(&mut self, variables: Vec<(&'n Name, Vec<&'n AstNode>)>) {
     for (name, domain) in variables {
       let variable_type = match domain.as_slice() {
         // the numbers of an interval
@@ -378,26 +420,29 @@ impl Typer<'_> {
 
   /// A context literal: each entry with the type of its value; an entry reads the entries
   /// written before it with their types (an entry written after it reads as `Any`).
-  fn context(&mut self, entries: &[AstNode]) -> FeelType {
+  fn context(&mut self, entries: &'n [AstNode]) -> FeelType {
     let mark = self.bound.len();
     let mut types = BTreeMap::new();
     for entry in entries {
       if let AstNode::ContextEntry(key, value) = entry
         && let AstNode::ContextEntryKey(name) = key.as_ref()
       {
-        let value = match self.node(value) {
+        let value_type = match self.node(value) {
           FeelType::Null => FeelType::Any,
-          value => value,
+          value_type => value_type,
         };
-        types.insert(name.clone(), value.clone());
-        self.bound.push((name.clone(), value));
+        types.insert(name.clone(), value_type.clone());
+        if let AstNode::FunctionDefinition(..) = value.as_ref() {
+          self.definitions.push((self.bound.len(), value));
+        }
+        self.bound.push((name.clone(), value_type));
       }
     }
-    self.bound.truncate(mark);
+    self.unbind(mark);
     FeelType::Context(types)
   }
 
-  fn invocation(&mut self, callee: &AstNode, arguments: &AstNode) -> FeelType {
+  fn invocation(&mut self, callee: &'n AstNode, arguments: &'n AstNode) -> FeelType {
     let argument_types: Vec<FeelType> = match arguments {
       AstNode::PositionalParameters(items) => items.iter().map(|item| self.node(item)).collect(),
       AstNode::NamedParameters(items) => items
@@ -414,7 +459,11 @@ impl Typer<'_> {
       // a variable, a parameter or a value of the scope of this name is what is invoked
       let known = self.name(name);
       if let FeelType::Function(_, result) = known {
-        return *result;
+        // a function literal of the text: its body with the types of the arguments
+        return match self.typed_call(name, &argument_types, arguments) {
+          Some(called) if called != FeelType::Any => called,
+          _ => *result,
+        };
       }
       if known == FeelType::Any
         && let Some(built_in) = built_in(name.as_str())
@@ -433,6 +482,76 @@ impl Typer<'_> {
       FeelType::Function(_, result) => *result,
       _ => FeelType::Any,
     }
+  }
+}
+
+impl<'n> Typer<'_, 'n> {
+  /// The type of the result of an invocation of `name` with arguments of the types `arguments`
+  /// (`written` as the text writes them), when the name is bound to a function literal of the
+  /// text: the type of its body, where a parameter that has no type written has the type of its
+  /// argument. The body sees the names bound where the literal is, not those of the
+  /// invocation. None when the name is no such literal, the literal is being typed for an
+  /// invocation already (it invokes itself), or the inference has typed [MAX_STEPS] nodes.
+  fn typed_call(&mut self, name: &Name, arguments: &[FeelType], written: &AstNode) -> Option<FeelType> {
+    let index = self.bound.iter().rposition(|(bound, _)| bound == name)?;
+    let definition = self.definitions.iter().rev().find(|(at, _)| *at == index).map(|(_, definition)| *definition)?;
+    let AstNode::FunctionDefinition(parameters, body) = definition else {
+      return None;
+    };
+    let (AstNode::FormalParameters(items), AstNode::FunctionBody(expression, false)) = (parameters.as_ref(), body.as_ref()) else {
+      return None;
+    };
+    if self.steps >= MAX_STEPS || self.active.contains(&(definition as *const AstNode)) {
+      return None;
+    }
+    // the names of named arguments, in their order
+    let named: Option<Vec<&Name>> = match written {
+      AstNode::NamedParameters(named) => Some(
+        named
+          .iter()
+          .filter_map(|argument| match argument {
+            AstNode::NamedParameter(name, _) => match name.as_ref() {
+              AstNode::ParameterName(name) => Some(name),
+              _ => None,
+            },
+            _ => None,
+          })
+          .collect(),
+      ),
+      _ => None,
+    };
+    // the names bound after the literal are not seen in its body
+    let hidden_bound = self.bound.split_off(index + 1);
+    let split = self.definitions.partition_point(|(at, _)| *at <= index);
+    let hidden_definitions = self.definitions.split_off(split);
+    self.active.push(definition);
+    let mark = self.bound.len();
+    for (position, item) in items.iter().enumerate() {
+      if let AstNode::FormalParameter(parameter, parameter_type) = item
+        && let AstNode::ParameterName(parameter) = parameter.as_ref()
+      {
+        let parameter_type = match written_type(parameter_type) {
+          FeelType::Any => {
+            let argument = match &named {
+              Some(names) => names.iter().position(|name| *name == parameter).and_then(|at| arguments.get(at)),
+              None => arguments.get(position),
+            };
+            match argument {
+              Some(FeelType::Null) | None => FeelType::Any,
+              Some(argument) => argument.clone(),
+            }
+          }
+          written => written,
+        };
+        self.bound.push((parameter.clone(), parameter_type));
+      }
+    }
+    let result = self.node(expression);
+    self.unbind(mark);
+    self.active.pop();
+    self.bound.extend(hidden_bound);
+    self.definitions.extend(hidden_definitions);
+    Some(result)
   }
 }
 
@@ -533,11 +652,14 @@ fn written_type(node: &AstNode) -> FeelType {
   }
 }
 
+/// The type of `a + b`. An operand of a type not known (`Any`) beside a number or a string
+/// gives a number or a string: FEEL adds a number only to a number and a string only to a
+/// string (Tables 57 and 58), so a sum that is not null is of that type.
 fn addition(a: &FeelType, b: &FeelType) -> FeelType {
   use FeelType::*;
   match (a, b) {
-    (Number, Number) => Number,
-    (String, String) => String,
+    (Number, Number | Any) | (Any, Number) => Number,
+    (String, String | Any) | (Any, String) => String,
     (DaysAndTimeDuration, DaysAndTimeDuration) => DaysAndTimeDuration,
     (YearsAndMonthsDuration, YearsAndMonthsDuration) => YearsAndMonthsDuration,
     (temporal @ (Date | DateTime), DaysAndTimeDuration | YearsAndMonthsDuration) | (DaysAndTimeDuration | YearsAndMonthsDuration, temporal @ (Date | DateTime)) => temporal.clone(),
@@ -546,10 +668,12 @@ fn addition(a: &FeelType, b: &FeelType) -> FeelType {
   }
 }
 
+/// The type of `a - b`; a number and an operand of a type not known give a number, as for
+/// [addition].
 fn subtraction(a: &FeelType, b: &FeelType) -> FeelType {
   use FeelType::*;
   match (a, b) {
-    (Number, Number) => Number,
+    (Number, Number | Any) | (Any, Number) => Number,
     (DaysAndTimeDuration, DaysAndTimeDuration) => DaysAndTimeDuration,
     (YearsAndMonthsDuration, YearsAndMonthsDuration) => YearsAndMonthsDuration,
     (Date | DateTime, Date | DateTime) | (Time, Time) => DaysAndTimeDuration,

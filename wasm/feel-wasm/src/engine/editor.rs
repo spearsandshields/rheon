@@ -10,7 +10,7 @@ use rheon_feel::FeelType;
 use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
 use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::values::Value;
-use rheon_feel_evaluator::{infer_type, members_of, type_of_text, type_of_value};
+use rheon_feel_evaluator::{infer_type_with, members_of, type_of_text, type_of_value};
 use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, StartRule, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant_start};
 
 /// The most items a `complete` answer holds.
@@ -443,6 +443,8 @@ fn shown(feel_type: &FeelType) -> Option<String> {
   match feel_type {
     FeelType::Any | FeelType::Null => None,
     FeelType::Context(_) => Some("context".to_string()),
+    // a function with its signature when the types of its parameters or of its result are known
+    FeelType::Function(parameters, result) if parameters.iter().chain([result.as_ref()]).any(|known| *known != FeelType::Any) => Some(feel_type.to_string()),
     FeelType::Function(..) => Some("function".to_string()),
     FeelType::List(item) => Some(match shown(item) {
       Some(item) => format!("list<{item}>"),
@@ -464,7 +466,9 @@ fn shown_of_value(value: &Value) -> Option<String> {
     // a type in the place of a value: the name of an outline that has its type
     Value::FeelType(feel_type) => shown(feel_type),
     Value::Context(_) => Some("context".to_string()),
-    Value::FunctionDefinition(_) | Value::BuiltInFunction(_) => Some("function".to_string()),
+    // a function of the context (a business knowledge model) with the types it declares
+    function @ Value::FunctionDefinition(_) => shown(&function.type_of()),
+    Value::BuiltInFunction(_) => Some("function".to_string()),
     Value::List(items) => Some(match items.first().and_then(shown_of_value) {
       Some(item) => format!("list<{item}>"),
       None => "list".to_string(),
@@ -477,11 +481,22 @@ fn shown_of_value(value: &Value) -> Option<String> {
 const MAX_BINDERS: usize = 16;
 
 /// The type of the expression that `piece` is, `Any` when it is none.
-fn type_of_piece(scope: &FeelScope, piece: &str, bound: &[(Name, FeelType)]) -> FeelType {
+fn type_of_piece(scope: &FeelScope, piece: &str, bound: &Bound) -> FeelType {
   match parse_expression(scope, piece) {
-    Ok(node) if node.depth() <= MAX_AST_DEPTH => infer_type(&node, scope, bound),
+    Ok(node) if node.depth() <= MAX_AST_DEPTH => infer_type_with(&node, scope, &bound.names, &bound.literals),
     _ => FeelType::Any,
   }
+}
+
+/// The names that the constructs around a place bind there ([bound_at]).
+#[derive(Default)]
+struct Bound {
+  /// The names with their types, the innermost last.
+  names: Vec<(Name, FeelType)>,
+  /// The function literals that names of `names` are bound to (entries of a context literal
+  /// before the place): the index of the name, and the literal. An invocation of the name is
+  /// typed with the types of its arguments.
+  literals: Vec<(usize, AstNode)>,
 }
 
 /// The tokens of `syntax` that are no white space and no comments.
@@ -510,7 +525,7 @@ fn closed(text: &str, node: &SyntaxNode) -> bool {
 /// their domain), the parameters of a function (`Any`: they hide the names outside), the
 /// entries of a context literal written before the place, and in the predicate of a filter
 /// `item` and the entries of an item.
-fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Vec<(Name, FeelType)> {
+fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Bound {
   // a construct that is not closed ends at the last token before the place
   let reach = words(syntax).take_while(|token| token.end <= at).last().map_or(at, |token| token.end);
   let mut around: Vec<&SyntaxNode> = syntax
@@ -531,7 +546,7 @@ fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Vec<(N
       .max_by_key(|other| other.start)
       .is_some_and(|innermost| innermost.start == node.start && innermost.end == node.end)
   };
-  let mut bound: Vec<(Name, FeelType)> = vec![];
+  let mut bound = Bound::default();
   for node in around {
     match node.kind {
       "For" | "Quantified" => {
@@ -562,7 +577,7 @@ fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Vec<(N
               other => other,
             }
           };
-          bound.push((name_of(&text[token.start..token.end]), variable_type));
+          bound.names.push((name_of(&text[token.start..token.end]), variable_type));
         }
       }
       "Function" => {
@@ -577,7 +592,7 @@ fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Vec<(N
           continue;
         }
         for token in words(syntax).filter(|token| token.class == TokenClass::Parameter && token.start > node.start && token.end <= head_end) {
-          bound.push((name_of(&text[token.start..token.end]), FeelType::Any));
+          bound.names.push((name_of(&text[token.start..token.end]), FeelType::Any));
         }
       }
       "Context" => {
@@ -591,8 +606,30 @@ fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Vec<(N
         if entries.is_empty() {
           continue;
         }
-        if let FeelType::Context(types) = type_of_piece(scope, &format!("{{{}}}", entries.join(", ")), &bound) {
-          bound.extend(types);
+        let Ok(literal) = parse_expression(scope, &format!("{{{}}}", entries.join(", "))) else {
+          continue;
+        };
+        if literal.depth() > MAX_AST_DEPTH {
+          continue;
+        }
+        if let FeelType::Context(types) = infer_type_with(&literal, scope, &bound.names, &bound.literals) {
+          // the function literals of the entries, for the invocations of their names
+          let mut functions: Vec<(&Name, &AstNode)> = vec![];
+          if let AstNode::Context(entries) = &literal {
+            for entry in entries {
+              if let AstNode::ContextEntry(key, value) = entry
+                && let (AstNode::ContextEntryKey(name), AstNode::FunctionDefinition(..)) = (key.as_ref(), value.as_ref())
+              {
+                functions.push((name, value));
+              }
+            }
+          }
+          for (name, entry_type) in types {
+            if let Some((_, function)) = functions.iter().rev().find(|(function, _)| **function == name) {
+              bound.literals.push((bound.names.len(), (*function).clone()));
+            }
+            bound.names.push((name, entry_type));
+          }
         }
       }
       // the predicate of a filter: the list is the expression before its bracket
@@ -610,9 +647,9 @@ fn bound_at(scope: &FeelScope, text: &str, syntax: &Syntax, at: usize) -> Vec<(N
           other => other,
         };
         if let FeelType::Context(types) = &item {
-          bound.extend(types.iter().map(|(name, entry_type)| (name.clone(), entry_type.clone())));
+          bound.names.extend(types.iter().map(|(name, entry_type)| (name.clone(), entry_type.clone())));
         }
-        bound.push((Name::from("item"), item));
+        bound.names.push((Name::from("item"), item));
       }
     }
   }
@@ -638,7 +675,7 @@ fn members(scope: &FeelScope, text: &str, syntax: &Syntax) -> Vec<(String, Optio
     // a name that the text binds hides the name of the context: its members are all there is
     let hidden = words(syntax)
       .find(|token| token.start >= path.start)
-      .is_some_and(|first| bound.iter().any(|(name, _)| name.as_str() == &text[first.start..first.end]));
+      .is_some_and(|first| bound.names.iter().any(|(name, _)| name.as_str() == &text[first.start..first.end]));
     Some((members, hidden))
   };
   match typed() {
@@ -685,7 +722,7 @@ fn expected(scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -
       // (the innermost first: of two names that are the same the first is kept); in the
       // predicate of a filter they are `item` and the entries of an item
       let bound = bound_at(scope, text, syntax, text.len());
-      let mut names: Vec<(String, Option<String>)> = bound.iter().rev().map(|(name, feel_type)| (name.to_string(), shown(feel_type))).collect();
+      let mut names: Vec<(String, Option<String>)> = bound.names.iter().rev().map(|(name, feel_type)| (name.to_string(), shown(feel_type))).collect();
       names.extend(end.names.iter().map(|name| (name.clone(), None)));
       names.extend(
         scope
