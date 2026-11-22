@@ -31,12 +31,39 @@ pub fn local_offset_override() -> Option<i32> {
   }
 }
 
-/// Returns the current local date and time, honouring the local offset override.
+thread_local! {
+  /// The instant that `now()` and `today()` read on this thread instead of the system clock
+  /// ([set_clock_override]).
+  static CLOCK_OVERRIDE: std::cell::Cell<Option<DateTime<Utc>>> = const { std::cell::Cell::new(None) };
+}
+
+/// Pins (`Some(instant)`) or releases (`None`) the clock that `now()` and `today()` read on this
+/// thread: a host that evaluates a request with a fixed instant (repeatable tests, replayed
+/// processes; DMN 1.7 Beta 1, 10.3.4.11 encourages a fixed clock) sets it for the request and
+/// releases it after. It is per thread, so evaluations on other threads keep their own.
+pub fn set_clock_override(instant: Option<DateTime<Utc>>) {
+  CLOCK_OVERRIDE.with(|clock| clock.set(instant));
+}
+
+/// The instant of an ISO 8601 date and time with its offset or `Z` (RFC 3339:
+/// `2026-01-01T10:00:00Z`, `2026-01-01T12:00:00.5+02:00`), for [set_clock_override]; `None` for
+/// any other text, a local one included.
+pub fn parse_instant(text: &str) -> Option<DateTime<Utc>> {
+  DateTime::parse_from_rfc3339(text).ok().map(|instant| instant.with_timezone(&Utc))
+}
+
+/// The current instant: the pinned one of this thread ([set_clock_override]), or the system's.
+fn utc_now() -> DateTime<Utc> {
+  CLOCK_OVERRIDE.with(std::cell::Cell::get).unwrap_or_else(Utc::now)
+}
+
+/// Returns the current local date and time, honouring the local offset override and the clock
+/// of this thread ([set_clock_override]).
 pub fn local_now() -> DateTime<FixedOffset> {
   if let Some(offset) = local_offset_override().and_then(FixedOffset::east_opt) {
-    Utc::now().with_timezone(&offset)
+    utc_now().with_timezone(&offset)
   } else {
-    Local::now().fixed_offset()
+    utc_now().with_timezone(&Local).fixed_offset()
   }
 }
 
@@ -143,7 +170,7 @@ pub fn get_zone_offset_t(zone_name: &str, time: (u32, u32, u32, u32)) -> Option<
 
 /// Returns time offset (in seconds) of the named time zone and UTC time zone.
 pub fn get_zone_offset(zone_name: &str) -> Option<i32> {
-  let now = Utc::now();
+  let now = utc_now();
   let time = now.time();
   let t = (time.hour(), time.minute(), time.second(), time.nanosecond());
   let d = (now.year(), now.month(), now.day());

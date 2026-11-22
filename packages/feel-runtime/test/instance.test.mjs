@@ -110,6 +110,14 @@ test('tzOffsetMinutes: env default and per-request override', () => {
   assert.equal(ev('1', { tzOffsetMinutes: 5000 }).error.kind, 'request');
 });
 
+test('now: a fixed instant for now() and today() of one request', () => {
+  const pinned = { now: '2001-02-03T04:05:06Z', tzOffsetMinutes: 0 };
+  assert.equal(ev('string(today())', pinned).result.feel, '"2001-02-03"');
+  assert.equal(ev('string(now())', { ...pinned, tzOffsetMinutes: 120 }).result.feel, '"2001-02-03T06:05:06"');
+  assert.equal(ev('1', { now: '2001-02-03' }).error.kind, 'request');
+  assert.notEqual(ev('string(today())', { tzOffsetMinutes: 0 }).result.feel, '"2001-02-03"');
+});
+
 test('deep nesting is a syntax error, deep recursion an evaluation error (no crash)', () => {
   for (const e of ['1' + '+1'.repeat(20000), '['.repeat(5000) + '1' + ']'.repeat(5000), '{a:'.repeat(3000) + '1' + '}'.repeat(3000)]) {
     const r = ev(e);

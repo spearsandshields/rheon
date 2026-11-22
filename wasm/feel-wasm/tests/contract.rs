@@ -2679,7 +2679,7 @@ fn a_context_is_shown_in_the_order_it_was_written_in() {
 fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
   let unknown = |name: &str| {
     format!(
-      "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '{name}', which is not read"
+      "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '{name}', which is not read"
     )
   };
   let response = req(json!({"op": "evaluate", "expression": "1 + \"a\"", "errorMod": "strict", "maxsteps": 5}));
@@ -2763,4 +2763,32 @@ fn b_feel_strict_accepts_the_answers_b_feel_defines() {
     assert_eq!(strict["diagnostics"]["count"], 0, "{expression}: {strict}");
     assert_ne!(strict["warnings"], json!([]), "{expression}: {strict}");
   }
+}
+
+#[test]
+fn now_pins_the_clock_of_a_request() {
+  // DMN 1.7 Beta 1, 10.3.4.11: a fixed clock for repeatable evaluations (owner Q-T3)
+  let display = |request: Json| ok(request)["result"]["display"].as_str().unwrap().to_string();
+  let pinned = |expression: &str, tz: i64| display(json!({"op": "evaluate", "expression": expression, "now": "2001-02-03T04:05:06Z", "tzOffsetMinutes": tz}));
+  assert_eq!(pinned("now()", 0), "\"2001-02-03T04:05:06\"");
+  assert_eq!(pinned("today()", 0), "\"2001-02-03\"");
+  // seen at the offset of the request
+  assert_eq!(pinned("now()", 120), "\"2001-02-03T06:05:06\"");
+  assert_eq!(pinned("today()", -300), "\"2001-02-02\"");
+  // an instant with another offset is the same instant
+  assert_eq!(
+    display(json!({"op": "evaluate", "expression": "now()", "now": "2001-02-03T06:05:06+02:00", "tzOffsetMinutes": 0})),
+    "\"2001-02-03T04:05:06\""
+  );
+  // evaluateAll takes it for all its evaluations
+  let all = ok(json!({"op": "evaluateAll", "now": "2001-02-03T04:05:06Z", "tzOffsetMinutes": 0, "evaluations": [{"expression": "today().year"}]}));
+  assert!(all.to_string().contains("2001"), "{all}");
+  // a text that is no instant is a request error
+  for now in [json!("2001-02-03"), json!("2001-02-03T04:05:06"), json!("yesterday"), json!(5)] {
+    let response = req(json!({"op": "evaluate", "expression": "now()", "now": now}));
+    assert_eq!(error_kind(&response), "request", "{response}");
+  }
+  // the next request reads the system clock again
+  let year = display(json!({"op": "evaluate", "expression": "string(today().year)", "tzOffsetMinutes": 0}));
+  assert_ne!(year, "\"2001\"");
 }

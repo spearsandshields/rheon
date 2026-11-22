@@ -78,8 +78,9 @@ enum Dialect {
 pub fn call(request: &str) -> String {
   let _guard = ENGINE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
   let result = std::panic::catch_unwind(|| handle(request));
-  // Never leave a request's offset behind for the next one.
+  // Never leave a request's offset or clock behind for the next one.
   rheon_feel_temporal::set_local_offset_override(None);
+  rheon_feel_temporal::set_clock_override(None);
   let response = match result {
     // the response of an evaluation is written as text already
     Ok(Ok(Response::Text(text))) => return text,
@@ -352,7 +353,8 @@ fn context(req: &mut Map<String, Json>, unread: Option<Field<FeelContext>>, mut 
   }
 }
 
-/// Applies `tzOffsetMinutes` (host local UTC offset) to dsntk's notion of local time.
+/// Applies `tzOffsetMinutes` (host local UTC offset) to dsntk's notion of local time, and `now`
+/// (a fixed instant) to the clock of `now()` and `today()`, for this request.
 ///
 /// Without it, local time is UTC on every target (wasm32 has no time zone; native builds would
 /// otherwise use the host's zone and give different results for zone-less date-times).
@@ -374,6 +376,25 @@ fn apply_tz_offset(req: &Map<String, Json>) -> Result<(), Failure> {
     Some(other) => return fail(Kind::Request, format!("'tzOffsetMinutes' must be a number, got {}", arg(other))),
   };
   rheon_feel_temporal::set_local_offset_override(offset);
+  // `now`: the instant that now() and today() read for this request (DMN 1.7 Beta 1, 10.3.4.11:
+  // a fixed clock for repeatable evaluations); without it, the system clock
+  let now = match req.get("now") {
+    None | Some(Json::Null) => None,
+    Some(Json::String(text)) => match rheon_feel_temporal::parse_instant(text) {
+      Some(instant) => Some(instant),
+      None => {
+        return fail(
+          Kind::Request,
+          format!(
+            "'now' must be an ISO 8601 instant with its offset or Z, like \"2026-01-01T10:00:00Z\", got {}",
+            arg(text.as_str())
+          ),
+        );
+      }
+    },
+    Some(other) => return fail(Kind::Request, format!("'now' must be a string, got {}", arg(other))),
+  };
+  rheon_feel_temporal::set_clock_override(now);
   Ok(())
 }
 
@@ -626,7 +647,7 @@ fn parse_names(context: &FeelContext, depth: usize, names: &mut Vec<Option<Name>
 
 /// The fields of a request and of an entry of `evaluations` or `entries`, whatever operation
 /// reads them.
-const FIELDS: [&str; 18] = [
+const FIELDS: [&str; 19] = [
   "op",
   "dialect",
   "expression",
@@ -634,6 +655,7 @@ const FIELDS: [&str; 18] = [
   "contextFormat",
   "input",
   "tzOffsetMinutes",
+  "now",
   "language",
   "errorMode",
   "maxSteps",

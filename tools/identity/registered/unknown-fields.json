@@ -5,7 +5,7 @@
       "expression": "1",
       "$serde_json::private::Number": "42"
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -52,7 +52,7 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
         }
       ]
     }
@@ -64,7 +64,7 @@
       "$serde_json::private::Number": "42",
       "x": 1
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -111,10 +111,10 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
         },
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
         }
       ]
     }
@@ -125,7 +125,7 @@
       "expression": "1",
       "$serde_json::private::Number": true
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -172,7 +172,7 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found '$serde_json::private::Number', which is not read"
         }
       ]
     }
@@ -184,7 +184,7 @@
       "errorMod": "strict",
       "maxsteps": 5
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 1,
@@ -237,10 +237,10 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'errorMod', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'errorMod', which is not read"
         },
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'maxsteps', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'maxsteps', which is not read"
         }
       ]
     }
@@ -251,7 +251,7 @@
       "expression": "1",
       "x": 1
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -298,7 +298,7 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
         }
       ]
     }
@@ -309,7 +309,7 @@
       "expression": "1",
       "Expression": "2"
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -356,7 +356,7 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'Expression', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'Expression', which is not read"
         }
       ]
     }
@@ -369,7 +369,7 @@
       "input": 2,
       "inputs": 3
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -416,7 +416,7 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'inputs', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'inputs', which is not read"
         }
       ]
     }
@@ -428,7 +428,7 @@
       "errorMode": "strict",
       "x": 1
     },
-    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same.",
+    "why": "BND-16: a field that a request does not have was ignored without a word, so a misspelt errorMode or maxSteps went unseen. An evaluation now names it in a warning; the answer is otherwise the same. The fields a request may have include now (DT-065).",
     "old": {
       "diagnostics": {
         "count": 0,
@@ -475,7 +475,7 @@
       },
       "warnings": [
         {
-          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
+          "message": "expected a field of a request (op, dialect, expression, context, contextFormat, input, tzOffsetMinutes, now, language, errorMode, maxSteps, evaluations, entries, id, cursor, outline, tree, types, width), found 'x', which is not read"
         }
       ]
     }

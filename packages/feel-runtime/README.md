@@ -77,6 +77,7 @@ How the engine works:
 
 - **Loading.** The wasm is fetched and compiled once, on the main thread. `compileStreaming` is used when the server sends `application/wasm`. The compiled `WebAssembly.Module` is posted to each worker, so a restart only re-instantiates it. You can also pass `wasmModule` or `wasmBytes` instead of `wasmUrl`.
 - **Time zone.** `tzOffsetMinutes` defaults to `-new Date().getTimezoneOffset()` on every request, so `now()` and `today()` follow the host's local time. Set it on the request to override. It is a fixed offset with no DST rules.
+- **Fixed clock.** `now` (an ISO 8601 instant with its offset or `Z`, such as `"2026-01-01T10:00:00Z"`) pins the instant that `now()` and `today()` read for that request, so an evaluation that uses them is repeatable; without it they read the system clock.
 - **Worker bundling.** The worker is created with `new Worker(new URL('./worker.js', import.meta.url), { type: 'module' })`. Vite, webpack 5 and Parcel bundle this form automatically. Two cases need attention:
   - If Vite pre-bundles the package from `node_modules`, the `new URL` form breaks. Add `optimizeDeps: { exclude: ['@rheon/feel-runtime'] }`. A linked workspace package (`file:` or `workspace:` dependency) is not pre-bundled.
   - Use `worker: { format: 'es' }` if your Vite config sets a non-ES worker format.

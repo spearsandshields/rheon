@@ -25,6 +25,8 @@ export interface EvaluateRequest {
   input?: unknown | RawJson;
   /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
   tzOffsetMinutes?: number;
+  /** The instant `now()` and `today()` read instead of the clock: an ISO 8601 instant with its offset or `Z`. */
+  now?: string;
   /** Expression language: `'feel'` (default) or `'b-feel'` (DMN 1.6 chapter 11). */
   language?: Language;
   /** `'strict'` turns any error during evaluation into an `evaluation` error (DMN 1.6 §7.3.8). */
@@ -56,6 +58,8 @@ export interface EvaluateAllRequest {
   contextFormat?: 'json' | 'feel';
   /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
   tzOffsetMinutes?: number;
+  /** The instant `now()` and `today()` read instead of the clock: an ISO 8601 instant with its offset or `Z`. */
+  now?: string;
   language?: Language;
   evaluations: Evaluation[];
 }
@@ -81,6 +85,8 @@ export interface EvaluateEachRequest {
   contextFormat?: 'json' | 'feel';
   /** Host UTC offset in minutes. Defaults to `-new Date().getTimezoneOffset()`. */
   tzOffsetMinutes?: number;
+  /** The instant `now()` and `today()` read instead of the clock: an ISO 8601 instant with its offset or `Z`. */
+  now?: string;
   language?: Language;
   errorMode?: ErrorMode;
   /** A budget of steps for each entry. */

@@ -19,7 +19,7 @@ mod parts;
 mod tests;
 
 pub use defs::{Day, DayOfWeek, DayOfYear, Month, MonthOfYear, WeekOfYear, Year};
-pub use defs::{local_now, local_offset_override, set_local_offset_override};
+pub use defs::{local_now, local_offset_override, parse_instant, set_clock_override, set_local_offset_override};
 pub use feel_date::FeelDate;
 pub use feel_date_time::FeelDateTime;
 pub use feel_dt_duration::FeelDaysAndTimeDuration;

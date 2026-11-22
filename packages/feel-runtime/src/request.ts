@@ -142,6 +142,7 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
     ...contextFields(req.context, req.contextFormat),
     input: dialect === 'unaryTests' ? req.input : undefined,
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
     language: req.language,
     errorMode: req.errorMode,
     maxSteps: req.maxSteps,
@@ -171,6 +172,7 @@ export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number 
     op: 'evaluateAll',
     ...contextFields(req.context, req.contextFormat),
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
     language: req.language,
   };
   const evaluations: unknown = req.evaluations;
@@ -216,6 +218,7 @@ export function buildEvaluateEachJson(req: EvaluateEachRequest, defaultTz: numbe
     expression: req.expression,
     contextFormat,
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
     language: req.language,
     errorMode: req.errorMode,
     maxSteps: req.maxSteps,
