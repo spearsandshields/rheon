@@ -66,14 +66,9 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
         FeelType::Any => VALUE_TRUE,
         expected => Value::Boolean(value.has_type(&expected)),
       },
-      value @ Value::List { .. } => match feel_type {
-        FeelType::Any => VALUE_TRUE,
-        expected => Value::Boolean(value.type_instance_of(&expected)),
-      },
-      value @ Value::Context { .. } => match feel_type {
-        FeelType::Any => VALUE_TRUE,
-        expected => Value::Boolean(value.type_instance_of(&expected)),
-      },
+      // a list or a context is an instance of the types it conforms to (Table 62): each item of a
+      // list conforms to the item type, each entry of the target type is an entry that conforms
+      value @ (Value::List { .. } | Value::Context { .. }) => Value::Boolean(value.is_conformant(&feel_type)),
       // a function is an instance of the function types its type conforms to (10.3.2.9.2): its
       // declared result type counts, Any when it is not declared (the result type of a function
       // literal is not inferred), as a binding does not hold it against the target

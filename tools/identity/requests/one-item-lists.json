@@ -384,5 +384,12 @@
   {"op": "evaluate", "expression": "{} instance of context<>"},
   {"op": "evaluate", "expression": "1 instance of context<>"},
   {"op": "evaluate", "expression": "(function(c: context<>) c.a)({a: 5})"},
-  {"op": "evaluate", "expression": "(function(c: context<>) c)(1)"}
+  {"op": "evaluate", "expression": "(function(c: context<>) c)(1)"},
+  {"op": "evaluate", "expression": "[{a: 1}] instance of list<context<>>"},
+  {"op": "evaluate", "expression": "[{a: 1, b: 2}] instance of list<context<a: number>>"},
+  {"op": "evaluate", "expression": "[null, null] instance of list<number>"},
+  {"op": "evaluate", "expression": "{a: {b: 1}} instance of context<a: context<>>"},
+  {"op": "evaluate", "expression": "{a: 1, b: \"x\"} instance of context<a: Any, b: Any>"},
+  {"op": "evaluate", "expression": "[1, \"a\"] instance of list<number>"},
+  {"op": "evaluate", "expression": "[] instance of list<number>"}
 ]

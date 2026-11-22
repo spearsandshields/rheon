@@ -438,7 +438,8 @@ fn the_type_of_a_list_does_not_depend_on_the_order_of_its_items() {
     (vec!["{a: 1, b: 2}", "{a: 1}"], "list<context<a: number>>", true),
     (vec!["{a: 1, b: 2}", "{a: 1}"], "list<context<a: number, b: number>>", false),
     (vec!["{a: 1}", "{b: 1}"], "list<context<a: number>>", false),
-    (vec!["null", "null"], "list<number>", false),
+    // null conforms to every type (Table 62: conformance)
+    (vec!["null", "null"], "list<number>", true),
     (vec!["null", "null"], "list<Null>", true),
   ] {
     // every rotation of the items, and their reverse
