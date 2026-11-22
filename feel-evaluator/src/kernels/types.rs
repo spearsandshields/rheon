@@ -13,15 +13,20 @@ pub(crate) fn instance_of(lhv: Value, rhv: Value) -> Value {
   if let Value::FeelType(feel_type) = rhv {
     match lhv {
       // a value of a simple type is an instance of its type and of the abstract types above it
-      // (DMN 1.7 Beta 1, Figure 10-26: comparable, temporal, duration)
-      Value::Number { .. } => Value::Boolean(FeelType::Number.is_conformant(&feel_type)),
-      Value::String { .. } => Value::Boolean(FeelType::String.is_conformant(&feel_type)),
-      Value::Boolean { .. } => Value::Boolean(FeelType::Boolean.is_conformant(&feel_type)),
-      Value::Date { .. } => Value::Boolean(FeelType::Date.is_conformant(&feel_type)),
-      Value::DateTime { .. } => Value::Boolean(FeelType::DateTime.is_conformant(&feel_type)),
-      Value::Time { .. } => Value::Boolean(FeelType::Time.is_conformant(&feel_type)),
-      Value::YearsAndMonthsDuration { .. } => Value::Boolean(FeelType::YearsAndMonthsDuration.is_conformant(&feel_type)),
-      Value::DaysAndTimeDuration { .. } => Value::Boolean(FeelType::DaysAndTimeDuration.is_conformant(&feel_type)),
+      // (DMN 1.7 Beta 1, Figure 10-26: comparable, temporal, duration); its own type and Any are
+      // answered first, without the conformance of types
+      Value::Number { .. } => Value::Boolean(matches!(feel_type, FeelType::Number | FeelType::Any) || FeelType::Number.is_conformant(&feel_type)),
+      Value::String { .. } => Value::Boolean(matches!(feel_type, FeelType::String | FeelType::Any) || FeelType::String.is_conformant(&feel_type)),
+      Value::Boolean { .. } => Value::Boolean(matches!(feel_type, FeelType::Boolean | FeelType::Any) || FeelType::Boolean.is_conformant(&feel_type)),
+      Value::Date { .. } => Value::Boolean(matches!(feel_type, FeelType::Date | FeelType::Any) || FeelType::Date.is_conformant(&feel_type)),
+      Value::DateTime { .. } => Value::Boolean(matches!(feel_type, FeelType::DateTime | FeelType::Any) || FeelType::DateTime.is_conformant(&feel_type)),
+      Value::Time { .. } => Value::Boolean(matches!(feel_type, FeelType::Time | FeelType::Any) || FeelType::Time.is_conformant(&feel_type)),
+      Value::YearsAndMonthsDuration { .. } => {
+        Value::Boolean(matches!(feel_type, FeelType::YearsAndMonthsDuration | FeelType::Any) || FeelType::YearsAndMonthsDuration.is_conformant(&feel_type))
+      }
+      Value::DaysAndTimeDuration { .. } => {
+        Value::Boolean(matches!(feel_type, FeelType::DaysAndTimeDuration | FeelType::Any) || FeelType::DaysAndTimeDuration.is_conformant(&feel_type))
+      }
       Value::Null { .. } => match feel_type {
         FeelType::Null => VALUE_TRUE,
         _ => VALUE_FALSE,
