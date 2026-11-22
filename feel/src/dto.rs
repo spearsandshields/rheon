@@ -6,6 +6,7 @@ use crate::message::arg;
 use crate::values::Value;
 use crate::{Name, value_null};
 use dsntk_common::DsntkError;
+use rheon_feel_temporal::FeelZone;
 use serde::{Deserialize, Serialize};
 
 pub const XSD_STRING: &str = "xsd:string";
@@ -17,6 +18,9 @@ pub const XSD_DATE: &str = "xsd:date";
 pub const XSD_DATE_TIME: &str = "xsd:dateTime";
 pub const XSD_TIME: &str = "xsd:time";
 pub const XSD_DURATION: &str = "xsd:duration";
+pub const XSD_DATE_TIME_STAMP: &str = "xsd:dateTimeStamp";
+pub const XSD_YEAR_MONTH_DURATION: &str = "xsd:yearMonthDuration";
+pub const XSD_DAY_TIME_DURATION: &str = "xsd:dayTimeDuration";
 
 /// Type alias for an object value represented as a vector of components.
 type ObjectDto = Vec<ComponentDto>;
@@ -226,6 +230,20 @@ impl TryFrom<&SimpleDto> for Value {
           XSD_TIME => Ok(Value::try_from_xsd_time(text)?),
           XSD_DATE_TIME => Ok(Value::try_from_xsd_date_time(text)?),
           XSD_DURATION => Ok(Value::try_from_xsd_duration(text)?),
+          // the other XSD types of Table 47 (DMN 1.7 Beta 1): a date and time that has a time zone,
+          // and the two kinds of duration
+          XSD_DATE_TIME_STAMP => match Value::try_from_xsd_date_time(text)? {
+            Value::DateTime(date_time) if *date_time.time().zone() != FeelZone::Local => Ok(Value::DateTime(date_time)),
+            _ => Err(err_invalid_attribute(&format!("an xsd:dateTimeStamp has a time zone, found '{}'", arg(text)))),
+          },
+          XSD_YEAR_MONTH_DURATION => match Value::try_from_xsd_duration(text)? {
+            duration @ Value::YearsAndMonthsDuration(_) => Ok(duration),
+            _ => Err(err_invalid_attribute(&format!("an xsd:yearMonthDuration has years and months only, found '{}'", arg(text)))),
+          },
+          XSD_DAY_TIME_DURATION => match Value::try_from_xsd_duration(text)? {
+            duration @ Value::DaysAndTimeDuration(_) => Ok(duration),
+            _ => Err(err_invalid_attribute(&format!("an xsd:dayTimeDuration has days and time only, found '{}'", arg(text)))),
+          },
           _ => Err(err_invalid_attribute(&format!("invalid type '{}'", arg(typ)))),
         }
       } else {

@@ -681,3 +681,19 @@ fn test_invalid_value_type() {
   let output = serde_json::to_string_pretty(&value_dto).unwrap();
   eq(expected, output);
 }
+
+#[test]
+fn the_other_xsd_types_of_table_47_are_read() {
+  // xsd:dateTimeStamp is a date and time that has a time zone; the two kinds of duration
+  let read = |typ: &str, text: &str| {
+    let dto = serde_json::from_str::<ValueDto>(&format!(r#"{{"simple": {{"type": "{typ}", "text": "{text}", "isNil": false}}}}"#)).unwrap();
+    Value::try_from(&dto).map(|value| value.to_string()).map_err(|error| error.to_string())
+  };
+  assert_eq!(Ok("2020-01-01T10:00:00Z".to_string()), read("xsd:dateTimeStamp", "2020-01-01T10:00:00Z"));
+  assert_eq!(Ok("2020-01-01T10:00:00+02:00".to_string()), read("xsd:dateTimeStamp", "2020-01-01T10:00:00+02:00"));
+  assert!(read("xsd:dateTimeStamp", "2020-01-01T10:00:00").unwrap_err().contains("has a time zone"));
+  assert_eq!(Ok("P1Y2M".to_string()), read("xsd:yearMonthDuration", "P1Y2M"));
+  assert!(read("xsd:yearMonthDuration", "P1D").unwrap_err().contains("years and months only"));
+  assert_eq!(Ok("P1DT2H".to_string()), read("xsd:dayTimeDuration", "P1DT2H"));
+  assert!(read("xsd:dayTimeDuration", "P1Y").unwrap_err().contains("days and time only"));
+}
