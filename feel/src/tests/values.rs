@@ -389,18 +389,25 @@ fn test_jsonify() {
   assert_eq!(r#""P3Y2M""#, Value::YearsAndMonthsDuration(FeelYearsAndMonthsDuration::from_ym(3, 2).unwrap()).jsonify());
   assert_eq!(r#"[]"#, Value::ExpressionList(Values::default()).jsonify());
   assert_eq!(r#"{}"#, Value::from(FeelContext::default()).jsonify());
-  assert_eq!(r#"alpha"#, Value::ContextEntryKey("alpha".into()).jsonify());
+  assert_eq!(r#""alpha""#, Value::ContextEntryKey("alpha".into()).jsonify());
   assert_eq!(r#"[]"#, Value::List(Values::default().into()).jsonify());
   assert_eq!(
     r#"[1.2, 2.1]"#,
     Value::List(vec![Value::Number(FeelNumber::new(12, 1)), Value::Number(FeelNumber::new(21, 1))].into()).jsonify()
   );
   assert_eq!(r#"null"#, Value::Null(None).jsonify());
-  assert_eq!(r#""null(error details)""#, Value::Null(Some("error details".to_string())).jsonify());
+  // a null is JSON null, also with a reason (Table 48)
+  assert_eq!(r#"null"#, Value::Null(Some("error details".to_string())).jsonify());
+  // strings and keys are escaped
+  assert_eq!(r#""a \"b\"\nc\\""#, Value::String("a \"b\"\nc\\".into()).jsonify());
+  let mut ctx = FeelContext::default();
+  ctx.set_entry(&"say \"hi\"".into(), Value::Boolean(true));
+  assert_eq!(r#"{"say \"hi\"": true}"#, Value::from(ctx).jsonify());
   let n_start = Box::new(Value::Number(FeelNumber::new(1, 0)));
   let n_end = Box::new(Value::Number(FeelNumber::new(12, 0)));
   assert_eq!(r#""(1..12]""#, Value::Range(n_start, IntervalType::Opened, n_end, IntervalType::Closed).jsonify());
-  assert_eq!(r#"jsonify trait not implemented for value: Irrelevant"#, Value::Irrelevant.jsonify());
+  // what has no JSON form is written as its text, a JSON string
+  assert_eq!(r#""Irrelevant""#, Value::Irrelevant.jsonify());
 }
 
 #[test]

@@ -601,7 +601,7 @@ impl Jsonify for FeelContext {
       self
         .entries()
         .iter_written()
-        .map(|(name, value)| format!(r#""{}": {}"#, name, value.jsonify()))
+        .map(|(name, value)| format!("{}: {}", crate::values::json_string(&name.to_string()), value.jsonify()))
         .collect::<Vec<String>>()
         .join(", ")
     )

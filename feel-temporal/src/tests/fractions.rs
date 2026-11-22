@@ -66,3 +66,14 @@ fn digits_beyond_nanoseconds_are_truncated() {
   let long = format!("10:00:00.{}", "9".repeat(100_000));
   assert_eq!(999_999_999, long.parse::<FeelTime>().unwrap().nanos());
 }
+
+#[test]
+fn a_date_and_time_in_json_is_iso_8601_with_the_zone_in_brackets() {
+  // DMN 1.7 Beta 1, Table 48
+  let text = |s: &str| FeelDateTime::try_from(s).unwrap().json_text();
+  assert_eq!("2007-12-03T10:15:30+01:00[Europe/Paris]", text("2007-12-03T10:15:30@Europe/Paris"));
+  assert_eq!("2007-07-03T10:15:30+02:00[Europe/Paris]", text("2007-07-03T10:15:30@Europe/Paris"));
+  assert_eq!("2007-12-03T10:15:30+01:00", text("2007-12-03T10:15:30+01:00"));
+  assert_eq!("2007-12-03T10:15:30Z", text("2007-12-03T10:15:30Z"));
+  assert_eq!("2007-12-03T10:15:30", text("2007-12-03T10:15:30"));
+}

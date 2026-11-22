@@ -394,6 +394,28 @@ impl FeelDateTime {
     feel_time_zone(self)
   }
 
+  /// The text of this date and time in JSON (DMN 1.7 Beta 1, Table 48): ISO 8601, and for a date
+  /// and time with an IANA zone `<date>T<time><±hh:mm>[<zone>]`, the offset being the zone's at
+  /// that date and time, with `:ss` when it has seconds (local mean time before the standard
+  /// zones, `+00:09:21` in Paris before 1911). Every other date and time is written in its FEEL
+  /// form, which is ISO 8601.
+  pub fn json_text(&self) -> String {
+    self.zoned_json_text().unwrap_or_else(|| self.to_string())
+  }
+
+  /// [FeelDateTime::json_text] of a date and time with an IANA zone.
+  fn zoned_json_text(&self) -> Option<String> {
+    let zone = self.feel_time_zone()?;
+    let offset = self.feel_time_offset()?;
+    let text = self.to_string();
+    let mut out = String::from(text.split('@').next()?);
+    crate::FeelOffset::write_seconds(&mut out, offset).ok()?;
+    out.push('[');
+    out.push_str(&zone);
+    out.push(']');
+    Some(out)
+  }
+
   /// Whether the two are the same element of the semantic domain (DMN 1.7 Beta 1, 10.3.2.2): the
   /// same date and the same time ([FeelTime::is]), zone or offset included, not only the same
   /// instant.

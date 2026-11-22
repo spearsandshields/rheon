@@ -393,20 +393,25 @@ impl ToFeelString for Value {
 }
 
 impl Jsonify for Value {
-  /// Converts a [Value] into `JSON`.
+  /// The value as JSON text (DMN 1.7 Beta 1, Table 48), as the HTTP server and the command line
+  /// write it: strings and the keys of contexts escaped as JSON escapes them, dates, times and
+  /// durations as ISO 8601 strings (a date and time with an IANA zone with its offset and the
+  /// zone in brackets, [FeelDateTime::json_text]), a list as an array, a context as an object, a
+  /// range as its text, a function as the text of its type, and every null as `null` (its reason
+  /// is not part of the value).
   fn jsonify(&self) -> String {
     match self {
       Value::Boolean(value) => format!("{value}"),
       Value::Number(value) => value.jsonify(),
-      Value::String(s) => format!(r#""{s}""#),
-      Value::Date(date) => format!(r#""{}""#, date),
-      Value::Time(time) => format!(r#""{}""#, time),
-      Value::DateTime(date_time) => format!(r#""{}""#, date_time),
-      Value::DaysAndTimeDuration(dt_duration) => format!(r#""{}""#, dt_duration),
-      Value::YearsAndMonthsDuration(ym_duration) => format!(r#""{}""#, ym_duration),
+      Value::String(s) => json_string(s),
+      Value::Date(date) => json_string(&date.to_string()),
+      Value::Time(time) => json_string(&time.to_string()),
+      Value::DateTime(date_time) => json_string(&date_time.json_text()),
+      Value::DaysAndTimeDuration(dt_duration) => json_string(&dt_duration.to_string()),
+      Value::YearsAndMonthsDuration(ym_duration) => json_string(&ym_duration.to_string()),
       Value::ExpressionList(items) => values_to_jsonify(items),
       Value::Context(ctx) => ctx.jsonify(),
-      Value::ContextEntryKey(name) => name.to_string(),
+      Value::ContextEntryKey(name) => json_string(&name.to_string()),
       Value::List(items) => values_to_jsonify(items),
       range @ (Value::Range(..)
       | Value::UnaryGreater(_)
@@ -414,17 +419,36 @@ impl Jsonify for Value {
       | Value::UnaryLess(_)
       | Value::UnaryLessOrEqual(_)
       | Value::UnaryEqual(_)
-      | Value::UnaryNotEqual(_)) => format!(r#""{}""#, range),
-      Value::Null(message) => {
-        if let Some(details) = message {
-          format!(r#""null({details})""#)
-        } else {
-          "null".to_string()
-        }
+      | Value::UnaryNotEqual(_)) => json_string(&range.to_string()),
+      Value::Null(_) => "null".to_string(),
+      function @ (Value::FunctionDefinition(_) | Value::BuiltInFunction(_) | Value::ExternalJavaFunction(..) | Value::ExternalPmmlFunction(..)) => {
+        json_string(&function.type_of().to_string())
       }
-      _ => format!("jsonify trait not implemented for value: {self}"),
+      other => json_string(&other.to_string()),
     }
   }
+}
+
+/// `text` as a JSON string: `"` and `\` escaped, the two-character escapes where JSON has one, and
+/// `\u00XX` for the other control characters, as `serde_json` writes it.
+pub fn json_string(text: &str) -> String {
+  let mut out = String::with_capacity(text.len() + 2);
+  out.push('"');
+  for c in text.chars() {
+    match c {
+      '"' => out.push_str("\\\""),
+      '\\' => out.push_str("\\\\"),
+      '\n' => out.push_str("\\n"),
+      '\r' => out.push_str("\\r"),
+      '\t' => out.push_str("\\t"),
+      '\u{08}' => out.push_str("\\b"),
+      '\u{0C}' => out.push_str("\\f"),
+      c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+      c => out.push(c),
+    }
+  }
+  out.push('"');
+  out
 }
 
 impl Value {
