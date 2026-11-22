@@ -360,3 +360,23 @@ fn an_unsupplied_named_parameter_is_null() {
   assert!(shown("date(year: 2020, month: 1)").starts_with("null("));
   assert_eq!(shown("is(value1: null)"), "true");
 }
+
+#[test]
+fn the_duration_conversions_of_dmn_1_7() {
+  // DMN 1.7 Beta 1, Table 73: days and time duration(from), years and months duration(from)
+  assert_eq!(shown(r#"days and time duration("P2DT20H14M")"#), "P2DT20H14M");
+  assert_eq!(
+    shown(r#"date and time("2012-12-24T23:59:00") - date and time("2012-12-22T03:45:00") = days and time duration("P2DT20H14M")"#),
+    "true"
+  );
+  assert_eq!(shown(r#"years and months duration("P2Y2M") = years and months duration("P26M")"#), "true");
+  assert_eq!(shown(r#"years and months duration(from: "P1Y")"#), "P1Y");
+  assert_eq!(shown(r#"days and time duration(from: "PT1H")"#), "PT1H");
+  assert!(shown(r#"days and time duration("P1Y")"#).starts_with("null(days and time duration: expected a days and time duration string"));
+  assert!(shown(r#"years and months duration("P1D")"#).starts_with("null(years and months duration: expected a years and months duration string"));
+  assert!(shown(r#"days and time duration("x")"#).starts_with("null(days and time duration: invalid duration literal"));
+  // the two-date form stays
+  assert_eq!(shown(r#"years and months duration(date("2011-12-22"), date("2013-08-24"))"#), "P1Y8M");
+  // a date time literal in a range (rule 60)
+  assert_eq!(shown(r#"range("[days and time duration(\"P1D\")..days and time duration(\"P2D\")]")"#), "[P1D..P2D]");
+}

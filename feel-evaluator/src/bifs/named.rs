@@ -166,6 +166,7 @@ fn apply(bif: Bif, parameters: &NamedParameters) -> Value {
     Bif::Count => bif_count(parameters),
     Bif::Date => bif_date(parameters),
     Bif::DateAndTime => bif_date_and_time(parameters),
+    Bif::DaysAndTimeDuration => bif_days_and_time_duration(parameters),
     Bif::DayOfWeek => bif_day_of_week(parameters),
     Bif::DayOfYear => bif_day_of_year(parameters),
     Bif::Decimal => bif_decimal(parameters),
@@ -1303,8 +1304,16 @@ fn bif_years_and_months_duration(parameters: &NamedParameters) -> Value {
     if let Some((to_value, _)) = get_param(parameters, &NAME_TO) {
       core::years_and_months_duration(from_value, to_value)
     } else {
-      parameter_not_found!(NAME_TO)
+      core::years_and_months_duration_of(from_value)
     }
+  } else {
+    parameter_not_found!(NAME_FROM)
+  }
+}
+
+fn bif_days_and_time_duration(parameters: &NamedParameters) -> Value {
+  if let Some((from_value, _)) = get_param(parameters, &NAME_FROM) {
+    core::days_and_time_duration(from_value)
   } else {
     parameter_not_found!(NAME_FROM)
   }

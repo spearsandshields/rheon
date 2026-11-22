@@ -210,7 +210,7 @@ const fn built(name: &'static str, summary: &'static str, signatures: &'static [
 
 /// The built-in functions, in the order of [crate::bif::BUILT_IN_FUNCTION_NAMES].
 #[rustfmt::skip]
-pub static BUILT_INS: [BuiltIn; 89] = [
+pub static BUILT_INS: [BuiltIn; 90] = [
   built("abs", "The absolute value.", &[
     named(&[p("n", "number or duration")], "number or duration"),
   ]),
@@ -277,6 +277,9 @@ pub static BUILT_INS: [BuiltIn; 89] = [
   ]),
   built("day of year", "The number of the day in its year.", &[
     named(&[p("date", "date or date and time")], "number"),
+  ]),
+  built("days and time duration", "A days and time duration from its text.", &[
+    named(&[p("from", "string")], "days and time duration"),
   ]),
   built("decimal", "The number rounded to a scale, half to even.", &[
     named(&[p("n", "number"), p("scale", "number")], "number"),
@@ -505,7 +508,8 @@ pub static BUILT_INS: [BuiltIn; 89] = [
   built("week of year", "The number of the week in its year.", &[
     named(&[p("date", "date or date and time")], "number"),
   ]),
-  built("years and months duration", "The years and months between two dates.", &[
+  built("years and months duration", "A years and months duration from its text, or the years and months between two dates.", &[
+    named(&[p("from", "string")], "years and months duration"),
     named(&[p("from", "date or date and time"), p("to", "date or date and time")], "years and months duration"),
   ]),
 ];

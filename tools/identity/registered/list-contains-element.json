@@ -205,7 +205,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -1270,6 +1270,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 2,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 2,
           "info": "The number rounded to a scale, half to even.",
@@ -1830,9 +1838,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 2,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -1867,7 +1875,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -2932,6 +2940,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 5,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 5,
           "info": "The number rounded to a scale, half to even.",
@@ -3492,9 +3508,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 5,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -3529,7 +3545,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -4594,6 +4610,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 8,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 8,
           "info": "The number rounded to a scale, half to even.",
@@ -5154,9 +5178,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 8,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -5191,7 +5215,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -6256,6 +6280,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 4,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 4,
           "info": "The number rounded to a scale, half to even.",
@@ -6816,9 +6848,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 4,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -6853,7 +6885,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "call": {
         "argument": 0,
@@ -7976,6 +8008,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 4,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 4,
           "info": "The number rounded to a scale, half to even.",
@@ -8536,9 +8576,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 4,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -8572,7 +8612,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -9623,6 +9663,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 0,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 0,
           "info": "The number rounded to a scale, half to even.",
@@ -10183,9 +10231,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 0,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -10219,7 +10267,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -11312,6 +11360,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 12,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 12,
           "info": "The number rounded to a scale, half to even.",
@@ -11872,9 +11928,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 12,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -11908,7 +11964,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -12959,6 +13015,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 4,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 4,
           "info": "The number rounded to a scale, half to even.",
@@ -13519,9 +13583,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 4,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -13555,7 +13619,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -14606,6 +14670,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 3,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 3,
           "info": "The number rounded to a scale, half to even.",
@@ -15166,9 +15238,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 3,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -15202,7 +15274,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "call": {
         "argument": 0,
@@ -16367,6 +16439,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 10,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 10,
           "info": "The number rounded to a scale, half to even.",
@@ -16927,9 +17007,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 10,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -16963,7 +17043,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "call": {
         "argument": 1,
@@ -18080,6 +18160,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 17,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 17,
           "info": "The number rounded to a scale, half to even.",
@@ -18640,9 +18728,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 17,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -18676,7 +18764,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "call": {
         "argument": 0,
@@ -19883,6 +19971,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 5,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 5,
           "info": "The number rounded to a scale, half to even.",
@@ -20443,9 +20539,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 5,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -20479,7 +20575,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -21530,6 +21626,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 10,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 10,
           "info": "The number rounded to a scale, half to even.",
@@ -22090,9 +22194,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 10,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -22126,7 +22230,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -23177,6 +23281,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 4,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 4,
           "info": "The number rounded to a scale, half to even.",
@@ -23737,9 +23849,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 4,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -23774,7 +23886,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "call": {
         "argument": 1,
@@ -24891,6 +25003,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 17,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 17,
           "info": "The number rounded to a scale, half to even.",
@@ -25451,9 +25571,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 17,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -25473,7 +25593,7 @@
         "abc": 2
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -26482,6 +26602,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 10,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 10,
           "info": "The number rounded to a scale, half to even.",
@@ -27042,9 +27170,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 10,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -27092,7 +27220,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -28143,6 +28271,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 0,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 0,
           "info": "The number rounded to a scale, half to even.",
@@ -28703,9 +28839,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 0,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -28753,7 +28889,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -29832,6 +29968,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 12,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 12,
           "info": "The number rounded to a scale, half to even.",
@@ -30392,9 +30536,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 12,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -30442,7 +30586,7 @@
         }
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -31493,6 +31637,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 11,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 11,
           "info": "The number rounded to a scale, half to even.",
@@ -32053,9 +32205,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 11,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"
@@ -32074,7 +32226,7 @@
         "type": "number"
       }
     },
-    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it.",
+    "why": "DT-057: the second parameter of list contains is named element (DMN 1.7 Beta 1 and 1.6, 10.3.4.4, Table 76), not match; an invocation by name with element was null and one with match was accepted. The signature and description that the editor operations show change with it. DT-049: years and months duration takes one argument or two (DMN 1.7 Beta 1, Table 73); the arity and signature messages say so.",
     "old": {
       "expects": "expression",
       "items": [
@@ -33055,6 +33207,14 @@
           "type": "number"
         },
         {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 0,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        },
+        {
           "detail": "decimal(n, scale): number",
           "from": 0,
           "info": "The number rounded to a scale, half to even.",
@@ -33615,9 +33775,9 @@
           "type": "number"
         },
         {
-          "detail": "years and months duration(from, to): years and months duration",
+          "detail": "years and months duration(from): years and months duration",
           "from": 0,
-          "info": "The years and months between two dates.",
+          "info": "A years and months duration from its text, or the years and months between two dates.",
           "kind": "function",
           "label": "years and months duration",
           "type": "years and months duration"

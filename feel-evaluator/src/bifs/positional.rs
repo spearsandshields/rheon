@@ -30,6 +30,7 @@ fn apply(bif: Bif, parameters: &[Value]) -> Value {
     Bif::Count => bif_count(parameters),
     Bif::Date => bif_date(parameters),
     Bif::DateAndTime => bif_date_and_time(parameters),
+    Bif::DaysAndTimeDuration => bif_days_and_time_duration(parameters),
     Bif::DayOfWeek => bif_day_of_week(parameters),
     Bif::DayOfYear => bif_day_of_year(parameters),
     Bif::Decimal => bif_decimal(parameters),
@@ -787,7 +788,15 @@ fn bif_week_of_year(parameters: &[Value]) -> Value {
 
 fn bif_years_and_months_duration(parameters: &[Value]) -> Value {
   match parameters.len() {
+    1 => core::years_and_months_duration_of(&parameters[0]),
     2 => core::years_and_months_duration(&parameters[0], &parameters[1]),
-    n => invalid_number_of_parameters!(2, n),
+    n => invalid_number_of_parameters!("1 or 2", n),
+  }
+}
+
+fn bif_days_and_time_duration(parameters: &[Value]) -> Value {
+  match parameters.len() {
+    1 => core::days_and_time_duration(&parameters[0]),
+    n => invalid_number_of_parameters!(1, n),
   }
 }

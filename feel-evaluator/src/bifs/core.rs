@@ -444,6 +444,28 @@ pub fn distinct_values(value: &Value) -> Value {
 }
 
 /// Converts string value to a days and time or years and months duration.
+/// `days and time duration(from)` (DMN 1.7 Beta 1, Table 73): the days and time duration of a
+/// duration string; null for the text of a years and months duration.
+pub fn days_and_time_duration(value: &Value) -> Value {
+  match duration(value) {
+    duration @ Value::DaysAndTimeDuration(_) => duration,
+    Value::YearsAndMonthsDuration(_) => value_null!("days and time duration: expected a days and time duration string, found '{}'", arg(value)),
+    Value::Null(Some(reason)) if matches!(value, Value::String(_)) => value_null!("{}", reason.replacen("duration:", "days and time duration:", 1)),
+    _ => invalid_argument_type!("days and time duration", "string", value),
+  }
+}
+
+/// `years and months duration(from)` (DMN 1.7 Beta 1, Table 73): the years and months duration of a
+/// duration string; null for the text of a days and time duration.
+pub fn years_and_months_duration_of(value: &Value) -> Value {
+  match duration(value) {
+    duration @ Value::YearsAndMonthsDuration(_) => duration,
+    Value::DaysAndTimeDuration(_) => value_null!("years and months duration: expected a years and months duration string, found '{}'", arg(value)),
+    Value::Null(Some(reason)) if matches!(value, Value::String(_)) => value_null!("{}", reason.replacen("duration:", "years and months duration:", 1)),
+    _ => invalid_argument_type!("years and months duration", "string", value),
+  }
+}
+
 pub fn duration(value: &Value) -> Value {
   if let Value::String(s) = value {
     if let Some(ym_duration) = FeelYearsAndMonthsDuration::parse(s.as_str()) {

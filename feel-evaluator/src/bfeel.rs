@@ -52,6 +52,7 @@ pub fn bif_default(bif: &Bif) -> Option<Value> {
     DateAndTime | Now => epoch_date_time(),
     Time => epoch_time(),
     Duration | YearsAndMonthsDuration => zero_ym_duration(),
+    DaysAndTimeDuration => Value::DaysAndTimeDuration(rheon_feel_temporal::FeelDaysAndTimeDuration::default()),
     Append | Concatenate | DistinctValues | Flatten | GetEntries | IndexOf | InsertAfter | InsertBefore | Intersection | ListReplace | Mode | Remove | Reverse | Sort | Split
     | Sublist | Union => Value::List(vec![].into()),
     Range => empty_range(),

@@ -1,0 +1,1135 @@
+[
+  {
+    "request": {
+      "op": "complete",
+      "expression": "da",
+      "context": {
+        "Monthly Salary": 1,
+        "Tax Rate": 2,
+        "a": 1,
+        "items": [
+          1,
+          2
+        ],
+        "order": {
+          "total": 1,
+          "lines": [
+            {
+              "price": 1,
+              "unit count": 2
+            }
+          ]
+        }
+      }
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "date(from): date",
+          "from": 0,
+          "info": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "from": 0,
+          "info": "A date and time from its text, or from a date and a time.",
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "from": 0,
+          "info": "The name of the day of the week.",
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "from": 0,
+          "info": "The number of the day in its year.",
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        }
+      ],
+      "ok": true,
+      "to": 2,
+      "truncated": false
+    },
+    "new": {
+      "expects": "expression",
+      "items": [
+        {
+          "detail": "date(from): date",
+          "from": 0,
+          "info": "A date from its text, from a date and time, or from a year, a month and a day.",
+          "kind": "function",
+          "label": "date",
+          "type": "date"
+        },
+        {
+          "detail": "date and time(from): date and time",
+          "from": 0,
+          "info": "A date and time from its text, or from a date and a time.",
+          "kind": "function",
+          "label": "date and time",
+          "type": "date and time"
+        },
+        {
+          "detail": "day of week(date): string",
+          "from": 0,
+          "info": "The name of the day of the week.",
+          "kind": "function",
+          "label": "day of week",
+          "type": "string"
+        },
+        {
+          "detail": "day of year(date): number",
+          "from": 0,
+          "info": "The number of the day in its year.",
+          "kind": "function",
+          "label": "day of year",
+          "type": "number"
+        },
+        {
+          "detail": "days and time duration(from): days and time duration",
+          "from": 0,
+          "info": "A days and time duration from its text.",
+          "kind": "function",
+          "label": "days and time duration",
+          "type": "days and time duration"
+        }
+      ],
+      "ok": true,
+      "to": 2,
+      "truncated": false
+    }
+  },
+  {
+    "expression": "days and time duration(\"P2DT20H14M\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P2DT20H14M\"",
+        "feel": "P2DT20H14M",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P2DT20H14M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "days and time duration(\"P2DT20H14M\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P2DT20H14M\"",
+        "feel": "P2DT20H14M",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P2DT20H14M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "years and months duration(\"P2Y2M\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 2 parameters, actual number of parameters is 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected 2 parameters, actual number of parameters is 1)",
+        "isNull": true,
+        "nullReason": "expected 2 parameters, actual number of parameters is 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P2Y2M\"",
+        "feel": "P2Y2M",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P2Y2M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "years and months duration(\"P2Y2M\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 2 parameters, actual number of parameters is 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P0M\"",
+        "feel": "P0M",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P0M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P2Y2M\"",
+        "feel": "P2Y2M",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P2Y2M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "years and months duration(from: \"P1Y\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'to' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(parameter 'to' not found)",
+        "isNull": true,
+        "nullReason": "parameter 'to' not found",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P1Y\"",
+        "feel": "P1Y",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P1Y",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "years and months duration(from: \"P1Y\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "parameter 'to' not found"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P0M\"",
+        "feel": "P0M",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P0M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P1Y\"",
+        "feel": "P1Y",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P1Y",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "days and time duration(from: \"PT1H\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"PT1H\"",
+        "feel": "PT1H",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "PT1H",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "days and time duration(from: \"PT1H\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"PT1H\"",
+        "feel": "PT1H",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "PT1H",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "expression": "days and time duration(\"P1Y\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "days and time duration: expected a days and time duration string, found '\"P1Y\"'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(days and time duration: expected a days and time duration string, found '\"P1Y\"')",
+        "isNull": true,
+        "nullReason": "days and time duration: expected a days and time duration string, found '\"P1Y\"'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "days and time duration(\"P1Y\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"PT0S\"",
+        "feel": "PT0S",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "PT0S",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "days and time duration: expected a days and time duration string, found '\"P1Y\"'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "years and months duration(\"P1D\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 2 parameters, actual number of parameters is 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected 2 parameters, actual number of parameters is 1)",
+        "isNull": true,
+        "nullReason": "expected 2 parameters, actual number of parameters is 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "years and months duration: expected a years and months duration string, found '\"P1D\"'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(years and months duration: expected a years and months duration string, found '\"P1D\"')",
+        "isNull": true,
+        "nullReason": "years and months duration: expected a years and months duration string, found '\"P1D\"'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "years and months duration(\"P1D\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected 2 parameters, actual number of parameters is 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P0M\"",
+        "feel": "P0M",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P0M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"P0M\"",
+        "feel": "P0M",
+        "isNull": false,
+        "type": "years and months duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "P0M",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "years and months duration: expected a years and months duration string, found '\"P1D\"'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "days and time duration(\"x\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "duration: invalid duration literal: 'x'",
+          "days and time duration: invalid duration literal: 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(days and time duration: invalid duration literal: 'x')",
+        "isNull": true,
+        "nullReason": "days and time duration: invalid duration literal: 'x'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "days and time duration(\"x\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"PT0S\"",
+        "feel": "PT0S",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "PT0S",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "duration: invalid duration literal: 'x'"
+        },
+        {
+          "message": "days and time duration: invalid duration literal: 'x'"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "days and time duration(1)",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "[core::duration] invalid argument type, expected string, actual type is number",
+          "[core::days and time duration] invalid argument type, expected string, actual type is number"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::days and time duration] invalid argument type, expected string, actual type is number)",
+        "isNull": true,
+        "nullReason": "[core::days and time duration] invalid argument type, expected string, actual type is number",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "days and time duration(1)",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'days and time duration'",
+          "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration'))",
+        "isNull": true,
+        "nullReason": "expected built-in function name or function definition, actual is null(context has no value for key 'days and time duration')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"PT0S\"",
+        "feel": "PT0S",
+        "isNull": false,
+        "type": "days and time duration",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "PT0S",
+            "type": "xsd:duration"
+          }
+        }
+      },
+      "warnings": [
+        {
+          "message": "[core::duration] invalid argument type, expected string, actual type is number"
+        },
+        {
+          "message": "[core::days and time duration] invalid argument type, expected string, actual type is number"
+        }
+      ]
+    }
+  },
+  {
+    "expression": "range(\"[days and time duration(\\\"P1D\\\")..days and time duration(\\\"P2D\\\")]\")",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid range literal"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(invalid range literal)",
+        "isNull": true,
+        "nullReason": "invalid range literal",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[P1D..P2D]\"",
+        "feel": "[P1D..P2D]",
+        "isNull": false,
+        "type": "range<days and time duration>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "evaluate",
+      "expression": "range(\"[days and time duration(\\\"P1D\\\")..days and time duration(\\\"P2D\\\")]\")",
+      "language": "b-feel"
+    },
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "old": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "invalid range literal"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "\"(0..0)\"",
+        "feel": "(0..0)",
+        "isNull": false,
+        "type": "range<number>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "\"[P1D..P2D]\"",
+        "feel": "[P1D..P2D]",
+        "isNull": false,
+        "type": "range<days and time duration>",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": null
+        }
+      },
+      "warnings": []
+    }
+  }
+]

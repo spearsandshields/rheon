@@ -11,7 +11,7 @@ fn _0001() {
     &MODEL_NAME,
     "feel-years-and-months-duration-function_ErrorCase_001_b24a0c91f2",
     &ctx,
-    r#"null(expected 2 parameters, actual number of parameters is 1)"#,
+    r#"null([core::years and months duration] invalid argument type, expected string, actual type is Null)"#,
   );
 }
 
@@ -89,7 +89,7 @@ fn _0007() {
     &MODEL_NAME,
     "feel-years-and-months-duration-function_ErrorCase_007_0921c3d61a",
     &ctx,
-    r#"null(expected 2 parameters, actual number of parameters is 0)"#,
+    r#"null(expected 1 or 2 parameters, actual number of parameters is 0)"#,
   );
 }
 
@@ -362,7 +362,7 @@ fn _0028() {
     &MODEL_NAME,
     "feel-years-and-months-duration-function_ErrorCase_028_77600e7b35",
     &ctx,
-    r#"null(expected 2 parameters, actual number of parameters is 1)"#,
+    r#"null([core::years and months duration] invalid argument type, expected string, actual type is number)"#,
   );
 }
 
@@ -375,7 +375,7 @@ fn _0029() {
     &MODEL_NAME,
     "feel-years-and-months-duration-function_ErrorCase_029_15a0d0d9c1",
     &ctx,
-    r#"null(expected 2 parameters, actual number of parameters is 1)"#,
+    r#"null(years and months duration: invalid duration literal: '2012T-12-2511:00:00Z')"#,
   );
 }
 
