@@ -146,3 +146,22 @@ fn named_lists_of_the_list_number_functions_drop_what_is_no_number() {
     bf(positional, expected, Some("null"));
   }
 }
+
+#[test]
+fn the_b_feel_uris_select_b_feel() {
+  // DMN 1.6 and 1.7 Beta 1, 11.1: the B-FEEL URI, and the versioned one for other languages
+  for uri in [
+    "https://www.omg.org/spec/DMN/20240513/B-FEEL/",
+    "https://www.omg.org/spec/DMN/B-FEEL/",
+    "https://www.omg.org/spec/DMN/B-FEEL/1.7",
+  ] {
+    assert_eq!(Dialect::BFeel, Dialect::from_expression_language(uri), "{uri}");
+  }
+  for uri in [
+    "https://www.omg.org/spec/DMN/FEEL/",
+    "https://www.omg.org/spec/DMN/FEEL/1.7",
+    "https://www.omg.org/spec/DMN/20240513/FEEL/",
+  ] {
+    assert_eq!(Dialect::Feel, Dialect::from_expression_language(uri), "{uri}");
+  }
+}

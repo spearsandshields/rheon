@@ -28,11 +28,12 @@ pub enum Dialect {
 }
 
 impl Dialect {
-  /// The dialect selected by an `expressionLanguage` URI: B-FEEL for the DMN 1.6 B-FEEL URI (and
-  /// the version-less form of DMN 1.7 beta), FEEL for anything else.
+  /// The dialect selected by an `expressionLanguage` URI: B-FEEL for the DMN 1.6 B-FEEL URI, the
+  /// version-less form of DMN 1.7 and its versioned form for other languages such as BPMN
+  /// (`https://www.omg.org/spec/DMN/B-FEEL/1.7`, DMN 1.7 Beta 1, 11.1), FEEL for anything else.
   pub fn from_expression_language(uri: &str) -> Self {
     match uri.trim().trim_end_matches('/') {
-      "https://www.omg.org/spec/DMN/20240513/B-FEEL" | "https://www.omg.org/spec/DMN/B-FEEL" => Dialect::BFeel,
+      "https://www.omg.org/spec/DMN/20240513/B-FEEL" | "https://www.omg.org/spec/DMN/B-FEEL" | "https://www.omg.org/spec/DMN/B-FEEL/1.7" => Dialect::BFeel,
       _ => Dialect::Feel,
     }
   }
