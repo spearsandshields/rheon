@@ -30,7 +30,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 ```jsonc
 {
   "op": "evaluate" | "evaluateAll" | "evaluateEach" | "parse" | "syntax" | "complete" | "outline" | "format" | "info",
-  "dialect": "expression" | "unaryTests",   // evaluate/parse; default "expression"
+  "dialect": "expression" | "unaryTests" | "simpleExpression" | "simpleExpressions" | "textualExpressions",   // default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
   "contextFormat": "json" | "feel",          // optional, default "json"; with "feel", `context` is a STRING holding a FEEL context literal
@@ -48,6 +48,10 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 - `errorMode: "strict"`: when any error occurred during the evaluation (a null created with an error reason, see `diagnostics`; in B-FEEL not the errors behind its defaults, which are warnings), the response is an `evaluation` error whose message is `strict error mode: <first error>`, instead of a result. `"lenient"` returns the result and lists the errors.
 - `maxSteps`: a budget for one evaluation. Every function call (of a user-defined, built-in or model function) and every item that a `for`, `some`, `every` or a filter visits is a step. The step after the last one of the budget stops the evaluation, and the response is an `evaluation` error with the message `evaluation took more than <maxSteps> steps; evaluation stopped`. Without the field an evaluation has no budget of steps; the limits of §1 still bound it. A value that is not a positive integer is a `request` error.
 
+- `dialect` names the start rule of the grammar that the text is read as (DMN 1.7 Beta 1, 10.3.1.2 and 9.2), in every op that takes an expression:
+  - `"expression"` (default): an expression; `"unaryTests"`: unary tests of the value `input`.
+  - `"simpleExpression"`: a simple expression of S-FEEL (clause 9.2, rule 3), what the decision tables and invocations of conformance level 2 hold (clause 9.5): names and qualified names, numbers without exponent, strings, booleans, `date`, `time`, `duration`, `days and time duration` and `years and months duration` of one string literal, arithmetic and comparisons. Any other construct (parentheses, `null`, `@` literals, `if`, `for`, `and`, functions, lists, contexts, ...) is a `syntax` error that names it and its place, and the editor ops show it there. The text means what it means in FEEL (clause 9.4).
+  - `"simpleExpressions"`: simple expressions separated by `,` (rule 4); `"textualExpressions"`: textual expressions separated by `,` (grammar rule 3; a list, context or function definition alone is no textual expression, in parentheses it is). Both evaluate to the list of the values, one item per expression.
 - `parse` also accepts `context`/`contextFormat` (optional): the parser needs to know which multi-word names exist (`Grace's age + 1` only parses as a name if `Grace's age` is in the context). For `dialect: "unaryTests"`, `?` is always a known name.
 - Unary tests are evaluated as dsntk's decision tables do: the tested value is bound to the name `?` in the scope and the result is `? in (<unary tests>)`: the `or` of the tests (DMN 1.6 Table 56). It is `true` when one test is true, `false` when every test is false, and null with the reason when no test is true and one has no answer, because the tested value is of another kind than the test (`"a"` tested by `< 10` or by `1, 2`). `not(<tests>)` is the negation, so it is null where the tests are. A decision table matches on `true` (clause 8.3.3), so null is no match. A test that is a boolean expression using `?` (a comparison, `and`, `or`, `between`, `in`, `instance of` or `not(...)`), e.g. `? > 5`, is satisfied when it is true (clause 7.3.2 d); any other test is compared with the tested value.
 - If neither `input` nor `context["?"]` is given for unary tests, `?` is null and a warning is returned.
@@ -317,7 +321,7 @@ Failure (the instance stays healthy):
 ## 4. JS runtime API (`packages/feel-runtime`, TypeScript, ESM)
 
 ```ts
-export type Dialect = 'expression' | 'unaryTests';
+export type Dialect = 'expression' | 'unaryTests' | 'simpleExpression' | 'simpleExpressions' | 'textualExpressions';
 /** Raw JSON text, spliced verbatim into the request JSON (keeps exact number digits). Only values made by rawJson() count (private Symbol.for brand). */
 export interface RawJson { readonly rawJson: string; }
 export interface RequestOptions { signal?: AbortSignal; }

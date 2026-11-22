@@ -911,7 +911,10 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
   check(
     json!({"op": "evaluate", "expression": "41 + 1", "dialect": x}),
     "request",
-    format!("invalid 'dialect' \"{}… (200 characters) (expected \"expression\" or \"unaryTests\")", "x".repeat(119)),
+    format!(
+      "invalid 'dialect' \"{}… (200 characters) (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
+      "x".repeat(119)
+    ),
   );
   check(
     json!({"op": "y".repeat(300)}),
@@ -997,8 +1000,16 @@ fn request_error_messages() {
   }
   // the options name the offending JSON value
   for (option, value, expected) in [
-    ("dialect", json!("boxed"), "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")"),
-    ("dialect", json!(1), "invalid 'dialect' 1 (expected \"expression\" or \"unaryTests\")"),
+    (
+      "dialect",
+      json!("boxed"),
+      "invalid 'dialect' \"boxed\" (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
+    ),
+    (
+      "dialect",
+      json!(1),
+      "invalid 'dialect' 1 (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
+    ),
     ("language", json!("x"), "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")"),
     ("language", json!(true), "invalid 'language' true (expected \"feel\" or \"b-feel\")"),
     ("errorMode", json!("x"), "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")"),
@@ -1086,7 +1097,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 #[test]
 fn request_error_order() {
   let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')";
-  let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\" or \"unaryTests\")";
+  let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
   let missing_expression = "missing 'expression'";
@@ -2791,4 +2802,53 @@ fn now_pins_the_clock_of_a_request() {
   // the next request reads the system clock again
   let year = display(json!({"op": "evaluate", "expression": "string(today().year)", "tzOffsetMinutes": 0}));
   assert_ne!(year, "\"2001\"");
+}
+
+#[test]
+fn start_rules_of_s_feel_and_lists_of_expressions() {
+  // DT-002: simpleExpression and simpleExpressions (DMN 1.7 Beta 1, clause 9.2, rules 3 and 4),
+  // textualExpressions (grammar rule 3)
+  let context = json!({"Age": 20, "Score": 3});
+  let evaluated = |dialect: &str, expression: &str| {
+    ok(json!({"op": "evaluate", "dialect": dialect, "expression": expression, "context": context}))["result"]["display"]
+      .as_str()
+      .unwrap()
+      .to_string()
+  };
+  assert_eq!(evaluated("simpleExpression", "Age + 1 >= 18"), "true");
+  assert_eq!(evaluated("simpleExpression", "date(\"2020-01-01\") + duration(\"P1D\")"), "\"2020-01-02\"");
+  assert_eq!(evaluated("simpleExpressions", "Age, Score * 2"), "[20, 6]");
+  assert_eq!(evaluated("simpleExpressions", "Age"), "[20]");
+  assert_eq!(
+    evaluated("textualExpressions", "if Age > 18 then \"adult\" else \"minor\", for i in 1..2 return i"),
+    "[\"adult\", [1, 2]]"
+  );
+  // a construct S-FEEL has not is a syntax error that says where and what it is
+  let response = req(json!({"op": "evaluate", "dialect": "simpleExpression", "expression": "Age > 18 and Score > 2", "context": context}));
+  assert_eq!(error_kind(&response), "syntax", "{response}");
+  assert!(
+    response
+      .to_string()
+      .contains("Expected a simple expression (S-FEEL, DMN 9.2), found a conjunction `Age > 18 and Score > 2`."),
+    "{response}"
+  );
+  // the same text is FEEL
+  assert_eq!(evaluated("expression", "Age > 18 and Score > 2"), "true");
+  // the editor ops take the dialects
+  let syntax = ok(json!({"op": "syntax", "dialect": "simpleExpression", "expression": "if Age > 18 then 1 else 2"}));
+  assert!(syntax.to_string().contains("found an if expression"), "{syntax}");
+  let syntax = ok(json!({"op": "syntax", "dialect": "textualExpressions", "expression": "1, 2 +"}));
+  assert!(syntax.to_string().contains("Expected"), "{syntax}");
+  let formatted = ok(json!({"op": "format", "dialect": "simpleExpressions", "expression": "Age,Score+1"}));
+  assert_eq!(formatted["formatted"], "Age, Score + 1", "{formatted}");
+  // completion offers no keyword or function that S-FEEL has not
+  let completed = ok(json!({"op": "complete", "dialect": "simpleExpression", "expression": "", "context": context}));
+  let labels: Vec<&str> = completed["items"].as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+  assert!(labels.contains(&"Age") && labels.contains(&"true") && labels.contains(&"date"), "{labels:?}");
+  assert!(!labels.contains(&"if") && !labels.contains(&"abs") && !labels.contains(&"null"), "{labels:?}");
+  // in evaluateAll and evaluateEach as in evaluate
+  let all = ok(json!({"op": "evaluateAll", "context": context, "evaluations": [{"dialect": "simpleExpressions", "expression": "Age, 1"}]}));
+  assert_eq!(all["results"][0]["result"]["display"], "[20, 1]", "{all}");
+  let each = ok(json!({"op": "evaluateEach", "dialect": "simpleExpression", "expression": "Age * 2", "entries": [{"context": {"Age": 1}}, {"context": {"Age": 2}}]}));
+  assert_eq!(each["results"][1]["result"]["display"], "4", "{each}");
 }

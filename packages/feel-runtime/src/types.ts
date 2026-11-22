@@ -1,6 +1,11 @@
 /** Public types of the FEEL runtime (docs/CONTRACT.md §4). */
 
-export type Dialect = 'expression' | 'unaryTests';
+/**
+ * The start rule that a text is read as: an expression (default), unary tests, a simple
+ * expression of S-FEEL (DMN 9.2), or a list of simple or textual expressions (the list of
+ * their values). See docs/CONTRACT.md.
+ */
+export type Dialect = 'expression' | 'unaryTests' | 'simpleExpression' | 'simpleExpressions' | 'textualExpressions';
 
 /**
  * Raw JSON text, spliced verbatim into the request JSON (keeps exact number digits).

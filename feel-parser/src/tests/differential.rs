@@ -1887,7 +1887,12 @@ fn name_costs_loop() {
 
 /// Formats a text in a scope of the tests.
 fn formatted(frames: &[FeelContext], unary_tests: bool, input: &str, width: usize) -> crate::Formatted {
-  crate::format::format(&|| ParsingScope::new(frames), input, unary_tests, width)
+  crate::format::format(
+    &|| ParsingScope::new(frames),
+    input,
+    if unary_tests { crate::StartRule::UnaryTests } else { crate::StartRule::Expression },
+    width,
+  )
 }
 
 /// The formatter on random and chosen texts, at several widths: a text without syntax errors is

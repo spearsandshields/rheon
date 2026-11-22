@@ -11,7 +11,7 @@ use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
 use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::values::Value;
 use rheon_feel_evaluator::{infer_type, members_of, type_of_text, type_of_value};
-use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant};
+use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, StartRule, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant_start};
 
 /// The most items a `complete` answer holds.
 const MAX_ITEMS: usize = 200;
@@ -215,8 +215,8 @@ fn diagnostics_json(syntax: &Syntax, places: &Places) -> Vec<Json> {
 }
 
 /// The syntax errors of a text that `parse` refused, for the error of the response.
-pub(super) fn diagnostics(scope: &FeelScope, expression: &str, unary_tests: bool) -> Json {
-  let syntax = parse_tolerant(scope, expression, unary_tests);
+pub(super) fn diagnostics(scope: &FeelScope, expression: &str, rule: StartRule) -> Json {
+  let syntax = parse_tolerant_start(scope, expression, rule);
   Json::Array(diagnostics_json(&syntax, &Places::new(expression)))
 }
 
@@ -231,7 +231,7 @@ pub(super) fn syntax(mut req: Map<String, Json>, unread: Unread, started: Instan
     Some(_) => return fail(Kind::Request, "'tree' must be true or false"),
   };
   let scope = scope(req, unread, dialect)?;
-  let syntax = parse_tolerant(&scope, &expression, dialect == Dialect::UnaryTests);
+  let syntax = parse_tolerant_start(&scope, &expression, dialect.rule());
   let places = Places::new(&expression);
   let tokens: Vec<Json> = syntax.tokens.iter().map(|t| json!([t.class.as_str(), places.of(t.start), places.of(t.end)])).collect();
   let diagnostics = diagnostics_json(&syntax, &places);
@@ -776,7 +776,8 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
   };
   let scope = scope(req, unread, dialect)?;
   let before = &expression[..cursor];
-  let syntax = parse_tolerant(&scope, before, unary_tests);
+  let rule = dialect.rule();
+  let syntax = parse_tolerant_start(&scope, before, rule);
   let mut items = vec![];
   let expects;
   let invocation;
@@ -800,7 +801,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     // fits where its last word starts (`if a th` is `if a` and the start of `then`)
     Some((from, typed)) => {
       let head = &before[..from];
-      let head_syntax = parse_tolerant(&scope, head, unary_tests);
+      let head_syntax = parse_tolerant_start(&scope, head, rule);
       invocation = call(head, &head_syntax);
       let at_start = with_parameters(expected(&scope, head, &head_syntax, unary_tests), &invocation);
       offer(&mut items, &at_start, typed, from);
@@ -808,7 +809,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       if let Some(space) = typed.rfind(char::is_whitespace) {
         let word = from + space + typed[space..].chars().next().map_or(0, char::len_utf8);
         let head = &before[..word];
-        let at_word = expected(&scope, head, &parse_tolerant(&scope, head, unary_tests), unary_tests);
+        let at_word = expected(&scope, head, &parse_tolerant_start(&scope, head, rule), unary_tests);
         offer(&mut items, &at_word, &before[word..], word);
       }
     }
@@ -818,6 +819,14 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       offer(&mut items, &at_cursor, "", cursor);
       expects = at_cursor.name;
     }
+  }
+  if dialect.simple() {
+    // S-FEEL has no keywords but true and false, and of the functions only its date literals
+    items.retain(|item| match item.kind {
+      "keyword" => matches!(item.label.as_str(), "true" | "false"),
+      "function" => matches!(item.label.as_str(), "date" | "time" | "duration" | "days and time duration" | "years and months duration"),
+      _ => true,
+    });
   }
   let order = |kind: &str| ["parameter", "name", "entry", "keyword", "function", "type"].iter().position(|k| *k == kind);
   items.sort_by(|a, b| order(a.kind).cmp(&order(b.kind)).then_with(|| a.label.to_lowercase().cmp(&b.label.to_lowercase())));
@@ -877,7 +886,7 @@ pub(super) fn format(mut req: Map<String, Json>, unread: Unread, started: Instan
     Some(_) => return fail(Kind::Request, WIDTH),
   };
   let scope = scope(req, unread, dialect)?;
-  let (formatted, reason) = match rheon_feel_parser::format(&scope, &expression, dialect == Dialect::UnaryTests, width) {
+  let (formatted, reason) = match rheon_feel_parser::format_start(&scope, &expression, dialect.rule(), width) {
     Formatted::Text(formatted) => (formatted, None),
     Formatted::Unchanged => (
       expression.clone(),

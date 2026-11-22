@@ -37,6 +37,9 @@ await engine.evaluate({ expression: 'b * 2', context: '{a: 1, b: a + 1}' });
 // Unary tests: the input is bound to `?`; the result is `? in (<tests>)`
 await engine.evaluate({ dialect: 'unaryTests', expression: '[1..10], > 20', input: 25 });
 
+// S-FEEL (DMN 9.2): a construct it has not, such as `if` or `and`, is a syntax error
+await engine.evaluate({ dialect: 'simpleExpression', expression: 'Age + 1 >= 18', context: { Age: 20 } });
+
 // Several expressions over one context: the context is sent and read once.
 // results[i] is what evaluate answers for evaluations[i], with its id; one that fails is a failure in its place.
 await engine.evaluateAll({

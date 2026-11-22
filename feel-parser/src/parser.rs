@@ -472,6 +472,64 @@ enum Made {
   Textual,
 }
 
+/// The start rules of the grammar that a text can be parsed as ([crate::parse_start]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StartRule {
+  /// An `expression` (grammar rule 1).
+  Expression,
+  /// `unary tests` (grammar rule 15).
+  UnaryTests,
+  /// A `simple expression` of S-FEEL (DMN 1.7 Beta 1, clause 9.2, rule 3): arithmetic and
+  /// comparisons of names, qualified names and simple literals, as the decision tables and
+  /// invocations of conformance level 2 have them (clause 9.5). It means what it means in FEEL.
+  SimpleExpression,
+  /// `simple expressions` of S-FEEL (clause 9.2, rule 4): simple expressions separated by `,`, the
+  /// list of their values.
+  SimpleExpressions,
+  /// `textual expressions` (grammar rule 3): textual expressions separated by `,`, the list of
+  /// their values.
+  TextualExpressions,
+}
+
+impl StartRule {
+  /// The start token of the lexer for the rule.
+  pub(crate) fn token(self) -> TokenType {
+    if self == StartRule::UnaryTests {
+      TokenType::StartUnaryTests
+    } else {
+      TokenType::StartExpression
+    }
+  }
+}
+
+/// What a simple expression is expected as, in the message of a construct S-FEEL has not.
+const SIMPLE: &str = "a simple expression (S-FEEL, DMN 9.2)";
+
+/// Whether `node` is a name or a qualified name: a simple value of S-FEEL (rule 14).
+fn names_only(node: &AstNode) -> bool {
+  match node {
+    AstNode::Name(_) | AstNode::QualifiedName(_) => true,
+    AstNode::Path(base, name) => matches!(name.as_ref(), AstNode::Name(_)) && names_only(base),
+    _ => false,
+  }
+}
+
+/// Whether the invocation of `callee` with `parameters` is a date time literal of S-FEEL
+/// (clause 9.2, rule 34): `date`, `time`, `duration`, `days and time duration` or `years and
+/// months duration` of one string literal.
+fn simple_temporal(callee: &AstNode, parameters: &AstNode) -> bool {
+  matches!(callee, AstNode::Name(name) if matches!(name.as_str(), "date" | "time" | "duration" | "days and time duration" | "years and months duration"))
+    && matches!(parameters, AstNode::PositionalParameters(items) if matches!(items.as_slice(), [AstNode::String(_)]))
+}
+
+/// A piece of the text in a message: in backticks, cut when it is long.
+fn quoted(text: &str) -> String {
+  match text.char_indices().nth(24) {
+    Some((cut, _)) => format!("`{}…`", &text[..cut]),
+    None => format!("`{text}`"),
+  }
+}
+
 /// Where the parser is when it reads a token.
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum At {
@@ -512,6 +570,11 @@ pub struct Parser<'parser, 'scope> {
   kind: T,
   /// How the expression parsed last was made.
   made: Made,
+  /// The text is a list of expressions separated by `,` ([StartRule::SimpleExpressions],
+  /// [StartRule::TextualExpressions]).
+  expressions: bool,
+  /// The text is S-FEEL: a construct that S-FEEL has not is an error ([StartRule::SimpleExpression]).
+  simple: bool,
   /// The expression being parsed ends the middle operand of a `between`: an `and` after a
   /// complete operand is the `and` of that `between`.
   between: bool,
@@ -557,6 +620,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       token: None,
       kind: T::Other,
       made: Made::Textual,
+      expressions: false,
+      simple: false,
       between: false,
       nesting: 0,
       token_start: 0,
@@ -569,6 +634,13 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       #[cfg(test)]
       token_log: None,
     }
+  }
+
+  /// Parses the text as `rule` asks; the start token of the parser is [StartRule::token].
+  pub fn with_rule(mut self, rule: StartRule) -> Self {
+    self.expressions = matches!(rule, StartRule::SimpleExpressions | StartRule::TextualExpressions);
+    self.simple = matches!(rule, StartRule::SimpleExpression | StartRule::SimpleExpressions);
+    self
   }
 
   /// Reads the text as a name that is being declared (see [crate::parse_name]).
@@ -657,7 +729,11 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     if let Some(log) = &mut self.token_log {
       log.push((_token_type, _token_value, self.lexer.token_start()));
     }
-    let node = match self.start.take() {
+    let start = self.start.take();
+    if self.expressions {
+      return self.start_expressions();
+    }
+    let node = match start {
       Some(TokenType::StartExpression) => self.expression(LOWEST)?,
       Some(TokenType::StartBoxedExpression) => self.start_boxed_expression()?,
       Some(TokenType::StartTextualExpression) => self.textual_expression()?,
@@ -820,11 +896,6 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     } else {
       (self.token_start, self.token_end)
     };
-    // a piece of the text in a message: in backticks, cut when it is long
-    let quoted = |text: &str| match text.char_indices().nth(24) {
-      Some((cut, _)) => format!("`{}…`", &text[..cut]),
-      None => format!("`{text}`"),
-    };
     let found = quoted(&self.input[start..end]);
     // an expression is missing after the token before it
     let after = if code == "expected-expression" && self.last_end > self.last_start {
@@ -963,6 +1034,78 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   fn textual_expression(&mut self) -> Result<AstNode> {
     let node = self.expression(LOWEST)?;
     if self.made == Made::Boxed { self.error() } else { Ok(node) }
+  }
+
+  /// Expressions separated by `,`: the list of their values. Of textual expressions (grammar
+  /// rule 3) an item is no boxed expression alone; of simple expressions (S-FEEL rule 4) an item
+  /// is a simple expression.
+  fn start_expressions(&mut self) -> Result<AstNode> {
+    let mut items = vec![];
+    loop {
+      self.look(At::Start)?;
+      let start = self.token_start;
+      self.push(&mut items)?;
+      if self.made == Made::Boxed && !self.simple {
+        self.refuse(
+          "a textual expression",
+          "a list, a context or a function definition alone",
+          start,
+          ": write it in parentheses",
+        )?;
+      }
+      if self.kind != T::Comma {
+        break;
+      }
+      self.bump();
+    }
+    Ok(AstNode::List(items))
+  }
+
+  /// The construct from `start` to the token taken last is not what the start rule takes: the
+  /// syntax error of a strict parse; in a tolerant parse an error of the record, and the parser
+  /// goes on. One error is recorded for a construct: of the constructs in it, none.
+  #[cold]
+  #[inline(never)]
+  fn refuse(&mut self, expected: &str, found: &str, start: usize, hint: &str) -> Result<()> {
+    if self.syntax.is_none() {
+      return self.error();
+    }
+    let end = self.last_end.max(start);
+    let message = format!("Expected {expected}, found {found} {}{hint}.", quoted(&self.input[start..end]));
+    if let Some(syntax) = &mut self.syntax {
+      syntax
+        .diagnostics
+        .retain(|inner| !(inner.code == "not-allowed" && inner.start >= start && inner.end <= end));
+    }
+    self.diagnostic("not-allowed", message, start, end);
+    Ok(())
+  }
+
+  /// The operand from `start`, `node`, that the token `kind` starts, in a simple expression: an
+  /// error when S-FEEL has no such operand (clause 9.2).
+  #[cold]
+  #[inline(never)]
+  fn simple_operand(&mut self, kind: T, start: usize, node: &AstNode) -> Result<()> {
+    let found = match (kind, node) {
+      (T::Numeric, AstNode::Numeric(_, _, _, exponent)) if !exponent.is_empty() => "a number with an exponent",
+      (T::Null, _) => "the null literal",
+      (T::At, _) => "an `@` literal",
+      (T::LeftParen | T::LeftBracket | T::RightBracket, AstNode::Range(..)) => "an interval",
+      (T::LeftParen, _) => "parentheses",
+      (T::LeftBracket, _) => "a list",
+      (T::LeftBrace, _) => "a context",
+      (T::Function, _) => "a function definition",
+      (T::If, _) => "an if expression",
+      (T::For, _) => "a for expression",
+      (T::Some | T::Every, _) => "a quantified expression",
+      (T::Lt | T::Le | T::Gt | T::Ge | T::Eq | T::Ne, _) => "a unary test",
+      (T::NameDateTime, AstNode::FunctionInvocation(callee, parameters)) if !simple_temporal(callee, parameters) => match callee.as_ref() {
+        AstNode::Name(name) if name.as_str() == "date and time" => "a date and time",
+        _ => "a temporal literal of other than one string literal",
+      },
+      _ => return Ok(()),
+    };
+    self.refuse(SIMPLE, found, start, "")
   }
 
   /// The segments of a qualified name after its first name, which a dot follows.
@@ -1178,8 +1321,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       let operator_level;
       match self.look(At::AfterOperand)? {
         T::Dot | T::Descendant => {
+          let qualified = self.kind == T::Dot && names_only(lhs);
           self.path(lhs)?;
           self.note("Path", start);
+          if self.simple && !qualified {
+            self.refuse(SIMPLE, "a path", start, "")?;
+          }
           continue;
         }
         T::LeftBracket => {
@@ -1188,21 +1335,33 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           }
           self.filter(lhs)?;
           self.note("Filter", start);
+          if self.simple {
+            self.refuse(SIMPLE, "a filter", start, "")?;
+          }
           continue;
         }
         T::LeftParen => {
           self.invocation(lhs)?;
           self.note("Invocation", start);
+          if self.simple && !matches!(lhs, AstNode::FunctionInvocation(callee, parameters) if simple_temporal(callee, parameters)) {
+            self.refuse(SIMPLE, "a function invocation", start, "")?;
+          }
           continue;
         }
         T::Instance => {
           self.instance_of(lhs)?;
           self.note("InstanceOf", start);
+          if self.simple {
+            self.refuse(SIMPLE, "an instance of test", start, "")?;
+          }
           continue;
         }
         T::As => {
           self.as_type(lhs)?;
           self.note("As", start);
+          if self.simple {
+            self.refuse(SIMPLE, "an `as` conversion", start, "")?;
+          }
           continue;
         }
         T::Between => {
@@ -1211,6 +1370,9 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           }
           self.between(lhs)?;
           self.note("Between", start);
+          if self.simple {
+            self.refuse(SIMPLE, "a between test", start, "")?;
+          }
           continue;
         }
         T::In => {
@@ -1219,6 +1381,9 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
           }
           self.comparison_in(lhs)?;
           self.note("In", start);
+          if self.simple {
+            self.refuse(SIMPLE, "an in test", start, "")?;
+          }
           continue;
         }
         T::Or => (binary, operator_level) = (AstNode::Or, OR),
@@ -1242,6 +1407,9 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       }
       self.binary(lhs, binary, operator_level)?;
       self.note(operator_name(operator_level), start);
+      if self.simple && operator_level <= AND {
+        self.refuse(SIMPLE, if operator_level == OR { "a disjunction" } else { "a conjunction" }, start, "")?;
+      }
     }
     Ok(())
   }
@@ -1381,6 +1549,17 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
     self.made = Made::Textual;
     let kind = self.look(At::Start)?;
     let start = self.token_start;
+    let node = self.operand_of(kind, start);
+    if self.simple
+      && let Ok(node) = &node
+    {
+      self.simple_operand(kind, start, node)?;
+    }
+    node
+  }
+
+  /// The operand that the token `kind` at `start` starts ([Parser::operand]).
+  fn operand_of(&mut self, kind: T, start: usize) -> Result<AstNode> {
     match kind {
       T::Numeric => {
         self.made = Made::SimpleLiteral;

@@ -72,6 +72,31 @@ fn fail<T>(kind: Kind, message: impl Into<String>) -> Result<T, Failure> {
 enum Dialect {
   Expression,
   UnaryTests,
+  /// S-FEEL (DMN 1.7 Beta 1, clause 9.2, rule 3).
+  SimpleExpression,
+  /// S-FEEL rule 4: the list of the values.
+  SimpleExpressions,
+  /// FEEL grammar rule 3: the list of the values.
+  TextualExpressions,
+}
+
+impl Dialect {
+  /// The start rule of the parser for the dialect.
+  fn rule(self) -> rheon_feel_parser::StartRule {
+    use rheon_feel_parser::StartRule;
+    match self {
+      Dialect::Expression => StartRule::Expression,
+      Dialect::UnaryTests => StartRule::UnaryTests,
+      Dialect::SimpleExpression => StartRule::SimpleExpression,
+      Dialect::SimpleExpressions => StartRule::SimpleExpressions,
+      Dialect::TextualExpressions => StartRule::TextualExpressions,
+    }
+  }
+
+  /// Whether the text is S-FEEL.
+  fn simple(self) -> bool {
+    matches!(self, Dialect::SimpleExpression | Dialect::SimpleExpressions)
+  }
 }
 
 /// Handles one JSON request (as text) and returns the JSON response text.
@@ -272,7 +297,16 @@ fn dialect(req: &Map<String, Json>) -> Result<Dialect, Failure> {
     None | Some(Json::Null) => Ok(Dialect::Expression),
     Some(Json::String(d)) if d == "expression" => Ok(Dialect::Expression),
     Some(Json::String(d)) if d == "unaryTests" => Ok(Dialect::UnaryTests),
-    Some(other) => fail(Kind::Request, format!("invalid 'dialect' {} (expected \"expression\" or \"unaryTests\")", arg(other))),
+    Some(Json::String(d)) if d == "simpleExpression" => Ok(Dialect::SimpleExpression),
+    Some(Json::String(d)) if d == "simpleExpressions" => Ok(Dialect::SimpleExpressions),
+    Some(Json::String(d)) if d == "textualExpressions" => Ok(Dialect::TextualExpressions),
+    Some(other) => fail(
+      Kind::Request,
+      format!(
+        "invalid 'dialect' {} (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")",
+        arg(other)
+      ),
+    ),
   }
 }
 
@@ -462,15 +496,13 @@ fn parse_node(scope: &FeelScope, dialect: Dialect, expression: &str) -> Result<A
 /// [parse_node] with the indexes of the names of the contexts of `scope`, when they are kept for
 /// the parses of one request.
 fn parse_node_sharing(scope: &FeelScope, shared: Option<&rheon_feel_parser::Shared>, dialect: Dialect, expression: &str) -> Result<AstNode, Failure> {
-  let parsed = match (dialect, shared) {
-    (Dialect::Expression, None) => rheon_feel_parser::parse_expression(scope, expression),
-    (Dialect::UnaryTests, None) => rheon_feel_parser::parse_unary_tests(scope, expression),
-    (Dialect::Expression, Some(shared)) => shared.parse_expression(scope, expression),
-    (Dialect::UnaryTests, Some(shared)) => shared.parse_unary_tests(scope, expression),
+  let parsed = match shared {
+    None => rheon_feel_parser::parse_start(scope, dialect.rule(), expression),
+    Some(shared) => shared.parse_start(scope, dialect.rule(), expression),
   };
   // the message is the parser's; where and what the errors are comes from the tolerant parse
   let node = parsed.map_err(|e| {
-    let diagnostics = editor::diagnostics(scope, expression, dialect == Dialect::UnaryTests);
+    let diagnostics = editor::diagnostics(scope, expression, dialect.rule());
     Failure(Kind::Syntax, syntax_message(&e.to_string()), Some(diagnostics))
   })?;
   check_ast_depth(&node).map_err(|e| Failure(Kind::Syntax, e, None))?;
@@ -890,8 +922,8 @@ fn evaluated(
 /// The evaluator of a parsed expression; of unary tests, the test of the value `?`.
 fn program(node: AstNode, dialect: Dialect, language: rheon_feel_evaluator::Dialect) -> rheon_feel::Evaluator {
   let node = match dialect {
-    Dialect::Expression => node,
     Dialect::UnaryTests => AstNode::In(Box::new(AstNode::Name(question_mark())), Box::new(node)),
+    _ => node,
   };
   rheon_feel_evaluator::prepare_with_dialect(&node, language)
 }
