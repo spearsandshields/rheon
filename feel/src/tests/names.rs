@@ -38,14 +38,14 @@ fn to_string_should_work() {
 fn jsonify_should_work() {
   let name: Name = vec!["a".to_string(), "+".to_string(), "b".to_string()].into();
   let s: String = name.jsonify();
-  assert_eq!("a+b", s);
+  assert_eq!(r#""a+b""#, s);
 }
 
 #[test]
 fn creating_empty_name_should_work() {
   let name: Name = vec!["".to_string()].into();
   assert_eq!("", name.to_string());
-  assert_eq!("", name.jsonify());
+  assert_eq!(r#""""#, name.jsonify());
 }
 
 #[test]

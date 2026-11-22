@@ -691,9 +691,13 @@ fn the_other_xsd_types_of_table_47_are_read() {
   };
   assert_eq!(Ok("2020-01-01T10:00:00Z".to_string()), read("xsd:dateTimeStamp", "2020-01-01T10:00:00Z"));
   assert_eq!(Ok("2020-01-01T10:00:00+02:00".to_string()), read("xsd:dateTimeStamp", "2020-01-01T10:00:00+02:00"));
-  assert!(read("xsd:dateTimeStamp", "2020-01-01T10:00:00").unwrap_err().contains("has a time zone"));
+  assert!(
+    read("xsd:dateTimeStamp", "2020-01-01T10:00:00")
+      .unwrap_err()
+      .contains("expected an xsd:dateTimeStamp, which has a time zone")
+  );
   assert_eq!(Ok("P1Y2M".to_string()), read("xsd:yearMonthDuration", "P1Y2M"));
-  assert!(read("xsd:yearMonthDuration", "P1D").unwrap_err().contains("years and months only"));
+  assert!(read("xsd:yearMonthDuration", "P1D").unwrap_err().contains("expected an xsd:yearMonthDuration"));
   assert_eq!(Ok("P1DT2H".to_string()), read("xsd:dayTimeDuration", "P1DT2H"));
-  assert!(read("xsd:dayTimeDuration", "P1Y").unwrap_err().contains("days and time only"));
+  assert!(read("xsd:dayTimeDuration", "P1Y").unwrap_err().contains("expected an xsd:dayTimeDuration"));
 }

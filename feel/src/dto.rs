@@ -234,15 +234,24 @@ impl TryFrom<&SimpleDto> for Value {
           // and the two kinds of duration
           XSD_DATE_TIME_STAMP => match Value::try_from_xsd_date_time(text)? {
             Value::DateTime(date_time) if *date_time.time().zone() != FeelZone::Local => Ok(Value::DateTime(date_time)),
-            _ => Err(err_invalid_attribute(&format!("an xsd:dateTimeStamp has a time zone, found '{}'", arg(text)))),
+            _ => Err(err_invalid_attribute(&format!(
+              "expected an xsd:dateTimeStamp, which has a time zone, found '{}'",
+              arg(text)
+            ))),
           },
           XSD_YEAR_MONTH_DURATION => match Value::try_from_xsd_duration(text)? {
             duration @ Value::YearsAndMonthsDuration(_) => Ok(duration),
-            _ => Err(err_invalid_attribute(&format!("an xsd:yearMonthDuration has years and months only, found '{}'", arg(text)))),
+            _ => Err(err_invalid_attribute(&format!(
+              "expected an xsd:yearMonthDuration, of years and months only, found '{}'",
+              arg(text)
+            ))),
           },
           XSD_DAY_TIME_DURATION => match Value::try_from_xsd_duration(text)? {
             duration @ Value::DaysAndTimeDuration(_) => Ok(duration),
-            _ => Err(err_invalid_attribute(&format!("an xsd:dayTimeDuration has days and time only, found '{}'", arg(text)))),
+            _ => Err(err_invalid_attribute(&format!(
+              "expected an xsd:dayTimeDuration, of days and time only, found '{}'",
+              arg(text)
+            ))),
           },
           _ => Err(err_invalid_attribute(&format!("invalid type '{}'", arg(typ)))),
         }

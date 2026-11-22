@@ -750,8 +750,8 @@ impl<'a> Lower<'_, 'a> {
   }
 
   /// B-FEEL: a boolean operator never gives null, but `ne` (DMN 1.6 chapter 11). With `marked`,
-  /// the operation before was marked ([Lower::diag_mark]): its errors become warnings when its
-  /// null is replaced.
+  /// the operation before was marked ([Lower::diag_mark]): its errors become warnings, as B-FEEL
+  /// defines its answer.
   fn boolean_default(&mut self, dst: Slot, ne: bool, marked: bool) {
     if self.dialect == Dialect::BFeel {
       self.builder.emit(Op::BoolDefault { dst, ne, marked });

@@ -202,11 +202,11 @@ pub(crate) enum Op {
   /// `args + 2`.
   Between { dst: Slot, args: Slot },
   /// B-FEEL: a null in `dst` becomes `ne` (`false` for `=` and the others, `true` for `!=`); with
-  /// `marked`, the errors recorded since the last [Op::DiagMark] become warnings when it does, and
-  /// the mark is taken off.
+  /// `marked`, the errors recorded since the last [Op::DiagMark] (the operation's own, B-FEEL
+  /// defining its answer) become warnings, and the mark is taken off.
   BoolDefault { dst: Slot, ne: bool, marked: bool },
-  /// B-FEEL: marks what the diagnostics hold before an operation whose null a [Op::BoolDefault]
-  /// may replace, so that its errors can become warnings (DMN 1.7 Beta 1, 11.1).
+  /// B-FEEL: marks what the diagnostics hold before an operation whose answer a [Op::BoolDefault]
+  /// makes boolean, so that its errors become warnings (11.1, 11.2).
   DiagMark,
   /// `dst` is the kernel `kernel` on the value of `a`.
   Kernel1 { kernel: Kernel1, dst: Slot, a: Opnd },

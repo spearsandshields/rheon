@@ -1,1 +1,2 @@
-"null(invocable 'Greeting Messages' not found in namespace 'https://decision-toolkit.org/2_0001')"
+null
+the result is null: invocable 'Greeting Messages' not found in namespace 'https://decision-toolkit.org/2_0001'

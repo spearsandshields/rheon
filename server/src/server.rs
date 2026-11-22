@@ -43,7 +43,10 @@ fn evaluate(path: web::Path<String>, request_body: String, data: web::Data<Appli
   let workspace: &Workspaces = data.workspaces.borrow();
   match dsntk_evaluator::evaluate_context(&FeelScope::default(), &request_body).and_then(|input_data| workspace.evaluate(&path, &input_data)) {
     Ok(value) => HttpResponse::Ok().content_type(CONTENT_TYPE).body(format!(r#"{{"data":{}}}"#, value.jsonify())),
-    Err(reason) => HttpResponse::Ok().content_type(CONTENT_TYPE).body(format!(r#"{{"errors":[{{"detail":"{reason}"}}]}}"#)),
+    // the reason is a JSON string: it may hold quotes or line breaks
+    Err(reason) => HttpResponse::Ok()
+      .content_type(CONTENT_TYPE)
+      .body(format!(r#"{{"errors":[{{"detail":{}}}]}}"#, rheon_feel::values::json_string(&reason.to_string()))),
   }
 }
 

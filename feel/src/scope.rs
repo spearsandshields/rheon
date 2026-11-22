@@ -109,9 +109,9 @@ impl fmt::Display for FeelScope {
 }
 
 impl Jsonify for FeelScope {
-  /// Converts this [FeelScope] to JSON text.
+  /// The contexts of this [FeelScope], bottom first, as a JSON array of objects.
   fn jsonify(&self) -> String {
-    format!("[{}]", self.stack.borrow_mut().iter().map(|ctx| ctx.to_string()).collect::<Vec<String>>().join(", "))
+    format!("[{}]", self.stack.borrow_mut().iter().map(|ctx| ctx.jsonify()).collect::<Vec<String>>().join(", "))
   }
 }
 

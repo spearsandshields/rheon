@@ -31,7 +31,7 @@ fn test_scope_jsonify() {
   let name_b = Name::from("b");
   scope.set_value(&name_a, value_number!(495, 1));
   scope.set_value(&name_b, value_number!(50));
-  assert_eq!("[{a: 49.5, b: 50}]", scope.jsonify());
+  assert_eq!(r#"[{"a": 49.5, "b": 50}]"#, scope.jsonify());
 }
 
 #[test]

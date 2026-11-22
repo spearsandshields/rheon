@@ -716,8 +716,8 @@ impl<'p> Vm<'p> {
               info.step
             }
             Err(reason) => {
-              // B-FEEL defines the answer of some and every then (false, 11.7), so its reason is
-              // a warning
+              // B-FEEL defines the answer of some and every then (false: a boolean expression is
+              // never null, 11.2), so its reason is a warning
               walk.value = Some(if info.defaulted {
                 let reason = rheon_feel::message::compose(format_args!("{reason}"));
                 diagnostics::warn(&reason);
