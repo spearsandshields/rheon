@@ -520,3 +520,34 @@ fn as_converts_to_a_type_the_value_is_of() {
   te_number(false, scope, "price as of today", 7, 0);
   te_number(false, scope, "price as of today + 1", 8, 0);
 }
+
+#[test]
+fn the_abstract_types_of_dmn_1_7() {
+  // DMN 1.7 Beta 1, Figure 10-26: comparable above number, string, temporal and duration;
+  // temporal above date, time and date and time; duration above both durations
+  let scope = &te_scope("{}");
+  for (text, expected) in [
+    ("1 instance of comparable", true),
+    (r#""a" instance of comparable"#, true),
+    (r#"@"2020-01-01" instance of comparable"#, true),
+    (r#"@"P1D" instance of comparable"#, true),
+    ("true instance of comparable", false),
+    ("[1] instance of comparable", false),
+    (r#"@"2020-01-01" instance of temporal"#, true),
+    (r#"@"10:00:00" instance of temporal"#, true),
+    (r#"@"2020-01-01T10:00:00" instance of temporal"#, true),
+    (r#"@"P1D" instance of temporal"#, false),
+    (r#"@"P1D" instance of duration"#, true),
+    (r#"@"P1Y" instance of duration"#, true),
+    ("1 instance of duration", false),
+    ("{a: 1} instance of context", true),
+    ("1 instance of context", false),
+    ("[1, 2] instance of list<comparable>", true),
+    ("[1, true] instance of list<comparable>", false),
+  ] {
+    te_bool(false, scope, text, expected);
+  }
+  // a name in scope of the same text wins
+  let scope = &te_scope("{temporal: 5}");
+  te_null(false, scope, "1 instance of temporal", "instance of expected a type on the right, found number");
+}

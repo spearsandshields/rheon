@@ -419,5 +419,14 @@
   {"op": "evaluate", "expression": "{price as of today: 7, r: price as of today + 1}.r"},
   {"op": "evaluate", "expression": "price as of today"},
   {"op": "evaluate", "expression": "{a: 1} as context<a: number>"},
-  {"op": "evaluate", "expression": "1 as Any"}
+  {"op": "evaluate", "expression": "1 as Any"},
+  {"op": "evaluate", "expression": "1 instance of comparable"},
+  {"op": "evaluate", "expression": "@\"2020-01-01\" instance of temporal"},
+  {"op": "evaluate", "expression": "@\"P1D\" instance of duration"},
+  {"op": "evaluate", "expression": "1 instance of duration"},
+  {"op": "evaluate", "expression": "{a: 1} instance of context"},
+  {"op": "evaluate", "expression": "[1, true] instance of list<comparable>"},
+  {"op": "evaluate", "expression": "{temporal: 5, r: 1 instance of temporal}.r"},
+  {"op": "evaluate", "expression": "(function(x: comparable) x)(2)"},
+  {"op": "evaluate", "expression": "(function(x: temporal) x)(1)"}
 ]

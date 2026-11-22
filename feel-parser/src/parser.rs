@@ -481,6 +481,18 @@ enum At {
   AfterOperand,
 }
 
+/// The abstract type that a type name names in DMN 1.7 (Figure 10-26): `comparable`, `temporal`,
+/// `duration`, and `context`, the context type without entries (`context<>`).
+fn abstract_type(name: &Name) -> Option<FeelType> {
+  Some(match name.as_str() {
+    "comparable" => FeelType::Comparable,
+    "temporal" => FeelType::Temporal,
+    "duration" => FeelType::Duration,
+    "context" => FeelType::Context(Default::default()),
+    _ => return None,
+  })
+}
+
 /// The hand-written parser.
 ///
 /// The functions that call each other for a nested expression keep their stack frames small:
@@ -1930,7 +1942,12 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
       }
       T::Name => {
         let name = self.name_as(At::Start, TokenClass::Type)?;
-        self.qualified_name(name)?
+        // the abstract types of DMN 1.7 (Figure 10-26), and `context` without entries, where no
+        // name of the same text is in scope: a name of a model or of the context wins
+        match abstract_type(&name) {
+          Some(feel_type) if !self.scope.contains(name.as_str()) && self.look(At::AfterOperand)? != T::Dot => AstNode::FeelType(feel_type),
+          _ => self.qualified_name(name)?,
+        }
       }
       T::List | T::Range => self.list_or_range_type()?,
       T::Context => self.context_type()?,

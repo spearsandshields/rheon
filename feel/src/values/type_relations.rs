@@ -155,7 +155,10 @@ impl<'a> Ty<'a> {
         | FeelType::Number
         | FeelType::String
         | FeelType::Time
-        | FeelType::YearsAndMonthsDuration => Shape::Leaf(feel_type),
+        | FeelType::YearsAndMonthsDuration
+        | FeelType::Comparable
+        | FeelType::Temporal
+        | FeelType::Duration => Shape::Leaf(feel_type),
       },
       Ty::Of(value) => match value {
         Value::List(items) => Shape::List(Items::Of(items)),
@@ -365,7 +368,8 @@ impl<'a> Relations {
       return true;
     }
     match (shape, target) {
-      (Shape::Leaf(a), Shape::Leaf(b)) => a == b,
+      // a leaf conforms to itself and to the abstract types above it (Figure 10-26)
+      (Shape::Leaf(a), Shape::Leaf(b)) => a.is_conformant(b),
       (Shape::List(a), Shape::List(b)) => {
         let (a, b) = (self.items(a), self.items(b));
         self.conforms(a, b)
@@ -436,14 +440,15 @@ impl Conformance {
   fn decide(&mut self, value: &Value, target: &FeelType) -> bool {
     match value {
       Value::Null(_) => true,
-      Value::Boolean(_) => matches!(target, FeelType::Boolean),
-      Value::Number(_) => matches!(target, FeelType::Number),
-      Value::String(_) => matches!(target, FeelType::String),
-      Value::Date(_) => matches!(target, FeelType::Date),
-      Value::Time(_) => matches!(target, FeelType::Time),
-      Value::DateTime(_) => matches!(target, FeelType::DateTime),
-      Value::DaysAndTimeDuration(_) => matches!(target, FeelType::DaysAndTimeDuration),
-      Value::YearsAndMonthsDuration(_) => matches!(target, FeelType::YearsAndMonthsDuration),
+      // a value of a simple type conforms to its type and to the abstract types above it
+      Value::Boolean(_) => FeelType::Boolean.is_conformant(target),
+      Value::Number(_) => FeelType::Number.is_conformant(target),
+      Value::String(_) => FeelType::String.is_conformant(target),
+      Value::Date(_) => FeelType::Date.is_conformant(target),
+      Value::Time(_) => FeelType::Time.is_conformant(target),
+      Value::DateTime(_) => FeelType::DateTime.is_conformant(target),
+      Value::DaysAndTimeDuration(_) => FeelType::DaysAndTimeDuration.is_conformant(target),
+      Value::YearsAndMonthsDuration(_) => FeelType::YearsAndMonthsDuration.is_conformant(target),
       Value::Range(start, start_type, end, end_type) => match target {
         // an undefined endpoint has the type of the other one
         FeelType::Range(ends) if start_type.undefined() => self.check(end, ends),
