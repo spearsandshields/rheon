@@ -122,14 +122,15 @@ export function serializeRequest(req: Record<string, unknown>): string {
 }
 
 /**
- * The fields of a request object that its builder does not write, sent as they are: the module
- * names a field that it does not read (a misspelt `errormode`) in a warning, as it does for a
- * request sent as JSON text.
+ * The fields of a request object that its builder does not write, sent with the value null: the
+ * module names a field that it does not read (a misspelt `errormode`) in a warning, as it does
+ * for a request sent as JSON text, and needs only its name. The value is not sent: it may hold
+ * what JSON can not (a cycle, a BigInt) or be large.
  */
-function unwritten(req: object, written: readonly string[]): Record<string, unknown> {
-  const rest: Record<string, unknown> = {};
+function unwritten(req: object, written: readonly string[]): Record<string, null> {
+  const rest: Record<string, null> = {};
   for (const [key, value] of Object.entries(req)) {
-    if (value !== undefined && !written.includes(key)) rest[key] = value;
+    if (value !== undefined && !written.includes(key)) rest[key] = null;
   }
   return rest;
 }
@@ -138,6 +139,7 @@ const EVALUATE_WRITTEN = ['op', 'dialect', 'expression', 'context', 'contextForm
 const EVALUATE_ALL_WRITTEN = ['op', 'context', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'evaluations'] as const;
 const EVALUATE_EACH_WRITTEN = ['op', 'dialect', 'expression', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps', 'entries'] as const;
 const ENTRY_WRITTEN = ['id', 'context', 'input'] as const;
+const EVALUATION_WRITTEN = ['id', 'dialect', 'expression', 'input', 'errorMode', 'maxSteps'] as const;
 
 function contextFields(context: ParseOptions['context'], contextFormat: ParseOptions['contextFormat']) {
   if (context === undefined) return {};
@@ -207,7 +209,17 @@ export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number 
       } else {
         // as for `evaluate`, the input is sent for unary tests only
         const fields = entry as Record<string, unknown>;
-        entries.push(serializeRequest(fields.dialect === 'unaryTests' ? fields : { ...fields, input: undefined }));
+        entries.push(
+          serializeRequest({
+            id: fields.id,
+            dialect: fields.dialect,
+            expression: fields.expression,
+            input: fields.dialect === 'unaryTests' ? fields.input : undefined,
+            errorMode: fields.errorMode,
+            maxSteps: fields.maxSteps,
+            ...unwritten(fields, EVALUATION_WRITTEN),
+          }),
+        );
       }
     } catch (e) {
       if (!(e instanceof RequestError)) throw e;

@@ -568,7 +568,7 @@ fn evaluate_all(mut req: Map<String, Json>, unread: Unread, started: Instant) ->
     None => return fail(Kind::Request, "missing 'evaluations'"),
     Some(_) => return fail(Kind::Request, "'evaluations' must be an array"),
   };
-  let mut context_warnings = unknown_fields(&req);
+  let mut context_warnings = unread_names(req.keys().map(String::as_str).chain(read_aside(&unread)), &EVALUATE_ALL_FIELDS, "an evaluateAll request");
   let context = context(&mut req, unread.context, unread.context_order, &mut context_warnings)?;
   // unary tests without an input take the entry `?` of the context, when it has one
   let has_question_mark = context.get_entry(&question_mark()).is_some();
@@ -714,8 +714,6 @@ const FIELDS: [&str; 19] = [
   "width",
 ];
 
-/// A warning for each field of `fields` that a request does not have: it is not read, and a
-/// misspelt `errorMode` or `maxSteps` must not go unseen.
 /// The fields that an entry of `entries` (evaluateEach) reads: what differs between the
 /// evaluations. The other fields of a request are those of the request alone.
 const ENTRY_FIELDS: [&str; 3] = ["id", "context", "input"];
@@ -724,23 +722,53 @@ const ENTRY_FIELDS: [&str; 3] = ["id", "context", "input"];
 /// context, its format, the offset, the clock and the language are those of the request.
 const EVALUATION_FIELDS: [&str; 6] = ["id", "dialect", "expression", "input", "errorMode", "maxSteps"];
 
-/// A warning for each field of an entry of the list `list` that is not one of `read`, the
-/// fields such an entry has: a field of the request written in an entry (`maxSteps` in an entry
-/// of `entries`) is not read there, and the caller would believe it is.
-fn unread_entry_fields(fields: &Map<String, Json>, read: &[&str], list: &str) -> Vec<String> {
-  fields
-    .keys()
-    .filter(|name| !read.contains(&name.as_str()))
-    .map(|name| {
-      compose(format_args!(
-        "expected a field of an entry of '{list}' ({}), found '{}', which is not read",
-        read.join(", "),
-        arg(name.as_str())
-      ))
-    })
+/// The fields that an evaluateAll request reads: those of one evaluation are its entries'.
+const EVALUATE_ALL_FIELDS: [&str; 7] = ["op", "context", "contextFormat", "tzOffsetMinutes", "now", "language", "evaluations"];
+
+/// The fields that an evaluateEach request reads: the context and input of an evaluation are
+/// its entries'.
+const EVALUATE_EACH_FIELDS: [&str; 10] = [
+  "op",
+  "dialect",
+  "expression",
+  "contextFormat",
+  "tzOffsetMinutes",
+  "now",
+  "language",
+  "errorMode",
+  "maxSteps",
+  "entries",
+];
+
+/// A warning for each field of `fields`, the fields of `of`, that is not one of `read`, the
+/// fields it has: a field written in the wrong place (`maxSteps` in an entry of `entries`,
+/// `errorMode` in an evaluateAll request) is not read there, and the caller would believe it
+/// is.
+fn unread_fields(fields: &Map<String, Json>, read: &[&str], of: &str) -> Vec<String> {
+  unread_names(fields.keys().map(String::as_str), read, of)
+}
+
+/// [unread_fields] of the fields named `names`.
+fn unread_names<'n>(names: impl IntoIterator<Item = &'n str>, read: &[&str], of: &str) -> Vec<String> {
+  names
+    .into_iter()
+    .filter(|name| !read.contains(name))
+    .map(|name| compose(format_args!("expected a field of {of} ({}), found '{}', which is not read", read.join(", "), arg(name))))
     .collect()
 }
 
+/// The names of `context` and `input` when the strict reader read them aside from the other
+/// fields of the request ([Unread]).
+fn read_aside<'n>(unread: &Unread) -> impl Iterator<Item = &'n str> + use<'n> {
+  [("context", unread.context.is_some()), ("input", unread.input.is_some())]
+    .into_iter()
+    .filter(|(_, read)| *read)
+    .map(|(name, _)| name)
+}
+
+/// A warning for each field of `fields` that a request does not have: it is not read, and a
+/// misspelt `errorMode` or `maxSteps` must not go unseen. An evaluateAll or evaluateEach request
+/// and their entries are read for their own fields ([unread_fields]).
 fn unknown_fields(fields: &Map<String, Json>) -> Vec<String> {
   fields
     .keys()
@@ -763,7 +791,7 @@ fn unknown_fields(fields: &Map<String, Json>) -> Vec<String> {
 /// its place and the others are answered; a failure of the request itself fails the request.
 /// Nothing of the request is kept after it.
 fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<String, Failure> {
-  let request_warnings = unknown_fields(&req);
+  let request_warnings = unread_names(req.keys().map(String::as_str).chain(read_aside(&unread)), &EVALUATE_EACH_FIELDS, "an evaluateEach request");
   let dialect = dialect(&req)?;
   let language = language(&req)?;
   let error_mode = error_mode(&req)?;
@@ -807,7 +835,7 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
     let answer = fields.and_then(|(mut fields, unread)| {
       let id = id_text(&fields)?;
       // read before the format of the request is put in: a format of the entry is not read
-      let entry_warnings = unread_entry_fields(&fields, &ENTRY_FIELDS, "entries");
+      let entry_warnings = unread_fields(&fields, &ENTRY_FIELDS, "an entry of 'entries'");
       match &format {
         Some(format) => fields.insert("contextFormat".to_string(), format.clone()),
         None => fields.remove("contextFormat"),
@@ -880,7 +908,7 @@ fn evaluate_one(
   let error_mode = error_mode(&entry)?;
   let max_steps = max_steps(&entry)?;
   let expression = expression(&mut entry)?;
-  let mut warnings = unread_entry_fields(&entry, &EVALUATION_FIELDS, "evaluations");
+  let mut warnings = unread_fields(&entry, &EVALUATION_FIELDS, "an entry of 'evaluations'");
   let tested = if dialect == Dialect::UnaryTests {
     match entry.remove("input") {
       Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure(Kind::Context, e, None))?),

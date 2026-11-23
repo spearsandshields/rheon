@@ -124,12 +124,16 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
     2026-11-21).
   - *`as` after a name not known when the text is read* (DMN 1.7 Beta 1, grammar rule 51; names are
     resolved by the scope, 10.3.1.2). `as` is the operator after a complete operand. A name that
-    the scope does not know (`item` in a filter, an entry of a parameter) ends before `as` only
-    when a type follows: `item as number` and `p.age as list<number>` convert, while
-    `p.Cost as percent` and `p.Report as of today` read the entries of those names, as in FEEL
-    1.6. An entry of a parameter whose name ends with `as` and a type (`age as number`) is read
-    as the conversion of `p.age`; `get value(p, "age as number")` reads that entry. A name in
-    scope is read as it is.
+    the scope does not know where it is read (`item` in a filter, an entry of a parameter) ends
+    before `as` only when a type follows that ends the name: at the end of the text, or before an
+    operator, a bracket, a comma or a keyword that ends names. So `item as number > 1` and
+    `p.age as list<number>` convert, while `p.Cost as percent`, `p.Count as number of items` and
+    `p.Report as of today` read the entries of those names, as in FEEL 1.6. A name being given
+    keeps the words: a parameter (`function(cost as string)`), a key (`{cost as string: 1}`), a
+    named argument (`f(cost as string: 1)`), an iteration variable. An entry known only at run
+    time whose name is a name, `as` and a type (`age as number`), or ends with `as`, is read as
+    a conversion; `get value(p, "age as number")` reads that entry. A name in scope is read as
+    it is.
   - *Regular expressions* (10.3.4.3, F&O §7.6.1, XML Schema Part 2 Appendix F). Patterns are read
     in the syntax of XML Schema 1.0 with the additions of F&O 2.0 (anchors, reluctant quantifiers,
     back-references, `\$`), and anything else is an invalid pattern, also where the engine below

@@ -33,8 +33,10 @@ const NOT_SEARCHED: (usize, usize) = (usize::MAX, 0);
 /// The keywords that can follow an operand. A name that is not in scope ends before a word of
 /// its chain that is one of them: `for s in x return s` and `x and y` have their keywords also
 /// when `x` is no name in scope. `as` (DMN 1.7 Beta 1, grammar rule 51) ends such a name only
-/// when a type follows it ([starts_type]): `item as number` in a filter converts `item`, while a
-/// name of FEEL 1.6 that holds the word keeps it (`p.Cost as percent`, an entry of a parameter).
+/// when a type follows it that ends the name ([type_ends_name]), and never a name being declared
+/// ([Lexer::set_declared_name]): `item as number` in a filter converts `item`, while a name of
+/// FEEL 1.6 that holds the word keeps it (`p.Cost as percent`, `p.Count as number of items`,
+/// entries of a parameter; `function(cost as string)`).
 /// A name in scope is matched first, so it may hold these words (`tax return`, `cost as
 /// percent`); names are resolved by the scope (10.3.1.2). The other keywords never follow an
 /// operand, so a name ending before them would only be a syntax error.
@@ -156,6 +158,8 @@ pub struct Lexer<'lexer, 'scope> {
   /// The text is a name that is being declared ([crate::parse_name]): a name that is not in
   /// scope is the whole chain of its parts, keywords and symbols included.
   whole_names: bool,
+  /// The next token, when it is a name, is a name being declared ([Lexer::set_declared_name]).
+  declared_name: bool,
   /// The token follows a dot: its name may be a built-in property (`year`, `time offset`,
   /// `start included`). Set by the parser after every dot, and over with the token read next.
   after_dot: bool,
@@ -217,6 +221,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       after_operand: false,
       till_in: false,
       whole_names: false,
+      declared_name: false,
       after_dot: false,
       filters: 0,
       name_buf: String::new(),
@@ -263,6 +268,13 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
 
   pub fn set_till_in(&mut self) {
     self.till_in = true;
+  }
+
+  /// Tells that the next token, when it is a name, is one being declared (a parameter of a
+  /// function definition): `as` and a type do not end it, as they end a name that is not in
+  /// scope where it is read ([NAME_ENDING_KEYWORDS]). For the next token only.
+  pub fn set_declared_name(&mut self) {
+    self.declared_name = true;
   }
 
   pub fn set_whole_names(&mut self) {
@@ -321,6 +333,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
     let (type_name, after_dot) = (self.type_name, self.after_dot);
     self.scope.set_members(after_dot || self.filters > 0);
     let result = self.read_next_token();
+    self.declared_name = false;
     if type_name {
       self.type_name = false;
     }
@@ -1088,7 +1101,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       && NAME_ENDING_KEYWORDS.iter().any(|keyword| {
         self.input[start..]
           .strip_prefix(keyword)
-          .is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace) && (*keyword != "as" || starts_type(rest)))
+          .is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace) && (*keyword != "as" || (!self.declared_name && type_ends_name(rest))))
       })
   }
 
@@ -1624,27 +1637,61 @@ fn is_built_in_type_name(name: &str) -> bool {
   )
 }
 
-/// Returns `true` when `text`, after white space, starts with a type of FEEL: a built-in type
-/// name, an abstract type name of DMN 1.7 (Figure 10-26: `comparable`, `temporal`, `duration`,
-/// `context`), or `list<`, `range<` or `function<`. A name that is not in scope ends before `as`
-/// only then ([NAME_ENDING_KEYWORDS]).
-fn starts_type(text: &str) -> bool {
+/// Returns `true` when `text`, the text after the word `as` in a name chain, makes `as` the
+/// operator of a name that is not in scope ([NAME_ENDING_KEYWORDS]): nothing follows (a text
+/// being written, `item as`, which an editor completes with a type), or a type of FEEL follows
+/// that ends the name. The types are the built-in type names, the abstract type names of DMN
+/// 1.7 (Figure 10-26: `comparable`, `temporal`, `duration`, `context`), and `list<`, `range<`,
+/// `function<` and `context<`. A type ends the name when the text ends after it, or a keyword
+/// that ends names, or a symbol other than `:` and `'`: after `cost as string:` stands a name
+/// being given a value or a type (`{cost as string: 1}`, `f(cost as string: 1)`), and
+/// `p.Count as number of items` is one name.
+fn type_ends_name(text: &str) -> bool {
+  // the start and end of the word at the start of `text`, after white space
   let word = |text: &str| -> (usize, usize) {
     let start = text.len() - text.trim_start_matches(is_whitespace).len();
     let end = text[start..].find(|ch: char| !is_name_part_char(ch)).map_or(text.len(), |end| start + end);
     (start, end)
   };
-  let (start, end) = word(text);
-  let rest = &text[end..];
-  match &text[start..end] {
-    "Any" | "Null" | "boolean" | "number" | "string" | "date" | "time" | "comparable" | "temporal" | "duration" | "context" => true,
-    "list" | "range" | "function" => rest.trim_start_matches(is_whitespace).starts_with('<'),
-    // `years and months duration`, `days and time duration`
-    "years" | "days" => {
-      let (start, end) = word(rest);
-      &rest[start..end] == "and"
+  // the end of the words `words` at the start of `text`
+  let words_end = |text: &str, words: &[&str]| -> Option<usize> {
+    let mut at = 0;
+    for expected in words {
+      let (start, end) = word(&text[at..]);
+      if &text[at + start..at + end] != *expected {
+        return None;
+      }
+      at += end;
     }
-    _ => false,
+    Some(at)
+  };
+  if text.trim_start_matches(is_whitespace).is_empty() {
+    return true;
+  }
+  let (start, end) = word(text);
+  let type_end = match &text[start..end] {
+    "list" | "range" | "function" | "context" if text[end..].trim_start_matches(is_whitespace).starts_with('<') => return true,
+    "date" => words_end(text, &["date", "and", "time"]).unwrap_or(end),
+    "years" => match words_end(text, &["years", "and", "months", "duration"]) {
+      Some(type_end) => type_end,
+      None => return false,
+    },
+    "days" => match words_end(text, &["days", "and", "time", "duration"]) {
+      Some(type_end) => type_end,
+      None => return false,
+    },
+    "Any" | "Null" | "boolean" | "number" | "string" | "time" | "comparable" | "temporal" | "duration" | "context" => end,
+    _ => return false,
+  };
+  let after = text[type_end..].trim_start_matches(is_whitespace);
+  match after.chars().next() {
+    None => true,
+    Some(':' | '\'') => false,
+    Some(ch) if is_name_part_char(ch) => {
+      let (start, end) = word(after);
+      NAME_ENDING_KEYWORDS.contains(&&after[start..end])
+    }
+    Some(_) => true,
   }
 }
 

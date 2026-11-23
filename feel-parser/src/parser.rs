@@ -1986,6 +1986,8 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
   fn formal_parameters(&mut self) -> Result<AstNode> {
     let between = std::mem::replace(&mut self.between, false);
     let mut parameters = vec![];
+    // a parameter is a name being declared: it holds `as` and a type (FEEL 1.6 names)
+    self.lexer.set_declared_name();
     if self.look(At::Start)? == T::RightParen {
       self.bump();
     } else {
@@ -2001,7 +2003,10 @@ impl<'parser, 'scope> Parser<'parser, 'scope> {
         self.scope.set_entry_name(name.clone());
         parameters.push(AstNode::FormalParameter(Box::new(AstNode::ParameterName(name)), Box::new(parameter_type)));
         match self.look(At::AfterOperand)? {
-          T::Comma => self.bump(),
+          T::Comma => {
+            self.bump();
+            self.lexer.set_declared_name();
+          }
           T::RightParen => break self.bump(),
           _ => {
             self.unexpected("expected", "`,` or `)` in the argument list")?;

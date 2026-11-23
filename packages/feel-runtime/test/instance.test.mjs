@@ -128,12 +128,23 @@ test('a field the runtime does not write reaches the module, which names it in a
   assert.match(messages(all.contextWarnings), /found 'contxt', which is not read/);
   assert.match(messages(all.results[0].warnings), /found 'errormode', which is not read/);
   // the builders of FeelEngine send them too
-  assert.match(buildEvaluateJson({ expression: '1', errormode: 'strict' }), /"errormode":"strict"/);
-  assert.match(buildEvaluateAllJson({ evaluations: [], contxt: 1 }).json, /"contxt":1/);
-  assert.match(buildEvaluateEachJson({ expression: '1', entries: [{ context: {}, maxsteps: 1 }] }).json, /"maxsteps":1/);
+  assert.match(buildEvaluateJson({ expression: '1', errormode: 'strict' }), /"errormode":null/);
+  assert.match(buildEvaluateAllJson({ evaluations: [], contxt: 1 }).json, /"contxt":null/);
+  assert.match(buildEvaluateEachJson({ expression: '1', entries: [{ context: {}, maxsteps: 1 }] }).json, /"maxsteps":null/);
+  // their names only: a value JSON can not hold, or a large one, is not sent
+  const circular = {}; circular.self = circular;
+  const built = buildEvaluateEachJson({ expression: 'a', entries: [{ id: 1, context: { a: 1 }, row: circular }], trace: 10n }, 0);
+  assert.match(built.json, /"row":null/);
+  assert.match(built.json, /"trace":null/);
+  const answered = feel.call({ op: 'evaluateEach', expression: 'a', entries: [{ id: 1, context: { a: 1 }, row: circular }] });
+  assert.equal(answered.results[0].result.display, '1');
+  assert.match(messages(answered.results[0].warnings), /found 'row', which is not read/);
+  assert.match(buildEvaluateAllJson({ evaluations: [{ expression: '1', meta: circular }] }).json, /"meta":null/);
   // and nothing else: the fields they write stay as they were
-  const built = JSON.parse(buildEvaluateJson({ expression: '1', dialect: 'expression', input: 5 }, 0));
-  assert.deepEqual(Object.keys(built).sort(), ['dialect', 'expression', 'op', 'tzOffsetMinutes']);
+  const written = JSON.parse(buildEvaluateJson({ expression: '1', dialect: 'expression', input: 5 }, 0));
+  assert.deepEqual(Object.keys(written).sort(), ['dialect', 'expression', 'op', 'tzOffsetMinutes']);
+  const evaluation = JSON.parse(buildEvaluateAllJson({ evaluations: [{ id: 'a', dialect: 'unaryTests', expression: '> 1', input: 2, errorMode: 'strict', maxSteps: 9 }] }, 0).json).evaluations[0];
+  assert.deepEqual(evaluation, { id: 'a', dialect: 'unaryTests', expression: '> 1', input: 2, errorMode: 'strict', maxSteps: 9 });
 });
 
 test('deep nesting is a syntax error, deep recursion an evaluation error (no crash)', () => {

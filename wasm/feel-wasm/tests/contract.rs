@@ -2704,7 +2704,9 @@ fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
   assert!(warnings(&response).is_empty(), "{response}");
   // the request of evaluateAll among the warnings of the request, an entry in its own answer
   let response = req(json!({"op": "evaluateAll", "contxt": {"a": 1}, "evaluations": [{"expression": "1", "errormode": "strict"}, {"expression": "2"}]}));
-  assert_eq!(response["contextWarnings"], json!([{"message": unknown("contxt")}]), "{response}");
+  let of_all =
+    |name: &str| format!("expected a field of an evaluateAll request (op, context, contextFormat, tzOffsetMinutes, now, language, evaluations), found '{name}', which is not read");
+  assert_eq!(response["contextWarnings"], json!([{"message": of_all("contxt")}]), "{response}");
   // an entry is read for the fields an entry has
   let in_evaluations =
     |name: &str| format!("expected a field of an entry of 'evaluations' (id, dialect, expression, input, errorMode, maxSteps), found '{name}', which is not read");
@@ -2712,11 +2714,16 @@ fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
   assert_eq!(response["results"][1]["warnings"], json!([]), "{response}");
   // evaluateEach has no warnings of the request: each answer has them
   let response = req(json!({"op": "evaluateEach", "expression": "a", "langauge": "feel", "entries": [{"context": {"a": 1}}, {"context": {"a": 2}, "Input": 3}]}));
-  assert_eq!(response["results"][0]["warnings"], json!([{"message": unknown("langauge")}]), "{response}");
+  let of_each = |name: &str| {
+    format!(
+      "expected a field of an evaluateEach request (op, dialect, expression, contextFormat, tzOffsetMinutes, now, language, errorMode, maxSteps, entries), found '{name}', which is not read"
+    )
+  };
+  assert_eq!(response["results"][0]["warnings"], json!([{"message": of_each("langauge")}]), "{response}");
   let in_entries = |name: &str| format!("expected a field of an entry of 'entries' (id, context, input), found '{name}', which is not read");
   assert_eq!(
     response["results"][1]["warnings"],
-    json!([{"message": unknown("langauge")}, {"message": in_entries("Input")}]),
+    json!([{"message": of_each("langauge")}, {"message": in_entries("Input")}]),
     "{response}"
   );
   // a long name is shown in part, as every text of a message is
@@ -3003,4 +3010,80 @@ fn a_field_of_the_request_in_an_entry_is_named_in_a_warning() {
   assert_eq!(each["results"][0]["warnings"], json!([]), "{each}");
   let all = ok(json!({"op": "evaluateAll", "evaluations": [{"id": "a", "dialect": "unaryTests", "expression": "> 1", "input": 2, "errorMode": "strict", "maxSteps": 10}]}));
   assert_eq!(all["results"][0]["warnings"], json!([]), "{all}");
+}
+
+#[test]
+fn second_review_of_the_batch() {
+  let display = |expression: &str| {
+    let response = req(json!({"op": "evaluate", "expression": expression}));
+    match response["ok"].as_bool() {
+      Some(true) => response["result"]["display"].as_str().unwrap().to_string(),
+      _ => format!("{} error", response["error"]["kind"].as_str().unwrap_or("?")),
+    }
+  };
+  // a type after `as` ends a name not in scope only when the name ends with it: a name of FEEL
+  // 1.6 that holds `as` and a type word keeps it
+  for (expression, expected) in [
+    ("{f: function(p) p.Count as number of items}.f({\"Count as number of items\": 7})", "7"),
+    ("{f: function(p) p.Born as date of record}.f({\"Born as date of record\": 7})", "7"),
+    ("{f: function(p) p.Start as time zone}.f({\"Start as time zone\": 7})", "7"),
+    ("{f: function(p) p.Paid as string value}.f({\"Paid as string value\": 7})", "7"),
+    // the type ends the name: at the end, before an operator or a keyword
+    ("{f: function(p) p.x as number + 1}.f({x: 1})", "2"),
+    ("{f: function(p) if p.x as number > 0 then 1 else 0}.f({x: 1})", "1"),
+    ("{f: function(p) p.x as date and time}.f({x: @\"2020-01-01T00:00:00\"})", "\"2020-01-01T00:00:00\""),
+    ("{f: function(p) [p.x as number, 2]}.f({x: 1})", "[1, 2]"),
+    // a parameter, a key and a named argument are names being given: they hold `as` and a type
+    ("{f: function(a, cost as string) cost as string}.f(1, 3)", "3"),
+    ("(function(age as number) age as number)(3)", "3"),
+    ("{f: function(cost as string: number) cost as string}.f(3)", "3"),
+    ("{f: function(cost as string) cost as string}.f(cost as string: 4)", "4"),
+    ("{cost as string: 1}.cost as string", "1"),
+    ("for cost as string in [1, 2] return cost as string", "[1, 2]"),
+  ] {
+    assert_eq!(display(expression), expected, "{expression}");
+  }
+  // completion offers the types after an unknown name and `as`, also while a type is typed
+  let labels = |expression: &str| -> Vec<String> {
+    let completed = ok(json!({"op": "complete", "expression": expression}));
+    completed["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|item| item["label"].as_str().unwrap().to_string())
+      .collect()
+  };
+  for expression in ["[1, 2][item as ", "{f: function(p) p.age as "] {
+    let offered = labels(expression);
+    assert!(
+      offered.contains(&"number".to_string()) && !offered.contains(&"as".to_string()),
+      "{expression:?}: {offered:?}"
+    );
+  }
+  assert!(labels("[1, 2][item as n").contains(&"number".to_string()), "{:?}", labels("[1, 2][item as n"));
+  // the fields of an evaluateAll or evaluateEach request are read as such a request has them
+  let all = ok(json!({"op": "evaluateAll", "errorMode": "strict", "maxSteps": 1, "dialect": "unaryTests", "evaluations": [{"expression": "1 + \"a\""}]}));
+  let warnings = all["contextWarnings"].to_string();
+  for field in ["errorMode", "maxSteps", "dialect"] {
+    assert!(
+      warnings.contains(&format!(
+        "evaluateAll request (op, context, contextFormat, tzOffsetMinutes, now, language, evaluations), found '{field}'"
+      )),
+      "{warnings}"
+    );
+  }
+  let each = ok(json!({"op": "evaluateEach", "expression": "1", "context": {}, "input": 1, "id": 2, "entries": [{}]}));
+  let warnings = each["results"][0]["warnings"].to_string();
+  for field in ["context", "input", "id"] {
+    assert!(warnings.contains(&format!("found '{field}', which is not read")), "{warnings}");
+  }
+  // the fields such requests have draw none
+  let each = ok(
+    json!({"op": "evaluateEach", "dialect": "expression", "expression": "1", "contextFormat": "json", "tzOffsetMinutes": 0, "now": "2001-01-01T00:00:00Z", "language": "feel", "errorMode": "lenient", "maxSteps": 10, "entries": [{}]}),
+  );
+  assert_eq!(each["results"][0]["warnings"], json!([]), "{each}");
+  let all = ok(
+    json!({"op": "evaluateAll", "context": {}, "contextFormat": "json", "tzOffsetMinutes": 0, "now": "2001-01-01T00:00:00Z", "language": "feel", "evaluations": [{"expression": "1"}]}),
+  );
+  assert_eq!(all["contextWarnings"], json!([]), "{all}");
 }
