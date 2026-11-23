@@ -2916,3 +2916,54 @@ fn evaluate_each_parses_again_for_a_context_of_another_nesting() {
   // contexts of the same names still share one parse and give their own values
   assert_eq!(each("b-c", json!([{"b": 5, "c": 2}, {"b": 7, "c": 1}])), ["3", "6"].map(String::from));
 }
+
+#[test]
+fn as_ends_a_name_that_is_not_in_scope() {
+  // review of v0.9.0..feel/f1: `as` (DMN 1.7 Beta 1, grammar rule 51) was read into a name the
+  // scope does not know; names are resolved by the scope, the longest name in scope first
+  // (10.3.1.2), so a name in scope keeps the word and an unknown name ends before it
+  let display = |expression: &str, context: Json| {
+    ok(json!({"op": "evaluate", "expression": expression, "context": context}))["result"]["display"]
+      .as_str()
+      .unwrap()
+      .to_string()
+  };
+  assert_eq!(display("[1, 2, 3][item as number > 1]", json!({})), "[2, 3]");
+  assert_eq!(display("{v: \"1\"}.v as number", json!({})), "null");
+  assert_eq!(display("{v: 1}.v as number", json!({})), "1");
+  assert_eq!(display("rows[1].amount as number", json!({"rows": [{"amount": 5}, {"other": 1}]})), "5");
+  assert_eq!(display("f().v as number", json!({})), "null");
+  // a name in scope that holds the word
+  assert_eq!(display("Cost as percent + 1", json!({"Cost as percent": 5})), "6");
+  assert_eq!(display("Cost as percent", json!({"Cost": 5})), "null");
+  // a name that starts with the word
+  assert_eq!(display("as of date", json!({"as of date": 7})), "7");
+  // the entries of a parameter are not known when the text is read: the name ends before `as`
+  // only when a type follows, so a name of FEEL 1.6 that holds the word keeps it
+  assert_eq!(display("{f: function(p) p.age as number}.f({age: 4})", json!({})), "4");
+  assert_eq!(display("{f: function(p) p.age as list<number>}.f({age: [4]})", json!({})), "[4]");
+  assert_eq!(display("{f: function(p) p.age as days and time duration}.f({age: @\"P1D\"})", json!({})), "\"P1D\"");
+  assert_eq!(display("{f: function(p) p.Cost as percent}.f({\"Cost as percent\": 3})", json!({})), "3");
+  assert_eq!(display("{f: function(p) p.Report as of today}.f({\"Report as of today\": 2})", json!({})), "2");
+  assert_eq!(display("{f: function(p) p.numbers as numbers}.f({\"numbers as numbers\": 1})", json!({})), "1");
+  // the conversion of a name in scope
+  assert_eq!(display("Cost as number", json!({"Cost": 5})), "5");
+  assert_eq!(display("Cost as string", json!({"Cost": 5})), "null");
+  // completion offers the operator and the abstract types
+  let labels = |expression: &str| -> Vec<String> {
+    let completed = ok(json!({"op": "complete", "expression": expression, "context": {"a": 1}}));
+    completed["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|item| item["label"].as_str().unwrap().to_string())
+      .collect()
+  };
+  assert!(labels("a ").contains(&"as".to_string()), "{:?}", labels("a "));
+  for expression in ["a as ", "a instance of "] {
+    let offered = labels(expression);
+    for name in ["comparable", "temporal", "duration", "context", "number"] {
+      assert!(offered.contains(&name.to_string()), "{expression:?}: {offered:?}");
+    }
+  }
+}

@@ -18,9 +18,10 @@ const MAX_ITEMS: usize = 200;
 
 /// The keywords that start an expression, and those that can follow an operand.
 const OPERAND_KEYWORDS: [&str; 8] = ["if", "for", "some", "every", "function", "true", "false", "null"];
-const OPERATOR_KEYWORDS: [&str; 5] = ["and", "or", "between", "in", "instance of"];
-/// The names of the built-in types, and the starts of the types that take types.
-const TYPES: [&str; 14] = [
+const OPERATOR_KEYWORDS: [&str; 6] = ["and", "or", "between", "in", "instance of", "as"];
+/// The names of the built-in types, the abstract types of DMN 1.7 (Figure 10-26: comparable,
+/// temporal, duration, and context of any entries), and the starts of the types that take types.
+const TYPES: [&str; 18] = [
   "Any",
   "Null",
   "boolean",
@@ -31,6 +32,10 @@ const TYPES: [&str; 14] = [
   "string",
   "time",
   "years and months duration",
+  "comparable",
+  "temporal",
+  "duration",
+  "context",
   "context<",
   "function<",
   "list<",

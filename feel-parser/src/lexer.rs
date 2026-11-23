@@ -32,10 +32,13 @@ const NOT_SEARCHED: (usize, usize) = (usize::MAX, 0);
 
 /// The keywords that can follow an operand. A name that is not in scope ends before a word of
 /// its chain that is one of them: `for s in x return s` and `x and y` have their keywords also
-/// when `x` is no name in scope. A name in scope is matched first, so it may hold these words
-/// (`tax return`). The other keywords never follow an operand, so a name ending before them
-/// would only be a syntax error.
-const NAME_ENDING_KEYWORDS: [&str; 9] = ["and", "between", "else", "in", "instance", "or", "return", "satisfies", "then"];
+/// when `x` is no name in scope. `as` (DMN 1.7 Beta 1, grammar rule 51) ends such a name only
+/// when a type follows it ([starts_type]): `item as number` in a filter converts `item`, while a
+/// name of FEEL 1.6 that holds the word keeps it (`p.Cost as percent`, an entry of a parameter).
+/// A name in scope is matched first, so it may hold these words (`tax return`, `cost as
+/// percent`); names are resolved by the scope (10.3.1.2). The other keywords never follow an
+/// operand, so a name ending before them would only be a syntax error.
+const NAME_ENDING_KEYWORDS: [&str; 10] = ["and", "as", "between", "else", "in", "instance", "or", "return", "satisfies", "then"];
 
 /// The additional name symbols that are operators or punctuation of an expression. A name that
 /// is not in scope ends before one of them: `a + b` is a sum and `x.y` a path also when `a` and
@@ -1082,9 +1085,11 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
   fn is_name_ending_keyword(&self, index: usize) -> bool {
     let start = self.chain_parts[index].start;
     self.input[..start].chars().next_back().is_some_and(is_whitespace)
-      && NAME_ENDING_KEYWORDS
-        .iter()
-        .any(|keyword| self.input[start..].strip_prefix(keyword).is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace)))
+      && NAME_ENDING_KEYWORDS.iter().any(|keyword| {
+        self.input[start..]
+          .strip_prefix(keyword)
+          .is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace) && (*keyword != "as" || starts_type(rest)))
+      })
   }
 
   /// Returns `true` when the name that starts at part `first` of the chain is this part alone
@@ -1617,6 +1622,30 @@ fn is_built_in_type_name(name: &str) -> bool {
     name,
     "Any" | "Null" | "boolean" | "number" | "string" | "date" | "date and time" | "time" | "years and months duration" | "days and time duration"
   )
+}
+
+/// Returns `true` when `text`, after white space, starts with a type of FEEL: a built-in type
+/// name, an abstract type name of DMN 1.7 (Figure 10-26: `comparable`, `temporal`, `duration`,
+/// `context`), or `list<`, `range<` or `function<`. A name that is not in scope ends before `as`
+/// only then ([NAME_ENDING_KEYWORDS]).
+fn starts_type(text: &str) -> bool {
+  let word = |text: &str| -> (usize, usize) {
+    let start = text.len() - text.trim_start_matches(is_whitespace).len();
+    let end = text[start..].find(|ch: char| !is_name_part_char(ch)).map_or(text.len(), |end| start + end);
+    (start, end)
+  };
+  let (start, end) = word(text);
+  let rest = &text[end..];
+  match &text[start..end] {
+    "Any" | "Null" | "boolean" | "number" | "string" | "date" | "time" | "comparable" | "temporal" | "duration" | "context" => true,
+    "list" | "range" | "function" => rest.trim_start_matches(is_whitespace).starts_with('<'),
+    // `years and months duration`, `days and time duration`
+    "years" | "days" => {
+      let (start, end) = word(rest);
+      &rest[start..end] == "and"
+    }
+    _ => false,
+  }
 }
 
 /// Returns `true` when the text of a part of a name chain is one additional name symbol.

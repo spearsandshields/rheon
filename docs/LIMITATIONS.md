@@ -122,11 +122,14 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
     one, the FEEL `for x in null`, the `?` parameter marker) are to apply to models of the DMN 1.7
     namespace only, once rheon reads 1.7 models; plain FEEL keeps the 1.6 answers (owner,
     2026-11-21).
-  - *`as` after a path* (DMN 1.7 Beta 1, grammar rule 51). `as` is read as the operator only after a
-    complete operand, so that names holding it keep their 1.6 meaning; a name after a dot that is
-    not known when the text is read runs on through `as` (`p.age as number` reads the entry
-    `age as number` of `p`). Write `(p.age) as number`. A known name is read as it is
-    (`{age: 1}.age as number`).
+  - *`as` after a name not known when the text is read* (DMN 1.7 Beta 1, grammar rule 51; names are
+    resolved by the scope, 10.3.1.2). `as` is the operator after a complete operand. A name that
+    the scope does not know (`item` in a filter, an entry of a parameter) ends before `as` only
+    when a type follows: `item as number` and `p.age as list<number>` convert, while
+    `p.Cost as percent` and `p.Report as of today` read the entries of those names, as in FEEL
+    1.6. An entry of a parameter whose name ends with `as` and a type (`age as number`) is read
+    as the conversion of `p.age`; `get value(p, "age as number")` reads that entry. A name in
+    scope is read as it is.
   - *Regular expressions* (10.3.4.3, F&O §7.6.1, XML Schema Part 2 Appendix F). Patterns are read
     in the syntax of XML Schema 1.0 with the additions of F&O 2.0 (anchors, reluctant quantifiers,
     back-references, `\$`), and anything else is an invalid pattern, also where the engine below
