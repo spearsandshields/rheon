@@ -121,6 +121,24 @@ export function serializeRequest(req: Record<string, unknown>): string {
   return `{${parts.join(',')}}`;
 }
 
+/**
+ * The fields of a request object that its builder does not write, sent as they are: the module
+ * names a field that it does not read (a misspelt `errormode`) in a warning, as it does for a
+ * request sent as JSON text.
+ */
+function unwritten(req: object, written: readonly string[]): Record<string, unknown> {
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(req)) {
+    if (value !== undefined && !written.includes(key)) rest[key] = value;
+  }
+  return rest;
+}
+
+const EVALUATE_WRITTEN = ['op', 'dialect', 'expression', 'context', 'contextFormat', 'input', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps'] as const;
+const EVALUATE_ALL_WRITTEN = ['op', 'context', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'evaluations'] as const;
+const EVALUATE_EACH_WRITTEN = ['op', 'dialect', 'expression', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps', 'entries'] as const;
+const ENTRY_WRITTEN = ['id', 'context', 'input'] as const;
+
 function contextFields(context: ParseOptions['context'], contextFormat: ParseOptions['contextFormat']) {
   if (context === undefined) return {};
   if (typeof context === 'string') {
@@ -146,6 +164,7 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
     language: req.language,
     errorMode: req.errorMode,
     maxSteps: req.maxSteps,
+    ...unwritten(req, EVALUATE_WRITTEN),
   });
 }
 
@@ -174,6 +193,7 @@ export function buildEvaluateAllJson(req: EvaluateAllRequest, defaultTz: number 
     tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
     now: req.now,
     language: req.language,
+    ...unwritten(req, EVALUATE_ALL_WRITTEN),
   };
   const evaluations: unknown = req.evaluations;
   if (!Array.isArray(evaluations)) return { json: serializeRequest({ ...head, evaluations }), failures };
@@ -222,6 +242,7 @@ export function buildEvaluateEachJson(req: EvaluateEachRequest, defaultTz: numbe
     language: req.language,
     errorMode: req.errorMode,
     maxSteps: req.maxSteps,
+    ...unwritten(req, EVALUATE_EACH_WRITTEN),
   };
   if (!Array.isArray(list)) return { json: serializeRequest({ ...head, entries: list }), failures };
   const entries: string[] = [];
@@ -237,7 +258,9 @@ export function buildEvaluateEachJson(req: EvaluateEachRequest, defaultTz: numbe
           throw new RequestError({ kind: 'context', message: "rawJson context requires contextFormat 'json'" });
         }
         // as for `evaluate`, the input is sent for unary tests only
-        entries.push(serializeRequest({ id: fields.id, context: fields.context, input: dialect === 'unaryTests' ? fields.input : undefined }));
+        entries.push(
+          serializeRequest({ id: fields.id, context: fields.context, input: dialect === 'unaryTests' ? fields.input : undefined, ...unwritten(fields, ENTRY_WRITTEN) }),
+        );
       }
     } catch (e) {
       if (!(e instanceof RequestError)) throw e;

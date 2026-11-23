@@ -2705,14 +2705,18 @@ fn a_field_that_a_request_does_not_have_is_named_in_a_warning() {
   // the request of evaluateAll among the warnings of the request, an entry in its own answer
   let response = req(json!({"op": "evaluateAll", "contxt": {"a": 1}, "evaluations": [{"expression": "1", "errormode": "strict"}, {"expression": "2"}]}));
   assert_eq!(response["contextWarnings"], json!([{"message": unknown("contxt")}]), "{response}");
-  assert_eq!(response["results"][0]["warnings"], json!([{"message": unknown("errormode")}]), "{response}");
+  // an entry is read for the fields an entry has
+  let in_evaluations =
+    |name: &str| format!("expected a field of an entry of 'evaluations' (id, dialect, expression, input, errorMode, maxSteps), found '{name}', which is not read");
+  assert_eq!(response["results"][0]["warnings"], json!([{"message": in_evaluations("errormode")}]), "{response}");
   assert_eq!(response["results"][1]["warnings"], json!([]), "{response}");
   // evaluateEach has no warnings of the request: each answer has them
   let response = req(json!({"op": "evaluateEach", "expression": "a", "langauge": "feel", "entries": [{"context": {"a": 1}}, {"context": {"a": 2}, "Input": 3}]}));
   assert_eq!(response["results"][0]["warnings"], json!([{"message": unknown("langauge")}]), "{response}");
+  let in_entries = |name: &str| format!("expected a field of an entry of 'entries' (id, context, input), found '{name}', which is not read");
   assert_eq!(
     response["results"][1]["warnings"],
-    json!([{"message": unknown("langauge")}, {"message": unknown("Input")}]),
+    json!([{"message": unknown("langauge")}, {"message": in_entries("Input")}]),
     "{response}"
   );
   // a long name is shown in part, as every text of a message is
@@ -2966,4 +2970,37 @@ fn as_ends_a_name_that_is_not_in_scope() {
       assert!(offered.contains(&name.to_string()), "{expression:?}: {offered:?}");
     }
   }
+}
+
+#[test]
+fn a_field_of_the_request_in_an_entry_is_named_in_a_warning() {
+  // review of v0.9.0..feel/f1: an entry was checked against the fields of every request, so a
+  // field of the request written in an entry was ignored without a word
+  let each = ok(json!({"op": "evaluateEach", "expression": "for i in 1..100 return i", "entries": [{"context": {}, "maxSteps": 1, "errorMode": "strict"}]}));
+  let result = &each["results"][0];
+  assert_eq!(result["ok"], true, "{each}");
+  let warnings = result["warnings"].to_string();
+  for field in ["maxSteps", "errorMode"] {
+    assert!(
+      warnings.contains(&format!(
+        "expected a field of an entry of 'entries' (id, context, input), found '{field}', which is not read"
+      )),
+      "{warnings}"
+    );
+  }
+  let all = ok(json!({"op": "evaluateAll", "evaluations": [{"expression": "today()", "now": "2001-01-01T00:00:00Z", "language": "b-feel"}]}));
+  let warnings = all["results"][0]["warnings"].to_string();
+  for field in ["now", "language"] {
+    assert!(
+      warnings.contains(&format!(
+        "expected a field of an entry of 'evaluations' (id, dialect, expression, input, errorMode, maxSteps), found '{field}', which is not read"
+      )),
+      "{warnings}"
+    );
+  }
+  // the fields an entry reads draw none
+  let each = ok(json!({"op": "evaluateEach", "dialect": "unaryTests", "expression": "> 1", "entries": [{"id": 1, "context": {}, "input": 2}]}));
+  assert_eq!(each["results"][0]["warnings"], json!([]), "{each}");
+  let all = ok(json!({"op": "evaluateAll", "evaluations": [{"id": "a", "dialect": "unaryTests", "expression": "> 1", "input": 2, "errorMode": "strict", "maxSteps": 10}]}));
+  assert_eq!(all["results"][0]["warnings"], json!([]), "{all}");
 }

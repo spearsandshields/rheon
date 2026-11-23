@@ -716,6 +716,31 @@ const FIELDS: [&str; 19] = [
 
 /// A warning for each field of `fields` that a request does not have: it is not read, and a
 /// misspelt `errorMode` or `maxSteps` must not go unseen.
+/// The fields that an entry of `entries` (evaluateEach) reads: what differs between the
+/// evaluations. The other fields of a request are those of the request alone.
+const ENTRY_FIELDS: [&str; 3] = ["id", "context", "input"];
+
+/// The fields that an entry of `evaluations` (evaluateAll) reads: those of one evaluation. The
+/// context, its format, the offset, the clock and the language are those of the request.
+const EVALUATION_FIELDS: [&str; 6] = ["id", "dialect", "expression", "input", "errorMode", "maxSteps"];
+
+/// A warning for each field of an entry of the list `list` that is not one of `read`, the
+/// fields such an entry has: a field of the request written in an entry (`maxSteps` in an entry
+/// of `entries`) is not read there, and the caller would believe it is.
+fn unread_entry_fields(fields: &Map<String, Json>, read: &[&str], list: &str) -> Vec<String> {
+  fields
+    .keys()
+    .filter(|name| !read.contains(&name.as_str()))
+    .map(|name| {
+      compose(format_args!(
+        "expected a field of an entry of '{list}' ({}), found '{}', which is not read",
+        read.join(", "),
+        arg(name.as_str())
+      ))
+    })
+    .collect()
+}
+
 fn unknown_fields(fields: &Map<String, Json>) -> Vec<String> {
   fields
     .keys()
@@ -781,13 +806,15 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
       .and_then(|(fields, _)| fields.get("id").filter(|id| id.is_string() || id.is_number()).cloned());
     let answer = fields.and_then(|(mut fields, unread)| {
       let id = id_text(&fields)?;
+      // read before the format of the request is put in: a format of the entry is not read
+      let entry_warnings = unread_entry_fields(&fields, &ENTRY_FIELDS, "entries");
       match &format {
         Some(format) => fields.insert("contextFormat".to_string(), format.clone()),
         None => fields.remove("contextFormat"),
       };
       // the request has no warnings of its own: those of its fields stand in every answer
       let mut warnings = request_warnings.clone();
-      warnings.extend(unknown_fields(&fields));
+      warnings.extend(entry_warnings);
       let context = prepare_context(fields, unread, dialect, &mut warnings)?;
       names.clear();
       let comparable = parse_names(&context, 0, &mut names);
@@ -853,7 +880,7 @@ fn evaluate_one(
   let error_mode = error_mode(&entry)?;
   let max_steps = max_steps(&entry)?;
   let expression = expression(&mut entry)?;
-  let mut warnings = unknown_fields(&entry);
+  let mut warnings = unread_entry_fields(&entry, &EVALUATION_FIELDS, "evaluations");
   let tested = if dialect == Dialect::UnaryTests {
     match entry.remove("input") {
       Some(input) => Some(json_into_value(input, &Path::Root("input"), &mut warnings).map_err(|e| Failure(Kind::Context, e, None))?),

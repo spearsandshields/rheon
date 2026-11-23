@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { instantiateFeel, createWasiShim, rawJson, isRawJson, trapMessage } from '../dist/index.js';
+import { instantiateFeel, createWasiShim, rawJson, isRawJson, trapMessage, buildEvaluateJson, buildEvaluateAllJson, buildEvaluateEachJson } from '../dist/index.js';
 import { wasmBytes, trappingModuleBytes } from './helpers.mjs';
 
 const feel = await instantiateFeel(await wasmBytes(), { tzOffsetMinutes: -240 });
@@ -116,6 +116,24 @@ test('now: a fixed instant for now() and today() of one request', () => {
   assert.equal(ev('string(now())', { ...pinned, tzOffsetMinutes: 120 }).result.feel, '"2001-02-03T06:05:06"');
   assert.equal(ev('1', { now: '2001-02-03' }).error.kind, 'request');
   assert.notEqual(ev('string(today())', { tzOffsetMinutes: 0 }).result.feel, '"2001-02-03"');
+});
+
+test('a field the runtime does not write reaches the module, which names it in a warning', () => {
+  // review of v0.9.0..feel/f1: the builders made the request of the fields they know only
+  const messages = (warnings) => (warnings ?? []).map((w) => w.message).join('\n');
+  const each = feel.call({ op: 'evaluateEach', expression: '1', errormode: 'strict', entries: [{ context: {}, maxsteps: 1 }] });
+  assert.match(messages(each.results[0].warnings), /found 'errormode', which is not read/);
+  assert.match(messages(each.results[0].warnings), /an entry of 'entries' \(id, context, input\), found 'maxsteps'/);
+  const all = feel.call({ op: 'evaluateAll', contxt: { a: 1 }, evaluations: [{ expression: '1', errormode: 'strict' }] });
+  assert.match(messages(all.contextWarnings), /found 'contxt', which is not read/);
+  assert.match(messages(all.results[0].warnings), /found 'errormode', which is not read/);
+  // the builders of FeelEngine send them too
+  assert.match(buildEvaluateJson({ expression: '1', errormode: 'strict' }), /"errormode":"strict"/);
+  assert.match(buildEvaluateAllJson({ evaluations: [], contxt: 1 }).json, /"contxt":1/);
+  assert.match(buildEvaluateEachJson({ expression: '1', entries: [{ context: {}, maxsteps: 1 }] }).json, /"maxsteps":1/);
+  // and nothing else: the fields they write stay as they were
+  const built = JSON.parse(buildEvaluateJson({ expression: '1', dialect: 'expression', input: 5 }, 0));
+  assert.deepEqual(Object.keys(built).sort(), ['dialect', 'expression', 'op', 'tzOffsetMinutes']);
 });
 
 test('deep nesting is a syntax error, deep recursion an evaluation error (no crash)', () => {
