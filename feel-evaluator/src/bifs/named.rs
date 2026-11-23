@@ -140,9 +140,10 @@ fn unsupplied_bound_to_null(bif: &Bif, given: &BTreeMap<Name, (Value, usize)>) -
   if first.is_empty() || fitting.any(|other| other != first) {
     return None;
   }
+  // the positions of the given arguments are 1 to given.len(): the bound ones come after them
   let mut bound = given.clone();
   for (place, name) in first.into_iter().enumerate() {
-    bound.insert(Name::from(name), (Value::Null(None), given.len() + place));
+    bound.insert(Name::from(name), (Value::Null(None), given.len() + place + 1));
   }
   Some(bound)
 }
@@ -1343,5 +1344,15 @@ mod tests {
   #[test]
   fn test_get_param_count() {
     assert_eq!(0, get_param_count(&Value::Boolean(false)))
+  }
+
+  #[test]
+  fn a_parameter_bound_to_null_comes_after_the_given_ones() {
+    // review of v0.9.0..feel/f1: the first bound parameter had the position of the last given
+    // one, and `before(point, range)` tells the orders apart by the positions
+    let given: BTreeMap<Name, (Value, usize)> = [(Name::from("point"), (Value::Number(1.into()), 1))].into();
+    let bound = unsupplied_bound_to_null(&Bif::Before, &given).expect("range is missing");
+    assert_eq!(bound.get(&Name::from("range")).map(|(_, position)| *position), Some(2));
+    assert_eq!(bound.get(&Name::from("point")).map(|(_, position)| *position), Some(1));
   }
 }

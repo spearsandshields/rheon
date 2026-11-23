@@ -141,6 +141,11 @@ fn _0020() {
   te_string(false, &scope!(), r#"string(context put({}, ["a", "b", "c"], 1))"#, r#"{a: null}"#);
   te_string(false, &scope!(), r#"string(context put({x: {}}, ["x", "a", "b"], 1))"#, r#"{x: {a: null}}"#);
   te_value(false, &scope!(), r#"context put({x: {y: {}}}, ["x", "y", "z"], 1)"#, r#"{x: {y: {z: 1}}}"#);
+  // an entry that holds null is to context.key' what a missing entry is (review of
+  // v0.9.0..feel/f1)
+  te_string(false, &scope!(), r#"string(context put({a: null}, ["a", "b"], 1))"#, r#"{a: null}"#);
+  te_string(false, &scope!(), r#"string(context put({x: {a: null}}, ["x", "a", "b"], 1))"#, r#"{x: {a: null}}"#);
+  te_value(false, &scope!(), r#"context put({a: null}, ["a", "b"], 1) = context put({}, ["a", "b"], 1)"#, "true");
   // an entry on the path that is no context: the whole result is null (TCK 1146 nested009)
   te_null(
     false,

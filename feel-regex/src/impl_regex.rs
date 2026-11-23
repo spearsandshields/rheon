@@ -88,9 +88,10 @@ fn compile(patterns: &mut Patterns, pattern: &str, flags_text: &str, flags: &Fla
     fancy_regex::Error::CompileError(error) => match *error {
       fancy_regex::CompileError::InnerError(error) if error.size_limit().is_some() => RegexError::LimitExceeded(Limit::CompiledSize),
       fancy_regex::CompileError::InnerError(error) if error.syntax_error().is_some_and(is_nest_limit) => RegexError::LimitExceeded(Limit::Nesting),
-      _ => RegexError::InvalidPattern(err_invalid_pattern_at(pattern, 0, "a pattern the engine can compile")),
+      // the engine reads the translated pattern, whose places are not those of the pattern
+      _ => RegexError::InvalidPattern(err_invalid_pattern_expecting(pattern, "a pattern the engine can compile")),
     },
-    _ => RegexError::InvalidPattern(err_invalid_pattern_at(pattern, 0, "a pattern the engine can compile")),
+    _ => RegexError::InvalidPattern(err_invalid_pattern_expecting(pattern, "a pattern the engine can compile")),
   })?;
   if patterns.kept.len() < MAX_KEPT {
     patterns.kept.push(Kept {
