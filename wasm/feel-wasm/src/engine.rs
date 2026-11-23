@@ -636,25 +636,37 @@ enum Entry<'a> {
 
 /// An expression that was parsed in a context, with what of the context its parse depends on.
 struct Prepared {
-  names: Vec<Option<Name>>,
+  names: Vec<Shape>,
   evaluator: rheon_feel::Evaluator,
+}
+
+/// A part of what the parse of a text in a context depends on ([parse_names]): a name, or the
+/// start or the end of the entries of a context that is the value of the name before it. The
+/// starts and ends are written apart, so two contexts of other nestings never give the same
+/// parts (`{b: {"b-c": 1}}` and `{b: 1, "b-c": {}}`).
+#[derive(PartialEq)]
+enum Shape {
+  Name(Name),
+  Open,
+  Close,
 }
 
 /// Contexts are compared for their names down to this depth; a deeper one is parsed in anew.
 const NAMES_DEPTH: usize = 8;
 
 /// Appends to `names` what the parse of a text in `context` depends on: its names in their
-/// order and, after the names of a context that is the value of one, `None`. `false` when the
+/// order, and the entries of a context that is the value of one between [Shape::Open] and
+/// [Shape::Close]. `false` when the
 /// context holds a value whose names take more to compare (a list, a function, a type, a
 /// range) or is nested deeper than [NAMES_DEPTH]: a text is then parsed in that context itself.
 /// Two contexts that give the same names are the same to a parser, which reads the names in
 /// scope and never a number, a string, a boolean, a date, a time, a duration or a null.
-fn parse_names(context: &FeelContext, depth: usize, names: &mut Vec<Option<Name>>) -> bool {
+fn parse_names(context: &FeelContext, depth: usize, names: &mut Vec<Shape>) -> bool {
   if depth > NAMES_DEPTH {
     return false;
   }
   for (name, value) in context.iter() {
-    names.push(Some(name.clone()));
+    names.push(Shape::Name(name.clone()));
     match value {
       Value::Null(_)
       | Value::Number(_)
@@ -666,10 +678,11 @@ fn parse_names(context: &FeelContext, depth: usize, names: &mut Vec<Option<Name>
       | Value::YearsAndMonthsDuration(_)
       | Value::DaysAndTimeDuration(_) => {}
       Value::Context(inner) => {
+        names.push(Shape::Open);
         if !parse_names(inner, depth + 1, names) {
           return false;
         }
-        names.push(None);
+        names.push(Shape::Close);
       }
       _ => return false,
     }

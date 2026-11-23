@@ -2887,3 +2887,32 @@ fn completion_types_function_literals_and_their_invocations() {
   let completed = ok(json!({"op": "complete", "expression": "{k: {m: 1}, f: function() k, q: f().", "context": {"k": "s"}}));
   assert!(completed["items"].as_array().unwrap().iter().any(|item| item["label"] == "m"), "{completed}");
 }
+
+#[test]
+fn evaluate_each_parses_again_for_a_context_of_another_nesting() {
+  // review of v0.9.0..feel/f1: the names of {b: {"b-c": 1}, c: 3} and {b: 10, "b-c": {}, c: 3}
+  // were the same to evaluateEach, so the second entry was answered with the parse `b - c`
+  let each = |expression: &str, contexts: Json| {
+    let entries: Vec<Json> = contexts.as_array().unwrap().iter().map(|context| json!({"context": context})).collect();
+    let response = ok(json!({"op": "evaluateEach", "expression": expression, "entries": entries}));
+    let displays: Vec<String> = response["results"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|result| result["result"]["display"].as_str().unwrap().to_string())
+      .collect();
+    displays
+  };
+  let contexts = json!([{"b": {"b-c": 1}, "c": 3}, {"b": 10, "b-c": {}, "c": 3}]);
+  assert_eq!(each("b-c", contexts.clone()), ["null", "{}"].map(String::from));
+  // every answer is what evaluate gives
+  for context in contexts.as_array().unwrap() {
+    let alone = ok(json!({"op": "evaluate", "expression": "b-c", "context": context}));
+    assert!(each("b-c", json!([context])).contains(&alone["result"]["display"].as_str().unwrap().to_string()));
+  }
+  // nestings that the old names also confused
+  let deeper = json!([{"a": {"b": {}}, "x y": 1}, {"a": {}, "b": {}, "x y": 1}]);
+  assert_eq!(each("x y", deeper), ["1", "1"].map(String::from));
+  // contexts of the same names still share one parse and give their own values
+  assert_eq!(each("b-c", json!([{"b": 5, "c": 2}, {"b": 7, "c": 1}])), ["3", "6"].map(String::from));
+}
