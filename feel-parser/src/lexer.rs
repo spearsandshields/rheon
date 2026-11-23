@@ -1101,7 +1101,7 @@ impl<'lexer, 'scope> Lexer<'lexer, 'scope> {
       && NAME_ENDING_KEYWORDS.iter().any(|keyword| {
         self.input[start..]
           .strip_prefix(keyword)
-          .is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace) && (*keyword != "as" || (!self.declared_name && type_ends_name(rest))))
+          .is_some_and(|rest| rest.chars().next().is_none_or(is_whitespace) && (*keyword != "as" || (!self.declared_name && !self.type_name && type_ends_name(rest))))
       })
   }
 
@@ -1639,25 +1639,54 @@ fn is_built_in_type_name(name: &str) -> bool {
 
 /// Returns `true` when `text`, the text after the word `as` in a name chain, makes `as` the
 /// operator of a name that is not in scope ([NAME_ENDING_KEYWORDS]): nothing follows (a text
-/// being written, `item as`, which an editor completes with a type), or a type of FEEL follows
-/// that ends the name. The types are the built-in type names, the abstract type names of DMN
-/// 1.7 (Figure 10-26: `comparable`, `temporal`, `duration`, `context`), and `list<`, `range<`,
-/// `function<` and `context<`. A type ends the name when the text ends after it, or a keyword
-/// that ends names, or a symbol other than `:` and `'`: after `cost as string:` stands a name
-/// being given a value or a type (`{cost as string: 1}`, `f(cost as string: 1)`), and
-/// `p.Count as number of items` is one name.
+/// being written, `item as`, which an editor completes with a type), or a whole type of FEEL
+/// follows ([type_end]) that ends the name: the text ends after it, or a keyword that ends
+/// names, or a symbol other than `:` and `'`. After `cost as string:` stands a name being given
+/// a value or a type (`{cost as string: 1}`, `f(cost as string: 1)`), `p.Count as number of
+/// items` is one name, and so is `p.Items as list` in `p.Items as list < 3`.
 fn type_ends_name(text: &str) -> bool {
-  // the start and end of the word at the start of `text`, after white space
-  let word = |text: &str| -> (usize, usize) {
-    let start = text.len() - text.trim_start_matches(is_whitespace).len();
-    let end = text[start..].find(|ch: char| !is_name_part_char(ch)).map_or(text.len(), |end| start + end);
-    (start, end)
+  if text.trim_start_matches(is_whitespace).is_empty() {
+    return true;
+  }
+  let Some(end) = type_end(text, 0) else {
+    return false;
   };
+  let after = text[end..].trim_start_matches(is_whitespace);
+  match after.chars().next() {
+    None => true,
+    Some(':' | '\'') => false,
+    Some(ch) if is_name_part_char(ch) => {
+      let (start, end) = leading_word(after);
+      NAME_ENDING_KEYWORDS.contains(&&after[start..end])
+    }
+    Some(_) => true,
+  }
+}
+
+/// The most nested types that [type_end] reads (`list<list<…>>`); a deeper one is no type to it.
+const MAX_TYPE_DEPTH: usize = 16;
+
+/// The start and end of the word at the start of `text`, after white space.
+fn leading_word(text: &str) -> (usize, usize) {
+  let start = text.len() - text.trim_start_matches(is_whitespace).len();
+  let end = text[start..].find(|ch: char| !is_name_part_char(ch)).map_or(text.len(), |end| start + end);
+  (start, end)
+}
+
+/// The end of the type of FEEL that `text` starts with, after white space (DMN 1.7 Beta 1,
+/// grammar rule 54, with the abstract types of Figure 10-26): a built-in or abstract type
+/// name, the multi-word ones whole, `list<T>`, `range<T>`, `context<>`, `context<name: T, …>`
+/// or `function<T, …>->T`. None when it starts with none: a type that names an item definition
+/// is a name like any other, which `as` does not end.
+fn type_end(text: &str, depth: usize) -> Option<usize> {
+  if depth > MAX_TYPE_DEPTH {
+    return None;
+  }
   // the end of the words `words` at the start of `text`
-  let words_end = |text: &str, words: &[&str]| -> Option<usize> {
+  let words_end = |words: &[&str]| -> Option<usize> {
     let mut at = 0;
     for expected in words {
-      let (start, end) = word(&text[at..]);
+      let (start, end) = leading_word(&text[at..]);
       if &text[at + start..at + end] != *expected {
         return None;
       }
@@ -1665,33 +1694,73 @@ fn type_ends_name(text: &str) -> bool {
     }
     Some(at)
   };
-  if text.trim_start_matches(is_whitespace).is_empty() {
-    return true;
-  }
-  let (start, end) = word(text);
-  let type_end = match &text[start..end] {
-    "list" | "range" | "function" | "context" if text[end..].trim_start_matches(is_whitespace).starts_with('<') => return true,
-    "date" => words_end(text, &["date", "and", "time"]).unwrap_or(end),
-    "years" => match words_end(text, &["years", "and", "months", "duration"]) {
-      Some(type_end) => type_end,
-      None => return false,
-    },
-    "days" => match words_end(text, &["days", "and", "time", "duration"]) {
-      Some(type_end) => type_end,
-      None => return false,
-    },
-    "Any" | "Null" | "boolean" | "number" | "string" | "time" | "comparable" | "temporal" | "duration" | "context" => end,
-    _ => return false,
+  // the end of `symbol` after white space at `at`
+  let symbol = |at: usize, symbol: &str| -> Option<usize> {
+    let rest = &text[at..];
+    let start = rest.len() - rest.trim_start_matches(is_whitespace).len();
+    rest[start..].starts_with(symbol).then_some(at + start + symbol.len())
   };
-  let after = text[type_end..].trim_start_matches(is_whitespace);
-  match after.chars().next() {
-    None => true,
-    Some(':' | '\'') => false,
-    Some(ch) if is_name_part_char(ch) => {
-      let (start, end) = word(after);
-      NAME_ENDING_KEYWORDS.contains(&&after[start..end])
+  let (start, end) = leading_word(text);
+  match &text[start..end] {
+    "Any" | "Null" | "boolean" | "number" | "string" | "time" | "comparable" | "temporal" => Some(end),
+    "date" => Some(words_end(&["date", "and", "time"]).unwrap_or(end)),
+    "years" => words_end(&["years", "and", "months", "duration"]),
+    "days" => words_end(&["days", "and", "time", "duration"]),
+    "duration" => Some(end),
+    "list" | "range" => {
+      let open = symbol(end, "<")?;
+      let inner = open + type_end(&text[open..], depth + 1)?;
+      symbol(inner, ">")
     }
-    Some(_) => true,
+    "context" => {
+      let Some(mut at) = symbol(end, "<") else {
+        // the context type of any entries
+        return Some(end);
+      };
+      if let Some(close) = symbol(at, ">") {
+        return Some(close);
+      }
+      loop {
+        // a name of an entry: words, then `:`
+        let (start, name_end) = leading_word(&text[at..]);
+        if start == name_end {
+          return None;
+        }
+        // the words of the name, white space between them
+        let mut name_end = at + name_end;
+        loop {
+          let (start, end) = leading_word(&text[name_end..]);
+          if start == 0 || start == end {
+            break;
+          }
+          name_end += end;
+        }
+        let colon = symbol(name_end, ":")?;
+        at = colon + type_end(&text[colon..], depth + 1)?;
+        if let Some(close) = symbol(at, ">") {
+          return Some(close);
+        }
+        at = symbol(at, ",")?;
+      }
+    }
+    "function" => {
+      let mut at = symbol(end, "<")?;
+      if let Some(close) = symbol(at, ">") {
+        at = close;
+      } else {
+        loop {
+          at += type_end(&text[at..], depth + 1)?;
+          if let Some(close) = symbol(at, ">") {
+            at = close;
+            break;
+          }
+          at = symbol(at, ",")?;
+        }
+      }
+      let arrow = symbol(at, "->")?;
+      Some(arrow + type_end(&text[arrow..], depth + 1)?)
+    }
+    _ => None,
   }
 }
 

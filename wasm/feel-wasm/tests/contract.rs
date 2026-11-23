@@ -3087,3 +3087,42 @@ fn second_review_of_the_batch() {
   );
   assert_eq!(all["contextWarnings"], json!([]), "{all}");
 }
+
+#[test]
+fn third_review_of_the_batch() {
+  let display = |expression: &str| {
+    let response = req(json!({"op": "evaluate", "expression": expression}));
+    match response["ok"].as_bool() {
+      Some(true) => response["result"]["display"].as_str().unwrap().to_string(),
+      _ => format!("{} error", response["error"]["kind"].as_str().unwrap_or("?")),
+    }
+  };
+  for (expression, expected) in [
+    // `as` and a word that starts a generic type end a name only when a whole type follows
+    ("{f: function(p) p.Items as list < 3}.f({\"Items as list\": 2})", "true"),
+    ("{f: function(p) p.Score as range <= 5}.f({\"Score as range\": 2})", "true"),
+    ("{f: function(p) p.Score as context < 5}.f({\"Score as context\": 2})", "true"),
+    // whole generic types convert, also before an operator
+    ("{f: function(p) p.x as list<number>}.f({x: [1]})", "[1]"),
+    ("{f: function(p) count(p.x as list<number>) + 1}.f({x: [1]})", "2"),
+    ("{f: function(p) p.x as context<a: number>}.f({x: {a: 1}})", "{\"a\": 1}"),
+    ("{f: function(p) p.x as context<>}.f({x: {a: 1}})", "{\"a\": 1}"),
+    ("{f: function(p) (p.x as list<list<number>>)[1]}.f({x: [[1]]})", "[1]"),
+    // where a type is read, a name of a type holds `as` (an unknown type: null, as before)
+    ("(function(a: Amount as number) a)(1)", "null"),
+    ("1 instance of list<Amount as number>", "null"),
+    ("1 instance of Amount as number", "null"),
+  ] {
+    assert_eq!(display(expression), expected, "{expression}");
+  }
+  // `entries` read aside by the strict reader is named where it is not read
+  let response = raw(r#"{"op":"evaluateAll","entries":[1],"evaluations":[{"expression":"1"}]}"#);
+  assert!(response.to_string().contains("found 'entries', which is not read"), "{response}");
+  let response = raw(r#"{"op":"evaluateEach","expression":"a","entries":[{"context":{"a":2},"entries":[1]}]}"#);
+  assert!(
+    response["results"][0]["warnings"]
+      .to_string()
+      .contains("an entry of 'entries' (id, context, input), found 'entries'"),
+    "{response}"
+  );
+}

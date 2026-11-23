@@ -125,8 +125,10 @@ Known bugs are in [BACKLOG.md](BACKLOG.md).
   - *`as` after a name not known when the text is read* (DMN 1.7 Beta 1, grammar rule 51; names are
     resolved by the scope, 10.3.1.2). `as` is the operator after a complete operand. A name that
     the scope does not know where it is read (`item` in a filter, an entry of a parameter) ends
-    before `as` only when a type follows that ends the name: at the end of the text, or before an
-    operator, a bracket, a comma or a keyword that ends names. So `item as number > 1` and
+    before `as` only when a whole type follows (`list<number>` with its brackets) that ends the
+    name: at the end of the text, or before an operator, a bracket, a comma or a keyword that
+    ends names. Where a type is read (after `instance of`, in a parameter type), a type name holds
+    the word. So `item as number > 1` and
     `p.age as list<number>` convert, while `p.Cost as percent`, `p.Count as number of items` and
     `p.Report as of today` read the entries of those names, as in FEEL 1.6. A name being given
     keeps the words: a parameter (`function(cost as string)`), a key (`{cost as string: 1}`), a

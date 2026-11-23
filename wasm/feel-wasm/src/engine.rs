@@ -757,13 +757,17 @@ fn unread_names<'n>(names: impl IntoIterator<Item = &'n str>, read: &[&str], of:
     .collect()
 }
 
-/// The names of `context` and `input` when the strict reader read them aside from the other
-/// fields of the request ([Unread]).
+/// The names of `context`, `input` and `entries` when the strict reader read them aside from the
+/// other fields of the request ([Unread]).
 fn read_aside<'n>(unread: &Unread) -> impl Iterator<Item = &'n str> + use<'n> {
-  [("context", unread.context.is_some()), ("input", unread.input.is_some())]
-    .into_iter()
-    .filter(|(_, read)| *read)
-    .map(|(name, _)| name)
+  [
+    ("context", unread.context.is_some()),
+    ("input", unread.input.is_some()),
+    ("entries", unread.entries.is_some()),
+  ]
+  .into_iter()
+  .filter(|(_, read)| *read)
+  .map(|(name, _)| name)
 }
 
 /// A warning for each field of `fields` that a request does not have: it is not read, and a
@@ -835,7 +839,7 @@ fn evaluate_each(mut req: Map<String, Json>, unread: Unread, started: Instant) -
     let answer = fields.and_then(|(mut fields, unread)| {
       let id = id_text(&fields)?;
       // read before the format of the request is put in: a format of the entry is not read
-      let entry_warnings = unread_fields(&fields, &ENTRY_FIELDS, "an entry of 'entries'");
+      let entry_warnings = unread_names(fields.keys().map(String::as_str).chain(read_aside(&unread)), &ENTRY_FIELDS, "an entry of 'entries'");
       match &format {
         Some(format) => fields.insert("contextFormat".to_string(), format.clone()),
         None => fields.remove("contextFormat"),
