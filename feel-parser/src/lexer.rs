@@ -1695,10 +1695,14 @@ fn type_end(text: &str, depth: usize) -> Option<usize> {
     Some(at)
   };
   // the end of `symbol` after white space at `at`
+  // `<=` and `>=` are tokens of their own: a `<` or `>` before `=` is no bracket of a type
+  // (`Kn as range<number>=1` compares, as in FEEL 1.6)
   let symbol = |at: usize, symbol: &str| -> Option<usize> {
     let rest = &text[at..];
     let start = rest.len() - rest.trim_start_matches(is_whitespace).len();
-    rest[start..].starts_with(symbol).then_some(at + start + symbol.len())
+    let end = at + start + symbol.len();
+    let comparison = matches!(symbol, "<" | ">") && text[end.min(text.len())..].starts_with('=');
+    (rest[start..].starts_with(symbol) && !comparison).then_some(end)
   };
   let (start, end) = leading_word(text);
   match &text[start..end] {

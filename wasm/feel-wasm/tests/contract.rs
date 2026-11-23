@@ -3102,6 +3102,10 @@ fn third_review_of_the_batch() {
     ("{f: function(p) p.Items as list < 3}.f({\"Items as list\": 2})", "true"),
     ("{f: function(p) p.Score as range <= 5}.f({\"Score as range\": 2})", "true"),
     ("{f: function(p) p.Score as context < 5}.f({\"Score as context\": 2})", "true"),
+    // `>=` and `<=` are comparisons, not the brackets of a type
+    // (`(p."Kn as range" < 2) >= 1`, null as in FEEL 1.6, no syntax error)
+    ("{f: function(p) p.Kn as range<2>=1}.f({\"Kn as range\": 1})", "null"),
+    ("{f: function(p) p.Kn as list<=1}.f({\"Kn as list\": 1})", "true"),
     // whole generic types convert, also before an operator
     ("{f: function(p) p.x as list<number>}.f({x: [1]})", "[1]"),
     ("{f: function(p) count(p.x as list<number>) + 1}.f({x: [1]})", "2"),
