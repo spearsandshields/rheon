@@ -8,7 +8,7 @@
 use super::*;
 use rheon_feel::FeelType;
 use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
-use rheon_feel::signatures::{BuiltIn, built_in};
+use rheon_feel::signatures::built_in;
 use rheon_feel::values::Value;
 use rheon_feel_evaluator::{TypeId, Typing, type_of_text, type_of_value};
 use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, StartRule, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant_start};
@@ -194,15 +194,68 @@ struct Meta {
   description: Option<String>,
   /// `true`, or the reason as text.
   deprecated: Option<Json>,
+  /// The values that the name can have, each with its description when it has one.
+  values: Vec<(Json, Option<String>)>,
+  /// The parameters and the result of a name that is a function.
+  signature: Option<Signature>,
+}
+
+/// The signature of a function of an outline: the name, the type as text and the description
+/// of each parameter, and the type of the result as text.
+#[derive(Default, Clone)]
+struct Signature {
+  parameters: Vec<(String, String, Option<String>)>,
+  result: String,
+}
+
+impl Signature {
+  /// The signature as text: `nz(value, fallback): number`.
+  fn text(&self, name: &str) -> String {
+    let parameters: Vec<&str> = self.parameters.iter().map(|(name, ..)| name.as_str()).collect();
+    format!("{name}({}): {}", parameters.join(", "), self.result)
+  }
 }
 
 impl Meta {
   fn of(fields: &Map<String, Json>) -> Option<Meta> {
+    let text = |value: &Json, field: &str| value.get(field).and_then(Json::as_str).map(str::to_string);
     let meta = Meta {
       description: fields.get("description").and_then(Json::as_str).map(str::to_string),
       deprecated: fields.get("deprecated").filter(|deprecated| **deprecated != Json::Bool(false)).cloned(),
+      values: fields
+        .get("values")
+        .and_then(Json::as_array)
+        .map(|values| {
+          values
+            .iter()
+            .map(|value| match value.get("value") {
+              Some(inner) => (inner.clone(), text(value, "description")),
+              None => (value.clone(), None),
+            })
+            .collect()
+        })
+        .unwrap_or_default(),
+      signature: fields.get("function").map(|function| Signature {
+        parameters: function
+          .get("parameters")
+          .and_then(Json::as_array)
+          .map(|parameters| {
+            parameters
+              .iter()
+              .map(|parameter| {
+                (
+                  text(parameter, "name").unwrap_or_default(),
+                  text(parameter, "type").unwrap_or_else(|| "Any".to_string()),
+                  text(parameter, "description"),
+                )
+              })
+              .collect()
+          })
+          .unwrap_or_default(),
+        result: text(function, "result").unwrap_or_else(|| "Any".to_string()),
+      }),
     };
-    (meta.description.is_some() || meta.deprecated.is_some()).then_some(meta)
+    (meta.description.is_some() || meta.deprecated.is_some() || !meta.values.is_empty() || meta.signature.is_some()).then_some(meta)
   }
 }
 
@@ -302,24 +355,96 @@ impl Schema {
       let item = self.node(typing, named, items, &At::Items(place))?;
       return Ok(typing.list(item));
     }
+    if let Some(function) = fields.get("function") {
+      const FUNCTION: &str =
+        "expected {\"parameters\": [{\"name\": <name>, \"type\": <type>, \"description\": <text>}, …], \"result\": <type>}, a name for every parameter, the rest when it is known";
+      let known = |value: &Json, of: &[&str]| {
+        value
+          .as_object()
+          .is_some_and(|fields| fields.iter().all(|(field, value)| of.contains(&field.as_str()) && value.is_string()))
+      };
+      let parameters = match function.get("parameters") {
+        None => &[][..],
+        Some(Json::Array(parameters))
+          if parameters
+            .iter()
+            .all(|parameter| known(parameter, &["name", "type", "description"]) && parameter.get("name").is_some()) =>
+        {
+          parameters
+        }
+        Some(other) => return fail(Kind::Context, format!("{place}.function: {FUNCTION}; found the parameters {}", preview(other))),
+      };
+      if let Some((field, value)) = function.as_object().and_then(|fields| {
+        fields
+          .iter()
+          .find(|(field, value)| !matches!((field.as_str(), *value), ("parameters", _) | ("result", Json::String(_))))
+      }) {
+        return fail(
+          Kind::Context,
+          format!("{place}.function: {FUNCTION}; found the field {field:?} with the value {}", preview(value)),
+        );
+      }
+      let mut types = Vec::with_capacity(parameters.len() + 1);
+      for part in parameters.iter().map(|parameter| parameter.get("type")).chain([function.get("result")]) {
+        types.push(match part.and_then(Json::as_str) {
+          None => TypeId::ANY,
+          Some(text) => self.text(typing, named, text, place)?,
+        });
+      }
+      let result = types.pop().unwrap_or(TypeId::ANY);
+      return Ok(typing.function(types, result));
+    }
     if let Some(Json::String(text)) = fields.get("type") {
+      let written = self.text(typing, named, text, place)?;
+      if let Some(Json::Array(values)) = fields.get("values") {
+        let of = typing.shown(written);
+        for value in values {
+          let inner = match value {
+            Json::Object(fields) if fields.keys().all(|field| matches!(field.as_str(), "value" | "description")) && fields.get("description").is_none_or(Json::is_string) => {
+              fields.get("value")
+            }
+            Json::Object(_) => None,
+            plain => Some(plain),
+          };
+          let fits = matches!(
+            (of.as_deref(), inner),
+            (Some("string"), Some(Json::String(_))) | (Some("number"), Some(Json::Number(_))) | (Some("boolean"), Some(Json::Bool(_)))
+          );
+          if !fits {
+            return fail(
+              Kind::Context,
+              format!(
+                "{place}.values: expected values of a string, number or boolean type, each a value of the type or {{\"value\": <value>, \"description\": <text>}}; found {} for the type {text:?}",
+                preview(value)
+              ),
+            );
+          }
+        }
+      }
+      return Ok(written);
+    }
+    Ok(TypeId::ANY)
+  }
+
+  /// The type that the type text `text` at `place` writes.
+  fn text(&mut self, typing: &mut Typing, named: &HashMap<String, TypeId>, text: &str, place: &At) -> Result<TypeId, Failure> {
+    {
       let written = match self.texts.get(text) {
         Some(written) => *written,
         None => {
           let written = typing.written(text, &|name| named.get(name).copied());
-          self.texts.insert(text.clone(), written);
+          self.texts.insert(text.to_string(), written);
           written
         }
       };
-      return match written {
+      match written {
         Some(written) => Ok(written),
         None => fail(
           Kind::Context,
           format!("{place}: expected a FEEL type (such as number, date, list<string> or range<date>), found {text:?}"),
         ),
-      };
+      }
     }
-    Ok(TypeId::ANY)
   }
 
   /// What the outline says of the entry `name` of a value of the type `base`: of an entry of a
@@ -342,8 +467,28 @@ fn outline_of(value: &Value, depth: usize, types: bool) -> Json {
   if depth > 100 {
     return Json::Null;
   }
-  let leaf = |value: &Value| match type_of_value(value) {
-    feel_type if types && !matches!(feel_type, FeelType::Any | FeelType::Null) => json!({ "type": feel_type.to_string() }),
+  let leaf = |value: &Value| match (value, type_of_value(value)) {
+    // a function with the names of its parameters, the types it declares and its result type
+    (Value::FunctionDefinition(function), _) if types => {
+      let known = |feel_type: &FeelType| !matches!(feel_type, FeelType::Any | FeelType::Null);
+      let parameters: Vec<Json> = function
+        .parameters()
+        .iter()
+        .map(|(name, feel_type)| {
+          if known(feel_type) {
+            json!({ "name": name.to_string(), "type": feel_type.to_string() })
+          } else {
+            json!({ "name": name.to_string() })
+          }
+        })
+        .collect();
+      let mut signature = json!({ "parameters": parameters });
+      if known(function.result_type()) {
+        signature["result"] = json!(function.result_type().to_string());
+      }
+      json!({ "function": signature })
+    }
+    (_, feel_type) if types && !matches!(feel_type, FeelType::Any | FeelType::Null) => json!({ "type": feel_type.to_string() }),
     _ => Json::Null,
   };
   match value {
@@ -456,9 +601,12 @@ impl Offered {
   }
 }
 
-/// The invocation of a built-in function that the end of a text stands in.
+/// The invocation of a function that the end of a text stands in: of a built-in function, or
+/// of a name that the outline says is a function.
 struct Call {
-  built_in: &'static BuiltIn,
+  name: String,
+  summary: Option<String>,
+  signatures: Vec<CallSignature>,
   /// The index of the argument that the text ends in.
   argument: usize,
   /// The names of the named parameters given before that argument.
@@ -468,9 +616,35 @@ struct Call {
   takes_name: bool,
 }
 
-/// The innermost invocation of a built-in function whose parentheses are open where the text
-/// ends, from the tokens of the text.
-fn call(text: &str, syntax: &Syntax) -> Option<Call> {
+/// A signature of an invoked function: each parameter with its name, its type as text, its
+/// description, whether it can be left out and whether it stands for one or more arguments.
+struct CallSignature {
+  text: String,
+  parameters: Vec<(String, String, Option<String>, bool, bool)>,
+  result: String,
+  /// Whether the parameters can be given by name.
+  named: bool,
+}
+
+impl CallSignature {
+  /// The index of the parameter that the argument `argument` of `call` binds to: by position,
+  /// the last parameter for an argument after it when that stands for more than one; None when
+  /// arguments are given by name, or the signature has no parameter for the argument.
+  fn active(&self, call: &Call) -> Option<usize> {
+    if !call.named.is_empty() {
+      return None;
+    }
+    let last = self.parameters.len().checked_sub(1)?;
+    if call.argument <= last {
+      return Some(call.argument);
+    }
+    self.parameters[last].4.then_some(last)
+  }
+}
+
+/// The innermost invocation of a function whose parentheses are open where the text ends, from
+/// the tokens of the text.
+fn call(schema: &Schema, text: &str, syntax: &Syntax) -> Option<Call> {
   let mut tokens = syntax.tokens.iter().rev().filter(|t| !matches!(t.class, TokenClass::Whitespace | TokenClass::Comment));
   // the arguments from the last to the first: the name of each that has one
   let mut arguments: Vec<Option<String>> = vec![None];
@@ -489,10 +663,21 @@ fn call(text: &str, syntax: &Syntax) -> Option<Call> {
     }
   }
   let name = tokens.next()?;
-  let built_in = built_in(&name_of(&text[name.start..name.end]).to_string())?;
+  let name = name_of(&text[name.start..name.end]).to_string();
+  let (summary, signatures) = match (
+    schema.root_meta.get(&name).and_then(|said| said.signature.as_ref().map(|signature| (said, signature))),
+    built_in(&name),
+  ) {
+    // a name of the outline is what the name reads
+    (Some((said, signature)), _) => (said.description.clone(), vec![outline_signature(&name, signature)]),
+    (None, Some(built_in)) => (Some(built_in.summary.to_string()), built_in_signatures(built_in)),
+    (None, None) => return None,
+  };
   let takes_name = arguments.iter().enumerate().all(|(index, argument)| (index == 0) == argument.is_none());
   Some(Call {
-    built_in,
+    name,
+    summary,
+    signatures,
     argument: arguments.len() - 1,
     named: arguments.into_iter().flatten().collect(),
     takes_name,
@@ -501,37 +686,86 @@ fn call(text: &str, syntax: &Syntax) -> Option<Call> {
 
 /// The names and types of the parameters that can be named next in the invocation: those of
 /// the signatures that take names, without the ones already given.
-fn parameters(call: &Call) -> Vec<(&'static str, &'static str)> {
-  let mut parameters: Vec<(&'static str, &'static str)> = vec![];
-  for signature in call.built_in.signatures.iter().filter(|signature| signature.named) {
+fn parameters(call: &Call) -> Vec<(String, String)> {
+  let mut parameters: Vec<(String, String)> = vec![];
+  for signature in call.signatures.iter().filter(|signature| signature.named) {
     // only of a signature that has every name given so far
-    if !call.named.iter().all(|given| signature.parameters.iter().any(|parameter| parameter.name == given)) {
+    if !call.named.iter().all(|given| signature.parameters.iter().any(|parameter| parameter.0 == *given)) {
       continue;
     }
-    for parameter in signature.parameters {
-      if !call.named.iter().any(|given| given == parameter.name) && !parameters.iter().any(|(name, _)| *name == parameter.name) {
-        parameters.push((parameter.name, parameter.feel_type));
+    for (name, feel_type, ..) in &signature.parameters {
+      if !call.named.iter().any(|given| given == name) && !parameters.iter().any(|(known, _)| known == name) {
+        parameters.push((name.clone(), feel_type.clone()));
       }
     }
   }
   parameters
 }
 
-fn call_json(call: &Call) -> Json {
-  let signatures: Vec<Json> = call
-    .built_in
+/// The signature of the function `name` of an outline.
+fn outline_signature(name: &str, signature: &Signature) -> CallSignature {
+  CallSignature {
+    text: signature.text(name),
+    parameters: signature
+      .parameters
+      .iter()
+      .map(|(name, feel_type, description)| (name.clone(), feel_type.clone(), description.clone(), false, false))
+      .collect(),
+    result: signature.result.clone(),
+    named: true,
+  }
+}
+
+/// The signatures of a built-in function.
+fn built_in_signatures(built_in: &rheon_feel::signatures::BuiltIn) -> Vec<CallSignature> {
+  built_in
     .signatures
+    .iter()
+    .map(|signature| CallSignature {
+      text: signature.text(built_in.name),
+      parameters: signature
+        .parameters
+        .iter()
+        .map(|parameter| (parameter.name.to_string(), parameter.feel_type.to_string(), None, parameter.optional, parameter.rest))
+        .collect(),
+      result: signature.result.to_string(),
+      named: signature.named,
+    })
+    .collect()
+}
+
+/// The signatures `signatures` as an answer holds them; `active`: with the parameter that the
+/// argument of `call` binds to in each.
+fn signatures_json(call: &Call, signatures: &[CallSignature], active: bool) -> Json {
+  let signatures: Vec<Json> = signatures
     .iter()
     .map(|signature| {
       let parameters: Vec<Json> = signature
         .parameters
         .iter()
-        .map(|parameter| json!({"name": parameter.name, "type": parameter.feel_type, "optional": parameter.optional, "rest": parameter.rest}))
+        .map(|(name, feel_type, description, optional, rest)| {
+          let mut parameter = json!({"name": name, "type": feel_type, "optional": optional, "rest": rest});
+          if let Some(description) = description {
+            parameter["documentation"] = json!(description);
+          }
+          parameter
+        })
         .collect();
-      json!({"text": signature.text(call.built_in.name), "parameters": parameters, "result": signature.result, "named": signature.named})
+      let mut json = json!({"label": signature.text, "parameters": parameters, "result": signature.result, "named": signature.named});
+      if let Some(active) = signature.active(call).filter(|_| active) {
+        json["activeParameter"] = json!(active);
+      }
+      json
     })
     .collect();
-  json!({"function": call.built_in.name, "summary": call.built_in.summary, "argument": call.argument, "named": call.named, "signatures": signatures})
+  Json::Array(signatures)
+}
+
+fn call_json(call: &Call) -> Json {
+  let signatures = signatures_json(call, &call.signatures, true);
+  // the first signature that has a parameter for the argument of the cursor, else the first
+  let active = call.signatures.iter().position(|signature| signature.active(call).is_some()).unwrap_or(0);
+  json!({"function": call.name, "documentation": call.summary, "argument": call.argument, "named": call.named, "activeSignature": active, "signatures": signatures})
 }
 
 /// What the grammar takes at a place of the text.
@@ -552,7 +786,9 @@ enum Offer {
   /// The entries or properties of the value before a dot, each with its type when it is known.
   Entries(Vec<Offered>),
   /// The parameters of the invoked built-in function that can be named, with their types.
-  Parameters(Vec<(&'static str, &'static str)>),
+  Parameters(Vec<(String, String)>),
+  /// The values that an outline lists for what is compared here, as they are written.
+  Values(Vec<Offered>),
 }
 
 /// The text of the token that ends at the end of `text` when it is (part of) a name being typed.
@@ -902,6 +1138,77 @@ fn inside(text: &str, syntax: &Syntax) -> Option<&'static str> {
   (last.class == TokenClass::Comment && last.end == text.len() && comment.starts_with("//") && !comment.contains('\n')).then_some("comment")
 }
 
+/// The values that an outline lists for the operand that `text` ends after, when `text` ends
+/// with `=`, `!=` or `in`: the left operand is a name of the scope or an entry of a value. In
+/// unary tests, where a test starts, the values of the input `?`.
+fn compared<'m>(typing: &mut Typing, schema: &'m Schema, scope: &FeelScope, text: &str, unary_tests: bool) -> Option<&'m Meta> {
+  let said = |meta: Option<&'m Meta>| meta.filter(|meta| !meta.values.is_empty());
+  let head = text.trim_end();
+  let operand = if let Some(operand) = head.strip_suffix("!=") {
+    operand
+  } else if let Some(operand) = head.strip_suffix('=') {
+    // not the end of `<=` or `>=`
+    if operand.ends_with(['<', '>']) {
+      return None;
+    }
+    operand
+  } else if let Some(operand) = head.strip_suffix("in").filter(|operand| operand.ends_with(char::is_whitespace)) {
+    operand
+  } else if unary_tests && (head.is_empty() || head.ends_with([',', '(']) || head.ends_with("not(")) {
+    return said(schema.root_meta.get("?"));
+  } else {
+    return None;
+  };
+  let operand = operand.trim_end();
+  if operand.is_empty() {
+    return if unary_tests { said(schema.root_meta.get("?")) } else { None };
+  }
+  let syntax = parse_tolerant_start(scope, operand, StartRule::Expression);
+  let last = words(&syntax).last()?;
+  if last.end != operand.len() {
+    return None;
+  }
+  // the longest path that ends the operand: the entry of the value before its last dot
+  let path = syntax
+    .nodes
+    .iter()
+    .filter(|node| node.kind == "Path" && node.end == operand.len())
+    .min_by_key(|node| node.start);
+  match path {
+    Some(path) => {
+      let dot = words(&syntax).filter(|token| token.end <= last.start && &operand[token.start..token.end] == ".").last()?;
+      let bound = bound_at(typing, scope, operand, &syntax, path.start);
+      let base = type_of_piece(typing, scope, &operand[path.start..dot.start], &bound);
+      said(schema.entry(typing, base, &spaced(&operand[last.start..last.end])))
+    }
+    None if last.class == TokenClass::Name => said(schema.root_meta.get(&spaced(&operand[last.start..last.end]))),
+    None => None,
+  }
+}
+
+/// The values of `said` as they are offered: `quoted`, a string as its literal (where an
+/// expression can stand), else as the text inside a string that is being written.
+fn values(said: &Meta, quoted: bool) -> Vec<Offered> {
+  said
+    .values
+    .iter()
+    .filter_map(|(value, description)| {
+      let (label, feel_type) = match value {
+        Json::String(text) if quoted => (format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\"")), "string"),
+        Json::String(text) => (text.clone(), "string"),
+        Json::Number(number) if quoted => (number.to_string(), "number"),
+        Json::Bool(boolean) if quoted => (boolean.to_string(), "boolean"),
+        _ => return None,
+      };
+      let said = Meta {
+        description: description.clone(),
+        ..Meta::default()
+      };
+      Some(Offered::of(label, Some(feel_type.to_string())).with(description.is_some().then_some(&said)))
+    })
+    .collect()
+}
+
 /// What the grammar takes where `text` ends, from the tolerant parse of `text`.
 fn expected(typing: &mut Typing, schema: &Schema, scope: &FeelScope, text: &str, syntax: &Syntax, unary_tests: bool) -> Expected {
   let operators = || Offer::Keywords(OPERATOR_KEYWORDS.to_vec());
@@ -942,9 +1249,14 @@ fn expected(typing: &mut Typing, schema: &Schema, scope: &FeelScope, text: &str,
       }
       names.sort_by(|a, b| a.label.cmp(&b.label));
       names.dedup_by(|later, first| later.label == first.label);
+      let mut kinds = vec![Offer::Names(names), Offer::Keywords(OPERAND_KEYWORDS.to_vec()), Offer::Functions];
+      // the values that the outline lists for what is compared here come first
+      if let Some(said) = compared(typing, schema, scope, text, unary_tests) {
+        kinds.insert(0, Offer::Values(values(said, true)));
+      }
       Expected {
         name: "expression".to_string(),
-        kinds: vec![Offer::Names(names), Offer::Keywords(OPERAND_KEYWORDS.to_vec()), Offer::Functions],
+        kinds,
       }
     }
     "expected-name" if end.role == TokenClass::Property => Expected {
@@ -993,9 +1305,14 @@ fn offer(items: &mut Vec<Item>, expected: &Expected, typed: &str, from: usize) {
   };
   for kind in &expected.kinds {
     match kind {
-      Offer::Names(names) => names
-        .iter()
-        .for_each(|offered| add_said(&offered.label, "name", offered.feel_type.as_deref(), offered.said.as_ref())),
+      Offer::Names(names) => names.iter().for_each(|offered| {
+        let kind = if offered.said.as_ref().is_some_and(|said| said.signature.is_some()) {
+          "function"
+        } else {
+          "name"
+        };
+        add_said(&offered.label, kind, offered.feel_type.as_deref(), offered.said.as_ref())
+      }),
       Offer::Entries(names) => names
         .iter()
         .for_each(|offered| add_said(&offered.label, "entry", offered.feel_type.as_deref(), offered.said.as_ref())),
@@ -1003,6 +1320,9 @@ fn offer(items: &mut Vec<Item>, expected: &Expected, typed: &str, from: usize) {
       Offer::Functions => BUILT_IN_FUNCTION_NAMES.iter().for_each(|name| add_said(name, "function", None, None)),
       Offer::Types => TYPES.iter().for_each(|name| add_said(name, "type", None, None)),
       Offer::Parameters(parameters) => parameters.iter().for_each(|(name, feel_type)| add_said(name, "parameter", Some(feel_type), None)),
+      Offer::Values(values) => values
+        .iter()
+        .for_each(|offered| add_said(&offered.label, "value", offered.feel_type.as_deref(), offered.said.as_ref())),
     }
   }
 }
@@ -1043,17 +1363,28 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     expected
   };
   match typed_name(before, &syntax) {
-    // inside a comment or a string: nothing is offered
+    // inside a comment or a string: nothing is offered, but in a string that is compared with
+    // a name whose values the outline lists, those values
     _ if inside(before, &syntax).is_some() => {
-      invocation = call(before, &syntax);
+      invocation = call(&schema, before, &syntax);
       expects = inside(before, &syntax).unwrap_or_default().to_string();
+      if let Some(open) = syntax.diagnostics.iter().find(|d| d.code == "string-open" && d.end == before.len())
+        && let Some(said) = compared(&mut typing, &schema, &scope, &before[..open.start], unary_tests)
+      {
+        let from = open.start + 1;
+        let offered = Expected {
+          name: String::new(),
+          kinds: vec![Offer::Values(values(said, false))],
+        };
+        offer(&mut items, &offered, &before[from.min(before.len())..], from.min(before.len()));
+      }
     }
     // a name is being typed: what fits where it starts, and, for a name of several words, what
     // fits where its last word starts (`if a th` is `if a` and the start of `then`)
     Some((from, typed)) => {
       let head = &before[..from];
       let head_syntax = parse_tolerant_start(&scope, head, rule);
-      invocation = call(head, &head_syntax);
+      invocation = call(&schema, head, &head_syntax);
       let at_start = with_parameters(expected(&mut typing, &schema, &scope, head, &head_syntax, unary_tests), &invocation);
       offer(&mut items, &at_start, typed, from);
       expects = at_start.name;
@@ -1065,7 +1396,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       }
     }
     None => {
-      invocation = call(before, &syntax);
+      invocation = call(&schema, before, &syntax);
       let at_cursor = with_parameters(expected(&mut typing, &schema, &scope, before, &syntax, unary_tests), &invocation);
       offer(&mut items, &at_cursor, "", cursor);
       expects = at_cursor.name;
@@ -1079,7 +1410,7 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       _ => true,
     });
   }
-  let order = |kind: &str| ["parameter", "name", "entry", "keyword", "function", "type"].iter().position(|k| *k == kind);
+  let order = |kind: &str| ["value", "parameter", "name", "entry", "keyword", "function", "type"].iter().position(|k| *k == kind);
   let deprecated = |item: &Item| item.said.as_ref().is_some_and(|said| said.deprecated.is_some());
   items.sort_by(|a, b| {
     order(a.kind)
@@ -1095,12 +1426,12 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
       let mut json = json!({"label": item.label, "kind": item.kind, "from": places.of(item.from), "type": item.feel_type, "detail": null});
       match item.kind {
         // a parameter is inserted with its colon
-        "parameter" => json["insert"] = json!(format!("{}: ", item.label)),
+        "parameter" => json["insertText"] = json!(format!("{}: ", item.label)),
         "function" => {
           if let Some(built_in) = built_in(&item.label) {
             let first = &built_in.signatures[0];
             json["detail"] = json!(first.text(built_in.name));
-            json["info"] = json!(built_in.summary);
+            json["documentation"] = json!(built_in.summary);
             // the type of the result when every signature has the same
             if built_in.signatures.iter().all(|signature| signature.result == first.result) {
               json["type"] = json!(first.result);
@@ -1110,8 +1441,11 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
         _ => {}
       }
       if let Some(said) = &item.said {
+        if let Some(signature) = &said.signature {
+          json["detail"] = json!(signature.text(&item.label));
+        }
         if let Some(description) = &said.description {
-          json["info"] = json!(description);
+          json["documentation"] = json!(description);
         }
         if let Some(deprecated) = &said.deprecated {
           json["deprecated"] = deprecated.clone();
@@ -1132,6 +1466,105 @@ pub(super) fn complete(mut req: Map<String, Json>, unread: Unread, started: Inst
     response["call"] = call_json(call);
   }
   Ok(response)
+}
+
+/// `op: "hover"`: what the name at the place `at` of the text is: its kind, its place, its type
+/// when it is known and what an outline says of it; of a built-in function or a function of
+/// an outline, its signatures. `hover` is null where no name stands. The name is typed as
+/// `complete` types the text up to its end, so a text with errors after it is answered too.
+pub(super) fn hover(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
+  const AT: &str = "'at' must be a whole number that is not negative";
+  let dialect = dialect(&req)?;
+  let expression = expression(&mut req)?;
+  let places = Places::new(&expression);
+  let at = match req.remove("at") {
+    Some(Json::Number(at)) => match at.as_u64() {
+      Some(at) => places.byte(at as usize),
+      None => return fail(Kind::Request, AT),
+    },
+    _ => return fail(Kind::Request, AT),
+  };
+  let (scope, outline) = scope(req, unread, dialect)?;
+  let mut typing = Typing::new(&scope);
+  let schema = Schema::read(&mut typing, outline.as_ref())?;
+  let syntax = parse_tolerant_start(&scope, &expression, dialect.rule());
+  let answer = |hover: Json| Ok(json!({ "ok": true, "hover": hover, "elapsedMicros": elapsed_micros(started) }));
+  // the name at the place, or the one that ends there
+  let token = words(&syntax)
+    .find(|token| token.start <= at && at < token.end)
+    .or_else(|| words(&syntax).find(|token| token.end == at));
+  let Some(token) = token else {
+    return answer(Json::Null);
+  };
+  let kind = match token.class {
+    TokenClass::Name | TokenClass::Function => "name",
+    TokenClass::Property => "entry",
+    TokenClass::Variable => "variable",
+    TokenClass::Parameter => "parameter",
+    TokenClass::Key => "key",
+    _ => return answer(Json::Null),
+  };
+  let written = spaced(&expression[token.start..token.end]);
+  let mut hover = json!({ "from": places.of(token.start), "to": places.of(token.end), "kind": kind, "type": null });
+  let say = |hover: &mut Json, said: Option<&Meta>| {
+    if let Some(said) = said {
+      if let Some(description) = &said.description {
+        hover["documentation"] = json!(description);
+      }
+      if let Some(deprecated) = &said.deprecated {
+        hover["deprecated"] = deprecated.clone();
+      }
+    }
+  };
+  // the text up to the end of the name, as a text that is being written
+  let before = &expression[..token.end];
+  let prefix = parse_tolerant_start(&scope, before, dialect.rule());
+  match kind {
+    "entry" => {
+      let path = prefix
+        .nodes
+        .iter()
+        .filter(|node| node.kind == "Path" && node.end == before.len())
+        .min_by_key(|node| node.start);
+      let dot = words(&prefix).filter(|word| word.end <= token.start && &before[word.start..word.end] == ".").last();
+      if let (Some(path), Some(dot)) = (path, dot) {
+        let bound = bound_at(&mut typing, &scope, before, &prefix, path.start);
+        let base = type_of_piece(&mut typing, &scope, &before[path.start..dot.start], &bound);
+        if let Some((_, member)) = typing.members(base).into_iter().find(|(name, _)| spaced(name) == written) {
+          hover["type"] = json!(typing.shown(member));
+        }
+        say(&mut hover, schema.entry(&typing, base, &written));
+      }
+    }
+    "name" => {
+      let bound = bound_at(&mut typing, &scope, before, &prefix, token.start);
+      let local = bound.names.iter().any(|(name, _)| name.as_str() == written);
+      let named = type_of_piece(&mut typing, &scope, &before[token.start..token.end], &bound);
+      hover["type"] = json!(typing.shown(named));
+      let said = if local { None } else { schema.root_meta.get(&written) };
+      say(&mut hover, said);
+      // a function: of the outline, or a built-in function that no name of the scope hides
+      let known = local || schema.roots.contains_key(&written) || scope.frames().iter().any(|frame| frame.get_entry(&name_of(&written)).is_some());
+      let call = Call {
+        name: written.clone(),
+        summary: None,
+        signatures: vec![],
+        argument: 0,
+        named: vec![],
+        takes_name: false,
+      };
+      if let Some(signature) = said.and_then(|said| said.signature.as_ref()) {
+        hover["kind"] = json!("function");
+        hover["signatures"] = signatures_json(&call, &[outline_signature(&written, signature)], false);
+      } else if !known && let Some(built_in) = built_in(&written) {
+        hover["kind"] = json!("function");
+        hover["documentation"] = json!(built_in.summary);
+        hover["signatures"] = signatures_json(&call, &built_in_signatures(built_in), false);
+      }
+    }
+    _ => {}
+  }
+  answer(hover)
 }
 
 /// `op: "format"`: the text in the one layout of the formatter (lines of at most `width`

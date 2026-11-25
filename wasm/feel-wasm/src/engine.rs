@@ -236,6 +236,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Parse,
     Syntax,
     Complete,
+    Hover,
     Outline,
     Format,
   }
@@ -248,13 +249,14 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "parse" => Op::Parse,
       "syntax" => Op::Syntax,
       "complete" => Op::Complete,
+      "hover" => Op::Hover,
       "outline" => Op::Outline,
       "format" => Op::Format,
       other => {
         return fail(
           Kind::Request,
           format!(
-            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')",
             arg(other)
           ),
         );
@@ -272,6 +274,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Op::Parse => parse(req, unread, started).map(Response::Tree),
     Op::Syntax => editor::syntax(req, unread, started).map(Response::Tree),
     Op::Complete => editor::complete(req, unread, started).map(Response::Tree),
+    Op::Hover => editor::hover(req, unread, started).map(Response::Tree),
     Op::Outline => editor::outline(req, unread, started).map(Response::Tree),
     Op::Format => editor::format(req, unread, started).map(Response::Tree),
   }

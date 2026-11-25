@@ -920,7 +920,7 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
     json!({"op": "y".repeat(300)}),
     "request",
     format!(
-      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')",
       "y".repeat(120)
     ),
   );
@@ -990,7 +990,7 @@ fn request_error_messages() {
   assert_error(
     &req(json!({"op": "explode"})),
     "request",
-    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')",
   );
   // the expression
   for op in ["evaluate", "parse"] {
@@ -1096,7 +1096,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')";
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1932,7 +1932,7 @@ fn evaluate_all_request_and_response() {
   assert_error(
     &req(json!({"op": "nothing"})),
     "request",
-    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')",
   );
   let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
   assert_eq!(
@@ -2548,7 +2548,7 @@ fn complete_knows_the_built_in_functions() {
   let substring = item(&response, "substring");
   assert_eq!(substring["kind"], "function");
   assert_eq!(substring["detail"], "substring(string, start position, length?): string");
-  assert_eq!(substring["info"], "The characters from a position, as many as the length says or all that follow.");
+  assert_eq!(substring["documentation"], "The characters from a position, as many as the length says or all that follow.");
   assert_eq!(substring["type"], "string");
   assert!(response.get("call").is_none(), "{response}");
   // the first signature of several
@@ -2557,7 +2557,7 @@ fn complete_knows_the_built_in_functions() {
   let response = complete("1 + substring(");
   assert_eq!(response["call"]["function"], "substring");
   assert_eq!(response["call"]["argument"], 0);
-  assert_eq!(response["call"]["signatures"][0]["text"], "substring(string, start position, length?): string");
+  assert_eq!(response["call"]["signatures"][0]["label"], "substring(string, start position, length?): string");
   assert_eq!(
     response["call"]["signatures"][0]["parameters"][2],
     json!({"name": "length", "type": "number", "optional": true, "rest": false})
@@ -2566,7 +2566,7 @@ fn complete_knows_the_built_in_functions() {
   assert_eq!(labels, vec!["length", "start position", "string", "text"]);
   assert_eq!(
     item(&response, "start position"),
-    json!({"label": "start position", "kind": "parameter", "from": 14, "type": "number", "detail": null, "insert": "start position: "})
+    json!({"label": "start position", "kind": "parameter", "from": 14, "type": "number", "detail": null, "insertText": "start position: "})
   );
   // after a named parameter: the others, and the argument index
   let response = complete(r#"substring(string: text, sta"#);
@@ -3194,7 +3194,7 @@ fn an_outline_has_types_by_name_descriptions_and_deprecation() {
       .filter(|item| matches!(item["kind"].as_str(), Some("name" | "entry")))
       .map(|item| {
         let mut text = format!("{}: {}", item["label"].as_str().unwrap(), item["type"].as_str().unwrap_or("-"));
-        if let Some(info) = item["info"].as_str() {
+        if let Some(info) = item["documentation"].as_str() {
           text += &format!(" ({info})");
         }
         if !item["deprecated"].is_null() {
@@ -3252,4 +3252,164 @@ fn an_outline_has_types_by_name_descriptions_and_deprecation() {
       assert_error(&req(json!({"op": op, "expression": "a", "outline": outline})), "context", message);
     }
   }
+}
+
+/// An outline lists the values a name can have and says which names are functions: completion
+/// offers the values where the name is compared, and hints the parameters of the functions.
+#[test]
+fn an_outline_has_values_and_functions() {
+  let outline = json!({
+    "types": {"Loan": {"names": {
+      "purpose": {"type": "string", "values": [{"value": "REFI", "description": "Refinance"}, "PURCHASE"]},
+      "term": {"type": "number", "values": [12, 24]}}}},
+    "names": {
+      "loan": {"type": "Loan"},
+      "loans": {"type": "list<Loan>"},
+      "nz": {"function": {"parameters": [{"name": "value", "type": "number", "description": "may be null"}, {"name": "fallback", "type": "number"}], "result": "number"},
+             "description": "The value, or the fallback when it is null"}}
+  });
+  let complete = |expression: &str| {
+    let response = req(json!({"op": "complete", "expression": expression, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response
+  };
+  let values = |expression: &str| -> Vec<String> {
+    complete(expression)["items"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|item| item["kind"] == "value")
+      .map(|item| {
+        format!(
+          "{}@{}{}",
+          item["label"].as_str().unwrap(),
+          item["from"],
+          item["documentation"].as_str().map(|text| format!(" ({text})")).unwrap_or_default()
+        )
+      })
+      .collect()
+  };
+  // inside a string that is compared with the entry: the values, to stand in the string
+  assert_eq!(values("loan.purpose = \""), ["PURCHASE@16", "REFI@16 (Refinance)"]);
+  assert_eq!(values("loan.purpose != \"re"), ["REFI@17 (Refinance)"]);
+  assert_eq!(values("for l in loans return l.purpose = \"P"), ["PURCHASE@35"]);
+  // after the operator: the values as they are written, before the names
+  assert_eq!(values("loan.purpose = "), ["\"PURCHASE\"@15", "\"REFI\"@15 (Refinance)"]);
+  assert_eq!(values("loan.term in "), ["12@13", "24@13"]);
+  assert_eq!(complete("loan.term = ")["items"][0]["kind"], "value");
+  // no values where the name has none, and none after an ordering
+  assert!(values("loan.term <= ").is_empty());
+  assert!(values("loans = \"").is_empty());
+  // in unary tests the values of the input, the name `?` of the outline
+  let cell = req(json!({"op": "complete", "dialect": "unaryTests", "expression": "\"A\", \"", "outline": {"names": {"?": {"type": "string", "values": ["A", "B"]}}}}));
+  let labels: Vec<_> = cell["items"].as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+  assert_eq!(labels, ["A", "B"]);
+  // a function of the outline: an item with its signature, and the hint of its invocation
+  let named = complete("n");
+  assert_eq!(
+    *named["items"].as_array().unwrap().iter().find(|item| item["label"] == "nz").unwrap(),
+    json!({"label": "nz", "kind": "function", "from": 0, "type": "function<number, number>->number", "detail": "nz(value, fallback): number", "documentation": "The value, or the fallback when it is null"})
+  );
+  let call = &complete("nz(loan.term, ")["call"];
+  assert_eq!(
+    *call,
+    json!({"function": "nz", "documentation": "The value, or the fallback when it is null", "argument": 1, "named": [], "activeSignature": 0, "signatures": [{
+      "label": "nz(value, fallback): number",
+      "parameters": [{"name": "value", "type": "number", "optional": false, "rest": false, "documentation": "may be null"}, {"name": "fallback", "type": "number", "optional": false, "rest": false}],
+      "result": "number", "named": true, "activeParameter": 1}]})
+  );
+  // by name: the parameters not given yet, and no parameter of the cursor
+  let by_name = complete("nz(value: 1, ");
+  assert_eq!(by_name["items"][0]["insertText"], "fallback: ");
+  assert!(by_name["call"]["signatures"][0]["activeParameter"].is_null());
+  // of a built-in function: the first signature that has a parameter for the argument
+  let built_in = &complete("substring(\"abc\", 1, ")["call"];
+  assert_eq!(built_in["activeSignature"], 0);
+  assert_eq!(built_in["signatures"][0]["activeParameter"], 2);
+  assert_eq!(
+    complete("min(1, 2, ")["call"]["signatures"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter_map(|signature| signature["activeParameter"].as_u64())
+      .collect::<Vec<_>>(),
+    [0]
+  );
+  // what is no value or no function is a failure that names the place
+  for (outline, message) in [
+    (
+      json!({"names": {"a": {"type": "date", "values": ["x"]}}}),
+      "outline.a.values: expected values of a string, number or boolean type, each a value of the type or {\"value\": <value>, \"description\": <text>}; found \"x\" for the type \"date\"",
+    ),
+    (
+      json!({"names": {"a": {"type": "string", "values": [1]}}}),
+      "outline.a.values: expected values of a string, number or boolean type, each a value of the type or {\"value\": <value>, \"description\": <text>}; found 1 for the type \"string\"",
+    ),
+    (
+      json!({"names": {"f": {"function": {"parameters": [{"type": "number"}]}}}}),
+      "outline.f.function: expected {\"parameters\": [{\"name\": <name>, \"type\": <type>, \"description\": <text>}, …], \"result\": <type>}, a name for every parameter, the rest when it is known; found the parameters [{\"type\":\"number\"}]",
+    ),
+  ] {
+    assert_error(&req(json!({"op": "complete", "expression": "a", "outline": outline})), "context", message);
+  }
+}
+
+/// `hover` says what the name at a place is: its kind, place and type, what an outline says
+/// of it, and the signatures of a function.
+#[test]
+fn hover_says_what_a_name_is() {
+  let outline = json!({
+    "types": {
+      "Loan": {"names": {"amount": {"type": "number"}, "purpose": {"type": "string", "description": "Loan purpose", "deprecated": "use kind"}, "customer": {"type": "Customer"}}},
+      "Customer": {"names": {"Monthly Income": {"type": "number"}}}},
+    "names": {"loan": {"type": "Loan", "description": "The loan"}, "loans": {"type": "list<Loan>"},
+              "nz": {"function": {"parameters": [{"name": "value", "type": "number"}], "result": "number"}, "description": "Never null"}}
+  });
+  let text = "for l in loans return nz(l.customer.Monthly Income) + count(loans) + loan.purpose +";
+  let hover = |word: &str, into: usize| {
+    let at = text.find(word).unwrap() + into;
+    let response = req(json!({"op": "hover", "expression": text, "at": at, "outline": outline}));
+    assert_eq!(response["ok"], true, "{response}");
+    response["hover"].clone()
+  };
+  assert_eq!(hover("loans return", 2), json!({"from": 9, "to": 14, "kind": "name", "type": "list<Loan>"}));
+  assert_eq!(hover("l in", 0), json!({"from": 4, "to": 5, "kind": "variable", "type": null}));
+  // an entry through a variable of the text, and a name of several words
+  assert_eq!(hover("customer", 3), json!({"from": 27, "to": 35, "kind": "entry", "type": "Customer"}));
+  assert_eq!(hover("Income", 1), json!({"from": 36, "to": 50, "kind": "entry", "type": "number"}));
+  assert_eq!(
+    hover("purpose", 0),
+    json!({"from": 74, "to": 81, "kind": "entry", "type": "string", "documentation": "Loan purpose", "deprecated": "use kind"})
+  );
+  assert_eq!(
+    hover("loan.purpose", 1),
+    json!({"from": 69, "to": 73, "kind": "name", "type": "Loan", "documentation": "The loan"})
+  );
+  // functions: of the outline and built in
+  let function = hover("nz", 1);
+  assert_eq!(
+    (function["kind"].as_str(), function["documentation"].as_str(), function["signatures"][0]["label"].as_str()),
+    (Some("function"), Some("Never null"), Some("nz(value): number"))
+  );
+  let built_in = hover("count", 0);
+  assert_eq!(
+    (built_in["kind"].as_str(), built_in["documentation"].as_str(), built_in["signatures"][0]["label"].as_str()),
+    (Some("function"), Some("The number of items."), Some("count(list): number"))
+  );
+  // where no name stands, and the end of a name
+  assert_eq!(hover("+ count", 0), Json::Null);
+  assert_eq!(hover(" return", 0)["kind"], "name");
+  // `at` is a place of the text
+  assert_error(
+    &req(json!({"op": "hover", "expression": "a"})),
+    "request",
+    "'at' must be a whole number that is not negative",
+  );
+  assert_error(
+    &req(json!({"op": "hover", "expression": "a", "at": -1})),
+    "request",
+    "'at' must be a whole number that is not negative",
+  );
+  // a place beyond the text is its end
+  assert_eq!(req(json!({"op": "hover", "expression": "a", "at": 99}))["hover"]["to"], 1);
 }

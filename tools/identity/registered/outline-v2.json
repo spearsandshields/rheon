@@ -75,7 +75,7 @@
         }
       }
     },
-    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
     "old": {
       "error": {
         "kind": "context",
@@ -88,24 +88,24 @@
       "items": [
         {
           "detail": null,
+          "documentation": "The loan being assessed",
           "from": 0,
-          "info": "The loan being assessed",
           "kind": "name",
           "label": "loan",
           "type": "Loan"
         },
         {
           "detail": "log(number): number",
+          "documentation": "The natural logarithm.",
           "from": 0,
-          "info": "The natural logarithm.",
           "kind": "function",
           "label": "log",
           "type": "number"
         },
         {
           "detail": "lower case(string): string",
+          "documentation": "The string in lower case.",
           "from": 0,
-          "info": "The string in lower case.",
           "kind": "function",
           "label": "lower case",
           "type": "string"
@@ -163,7 +163,7 @@
         }
       }
     },
-    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
     "old": {
       "error": {
         "kind": "context",
@@ -190,8 +190,8 @@
         },
         {
           "detail": null,
+          "documentation": "Loan purpose",
           "from": 5,
-          "info": "Loan purpose",
           "kind": "entry",
           "label": "purpose",
           "type": "string"
@@ -342,7 +342,7 @@
         }
       }
     },
-    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
     "old": {
       "error": {
         "kind": "context",
@@ -369,8 +369,8 @@
         },
         {
           "detail": null,
+          "documentation": "Loan purpose",
           "from": 38,
-          "info": "Loan purpose",
           "kind": "entry",
           "label": "purpose",
           "type": "list<string>"
@@ -521,7 +521,7 @@
         }
       }
     },
-    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
     "old": {
       "error": {
         "kind": "context",
@@ -548,8 +548,8 @@
         },
         {
           "detail": null,
+          "documentation": "Loan purpose",
           "from": 36,
-          "info": "Loan purpose",
           "kind": "entry",
           "label": "purpose",
           "type": "string"
@@ -834,7 +834,7 @@
         }
       }
     },
-    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms.",
+    "why": "Outline v2: an outline can declare types by name that hold each other, and a description and a deprecation for a name. The outline is read into the types of the typing, and its names into the scope as a context's are: a key in another form than FEEL reads a name is the name its tokens are, as in a context (it was not found). The message of an outline of another shape names the new forms. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
     "old": {
       "error": {
         "kind": "context",
@@ -847,40 +847,40 @@
       "items": [
         {
           "detail": "abs(n): number or duration",
+          "documentation": "The absolute value.",
           "from": 0,
-          "info": "The absolute value.",
           "kind": "function",
           "label": "abs",
           "type": "number or duration"
         },
         {
           "detail": "after(point1, point2): boolean",
+          "documentation": "Whether the first comes after the second.",
           "from": 0,
-          "info": "Whether the first comes after the second.",
           "kind": "function",
           "label": "after",
           "type": "boolean"
         },
         {
           "detail": "all(list): boolean",
+          "documentation": "False when an item is false.",
           "from": 0,
-          "info": "False when an item is false.",
           "kind": "function",
           "label": "all",
           "type": "boolean"
         },
         {
           "detail": "any(list): boolean",
+          "documentation": "True when an item is true.",
           "from": 0,
-          "info": "True when an item is true.",
           "kind": "function",
           "label": "any",
           "type": "boolean"
         },
         {
           "detail": "append(list, item...): list",
+          "documentation": "The list with the items added at its end.",
           "from": 0,
-          "info": "The list with the items added at its end.",
           "kind": "function",
           "label": "append",
           "type": "list"

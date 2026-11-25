@@ -16,10 +16,11 @@
  * - Restart failures: a worker that fails to start is retried with backoff; after
  *   `RESTART_BACKOFF_MS.length` consecutive failures the engine gives up (`unavailable`).
  */
-import { buildCompleteJson, buildEvaluateAllJson, buildEvaluateEachJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
+import { buildCompleteJson, buildHoverJson, buildEvaluateAllJson, buildEvaluateEachJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
 import type { FromWorker, ToWorker } from './protocol.js';
 import type {
   CompleteResponse,
+  HoverResponse,
   Dialect,
   EditorOptions,
   ErrorKind,
@@ -241,6 +242,11 @@ export class FeelEngine {
   /** For an editor: what can stand at `cursor` (a UTF-16 offset in `expression`). */
   complete(expression: string, cursor: number, opts: EditorOptions & RequestOptions = {}): Promise<CompleteResponse> {
     return this.built(() => buildCompleteJson(expression, cursor, opts), opts.signal);
+  }
+
+  /** For an editor: what the name at `at` (a UTF-16 offset in `expression`) is; `hover` is null where no name stands. */
+  hover(expression: string, at: number, opts: EditorOptions & RequestOptions = {}): Promise<HoverResponse> {
+    return this.built(() => buildHoverJson(expression, at, opts), opts.signal);
   }
 
   /**

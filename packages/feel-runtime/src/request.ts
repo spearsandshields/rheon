@@ -324,6 +324,11 @@ export function buildCompleteJson(expression: string, cursor: number, opts: Edit
   return serializeRequest({ op: 'complete', dialect: opts.dialect ?? 'expression', expression, cursor, ...editorFields(opts) });
 }
 
+/** `hover` request → JSON text; `at` is a UTF-16 offset in `expression`. */
+export function buildHoverJson(expression: string, at: number, opts: EditorOptions = {}): string {
+  return serializeRequest({ op: 'hover', dialect: opts.dialect ?? 'expression', expression, at, ...editorFields(opts) });
+}
+
 /** `format` request → JSON text; `width` is the most characters of a line (default 80). */
 export function buildFormatJson(expression: string, opts: EditorOptions & { width?: number } = {}): string {
   return serializeRequest({ op: 'format', dialect: opts.dialect ?? 'expression', expression, width: opts.width, ...editorFields(opts) });

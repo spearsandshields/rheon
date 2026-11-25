@@ -129,15 +129,17 @@ const TEMPLATES: [string, string][] = [
 ];
 
 function completionOf(item: CompletionItem): Completion {
-  const types: Record<CompletionItem['kind'], string> = { parameter: 'property', name: 'variable', entry: 'property', keyword: 'keyword', function: 'function', type: 'type' };
+  const types: Record<CompletionItem['kind'], string> = { value: 'enum', parameter: 'property', name: 'variable', entry: 'property', keyword: 'keyword', function: 'function', type: 'type' };
   return {
     label: item.label,
     type: types[item.kind],
     detail: item.detail ?? item.type ?? undefined,
-    info: item.info,
+    // a deprecated name says so, with its reason, and comes after the others
+    info: item.deprecated === undefined ? item.documentation : [item.documentation, item.deprecated === true ? 'Deprecated.' : `Deprecated: ${item.deprecated}`].filter(Boolean).join(' '),
+    boost: item.deprecated === undefined ? undefined : -50,
     // an item replaces the text from its own start: the items of one answer can start at different places
     apply: (view, _completion, _from, to) => {
-      const insert = item.kind === 'function' ? `${item.label}()` : (item.insert ?? item.label);
+      const insert = item.kind === 'function' ? `${item.label}()` : (item.insertText ?? item.label);
       const cursor = item.from + insert.length - (item.kind === 'function' ? 1 : 0);
       view.dispatch({ changes: { from: item.from, to, insert }, selection: { anchor: cursor }, userEvent: 'input.complete' });
     },
@@ -159,12 +161,9 @@ const hint = StateField.define<Tooltip | null>({
   provide: (field) => showTooltip.from(field),
 });
 
-/** The index of the parameter of the signature that the argument of the call is, or -1. */
-function activeParameter(signature: FunctionSignature, call: CompletionCall): number {
-  if (call.named.length > 0) return -1;
-  const last = signature.parameters.length - 1;
-  if (call.argument <= last) return call.argument;
-  return last >= 0 && signature.parameters[last].rest ? last : -1;
+/** The index of the parameter of the signature that the argument of the call is (the engine says it), or -1. */
+function activeParameter(signature: FunctionSignature): number {
+  return signature.activeParameter ?? -1;
 }
 
 /** The hint of a call: its signatures, the parameter of the cursor marked, and what the function gives. */
@@ -172,12 +171,12 @@ export function signatureHint(call: CompletionCall): HTMLElement {
   const dom = document.createElement('div');
   dom.className = 'cm-feel-signature';
   // the signatures that have a parameter for the argument, or all when none has
-  const fitting = call.signatures.filter((signature) => call.named.length > 0 || call.argument === 0 || activeParameter(signature, call) >= 0);
+  const fitting = call.signatures.filter((signature) => call.named.length > 0 || call.argument === 0 || activeParameter(signature) >= 0);
   for (const signature of fitting.length ? fitting : call.signatures) {
     const line = dom.appendChild(document.createElement('div'));
     line.className = 'cm-feel-signature-line';
     line.append(`${call.function}(`);
-    const active = activeParameter(signature, call);
+    const active = activeParameter(signature);
     signature.parameters.forEach((parameter, index) => {
       if (index > 0) line.append(', ');
       const part = line.appendChild(document.createElement(index === active ? 'strong' : 'span'));
@@ -188,7 +187,7 @@ export function signatureHint(call: CompletionCall): HTMLElement {
   }
   const summary = dom.appendChild(document.createElement('div'));
   summary.className = 'cm-feel-signature-summary';
-  summary.textContent = call.summary;
+  summary.textContent = call.documentation ?? '';
   return dom;
 }
 

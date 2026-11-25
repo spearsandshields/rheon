@@ -22,7 +22,7 @@
         }
       }
     },
-    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error.",
+    "why": "DT-049: days and time duration(from) and the one-argument years and months duration(from) convert a duration string of their kind (DMN 1.7 Beta 1, Table 73; duration() is deprecated in their favour); a string of the other kind, or no duration string, is null with a reason; in B-FEEL their default is PT0S and P0M (11.6). They are date time literals (rule 60) in range strings. Before, days and time duration(...) was no function and the one-argument years and months duration an arity error. The fields of the answer have the names of the Language Server Protocol since outline-v2-completion.",
     "old": {
       "expects": "expression",
       "items": [
@@ -68,40 +68,40 @@
       "items": [
         {
           "detail": "date(from): date",
+          "documentation": "A date from its text, from a date and time, or from a year, a month and a day.",
           "from": 0,
-          "info": "A date from its text, from a date and time, or from a year, a month and a day.",
           "kind": "function",
           "label": "date",
           "type": "date"
         },
         {
           "detail": "date and time(from): date and time",
+          "documentation": "A date and time from its text, or from a date and a time.",
           "from": 0,
-          "info": "A date and time from its text, or from a date and a time.",
           "kind": "function",
           "label": "date and time",
           "type": "date and time"
         },
         {
           "detail": "day of week(date): string",
+          "documentation": "The name of the day of the week.",
           "from": 0,
-          "info": "The name of the day of the week.",
           "kind": "function",
           "label": "day of week",
           "type": "string"
         },
         {
           "detail": "day of year(date): number",
+          "documentation": "The number of the day in its year.",
           "from": 0,
-          "info": "The number of the day in its year.",
           "kind": "function",
           "label": "day of year",
           "type": "number"
         },
         {
           "detail": "days and time duration(from): days and time duration",
+          "documentation": "A days and time duration from its text.",
           "from": 0,
-          "info": "A days and time duration from its text.",
           "kind": "function",
           "label": "days and time duration",
           "type": "days and time duration"

@@ -188,11 +188,19 @@ export interface ParseOptions {
 export type Outline = null | (OutlineForm & OutlineSaid);
 
 /** What a name is: of a type, a context of names, a list of items, or (the outline of a request) only the types. */
-export type OutlineForm = { type: string } | { names: Record<string, Outline> } | { items: Outline } | { names?: Record<string, Outline>; types: Record<string, Outline> };
+export type OutlineForm =
+  | { type: string; values?: OutlineValue[] }
+  | { names: Record<string, Outline> }
+  | { items: Outline }
+  | { function: { parameters?: { name: string; type?: string; description?: string }[]; result?: string } }
+  | { names?: Record<string, Outline>; types: Record<string, Outline> };
+
+/** A value that a name of a string, number or boolean type can have, alone or with what it stands for. */
+export type OutlineValue = string | number | boolean | { value: string | number | boolean; description?: string };
 
 /** What an outline says of a name beside its type. */
 export interface OutlineSaid {
-  /** What the name is for: the `info` of its completion item. */
+  /** What the name is for: the `documentation` of its completion item. */
   description?: string;
   /** That the name should no longer be used: `true`, or the reason. */
   deprecated?: boolean | string;
@@ -247,16 +255,16 @@ export type SyntaxResponse =
 /** An item of `complete`: accepted, its `label` replaces the text from `from` to the answer's `to`. */
 export interface CompletionItem {
   label: string;
-  kind: 'parameter' | 'name' | 'entry' | 'keyword' | 'function' | 'type';
+  kind: 'value' | 'parameter' | 'name' | 'entry' | 'keyword' | 'function' | 'type';
   from: number;
   /** The FEEL type of the item when the engine knows it: of a parameter, and of the result of a built-in function. */
   type: string | null;
   /** More about the item: the first signature of a built-in function. */
   detail: string | null;
   /** One line that says what a built-in function gives, or the description an outline has for the name. */
-  info?: string;
+  documentation?: string;
   /** The text to insert when it is not the label: a parameter with its colon. */
-  insert?: string;
+  insertText?: string;
   /** That an outline marks the name as deprecated: `true`, or the reason. */
   deprecated?: true | string;
 }
@@ -269,28 +277,53 @@ export interface SignatureParameter {
   optional: boolean;
   /** Stands for any number of arguments, one or more. */
   rest: boolean;
+  /** What an outline says the parameter is for. */
+  documentation?: string;
 }
 
 /** One way to invoke a built-in function. */
 export interface FunctionSignature {
   /** `substring(string, start position, length?): string` */
-  text: string;
+  label: string;
   parameters: SignatureParameter[];
   result: string;
   /** Whether the parameters can be given by name. */
   named: boolean;
+  /** The index of the parameter that the argument of the cursor binds to; absent when it binds to none, or arguments are given by name. */
+  activeParameter?: number;
 }
 
 /** The invocation of a built-in function that the cursor stands in. */
 export interface CompletionCall {
   function: string;
-  summary: string;
+  /** One line that says what the function gives; null for a function of an outline without a description. */
+  documentation: string | null;
+  /** The index of the first signature that has a parameter for the argument of the cursor, else 0. */
+  activeSignature: number;
   /** The index of the argument that the cursor is in. */
   argument: number;
   /** The names of the named parameters given before that argument. */
   named: string[];
   signatures: FunctionSignature[];
 }
+
+/** What the name at a place of a text is (`hover`). */
+export interface Hover {
+  from: number;
+  to: number;
+  kind: 'name' | 'entry' | 'function' | 'variable' | 'parameter' | 'key';
+  /** The FEEL type of the name when the engine knows it. */
+  type: string | null;
+  /** What a built-in function gives, or the description an outline has for the name. */
+  documentation?: string;
+  /** That an outline marks the name as deprecated: `true`, or the reason. */
+  deprecated?: true | string;
+  /** Of a function: the ways to invoke it. */
+  signatures?: FunctionSignature[];
+}
+
+/** The answer of `hover`: null where no name stands at the place. */
+export type HoverResponse = { ok: true; hover: Hover | null; elapsedMicros: number } | { ok: false; error: FeelError };
 
 /** The answer of `complete`: what can stand at the cursor (`to`), and what the grammar takes there (`expects`). */
 export type CompleteResponse =

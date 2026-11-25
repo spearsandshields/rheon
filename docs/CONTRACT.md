@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "evaluateAll" | "evaluateEach" | "parse" | "syntax" | "complete" | "outline" | "format" | "info",
+  "op": "evaluate" | "evaluateAll" | "evaluateEach" | "parse" | "syntax" | "complete" | "hover" | "outline" | "format" | "info",
   "dialect": "expression" | "unaryTests" | "simpleExpression" | "simpleExpressions" | "textualExpressions",   // default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -210,14 +210,15 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
 - An accepted item replaces the text from its `from` to `to` with its `label`. The items of one
   answer can have different `from`s: in `if a th` the lexer reads `a th` as one name, so names
   are offered for `a th` and keywords for `th`.
-- `kind`: `parameter` (a parameter of the invoked built-in function that can be named here; it
-  has `"insert"`, the text to insert in place of the label: the name with its colon),
+- `kind`: `value` (a value that an outline lists for the name that is compared here, below),
+  `parameter` (a parameter of the invoked function that can be named here; it
+  has `"insertText"`, the text to insert in place of the label: the name with its colon),
   `name` (a name of the context, or one the text declares before the cursor: an
   iteration variable, a parameter, `partial`, a key of a context being written, and in the
   predicate of a filter `item` and the entries of an item), `entry` (a member of the value
   before a dot: an entry of a context, a property of a date, a time, a duration or a range,
-  and for a list the members of its items), `keyword`, `function` (a built-in function),
-  `type`.
+  and for a list the members of its items), `keyword`, `function` (a built-in function, or a
+  name that an outline says is a function), `type`.
   The items are ordered by kind in this order and then by label; at most 200 (`truncated`).
   An item fits when it starts with what is typed, letters compared without case.
 - `expects`: `expression`, `operator` (after a complete operand: `and`, `or`, `between`, `in`,
@@ -226,7 +227,7 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   `parameter` (after a named parameter only a named one can follow), `comment` and `string`
   (the cursor is inside a comment, or inside a string that is not closed: nothing is offered).
 - An item of a built-in function has its first signature as `detail`
-  (`"substring(string, start position, length?): string"`), `"info"` (one line that says what
+  (`"substring(string, start position, length?): string"`), `"documentation"` (one line that says what
   the function gives) and the type of its result as `type`. A parameter has its type as `type`.
   A name and an entry have their type as `type` when the engine knows it, else null: the kind
   of the value without the entries of a context (`number`, `context`, `list<context>`,
@@ -242,18 +243,21 @@ of JavaScript and .NET strings), `from` inclusive and `to` exclusive. They take 
   after them. With an `outline` in place of the context the types of the names that are no
   contexts and no lists are known when the outline has them (below).
 - `call` stands when the cursor is inside the parentheses of an invocation of a built-in
-  function (the innermost one):
+  function or of a function of an outline (the innermost one):
 
   ```jsonc
   { "function": "substring",
-    "summary": "The characters from a position, as many as the length says or all that follow.",
+    "documentation": "The characters from a position, as many as the length says or all that follow.",
     "argument": 1,                       // the index of the argument the cursor is in
     "named": [],                         // the names of the named parameters given before it
+    "activeSignature": 0,                // the first signature that has a parameter for that argument, else 0
     "signatures": [{
-      "text": "substring(string, start position, length?): string",
+      "label": "substring(string, start position, length?): string",
       "parameters": [{ "name": "string", "type": "string", "optional": false, "rest": false }, …],
       "result": "string",
-      "named": true }] }                 // false: by position only (`append`, `min(1, 2, 3)`)
+      "named": true,                     // false: by position only (`append`, `min(1, 2, 3)`)
+      "activeParameter": 1 }] }          // the parameter the argument binds to; absent when it binds to
+                                         // none, or arguments are given by name
   ```
 
   A `rest` parameter stands for one or more arguments. The types are FEEL types as text, with
@@ -293,8 +297,22 @@ and an outline without it is read as before.
   `context` that name the entry.
 - **What a name is for.** Beside `type`, `names`, `items` or `function`, an outline can have
   `"description": "<text>"` and `"deprecated": true | "<the reason>"`. `complete` gives the
-  description as the `info` of the item, and `deprecated` as the outline has it; the
+  description as the `documentation` of the item, and `deprecated` as the outline has it; the
   deprecated items of a kind come after the others.
+- **The values a name can have.** Beside a `type` that is a string, a number or a boolean:
+  `"values": [<value> | {"value": <value>, "description": "<text>"}, …]`. Where the name is
+  compared (`=`, `!=`, `in`), `complete` offers the values first, as items of the kind
+  `value`: after the operator as they are written (`"REFI"`, `12`), and inside a string that
+  is being written as its text (`loan.purpose = "RE` offers `REFI`). In the unary tests
+  dialect the name `?` of the outline is the input: its values are offered where a test
+  starts. The values are for the editor; an evaluation does not read them.
+- **Functions.** `{"function": {"parameters": [{"name", "type", "description"}, …], "result":
+  "<type>"}}`: a name that is a function, with the names of its parameters (a type and a
+  description for each when they are known). `complete` offers it as a `function` with its
+  signature as `detail`, and `call` hints its invocation as that of a built-in function, a
+  parameter with its description as `documentation`. `op: "outline"` with `"types": true`
+  writes this form for a function of a FEEL-format context: the names of its parameters and
+  the types it declares.
 
 ```jsonc
 { "types": {
@@ -309,6 +327,24 @@ and an outline without it is read as before.
 A field that an outline does not have is a failure of kind `context` that names the entry and
 the field. The key of a name is read as the key of a context is (a key in another form than
 FEEL reads a name, `"Net - Price"`, is the name its tokens are).
+
+`op: "hover"` takes `expression`, `dialect`, the names in scope as `syntax` does, and `"at"`,
+a place of the text. It answers what the name at that place is, or `"hover": null` where no
+name stands:
+
+```jsonc
+{ "ok": true,
+  "hover": { "from": 74, "to": 81,             // the place of the name
+             "kind": "entry",                   // name | entry | function | variable | parameter | key
+             "type": "string",                  // as an item of `complete` shows it, null when not known
+             "documentation": "Loan purpose",   // of an outline, or of a built-in function
+             "deprecated": "use kind",          // as the outline has it
+             "signatures": [ … ] },             // of a function, as in `call`
+  "elapsedMicros": n }
+```
+
+The name is typed as `complete` types the text up to its end, so a text with errors after
+it is answered too. The answer is in parts, not a prepared text: the consumer shows it.
 
 `op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
 optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers
