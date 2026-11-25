@@ -16,12 +16,14 @@
  * - Restart failures: a worker that fails to start is retried with backoff; after
  *   `RESTART_BACKOFF_MS.length` consecutive failures the engine gives up (`unavailable`).
  */
-import { buildCompleteJson, buildHoverJson, buildPathsJson, buildEvaluateAllJson, buildEvaluateEachJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
+import { buildCompleteJson, buildExplainJson, buildHoverJson, buildPathsJson, buildEvaluateAllJson, buildEvaluateEachJson, buildEvaluateJson, buildFormatJson, buildOutlineJson, buildParseJson, buildSyntaxJson, INFO_JSON, mergeEvaluateAll, RequestError, type EvaluateAllJson } from './request.js';
 import type { FromWorker, ToWorker } from './protocol.js';
 import type {
   CompleteResponse,
   HoverResponse,
   PathsResponse,
+  ExplainRequest,
+  ExplainResponse,
   Dialect,
   EditorOptions,
   ErrorKind,
@@ -176,6 +178,15 @@ export class FeelEngine {
       return Promise.resolve(failure('request', String(e)));
     }
     return this.enqueue(json, opts.signal);
+  }
+
+  /**
+   * Evaluates an expression as `evaluate` does and says how its value came about: the values of
+   * the root of the text and of its parts, and of the parts of the nodes that `expand` names.
+   * Each call evaluates again; a record's `within` and `nullFrom` are passed back in `expand`.
+   */
+  explain(req: ExplainRequest, opts: RequestOptions = {}): Promise<ExplainResponse> {
+    return this.built(() => buildExplainJson(req), opts.signal);
   }
 
   /**

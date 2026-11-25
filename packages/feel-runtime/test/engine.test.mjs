@@ -460,3 +460,31 @@ test('real worker: the editor operations (syntax, complete, outline)', async (t)
   assert.deepEqual(both, { ok: false, error: { kind: 'request', code: 'conflicting-fields', message: "give 'context' or 'outline', not both" } });
   assert.equal(engine.workerStarts, 1);
 });
+
+test('real worker: explain follows a null to the node it is from', async (t) => {
+  const engine = await FeelEngine.create({ wasmModule: module, createWorker: createNodeWorker, timeoutMs: 10000 });
+  t.after(() => engine.dispose());
+  const request = { expression: '{base: rate.base, result: base * 2}.result', context: { rate: {} } };
+  // the answer of evaluate, and the root with its parts
+  const first = await engine.explain(request);
+  assert.equal(first.ok, true);
+  assert.equal(first.result.isNull, true);
+  assert.equal(first.traceTruncated, false);
+  assert.deepEqual(first.trace.map((r) => [r.kind, r.from, r.to]), [['Path', 0, 42], ['Context', 0, 35]]);
+  // what each null record names is expanded, to the record whose null is its own
+  const way = [];
+  let expand = [];
+  let from = first.trace[0].nullFrom;
+  while (from) {
+    expand = [...expand, from];
+    const next = await engine.explain({ ...request, expand });
+    const record = next.trace.find((r) => r.from === from.at[0] && r.to === from.at[1]);
+    way.push([record.kind, record.name ?? null, record.nullOrigin ?? false]);
+    from = record.nullFrom;
+  }
+  assert.deepEqual(way, [['Entry', 'result', false], ['Name', null, false], ['Entry', 'base', true]]);
+  // a request that the module refuses is its failure
+  const refused = await engine.explain({ ...request, expand: [[3, 4]] });
+  assert.equal(refused.ok, false);
+  assert.equal(refused.error.code, 'invalid-field');
+});

@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "evaluateAll" | "evaluateEach" | "parse" | "syntax" | "complete" | "hover" | "paths" | "outline" | "format" | "info",
+  "op": "evaluate" | "evaluateAll" | "evaluateEach" | "explain" | "parse" | "syntax" | "complete" | "hover" | "paths" | "outline" | "format" | "info",
   "dialect": "expression" | "unaryTests" | "simpleExpression" | "simpleExpressions" | "textualExpressions",   // default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -443,6 +443,70 @@ for `net operating income / sum(loans[status = "active"].payment)` with an outli
   answers. The answer does not depend on the values of a `context`, only on their shape (the
   entries that its contexts have, and which values are lists).
 
+`op: "explain"` evaluates an expression as `evaluate` does and says how its value came about.
+It takes the fields of `evaluate` (an expression only: `dialect` is `"expression"`) and
+
+```jsonc
+"expand": [ [from, to], { "at": [from, to], "within": [ … ], "iterations": [from, to] }, … ],  // optional
+"maxRecords": 200                                                                              // optional, 1 to 10000
+```
+
+and answers what `evaluate` answers (`result`, `warnings`, `diagnostics`) with
+
+```jsonc
+"trace": [
+  { "from": 0, "to": 27, "kind": "Addition", "value": { … },      // a node of the text and its value
+    "name": "…",                                                   // of an entry of a context literal
+    "iteration": 1, "iterations": 3,                               // see the loops below
+    "within": [ { "at": [4, 57], "iteration": 1 }, { "at": [61, 68], "call": true } ],
+    "nullFrom": { "at": [0, 23], "within": [ … ] }, "nullOrigin": true } ],
+"traceTruncated": false
+```
+
+- A record is a node of the text (its place in UTF-16 units and its `kind`, those of the nodes
+  of `syntax`) with the value that the evaluation gave it, as `result` has a value. A value
+  whose text is long (more than 4096 bytes, or more than 256 items, entries and values) is `{ "summarized": true, "type": "list" | "context" |
+  "<type>", "isNull": false, "count": n }` (`count` for a list or a context). The records are
+  in the order of the text, a node before the nodes inside it.
+- By default the trace has the root of the text and its parts one level down: the operands of
+  an operator, the entries of a context literal, the items of a list, the arguments of an
+  invocation, the list and the predicate of a filter, the domain and the body of a loop, the
+  branches of an `if` (the one evaluated). `expand` names nodes, by their places, whose parts
+  are wanted too; an expanded node has its own record as well. The engine keeps nothing
+  between requests: each request evaluates again and records what it asks for, so an answer is
+  as long as the request asks and not as the data is.
+- A part that is evaluated once for each item (the body of a `for`, `some` or `every`, the
+  predicate of a filter) has a record for each iteration, with `iteration` (from 0): for the
+  first 20, or for `"iterations": [from, to)` of the entry of its loop. The record of a loop
+  or a filter has `iterations`, how many it had.
+- The parts of an invocation are its arguments and, when it invokes a function written in the
+  text, the body of that function. A function that a built-in function invokes (the order of
+  `sort`) is not invoked by an invocation of the text: its body has no record.
+- `within` says where a record's node is evaluated, outermost first: the iteration of each
+  loop around it (`{"at": <the loop>, "iteration": n}`) and the invocation that runs the body
+  it is in (`{"at": <the invocation>, "call": true}`). A node that is evaluated more than
+  once is named in `expand` with the `within` of its record: `{"at": [from, to], "within":
+  […]}`. So a loop is entered one iteration at a time and a function that invokes itself one
+  invocation at a time. An entry whose `within` does not lead to its node is the error
+  `invalid-field`, and the message says the steps that do.
+- A record whose value is null says where the null is from. `nullFrom` is the part that is
+  null, as an entry of `expand`: for an `if` the branch taken, for an invocation the body it
+  ran (else its first null argument), for a loop its domain or its first null iteration, else
+  the first part that is null; a name that an earlier entry of a context literal around it
+  gives its value names that entry, and so does `{…}.name`. `nullOrigin: true` says that the
+  null is the node's own: its parts are not null, or it has none (a name that the context
+  gives null or does not have, an operator or a function whose operands are not null, `null`
+  written). To follow a null, expand what `nullFrom` names until a record has `nullOrigin`.
+  A null record has neither when its node is not expanded (its parts have no records), when
+  the null can be from an iteration that has no record, and when the trace is cut. The way is
+  not followed through a value: a null that is an item of a list or an entry of a context
+  given by the host, and a name that a loop, a filter or a parameter binds, end it.
+- At most `maxRecords` records are kept (default 200); with more, `traceTruncated` is true
+  and the evaluation and its `result` are as without the limit.
+- A failure is the failure of `evaluate` for the same request (`syntax-error`, `limit-steps`,
+  …). The records are read from the evaluation, which is the one of `evaluate`: the result,
+  the warnings and the diagnostics are the same whatever is expanded.
+
 `op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
 optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers
 `{ "ok": true, "formatted": "<text>", "changed": true | false, "elapsedMicros": n }`.
@@ -555,6 +619,7 @@ export class FeelEngine {
   evaluate(req: EvaluateRequest, opts?: RequestOptions): Promise<EvaluateResponse>;
   evaluateAll(req: EvaluateAllRequest, opts?: RequestOptions): Promise<EvaluateAllResponse>;  // §2 `evaluateAll`: one request, the context sent once
   evaluateEach(req: EvaluateEachRequest, opts?: RequestOptions): Promise<EvaluateEachResponse>;  // §2 `evaluateEach`: one request, the expression parsed once for contexts of the same names
+  explain(req: ExplainRequest, opts?: RequestOptions): Promise<ExplainResponse>;  // §3 `explain`: the answer of `evaluate` with `trace` and `traceTruncated`; `ExplainRequest` is `EvaluateRequest` without `dialect` and `input`, with `expand` and `maxRecords`
   parse(dialect: Dialect, expression: string, opts?: ParseOptions & RequestOptions): Promise<ParseResponse>;
   // the editor operations (§3): `opts` names the dialect and either the context or its outline
   syntax(expression: string, opts?: EditorOptions & { tree?: boolean } & RequestOptions): Promise<SyntaxResponse>;

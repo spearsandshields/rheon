@@ -1,5 +1,5 @@
 /** Builds the wasm request JSON (CONTRACT §2) from runtime requests, splicing `RawJson` verbatim. */
-import type { EditorOptions, EvaluateAllRequest, EvaluateEachRequest, EvaluateRequest, EvaluationAnswer, FeelError, ParseOptions, RawJson } from './types.js';
+import type { EditorOptions, EvaluateAllRequest, EvaluateEachRequest, EvaluateRequest, EvaluationAnswer, ExplainRequest, FeelError, ParseOptions, RawJson } from './types.js';
 
 /**
  * Private brand of `RawJson` values. `Symbol.for` so that values made by another copy of this
@@ -167,6 +167,25 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
     errorMode: req.errorMode,
     maxSteps: req.maxSteps,
     ...unwritten(req, EVALUATE_WRITTEN),
+  });
+}
+
+const EXPLAIN_WRITTEN = ['op', 'expression', 'context', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps', 'expand', 'maxRecords'] as const;
+
+/** `explain` request → JSON text. */
+export function buildExplainJson(req: ExplainRequest, defaultTz: number | undefined = localTzOffsetMinutes()): string {
+  return serializeRequest({
+    op: 'explain',
+    expression: req.expression,
+    ...contextFields(req.context, req.contextFormat),
+    tzOffsetMinutes: req.tzOffsetMinutes ?? defaultTz,
+    now: req.now,
+    language: req.language,
+    errorMode: req.errorMode,
+    maxSteps: req.maxSteps,
+    expand: req.expand,
+    maxRecords: req.maxRecords,
+    ...unwritten(req, EXPLAIN_WRITTEN),
   });
 }
 

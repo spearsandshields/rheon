@@ -158,6 +158,63 @@ export type EvaluateResponse =
   | { ok: true; result: FeelResult; warnings: Warning[]; diagnostics?: Diagnostics; elapsedMicros: number }
   | { ok: false; error: FeelError };
 
+/**
+ * A step of the way to where a node is evaluated (`explain`): into an iteration of the loop or
+ * the filter at a place, or into the body of the function that the invocation at a place runs.
+ * Places are `[from, to]` in UTF-16 units.
+ */
+export type TraceStep = { at: [number, number]; iteration: number } | { at: [number, number]; call: true };
+
+/**
+ * A node whose parts `explain` records: its place, or its place with where it is evaluated
+ * (`within`, as a record of the node has it) and, for a loop or a filter, the iterations wanted
+ * (`[from, to)`, by default the first 20).
+ */
+export type ExpandEntry = [number, number] | { at: [number, number]; within?: TraceStep[]; iterations?: [number, number] };
+
+/** The fields of `evaluate` for an expression, and which nodes to record. */
+export interface ExplainRequest extends Omit<EvaluateRequest, 'dialect' | 'input'> {
+  /** The nodes whose parts are recorded too; by default the root of the text and its parts. */
+  expand?: ExpandEntry[];
+  /** The most records of the answer, 1 to 10000 (default 200); beyond it `traceTruncated` is true. */
+  maxRecords?: number;
+}
+
+/** A value too long to write whole in a record: its type and, of a list or a context, how many items or entries it has. */
+export interface SummarizedValue {
+  summarized: true;
+  type: string;
+  isNull: boolean;
+  count?: number;
+}
+
+/** The value that an evaluation gave for a node of the text (`explain`). */
+export interface TraceRecord {
+  /** The place of the node, in UTF-16 units. */
+  from: number;
+  to: number;
+  /** What the node is: `Addition`, `Invocation`, `Entry`, `For`, … (the kinds of the nodes of `syntax`). */
+  kind: string;
+  /** Of an entry of a context literal: its name. */
+  name?: string;
+  value: FeelResult | SummarizedValue;
+  /** Of the body of a loop or the predicate of a filter: which iteration the record is of. */
+  iteration?: number;
+  /** Of a loop or a filter: how many iterations it had. */
+  iterations?: number;
+  /** Where it is evaluated, outermost first; absent for a node evaluated once at the root. Pass it back in `expand`. */
+  within?: TraceStep[];
+  /** Of a null: the part of the node that the null is from, as an entry of `expand`. */
+  nullFrom?: { at: [number, number]; within?: TraceStep[] };
+  /** Of a null: the null is the node's own (its parts are not null, or it has none). */
+  nullOrigin?: true;
+}
+
+/** The answer of `explain`: that of `evaluate`, and the records in the order of the text. */
+export type ExplainResponse =
+  | { ok: true; result: FeelResult; warnings: Warning[]; diagnostics?: Diagnostics; trace: TraceRecord[]; traceTruncated: boolean; elapsedMicros: number }
+  | { ok: false; error: FeelError };
+
 /** The answer of one entry of `evaluateAll`: what `evaluate` answers for it, with its `id`. */
 export type EvaluationAnswer = EvaluateResponse & { id?: string | number };
 
