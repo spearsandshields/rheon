@@ -254,6 +254,12 @@ pub(crate) struct Proto {
   /// For each name of `closure`, in its order, the index of its first segment in
   /// [Resolved::names], [NONE] for a name that no binder binds.
   pub(crate) captures: Box<[u32]>,
+  /// The names that the body reads from outside and whose nearest binder there is a variable, a
+  /// parameter or the item of a filter, sorted: the body reads them from its closure before the
+  /// context literals it is written in (DMN 1.6 clause 10.3.2.11: the contexts of a scope are
+  /// looked through from the first, the innermost, to the last). A name whose nearest binder is
+  /// an entry of a context literal is read from that literal first, as every other name is.
+  pub(crate) nearer: Box<[u32]>,
   /// The body, [NONE] for a function whose body is external.
   pub(crate) body: u32,
 }
@@ -321,6 +327,7 @@ fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
         region: NONE,
         closure: Closure::default(),
         captures: Box::new([]),
+        nearer: Box::new([]),
         body: NONE,
       },
       functions: vec![],
@@ -332,6 +339,8 @@ fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
     owned: HashMap::new(),
     partial: NONE,
     closures,
+    sites: vec![],
+    nearer: vec![],
     free_names: vec![],
     body: Body {
       proto: NONE,
@@ -344,6 +353,22 @@ fn resolve_as(ast: &AstNode, closures: bool) -> Resolved<'_> {
   let root = resolver.node(ast);
   resolver.out.root.body = root;
   resolver.out.root.binders = resolver.body.max;
+  // the names that each function reads from its closure first, sorted
+  let mut nearer: Vec<(u32, u32)> = resolver
+    .nearer
+    .iter()
+    .filter(|(_, _, nearer)| *nearer)
+    .map(|&(function, name, _)| (function, name))
+    .collect();
+  nearer.sort_unstable();
+  nearer.dedup();
+  let mut at = 0;
+  while at < nearer.len() {
+    let function = nearer[at].0;
+    let end = at + nearer[at..].partition_point(|(of, _)| *of == function);
+    resolver.out.functions[function as usize].nearer = nearer[at..end].iter().map(|&(_, name)| name).collect();
+    at = end;
+  }
   resolver.out
 }
 
@@ -382,6 +407,12 @@ struct Resolver<'a> {
   partial: u32,
   /// Whether the names that each function closes over are listed ([resolve_names]).
   closures: bool,
+  /// Where the function definitions around the position being resolved are written, the
+  /// outermost first: the function, and the innermost region where its definition stands.
+  sites: Vec<(u32, u32)>,
+  /// The names that functions read from their closure first ([Proto::nearer]) and those decided
+  /// otherwise, as found: the function, the name, and whether it is one.
+  nearer: Vec<(u32, u32, bool)>,
   /// The free name of each name, read as a name and as a qualified name, or [NONE].
   free_names: Vec<[u32; 2]>,
   body: Body,
@@ -502,10 +533,65 @@ impl<'a> Resolver<'a> {
       region = parent;
     }
     let used = self.uses(!probes.is_empty(), callee);
+    self.beyond(name);
     Read {
       name,
       probes: probes.into(),
       target: Target::Free(self.free(name, qualified, used)),
+    }
+  }
+
+  /// Decides where the function whose body is being resolved reads the name `name`, which its
+  /// body does not bind, first: the scopes around its definition are looked through from the
+  /// innermost, across the functions it is written in. When the first that has the name is a
+  /// variable or a parameter (or the item of a filter, which has the name or not when it is
+  /// evaluated), the function and every function crossed on the way read their closure first
+  /// ([Proto::nearer]); when it is an entry of a context literal, or nothing has the name,
+  /// they read as every function does, the context literals they are written in first. A
+  /// function whose closure is not listed ([resolve_names]) is not decided.
+  fn beyond(&mut self, name: u32) {
+    let Some(&(innermost, _)) = self.sites.last() else {
+      return;
+    };
+    if !self.closures || self.nearer.iter().any(|&(function, known, _)| function == innermost && known == name) {
+      return;
+    }
+    let mut found = None;
+    'sites: for depth in (0..self.sites.len()).rev() {
+      let mut region = self.sites[depth].1;
+      while region != NONE {
+        let Region { parent, kind } = self.out.regions[region as usize];
+        match kind {
+          RegionKind::Layout { layout, visible } => {
+            let layout = &self.out.layouts[layout as usize];
+            if layout.kind == LayoutKind::Context {
+              // every entry of the literal is in scope for the function (10.3.2.11.1)
+              if layout.find(name, layout.entries.len() as u32).is_some() {
+                break 'sites;
+              }
+            } else if layout.find(name, visible).is_some() {
+              found = Some(depth);
+              break 'sites;
+            }
+          }
+          RegionKind::Item { .. } => {
+            found = Some(depth);
+            break 'sites;
+          }
+          RegionKind::Closure => break,
+        }
+        region = parent;
+      }
+    }
+    // the functions from the one whose definition stands in the scope found, inwards
+    let crossed = found.unwrap_or(self.sites.len());
+    for depth in 0..self.sites.len() {
+      let function = self.sites[depth].0;
+      if depth >= crossed {
+        self.nearer.push((function, name, true));
+      } else if depth + 1 == self.sites.len() {
+        self.nearer.push((function, name, false));
+      }
     }
   }
 
@@ -677,6 +763,7 @@ impl<'a> Resolver<'a> {
             let first = self.name(first);
             let used = self.uses(self.in_filter(), callee);
             self.free(first, true, used);
+            self.beyond(first);
             first
           }
           None => NONE,
@@ -890,12 +977,14 @@ impl<'a> Resolver<'a> {
             Closure::default()
           },
           captures: Box::new([]),
+          nearer: Box::new([]),
           body: NONE,
         });
         let body_kid = if *external {
           self.node(body)
         } else {
           let outer = self.body;
+          self.sites.push((proto, outer.region));
           self.body = Body {
             proto,
             region: NONE,
@@ -931,6 +1020,7 @@ impl<'a> Resolver<'a> {
           proto_entry.region = region;
           proto_entry.body = expression;
           self.body = outer;
+          self.sites.pop();
           self.add(body, Info::None, &[expression])
         };
         (proto, body_kid)

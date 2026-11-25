@@ -386,6 +386,9 @@ pub(crate) struct Proto {
   pub(crate) region: u32,
   pub(crate) closure: Closure,
   pub(crate) captures: Box<[u32]>,
+  /// The names that the body reads from its closure before the context literals it is written
+  /// in, sorted (as name resolution found them).
+  pub(crate) nearer: Box<[u32]>,
 }
 
 /// A qualified-name search: the segments in [Program::name_lists], the index of the first one in
@@ -488,6 +491,12 @@ impl Program {
         if first != NONE {
           check.index(first, self.names.len(), "name out of range")?;
         }
+      }
+      for &name in proto.nearer.iter() {
+        check.index(name, self.names.len(), "name out of range")?;
+      }
+      if !proto.nearer.is_sorted() {
+        return check.fail("the names read from the closure first are sorted");
       }
       for &(name, cell) in proto.cells.iter() {
         check.index(name, self.names.len(), "name out of range")?;

@@ -79,6 +79,7 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
       region: function.region,
       closure: std::mem::take(&mut function.closure),
       captures: std::mem::take(&mut function.captures),
+      nearer: std::mem::take(&mut function.nearer),
     };
     builder.proto(index as u32, proto);
   }

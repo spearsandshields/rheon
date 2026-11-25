@@ -1180,9 +1180,21 @@ impl<'p> Vm<'p> {
       }
       RegionKind::Closure => {
         let function = act.function.as_ref()?;
-        self.at_home(function, name).or_else(|| function.closure_ctx.get_entry(name).cloned())
+        let closed = || function.closure_ctx.get_entry(name).cloned();
+        if self.closure_first(act, index) {
+          closed().or_else(|| self.at_home(function, name))
+        } else {
+          self.at_home(function, name).or_else(closed)
+        }
       }
     }
+  }
+
+  /// Whether the body of `act` reads the name `names[index]` of its program from its closure
+  /// before the context literals it is written in: the nearest scope around the function that
+  /// has the name is a variable, a parameter or the item of a filter ([Proto::nearer]).
+  fn closure_first(&self, act: &Activation, index: u32) -> bool {
+    act.program.protos.get(act.proto as usize).is_some_and(|proto| proto.nearer.binary_search(&index).is_ok())
   }
 
   /// The step of the filter of `record` after its predicate gave `c`: evaluated in the scope around the filter, a number selects
@@ -1476,9 +1488,13 @@ impl<'p> Vm<'p> {
           }
           RegionKind::Closure => {
             let function = act.function.as_ref()?;
-            vm.at_home(function, head)
-              .and_then(|value| search_in(&value, &segments[1..]))
-              .or_else(|| function.closure_ctx.search_deep(segments).cloned())
+            let closed = || function.closure_ctx.search_deep(segments).cloned();
+            let at_home = || vm.at_home(function, head).and_then(|value| search_in(&value, &segments[1..]));
+            if vm.closure_first(act, first) {
+              closed().or_else(at_home)
+            } else {
+              at_home().or_else(closed)
+            }
           }
         }
       })
