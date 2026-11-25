@@ -9,5 +9,5 @@ export const feelWasmUrl = (): URL => new URL('../feel.wasm', import.meta.url);
 
 export { instantiateFeel, RawFeelInstance, FeelTrap, trapMessage, type FeelEnv, type FeelInstance } from './instance.js';
 export { createWasiShim, WasiExit, type WasiShim, type WasiShimOptions } from './wasi.js';
-export { rawJson, isRawJson, localTzOffsetMinutes, serializeRequest, buildEvaluateJson, buildEvaluateAllJson, buildEvaluateEachJson, buildParseJson, buildSyntaxJson, buildCompleteJson, buildHoverJson, buildOutlineJson, buildFormatJson } from './request.js';
+export { rawJson, isRawJson, localTzOffsetMinutes, serializeRequest, buildEvaluateJson, buildEvaluateAllJson, buildEvaluateEachJson, buildParseJson, buildSyntaxJson, buildCompleteJson, buildHoverJson, buildPathsJson, buildOutlineJson, buildFormatJson } from './request.js';
 export type { ToWorker, FromWorker } from './protocol.js';

@@ -29,7 +29,7 @@ A Rust panic aborts the instance (`unreachable` trap). The host must treat the i
 
 ```jsonc
 {
-  "op": "evaluate" | "evaluateAll" | "evaluateEach" | "parse" | "syntax" | "complete" | "hover" | "outline" | "format" | "info",
+  "op": "evaluate" | "evaluateAll" | "evaluateEach" | "parse" | "syntax" | "complete" | "hover" | "paths" | "outline" | "format" | "info",
   "dialect": "expression" | "unaryTests" | "simpleExpression" | "simpleExpressions" | "textualExpressions",   // default "expression"
   "expression": "string",                    // evaluate/parse
   "context": { /* JSON object */ },          // evaluate; optional, default {}
@@ -348,6 +348,62 @@ name stands:
 
 The name is typed as `complete` types the text up to its end, so a text with errors after
 it is answered too. The answer is in parts, not a prepared text: the consumer shows it.
+
+`op: "paths"` takes `expression`, `dialect` and the names in scope as `syntax` does, and
+answers what the expression reads of those names, without evaluating it:
+
+```jsonc
+{ "ok": true,
+  "paths": [
+    { "path": ["net operating income"], "text": "net operating income", "whole": true,  "places": [[0, 20]] },
+    { "path": ["loans"],                "text": "loans",                "whole": false, "places": [[27, 32]] },
+    { "path": ["loans", [], "payment"], "text": "loans[].payment",      "whole": true,  "places": [[27, 59]] },
+    { "path": ["loans", [], "status"],  "text": "loans[].status",       "whole": true,  "places": [[33, 39]] } ],
+  "unknown": [],
+  "complete": true,
+  "elapsedMicros": n }
+```
+
+for `net operating income / sum(loans[status = "active"].payment)` with an outline that says
+`loans` is a list of contexts with a `status` (without one, `status` is listed too: see below).
+
+- A path starts at a name in scope. A segment is the name of an entry, or `[]` (an empty
+  array) for the items of a list. A name is written as the context or the outline writes its
+  key (without white space at its ends); `text` is the path for people.
+- `whole: true`: the value at the path is read as a value (an operand, an argument of a
+  function, the result), so all of it can be read, however deep it is. `whole: false`: only
+  what the paths below it read, and that it is there.
+- **Exact or wider, never narrower.** An evaluation with a context that holds only what the
+  paths list gives what the evaluation with the whole context gives. To cut a context down:
+  a name that no path starts with is left out; a value at a `whole` path is kept; of a context
+  at another path the entries that paths name are kept, of a list its items, each cut down the
+  same way (an item that no path lists becomes an empty context or null, so that the list
+  keeps its length); a simple value at a listed path is kept as it is.
+- What passes a value on without reading into it: a path, a filter, the variable of `for`,
+  `some` and `every`, an entry of a context literal, the branches of `if`, an item of a list
+  literal, the body of `for`, a parameter of a function that the text defines and invokes,
+  `get value` with a key that is a string literal, and the built-in functions `reverse`,
+  `sublist`, `remove`, `append`, `concatenate` and `insert before` with positional arguments.
+  Everything else reads its operands whole.
+- A name in the predicate of a filter is an entry of the item when the item has one, and it is
+  read outside the filter too (the predicate is evaluated there first: a number selects an
+  item). With a `context` or an `outline` the item is known to have the entry or not; without
+  one, both are listed (`loans[].status` and `status`).
+- Which values are lists is read from the `context` or the `outline`. Without one, an entry
+  of a name is written as an entry (`loans.amount`) also when the value is a list at run
+  time, and `[]` is written where the text takes items (a filter, a loop). Read such paths as
+  FEEL reads values: the items of a value that is no list are the value, and an entry of a
+  list is the entry of each of its items.
+- `places`: where the text reads the path, as `[from, to]` in UTF-16 units, in the order of
+  the text.
+- `unknown`: the names that nothing gives (no construct of the text binds them, the scope has
+  no value of them, they are no built-in functions), each with its `places`. Only with a
+  `context` or an `outline`; without one, every such name is a path, a name for the host to give.
+- `complete: false`: the analysis reached its limit (200,000 nodes, the bodies of the functions
+  of the text counted at each invocation); the expression can then read more than `paths` lists.
+- For `dialect: "unaryTests"` the tested value is the path `?`, read whole.
+- A text with syntax errors is the failure of kind `syntax` with `diagnostics` that `evaluate`
+  answers. The answer does not depend on the values of a `context`, only on their shape.
 
 `op: "format"` takes `expression`, `dialect`, the names in scope as `syntax` does, and the
 optional field `"width"` (the most characters of a line, 1 to 1000; default 80). It answers

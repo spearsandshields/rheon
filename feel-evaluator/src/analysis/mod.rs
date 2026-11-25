@@ -11,10 +11,12 @@
 //! result of a function of the host, a name without a value, a list of items of several types)
 //! the answer is `Any`. Nothing here is used by the evaluation.
 
+mod reads;
 mod types;
 
 use crate::flat::{Info, LayoutKind, NONE, Place, Read, Region, RegionKind, Resolved, Target, resolve_names, variables};
 use crate::infer::{addition, at_literal, signature_type, subtraction, type_written, written_type};
+pub use reads::{ReadPath, Reads, Segment, text as path_text};
 use rheon_feel::signatures::{BuiltIn, built_in};
 use rheon_feel::{FeelScope, FeelType, Name};
 use rheon_feel_parser::AstNode;
@@ -306,6 +308,35 @@ impl<'s> Typing<'s> {
       }),
       _ => Some(self.types.simple(id).to_string()),
     }
+  }
+
+  /// The name `name` as the scope writes it: the key of the value that the name reads, which
+  /// can be written in another form than FEEL reads a name (`Date - Time` for `Date-Time`).
+  /// The name itself when the scope has no value of it.
+  fn written_key(&self, name: &Name) -> Name {
+    let is = |key: &Name| rheon_feel::names::is_name(key.as_str(), name.as_str());
+    if !self.stated.is_empty() {
+      if self.stated.contains_key(name) {
+        return name.clone();
+      }
+      if let Some(key) = self.stated.keys().find(|key| is(key)) {
+        return key.clone();
+      }
+    }
+    let frames = self.scope.frames();
+    for frame in frames.iter().rev() {
+      if frame.get_entry(name).is_some() {
+        if !frame.has_other_key_forms() {
+          return name.clone();
+        }
+        // of two keys that are one name, the key of the text of the name is read, else the first
+        if frame.iter().any(|(key, _)| key == name) {
+          return name.clone();
+        }
+        return frame.iter().map(|(key, _)| key).find(|key| is(key)).cloned().unwrap_or_else(|| name.clone());
+      }
+    }
+    name.clone()
   }
 
   /// The type of what `name` holds in the scope, None when the scope has no value of the name.

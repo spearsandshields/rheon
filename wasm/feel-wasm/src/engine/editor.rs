@@ -10,8 +10,8 @@ use rheon_feel::FeelType;
 use rheon_feel::bif::BUILT_IN_FUNCTION_NAMES;
 use rheon_feel::signatures::built_in;
 use rheon_feel::values::Value;
-use rheon_feel_evaluator::{TypeId, Typing, type_of_text, type_of_value};
-use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, StartRule, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_tolerant_start};
+use rheon_feel_evaluator::{Segment, TypeId, Typing, path_text, type_of_text, type_of_value};
+use rheon_feel_parser::{DEFAULT_WIDTH, Formatted, StartRule, Syntax, SyntaxNode, SyntaxToken, TokenClass, parse_expression, parse_positioned, parse_tolerant_start};
 use std::collections::HashMap;
 
 /// The most items a `complete` answer holds.
@@ -1665,6 +1665,46 @@ pub(super) fn hover(mut req: Map<String, Json>, unread: Unread, started: Instant
     _ => {}
   }
   answer(hover)
+}
+
+/// `op: "paths"`: what the expression reads of the names in scope, without evaluating it: for
+/// each name, the parts of its value that an evaluation can read. The answer is exact or wider,
+/// never narrower: an evaluation with a context that holds only what it lists gives what the
+/// evaluation with the whole context gives. A text with syntax errors is the failure that
+/// `parse` answers.
+pub(super) fn paths(mut req: Map<String, Json>, unread: Unread, started: Instant) -> Result<Json, Failure> {
+  let dialect = dialect(&req)?;
+  let expression = expression(&mut req)?;
+  // with names in scope, a name that nothing gives is unknown; without, it is a name to give
+  let known = req.contains_key("outline") || req.contains_key("context") || unread.context.is_some();
+  let (scope, outline) = scope(req, unread, dialect)?;
+  let mut typing = Typing::new(&scope);
+  Schema::read(&mut typing, outline.as_ref())?;
+  let positioned = parse_positioned(&scope, dialect.rule(), &expression).map_err(|e| {
+    let diagnostics = diagnostics(&scope, &expression, dialect.rule());
+    Failure(Kind::Syntax, syntax_message(&e.to_string()), Some(diagnostics))
+  })?;
+  check_ast_depth(positioned.tree()).map_err(|e| Failure(Kind::Syntax, e, None))?;
+  let reads = typing.reads(positioned.tree(), &|node| positioned.place(node), known, dialect == Dialect::UnaryTests);
+  let places = Places::new(&expression);
+  let placed = |at: &[(usize, usize)]| -> Vec<Json> { at.iter().map(|&(start, end)| json!([places.of(start), places.of(end)])).collect() };
+  let paths: Vec<Json> = reads
+    .paths
+    .iter()
+    .map(|path| {
+      let segments: Vec<Json> = path
+        .segments
+        .iter()
+        .map(|segment| match segment {
+          Segment::Entry(name) => json!(name.to_string()),
+          Segment::Items => json!([]),
+        })
+        .collect();
+      json!({"path": segments, "text": path_text(&path.segments), "whole": path.whole, "places": placed(&path.places)})
+    })
+    .collect();
+  let unknown: Vec<Json> = reads.unknown.iter().map(|(name, at)| json!({"name": name.to_string(), "places": placed(at)})).collect();
+  Ok(json!({ "ok": true, "paths": paths, "unknown": unknown, "complete": reads.complete, "elapsedMicros": elapsed_micros(started) }))
 }
 
 /// `op: "format"`: the text in the one layout of the formatter (lines of at most `width`

@@ -322,6 +322,31 @@ export interface Hover {
   signatures?: FunctionSignature[];
 }
 
+/** A part of a value in scope that an expression reads (`paths`). */
+export interface ReadPath {
+  /** From a name in scope down: the name of an entry, or `[]` for the items of a list. */
+  path: (string | [])[];
+  /** The path for people: `loans[].payment`. */
+  text: string;
+  /** Whether the value at the path is read as a value (all of it can be read), or only what the paths below it read. */
+  whole: boolean;
+  /** Where the text reads it: `[from, to]` in UTF-16 units. */
+  places: [number, number][];
+}
+
+/** The answer of `paths`: what the expression reads of the names in scope, exact or wider. */
+export type PathsResponse =
+  | {
+      ok: true;
+      paths: ReadPath[];
+      /** The names that nothing gives (only with a context or an outline). */
+      unknown: { name: string; places: [number, number][] }[];
+      /** False when the analysis reached its limit: the expression can read more than `paths` lists. */
+      complete: boolean;
+      elapsedMicros: number;
+    }
+  | { ok: false; error: FeelError };
+
 /** The answer of `hover`: null where no name stands at the place. */
 export type HoverResponse = { ok: true; hover: Hover | null; elapsedMicros: number } | { ok: false; error: FeelError };
 

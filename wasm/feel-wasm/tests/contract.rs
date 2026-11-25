@@ -920,7 +920,7 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
     json!({"op": "y".repeat(300)}),
     "request",
     format!(
-      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')",
+      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
       "y".repeat(120)
     ),
   );
@@ -990,7 +990,7 @@ fn request_error_messages() {
   assert_error(
     &req(json!({"op": "explode"})),
     "request",
-    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
   );
   // the expression
   for op in ["evaluate", "parse"] {
@@ -1096,7 +1096,7 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')";
+  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1932,7 +1932,7 @@ fn evaluate_all_request_and_response() {
   assert_error(
     &req(json!({"op": "nothing"})),
     "request",
-    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'outline', 'format' or 'info')",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
   );
   let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
   assert_eq!(
@@ -3535,4 +3535,109 @@ fn a_function_that_is_an_entry_is_hinted() {
   assert_eq!(hover["hover"]["documentation"], "The value, or the fallback");
   assert_eq!(hover["hover"]["signatures"][0]["label"], "nz(value, fallback): number");
   assert!(hover["hover"]["signatures"][0]["activeParameter"].is_null());
+}
+
+/// `op: "paths"`: what an expression reads of the names in scope. A path is a name and the
+/// entries below it, `[]` for the items of a list; `whole` where the value is read as a value.
+#[test]
+fn paths_are_what_an_expression_reads() {
+  let context = json!({
+    "loan": {"amount": 1, "purpose": "x", "customer": {"name": "n", "age": 3}},
+    "loans": [{"amount": 1, "payment": 2, "status": "a", "customer": {"name": "n"}}],
+    "rate": 2, "Net - Price": 5, "start": "2020-01-01"
+  });
+  // the paths as text, sorted, `*` for a path that is read whole
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    assert_eq!(response["complete"], true);
+    response["paths"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|path| format!("{}{}", path["text"].as_str().unwrap(), if path["whole"] == true { "*" } else { "" }))
+      .collect::<std::collections::BTreeSet<_>>()
+      .into_iter()
+      .collect()
+  };
+  let typed = |expression: &str| shown(&req(json!({"op": "paths", "expression": expression, "context": context})));
+  let untyped = |expression: &str| shown(&req(json!({"op": "paths", "expression": expression})));
+  // an operand is read whole, a path reads the entry
+  assert_eq!(typed("loan.amount * rate"), ["loan", "loan.amount*", "rate*"]);
+  assert_eq!(typed("loan"), ["loan*"]);
+  assert_eq!(typed("count(loans)"), ["loans*"]);
+  // a filter and a loop read the items; the names of the predicate are entries of the item
+  assert_eq!(
+    typed("sum(loans[status = \"a\"].payment) / loan.amount"),
+    ["loan", "loan.amount*", "loans", "loans[].payment*", "loans[].status*"]
+  );
+  assert_eq!(typed("for l in loans return l.customer.name"), ["loans", "loans[].customer", "loans[].customer.name*"]);
+  assert_eq!(typed("loans[1].customer"), ["loans", "loans[].customer*"]);
+  assert_eq!(typed("some l in loans satisfies l.amount > rate"), ["loans", "loans[].amount*", "rate*"]);
+  // a path on a list is the entries of its items
+  assert_eq!(typed("loans.amount"), ["loans", "loans[].amount*"]);
+  // what the text makes passes its values on: a context literal, a function, `if`, a list
+  assert_eq!(typed("{a: loan, b: a.customer.age, c: b + 1}.c"), ["loan", "loan.customer", "loan.customer.age*"]);
+  assert_eq!(typed("{f: function(l) l.customer.name, r: f(loan)}.r"), ["loan", "loan.customer", "loan.customer.name*"]);
+  assert_eq!(
+    typed("(if rate > 1 then loan else loans[1]).amount"),
+    ["loan", "loan.amount*", "loans", "loans[].amount*", "rate*"]
+  );
+  assert_eq!(typed("[loan, rate][1].amount"), ["loan", "loan.amount*", "rate*"]);
+  // the built-in functions that pass a list on, and `get value` with a key that is written
+  assert_eq!(typed("reverse(loans)[1].status"), ["loans", "loans[].status*"]);
+  assert_eq!(typed("get value(loan, \"purpose\")"), ["loan", "loan.purpose*"]);
+  // another function reads its arguments whole
+  assert_eq!(typed("sort(loans, function(a, b) a.amount < b.amount)[1].status"), ["loans*"]);
+  assert_eq!(typed("get value(loan, loan.purpose)"), ["loan*", "loan.purpose*"]);
+  // a key in another form than FEEL reads a name is the key as the context writes it
+  let response = req(json!({"op": "paths", "expression": "Net-Price + 1", "context": context}));
+  assert_eq!(
+    response["paths"],
+    json!([{"path": ["Net - Price"], "text": "Net - Price", "whole": true, "places": [[0, 9]]}])
+  );
+  // the places of a path, in UTF-16 units; the segments, `[]` for the items
+  let response = req(json!({"op": "paths", "expression": "\"😀\" + loans[status = \"a\"].payment", "context": context}));
+  assert_eq!(
+    response["paths"],
+    json!([
+      {"path": ["loans"], "text": "loans", "whole": false, "places": [[7, 12]]},
+      {"path": ["loans", [], "payment"], "text": "loans[].payment", "whole": true, "places": [[7, 34]]},
+      {"path": ["loans", [], "status"], "text": "loans[].status", "whole": true, "places": [[13, 19]]}
+    ])
+  );
+  // a name that nothing gives is unknown with names in scope, and a path without
+  let response = req(json!({"op": "paths", "expression": "rate + missing + sum(1) + missing", "context": context}));
+  assert_eq!(shown(&response), ["rate*"]);
+  assert_eq!(response["unknown"], json!([{"name": "missing", "places": [[7, 14], [26, 33]]}]));
+  assert_eq!(untyped("rate + missing + sum(1)"), ["missing*", "rate*"]);
+  assert_eq!(req(json!({"op": "paths", "expression": "rate"}))["unknown"], json!([]));
+  // without names in scope: an entry of a name as it is written, `[]` where the text takes
+  // items, and a name of a predicate both as an entry of the item and as a name
+  assert_eq!(untyped("loans.amount"), ["loans", "loans.amount*"]);
+  assert_eq!(untyped("loans[status = \"a\"].payment"), ["loans", "loans[].payment*", "loans[].status*", "status*"]);
+  // an outline says the types as a context does
+  let outline =
+    json!({"types": {"Loan": {"names": {"amount": {"type": "number"}, "status": {"type": "string"}}}}, "names": {"loans": {"type": "list<Loan>"}, "loan": {"type": "Loan"}}});
+  let outlined = |expression: &str| shown(&req(json!({"op": "paths", "expression": expression, "outline": outline})));
+  assert_eq!(outlined("loans.amount"), ["loans", "loans[].amount*"]);
+  assert_eq!(outlined("loans[status = \"a\"]"), ["loans", "loans[]*", "loans[].status*"]);
+  // unary tests read the tested value
+  assert_eq!(
+    shown(&req(json!({"op": "paths", "dialect": "unaryTests", "expression": "> rate, 5", "context": context}))),
+    ["?*", "rate*"]
+  );
+  // a text with errors is the failure of `evaluate`, with its diagnostics
+  let failed = req(json!({"op": "paths", "expression": "loan +"}));
+  assert_eq!(failed["ok"], false);
+  assert_eq!(failed["error"]["kind"], "syntax");
+  assert_eq!(failed["error"], req(json!({"op": "evaluate", "expression": "loan +"}))["error"]);
+  // the answer does not depend on the values, only on their shape
+  let other = json!({"loan": {"amount": 9, "purpose": "y", "customer": {"name": "m", "age": 1}}, "loans": [{"amount": 5, "payment": 6, "status": "b", "customer": {"name": "k"}}], "rate": 7, "Net - Price": 1, "start": "x"});
+  for expression in ["loan.amount * rate", "sum(loans[status = \"a\"].payment)", "loans[rate]"] {
+    let mut answers = [&context, &other].map(|context| req(json!({"op": "paths", "expression": expression, "context": context})));
+    answers.iter_mut().for_each(|answer| {
+      answer.as_object_mut().unwrap().remove("elapsedMicros");
+    });
+    assert_eq!(answers[0], answers[1], "{expression}");
+  }
 }

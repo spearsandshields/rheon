@@ -22,7 +22,7 @@ mod macros;
 mod session;
 mod tests;
 
-pub use crate::analysis::{TypeId, Typing};
+pub use crate::analysis::{ReadPath, Reads, Segment, TypeId, Typing, path_text};
 pub use crate::bfeel::Dialect;
 pub use crate::evaluators::*;
 pub use crate::filters::FilterExpressionEvaluator;

@@ -324,6 +324,11 @@ export function buildCompleteJson(expression: string, cursor: number, opts: Edit
   return serializeRequest({ op: 'complete', dialect: opts.dialect ?? 'expression', expression, cursor, ...editorFields(opts) });
 }
 
+/** `paths` request → JSON text. */
+export function buildPathsJson(expression: string, opts: EditorOptions = {}): string {
+  return serializeRequest({ op: 'paths', dialect: opts.dialect ?? 'expression', expression, ...editorFields(opts) });
+}
+
 /** `hover` request → JSON text; `at` is a UTF-16 offset in `expression`. */
 export function buildHoverJson(expression: string, at: number, opts: EditorOptions = {}): string {
   return serializeRequest({ op: 'hover', dialect: opts.dialect ?? 'expression', expression, at, ...editorFields(opts) });
