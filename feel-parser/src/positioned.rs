@@ -17,7 +17,7 @@ pub struct Positioned {
   /// The tree, as a strict parse gives it. In a box: the places are found by the addresses of
   /// the nodes, which stay while the tree is not changed.
   tree: Box<AstNode>,
-  places: HashMap<usize, (u32, u32)>,
+  places: HashMap<usize, (u32, u32, &'static str)>,
   complete: bool,
 }
 
@@ -46,7 +46,13 @@ impl Positioned {
   /// first token and of the end of its last, without parentheses around it. None for a node
   /// that has no place of its own (the list of the parameters of a function, a type).
   pub fn place(&self, node: &AstNode) -> Option<(usize, usize)> {
-    self.places.get(&(node as *const AstNode as usize)).map(|&(start, end)| (start as usize, end as usize))
+    self.places.get(&(node as *const AstNode as usize)).map(|&(start, end, _)| (start as usize, end as usize))
+  }
+
+  /// What `node`, a node of [Positioned::tree] that has a place, is: the kind that the nodes
+  /// of a tolerant parse have (`Addition`, `Path`, `Entry`, `Invocation`, ...).
+  pub fn kind(&self, node: &AstNode) -> Option<&'static str> {
+    self.places.get(&(node as *const AstNode as usize)).map(|&(_, _, kind)| kind)
   }
 
   /// The number of nodes that have a place.
@@ -112,7 +118,7 @@ pub(crate) struct Mismatch {
 }
 
 /// Pairs the nodes of `tree`, in the order a walk leaves them, with `records`.
-pub(crate) fn pair(tree: &AstNode, records: &[SyntaxNode]) -> Result<HashMap<usize, (u32, u32)>, Mismatch> {
+pub(crate) fn pair(tree: &AstNode, records: &[SyntaxNode]) -> Result<HashMap<usize, (u32, u32, &'static str)>, Mismatch> {
   let mut places = HashMap::with_capacity(records.len());
   let mut records = records.iter().filter(|record| !passed(record.kind));
   // a walk with its own stack: a tree can be deeper than the stack of a thread takes
@@ -132,7 +138,7 @@ pub(crate) fn pair(tree: &AstNode, records: &[SyntaxNode]) -> Result<HashMap<usi
     let name = |node: &AstNode| format!("{node:?}").chars().take_while(|ch| ch.is_alphanumeric()).collect::<String>();
     match records.next() {
       Some(record) if kinds.contains(&record.kind) => {
-        places.insert(node as *const AstNode as usize, (record.start as u32, record.end as u32));
+        places.insert(node as *const AstNode as usize, (record.start as u32, record.end as u32, record.kind));
       }
       Some(record) => {
         return Err(Mismatch {

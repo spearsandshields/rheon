@@ -413,6 +413,15 @@ impl<'p> Vm<'p> {
           let value = value_null!(&*program.messages[msg as usize]);
           self.set(dst, value);
         }
+        Op::Record { src, target } => {
+          if super::trace::wants(target) {
+            let value = match src.decode() {
+              Operand::Slot(slot) | Operand::Take(slot) => self.slot(slot).copied(),
+              Operand::Const(index) => self.act.program.consts[index as usize].copied(),
+            };
+            super::trace::record(target, value);
+          }
+        }
         Op::Warn { msg, code } => diagnostics::warn(
           diagnostics::WarningCode::from_number(code).unwrap_or(diagnostics::WarningCode::NumberRounded),
           &program.messages[msg as usize],

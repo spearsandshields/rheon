@@ -1,0 +1,964 @@
+[
+  {
+    "request": {
+      "op": "explain",
+      "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr",
+      "context": {
+        "revenue": 500,
+        "opex": 200,
+        "principal": 100,
+        "interest": 50
+      }
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Path",
+          "to": 72,
+          "value": {
+            "display": "2",
+            "feel": "2",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "2",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Context",
+          "to": 67,
+          "value": {
+            "display": "{\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+            "feel": "{noi: 300, debt: 150, dscr: 2}",
+            "isNull": false,
+            "type": "context<debt: number, dscr: number, noi: number>",
+            "typed": {
+              "components": [
+                {
+                  "isNil": false,
+                  "name": "noi",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "300",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "debt",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "150",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "dscr",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "2",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                }
+              ],
+              "list": null,
+              "simple": null
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr",
+      "context": {
+        "revenue": 500,
+        "opex": 200,
+        "principal": 100,
+        "interest": 50
+      },
+      "expand": [
+        [
+          0,
+          67
+        ]
+      ]
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Path",
+          "to": 72,
+          "value": {
+            "display": "2",
+            "feel": "2",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "2",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Context",
+          "to": 67,
+          "value": {
+            "display": "{\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+            "feel": "{noi: 300, debt: 150, dscr: 2}",
+            "isNull": false,
+            "type": "context<debt: number, dscr: number, noi: number>",
+            "typed": {
+              "components": [
+                {
+                  "isNil": false,
+                  "name": "noi",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "300",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "debt",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "150",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "dscr",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "2",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                }
+              ],
+              "list": null,
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 1,
+          "kind": "Entry",
+          "name": "noi",
+          "to": 20,
+          "value": {
+            "display": "300",
+            "feel": "300",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "300",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 22,
+          "kind": "Entry",
+          "name": "debt",
+          "to": 48,
+          "value": {
+            "display": "150",
+            "feel": "150",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "150",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 50,
+          "kind": "Entry",
+          "name": "dscr",
+          "to": 66,
+          "value": {
+            "display": "2",
+            "feel": "2",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "2",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr",
+      "context": {
+        "revenue": 500,
+        "opex": 200,
+        "principal": 100,
+        "interest": 50
+      },
+      "expand": [
+        [
+          50,
+          66
+        ],
+        [
+          1,
+          20
+        ]
+      ]
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Path",
+          "to": 72,
+          "value": {
+            "display": "2",
+            "feel": "2",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "2",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Context",
+          "to": 67,
+          "value": {
+            "display": "{\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+            "feel": "{noi: 300, debt: 150, dscr: 2}",
+            "isNull": false,
+            "type": "context<debt: number, dscr: number, noi: number>",
+            "typed": {
+              "components": [
+                {
+                  "isNil": false,
+                  "name": "noi",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "300",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "debt",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "150",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "dscr",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "2",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                }
+              ],
+              "list": null,
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 6,
+          "kind": "Name",
+          "to": 13,
+          "value": {
+            "display": "500",
+            "feel": "500",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "500",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 16,
+          "kind": "Name",
+          "to": 20,
+          "value": {
+            "display": "200",
+            "feel": "200",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "200",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 56,
+          "kind": "Name",
+          "to": 59,
+          "value": {
+            "display": "300",
+            "feel": "300",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "300",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 62,
+          "kind": "Name",
+          "to": 66,
+          "value": {
+            "display": "150",
+            "feel": "150",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "150",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr",
+      "context": {
+        "revenue": 500,
+        "opex": 200,
+        "principal": 100,
+        "interest": 50
+      },
+      "expand": [
+        [
+          0,
+          67
+        ]
+      ],
+      "maxRecords": 2
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2",
+        "feel": "2",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 1,
+          "kind": "Entry",
+          "name": "noi",
+          "to": 20,
+          "value": {
+            "display": "300",
+            "feel": "300",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "300",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 22,
+          "kind": "Entry",
+          "name": "debt",
+          "to": 48,
+          "value": {
+            "display": "150",
+            "feel": "150",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "150",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": true,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "count(for i in 1..2000 return i)"
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "2000",
+        "feel": "2000",
+        "isNull": false,
+        "type": "number",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": false,
+            "text": "2000",
+            "type": "xsd:decimal"
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Invocation",
+          "to": 32,
+          "value": {
+            "display": "2000",
+            "feel": "2000",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "2000",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 6,
+          "kind": "For",
+          "to": 31,
+          "value": {
+            "count": 2000,
+            "isNull": false,
+            "summarized": true,
+            "type": "list"
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "1 + \"a\""
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(incompatible types in addition: 1(number) + \"a\"(string))",
+        "isNull": true,
+        "nullReason": "incompatible types in addition: 1(number) + \"a\"(string)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Addition",
+          "to": 7,
+          "value": {
+            "display": "null",
+            "feel": "null(incompatible types in addition: 1(number) + \"a\"(string))",
+            "isNull": true,
+            "nullReason": "incompatible types in addition: 1(number) + \"a\"(string)",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Number",
+          "to": 1,
+          "value": {
+            "display": "1",
+            "feel": "1",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "1",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 4,
+          "kind": "String",
+          "to": 7,
+          "value": {
+            "display": "\"a\"",
+            "feel": "\"a\"",
+            "isNull": false,
+            "type": "string",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "a",
+                "type": "xsd:string"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr",
+      "expand": [
+        [
+          1,
+          2
+        ]
+      ]
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "'expand' has the place [1, 2], which is the place of no node of the text (the places are those of the records, and of the nodes of `syntax`)"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "1 +"
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "diagnostics": [
+          {
+            "code": "expected-expression",
+            "from": 3,
+            "message": "Expected an expression after `+`, but the expression ends here.",
+            "to": 3
+          }
+        ],
+        "kind": "syntax",
+        "message": "syntax error: 1 +"
+      },
+      "ok": false
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "if 1 < 2 then \"a\" + 1 else [1, 2][1]",
+      "expand": [
+        [
+          0,
+          37
+        ]
+      ]
+    },
+    "why": "A new operation, explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25), its first stage: the answer of evaluate and the values of the root of the text and of the nodes that expand names. The message of an unknown op lists it.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "expected string as a second argument in addition"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(expected string as a second argument in addition)",
+        "isNull": true,
+        "nullReason": "expected string as a second argument in addition",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "If",
+          "to": 36,
+          "value": {
+            "display": "null",
+            "feel": "null(expected string as a second argument in addition)",
+            "isNull": true,
+            "nullReason": "expected string as a second argument in addition",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 3,
+          "kind": "Comparison",
+          "to": 8,
+          "value": {
+            "display": "true",
+            "feel": "true",
+            "isNull": false,
+            "type": "boolean",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "true",
+                "type": "xsd:boolean"
+              }
+            }
+          }
+        },
+        {
+          "from": 14,
+          "kind": "Addition",
+          "to": 21,
+          "value": {
+            "display": "null",
+            "feel": "null(expected string as a second argument in addition)",
+            "isNull": true,
+            "nullReason": "expected string as a second argument in addition",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  }
+]

@@ -442,5 +442,14 @@
   {"op": "syntax", "check": true, "expression": "n[1] + s", "context": {"loan": {"amount": 1}, "n": [1], "s": "a"}},
   {"op": "syntax", "check": true, "expression": "a.b + {c: 1}.d + 1 < \"a\""},
   {"op": "syntax", "check": true, "dialect": "unaryTests", "expression": "\"A\", \"C\"", "outline": {"names": {"?": {"type": "string", "values": ["A", "B"]}}}},
-  {"op": "syntax", "check": 1, "expression": "a"}
+  {"op": "syntax", "check": 1, "expression": "a"},
+  {"op": "explain", "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr", "context": {"revenue": 500, "opex": 200, "principal": 100, "interest": 50}},
+  {"op": "explain", "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr", "context": {"revenue": 500, "opex": 200, "principal": 100, "interest": 50}, "expand": [[0, 67]]},
+  {"op": "explain", "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr", "context": {"revenue": 500, "opex": 200, "principal": 100, "interest": 50}, "expand": [[50, 66], [1, 20]]},
+  {"op": "explain", "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr", "context": {"revenue": 500, "opex": 200, "principal": 100, "interest": 50}, "expand": [[0, 67]], "maxRecords": 2},
+  {"op": "explain", "expression": "count(for i in 1..2000 return i)"},
+  {"op": "explain", "expression": "1 + \"a\""},
+  {"op": "explain", "expression": "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr", "expand": [[1, 2]]},
+  {"op": "explain", "expression": "1 +"},
+  {"op": "explain", "expression": "if 1 < 2 then \"a\" + 1 else [1, 2][1]", "expand": [[0, 37]]}
 ]

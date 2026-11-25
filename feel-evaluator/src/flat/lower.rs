@@ -22,9 +22,13 @@ use rheon_feel::values::Value;
 use rheon_feel_parser::AstNode;
 use std::sync::Arc;
 
+/// The nodes whose values a request asks for: the number of each, None for a node that is none
+/// of them.
+pub(crate) type Targets<'t> = dyn Fn(&AstNode) -> Option<u32> + 't;
+
 /// The program of the resolved expression `resolved` in `dialect`: the code of the root
 /// expression, then that of the body of each function definition in it.
-pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Program>, Malformed<'_>> {
+pub(crate) fn lower<'a>(resolved: Resolved<'a>, dialect: Dialect, targets: Option<&Targets<'_>>) -> Result<Arc<Program>, Malformed<'a>> {
   // the binders first, then the temporaries
   let binders = resolved.root.binders;
   let mut lower = Lower {
@@ -38,6 +42,7 @@ pub(crate) fn lower(resolved: Resolved<'_>, dialect: Dialect) -> Result<Arc<Prog
     proto: NONE,
     cells: vec![],
     cell_names: vec![],
+    targets,
   };
   let result = lower.value(resolved.root(), None)?;
   lower.builder.emit(Op::Return { src: result });
@@ -110,6 +115,9 @@ struct Lower<'r, 'a> {
   cells: Vec<(u32, u32)>,
   /// The name of each cell of the proto being lowered.
   cell_names: Vec<u32>,
+  /// The nodes whose values a request asks for, each with its number: a recording instruction
+  /// follows the value of such a node. None for a program that records nothing.
+  targets: Option<&'r Targets<'r>>,
 }
 
 /// A proto of the program: the function of the resolution, and once its body is lowered, where
@@ -131,9 +139,25 @@ impl<'a> Lower<'_, 'a> {
     slot
   }
 
+  /// The operand of the value of `node` ([Lower::lowered]), and for a node whose value a request
+  /// asks for, the instruction that records it: the value is read there, not taken.
+  fn value(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
+    let opnd = self.lowered(node, dst)?;
+    if let Some(targets) = self.targets
+      && let Some(target) = targets(self.resolved.nodes[node as usize].ast)
+    {
+      let src = match opnd.decode() {
+        super::program::Operand::Take(slot) => Opnd::slot(slot),
+        _ => opnd,
+      };
+      self.builder.emit(Op::Record { src, target });
+    }
+    Ok(opnd)
+  }
+
   /// The operand of the value of `node`: a constant, or a temporary that the instructions emitted
   /// here compute (`dst` when given).
-  fn value(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
+  fn lowered(&mut self, node: u32, dst: Option<Slot>) -> Result<Opnd, Malformed<'a>> {
     let ast = self.resolved.nodes[node as usize].ast;
     if let Some(constant) = self.constant(ast) {
       return Ok(constant);

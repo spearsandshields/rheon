@@ -15,7 +15,7 @@
     "new": {
       "error": {
         "kind": "request",
-        "message": "unknown op 'edit' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
+        "message": "unknown op 'edit' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
       },
       "ok": false
     }
@@ -35,7 +35,7 @@
     "new": {
       "error": {
         "kind": "request",
-        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
+        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
       },
       "ok": false
     }
@@ -56,7 +56,7 @@
     "new": {
       "error": {
         "kind": "request",
-        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
+        "message": "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
       },
       "ok": false
     }

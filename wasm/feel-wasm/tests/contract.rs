@@ -920,7 +920,7 @@ fn request_echoes_are_previews_and_every_message_is_capped() {
     json!({"op": "y".repeat(300)}),
     "request",
     format!(
-      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
+      "unknown op '{}… (300 characters)' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
       "y".repeat(120)
     ),
   );
@@ -990,7 +990,7 @@ fn request_error_messages() {
   assert_error(
     &req(json!({"op": "explode"})),
     "request",
-    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
   );
   // the expression
   for op in ["evaluate", "parse"] {
@@ -1096,7 +1096,8 @@ fn a_filter_records_only_the_evaluations_it_uses() {
 /// context and input; `info` reads nothing but `op`.
 #[test]
 fn request_error_order() {
-  let unknown_op = "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')";
+  let unknown_op =
+    "unknown op 'explode' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')";
   let dialect = "invalid 'dialect' \"boxed\" (expected \"expression\", \"unaryTests\", \"simpleExpression\", \"simpleExpressions\" or \"textualExpressions\")";
   let language = "invalid 'language' \"x\" (expected \"feel\" or \"b-feel\")";
   let error_mode = "invalid 'errorMode' \"x\" (expected \"lenient\" or \"strict\")";
@@ -1936,7 +1937,7 @@ fn evaluate_all_request_and_response() {
   assert_error(
     &req(json!({"op": "nothing"})),
     "request",
-    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
+    "unknown op 'nothing' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
   );
   let empty = req(json!({"op": "evaluateAll", "evaluations": []}));
   assert_eq!(
@@ -3911,4 +3912,109 @@ fn a_check_says_always_null_exactly_when_the_evaluation_is_null() {
     let checked = ok(json!({"op": "syntax", "check": true, "expression": expression, "context": unsure}));
     assert_eq!(checked["diagnostics"], json!([]), "{expression}");
   }
+}
+
+/// `op: "explain"`: the answer of `evaluate`, and a trace: the value of the root of the text and
+/// of its parts one level down; `expand` names nodes, by their places, whose parts are wanted.
+#[test]
+fn explain_answers_the_evaluation_and_the_values_of_the_nodes_asked_for() {
+  let context = json!({"revenue": 500, "opex": 200, "principal": 100, "interest": 50});
+  let text = "{noi: revenue - opex, debt: principal + interest, dscr: noi / debt}.dscr";
+  // the records as `kind from..to name = display`
+  let shown = |response: &Json| -> Vec<String> {
+    assert_eq!(response["ok"], true, "{response}");
+    response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .map(|record| {
+        let name = record["name"].as_str().map(|name| format!(" {name}")).unwrap_or_default();
+        let value = record["value"]["display"]
+          .as_str()
+          .map_or_else(|| format!("{} of {}", record["value"]["type"], record["value"]["count"]), str::to_string);
+        format!("{} {}..{}{name} = {value}", record["kind"].as_str().unwrap(), record["from"], record["to"])
+      })
+      .collect()
+  };
+  let explain = |more: Json| {
+    let mut request = json!({"op": "explain", "expression": text, "context": context});
+    for (field, value) in more.as_object().unwrap() {
+      request[field] = value.clone();
+    }
+    req(request)
+  };
+  // by default: the root and its parts
+  let shallow = explain(json!({}));
+  assert_eq!(shown(&shallow), ["Path 0..72 = 2", "Context 0..67 = {\"noi\": 300, \"debt\": 150, \"dscr\": 2}"]);
+  assert_eq!(shallow["traceTruncated"], false);
+  // what `evaluate` answers, beside the trace
+  let evaluated = ok(json!({"op": "evaluate", "expression": text, "context": context}));
+  for field in ["result", "warnings", "diagnostics"] {
+    assert_eq!(shallow[field], evaluated[field], "{field}");
+  }
+  assert_eq!(shallow["trace"][0]["value"], evaluated["result"]);
+  // the parts of the context literal: its entries, each with its name
+  let entries = explain(json!({"expand": [[0, 67]]}));
+  assert_eq!(
+    shown(&entries),
+    [
+      "Path 0..72 = 2",
+      "Context 0..67 = {\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+      "Entry 1..20 noi = 300",
+      "Entry 22..48 debt = 150",
+      "Entry 50..66 dscr = 2"
+    ]
+  );
+  // the parts of an entry: of its value; several nodes at once
+  let deeper = explain(json!({"expand": [[50, 66], [1, 20]]}));
+  assert_eq!(
+    shown(&deeper),
+    [
+      "Path 0..72 = 2",
+      "Context 0..67 = {\"noi\": 300, \"debt\": 150, \"dscr\": 2}",
+      "Name 6..13 = 500",
+      "Name 16..20 = 200",
+      "Name 56..59 = 300",
+      "Name 62..66 = 150"
+    ]
+  );
+  // the places are those of the nodes of `syntax`
+  let syntax = ok(json!({"op": "syntax", "expression": text, "context": context, "tree": true}));
+  let nodes: Vec<(u64, u64)> = syntax["nodes"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .map(|node| (node[1].as_u64().unwrap(), node[2].as_u64().unwrap()))
+    .collect();
+  for record in entries["trace"].as_array().unwrap() {
+    assert!(nodes.contains(&(record["from"].as_u64().unwrap(), record["to"].as_u64().unwrap())), "{record}");
+  }
+  // a limit of records: the trace is cut and says so, the evaluation is whole
+  let cut = explain(json!({"expand": [[0, 67]], "maxRecords": 2}));
+  assert_eq!(
+    (cut["trace"].as_array().unwrap().len(), &cut["traceTruncated"], &cut["result"]),
+    (2, &json!(true), &evaluated["result"])
+  );
+  // a value that is long to write is summarised: its type and how many it holds
+  let long = req(json!({"op": "explain", "expression": "count(for i in 1..2000 return i)"}));
+  assert_eq!(shown(&long), ["Invocation 0..32 = 2000", "For 6..31 = \"list\" of 2000"]);
+  assert_eq!(long["trace"][1]["value"], json!({"count": 2000, "isNull": false, "summarized": true, "type": "list"}));
+  // a null says why, as the result of `evaluate` does
+  let null = req(json!({"op": "explain", "expression": "1 + \"a\""}));
+  assert_eq!(null["trace"][0]["value"]["nullReason"], null["result"]["nullReason"]);
+  assert_eq!(null["trace"][0]["value"]["isNull"], true);
+  // a place that is the place of no node, and values of the fields that are none
+  for (more, code) in [
+    (json!({"expand": [[1, 2]]}), "invalid-field"),
+    (json!({"expand": [[5]]}), "invalid-field"),
+    (json!({"expand": "all"}), "invalid-field"),
+    (json!({"maxRecords": 0}), "invalid-field"),
+    (json!({"maxRecords": 10001}), "invalid-field"),
+  ] {
+    let failed = explain(more.clone());
+    assert_eq!((failed["ok"].as_bool(), failed["error"]["code"].as_str()), (Some(false), Some(code)), "{more}");
+  }
+  // a failure of the evaluation is the failure of `evaluate`
+  let failed = req(json!({"op": "explain", "expression": "1 +"}));
+  assert_eq!(failed["error"], req(json!({"op": "evaluate", "expression": "1 +"}))["error"]);
 }

@@ -44,14 +44,14 @@ const TYPES: [&str; 18] = [
 ];
 
 /// The offsets of a text in UTF-16 code units, by byte offset.
-struct Places<'a> {
+pub(super) struct Places<'a> {
   text: &'a str,
   /// For a text with other characters than ASCII: the UTF-16 offset of every byte offset.
   units: Option<Vec<u32>>,
 }
 
 impl<'a> Places<'a> {
-  fn new(text: &'a str) -> Self {
+  pub(super) fn new(text: &'a str) -> Self {
     let units = (!text.is_ascii()).then(|| {
       let mut units = Vec::with_capacity(text.len() + 1);
       let mut count = 0u32;
@@ -66,7 +66,7 @@ impl<'a> Places<'a> {
   }
 
   /// The UTF-16 offset of a byte offset.
-  fn of(&self, byte: usize) -> usize {
+  pub(super) fn of(&self, byte: usize) -> usize {
     match &self.units {
       Some(units) => units[byte.min(self.text.len())] as usize,
       None => byte,
@@ -75,7 +75,7 @@ impl<'a> Places<'a> {
 
   /// The byte offset of a UTF-16 offset: the start of the character it lies in, the end of the
   /// text when it lies beyond.
-  fn byte(&self, unit: usize) -> usize {
+  pub(super) fn byte(&self, unit: usize) -> usize {
     match &self.units {
       Some(units) => units.partition_point(|&count| (count as usize) < unit).min(self.text.len()),
       None => unit.min(self.text.len()),

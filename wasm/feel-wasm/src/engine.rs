@@ -16,6 +16,7 @@ use std::sync::Mutex;
 use std::time::Instant;
 
 mod editor;
+mod explain;
 
 /// The rheon repository commit this engine is built from (`build.rs`: git HEAD, `-dirty`
 /// when the tree had uncommitted changes, or `RHEON_COMMIT` from the environment).
@@ -284,6 +285,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
     Complete,
     Hover,
     Paths,
+    Explain,
     Outline,
     Format,
   }
@@ -298,13 +300,14 @@ fn handle(request: &str) -> Result<Response, Failure> {
       "complete" => Op::Complete,
       "hover" => Op::Hover,
       "paths" => Op::Paths,
+      "explain" => Op::Explain,
       "outline" => Op::Outline,
       "format" => Op::Format,
       other => {
         return fail(
           "unknown-op",
           format!(
-            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
+            "unknown op '{}' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')",
             arg(other)
           ),
         );
@@ -317,6 +320,7 @@ fn handle(request: &str) -> Result<Response, Failure> {
   match op {
     Op::Info => Ok(Response::Tree(info())),
     Op::Evaluate => evaluate(req, unread, started).map(Response::Text),
+    Op::Explain => explain::explain(req, unread, started).map(Response::Text),
     Op::EvaluateAll => evaluate_all(req, unread, started).map(Response::Text),
     Op::EvaluateEach => evaluate_each(req, unread, started).map(Response::Text),
     Op::Parse => parse(req, unread, started).map(Response::Tree),

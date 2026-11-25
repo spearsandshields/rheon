@@ -2188,7 +2188,7 @@
     "new": {
       "error": {
         "kind": "request",
-        "message": "unknown op 'nope' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
+        "message": "unknown op 'nope' (expected 'evaluate', 'evaluateAll', 'evaluateEach', 'explain', 'parse', 'syntax', 'complete', 'hover', 'paths', 'outline', 'format' or 'info')"
       },
       "ok": false
     }
