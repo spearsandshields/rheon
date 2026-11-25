@@ -476,5 +476,17 @@
   {"op": "explain", "expression": "every x in [1, null, 3] satisfies x > 0", "expand": [{"at": [34, 39], "within": [{"at": [0, 39], "iteration": 1}]}]},
   {"op": "explain", "expression": "(every x in [1, 2, null] satisfies x > 0) or false", "expand": [{"at": [1, 40], "iterations": [0, 2]}]},
   {"op": "explain", "expression": "{f: function(x) x.y + 1, r: f(rate)}.r", "context": {"loan": {"amount": 100}, "rate": {}}, "expand": [[25, 35], {"at": [16, 23], "within": [{"at": [28, 35], "call": true}]}]},
-  {"op": "explain", "expression": "{a: 1, a: 2}.a"}
+  {"op": "explain", "expression": "{a: 1, a: 2}.a"},
+  {"op": "explain", "expression": "rate.base", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "nothing + 1", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "loan.fee", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "empty + 1", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "1 + \"a\"", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "date(\"x\")", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "null", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "[1, 2][5]", "context": {"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null}},
+  {"op": "explain", "expression": "[{a: 1}][b > 1]", "expand": [[0, 15], {"at": [9, 14], "within": [{"at": [0, 15], "iteration": 0}]}]},
+  {"op": "explain", "expression": "{f: function(a) a + 1, r: f(null)}.r", "expand": [[23, 33], [26, 33], {"at": [16, 21], "within": [{"at": [26, 33], "call": true}]}]},
+  {"op": "explain", "expression": "{noi: revenue - opex, dscr: noi / debt.total, all: for l in loans return l.amount * rate}.dscr", "reads": true, "expand": [[0, 89], [51, 88]]},
+  {"op": "explain", "expression": "1", "reads": 1}
 ]

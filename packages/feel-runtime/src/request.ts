@@ -170,7 +170,7 @@ export function buildEvaluateJson(req: EvaluateRequest, defaultTz: number | unde
   });
 }
 
-const EXPLAIN_WRITTEN = ['op', 'expression', 'context', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps', 'expand', 'maxRecords'] as const;
+const EXPLAIN_WRITTEN = ['op', 'expression', 'context', 'contextFormat', 'tzOffsetMinutes', 'now', 'language', 'errorMode', 'maxSteps', 'expand', 'maxRecords', 'reads'] as const;
 
 /** `explain` request → JSON text. */
 export function buildExplainJson(req: ExplainRequest, defaultTz: number | undefined = localTzOffsetMinutes()): string {
@@ -185,6 +185,7 @@ export function buildExplainJson(req: ExplainRequest, defaultTz: number | undefi
     maxSteps: req.maxSteps,
     expand: req.expand,
     maxRecords: req.maxRecords,
+    reads: req.reads,
     ...unwritten(req, EXPLAIN_WRITTEN),
   });
 }

@@ -10,12 +10,13 @@
 //! function; a node of a body is named with the invocation that runs it. A record whose value
 //! is null says where the null is from: the part that is null (`nullFrom`, which is an entry of
 //! `expand`), or the node itself (`nullOrigin`); a node whose parts have no records says neither,
-//! until it is expanded. Each request
+//! until it is expanded; with the null that is a node's own stands why (`nullCode`). With
+//! `reads` each record has the names that the text of its node reads. Each request
 //! evaluates the text again, with a record of the values of those nodes only: the engine keeps
 //! nothing between requests, and an answer is as long as the request asks, whatever the data is.
 
 use super::*;
-use rheon_feel_evaluator::{PartFrame, Plan, Tracing, body, parts, prepare_traced, recording};
+use rheon_feel_evaluator::{PartFrame, Plan, Tracing, Typing, body, parts, path_text, prepare_traced, recording};
 use rheon_feel_parser::{Positioned, parse_positioned};
 use std::collections::{HashMap, HashSet};
 
@@ -250,6 +251,11 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
     Some(_) => return fail("invalid-field", LIMIT),
   };
   debug_assert!(limit <= MAX_RECORDS);
+  let reads = match req.remove("reads") {
+    None | Some(Json::Null) => false,
+    Some(Json::Bool(reads)) => reads,
+    Some(_) => return fail("invalid-field", "'reads' must be true or false"),
+  };
   if dialect == Dialect::UnaryTests {
     return fail(
       "invalid-field",
@@ -394,8 +400,9 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   let mut step_nodes: HashMap<(At, bool), Option<&AstNode>> = HashMap::new();
   let address = |node: &AstNode| node as *const AstNode as usize;
   let mut plan = Plan { wanted: vec![], limit };
-  // the ways of a node, each with the index of what is wanted
-  let mut ways: Vec<Vec<usize>> = vec![];
+  // the ways of a node, each with the indexes of what is wanted so: an entry of a context
+  // literal and its value are one node, wanted in one way, and each has its record
+  let mut ways: Vec<Vec<Vec<usize>>> = vec![];
   let number_of = |node: &AstNode, numbers: &mut HashMap<usize, u32>| -> u32 {
     let next = numbers.len() as u32;
     *numbers.entry(address(node)).or_insert(next)
@@ -422,12 +429,18 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         Step::Call(_) => rheon_feel_evaluator::Step::Call(number_of(found, &mut call_numbers)),
       });
     }
-    plan.wanted[target].push(rheon_feel_evaluator::Wanted {
+    let way = rheon_feel_evaluator::Wanted {
       within,
       each: wanted.each.map(|(repeat, from, to)| (number_of(repeat, &mut repeat_numbers), from, to)),
       repeat: repeats(node).then(|| number_of(node, &mut repeat_numbers)),
-    });
-    ways[target].push(index);
+    };
+    match plan.wanted[target].iter().position(|known| *known == way) {
+      Some(known) => ways[target][known].push(index),
+      None => {
+        plan.wanted[target].push(way);
+        ways[target].push(vec![index]);
+      }
+    }
   }
   let node_number = |node: &AstNode| targets.get(&address(node)).copied();
   let repeat_number = |node: &AstNode| repeat_numbers.get(&address(node)).copied();
@@ -444,7 +457,11 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   let mut order: Vec<(&Wanted, &rheon_feel_evaluator::Recorded)> = trace
     .records
     .iter()
-    .filter_map(|record| Some((&wanted[*ways.get(record.target as usize)?.get(record.way)?], record)))
+    .flat_map(|record| {
+      let wanted = &wanted;
+      let of_way = ways.get(record.target as usize).and_then(|ways| ways.get(record.way));
+      of_way.into_iter().flatten().map(move |index| (&wanted[*index], record))
+    })
     .collect();
   // where each is evaluated: the steps to it, and for the body of a loop its iteration
   let path_of = |wanted: &Wanted, record: &rheon_feel_evaluator::Recorded| -> Vec<Step> {
@@ -459,7 +476,7 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   order.sort_by_cached_key(|(wanted, record)| (wanted.at.0, std::cmp::Reverse(wanted.at.1), path_of(wanted, record)));
   // a node that is wanted in two ways for one evaluation (as a part, and expanded) has one record
   let mut once: HashSet<(usize, Vec<Step>)> = HashSet::new();
-  order.retain(|(wanted, record)| once.insert((address(valued(wanted.node)), path_of(wanted, record))));
+  order.retain(|(wanted, record)| once.insert((address(wanted.node), path_of(wanted, record))));
   let paths: Vec<Vec<Step>> = order.iter().map(|(wanted, record)| path_of(wanted, record)).collect();
   // the records by their node and where it is evaluated, and those one step inside a place
   let mut found: HashMap<(usize, &[Step]), usize> = HashMap::new();
@@ -544,6 +561,31 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
     }
     if every { here } else { Origin::Unknown }
   };
+  // why the null of the record `index` is its node's own
+  let code = |index: usize| -> &'static str {
+    let ((wanted, _), path) = (order[index], paths[index].as_slice());
+    let node = valued(wanted.node);
+    match node {
+      AstNode::Name(name) => match given(parents.get_or_init(|| parents_of(root)), node, name) {
+        Some(true) => "null-input",
+        Some(false) if scope.get_value(name).is_some() => "null-input",
+        Some(false) => "missing-entry",
+        None => "other",
+      },
+      AstNode::Path(base, name) => match (found.get(&(address(valued(base)), path)).map(|base| &order[*base].1.value), name.as_ref()) {
+        (Some(Value::Context(context)), AstNode::Name(name)) if context.contains_entry(name) => "null-input",
+        (Some(_), _) => "missing-entry",
+        (None, _) => "other",
+      },
+      AstNode::FunctionInvocation(..) => "function",
+      AstNode::If(..) | AstNode::For(..) | AstNode::Some(..) | AstNode::Every(..) | AstNode::Context(_) | AstNode::List(_) | AstNode::FunctionDefinition(..) => "other",
+      node if parts(node).is_empty() => "other",
+      _ => "operator",
+    }
+  };
+  // the names that the text of a node reads, by the node
+  let mut typing = Typing::new(&scope);
+  let mut read: HashMap<usize, Vec<String>> = HashMap::new();
   let write_steps = |steps: &[Step], records: &mut String| {
     records.push('[');
     for (index, step) in steps.iter().enumerate() {
@@ -559,6 +601,8 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
   };
   // the records as text, the keys of each in alphabetical order as in every response
   let mut records = String::from(",\"trace\":[");
+  // the records whose null is their node's own
+  let mut nulls: Vec<usize> = vec![];
   for (index, (wanted, record)) in order.iter().copied().enumerate() {
     if index > 0 {
       records.push(',');
@@ -583,7 +627,8 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         Origin::From(part) => Some((order[part].0.at, paths[part].clone())),
         Origin::At(at, steps) => Some((at, steps)),
         Origin::Here => {
-          records.push_str(",\"nullOrigin\":true");
+          records.push_str(&format!(",\"nullCode\":\"{}\"", code(index)));
+          nulls.push(index);
           None
         }
         Origin::Unknown => None,
@@ -596,6 +641,24 @@ pub(super) fn explain(mut req: Map<String, Json>, unread: Unread, started: Insta
         }
         records.push('}');
       }
+      if nulls.last() == Some(&index) {
+        records.push_str(",\"nullOrigin\":true");
+      }
+    }
+    if reads {
+      let node = valued(wanted.node);
+      let names = read.entry(address(node)).or_insert_with(|| {
+        let found = typing.reads(node, &|node| positioned.place(node), false, false);
+        found.paths.iter().map(|path| path_text(&path.segments)).collect()
+      });
+      records.push_str(",\"reads\":[");
+      for (index, name) in names.iter().enumerate() {
+        if index > 0 {
+          records.push(',');
+        }
+        crate::output::write_string(name, &mut records);
+      }
+      records.push(']');
     }
     records.push_str(&format!(",\"to\":{},\"value\":", places.of(wanted.at.1)));
     write_value(&record.value, &mut records);
@@ -693,6 +756,46 @@ fn entry_of<'t>(parents: &HashMap<usize, (&'t AstNode, PartOf)>, node: &AstNode,
     }
     inner = address(outer);
   }
+}
+
+/// Whether something of the text around `node` gives the name `name`, read there, its value: a
+/// variable of a loop, a parameter of a function, an earlier entry of a context literal. None
+/// inside the predicate of a filter, whose items can have the name.
+fn given(parents: &HashMap<usize, (&AstNode, PartOf)>, node: &AstNode, name: &Name) -> Option<bool> {
+  let address = |node: &AstNode| node as *const AstNode as usize;
+  let mut inner = address(node);
+  while let Some(&(outer, how)) = parents.get(&inner) {
+    match how {
+      PartOf::Body => {
+        if let AstNode::FunctionDefinition(parameters, _) = outer
+          && let AstNode::FormalParameters(parameters) = parameters.as_ref()
+          && parameters.iter().any(|parameter| match parameter {
+            AstNode::FormalParameter(parameter, _) => matches!(parameter.as_ref(), AstNode::ParameterName(found) | AstNode::Name(found) if found == name),
+            _ => true,
+          })
+        {
+          return Some(true);
+        }
+      }
+      PartOf::Iteration => {
+        if matches!(outer, AstNode::Filter(..)) {
+          return None;
+        }
+        if binds(outer, name) {
+          return Some(true);
+        }
+      }
+      PartOf::Same => {}
+    }
+    if let AstNode::Context(entries) = outer
+      && let Some(at) = entries.iter().position(|entry| address(valued(entry)) == inner)
+      && entries[..at].iter().any(|entry| key_of(entry) == Some(name))
+    {
+      return Some(true);
+    }
+    inner = address(outer);
+  }
+  Some(false)
 }
 
 /// Whether the loop `node` has a variable of the name `name`.

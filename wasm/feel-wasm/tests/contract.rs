@@ -4410,3 +4410,80 @@ fn explain_says_where_a_null_is_from() {
   assert_eq!(later["trace"][1]["iterations"], 3, "{later}");
   assert!(later["trace"][1].get("nullFrom").is_none() && later["trace"][1].get("nullOrigin").is_none(), "{later}");
 }
+
+#[test]
+fn explain_says_why_a_null_is_a_nodes_own_and_what_a_node_reads() {
+  // the code of the first record whose null is its own, with every place of `expand`
+  let code = |text: &str, context: Json, expand: Json| -> String {
+    let response = req(json!({"op": "explain", "expression": text, "context": context, "expand": expand}));
+    assert_eq!(response["ok"], true, "{response}");
+    let own: Vec<String> = response["trace"]
+      .as_array()
+      .unwrap()
+      .iter()
+      .filter(|record| record.get("nullOrigin").is_some())
+      .map(|record| format!("{}..{} {}", record["from"], record["to"], record["nullCode"].as_str().unwrap()))
+      .collect();
+    own.join(", ")
+  };
+  let context = json!({"loan": {"amount": 100, "fee": null}, "rate": {}, "empty": null});
+  let cases = [
+    // a name or an entry that nothing has, and one that is given null
+    ("rate.base", json!([]), "0..9 missing-entry"),
+    ("nothing + 1", json!([]), "0..7 missing-entry"),
+    ("\"abc\".size", json!([]), "0..10 missing-entry"),
+    ("loan.fee", json!([]), "0..8 null-input"),
+    ("empty + 1", json!([]), "0..5 null-input"),
+    // an operator and a function whose operands are not null
+    ("1 + \"a\"", json!([]), "0..7 operator"),
+    ("[1, 2][5]", json!([]), "0..9 operator"),
+    ("date(\"x\")", json!([]), "0..9 function"),
+    ("null", json!([]), "0..4 other"),
+    // a variable of a loop and a parameter are given their values
+    (
+      "for x in [null] return x + 1",
+      json!([[0, 28], {"at": [23, 28], "within": [{"at": [0, 28], "iteration": 0}]}]),
+      "23..24 null-input",
+    ),
+    (
+      "{f: function(a) a + 1, r: f(null)}.r",
+      json!([[23, 33], [26, 33], {"at": [16, 21], "within": [{"at": [26, 33], "call": true}]}]),
+      "16..17 null-input, 28..32 other",
+    ),
+    // a name in the predicate of a filter: an item can have it, which the text does not say
+    (
+      "[{a: 1}][b > 1]",
+      json!([[0, 15], {"at": [9, 14], "within": [{"at": [0, 15], "iteration": 0}]}]),
+      "9..10 other",
+    ),
+  ];
+  for (text, expand, expected) in cases {
+    assert_eq!(code(text, context.clone(), expand), expected, "{text}");
+  }
+  // with `reads`, the names that the text of each node reads, as the node has them
+  let text = "{noi: revenue - opex, dscr: noi / debt.total, all: for l in loans return l.amount * rate}.dscr";
+  let reads = req(json!({"op": "explain", "expression": text, "reads": true, "expand": [[0, 89], [51, 88]]}));
+  let read: Vec<String> = reads["trace"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .map(|record| format!("{} {}..{} {}", record["kind"].as_str().unwrap(), record["from"], record["to"], record["reads"]))
+    .collect();
+  assert_eq!(
+    read,
+    [
+      "Path 0..94 [\"revenue\",\"opex\",\"debt\",\"debt.total\",\"loans\",\"loans[].amount\",\"rate\"]",
+      "Context 0..89 [\"revenue\",\"opex\",\"debt\",\"debt.total\",\"loans\",\"loans[].amount\",\"rate\"]",
+      "Entry 1..20 [\"revenue\",\"opex\"]",
+      "Entry 22..44 [\"noi\",\"debt\",\"debt.total\"]",
+      "Entry 46..88 [\"loans\",\"loans[].amount\",\"rate\"]",
+      "For 51..88 [\"loans\",\"loans[].amount\",\"rate\"]",
+      "Name 60..65 [\"loans\"]",
+      "Multiplication 73..88 [\"l\",\"l.amount\",\"rate\"]"
+    ]
+  );
+  // without it no record has the field
+  let plain = req(json!({"op": "explain", "expression": text}));
+  assert!(plain["trace"].as_array().unwrap().iter().all(|record| record.get("reads").is_none()));
+  assert_eq!(req(json!({"op": "explain", "expression": "1", "reads": 1}))["error"]["code"], "invalid-field");
+}

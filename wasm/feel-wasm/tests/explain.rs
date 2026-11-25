@@ -55,6 +55,13 @@ fn nulls(trace: &[Json], text: &str) -> usize {
     }
     assert!(from.is_none() || own.is_none(), "{text}: {record}");
     assert!(own.is_none_or(|own| own == true), "{text}: {record}");
+    // why a null is the node's own: with every such record, and with no other
+    let code = record.get("nullCode").and_then(Json::as_str);
+    assert_eq!(code.is_some(), own.is_some(), "{text}: {record}");
+    assert!(
+      code.is_none_or(|code| ["missing-entry", "null-input", "operator", "function", "other"].contains(&code)),
+      "{text}: {record}"
+    );
     if let Some(from) = from {
       assert!(from["at"].is_array(), "{text}: {record}");
       for other in trace {
@@ -174,7 +181,7 @@ fn an_explained_evaluation_is_the_evaluation() {
           known.push(place.clone());
         }
       }
-      let mut all = with("explain", &[("expand", json!(known)), ("maxRecords", json!(10_000))]);
+      let mut all = with("explain", &[("expand", json!(known)), ("maxRecords", json!(10_000)), ("reads", json!(true))]);
       // without the places that are those of no node, of a node of a function's body or of a
       // node inside a loop (those are asked for below, with their iterations): found one by one
       while all["ok"] != true && all["error"]["code"] == "invalid-field" && !known.is_empty() {
@@ -182,7 +189,7 @@ fn an_explained_evaluation_is_the_evaluation() {
         let before = known.len();
         known.retain(|place| !message.contains(&format!("[{}, {}]", place[0], place[1])));
         assert!(known.len() < before, "{text}: {all}");
-        all = with("explain", &[("expand", json!(known)), ("maxRecords", json!(10_000))]);
+        all = with("explain", &[("expand", json!(known)), ("maxRecords", json!(10_000)), ("reads", json!(true))]);
       }
       same(&all, "with every node expanded");
       origins += nulls(all["trace"].as_array().unwrap(), text);
@@ -190,6 +197,8 @@ fn an_explained_evaluation_is_the_evaluation() {
         let (from, to) = (record["from"].as_u64().unwrap(), record["to"].as_u64().unwrap());
         assert!(from <= to && to as usize <= text.encode_utf16().count(), "{text}: {record}");
         assert!(record["kind"].is_string() && record["value"].is_object(), "{text}: {record}");
+        // the names that the node reads, each a text
+        assert!(record["reads"].as_array().is_some_and(|names| names.iter().all(Json::is_string)), "{text}: {record}");
       }
       // the records of the iterations of the loops and of the bodies of the invocations, each
       // expanded where it is evaluated: the predicate of a filter for an item, the body of a

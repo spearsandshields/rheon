@@ -10,7 +10,7 @@
         "interest": 50
       }
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -138,7 +138,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -333,7 +333,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -584,7 +584,7 @@
       ],
       "maxRecords": 2
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -666,7 +666,7 @@
       "op": "explain",
       "expression": "count(for i in 1..2000 return i)"
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -738,7 +738,7 @@
       "op": "explain",
       "expression": "1 + \"a\""
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -774,6 +774,7 @@
         {
           "from": 0,
           "kind": "Addition",
+          "nullCode": "operator",
           "nullOrigin": true,
           "to": 7,
           "value": {
@@ -849,7 +850,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -870,7 +871,7 @@
       "op": "explain",
       "expression": "1 +"
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -905,7 +906,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -1042,7 +1043,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -1207,7 +1208,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -1554,7 +1555,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -1767,7 +1768,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -2255,7 +2256,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -2677,7 +2678,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -2737,7 +2738,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -3239,7 +3240,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -3420,7 +3421,7 @@
       ],
       "maxRecords": 50
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -3443,7 +3444,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -3643,7 +3644,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -3954,7 +3955,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -4206,7 +4207,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -4489,7 +4490,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -4527,7 +4528,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -4554,7 +4555,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -4744,7 +4745,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -4927,7 +4928,7 @@
         "rate": {}
       }
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -5055,7 +5056,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -5166,6 +5167,7 @@
         {
           "from": 14,
           "kind": "Path",
+          "nullCode": "missing-entry",
           "nullOrigin": true,
           "to": 23,
           "value": {
@@ -5237,7 +5239,7 @@
         "rate": {}
       }
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -5392,7 +5394,7 @@
         ]
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -5513,6 +5515,7 @@
           "from": 1,
           "kind": "Entry",
           "name": "base",
+          "nullCode": "missing-entry",
           "nullOrigin": true,
           "to": 16,
           "value": {
@@ -5725,7 +5728,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -5948,6 +5951,7 @@
         {
           "from": 34,
           "kind": "Name",
+          "nullCode": "null-input",
           "nullOrigin": true,
           "to": 35,
           "value": {
@@ -6026,7 +6030,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -6269,7 +6273,7 @@
         }
       ]
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -6535,7 +6539,7 @@
       "op": "explain",
       "expression": "{a: 1, a: 2}.a"
     },
-    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own.",
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
     "old": {
       "error": {
         "kind": "request",
@@ -6619,6 +6623,1781 @@
       ],
       "traceTruncated": false,
       "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "rate.base",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(build_path: no entry base in context: {})",
+        "isNull": true,
+        "nullReason": "build_path: no entry base in context: {}",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Path",
+          "nullCode": "missing-entry",
+          "nullOrigin": true,
+          "to": 9,
+          "value": {
+            "display": "null",
+            "feel": "null(build_path: no entry base in context: {})",
+            "isNull": true,
+            "nullReason": "build_path: no entry base in context: {}",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Name",
+          "to": 4,
+          "value": {
+            "display": "{}",
+            "feel": "{}",
+            "isNull": false,
+            "type": "context<>",
+            "typed": {
+              "components": [],
+              "list": null,
+              "simple": null
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "nothing + 1",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'nothing'",
+          "[addition] incompatible types: null(context has no value for key 'nothing') + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null(context has no value for key 'nothing') + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null(context has no value for key 'nothing') + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Addition",
+          "nullFrom": {
+            "at": [
+              0,
+              7
+            ]
+          },
+          "to": 11,
+          "value": {
+            "display": "null",
+            "feel": "null([addition] incompatible types: null(context has no value for key 'nothing') + 1)",
+            "isNull": true,
+            "nullReason": "[addition] incompatible types: null(context has no value for key 'nothing') + 1",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Name",
+          "nullCode": "missing-entry",
+          "nullOrigin": true,
+          "to": 7,
+          "value": {
+            "display": "null",
+            "feel": "null(context has no value for key 'nothing')",
+            "isNull": true,
+            "nullReason": "context has no value for key 'nothing'",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 10,
+          "kind": "Number",
+          "to": 11,
+          "value": {
+            "display": "1",
+            "feel": "1",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "1",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "loan.fee",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Path",
+          "nullCode": "null-input",
+          "nullOrigin": true,
+          "to": 8,
+          "value": {
+            "display": "null",
+            "feel": "null",
+            "isNull": true,
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Name",
+          "to": 4,
+          "value": {
+            "display": "{\"amount\": 100, \"fee\": null}",
+            "feel": "{amount: 100, fee: null}",
+            "isNull": false,
+            "type": "context<amount: number, fee: Null>",
+            "typed": {
+              "components": [
+                {
+                  "isNil": false,
+                  "name": "amount",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "100",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "fee",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": true,
+                      "text": null,
+                      "type": null
+                    }
+                  }
+                }
+              ],
+              "list": null,
+              "simple": null
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "empty + 1",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[addition] incompatible types: null + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Addition",
+          "nullFrom": {
+            "at": [
+              0,
+              5
+            ]
+          },
+          "to": 9,
+          "value": {
+            "display": "null",
+            "feel": "null([addition] incompatible types: null + 1)",
+            "isNull": true,
+            "nullReason": "[addition] incompatible types: null + 1",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Name",
+          "nullCode": "null-input",
+          "nullOrigin": true,
+          "to": 5,
+          "value": {
+            "display": "null",
+            "feel": "null",
+            "isNull": true,
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 8,
+          "kind": "Number",
+          "to": 9,
+          "value": {
+            "display": "1",
+            "feel": "1",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "1",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "1 + \"a\"",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "incompatible types in addition: 1(number) + \"a\"(string)"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(incompatible types in addition: 1(number) + \"a\"(string))",
+        "isNull": true,
+        "nullReason": "incompatible types in addition: 1(number) + \"a\"(string)",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Addition",
+          "nullCode": "operator",
+          "nullOrigin": true,
+          "to": 7,
+          "value": {
+            "display": "null",
+            "feel": "null(incompatible types in addition: 1(number) + \"a\"(string))",
+            "isNull": true,
+            "nullReason": "incompatible types in addition: 1(number) + \"a\"(string)",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Number",
+          "to": 1,
+          "value": {
+            "display": "1",
+            "feel": "1",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "1",
+                "type": "xsd:decimal"
+              }
+            }
+          }
+        },
+        {
+          "from": 4,
+          "kind": "String",
+          "to": 7,
+          "value": {
+            "display": "\"a\"",
+            "feel": "\"a\"",
+            "isNull": false,
+            "type": "string",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "a",
+                "type": "xsd:string"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "date(\"x\")",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[core::date] invalid date string 'x'"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([core::date] invalid date string 'x')",
+        "isNull": true,
+        "nullReason": "[core::date] invalid date string 'x'",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Temporal",
+          "nullCode": "function",
+          "nullOrigin": true,
+          "to": 9,
+          "value": {
+            "display": "null",
+            "feel": "null([core::date] invalid date string 'x')",
+            "isNull": true,
+            "nullReason": "[core::date] invalid date string 'x'",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 5,
+          "kind": "String",
+          "to": 8,
+          "value": {
+            "display": "\"x\"",
+            "feel": "\"x\"",
+            "isNull": false,
+            "type": "string",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "x",
+                "type": "xsd:string"
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "null",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 0,
+        "messages": []
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null",
+        "isNull": true,
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Null",
+          "nullCode": "other",
+          "nullOrigin": true,
+          "to": 4,
+          "value": {
+            "display": "null",
+            "feel": "null",
+            "isNull": true,
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "[1, 2][5]",
+      "context": {
+        "loan": {
+          "amount": 100,
+          "fee": null
+        },
+        "rate": {},
+        "empty": null
+      }
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "index in filter is out of range [1..2], actual index is 5"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null(index in filter is out of range [1..2], actual index is 5)",
+        "isNull": true,
+        "nullReason": "index in filter is out of range [1..2], actual index is 5",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "iterations": 0,
+          "kind": "Filter",
+          "nullCode": "operator",
+          "nullOrigin": true,
+          "to": 9,
+          "value": {
+            "display": "null",
+            "feel": "null(index in filter is out of range [1..2], actual index is 5)",
+            "isNull": true,
+            "nullReason": "index in filter is out of range [1..2], actual index is 5",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "List",
+          "to": 6,
+          "value": {
+            "display": "[1, 2]",
+            "feel": "[1, 2]",
+            "isNull": false,
+            "type": "list<number>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "1",
+                      "type": "xsd:decimal"
+                    }
+                  },
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": false,
+                      "text": "2",
+                      "type": "xsd:decimal"
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "[{a: 1}][b > 1]",
+      "expand": [
+        [
+          0,
+          15
+        ],
+        {
+          "at": [
+            9,
+            14
+          ],
+          "within": [
+            {
+              "at": [
+                0,
+                15
+              ],
+              "iteration": 0
+            }
+          ]
+        }
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 2,
+        "messages": [
+          "context has no value for key 'b'",
+          "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "[]",
+        "feel": "[]",
+        "isNull": false,
+        "type": "list<Null>",
+        "typed": {
+          "components": null,
+          "list": {
+            "isNil": false,
+            "items": []
+          },
+          "simple": null
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "iterations": 1,
+          "kind": "Filter",
+          "to": 15,
+          "value": {
+            "display": "[]",
+            "feel": "[]",
+            "isNull": false,
+            "type": "list<Null>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": []
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "List",
+          "to": 8,
+          "value": {
+            "display": "[{\"a\": 1}]",
+            "feel": "[{a: 1}]",
+            "isNull": false,
+            "type": "list<context<a: number>>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": [
+                      {
+                        "isNil": false,
+                        "name": "a",
+                        "value": {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": false,
+                            "text": "1",
+                            "type": "xsd:decimal"
+                          }
+                        }
+                      }
+                    ],
+                    "list": null,
+                    "simple": null
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 9,
+          "kind": "Comparison",
+          "nullFrom": {
+            "at": [
+              9,
+              10
+            ],
+            "within": [
+              {
+                "at": [
+                  0,
+                  15
+                ],
+                "iteration": 0
+              }
+            ]
+          },
+          "to": 14,
+          "value": {
+            "display": "null",
+            "feel": "null(comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null)",
+            "isNull": true,
+            "nullReason": "comparison '>' expected a number, string, date, time, date and time, or duration on the left, found Null",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                15
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 9,
+          "kind": "Name",
+          "nullCode": "other",
+          "nullOrigin": true,
+          "to": 10,
+          "value": {
+            "display": "null",
+            "feel": "null(context has no value for key 'b')",
+            "isNull": true,
+            "nullReason": "context has no value for key 'b'",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                15
+              ],
+              "iteration": 0
+            }
+          ]
+        },
+        {
+          "from": 13,
+          "kind": "Number",
+          "to": 14,
+          "value": {
+            "display": "1",
+            "feel": "1",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "1",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                0,
+                15
+              ],
+              "iteration": 0
+            }
+          ]
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "{f: function(a) a + 1, r: f(null)}.r",
+      "expand": [
+        [
+          23,
+          33
+        ],
+        [
+          26,
+          33
+        ],
+        {
+          "at": [
+            16,
+            21
+          ],
+          "within": [
+            {
+              "at": [
+                26,
+                33
+              ],
+              "call": true
+            }
+          ]
+        }
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 1,
+        "messages": [
+          "[addition] incompatible types: null + 1"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([addition] incompatible types: null + 1)",
+        "isNull": true,
+        "nullReason": "[addition] incompatible types: null + 1",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Path",
+          "nullFrom": {
+            "at": [
+              23,
+              33
+            ]
+          },
+          "to": 36,
+          "value": {
+            "display": "null",
+            "feel": "null([addition] incompatible types: null + 1)",
+            "isNull": true,
+            "nullReason": "[addition] incompatible types: null + 1",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Context",
+          "to": 34,
+          "value": {
+            "display": "{\"f\": \"function<Any>->Any\", \"r\": null}",
+            "feel": "{f: FunctionDefinition([(Name(\"a\"), Any)],_,false,[],{},Any), r: null([addition] incompatible types: null + 1)}",
+            "isNull": false,
+            "type": "context<f: function<Any>->Any, r: Null>",
+            "typed": {
+              "components": [
+                {
+                  "isNil": false,
+                  "name": "f",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": null
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "r",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": true,
+                      "text": null,
+                      "type": null
+                    }
+                  }
+                }
+              ],
+              "list": null,
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 16,
+          "kind": "Addition",
+          "nullFrom": {
+            "at": [
+              16,
+              17
+            ],
+            "within": [
+              {
+                "at": [
+                  26,
+                  33
+                ],
+                "call": true
+              }
+            ]
+          },
+          "to": 21,
+          "value": {
+            "display": "null",
+            "feel": "null([addition] incompatible types: null + 1)",
+            "isNull": true,
+            "nullReason": "[addition] incompatible types: null + 1",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                26,
+                33
+              ],
+              "call": true
+            }
+          ]
+        },
+        {
+          "from": 16,
+          "kind": "Name",
+          "nullCode": "null-input",
+          "nullOrigin": true,
+          "to": 17,
+          "value": {
+            "display": "null",
+            "feel": "null",
+            "isNull": true,
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                26,
+                33
+              ],
+              "call": true
+            }
+          ]
+        },
+        {
+          "from": 20,
+          "kind": "Number",
+          "to": 21,
+          "value": {
+            "display": "1",
+            "feel": "1",
+            "isNull": false,
+            "type": "number",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": false,
+                "text": "1",
+                "type": "xsd:decimal"
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                26,
+                33
+              ],
+              "call": true
+            }
+          ]
+        },
+        {
+          "from": 23,
+          "kind": "Entry",
+          "name": "r",
+          "nullFrom": {
+            "at": [
+              16,
+              21
+            ],
+            "within": [
+              {
+                "at": [
+                  26,
+                  33
+                ],
+                "call": true
+              }
+            ]
+          },
+          "to": 33,
+          "value": {
+            "display": "null",
+            "feel": "null([addition] incompatible types: null + 1)",
+            "isNull": true,
+            "nullReason": "[addition] incompatible types: null + 1",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 26,
+          "kind": "Invocation",
+          "nullFrom": {
+            "at": [
+              16,
+              21
+            ],
+            "within": [
+              {
+                "at": [
+                  26,
+                  33
+                ],
+                "call": true
+              }
+            ]
+          },
+          "to": 33,
+          "value": {
+            "display": "null",
+            "feel": "null([addition] incompatible types: null + 1)",
+            "isNull": true,
+            "nullReason": "[addition] incompatible types: null + 1",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 28,
+          "kind": "Null",
+          "nullCode": "other",
+          "nullOrigin": true,
+          "to": 32,
+          "value": {
+            "display": "null",
+            "feel": "null",
+            "isNull": true,
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "{noi: revenue - opex, dscr: noi / debt.total, all: for l in loans return l.amount * rate}.dscr",
+      "reads": true,
+      "expand": [
+        [
+          0,
+          89
+        ],
+        [
+          51,
+          88
+        ]
+      ]
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "diagnostics": {
+        "count": 8,
+        "messages": [
+          "context has no value for key 'revenue'",
+          "context has no value for key 'opex'",
+          "[subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key 'opex')",
+          "context has no value for key 'debt'",
+          "[division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt')",
+          "context has no value for key 'loans'",
+          "context has no value for key 'rate'",
+          "[multiplication] incompatible types: null(context has no value for key 'loans') * null(context has no value for key 'rate')"
+        ]
+      },
+      "ok": true,
+      "result": {
+        "display": "null",
+        "feel": "null([division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt'))",
+        "isNull": true,
+        "nullReason": "[division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt')",
+        "type": "Null",
+        "typed": {
+          "components": null,
+          "list": null,
+          "simple": {
+            "isNil": true,
+            "text": null,
+            "type": null
+          }
+        }
+      },
+      "trace": [
+        {
+          "from": 0,
+          "kind": "Path",
+          "nullFrom": {
+            "at": [
+              22,
+              44
+            ]
+          },
+          "reads": [
+            "revenue",
+            "opex",
+            "debt",
+            "debt.total",
+            "loans",
+            "loans[].amount",
+            "rate"
+          ],
+          "to": 94,
+          "value": {
+            "display": "null",
+            "feel": "null([division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt'))",
+            "isNull": true,
+            "nullReason": "[division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt')",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 0,
+          "kind": "Context",
+          "reads": [
+            "revenue",
+            "opex",
+            "debt",
+            "debt.total",
+            "loans",
+            "loans[].amount",
+            "rate"
+          ],
+          "to": 89,
+          "value": {
+            "display": "{\"noi\": null, \"dscr\": null, \"all\": [null]}",
+            "feel": "{noi: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key 'opex')), dscr: null([division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt')), all: [null([multiplication] incompatible types: null(context has no value for key 'loans') * null(context has no value for key 'rate'))]}",
+            "isNull": false,
+            "type": "context<all: list<Null>, dscr: Null, noi: Null>",
+            "typed": {
+              "components": [
+                {
+                  "isNil": false,
+                  "name": "noi",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": true,
+                      "text": null,
+                      "type": null
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "dscr",
+                  "value": {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": true,
+                      "text": null,
+                      "type": null
+                    }
+                  }
+                },
+                {
+                  "isNil": false,
+                  "name": "all",
+                  "value": {
+                    "components": null,
+                    "list": {
+                      "isNil": false,
+                      "items": [
+                        {
+                          "components": null,
+                          "list": null,
+                          "simple": {
+                            "isNil": true,
+                            "text": null,
+                            "type": null
+                          }
+                        }
+                      ]
+                    },
+                    "simple": null
+                  }
+                }
+              ],
+              "list": null,
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 1,
+          "kind": "Entry",
+          "name": "noi",
+          "reads": [
+            "revenue",
+            "opex"
+          ],
+          "to": 20,
+          "value": {
+            "display": "null",
+            "feel": "null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key 'opex'))",
+            "isNull": true,
+            "nullReason": "[subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key 'opex')",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 22,
+          "kind": "Entry",
+          "name": "dscr",
+          "reads": [
+            "noi",
+            "debt",
+            "debt.total"
+          ],
+          "to": 44,
+          "value": {
+            "display": "null",
+            "feel": "null([division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt'))",
+            "isNull": true,
+            "nullReason": "[division] incompatible types: null([subtraction] incompatible types: null(context has no value for key 'revenue') - null(context has no value for key … / null(context has no value for key 'debt')",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 46,
+          "iterations": 1,
+          "kind": "Entry",
+          "name": "all",
+          "reads": [
+            "loans",
+            "loans[].amount",
+            "rate"
+          ],
+          "to": 88,
+          "value": {
+            "display": "[null]",
+            "feel": "[null([multiplication] incompatible types: null(context has no value for key 'loans') * null(context has no value for key 'rate'))]",
+            "isNull": false,
+            "type": "list<Null>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": true,
+                      "text": null,
+                      "type": null
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 51,
+          "iterations": 1,
+          "kind": "For",
+          "reads": [
+            "loans",
+            "loans[].amount",
+            "rate"
+          ],
+          "to": 88,
+          "value": {
+            "display": "[null]",
+            "feel": "[null([multiplication] incompatible types: null(context has no value for key 'loans') * null(context has no value for key 'rate'))]",
+            "isNull": false,
+            "type": "list<Null>",
+            "typed": {
+              "components": null,
+              "list": {
+                "isNil": false,
+                "items": [
+                  {
+                    "components": null,
+                    "list": null,
+                    "simple": {
+                      "isNil": true,
+                      "text": null,
+                      "type": null
+                    }
+                  }
+                ]
+              },
+              "simple": null
+            }
+          }
+        },
+        {
+          "from": 60,
+          "kind": "Name",
+          "nullCode": "missing-entry",
+          "nullOrigin": true,
+          "reads": [
+            "loans"
+          ],
+          "to": 65,
+          "value": {
+            "display": "null",
+            "feel": "null(context has no value for key 'loans')",
+            "isNull": true,
+            "nullReason": "context has no value for key 'loans'",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          }
+        },
+        {
+          "from": 73,
+          "iteration": 0,
+          "kind": "Multiplication",
+          "reads": [
+            "l",
+            "l.amount",
+            "rate"
+          ],
+          "to": 88,
+          "value": {
+            "display": "null",
+            "feel": "null([multiplication] incompatible types: null(context has no value for key 'loans') * null(context has no value for key 'rate'))",
+            "isNull": true,
+            "nullReason": "[multiplication] incompatible types: null(context has no value for key 'loans') * null(context has no value for key 'rate')",
+            "type": "Null",
+            "typed": {
+              "components": null,
+              "list": null,
+              "simple": {
+                "isNil": true,
+                "text": null,
+                "type": null
+              }
+            }
+          },
+          "within": [
+            {
+              "at": [
+                51,
+                88
+              ],
+              "iteration": 0
+            }
+          ]
+        }
+      ],
+      "traceTruncated": false,
+      "warnings": []
+    }
+  },
+  {
+    "request": {
+      "op": "explain",
+      "expression": "1",
+      "reads": 1
+    },
+    "why": "The operation explain (request 7 of the consumer's editor requests; the owner's yes to the layered design, 2026-11-25): the answer of evaluate and the values of the root of the text and of the nodes that expand names, each where it is evaluated (an iteration of a loop or a filter, the body that an invocation runs); a null record says the part its null is from, or that the null is its own and why (five codes, the owner's yes of 2026-11-25); with reads, the names that the text of each node reads.",
+    "old": {
+      "error": {
+        "kind": "request",
+        "message": "unknown op 'explain' (expected 'evaluate', 'evaluateAll', 'parse', 'syntax', 'complete', 'outline', 'format' or 'info')"
+      },
+      "ok": false
+    },
+    "new": {
+      "error": {
+        "kind": "request",
+        "message": "'reads' must be true or false"
+      },
+      "ok": false
     }
   }
 ]

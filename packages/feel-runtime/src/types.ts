@@ -178,6 +178,8 @@ export interface ExplainRequest extends Omit<EvaluateRequest, 'dialect' | 'input
   expand?: ExpandEntry[];
   /** The most records of the answer, 1 to 10000 (default 200); beyond it `traceTruncated` is true. */
   maxRecords?: number;
+  /** With true each record has `reads`, the names that the text of its node reads. */
+  reads?: boolean;
 }
 
 /** A value too long to write whole in a record: its type and, of a list or a context, how many items or entries it has. */
@@ -208,6 +210,10 @@ export interface TraceRecord {
   nullFrom?: { at: [number, number]; within?: TraceStep[] };
   /** Of a null: the null is the node's own (its parts are not null, or it has none). */
   nullOrigin?: true;
+  /** With `nullOrigin`: why the null is the node's own. */
+  nullCode?: 'missing-entry' | 'null-input' | 'operator' | 'function' | 'other';
+  /** Asked for with `reads`: the names that the text of the node reads from around it, as paths (`loans[].amount`). */
+  reads?: string[];
 }
 
 /** The answer of `explain`: that of `evaluate`, and the records in the order of the text. */

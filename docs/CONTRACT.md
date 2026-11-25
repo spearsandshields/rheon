@@ -448,7 +448,8 @@ It takes the fields of `evaluate` (an expression only: `dialect` is `"expression
 
 ```jsonc
 "expand": [ [from, to], { "at": [from, to], "within": [ … ], "iterations": [from, to] }, … ],  // optional
-"maxRecords": 200                                                                              // optional, 1 to 10000
+"maxRecords": 200,                                                                             // optional, 1 to 10000
+"reads": true                                                                                  // optional
 ```
 
 and answers what `evaluate` answers (`result`, `warnings`, `diagnostics`) with
@@ -459,7 +460,9 @@ and answers what `evaluate` answers (`result`, `warnings`, `diagnostics`) with
     "name": "…",                                                   // of an entry of a context literal
     "iteration": 1, "iterations": 3,                               // see the loops below
     "within": [ { "at": [4, 57], "iteration": 1 }, { "at": [61, 68], "call": true } ],
-    "nullFrom": { "at": [0, 23], "within": [ … ] }, "nullOrigin": true } ],
+    "nullFrom": { "at": [0, 23], "within": [ … ] },
+    "nullOrigin": true, "nullCode": "missing-entry",
+    "reads": ["loans[].amount", "rate"] } ],
 "traceTruncated": false
 ```
 
@@ -501,6 +504,19 @@ and answers what `evaluate` answers (`result`, `warnings`, `diagnostics`) with
   the null can be from an iteration that has no record, and when the trace is cut. The way is
   not followed through a value: a null that is an item of a list or an entry of a context
   given by the host, and a name that a loop, a filter or a parameter binds, end it.
+- With `nullOrigin` stands `nullCode`, why the null is the node's own: `missing-entry` (a name
+  that nothing gives, an entry that its context does not have, a property that its value does
+  not have), `null-input` (a name or an entry that is given null: by the context of the
+  request, an argument, an item of a loop), `operator` (an operator or a filter whose operands
+  are not null), `function` (an invocation whose arguments are not null, or that ran no body
+  of the text), `other` (`null` written, a name in the predicate of a filter, which an item
+  can have, and what is none of these). The codes are stable; the finer reason is the text of
+  `nullReason` of the value and of the `diagnostics`.
+- With `"reads": true` each record has `reads`: the names that the text of its node reads
+  from around it, as paths (`debt.total`, `loans[].amount`; the notation of `paths`), in the
+  order of the text. It says what the node can read, not what this evaluation read: both
+  branches of an `if` are in it. A name that the node itself binds (the variable of its loop)
+  is not; in a part of that loop the variable is a name read (`l.amount`).
 - At most `maxRecords` records are kept (default 200); with more, `traceTruncated` is true
   and the evaluation and its `result` are as without the limit.
 - A failure is the failure of `evaluate` for the same request (`syntax-error`, `limit-steps`,

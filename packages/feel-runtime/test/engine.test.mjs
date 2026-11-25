@@ -479,10 +479,10 @@ test('real worker: explain follows a null to the node it is from', async (t) => 
     expand = [...expand, from];
     const next = await engine.explain({ ...request, expand });
     const record = next.trace.find((r) => r.from === from.at[0] && r.to === from.at[1]);
-    way.push([record.kind, record.name ?? null, record.nullOrigin ?? false]);
+    way.push([record.kind, record.name ?? null, record.nullCode ?? false]);
     from = record.nullFrom;
   }
-  assert.deepEqual(way, [['Entry', 'result', false], ['Name', null, false], ['Entry', 'base', true]]);
+  assert.deepEqual(way, [['Entry', 'result', false], ['Name', null, false], ['Entry', 'base', 'missing-entry']]);
   // a request that the module refuses is its failure
   const refused = await engine.explain({ ...request, expand: [[3, 4]] });
   assert.equal(refused.ok, false);
